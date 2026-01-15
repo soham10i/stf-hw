@@ -1,0 +1,27 @@
+# STF Digital Twin - Python Simulation Services
+# Install with: pip install -r requirements.txt
+
+# MQTT Client
+paho-mqtt>=2.0.0
+
+# Async support
+asyncio-mqtt>=0.16.0
+aiomqtt>=2.0.0
+
+# HTTP client for API communication
+httpx>=0.27.0
+aiohttp>=3.9.0
+
+# Database (for direct DB access if needed)
+sqlalchemy>=2.0.0
+mysql-connector-python>=8.0.0
+pymysql>=1.1.0
+
+# Environment management
+python-dotenv>=1.0.0
+
+# Data handling
+pandas>=2.0.0
+
+# Utilities
+python-dateutil>=2.8.0
