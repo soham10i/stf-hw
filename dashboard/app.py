@@ -710,14 +710,9 @@ else:
     st.error("Unable to connect to API. Make sure the FastAPI server is running.")
     st.info(f"Expected API URL: {API_URL}")
 
-# Auto-refresh
-st.markdown("""
-<script>
-    setTimeout(function() {
-        window.location.reload();
-    }, 2000);
-</script>
-""", unsafe_allow_html=True)
+# Auto-refresh using Streamlit's native rerun
+time.sleep(REFRESH_INTERVAL)
+st.rerun()
 
 # Footer
 st.markdown("""

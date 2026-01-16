@@ -100,7 +100,7 @@ class MainController:
         if not MQTT_AVAILABLE:
             return
         
-        self.mqtt_client = mqtt.Client(client_id="stf_controller")
+        self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="stf_controller")
         self.mqtt_client.on_connect = self._on_mqtt_connect
         self.mqtt_client.on_message = self._on_mqtt_message
         
@@ -112,9 +112,30 @@ class MainController:
             print(f"[Controller] MQTT connection failed: {e}")
             self.mqtt_client = None
     
-    def _on_mqtt_connect(self, client, userdata, flags, rc):
-        """MQTT connection callback"""
-        if rc == 0:
+    def _on_mqtt_connect(self, client, userdata, flags, reason_code, properties=None):
+        """
+        MQTT connection callback handler for paho-mqtt v2.x.
+
+        Establishes subscription to hardware status and command topics upon successful connection.
+
+        Topics subscribed:
+            - stf/hbw/status: High-Bay Warehouse (HBW) status updates
+            - stf/vgr/status: Vacuum Gripper Robot (VGR) status updates
+            - stf/conveyor/status: Conveyor system status updates
+            - stf/global/cmd/#: Global command topic (wildcard subscription for all command subtopics)
+
+        Args:
+            client: MQTT client instance
+            userdata: User-defined data passed to callbacks
+            flags: Response flags sent by broker
+            reason_code: Connection result code (0 or "Success" indicates successful connection)
+            properties: MQTT v5.0 properties (optional)
+
+        Returns:
+            None
+        """
+        """MQTT connection callback (paho-mqtt v2.x compatible)"""
+        if reason_code == 0 or str(reason_code) == "Success":
             # Subscribe to hardware status topics
             topics = [
                 "stf/hbw/status",

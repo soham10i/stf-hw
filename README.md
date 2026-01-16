@@ -21,7 +21,7 @@ The Smart Tabletop Factory (STF) Digital Twin simulates a high-bay warehouse aut
 │         │                   │                                  │
 │         ▼                   ▼                                  │
 │  ┌──────────────────────────────────────────────────────────┐ │
-│  │                  MQTT Broker (Port 1883)                  │ │
+│  │                  MQTT Broker (Port 1883)                 │ │
 │  └──────────────────────────────────────────────────────────┘ │
 │         │                   │                   │              │
 │         ▼                   ▼                   ▼              │
@@ -42,6 +42,7 @@ The Smart Tabletop Factory (STF) Digital Twin simulates a high-bay warehouse aut
 ## Features
 
 ### Main Dashboard
+
 - **Industrial Apple Glassmorphism** design with frosted glass effects
 - **Live 2D robot position** monitoring with scatter plot
 - **3x3 inventory grid** with color-coded cookie flavors
@@ -52,6 +53,7 @@ The Smart Tabletop Factory (STF) Digital Twin simulates a high-bay warehouse aut
 - **Auto-refresh** every 2 seconds
 
 ### Analytics Page
+
 - **Energy consumption** time-series charts by device
 - **Production throughput** visualization with daily/weekly trends
 - **Hardware utilization** heatmaps showing activity patterns
@@ -61,6 +63,7 @@ The Smart Tabletop Factory (STF) Digital Twin simulates a high-bay warehouse aut
 - **Date range filtering** (24h, 7d, 30d, 90d, custom)
 
 ### Simulation
+
 - **AsyncIO-based physics** at 10Hz tick rate
 - **MQTT communication** for hardware commands/telemetry
 - **FSM controller** with 9 operational states
@@ -104,6 +107,7 @@ MQTT_PORT=1883
 ### Start Services
 
 **Option 1: Run script (Linux/macOS)**
+
 ```bash
 ./run_all.sh
 ```
@@ -125,18 +129,19 @@ streamlit run dashboard/app.py
 ```
 
 **Option 3: Docker infrastructure**
+
 ```bash
 docker-compose up -d  # Starts MySQL + Mosquitto + Adminer
 ```
 
 ### Access Points
 
-| Service | URL |
-|---------|-----|
-| Dashboard | http://localhost:8501 |
-| Analytics | http://localhost:8501/analytics |
-| API Docs | http://localhost:8000/docs |
-| Adminer (Docker) | http://localhost:8080 |
+| Service          | URL                             |
+| ---------------- | ------------------------------- |
+| Dashboard        | http://localhost:8501           |
+| Analytics        | http://localhost:8501/analytics |
+| API Docs         | http://localhost:8000/docs      |
+| Adminer (Docker) | http://localhost:8080           |
 
 ## Project Structure
 
@@ -165,47 +170,47 @@ stf_project/
 
 ## API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check |
-| `/dashboard/data` | GET | All dashboard data |
-| `/inventory` | GET | List inventory slots |
-| `/hardware/states` | GET | All hardware states |
-| `/hardware/state` | POST | Update hardware state |
-| `/order/store` | POST | Store a cookie |
-| `/order/retrieve` | POST | Retrieve a cookie |
-| `/telemetry` | POST | Record telemetry |
-| `/energy` | POST | Record energy usage |
-| `/maintenance/reset` | POST | Reset system |
-| `/maintenance/emergency-stop` | POST | Emergency stop |
+| Endpoint                        | Method | Description           |
+| ------------------------------- | ------ | --------------------- |
+| `/health`                     | GET    | Health check          |
+| `/dashboard/data`             | GET    | All dashboard data    |
+| `/inventory`                  | GET    | List inventory slots  |
+| `/hardware/states`            | GET    | All hardware states   |
+| `/hardware/state`             | POST   | Update hardware state |
+| `/order/store`                | POST   | Store a cookie        |
+| `/order/retrieve`             | POST   | Retrieve a cookie     |
+| `/telemetry`                  | POST   | Record telemetry      |
+| `/energy`                     | POST   | Record energy usage   |
+| `/maintenance/reset`          | POST   | Reset system          |
+| `/maintenance/emergency-stop` | POST   | Emergency stop        |
 
 ## Database Schema
 
-| Table | Description |
-|-------|-------------|
-| `py_carriers` | Carrier entities |
-| `py_cookies` | Cookie batches |
-| `py_inventory_slots` | 3x3 rack grid |
-| `py_hardware_states` | Device positions |
-| `py_system_logs` | System logs |
-| `py_energy_logs` | Energy consumption |
-| `py_telemetry_history` | Time-series data |
-| `py_alerts` | System alerts |
-| `py_commands` | Command history |
+| Table                    | Description        |
+| ------------------------ | ------------------ |
+| `py_carriers`          | Carrier entities   |
+| `py_cookies`           | Cookie batches     |
+| `py_inventory_slots`   | 3x3 rack grid      |
+| `py_hardware_states`   | Device positions   |
+| `py_system_logs`       | System logs        |
+| `py_energy_logs`       | Energy consumption |
+| `py_telemetry_history` | Time-series data   |
+| `py_alerts`            | System alerts      |
+| `py_commands`          | Command history    |
 
 ## Coordinate System
 
 | Slot | X (mm) | Y (mm) |
-|------|--------|--------|
-| A1 | 100 | 100 |
-| A2 | 200 | 100 |
-| A3 | 300 | 100 |
-| B1 | 100 | 200 |
-| B2 | 200 | 200 |
-| B3 | 300 | 200 |
-| C1 | 100 | 300 |
-| C2 | 200 | 300 |
-| C3 | 300 | 300 |
+| ---- | ------ | ------ |
+| A1   | 100    | 100    |
+| A2   | 200    | 100    |
+| A3   | 300    | 100    |
+| B1   | 100    | 200    |
+| B2   | 200    | 200    |
+| B3   | 300    | 200    |
+| C1   | 100    | 300    |
+| C2   | 200    | 300    |
+| C3   | 300    | 300    |
 
 ## Safety Features
 
@@ -217,6 +222,7 @@ stf_project/
 ## Documentation
 
 For detailed setup instructions including:
+
 - Windows installation guide
 - macOS installation guide
 - Local MySQL setup

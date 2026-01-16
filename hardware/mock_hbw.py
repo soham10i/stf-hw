@@ -102,9 +102,9 @@ class MockHBW:
             print(f"[{self.device_id}] MQTT connection failed: {e}")
             self.mqtt_client = None
     
-    def _on_mqtt_connect(self, client, userdata, flags, rc):
-        """MQTT connection callback"""
-        if rc == 0:
+    def _on_mqtt_connect(self, client, userdata, flags, reason_code, properties=None):
+        """MQTT connection callback (paho-mqtt v2.x compatible)"""
+        if reason_code == 0 or str(reason_code) == "Success":
             # Subscribe to command topics
             topics = [
                 f"stf/{self.device_id.lower()}/cmd/move_x",
