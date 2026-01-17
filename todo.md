@@ -182,3 +182,39 @@
 - [x] Document Node-RED strategy for RevPi integration
 - [x] Explain API (MQTT) → Node-RED → RevPi DIO/AIO flow
 - [x] Provide sample Node-RED flow JSON for conveyor motor
+
+
+## Phase 4: 3D CAD-like Visualization
+
+### Plotly 3D Visualization
+- [x] Create `visualization_3d.py` Streamlit page
+- [x] Implement 3D warehouse geometry builder
+- [x] Add storage rack frame with vertical posts and shelves
+- [x] Add 3x3 storage slot visualization with inventory colors
+- [x] Add robot arm (carriage, telescopic arm, gripper)
+- [x] Add conveyor belt with moving item
+- [x] Add 4 light barrier sensor indicators
+- [x] Add floor and guide rails
+- [x] Implement camera presets (Isometric, Front, Side, Top, Robot Focus)
+- [x] Connect to API for real-time position updates
+- [x] Add auto-refresh capability
+
+### PyVista CAD Visualization (Alternative)
+- [x] Create `visualization_3d_pyvista.py` Streamlit page
+- [x] Implement PyVista mesh generation for warehouse components
+- [x] Add VTK-based high-quality rendering
+- [x] Integrate with stpyvista for Streamlit embedding
+
+### Standalone Demo
+- [x] Create `demo_3d_visualization.py` standalone demo
+- [x] Implement interactive robot controls
+- [x] Add conveyor belt animation
+- [x] Add inventory grid visualization
+- [x] Add gripper extend/retract controls
+
+### Documentation
+- [x] Create `docs/3D_VISUALIZATION.md`
+- [x] Document Plotly vs PyVista options
+- [x] Document camera controls and presets
+- [x] Document customization options
+- [x] Update requirements.txt with 3D dependencies

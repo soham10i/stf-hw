@@ -15,9 +15,16 @@ pandas>=2.0.0
 
 # HTTP Client
 httpx>=0.25.0
+requests>=2.31.0
 
 # MQTT (optional)
 paho-mqtt>=1.6.0
+
+# 3D Visualization
+numpy>=1.24.0
+pyvista>=0.43.0
+stpyvista>=0.1.0
+trimesh>=4.0.0
 
 # Utilities
 python-dotenv>=1.0.0
