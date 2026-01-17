@@ -141,3 +141,44 @@
 - [x] Docker alternative setup
 - [x] Environment configuration guide
 - [x] Troubleshooting section
+
+
+## Phase 3: High-Fidelity Component Twin Upgrade
+
+### Database Architecture
+- [x] Create `component_registry` table (id, name, subsystem, type, spec_voltage, spec_max_current, maintenance_interval_hours)
+- [x] Add `health_score` (0.0-1.0) to MotorState
+- [x] Add `accumulated_runtime_sec` to MotorState
+- [x] Update Cookie lifecycle states (RAW_DOUGH → BAKED → PACKAGED)
+- [x] Seed 12 components: HBW (4), CONVEYOR (5), VGR (5)
+- [x] Seed all 9 warehouse slots with RAW_DOUGH cookies
+
+### Physics Engine Simulation
+- [x] Rename mock_hbw.py to mock_factory.py
+- [x] Implement conveyor belt physics (belt_position_mm 0-1000mm)
+- [x] Implement 4 light sensors based on belt position
+- [x] Implement electrical simulation (Idle: 0.05A, Startup: 2.5A, Moving: 1.2A)
+- [x] Implement anomaly injection when health_score < 0.8
+- [x] Implement preventive maintenance model (health degradation)
+- [x] Implement micro-stoppages when health_score < 0.5
+
+### WebSocket Real-Time API
+- [x] Implement ConnectionManager for WebSocket clients
+- [x] Create WebSocket endpoint at /ws
+- [x] Implement broadcast strategy for hardware state updates
+- [x] Add GET /components/specs endpoint
+- [x] Add POST /order/process endpoint for cookie lifecycle
+
+### Dashboard Enhancements
+- [x] Replace polling with WebSocket client thread (fallback polling implemented)
+- [x] Add conveyor belt progress bar visualization
+- [x] Add 4 sensor indicators for conveyor
+- [x] Add "Time to Failure" estimations for motors
+- [x] Add live power gauge with current draw
+- [x] Add spec_max_current limit line to power chart
+
+### Hardware Bridge Documentation
+- [x] Create docs/HARDWARE_BRIDGE.md
+- [x] Document Node-RED strategy for RevPi integration
+- [x] Explain API (MQTT) → Node-RED → RevPi DIO/AIO flow
+- [x] Provide sample Node-RED flow JSON for conveyor motor

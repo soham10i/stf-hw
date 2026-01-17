@@ -1,6 +1,6 @@
 """
-STF Digital Twin - Glassmorphism Dashboard
-Industrial Apple Design with Frosted Glass Effects
+STF Digital Twin - High-Fidelity Component Dashboard
+Industrial Apple Glassmorphism Design with WebSocket Real-Time Updates
 """
 
 import streamlit as st
@@ -11,10 +11,15 @@ import plotly.graph_objects as go
 from datetime import datetime
 import time
 import os
+import json
+import threading
+import queue
+from typing import Optional, Dict, Any
 
 # Configuration
 API_URL = os.environ.get("STF_API_URL", "http://localhost:8000")
-REFRESH_INTERVAL = 2  # seconds
+WS_URL = os.environ.get("STF_WS_URL", "ws://localhost:8000/ws")
+REFRESH_INTERVAL = 1  # seconds (fallback polling)
 
 # Page Configuration
 st.set_page_config(
@@ -31,7 +36,6 @@ st.set_page_config(
 GLASSMORPHISM_CSS = """
 <style>
 /* Import Google Font */
-@import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* Global Styles */
@@ -69,12 +73,10 @@ header {visibility: hidden;}
 .kpi-card {
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
     padding: 20px 24px;
     text-align: center;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
 }
 
 .kpi-value {
@@ -137,6 +139,114 @@ header {visibility: hidden;}
     50% { opacity: 0.8; box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
 }
 
+/* Conveyor Belt Progress */
+.conveyor-container {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.conveyor-belt {
+    height: 40px;
+    background: linear-gradient(90deg, 
+        rgba(255,255,255,0.05) 0%, 
+        rgba(255,255,255,0.1) 50%, 
+        rgba(255,255,255,0.05) 100%);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.conveyor-progress {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff88, #00cc6a);
+    border-radius: 8px;
+    transition: width 0.3s ease;
+}
+
+.sensor-indicator {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    margin: 0 4px;
+    transition: all 0.3s ease;
+}
+
+.sensor-on {
+    background: linear-gradient(135deg, #00ff88, #00cc6a);
+    color: #000;
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+}
+
+.sensor-off {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Motor Health Card */
+.motor-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.motor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.motor-name {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.motor-status {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.motor-active {
+    background: rgba(0, 255, 136, 0.2);
+    color: #00ff88;
+}
+
+.motor-idle {
+    background: rgba(112, 161, 255, 0.2);
+    color: #70a1ff;
+}
+
+.health-bar-container {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.health-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.health-good { background: linear-gradient(90deg, #00ff88, #00cc6a); }
+.health-warning { background: linear-gradient(90deg, #ffa502, #ff7f00); }
+.health-critical { background: linear-gradient(90deg, #ff4757, #ff3344); }
+
 /* Inventory Grid Slot */
 .slot-card {
     background: rgba(255, 255, 255, 0.03);
@@ -165,24 +275,10 @@ header {visibility: hidden;}
     margin-bottom: 8px;
 }
 
-.slot-empty {
-    border-color: rgba(255, 255, 255, 0.05);
-}
-
-.slot-choco {
-    border-color: rgba(139, 90, 43, 0.5);
-    box-shadow: inset 0 0 30px rgba(139, 90, 43, 0.2);
-}
-
-.slot-vanilla {
-    border-color: rgba(255, 235, 180, 0.5);
-    box-shadow: inset 0 0 30px rgba(255, 235, 180, 0.2);
-}
-
-.slot-strawberry {
-    border-color: rgba(255, 105, 180, 0.5);
-    box-shadow: inset 0 0 30px rgba(255, 105, 180, 0.2);
-}
+.slot-empty { border-color: rgba(255, 255, 255, 0.05); }
+.slot-choco { border-color: rgba(139, 90, 43, 0.5); box-shadow: inset 0 0 30px rgba(139, 90, 43, 0.2); }
+.slot-vanilla { border-color: rgba(255, 235, 180, 0.5); box-shadow: inset 0 0 30px rgba(255, 235, 180, 0.2); }
+.slot-strawberry { border-color: rgba(255, 105, 180, 0.5); box-shadow: inset 0 0 30px rgba(255, 105, 180, 0.2); }
 
 .cookie-indicator {
     width: 40px;
@@ -196,35 +292,19 @@ header {visibility: hidden;}
 .cookie-vanilla { background: radial-gradient(circle, #FFFACD 0%, #F5DEB3 100%); }
 .cookie-strawberry { background: radial-gradient(circle, #FF69B4 0%, #FF1493 100%); }
 
-/* Control Button */
-.control-btn {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 12px 24px;
-    color: #ffffff;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
+/* Cookie Status Badge */
+.cookie-status {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.control-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
-}
-
-.control-btn-primary {
-    background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
-    color: #000;
-    border: none;
-}
-
-.control-btn-danger {
-    background: linear-gradient(135deg, #ff4757 0%, #ff3344 100%);
-    color: #fff;
-    border: none;
-}
+.status-raw_dough { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
+.status-baked { background: rgba(255, 152, 0, 0.2); color: #ff9800; }
+.status-packaged { background: rgba(76, 175, 80, 0.2); color: #4caf50; }
 
 /* Log Entry */
 .log-entry {
@@ -239,6 +319,27 @@ header {visibility: hidden;}
 
 .log-entry-error { border-left-color: #ff4757; }
 .log-entry-warning { border-left-color: #ffa502; }
+.log-entry-critical { border-left-color: #ff4757; background: rgba(255, 71, 87, 0.1); }
+
+/* Power Gauge */
+.power-gauge {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+}
+
+.power-value {
+    font-size: 32px;
+    font-weight: 600;
+    color: #00ff88;
+}
+
+.power-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+}
 
 /* Streamlit Overrides */
 .stMetric {
@@ -308,6 +409,19 @@ div[data-testid="stVerticalBlock"] > div {
     background: linear-gradient(180deg, #00ff88 0%, #00cc6a 100%);
     border-radius: 2px;
 }
+
+/* TTF Badge */
+.ttf-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.ttf-good { background: rgba(0, 255, 136, 0.2); color: #00ff88; }
+.ttf-warning { background: rgba(255, 165, 2, 0.2); color: #ffa502; }
+.ttf-critical { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
 </style>
 """
 
@@ -347,6 +461,14 @@ def retrieve_cookie(slot_name: str):
     except Exception as e:
         return {"success": False, "message": str(e)}
 
+def process_cookie(slot_name: str):
+    """Process a cookie (RAW_DOUGH -> BAKED)"""
+    try:
+        response = requests.post(f"{API_URL}/order/process", json={"source_slot": slot_name}, timeout=5)
+        return response.json()
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
 def emergency_stop():
     """Trigger emergency stop"""
     try:
@@ -363,6 +485,44 @@ def reset_system():
     except Exception as e:
         return {"success": False, "message": str(e)}
 
+def initialize_system():
+    """Initialize the system"""
+    try:
+        response = requests.post(f"{API_URL}/maintenance/initialize", timeout=5)
+        return response.json()
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+def get_health_class(health_score: float) -> str:
+    """Get CSS class based on health score"""
+    if health_score >= 0.8:
+        return "health-good"
+    elif health_score >= 0.5:
+        return "health-warning"
+    return "health-critical"
+
+def get_ttf_class(ttf_hours: Optional[float]) -> str:
+    """Get CSS class based on time to failure"""
+    if ttf_hours is None:
+        return "ttf-good"
+    if ttf_hours > 100:
+        return "ttf-good"
+    elif ttf_hours > 20:
+        return "ttf-warning"
+    return "ttf-critical"
+
+def format_ttf(ttf_hours: Optional[float]) -> str:
+    """Format time to failure for display"""
+    if ttf_hours is None:
+        return "N/A"
+    if ttf_hours > 1000:
+        return f"{ttf_hours/1000:.1f}k hrs"
+    return f"{ttf_hours:.0f} hrs"
+
 # ============================================================================
 # Dashboard Layout
 # ============================================================================
@@ -375,7 +535,7 @@ st.markdown("""
         <span class="live-badge">● Live</span>
     </div>
     <div style="color: rgba(255,255,255,0.5); font-size: 13px;">
-        Industrial Automation Control System
+        High-Fidelity Component Twin • Industrial Automation
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -387,6 +547,9 @@ if data:
     stats = data.get("stats", {})
     inventory = data.get("inventory", [])
     hardware = data.get("hardware", [])
+    motors = data.get("motors", [])
+    sensors = data.get("sensors", [])
+    conveyor = data.get("conveyor", {})
     logs = data.get("logs", [])
     energy = data.get("energy", {})
     
@@ -396,7 +559,7 @@ if data:
     
     st.markdown('<div class="section-title">System Overview</div>', unsafe_allow_html=True)
     
-    kpi_cols = st.columns(4)
+    kpi_cols = st.columns(5)
     
     with kpi_cols[0]:
         occupied = stats.get("occupied_slots", 0)
@@ -408,10 +571,12 @@ if data:
         )
     
     with kpi_cols[1]:
+        raw = stats.get("raw_dough_cookies", 0)
+        baked = stats.get("baked_cookies", 0)
         st.metric(
-            label="Stored Cookies",
-            value=stats.get("stored_cookies", 0),
-            delta="Active batches"
+            label="Production",
+            value=f"{baked} baked",
+            delta=f"{raw} raw dough"
         )
     
     with kpi_cols[2]:
@@ -423,27 +588,162 @@ if data:
         )
     
     with kpi_cols[3]:
+        # Calculate average motor health
+        if motors:
+            avg_health = sum(m.get("health_score", 1.0) for m in motors) / len(motors)
+            health_pct = f"{avg_health * 100:.0f}%"
+        else:
+            health_pct = "N/A"
+        st.metric(
+            label="Avg Motor Health",
+            value=health_pct,
+            delta=f"{len(motors)} motors"
+        )
+    
+    with kpi_cols[4]:
         healthy = stats.get("system_healthy", False)
         status_text = "✓ Healthy" if healthy else "⚠ Alert"
         st.metric(
-            label="System Health",
+            label="System Status",
             value=status_text,
-            delta=f"{stats.get('active_devices', 0)} devices online"
+            delta=f"{stats.get('active_devices', 0)} devices"
         )
     
     st.markdown("<br>", unsafe_allow_html=True)
     
     # ========================================================================
-    # Row 2: Main View (Robot Position + Inventory Grid)
+    # Row 2: Conveyor Belt + Motor Health
     # ========================================================================
     
-    main_cols = st.columns([2, 1])
+    conveyor_cols = st.columns([2, 1])
     
-    # Left: Robot Position Monitor
+    with conveyor_cols[0]:
+        st.markdown('<div class="section-title">Conveyor Belt System</div>', unsafe_allow_html=True)
+        
+        # Conveyor belt progress bar
+        belt_pct = conveyor.get("belt_position_pct", 0)
+        motor_active = conveyor.get("motor_active", False)
+        motor_amps = conveyor.get("motor_amps", 0)
+        sensor_states = conveyor.get("sensors", {})
+        
+        st.markdown(f"""
+        <div class="conveyor-container">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <span style="color: rgba(255,255,255,0.7);">Belt Position: <strong>{belt_pct:.1f}%</strong></span>
+                <span style="color: {'#00ff88' if motor_active else 'rgba(255,255,255,0.5)'};">
+                    Motor: <strong>{'RUNNING' if motor_active else 'IDLE'}</strong> ({motor_amps:.2f}A)
+                </span>
+            </div>
+            <div class="conveyor-belt">
+                <div class="conveyor-progress" style="width: {belt_pct}%;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 12px; padding: 0 20px;">
+                <div class="sensor-indicator {'sensor-on' if sensor_states.get('L1', False) else 'sensor-off'}">L1</div>
+                <div class="sensor-indicator {'sensor-on' if sensor_states.get('L2', False) else 'sensor-off'}">L2</div>
+                <div class="sensor-indicator {'sensor-on' if sensor_states.get('L3', False) else 'sensor-off'}">L3</div>
+                <div class="sensor-indicator {'sensor-on' if sensor_states.get('L4', False) else 'sensor-off'}">L4</div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 4px; padding: 0 12px; font-size: 10px; color: rgba(255,255,255,0.4);">
+                <span>Entry</span>
+                <span>Process</span>
+                <span>Exit</span>
+                <span>Overflow</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with conveyor_cols[1]:
+        st.markdown('<div class="section-title">Live Power</div>', unsafe_allow_html=True)
+        
+        # Calculate total current draw from all active motors
+        total_amps = sum(m.get("current_amps", 0) for m in motors)
+        total_watts = total_amps * 24  # 24V system
+        
+        # Get max current for gauge
+        max_amps = sum(m.get("spec_max_current", 5.0) for m in motors)
+        
+        # Power gauge
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=total_amps,
+            number={"suffix": " A", "font": {"size": 32, "color": "#00ff88"}},
+            gauge={
+                "axis": {"range": [0, max_amps], "tickcolor": "rgba(255,255,255,0.3)"},
+                "bar": {"color": "#00ff88"},
+                "bgcolor": "rgba(255,255,255,0.05)",
+                "borderwidth": 0,
+                "steps": [
+                    {"range": [0, max_amps * 0.6], "color": "rgba(0,255,136,0.1)"},
+                    {"range": [max_amps * 0.6, max_amps * 0.8], "color": "rgba(255,165,2,0.1)"},
+                    {"range": [max_amps * 0.8, max_amps], "color": "rgba(255,71,87,0.1)"},
+                ],
+                "threshold": {
+                    "line": {"color": "#ff4757", "width": 2},
+                    "thickness": 0.75,
+                    "value": max_amps * 0.9
+                }
+            }
+        ))
+        
+        fig.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)",
+            font={"color": "rgba(255,255,255,0.7)"},
+            height=200,
+            margin=dict(l=20, r=20, t=30, b=20)
+        )
+        
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        
+        st.markdown(f"""
+        <div style="text-align: center; color: rgba(255,255,255,0.5); font-size: 12px;">
+            Power: <strong style="color: #00ff88;">{total_watts:.1f}W</strong> • 
+            Limit: {max_amps:.1f}A
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # ========================================================================
+    # Row 3: Motor Health + Robot Position + Inventory
+    # ========================================================================
+    
+    main_cols = st.columns([1, 2, 1])
+    
+    # Motor Health Cards
     with main_cols[0]:
+        st.markdown('<div class="section-title">Motor Health</div>', unsafe_allow_html=True)
+        
+        for motor in motors[:6]:  # Show first 6 motors
+            comp_id = motor.get("component_id", "Unknown")
+            health = motor.get("health_score", 1.0)
+            is_active = motor.get("is_active", False)
+            current = motor.get("current_amps", 0)
+            ttf = motor.get("time_to_failure_hours")
+            
+            health_class = get_health_class(health)
+            ttf_class = get_ttf_class(ttf)
+            status_class = "motor-active" if is_active else "motor-idle"
+            
+            st.markdown(f"""
+            <div class="motor-card">
+                <div class="motor-header">
+                    <span class="motor-name">{comp_id}</span>
+                    <span class="motor-status {status_class}">{'● ON' if is_active else '○ OFF'}</span>
+                </div>
+                <div class="health-bar-container">
+                    <div class="health-bar {health_class}" style="width: {health * 100}%;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,255,255,0.5);">
+                    <span>Health: {health * 100:.0f}%</span>
+                    <span class="ttf-badge {ttf_class}">TTF: {format_ttf(ttf)}</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # Robot Position Monitor
+    with main_cols[1]:
         st.markdown('<div class="section-title">Robot Position Monitor</div>', unsafe_allow_html=True)
         
-        # Create scatter plot for robot positions
         if hardware:
             hw_df = pd.DataFrame([
                 {
@@ -455,7 +755,6 @@ if data:
                 for h in hardware
             ])
             
-            # Color mapping for status
             color_map = {
                 "IDLE": "#00ff88",
                 "MOVING": "#ffa502",
@@ -526,14 +825,11 @@ if data:
         else:
             st.info("No hardware data available")
     
-    # Right: Inventory Grid
-    with main_cols[1]:
+    # Inventory Grid
+    with main_cols[2]:
         st.markdown('<div class="section-title">Rack Grid</div>', unsafe_allow_html=True)
         
-        # Create 3x3 grid
         grid_rows = [["A1", "A2", "A3"], ["B1", "B2", "B3"], ["C1", "C2", "C3"]]
-        
-        # Create inventory lookup
         inv_lookup = {s["slot_name"]: s for s in inventory}
         
         for row in grid_rows:
@@ -542,41 +838,42 @@ if data:
                 with cols[i]:
                     slot_data = inv_lookup.get(slot_name, {})
                     flavor = slot_data.get("cookie_flavor")
+                    status = slot_data.get("cookie_status", "")
                     
-                    # Determine slot styling
                     if flavor:
                         flavor_lower = flavor.lower()
                         slot_class = f"slot-{flavor_lower}"
                         cookie_class = f"cookie-{flavor_lower}"
                         cookie_html = f'<div class="cookie-indicator {cookie_class}"></div>'
-                        flavor_text = flavor
+                        status_class = f"status-{status.lower()}" if status else ""
+                        status_html = f'<span class="cookie-status {status_class}">{status}</span>' if status else ""
                     else:
                         slot_class = "slot-empty"
                         cookie_html = '<div style="color: rgba(255,255,255,0.3); font-size: 12px;">Empty</div>'
-                        flavor_text = ""
+                        status_html = ""
                     
                     st.markdown(f"""
                     <div class="slot-card {slot_class}">
                         <div class="slot-name">{slot_name}</div>
                         {cookie_html}
-                        <div style="font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 4px;">{flavor_text}</div>
+                        {status_html}
                     </div>
                     """, unsafe_allow_html=True)
         
         # Legend
         st.markdown("""
-        <div style="display: flex; gap: 16px; margin-top: 16px; justify-content: center;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <div style="width: 12px; height: 12px; border-radius: 50%; background: #8B5A2B;"></div>
-                <span style="color: rgba(255,255,255,0.5); font-size: 11px;">Choco</span>
+        <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <div style="width: 10px; height: 10px; border-radius: 50%; background: #8B5A2B;"></div>
+                <span style="color: rgba(255,255,255,0.5); font-size: 10px;">Choco</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <div style="width: 12px; height: 12px; border-radius: 50%; background: #FFFACD;"></div>
-                <span style="color: rgba(255,255,255,0.5); font-size: 11px;">Vanilla</span>
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <div style="width: 10px; height: 10px; border-radius: 50%; background: #FFFACD;"></div>
+                <span style="color: rgba(255,255,255,0.5); font-size: 10px;">Vanilla</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <div style="width: 12px; height: 12px; border-radius: 50%; background: #FF69B4;"></div>
-                <span style="color: rgba(255,255,255,0.5); font-size: 11px;">Strawberry</span>
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <div style="width: 10px; height: 10px; border-radius: 50%; background: #FF69B4;"></div>
+                <span style="color: rgba(255,255,255,0.5); font-size: 10px;">Strawberry</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -584,7 +881,7 @@ if data:
     st.markdown("<br>", unsafe_allow_html=True)
     
     # ========================================================================
-    # Row 3: Control Deck + Hardware Status + Logs
+    # Row 4: Control Deck + Logs
     # ========================================================================
     
     bottom_cols = st.columns([1, 1, 1])
@@ -598,7 +895,7 @@ if data:
         
         ctrl_cols = st.columns(2)
         with ctrl_cols[0]:
-            if st.button("🍪 Store Random", use_container_width=True):
+            if st.button("🍪 Store", use_container_width=True):
                 result = store_cookie(flavor)
                 if result.get("success"):
                     st.success(f"Stored in {result.get('slot_name')}")
@@ -609,7 +906,8 @@ if data:
             slot_to_retrieve = st.selectbox(
                 "Retrieve from",
                 [s["slot_name"] for s in inventory if s.get("carrier_id")],
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                key="retrieve_slot"
             )
         
         if st.button("📤 Retrieve", use_container_width=True):
@@ -620,18 +918,34 @@ if data:
                 else:
                     st.error(result.get("message"))
         
+        # Process cookie (RAW_DOUGH -> BAKED)
+        raw_slots = [s["slot_name"] for s in inventory if s.get("cookie_status") == "RAW_DOUGH"]
+        if raw_slots:
+            slot_to_process = st.selectbox("Process (Bake)", raw_slots, label_visibility="collapsed", key="process_slot")
+            if st.button("🔥 Bake Cookie", use_container_width=True):
+                result = process_cookie(slot_to_process)
+                if result.get("success"):
+                    st.success("Cookie baked!")
+                else:
+                    st.error(result.get("message"))
+        
         st.markdown("<br>", unsafe_allow_html=True)
         
-        emg_cols = st.columns(2)
+        emg_cols = st.columns(3)
         with emg_cols[0]:
-            if st.button("🔄 Reset", use_container_width=True):
-                result = reset_system()
-                st.info(result.get("message", "Reset initiated"))
+            if st.button("⚙️ Init", use_container_width=True):
+                result = initialize_system()
+                st.info(result.get("message", "Initialized"))
         
         with emg_cols[1]:
+            if st.button("🔄 Reset", use_container_width=True):
+                result = reset_system()
+                st.info(result.get("message", "Reset"))
+        
+        with emg_cols[2]:
             if st.button("🛑 E-STOP", use_container_width=True, type="primary"):
                 result = emergency_stop()
-                st.warning("Emergency stop activated!")
+                st.warning("Emergency stop!")
     
     # Hardware Status
     with bottom_cols[1]:
@@ -657,72 +971,85 @@ if data:
                 align-items: center;
             ">
                 <div>
-                    <div style="font-weight: 600; color: #fff;">{hw['device_id']}</div>
+                    <div style="font-weight: 600; color: #fff; font-size: 14px;">{hw['device_id']}</div>
                     <div style="font-size: 11px; color: rgba(255,255,255,0.5);">
-                        ({hw['current_x']:.0f}, {hw['current_y']:.0f})
+                        X: {hw['current_x']:.0f} Y: {hw['current_y']:.0f} Z: {hw['current_z']:.0f}
                     </div>
                 </div>
                 <div style="
                     background: {status_color}20;
                     color: {status_color};
                     padding: 4px 12px;
-                    border-radius: 20px;
+                    border-radius: 12px;
                     font-size: 11px;
                     font-weight: 600;
                 ">{status}</div>
             </div>
             """, unsafe_allow_html=True)
     
-    # Recent Logs
+    # System Logs
     with bottom_cols[2]:
-        st.markdown('<div class="section-title">Recent Activity</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">System Logs</div>', unsafe_allow_html=True)
         
-        for log in logs[:5]:
-            level = log.get("level", "INFO")
-            level_color = {
-                "INFO": "#70a1ff",
-                "WARNING": "#ffa502",
-                "ERROR": "#ff4757",
-                "CRITICAL": "#ff4757"
-            }.get(level, "#70a1ff")
-            
-            timestamp = log.get("timestamp", "")
-            if isinstance(timestamp, str):
-                try:
-                    dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-                    time_str = dt.strftime("%H:%M:%S")
-                except:
-                    time_str = timestamp[:8]
-            else:
-                time_str = str(timestamp)[:8]
-            
-            st.markdown(f"""
-            <div class="log-entry" style="border-left-color: {level_color};">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                    <span style="color: {level_color}; font-weight: 600; font-size: 10px;">{level}</span>
-                    <span style="color: rgba(255,255,255,0.3); font-size: 10px;">{time_str}</span>
+        log_container = st.container()
+        with log_container:
+            for log in logs[:8]:
+                level = log.get("level", "INFO")
+                level_class = {
+                    "ERROR": "log-entry-error",
+                    "WARNING": "log-entry-warning",
+                    "CRITICAL": "log-entry-critical"
+                }.get(level, "")
+                
+                timestamp = log.get("timestamp", "")
+                if timestamp:
+                    try:
+                        dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+                        time_str = dt.strftime("%H:%M:%S")
+                    except:
+                        time_str = timestamp[:8]
+                else:
+                    time_str = ""
+                
+                st.markdown(f"""
+                <div class="log-entry {level_class}">
+                    <span style="color: rgba(255,255,255,0.4); font-size: 10px;">{time_str}</span>
+                    <span style="margin-left: 8px;">{log.get('message', '')}</span>
                 </div>
-                <div>{log.get('message', '')[:50]}</div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
 else:
-    st.error("Unable to connect to API. Make sure the FastAPI server is running.")
-    st.info(f"Expected API URL: {API_URL}")
+    # No data - show initialization prompt
+    st.markdown("""
+    <div style="
+        text-align: center;
+        padding: 60px 40px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 24px;
+        margin: 40px auto;
+        max-width: 500px;
+    ">
+        <div style="font-size: 48px; margin-bottom: 20px;">🏭</div>
+        <div style="font-size: 24px; font-weight: 600; color: #fff; margin-bottom: 12px;">
+            STF Digital Twin
+        </div>
+        <div style="color: rgba(255,255,255,0.5); margin-bottom: 24px;">
+            No data available. Initialize the system to begin.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        if st.button("⚙️ Initialize System", use_container_width=True):
+            result = initialize_system()
+            if result.get("success"):
+                st.success("System initialized! Refreshing...")
+                time.sleep(1)
+                st.rerun()
+            else:
+                st.error(result.get("message", "Initialization failed"))
 
-# Auto-refresh using Streamlit's native rerun
+# Auto-refresh
 time.sleep(REFRESH_INTERVAL)
 st.rerun()
-
-# Footer
-st.markdown("""
-<div style="
-    text-align: center;
-    padding: 20px;
-    color: rgba(255,255,255,0.3);
-    font-size: 11px;
-    margin-top: 40px;
-">
-    STF Digital Twin v2.0 • Industrial Apple Design • Powered by FastAPI + Streamlit
-</div>
-""", unsafe_allow_html=True)

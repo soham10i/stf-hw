@@ -23,9 +23,22 @@ class CookieFlavor(PyEnum):
     STRAWBERRY = "STRAWBERRY"
 
 class CookieStatus(PyEnum):
-    BAKING = "BAKING"
-    STORED = "STORED"
+    RAW_DOUGH = "RAW_DOUGH"
+    BAKED = "BAKED"
+    PACKAGED = "PACKAGED"
     SHIPPED = "SHIPPED"
+
+class SubsystemType(PyEnum):
+    CONVEYOR = "CONVEYOR"
+    HBW = "HBW"
+    VGR = "VGR"
+
+class ComponentType(PyEnum):
+    MOTOR = "MOTOR"
+    SENSOR = "SENSOR"
+    ACTUATOR = "ACTUATOR"
+    COMPRESSOR = "COMPRESSOR"
+    VALVE = "VALVE"
 
 class HardwareStatus(PyEnum):
     IDLE = "IDLE"
@@ -61,7 +74,7 @@ class Cookie(Base):
     batch_uuid = Column(String(36), primary_key=True)
     carrier_id = Column(Integer, ForeignKey("py_carriers.id"), nullable=True)
     flavor = Column(Enum(CookieFlavor), nullable=False, default=CookieFlavor.CHOCO)
-    status = Column(Enum(CookieStatus), nullable=False, default=CookieStatus.BAKING)
+    status = Column(Enum(CookieStatus), nullable=False, default=CookieStatus.RAW_DOUGH)
     expiry_date = Column(DateTime, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -76,6 +89,41 @@ class InventorySlot(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     carrier = relationship("Carrier", back_populates="inventory_slot")
+
+class ComponentRegistry(Base):
+    """Static specification data for all hardware components"""
+    __tablename__ = "py_component_registry"
+    id = Column(String(50), primary_key=True)  # e.g., HBW_X, CONV_M1
+    name = Column(String(100), nullable=False)
+    subsystem = Column(Enum(SubsystemType), nullable=False)
+    component_type = Column(Enum(ComponentType), nullable=False)
+    spec_voltage = Column(Float, nullable=False, default=24.0)
+    spec_max_current = Column(Float, nullable=False, default=5.0)
+    maintenance_interval_hours = Column(Integer, nullable=False, default=1000)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+class MotorState(Base):
+    """Enhanced motor state with health tracking"""
+    __tablename__ = "py_motor_states"
+    component_id = Column(String(50), ForeignKey("py_component_registry.id"), primary_key=True)
+    current_amps = Column(Float, nullable=False, default=0.0)
+    voltage = Column(Float, nullable=False, default=24.0)
+    health_score = Column(Float, nullable=False, default=1.0)  # 0.0-1.0
+    accumulated_runtime_sec = Column(Float, nullable=False, default=0.0)
+    is_active = Column(Boolean, nullable=False, default=False)
+    last_maintenance = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    component = relationship("ComponentRegistry")
+
+class SensorState(Base):
+    """Sensor state tracking"""
+    __tablename__ = "py_sensor_states"
+    component_id = Column(String(50), ForeignKey("py_component_registry.id"), primary_key=True)
+    is_triggered = Column(Boolean, nullable=False, default=False)
+    last_trigger_time = Column(DateTime, nullable=True)
+    trigger_count = Column(Integer, nullable=False, default=0)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    component = relationship("ComponentRegistry")
 
 class HardwareState(Base):
     __tablename__ = "py_hardware_states"
@@ -159,6 +207,73 @@ def seed_inventory_slots(session):
         if not existing:
             slot = InventorySlot(slot_name=slot_name, x_pos=x, y_pos=y)
             session.add(slot)
+    session.commit()
+
+def seed_components(session):
+    """Seed component registry with all hardware components"""
+    import uuid
+    
+    components = [
+        # HBW (Cantilever) - 3 Motors + 1 Ref Switch
+        {"id": "HBW_X", "name": "HBW X-Axis Motor", "subsystem": SubsystemType.HBW, "component_type": ComponentType.MOTOR, "spec_voltage": 24.0, "spec_max_current": 3.0, "maintenance_interval_hours": 2000},
+        {"id": "HBW_Y", "name": "HBW Y-Axis Motor", "subsystem": SubsystemType.HBW, "component_type": ComponentType.MOTOR, "spec_voltage": 24.0, "spec_max_current": 3.0, "maintenance_interval_hours": 2000},
+        {"id": "HBW_Z", "name": "HBW Z-Axis Motor", "subsystem": SubsystemType.HBW, "component_type": ComponentType.MOTOR, "spec_voltage": 24.0, "spec_max_current": 2.5, "maintenance_interval_hours": 2000},
+        {"id": "HBW_REF_SW", "name": "HBW Reference Switch", "subsystem": SubsystemType.HBW, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.1, "maintenance_interval_hours": 5000},
+        
+        # CONVEYOR - 1 Motor + 4 Sensors
+        {"id": "CONV_M1", "name": "Conveyor Motor (Bidirectional)", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.MOTOR, "spec_voltage": 24.0, "spec_max_current": 4.0, "maintenance_interval_hours": 1500},
+        {"id": "CONV_L1_ENTRY", "name": "Conveyor Entry Sensor", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.05, "maintenance_interval_hours": 8000},
+        {"id": "CONV_L2_PROCESS", "name": "Conveyor Process Sensor", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.05, "maintenance_interval_hours": 8000},
+        {"id": "CONV_L3_EXIT", "name": "Conveyor Exit Sensor", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.05, "maintenance_interval_hours": 8000},
+        {"id": "CONV_L4_OVERFLOW", "name": "Conveyor Overflow Sensor", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.05, "maintenance_interval_hours": 8000},
+        
+        # VGR (Gripper) - 3 Motors + 1 Compressor + 1 Valve
+        {"id": "VGR_X", "name": "VGR X-Axis Motor", "subsystem": SubsystemType.VGR, "component_type": ComponentType.MOTOR, "spec_voltage": 24.0, "spec_max_current": 2.5, "maintenance_interval_hours": 2000},
+        {"id": "VGR_Y", "name": "VGR Y-Axis Motor", "subsystem": SubsystemType.VGR, "component_type": ComponentType.MOTOR, "spec_voltage": 24.0, "spec_max_current": 2.5, "maintenance_interval_hours": 2000},
+        {"id": "VGR_Z", "name": "VGR Z-Axis Motor", "subsystem": SubsystemType.VGR, "component_type": ComponentType.MOTOR, "spec_voltage": 24.0, "spec_max_current": 2.0, "maintenance_interval_hours": 2000},
+        {"id": "VGR_COMP", "name": "VGR Compressor", "subsystem": SubsystemType.VGR, "component_type": ComponentType.COMPRESSOR, "spec_voltage": 24.0, "spec_max_current": 5.0, "maintenance_interval_hours": 1000},
+        {"id": "VGR_VALVE", "name": "VGR Pneumatic Valve", "subsystem": SubsystemType.VGR, "component_type": ComponentType.VALVE, "spec_voltage": 24.0, "spec_max_current": 0.5, "maintenance_interval_hours": 3000},
+    ]
+    
+    for comp in components:
+        existing = session.query(ComponentRegistry).filter_by(id=comp["id"]).first()
+        if not existing:
+            component = ComponentRegistry(**comp)
+            session.add(component)
+            
+            # Create motor state for motors
+            if comp["component_type"] in [ComponentType.MOTOR, ComponentType.COMPRESSOR]:
+                motor_state = MotorState(component_id=comp["id"])
+                session.add(motor_state)
+            
+            # Create sensor state for sensors
+            elif comp["component_type"] == ComponentType.SENSOR:
+                sensor_state = SensorState(component_id=comp["id"])
+                session.add(sensor_state)
+    
+    session.commit()
+    
+    # Seed all 9 warehouse slots with RAW_DOUGH cookies
+    for slot_name in SLOT_COORDINATES.keys():
+        # Create carrier
+        carrier = Carrier(current_zone="STORAGE", is_locked=False)
+        session.add(carrier)
+        session.flush()  # Get carrier ID
+        
+        # Create cookie with RAW_DOUGH
+        cookie = Cookie(
+            batch_uuid=str(uuid.uuid4()),
+            carrier_id=carrier.id,
+            flavor=CookieFlavor.CHOCO,
+            status=CookieStatus.RAW_DOUGH
+        )
+        session.add(cookie)
+        
+        # Assign carrier to slot
+        slot = session.query(InventorySlot).filter_by(slot_name=slot_name).first()
+        if slot:
+            slot.carrier_id = carrier.id
+    
     session.commit()
 
 def seed_hardware_devices(session):
