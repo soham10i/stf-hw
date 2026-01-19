@@ -1,53 +1,23 @@
 # STF Digital Twin - Docker Compose Configuration
-# Provides MySQL database and Mosquitto MQTT broker
+# Provides Mosquitto MQTT broker for hardware communication
+# Database: SQLite (local file - no container needed)
 
 version: '3.8'
 
 services:
-  # MySQL Database
-  mysql:
-    image: mysql:8.0
-    container_name: stf_mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-stf_warehouse}
-      MYSQL_USER: ${MYSQL_USER:-stf_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-stf_password}
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # Mosquitto MQTT Broker
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: stf_mosquitto
     restart: unless-stopped
     ports:
-      - "1883:1883"
-      - "9001:9001"
+      - "1883:1883"   # MQTT protocol
+      - "9001:9001"   # WebSocket (optional)
     volumes:
       - ./mosquitto/config:/mosquitto/config
       - mosquitto_data:/mosquitto/data
       - mosquitto_log:/mosquitto/log
 
-  # Adminer - Database Web UI (optional)
-  adminer:
-    image: adminer:latest
-    container_name: stf_adminer
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    depends_on:
-      - mysql
-
 volumes:
-  mysql_data:
   mosquitto_data:
   mosquitto_log:

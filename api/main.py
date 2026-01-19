@@ -976,6 +976,48 @@ def health_check():
         "websocket": f"ws://localhost:8000/ws",
     }
 
+# ============================================================================
+# Command Queue Endpoints (for Controller polling)
+# ============================================================================
+
+@app.get("/commands/pending", tags=["Commands"])
+def get_pending_commands(limit: int = 1, db: Session = Depends(get_db)):
+    """Get pending commands for the controller to process."""
+    commands = db.query(Command).filter(
+        Command.status == "PENDING"
+    ).order_by(Command.created_at).limit(limit).all()
+    
+    return [
+        {
+            "id": cmd.id,
+            "command_type": cmd.command_type,
+            "target_slot": cmd.target_slot,
+            "payload_json": cmd.payload_json,
+            "status": cmd.status,
+            "created_at": cmd.created_at.isoformat(),
+        }
+        for cmd in commands
+    ]
+
+@app.post("/commands/{command_id}/status", tags=["Commands"])
+def update_command_status(command_id: int, status_update: dict, db: Session = Depends(get_db)):
+    """Update command status (called by controller)."""
+    command = db.query(Command).filter(Command.id == command_id).first()
+    if not command:
+        raise HTTPException(status_code=404, detail=f"Command {command_id} not found")
+    
+    command.status = status_update.get("status", command.status)
+    if status_update.get("message"):
+        command.error_message = status_update["message"]
+    
+    if command.status == "IN_PROGRESS":
+        command.executed_at = datetime.utcnow()
+    elif command.status in ["COMPLETED", "FAILED"]:
+        command.completed_at = datetime.utcnow()
+    
+    db.commit()
+    return {"success": True, "command_id": command_id, "status": command.status}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

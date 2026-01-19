@@ -11,7 +11,7 @@ The core components of the architecture are:
 -   **Frontend Dashboard (Streamlit)**: A web-based user interface for monitoring and controlling the factory.
 -   **Backend API (FastAPI)**: A RESTful API that provides endpoints for the frontend to interact with the system.
 -   **Main Controller**: A Python script that processes commands from a queue, ensuring sequential and orderly execution of tasks.
--   **Database (MySQL/SQLite)**: A database that stores the system's state, including inventory, hardware status, and logs.
+-   **Database (SQLite)**: A local SQLite database (`stf_digital_twin.db`) that stores the system's state, including inventory, hardware status, and logs. MySQL is optionally supported for production deployments.
 -   **MQTT Broker (Mosquitto)**: A message broker that facilitates communication between the main controller and the hardware.
 -   **Hardware (Mock/Physical)**: The physical or simulated hardware components of the factory.
 
@@ -21,9 +21,9 @@ The core components of the architecture are:
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  ┌──────────────┐    ┌──────────────────┐    ┌──────────────┐          │
-│  │  Streamlit   │───►│     FastAPI      │───►│    MySQL     │          │
-│  │  Dashboard   │    │  (Queue Command) │    │  (Commands)  │          │
-│  │  (Port 8501) │    │   (Port 8000)    │    │  (Port 3306) │          │
+│  │  Streamlit   │───►│     FastAPI      │───►│   SQLite     │          │
+│  │  Dashboard   │    │  (Queue Command) │    │  (.db file)  │          │
+│  │  (Port 8501) │    │   (Port 8000)    │    │              │          │
 │  └──────────────┘    └──────────────────┘    └──────▲───────┘          │
 │                                                     │ (Polls)           │
 │                                                     │                   │
@@ -77,7 +77,7 @@ The dashboard is a web-based user interface built with Streamlit. It provides a 
 
 ### 2.4. Database (`database/`)
 
-The database module defines the data models (SQLAlchemy) and provides functions for interacting with the database. It supports both MySQL and SQLite.
+The database module defines the data models (SQLAlchemy) and provides functions for interacting with the database. It uses SQLite by default (storing data in `stf_digital_twin.db`), with optional MySQL support for production.
 
 **Key Files:**
 

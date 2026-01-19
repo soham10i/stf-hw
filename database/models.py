@@ -4,7 +4,7 @@ STF Digital Twin - SQLAlchemy Database Models
 
 from datetime import datetime
 from enum import Enum as PyEnum
-from typing import Optional
+from typing import Optional, Tuple, Dict
 
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean, DateTime,
@@ -15,6 +15,54 @@ from sqlalchemy.orm import relationship, sessionmaker
 import os
 
 Base = declarative_base()
+
+# =============================================================================
+# HBW 3-AXIS CARTESIAN ROBOT KINEMATIC CONSTANTS
+# =============================================================================
+# Hardware: Fischertechnik Encoder Motor 24V (144643)
+# Encoder Resolution: 75 pulses per revolution (output shaft)
+# Spindle Pitch: 4mm per revolution
+# =============================================================================
+
+PULSES_PER_REV = 75        # Encoder pulses per motor revolution
+SPINDLE_PITCH_MM = 4.0     # Linear travel per revolution (mm)
+PULSES_PER_MM = PULSES_PER_REV / SPINDLE_PITCH_MM  # = 18.75 pulses/mm
+
+# Z-Axis Semantics (vertical arm extension)
+# 10 = Retracted (Safe travel height)
+# 25 = Carry (Belt/conveyor height for transport)
+# 50 = Extended (Inside slot for pick/place)
+Z_RETRACTED = 10   # Safe travel position
+Z_CARRY = 25       # Belt height for transport
+Z_EXTENDED = 50    # In-slot position for pick/place
+
+# HBW Special Positions (X, Y, Z) in mm
+REST_POS: Tuple[float, float, float] = (400.0, 90.0, 10.0)       # Home/rest position
+CONVEYOR_POS: Tuple[float, float, float] = (400.0, 100.0, 25.0)  # Conveyor handoff
+
+# 3D Slot Coordinates: slot_name -> (X, Y, Z) in mm
+# X: Horizontal travel (100-300mm for slots, 400mm for conveyor)
+# Y: Vertical travel (100-300mm for rows A-C)
+# Z: Arm extension (50mm = inside slot)
+SLOT_COORDINATES_3D: Dict[str, Tuple[float, float, float]] = {
+    # Row A (Bottom, Y=100)
+    "A1": (100.0, 100.0, 50.0),
+    "A2": (200.0, 100.0, 50.0),
+    "A3": (300.0, 100.0, 50.0),
+    # Row B (Middle, Y=200)
+    "B1": (100.0, 200.0, 50.0),
+    "B2": (200.0, 200.0, 50.0),
+    "B3": (300.0, 200.0, 50.0),
+    # Row C (Top, Y=300)
+    "C1": (100.0, 300.0, 50.0),
+    "C2": (200.0, 300.0, 50.0),
+    "C3": (300.0, 300.0, 50.0),
+}
+
+# Legacy 2D coordinates for backward compatibility
+SLOT_COORDINATES_2D: Dict[str, Tuple[float, float]] = {
+    name: (x, y) for name, (x, y, z) in SLOT_COORDINATES_3D.items()
+}
 
 # Enums
 class CookieFlavor(PyEnum):
@@ -286,7 +334,6 @@ def seed_components(session):
                     component_id=comp["id"],
                     sensor_type=sensor_type
                 )
-                session.add(sensor_state)
                 session.add(sensor_state)
     
     session.commit()

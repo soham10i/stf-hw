@@ -1,7 +1,7 @@
 # ST-HW System Documentation
 
-**Author:** Manus AI  
-**Version:** 1.0  
+**Author:** Manus AI
+**Version:** 1.0
 **Date:** January 2026
 
 ---
@@ -64,14 +64,14 @@ The ST-HW (Smart Tabletop Factory Hardware) system implements a decoupled, event
 
 The system comprises six primary components that work together to provide a complete digital twin solution:
 
-| Component | Technology | Port | Description |
-|-----------|------------|------|-------------|
-| **Frontend Dashboard** | Streamlit | 8501 | Web-based UI for monitoring and control |
-| **Backend API** | FastAPI | 8000 | RESTful API with WebSocket support |
-| **Database** | MySQL/SQLite | 3306 | Persistent storage for state and logs |
-| **MQTT Broker** | Mosquitto | 1883/9001 | Message broker for hardware communication |
-| **Main Controller** | Python | N/A | Command queue processor with FSM logic |
-| **Mock Hardware** | Python | N/A | Physics-based hardware simulation |
+| Component                    | Technology   | Port      | Description                               |
+| ---------------------------- | ------------ | --------- | ----------------------------------------- |
+| **Frontend Dashboard** | Streamlit    | 8501      | Web-based UI for monitoring and control   |
+| **Backend API**        | FastAPI      | 8000      | RESTful API with WebSocket support        |
+| **Database**           | MySQL/SQLite | 3306      | Persistent storage for state and logs     |
+| **MQTT Broker**        | Mosquitto    | 1883/9001 | Message broker for hardware communication |
+| **Main Controller**    | Python       | N/A       | Command queue processor with FSM logic    |
+| **Mock Hardware**      | Python       | N/A       | Physics-based hardware simulation         |
 
 ---
 
@@ -82,6 +82,7 @@ The system comprises six primary components that work together to provide a comp
 The API module serves as the primary interface between the frontend and the backend systems. Built with FastAPI, it provides high-performance RESTful endpoints with automatic OpenAPI documentation.
 
 **Key Responsibilities:**
+
 - Handle HTTP requests from the dashboard
 - Validate incoming data using Pydantic models
 - Queue commands in the database for asynchronous execution
@@ -95,6 +96,7 @@ The API module serves as the primary interface between the frontend and the back
 The controller is the orchestration layer of the system. It implements a command queue pattern that ensures reliable, sequential execution of factory operations.
 
 **Key Responsibilities:**
+
 - Poll the database for pending commands
 - Execute commands using Finite State Machine (FSM) logic
 - Communicate with hardware via MQTT
@@ -108,6 +110,7 @@ The controller is the orchestration layer of the system. It implements a command
 The dashboard provides a real-time visualization of the factory's state. It uses Streamlit for rapid development and Plotly for interactive charts.
 
 **Key Responsibilities:**
+
 - Display real-time inventory status
 - Visualize hardware positions on a 2D graph
 - Show motor health and sensor states
@@ -115,6 +118,7 @@ The dashboard provides a real-time visualization of the factory's state. It uses
 - Display system logs and alerts
 
 **Main Files:**
+
 - `dashboard/app.py` - Main dashboard application
 - `dashboard/pages/analytics.py` - Historical analytics page
 
@@ -123,12 +127,14 @@ The dashboard provides a real-time visualization of the factory's state. It uses
 The database module defines the data models and provides functions for database interaction. It uses SQLAlchemy ORM for database abstraction.
 
 **Key Responsibilities:**
+
 - Define table schemas using SQLAlchemy models
 - Manage database connections and sessions
 - Provide seed functions for initial data
 - Support both MySQL and SQLite backends
 
 **Main Files:**
+
 - `database/models.py` - SQLAlchemy model definitions
 - `database/connection.py` - Connection management
 
@@ -137,6 +143,7 @@ The database module defines the data models and provides functions for database 
 The hardware module contains the simulation code for the factory's physical components. It provides a high-fidelity physics engine that mimics real hardware behavior.
 
 **Key Responsibilities:**
+
 - Simulate motor physics (startup, running, stopping phases)
 - Model electrical characteristics (current draw, power consumption)
 - Simulate sensor behavior (light barriers, trail sensors)
@@ -150,6 +157,7 @@ The hardware module contains the simulation code for the factory's physical comp
 The scripts module contains utility scripts for development and testing purposes.
 
 **Key Files:**
+
 - `scripts/generate_history.py` - Generate synthetic historical data
 
 ---
@@ -158,63 +166,63 @@ The scripts module contains utility scripts for development and testing purposes
 
 ### 3.1. WebSocket Endpoint
 
-| Endpoint | Description |
-|----------|-------------|
+| Endpoint                   | Description                     |
+| -------------------------- | ------------------------------- |
 | `ws://localhost:8000/ws` | Real-time updates for dashboard |
 
 ### 3.2. Component Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/components/specs` | GET | Get static specification data for all components |
-| `/motors/state` | POST | Update motor state and broadcast via WebSocket |
-| `/motors/states` | GET | Get all motor states |
-| `/sensors/state` | POST | Update sensor state and broadcast via WebSocket |
-| `/sensors/states` | GET | Get all sensor states |
-| `/conveyor/state` | POST | Update full conveyor state (motor + sensors) |
-| `/hardware/state` | POST | Update hardware state and broadcast via WebSocket |
-| `/hardware/states` | GET | Get all hardware states |
+| Endpoint              | Method | Description                                       |
+| --------------------- | ------ | ------------------------------------------------- |
+| `/components/specs` | GET    | Get static specification data for all components  |
+| `/motors/state`     | POST   | Update motor state and broadcast via WebSocket    |
+| `/motors/states`    | GET    | Get all motor states                              |
+| `/sensors/state`    | POST   | Update sensor state and broadcast via WebSocket   |
+| `/sensors/states`   | GET    | Get all sensor states                             |
+| `/conveyor/state`   | POST   | Update full conveyor state (motor + sensors)      |
+| `/hardware/state`   | POST   | Update hardware state and broadcast via WebSocket |
+| `/hardware/states`  | GET    | Get all hardware states                           |
 
 ### 3.3. Telemetry Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/telemetry` | POST | Record telemetry data |
-| `/energy` | POST | Record energy consumption data |
+| Endpoint       | Method | Description                    |
+| -------------- | ------ | ------------------------------ |
+| `/telemetry` | POST   | Record telemetry data          |
+| `/energy`    | POST   | Record energy consumption data |
 
 ### 3.4. Inventory Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/inventory` | GET | Get the current inventory status |
+| Endpoint       | Method | Description                      |
+| -------------- | ------ | -------------------------------- |
+| `/inventory` | GET    | Get the current inventory status |
 
 ### 3.5. Order Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/order/store` | POST | Store a cookie in the warehouse |
-| `/order/retrieve` | POST | Retrieve a cookie from the warehouse |
-| `/order/process` | POST | Process a cookie (RAW_DOUGH -> BAKED) |
+| Endpoint            | Method | Description                           |
+| ------------------- | ------ | ------------------------------------- |
+| `/order/store`    | POST   | Store a cookie in the warehouse       |
+| `/order/retrieve` | POST   | Retrieve a cookie from the warehouse  |
+| `/order/process`  | POST   | Process a cookie (RAW_DOUGH -> BAKED) |
 
 ### 3.6. Dashboard Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/dashboard/data` | GET | Get all data required for the dashboard |
+| Endpoint            | Method | Description                             |
+| ------------------- | ------ | --------------------------------------- |
+| `/dashboard/data` | GET    | Get all data required for the dashboard |
 
 ### 3.7. Maintenance Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/maintenance/initialize` | POST | Initialize the system with default data |
-| `/maintenance/reset` | POST | Reset the system to its initial state |
-| `/maintenance/emergency-stop` | POST | Trigger an emergency stop of all hardware |
+| Endpoint                        | Method | Description                               |
+| ------------------------------- | ------ | ----------------------------------------- |
+| `/maintenance/initialize`     | POST   | Initialize the system with default data   |
+| `/maintenance/reset`          | POST   | Reset the system to its initial state     |
+| `/maintenance/emergency-stop` | POST   | Trigger an emergency stop of all hardware |
 
 ### 3.8. Health Endpoint
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check for the API |
+| Endpoint    | Method | Description              |
+| ----------- | ------ | ------------------------ |
+| `/health` | GET    | Health check for the API |
 
 ---
 
@@ -224,40 +232,41 @@ The scripts module contains utility scripts for development and testing purposes
 
 The system uses Mosquitto as the MQTT broker with the following configuration:
 
-| Parameter | Value |
-|-----------|-------|
-| **Host** | localhost |
-| **MQTT Port** | 1883 |
-| **WebSocket Port** | 9001 |
+| Parameter                | Value                   |
+| ------------------------ | ----------------------- |
+| **Host**           | localhost               |
+| **MQTT Port**      | 1883                    |
+| **WebSocket Port** | 9001                    |
 | **Authentication** | Anonymous (development) |
 
 ### 4.2. Command Topics (Controller → Hardware)
 
-| Topic | Payload Example | Description |
-|-------|-----------------|-------------|
-| `stf/conveyor/cmd/start` | `{"direction": 1}` | Start conveyor belt |
-| `stf/conveyor/cmd/stop` | `{}` | Stop conveyor belt |
-| `stf/hbw/cmd/move` | `{"x": 100, "y": 200, "z": 50}` | Move HBW to position |
-| `stf/hbw/cmd/stop` | `{}` | Stop HBW movement |
-| `stf/hbw/cmd/gripper` | `{"close": true}` | Control gripper |
-| `stf/vgr/cmd/move` | `{"x": 100, "y": 200, "z": 50}` | Move VGR to position |
-| `stf/vgr/cmd/stop` | `{}` | Stop VGR movement |
-| `stf/vgr/cmd/vacuum` | `{"activate": true}` | Control vacuum gripper |
-| `stf/global/req/reset` | `{}` | Reset all hardware |
-| `stf/global/req/emergency_stop` | `{}` | Emergency stop |
+| Topic                             | Payload Example                   | Description            |
+| --------------------------------- | --------------------------------- | ---------------------- |
+| `stf/conveyor/cmd/start`        | `{"direction": 1}`              | Start conveyor belt    |
+| `stf/conveyor/cmd/stop`         | `{}`                            | Stop conveyor belt     |
+| `stf/hbw/cmd/move`              | `{"x": 100, "y": 200, "z": 50}` | Move HBW to position   |
+| `stf/hbw/cmd/stop`              | `{}`                            | Stop HBW movement      |
+| `stf/hbw/cmd/gripper`           | `{"close": true}`               | Control gripper        |
+| `stf/vgr/cmd/move`              | `{"x": 100, "y": 200, "z": 50}` | Move VGR to position   |
+| `stf/vgr/cmd/stop`              | `{}`                            | Stop VGR movement      |
+| `stf/vgr/cmd/vacuum`            | `{"activate": true}`            | Control vacuum gripper |
+| `stf/global/req/reset`          | `{}`                            | Reset all hardware     |
+| `stf/global/req/emergency_stop` | `{}`                            | Emergency stop         |
 
 ### 4.3. Status Topics (Hardware → Controller)
 
-| Topic | Description |
-|-------|-------------|
-| `stf/conveyor/status` | Conveyor state (belt position, motor, sensors) |
-| `stf/hbw/status` | HBW state (position, motors, gripper) |
-| `stf/vgr/status` | VGR state (position, motors, vacuum) |
-| `stf/global/emergency` | Emergency stop events |
+| Topic                    | Description                                    |
+| ------------------------ | ---------------------------------------------- |
+| `stf/conveyor/status`  | Conveyor state (belt position, motor, sensors) |
+| `stf/hbw/status`       | HBW state (position, motors, gripper)          |
+| `stf/vgr/status`       | VGR state (position, motors, vacuum)           |
+| `stf/global/emergency` | Emergency stop events                          |
 
 ### 4.4. Status Payload Examples
 
 **Conveyor Status:**
+
 ```json
 {
   "belt_position_mm": 450.5,
@@ -281,6 +290,7 @@ The system uses Mosquitto as the MQTT broker with the following configuration:
 ```
 
 **HBW Status:**
+
 ```json
 {
   "device_id": "HBW",
@@ -305,46 +315,46 @@ The system uses Mosquitto as the MQTT broker with the following configuration:
 
 ### 5.1. Core Tables
 
-| Table | Description |
-|-------|-------------|
-| `py_carriers` | Cookie carriers/containers |
-| `py_cookies` | Cookie information (flavor, status) |
-| `py_inventory_slots` | Warehouse storage slots (A1-C3) |
-| `py_commands` | Command queue for execution |
+| Table                  | Description                         |
+| ---------------------- | ----------------------------------- |
+| `py_carriers`        | Cookie carriers/containers          |
+| `py_cookies`         | Cookie information (flavor, status) |
+| `py_inventory_slots` | Warehouse storage slots (A1-C3)     |
+| `py_commands`        | Command queue for execution         |
 
 ### 5.2. Hardware State Tables
 
-| Table | Description |
-|-------|-------------|
+| Table                     | Description                         |
+| ------------------------- | ----------------------------------- |
 | `py_component_registry` | Registry of all hardware components |
-| `py_motor_states` | Current state of all motors |
-| `py_sensor_states` | Current state of all sensors |
-| `py_hardware_states` | State of main hardware devices |
+| `py_motor_states`       | Current state of all motors         |
+| `py_sensor_states`      | Current state of all sensors        |
+| `py_hardware_states`    | State of main hardware devices      |
 
 ### 5.3. Logging Tables
 
-| Table | Description |
-|-------|-------------|
-| `py_system_logs` | System event logs |
-| `py_energy_logs` | Energy consumption logs |
-| `py_telemetry_history` | Historical telemetry data |
-| `py_alerts` | System alerts and notifications |
+| Table                    | Description                     |
+| ------------------------ | ------------------------------- |
+| `py_system_logs`       | System event logs               |
+| `py_energy_logs`       | Energy consumption logs         |
+| `py_telemetry_history` | Historical telemetry data       |
+| `py_alerts`            | System alerts and notifications |
 
 ### 5.4. Command Table Schema
 
 The `py_commands` table is central to the command queue architecture:
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | Integer | Primary key |
-| `command_type` | String | Type (STORE, RETRIEVE, PROCESS) |
-| `target_slot` | String | Target inventory slot (e.g., A1) |
-| `payload_json` | JSON | Additional parameters |
-| `status` | String | PENDING, IN_PROGRESS, COMPLETED, FAILED |
-| `created_at` | DateTime | When command was queued |
-| `executed_at` | DateTime | When execution started |
-| `completed_at` | DateTime | When command finished |
-| `message` | String | Result or error message |
+| Column           | Type     | Description                             |
+| ---------------- | -------- | --------------------------------------- |
+| `id`           | Integer  | Primary key                             |
+| `command_type` | String   | Type (STORE, RETRIEVE, PROCESS)         |
+| `target_slot`  | String   | Target inventory slot (e.g., A1)        |
+| `payload_json` | JSON     | Additional parameters                   |
+| `status`       | String   | PENDING, IN_PROGRESS, COMPLETED, FAILED |
+| `created_at`   | DateTime | When command was queued                 |
+| `executed_at`  | DateTime | When execution started                  |
+| `completed_at` | DateTime | When command finished                   |
+| `message`      | String   | Result or error message                 |
 
 ---
 
@@ -359,6 +369,7 @@ The user clicks the "Bake Cookie" button on the dashboard for slot 'A1'.
 
 **Step 2: API Request**
 The dashboard sends a POST request:
+
 ```http
 POST /order/process
 Content-Type: application/json
@@ -370,6 +381,7 @@ Content-Type: application/json
 
 **Step 3: Command Queued**
 The API creates a new command in the database:
+
 ```sql
 INSERT INTO py_commands (command_type, target_slot, status, created_at)
 VALUES ('PROCESS', 'A1', 'PENDING', NOW());
@@ -377,6 +389,7 @@ VALUES ('PROCESS', 'A1', 'PENDING', NOW());
 
 **Step 4: Controller Polling**
 The main controller polls the database:
+
 ```sql
 SELECT * FROM py_commands 
 WHERE status = 'PENDING' 
@@ -386,6 +399,7 @@ LIMIT 1;
 
 **Step 5: Command Execution**
 The controller updates the status and begins execution:
+
 ```sql
 UPDATE py_commands SET status = 'IN_PROGRESS', executed_at = NOW() WHERE id = ?;
 ```
@@ -394,35 +408,35 @@ UPDATE py_commands SET status = 'IN_PROGRESS', executed_at = NOW() WHERE id = ?;
 The controller sends MQTT commands in sequence:
 
 1. Move HBW to slot A1:
+
    ```
    Topic: stf/hbw/cmd/move
    Payload: {"x": 100, "y": 100, "z": 0}
    ```
-
 2. Close gripper to pick cookie:
+
    ```
    Topic: stf/hbw/cmd/gripper
    Payload: {"close": true}
    ```
-
 3. Move to conveyor position:
+
    ```
    Topic: stf/hbw/cmd/move
    Payload: {"x": 350, "y": 200, "z": 0}
    ```
-
 4. Start conveyor for baking:
+
    ```
    Topic: stf/conveyor/cmd/start
    Payload: {"direction": 1}
    ```
-
 5. Wait for baking cycle (simulated)
-
 6. Return cookie to slot
 
 **Step 7: Status Update**
 Upon completion:
+
 ```sql
 UPDATE py_commands 
 SET status = 'COMPLETED', completed_at = NOW(), message = 'Cookie baked successfully'
@@ -446,7 +460,7 @@ async def process_cookie(request: ProcessRequest, db: Session = Depends(get_db))
     slot = db.query(InventorySlot).filter_by(slot_name=request.source_slot).first()
     if not slot or not slot.carrier:
         raise HTTPException(status_code=404, detail="Slot empty or not found")
-    
+  
     # Create command in queue
     command = Command(
         command_type="PROCESS",
@@ -457,7 +471,7 @@ async def process_cookie(request: ProcessRequest, db: Session = Depends(get_db))
     )
     db.add(command)
     db.commit()
-    
+  
     return {"success": True, "command_id": command.id, "message": "Process command queued"}
 ```
 
@@ -467,44 +481,44 @@ async def process_cookie(request: ProcessRequest, db: Session = Depends(get_db))
 async def process_command(self, command: Command):
     """Execute a PROCESS command."""
     self.update_status(command, "IN_PROGRESS")
-    
+  
     try:
         # Get slot coordinates
         coords = get_slot_coordinates(command.target_slot)
-        
+      
         # Move to slot
         await self.move_hbw(coords["x"], coords["y"], 0)
         await self.wait_for_arrival("HBW")
-        
+      
         # Pick cookie
         await self.gripper_close()
         await asyncio.sleep(0.5)
-        
+      
         # Move to conveyor
         await self.move_hbw(350, 200, 0)
         await self.wait_for_arrival("HBW")
-        
+      
         # Place on conveyor
         await self.gripper_open()
-        
+      
         # Start baking process
         await self.start_conveyor(direction=1)
         await asyncio.sleep(5)  # Simulated bake time
         await self.stop_conveyor()
-        
+      
         # Pick baked cookie
         await self.gripper_close()
-        
+      
         # Return to slot
         await self.move_hbw(coords["x"], coords["y"], 0)
         await self.wait_for_arrival("HBW")
         await self.gripper_open()
-        
+      
         # Update cookie status in database
         self.update_cookie_status(command.target_slot, "BAKED")
-        
+      
         self.update_status(command, "COMPLETED", "Cookie baked successfully")
-        
+      
     except Exception as e:
         self.update_status(command, "FAILED", str(e))
 ```
@@ -516,7 +530,7 @@ def on_message(self, client, userdata, msg):
     """Handle incoming MQTT commands."""
     topic = msg.topic
     payload = json.loads(msg.payload.decode())
-    
+  
     if topic == "stf/hbw/cmd/move":
         self.hbw.move_to(payload["x"], payload["y"], payload["z"])
     elif topic == "stf/hbw/cmd/gripper":
@@ -531,7 +545,7 @@ def publish_status(self):
     # Conveyor status
     conveyor_state = self.conveyor.tick(self.tick_interval)
     self.client.publish("stf/conveyor/status", json.dumps(conveyor_state))
-    
+  
     # HBW status
     hbw_state = self.hbw.tick(self.tick_interval)
     self.client.publish("stf/hbw/status", json.dumps(hbw_state))
@@ -622,13 +636,13 @@ python test.py --api-url http://localhost:8000 --db-path /path/to/your/database.
 
 ## Appendix B: Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| API not responding | Check if uvicorn is running on port 8000 |
+| Issue                      | Solution                                            |
+| -------------------------- | --------------------------------------------------- |
+| API not responding         | Check if uvicorn is running on port 8000            |
 | Database connection failed | Verify MySQL is running and credentials are correct |
-| MQTT connection refused | Ensure Mosquitto is running on port 1883 |
-| Dashboard not updating | Check WebSocket connection in browser console |
-| Commands stuck in PENDING | Verify controller is running and polling database |
+| MQTT connection refused    | Ensure Mosquitto is running on port 1883            |
+| Dashboard not updating     | Check WebSocket connection in browser console       |
+| Commands stuck in PENDING  | Verify controller is running and polling database   |
 
 ---
 

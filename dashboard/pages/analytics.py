@@ -602,12 +602,12 @@ with tab1:
             start_date = end_date - timedelta(days=days)
             breakdown_date = start_date + timedelta(days=BREAKDOWN_DAY_MOTOR - 1)
             
-            fig_health.add_vline(
-                x=breakdown_date.isoformat(),
-                line_dash="dot",
-                line_color="#ff6b6b",
-                annotation_text="Motor Failure",
-                annotation_position="top"
+            fig_health.add_shape(
+                type="line",
+                x0=breakdown_date, x1=breakdown_date,
+                y0=0, y1=1,
+                yref="paper",
+                line=dict(color="#ff6b6b", width=2, dash="dot")
             )
         
         fig_health.update_layout(
@@ -667,12 +667,12 @@ with tab2:
             start_date = end_date - timedelta(days=days)
             breakdown_date = start_date + timedelta(days=BREAKDOWN_DAY_MOTOR - 1)
             
-            fig_energy.add_vline(
-                x=breakdown_date.isoformat(),
-                line_dash="dot",
-                line_color="#ff6b6b",
-                annotation_text="Motor Failure (High Energy)",
-                annotation_position="top"
+            fig_energy.add_shape(
+                type="line",
+                x0=breakdown_date, x1=breakdown_date,
+                y0=0, y1=1,
+                yref="paper",
+                line=dict(color="#ff6b6b", width=2, dash="dot")
             )
         
         fig_energy.update_layout(

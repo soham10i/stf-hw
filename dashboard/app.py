@@ -4,7 +4,7 @@ Industrial Apple Glassmorphism Design with WebSocket Real-Time Updates
 """
 
 import streamlit as st
-# from streamlit_autorefresh import st_autorefresh  # Disabled for manual refresh
+# from streamlit_autorefresh import st_autorefresh  # Disabled - causes rendering issues
 import requests
 import pandas as pd
 import plotly.express as px
@@ -20,7 +20,7 @@ from typing import Optional, Dict, Any
 # Configuration
 API_URL = os.environ.get("STF_API_URL", "http://localhost:8000")
 WS_URL = os.environ.get("STF_WS_URL", "ws://localhost:8000/ws")
-REFRESH_INTERVAL = 2000  # milliseconds for auto-refresh (not used in manual mode)
+REFRESH_INTERVAL = 2000  # milliseconds for auto-refresh
 
 # Page Configuration
 st.set_page_config(
@@ -638,16 +638,33 @@ def format_ttf(ttf_hours: Optional[float]) -> str:
         return f"{ttf_hours/1000:.1f}k hrs"
     return f"{ttf_hours:.0f} hrs"
 
+def check_mqtt_status() -> bool:
+    """Check if MQTT broker is reachable"""
+    import socket
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        result = sock.connect_ex(('localhost', 1883))
+        sock.close()
+        return result == 0
+    except:
+        return False
+
 # ============================================================================
 # Dashboard Layout
 # ============================================================================
 
+# Check MQTT status
+mqtt_connected = check_mqtt_status()
+mqtt_badge = '<span class="live-badge" style="background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);">● MQTT Connected</span>' if mqtt_connected else '<span class="live-badge" style="background: linear-gradient(135deg, #ff4757 0%, #ff3344 100%);">● MQTT Offline</span>'
+
 # Header
-st.markdown("""
+st.markdown(f"""
 <div class="header-container">
     <div class="header-title">
         🏭 STF Digital Twin
         <span class="live-badge">● Live</span>
+        {mqtt_badge}
     </div>
     <div style="color: rgba(255,255,255,0.5); font-size: 13px;">
         High-Fidelity Component Twin • Industrial Automation
@@ -1222,8 +1239,25 @@ else:
 
 # Footer with refresh info
 st.markdown("---")
+
+# Auto-refresh controls
+refresh_col1, refresh_col2, refresh_col3 = st.columns([1, 1, 1])
+with refresh_col2:
+    if st.button("🔄 Refresh Dashboard", use_container_width=True):
+        st.rerun()
+
 st.markdown("""
 <div style="text-align: center; color: rgba(255,255,255,0.4); font-size: 12px; padding: 10px;">
-    STF Digital Twin v2.0 • Auto-refreshing every 2 seconds
+    STF Digital Twin v2.0 • Click refresh or press R to update
 </div>
 """, unsafe_allow_html=True)
+
+# Auto-refresh every 2 seconds using query params trick
+import time as time_module
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time_module.time()
+
+# Check if enough time has passed for auto-refresh (optional - controlled by sidebar)
+if st.sidebar.checkbox("Enable Auto-Refresh (2s)", value=False):
+    time_module.sleep(2)
+    st.rerun()

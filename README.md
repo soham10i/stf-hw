@@ -16,9 +16,9 @@ The system is built on a decoupled, event-driven architecture:
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  ┌──────────────┐    ┌──────────────────┐    ┌──────────────┐          │
-│  │  Streamlit   │───►│     FastAPI      │───►│    MySQL     │          │
-│  │  Dashboard   │    │  (Queue Command) │    │  (Commands)  │          │
-│  │  (Port 8501) │    │   (Port 8000)    │    │  (Port 3306) │          │
+│  │  Streamlit   │───►│     FastAPI      │───►│   SQLite     │          │
+│  │  Dashboard   │    │  (Queue Command) │    │  (.db file)  │          │
+│  │  (Port 8501) │    │   (Port 8000)    │    │              │          │
 │  └──────────────┘    └──────────────────┘    └──────▲───────┘          │
 │                                                     │ (Polls)           │
 │                                                     │                   │
@@ -69,7 +69,7 @@ The system is built on a decoupled, event-driven architecture:
 
 ### Prerequisites
 - Python 3.9+ (3.11 recommended)
-- MySQL 8.0+ (or Docker)
+- (Optional) MySQL 8.0+ or Docker for production use
 
 ### Installation
 ```bash
@@ -82,9 +82,14 @@ pip install -r requirements.txt
 ```
 
 ### Configuration
-Create a `.env` file in the project root:
+Create a `.env` file in the project root (optional - defaults to SQLite):
 ```env
-DATABASE_URL=mysql+pymysql://stf_user:stf_password@localhost:3306/stf_warehouse
+# Default: SQLite local database (no configuration needed)
+DATABASE_URL=sqlite:///./stf_digital_twin.db
+
+# For MySQL (optional):
+# DATABASE_URL=mysql+pymysql://stf_user:stf_password@localhost:3306/stf_warehouse
+
 STF_API_URL=http://localhost:8000
 STF_WS_URL=ws://localhost:8000/ws
 MQTT_BROKER=localhost

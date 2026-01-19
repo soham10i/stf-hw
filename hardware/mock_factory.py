@@ -684,24 +684,39 @@ class MockFactory:
                 self.conveyor.start(direction)
             elif action == "stop":
                 self.conveyor.stop()
+            elif action == "belt":
+                # Handle belt commands from controller
+                belt_action = payload.get("action", "") if isinstance(payload, dict) else ""
+                if belt_action == "start":
+                    direction = payload.get("direction", 1)
+                    self.conveyor.start(direction)
+                elif belt_action == "stop":
+                    self.conveyor.stop()
         
         elif device == "hbw" and cmd_type == "cmd":
             if action == "move":
-                x = payload.get("x", self.hbw.x)
-                y = payload.get("y", self.hbw.y)
-                z = payload.get("z", self.hbw.z)
+                x = payload.get("x", self.hbw.x) if isinstance(payload, dict) else self.hbw.x
+                y = payload.get("y", self.hbw.y) if isinstance(payload, dict) else self.hbw.y
+                z = payload.get("z", self.hbw.z) if isinstance(payload, dict) else self.hbw.z
                 self.hbw.move_to(x, y, z)
+                print(f"[HBW] Moving to ({x}, {y}, {z})")
             elif action == "stop":
                 self.hbw.stop()
             elif action == "gripper":
-                self.hbw.gripper_closed = payload.get("close", False)
+                gripper_action = payload.get("action", "") if isinstance(payload, dict) else ""
+                if gripper_action in ["close", "extend"]:
+                    self.hbw.gripper_closed = True
+                elif gripper_action in ["open", "retract"]:
+                    self.hbw.gripper_closed = False
+                print(f"[HBW] Gripper: {gripper_action} -> closed={self.hbw.gripper_closed}")
         
         elif device == "vgr" and cmd_type == "cmd":
             if action == "move":
-                x = payload.get("x", self.vgr.x)
-                y = payload.get("y", self.vgr.y)
-                z = payload.get("z", self.vgr.z)
+                x = payload.get("x", self.vgr.x) if isinstance(payload, dict) else self.vgr.x
+                y = payload.get("y", self.vgr.y) if isinstance(payload, dict) else self.vgr.y
+                z = payload.get("z", self.vgr.z) if isinstance(payload, dict) else self.vgr.z
                 self.vgr.move_to(x, y, z)
+                print(f"[VGR] Moving to ({x}, {y}, {z})")
             elif action == "stop":
                 self.vgr.stop()
             elif action == "vacuum":

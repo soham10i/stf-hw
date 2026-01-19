@@ -5,19 +5,11 @@ echo "=============================================="
 echo "STF Digital Twin - Starting All Services"
 echo "=============================================="
 
-# Set environment variables
-export DATABASE_URL="${DATABASE_URL:-mysql+pymysql://stf_user:stf_password@localhost:3306/stf_warehouse}"
+# Set environment variables (SQLite by default, stored in project root)
+export DATABASE_URL="${DATABASE_URL:-sqlite:///./stf_digital_twin.db}"
 export STF_API_URL="${STF_API_URL:-http://localhost:8000}"
 export MQTT_BROKER="${MQTT_BROKER:-localhost}"
 export MQTT_PORT="${MQTT_PORT:-1883}"
-
-# Check if Docker services are running
-echo "Checking Docker services..."
-if ! docker ps | grep -q stf_mysql; then
-    echo "Starting Docker infrastructure..."
-    docker-compose up -d
-    sleep 5
-fi
 
 # Start services in background
 echo "Starting FastAPI server..."
