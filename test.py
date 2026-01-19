@@ -11,11 +11,12 @@ It tests the following components:
 5. Hardware state updates
 
 Usage:
-    python test.py [--api-url http://localhost:8000]
+    python test.py [--api-url http://localhost:8000] [--db-path ./stf_digital_twin.db]
 
 Requirements:
     - The API server must be running (uvicorn api.main:app --port 8000)
-    - The database must be accessible
+    - SQLite database file must be accessible (default: ./stf_digital_twin.db)
+    - Alternatively, set DATABASE_URL environment variable to use a different database
 
 Author: Manus AI
 """
@@ -461,6 +462,16 @@ if __name__ == "__main__":
         default=DEFAULT_API_URL,
         help=f"API base URL (default: {DEFAULT_API_URL})"
     )
+    parser.add_argument(
+        "--db-path",
+        default="./stf_digital_twin.db",
+        help="Path to SQLite database file (default: ./stf_digital_twin.db)"
+    )
     args = parser.parse_args()
+    
+    # Set DATABASE_URL environment variable if db-path is provided
+    if args.db_path:
+        os.environ["DATABASE_URL"] = f"sqlite:///{args.db_path}"
+        print(f"Using SQLite database: {args.db_path}")
     
     sys.exit(run_tests(args.api_url))

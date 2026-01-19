@@ -547,9 +547,39 @@ def publish_status(self):
 - Docker and Docker Compose
 - Node.js (optional, for Node-RED integration)
 
-### A.2. Quick Start
+### A.2. Quick Start (with SQLite)
+
+This setup uses the local SQLite database file (`stf_digital_twin.db`).
 
 ```bash
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Initialize database (if it doesn't exist)
+python scripts/generate_history.py
+
+# Start API server
+# The API will automatically use the SQLite database
+uvicorn api.main:app --host 0.0.0.0 --port 8000
+
+# Start controller (in separate terminal)
+python controller/main_controller.py
+
+# Start mock hardware (in separate terminal)
+python hardware/mock_factory.py
+
+# Start dashboard (in separate terminal)
+streamlit run dashboard/app.py
+```
+
+### A.3. Quick Start (with Docker - MySQL + Mosquitto)
+
+This setup uses Docker to run MySQL and Mosquitto services.
+
+```bash
+# Set environment variables for MySQL
+export DATABASE_URL="mysql+pymysql://stf_user:stf_password@localhost:3306/stf_warehouse"
+
 # Start infrastructure (MySQL + Mosquitto)
 docker-compose up -d
 
@@ -572,11 +602,20 @@ python hardware/mock_factory.py
 streamlit run dashboard/app.py
 ```
 
-### A.3. Running Tests
+### A.4. Running Tests
+
+To run the validation test suite with the default SQLite database:
 
 ```bash
-# Run the validation test suite
+# Run tests with default SQLite DB
 python test.py --api-url http://localhost:8000
+```
+
+To specify a different SQLite database file:
+
+```bash
+# Run tests with a specific SQLite DB file
+python test.py --api-url http://localhost:8000 --db-path /path/to/your/database.db
 ```
 
 ---
