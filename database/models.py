@@ -26,6 +26,7 @@ class CookieStatus(PyEnum):
     RAW_DOUGH = "RAW_DOUGH"
     BAKED = "BAKED"
     PACKAGED = "PACKAGED"
+    STORED = "STORED"
     SHIPPED = "SHIPPED"
 
 class SubsystemType(PyEnum):
@@ -39,6 +40,11 @@ class ComponentType(PyEnum):
     ACTUATOR = "ACTUATOR"
     COMPRESSOR = "COMPRESSOR"
     VALVE = "VALVE"
+
+class SensorType(PyEnum):
+    """Sensor types matching real hardware"""
+    LIGHT_BARRIER = "LIGHT_BARRIER"  # Lichtschranke - Through-beam optical (I_2, I_3)
+    TRAIL_SENSOR = "TRAIL_SENSOR"    # Spursensor - Reflective line-following (I_5, I_6)
 
 class HardwareStatus(PyEnum):
     IDLE = "IDLE"
@@ -116,12 +122,21 @@ class MotorState(Base):
     component = relationship("ComponentRegistry")
 
 class SensorState(Base):
-    """Sensor state tracking"""
+    """Sensor state tracking with support for different sensor types"""
     __tablename__ = "py_sensor_states"
     component_id = Column(String(50), ForeignKey("py_component_registry.id"), primary_key=True)
+    sensor_type = Column(Enum(SensorType), nullable=False, default=SensorType.LIGHT_BARRIER)
     is_triggered = Column(Boolean, nullable=False, default=False)
     last_trigger_time = Column(DateTime, nullable=True)
     trigger_count = Column(Integer, nullable=False, default=0)
+    
+    # Trail sensor specific fields (Spursensor)
+    reflectance_value = Column(Float, nullable=True)  # 0.0-1.0 for analog trail sensors
+    track_position = Column(String(20), nullable=True)  # "CENTER", "LEFT", "RIGHT", "LOST"
+    
+    # Light barrier specific fields (Lichtschranke)
+    beam_strength = Column(Float, nullable=True)  # Signal strength 0.0-1.0
+    
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     component = relationship("ComponentRegistry")
 
@@ -220,12 +235,22 @@ def seed_components(session):
         {"id": "HBW_Z", "name": "HBW Z-Axis Motor", "subsystem": SubsystemType.HBW, "component_type": ComponentType.MOTOR, "spec_voltage": 24.0, "spec_max_current": 2.5, "maintenance_interval_hours": 2000},
         {"id": "HBW_REF_SW", "name": "HBW Reference Switch", "subsystem": SubsystemType.HBW, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.1, "maintenance_interval_hours": 5000},
         
-        # CONVEYOR - 1 Motor + 4 Sensors
+        # CONVEYOR - 1 Motor + Light Barriers (Lichtschranke) + Trail Sensors (Spursensor)
         {"id": "CONV_M1", "name": "Conveyor Motor (Bidirectional)", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.MOTOR, "spec_voltage": 24.0, "spec_max_current": 4.0, "maintenance_interval_hours": 1500},
-        {"id": "CONV_L1_ENTRY", "name": "Conveyor Entry Sensor", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.05, "maintenance_interval_hours": 8000},
-        {"id": "CONV_L2_PROCESS", "name": "Conveyor Process Sensor", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.05, "maintenance_interval_hours": 8000},
-        {"id": "CONV_L3_EXIT", "name": "Conveyor Exit Sensor", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.05, "maintenance_interval_hours": 8000},
-        {"id": "CONV_L4_OVERFLOW", "name": "Conveyor Overflow Sensor", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.05, "maintenance_interval_hours": 8000},
+        
+        # Light Barriers (Lichtschranke) - Through-beam optical for presence detection (I_2, I_3)
+        {"id": "CONV_LB_I2", "name": "Lichtschranke Innen (I_2)", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.05, "maintenance_interval_hours": 8000, "sensor_type": "LIGHT_BARRIER"},
+        {"id": "CONV_LB_I3", "name": "Lichtschranke Außen (I_3)", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.05, "maintenance_interval_hours": 8000, "sensor_type": "LIGHT_BARRIER"},
+        
+        # Trail Sensors (Spursensor) - Reflective line-following for track position (I_5, I_6)
+        {"id": "CONV_TS_I5", "name": "Spursensor Unten (I_5)", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.03, "maintenance_interval_hours": 10000, "sensor_type": "TRAIL_SENSOR"},
+        {"id": "CONV_TS_I6", "name": "Spursensor Oben (I_6)", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.03, "maintenance_interval_hours": 10000, "sensor_type": "TRAIL_SENSOR"},
+        
+        # Legacy light barrier zones (keeping for backward compatibility with dashboard)
+        {"id": "CONV_L1_ENTRY", "name": "Conveyor Entry Zone (L1)", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.05, "maintenance_interval_hours": 8000, "sensor_type": "LIGHT_BARRIER"},
+        {"id": "CONV_L2_PROCESS", "name": "Conveyor Process Zone (L2)", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.05, "maintenance_interval_hours": 8000, "sensor_type": "LIGHT_BARRIER"},
+        {"id": "CONV_L3_EXIT", "name": "Conveyor Exit Zone (L3)", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.05, "maintenance_interval_hours": 8000, "sensor_type": "LIGHT_BARRIER"},
+        {"id": "CONV_L4_OVERFLOW", "name": "Conveyor Overflow Zone (L4)", "subsystem": SubsystemType.CONVEYOR, "component_type": ComponentType.SENSOR, "spec_voltage": 24.0, "spec_max_current": 0.05, "maintenance_interval_hours": 8000, "sensor_type": "LIGHT_BARRIER"},
         
         # VGR (Gripper) - 3 Motors + 1 Compressor + 1 Valve
         {"id": "VGR_X", "name": "VGR X-Axis Motor", "subsystem": SubsystemType.VGR, "component_type": ComponentType.MOTOR, "spec_voltage": 24.0, "spec_max_current": 2.5, "maintenance_interval_hours": 2000},
@@ -238,6 +263,9 @@ def seed_components(session):
     for comp in components:
         existing = session.query(ComponentRegistry).filter_by(id=comp["id"]).first()
         if not existing:
+            # Extract sensor_type before creating component (not a column in ComponentRegistry)
+            sensor_type_str = comp.pop("sensor_type", None)
+            
             component = ComponentRegistry(**comp)
             session.add(component)
             
@@ -246,9 +274,19 @@ def seed_components(session):
                 motor_state = MotorState(component_id=comp["id"])
                 session.add(motor_state)
             
-            # Create sensor state for sensors
+            # Create sensor state for sensors with proper sensor_type
             elif comp["component_type"] == ComponentType.SENSOR:
-                sensor_state = SensorState(component_id=comp["id"])
+                sensor_type = SensorType.LIGHT_BARRIER  # Default
+                if sensor_type_str == "TRAIL_SENSOR":
+                    sensor_type = SensorType.TRAIL_SENSOR
+                elif sensor_type_str == "LIGHT_BARRIER":
+                    sensor_type = SensorType.LIGHT_BARRIER
+                    
+                sensor_state = SensorState(
+                    component_id=comp["id"],
+                    sensor_type=sensor_type
+                )
+                session.add(sensor_state)
                 session.add(sensor_state)
     
     session.commit()

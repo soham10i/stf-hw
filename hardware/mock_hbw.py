@@ -84,6 +84,9 @@ class MockHBW:
         self.energy_joules = 0.0
         self.idle_power = 5.0  # Watts when idle
         self.moving_power = 50.0  # Watts when moving
+        
+        # MQTT subscription guard
+        self._mqtt_subscribed = False
     
     def setup_mqtt(self):
         """Initialize MQTT client"""
@@ -104,6 +107,10 @@ class MockHBW:
     
     def _on_mqtt_connect(self, client, userdata, flags, reason_code, properties=None):
         """MQTT connection callback (paho-mqtt v2.x compatible)"""
+        # Avoid re-subscribing on every reconnect
+        if self._mqtt_subscribed:
+            return
+        
         if reason_code == 0 or str(reason_code) == "Success":
             # Subscribe to command topics
             topics = [
@@ -116,6 +123,7 @@ class MockHBW:
             for topic in topics:
                 client.subscribe(topic)
                 print(f"[{self.device_id}] Subscribed to {topic}")
+            self._mqtt_subscribed = True
     
     def _on_mqtt_message(self, client, userdata, msg):
         """Handle incoming MQTT messages"""

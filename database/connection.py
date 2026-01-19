@@ -21,7 +21,7 @@ def get_database_url() -> str:
         if url.startswith("mysql://"):
             url = url.replace("mysql://", "mysql+pymysql://", 1)
         return url
-    return "sqlite:///./stf_warehouse.db"
+    return "sqlite:///./stf_digital_twin.db"
 
 def get_engine():
     global _engine

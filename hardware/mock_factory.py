@@ -134,8 +134,114 @@ class MotorSimulation:
 
 
 @dataclass
+class LightBarrierSimulation:
+    """
+    Simulates a Light Barrier (Lichtschranke) sensor.
+    Through-beam optical sensor for presence detection at entry/exit points.
+    Inputs: I_2 (inner), I_3 (outer)
+    """
+    component_id: str
+    trigger_start_mm: float
+    trigger_end_mm: float
+    
+    is_triggered: bool = False
+    trigger_count: int = 0
+    beam_strength: float = 1.0  # Signal strength 0.0-1.0
+    last_trigger_time: float = 0.0
+    
+    def update(self, position_mm: float, has_object: bool = True) -> Dict:
+        """Check if light barrier beam is broken by object"""
+        was_triggered = self.is_triggered
+        in_zone = self.trigger_start_mm <= position_mm <= self.trigger_end_mm
+        self.is_triggered = in_zone and has_object
+        
+        # Simulate beam strength degradation when blocked
+        if self.is_triggered:
+            self.beam_strength = 0.1 + random.random() * 0.1  # Low when blocked
+            self.last_trigger_time = time.time()
+        else:
+            self.beam_strength = 0.95 + random.random() * 0.05  # High when clear
+        
+        # Count rising edges (object entering beam)
+        if self.is_triggered and not was_triggered:
+            self.trigger_count += 1
+        
+        return {
+            "component_id": self.component_id,
+            "sensor_type": "LIGHT_BARRIER",
+            "is_triggered": self.is_triggered,
+            "trigger_count": self.trigger_count,
+            "beam_strength": round(self.beam_strength, 3),
+        }
+
+
+@dataclass
+class TrailSensorSimulation:
+    """
+    Simulates a Trail Sensor (Spursensor) for track/line following.
+    Reflective optical sensor that detects conveyor track markings.
+    Inputs: I_5 (bottom), I_6 (top)
+    """
+    component_id: str
+    track_center_mm: float  # Center position of track
+    track_width_mm: float = 50.0  # Width of detectable track
+    
+    is_triggered: bool = False  # True when track is detected
+    trigger_count: int = 0
+    reflectance_value: float = 0.0  # 0.0-1.0 analog value
+    track_position: str = "LOST"  # CENTER, LEFT, RIGHT, LOST
+    
+    def update(self, object_position_mm: float, belt_position_mm: float) -> Dict:
+        """
+        Trail sensor reads reflectance to determine track position.
+        Higher reflectance = on track, lower = off track
+        """
+        was_triggered = self.is_triggered
+        
+        # Calculate distance from track center (belt movement affects this)
+        offset_from_center = (belt_position_mm % 100) - 50  # Simulate periodic track marks
+        distance_from_track = abs(offset_from_center)
+        
+        # Determine if on track
+        on_track = distance_from_track <= self.track_width_mm / 2
+        self.is_triggered = on_track
+        
+        # Calculate reflectance (higher when centered on track)
+        if on_track:
+            # Reflectance decreases as we move away from center
+            self.reflectance_value = 1.0 - (distance_from_track / (self.track_width_mm / 2)) * 0.5
+            self.reflectance_value += random.uniform(-0.02, 0.02)  # Add noise
+            self.reflectance_value = max(0.5, min(1.0, self.reflectance_value))
+            
+            # Determine position relative to track center
+            if abs(offset_from_center) < 5:
+                self.track_position = "CENTER"
+            elif offset_from_center < 0:
+                self.track_position = "LEFT"
+            else:
+                self.track_position = "RIGHT"
+        else:
+            self.reflectance_value = random.uniform(0.05, 0.15)  # Low reflectance off track
+            self.track_position = "LOST"
+        
+        # Count transitions onto track
+        if self.is_triggered and not was_triggered:
+            self.trigger_count += 1
+        
+        return {
+            "component_id": self.component_id,
+            "sensor_type": "TRAIL_SENSOR",
+            "is_triggered": self.is_triggered,
+            "trigger_count": self.trigger_count,
+            "reflectance_value": round(self.reflectance_value, 3),
+            "track_position": self.track_position,
+        }
+
+
+# Keep legacy alias for backward compatibility
+@dataclass
 class SensorSimulation:
-    """Simulates a light barrier sensor"""
+    """Legacy sensor simulation - wraps LightBarrierSimulation"""
     component_id: str
     trigger_start_mm: float
     trigger_end_mm: float
@@ -156,12 +262,18 @@ class SensorSimulation:
 
 
 class ConveyorSimulation:
-    """Simulates the conveyor belt with motor and sensors"""
+    """
+    Simulates the conveyor belt with motor and dual sensor systems:
+    - Light Barriers (Lichtschranke): I_2 inner, I_3 outer - for presence detection
+    - Trail Sensors (Spursensor): I_5 bottom, I_6 top - for track position
+    """
     
     def __init__(self):
         self.belt_position_mm: float = 0.0
+        self.object_position_mm: float = 0.0  # Cookie/object position on belt
         self.belt_length_mm: float = 1000.0
         self.direction: int = 1  # 1 = forward, -1 = reverse
+        self.has_object: bool = False  # Whether an object is on the belt
         
         # Motor
         self.motor = MotorSimulation(
@@ -174,13 +286,41 @@ class ConveyorSimulation:
             )
         )
         
-        # Light barrier sensors at specific positions
+        # ============================================
+        # LIGHT BARRIERS (Lichtschranke) - I_2, I_3
+        # Through-beam sensors at entry/exit points
+        # ============================================
+        self.light_barriers = {
+            "I2": LightBarrierSimulation("CONV_LB_I2", 0, 100),      # Inner: 0-100mm (entry)
+            "I3": LightBarrierSimulation("CONV_LB_I3", 900, 1000),   # Outer: 900-1000mm (exit)
+        }
+        
+        # ============================================
+        # TRAIL SENSORS (Spursensor) - I_5, I_6
+        # Reflective sensors for track following
+        # ============================================
+        self.trail_sensors = {
+            "I5": TrailSensorSimulation("CONV_TS_I5", track_center_mm=500, track_width_mm=50),  # Bottom sensor
+            "I6": TrailSensorSimulation("CONV_TS_I6", track_center_mm=500, track_width_mm=50),  # Top sensor
+        }
+        
+        # Legacy light barrier zones (for backward compatibility with dashboard L1-L4)
         self.sensors = {
             "L1": SensorSimulation("CONV_L1_ENTRY", 0, 50),      # Entry: 0-50mm
             "L2": SensorSimulation("CONV_L2_PROCESS", 300, 350), # Process: 300-350mm
             "L3": SensorSimulation("CONV_L3_EXIT", 600, 650),    # Exit: 600-650mm
             "L4": SensorSimulation("CONV_L4_OVERFLOW", 950, 1000), # Overflow: 950-1000mm
         }
+    
+    def place_object(self, position_mm: float = 0.0):
+        """Place an object (cookie) on the conveyor"""
+        self.has_object = True
+        self.object_position_mm = position_mm
+    
+    def remove_object(self):
+        """Remove object from conveyor"""
+        self.has_object = False
+        self.object_position_mm = 0.0
     
     def start(self, direction: int = 1):
         """Start conveyor in specified direction"""
@@ -198,25 +338,54 @@ class ConveyorSimulation:
         
         # Update belt position based on motor velocity
         if self.motor.velocity > 0:
-            self.belt_position_mm += self.motor.velocity * dt * self.direction
+            movement = self.motor.velocity * dt * self.direction
+            self.belt_position_mm += movement
             
-            # Wrap around
+            # Move object with belt
+            if self.has_object:
+                self.object_position_mm += movement
+            
+            # Wrap around belt position
             if self.belt_position_mm > self.belt_length_mm:
                 self.belt_position_mm = 0
             elif self.belt_position_mm < 0:
                 self.belt_position_mm = self.belt_length_mm
+                
+            # Check if object exited belt
+            if self.has_object and (self.object_position_mm > self.belt_length_mm or self.object_position_mm < 0):
+                self.has_object = False
         
-        # Update sensors
-        sensor_states = {}
+        # ============================================
+        # Update Light Barriers (Lichtschranke)
+        # ============================================
+        light_barrier_states = {}
+        for key, lb in self.light_barriers.items():
+            light_barrier_states[key] = lb.update(self.object_position_mm, self.has_object)
+        
+        # ============================================
+        # Update Trail Sensors (Spursensor)
+        # ============================================
+        trail_sensor_states = {}
+        for key, ts in self.trail_sensors.items():
+            trail_sensor_states[key] = ts.update(self.object_position_mm, self.belt_position_mm)
+        
+        # Update legacy sensors (L1-L4) for backward compatibility
+        legacy_sensor_states = {}
         for key, sensor in self.sensors.items():
-            sensor_states[key] = sensor.update(self.belt_position_mm)
+            legacy_sensor_states[key] = sensor.update(self.object_position_mm if self.has_object else self.belt_position_mm)
         
         return {
             "belt_position_mm": round(self.belt_position_mm, 1),
+            "object_position_mm": round(self.object_position_mm, 1) if self.has_object else None,
+            "has_object": self.has_object,
             "belt_position_pct": round(self.belt_position_mm / 10, 1),
             "direction": self.direction,
             "motor": motor_state,
-            "sensors": sensor_states,
+            # New sensor systems
+            "light_barriers": light_barrier_states,  # Lichtschranke (I_2, I_3)
+            "trail_sensors": trail_sensor_states,    # Spursensor (I_5, I_6)
+            # Legacy for backward compatibility
+            "sensors": legacy_sensor_states,
         }
 
 

@@ -23,7 +23,7 @@ timeout /t 3 /nobreak > nul
 
 REM Start Mock Hardware
 echo Starting Mock Hardware Simulation...
-start "STF-Hardware" cmd /k "cd /d %~dp0 && venv\Scripts\activate && python -m hardware.mock_hbw"
+start "STF-Hardware" cmd /k "cd /d %~dp0 && venv\Scripts\activate && python -m hardware.mock_factory"
 timeout /t 1 /nobreak > nul
 
 REM Start Main Controller

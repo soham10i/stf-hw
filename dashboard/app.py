@@ -4,6 +4,7 @@ Industrial Apple Glassmorphism Design with WebSocket Real-Time Updates
 """
 
 import streamlit as st
+# from streamlit_autorefresh import st_autorefresh  # Disabled for manual refresh
 import requests
 import pandas as pd
 import plotly.express as px
@@ -19,7 +20,7 @@ from typing import Optional, Dict, Any
 # Configuration
 API_URL = os.environ.get("STF_API_URL", "http://localhost:8000")
 WS_URL = os.environ.get("STF_WS_URL", "ws://localhost:8000/ws")
-REFRESH_INTERVAL = 1  # seconds (fallback polling)
+REFRESH_INTERVAL = 2000  # milliseconds for auto-refresh (not used in manual mode)
 
 # Page Configuration
 st.set_page_config(
@@ -49,31 +50,32 @@ GLASSMORPHISM_CSS = """
 footer {visibility: hidden;}
 header {visibility: hidden;}
 
+/* Ensure all interactive elements are accessible */
+button, input, select, textarea, .stButton, .stSelectbox, .stTextInput {
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 10;
+}
+
 /* Glass Card Base */
 .glass-card {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 24px;
     padding: 24px;
-    box-shadow: 
-        0 8px 32px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     transition: all 0.3s ease;
 }
 
 .glass-card:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.12);
-    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* KPI Card */
 .kpi-card {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 20px;
     padding: 20px 24px;
     text-align: center;
@@ -103,9 +105,8 @@ header {visibility: hidden;}
 
 /* Header */
 .header-container {
-    background: rgba(255, 255, 255, 0.02);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     padding: 16px 32px;
     margin: -1rem -1rem 2rem -1rem;
     display: flex;
@@ -285,12 +286,16 @@ header {visibility: hidden;}
     height: 40px;
     border-radius: 50%;
     margin-top: 8px;
-    box-shadow: 0 0 20px currentColor;
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
 }
 
-.cookie-choco { background: radial-gradient(circle, #8B5A2B 0%, #5D3A1A 100%); }
-.cookie-vanilla { background: radial-gradient(circle, #FFFACD 0%, #F5DEB3 100%); }
-.cookie-strawberry { background: radial-gradient(circle, #FF69B4 0%, #FF1493 100%); }
+/* RAW_DOUGH - Cream/beige dough color for all flavors */
+.cookie-raw { background: radial-gradient(circle, #F5DEB3 0%, #DEB887 50%, #D2B48C 100%); box-shadow: 0 0 15px rgba(222, 184, 135, 0.5); }
+
+/* BAKED cookies - Flavor specific colors */
+.cookie-choco { background: radial-gradient(circle, #5D4037 0%, #3E2723 50%, #2C1810 100%); box-shadow: 0 0 15px rgba(93, 64, 55, 0.6); }
+.cookie-vanilla { background: radial-gradient(circle, #FFFEF0 0%, #FFF8E7 50%, #F5F5DC 100%); box-shadow: 0 0 15px rgba(255, 255, 240, 0.6); }
+.cookie-strawberry { background: radial-gradient(circle, #FF69B4 0%, #FF1493 50%, #DB7093 100%); box-shadow: 0 0 15px rgba(255, 105, 180, 0.6); }
 
 /* Cookie Status Badge */
 .cookie-status {
@@ -842,10 +847,17 @@ if data:
                     
                     if flavor:
                         flavor_lower = flavor.lower()
+                        status_lower = status.lower() if status else ""
                         slot_class = f"slot-{flavor_lower}"
-                        cookie_class = f"cookie-{flavor_lower}"
+                        
+                        # RAW_DOUGH = cream color, BAKED = flavor-specific color
+                        if status_lower == "raw_dough":
+                            cookie_class = "cookie-raw"  # Cream dough color
+                        else:
+                            cookie_class = f"cookie-{flavor_lower}"  # Baked: choco/vanilla/strawberry
+                        
                         cookie_html = f'<div class="cookie-indicator {cookie_class}"></div>'
-                        status_class = f"status-{status.lower()}" if status else ""
+                        status_class = f"status-{status_lower}" if status else ""
                         status_html = f'<span class="cookie-status {status_class}">{status}</span>' if status else ""
                     else:
                         slot_class = "slot-empty"
@@ -864,11 +876,15 @@ if data:
         st.markdown("""
         <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: center; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 4px;">
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #8B5A2B;"></div>
+                <div style="width: 10px; height: 10px; border-radius: 50%; background: #DEB887;"></div>
+                <span style="color: rgba(255,255,255,0.5); font-size: 10px;">Raw Dough</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <div style="width: 10px; height: 10px; border-radius: 50%; background: #3E2723;"></div>
                 <span style="color: rgba(255,255,255,0.5); font-size: 10px;">Choco</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #FFFACD;"></div>
+                <div style="width: 10px; height: 10px; border-radius: 50%; background: #FFFEF0; border: 1px solid rgba(255,255,255,0.3);"></div>
                 <span style="color: rgba(255,255,255,0.5); font-size: 10px;">Vanilla</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
@@ -1050,6 +1066,10 @@ else:
             else:
                 st.error(result.get("message", "Initialization failed"))
 
-# Auto-refresh
-time.sleep(REFRESH_INTERVAL)
-st.rerun()
+# Footer with refresh info
+st.markdown("---")
+st.markdown("""
+<div style="text-align: center; color: rgba(255,255,255,0.4); font-size: 12px; padding: 10px;">
+    STF Digital Twin v2.0 • Auto-refreshing every 2 seconds
+</div>
+""", unsafe_allow_html=True)

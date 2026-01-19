@@ -33,6 +33,7 @@ from database import (
     InventorySlot, HardwareState, HardwareStatus, SystemLog, LogLevel,
     EnergyLog, TelemetryHistory, Alert, AlertSeverity, Command,
     ComponentRegistry, MotorState, SensorState, SubsystemType, ComponentType,
+    seed_inventory_slots, seed_components, seed_hardware_devices,
 )
 
 # Configuration
@@ -55,6 +56,25 @@ def create_session():
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     return Session()
+
+
+def seed_core_tables(db):
+    """Seed all core operational tables."""
+    print("\n  Seeding core tables...")
+    
+    # Seed inventory slots (A1-C3)
+    print("    - Inventory slots (A1-C3)")
+    seed_inventory_slots(db)
+    
+    # Seed component registry + motor states + sensor states
+    print("    - Component registry, motor states, sensor states")
+    seed_components(db)
+    
+    # Seed hardware devices (HBW, VGR, CONVEYOR)
+    print("    - Hardware devices (HBW, VGR, CONVEYOR)")
+    seed_hardware_devices(db)
+    
+    print("  Core tables seeded successfully!\n")
 
 
 def generate_order_event(
@@ -190,12 +210,12 @@ def generate_alert(
 ) -> None:
     """Generate an alert record."""
     alert = Alert(
-        timestamp=timestamp,
+        created_at=timestamp,
         alert_type=alert_type,
         severity=severity,
         title=title,
         message=message,
-        component_id=component_id,
+        device_id=component_id,
         acknowledged=random.random() > 0.3,  # 70% acknowledged
         acknowledged_at=timestamp + timedelta(hours=random.randint(1, 24)) if random.random() > 0.3 else None,
     )
@@ -243,7 +263,7 @@ def simulate_motor_failure(db, day: int, base_date: datetime) -> dict:
             # Generate warning alerts
             if hour == 0:
                 generate_alert(
-                    db, ts, "OVERCURRENT", AlertSeverity.WARNING,
+                    db, ts, "OVERCURRENT", AlertSeverity.MEDIUM,
                     "High Current Detected: CONV_M1",
                     f"Motor current at {current:.2f}A exceeds normal operating range (1.5A)",
                     "CONV_M1"
@@ -309,7 +329,7 @@ def simulate_sensor_drift(db, day: int, base_date: datetime) -> None:
         # Generate drift alert
         generate_alert(
             db, base_date + timedelta(hours=14),
-            "SENSOR_DRIFT", AlertSeverity.WARNING,
+            "SENSOR_DRIFT", AlertSeverity.MEDIUM,
             "Sensor Calibration Required: CONV_L2_PROCESS",
             "Multiple false triggers detected. Sensor may require recalibration or replacement.",
             "CONV_L2_PROCESS"
@@ -426,7 +446,7 @@ def generate_daily_data(
             # Generate predictive maintenance alert if health < 0.5
             if health < 0.5 and hour == 12:  # Check at noon
                 generate_alert(
-                    db, ts, "PREDICTIVE_MAINTENANCE", AlertSeverity.WARNING,
+                    db, ts, "PREDICTIVE_MAINTENANCE", AlertSeverity.MEDIUM,
                     f"Predictive Maintenance Required: {motor_id}",
                     f"Health score at {health*100:.0f}%. Schedule maintenance to prevent failure.",
                     motor_id
@@ -457,6 +477,9 @@ def generate_history(days: int = 30, orders_per_day: int = 50):
     print("=" * 60)
     
     db = create_session()
+    
+    # Seed core tables first (inventory, components, motors, sensors, hardware)
+    seed_core_tables(db)
     
     # Calculate date range (past N days)
     end_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
