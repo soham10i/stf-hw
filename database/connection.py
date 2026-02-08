@@ -11,6 +11,14 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from .models import Base, seed_inventory_slots, seed_hardware_devices
 
+# Import logging utility – fall back to stdlib if utils package is unavailable
+try:
+    from utils.logging_config import get_logger
+    logger = get_logger("database")
+except ImportError:
+    import logging
+    logger = logging.getLogger("database")
+
 _engine = None
 _SessionFactory = None
 
@@ -26,11 +34,16 @@ def get_database_url() -> str:
 def get_engine():
     global _engine
     if _engine is None:
-        _engine = create_engine(
-            get_database_url(),
+        db_url = get_database_url()
+        kwargs = dict(
             echo=os.environ.get("SQL_ECHO", "false").lower() == "true",
             pool_pre_ping=True,
         )
+        # Connection pool limits (not supported by SQLite)
+        if not db_url.startswith("sqlite"):
+            kwargs["pool_size"] = int(os.environ.get("DB_POOL_SIZE", "10"))
+            kwargs["max_overflow"] = int(os.environ.get("DB_MAX_OVERFLOW", "20"))
+        _engine = create_engine(db_url, **kwargs)
     return _engine
 
 def get_session_factory():
@@ -63,7 +76,7 @@ def init_database(seed_data: bool = True):
         with get_session() as session:
             seed_inventory_slots(session)
             seed_hardware_devices(session)
-    print("Database initialized successfully")
+    logger.info("Database initialized successfully")
 
 def get_db():
     db = get_db_session()

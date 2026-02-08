@@ -9,8 +9,9 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
 
-from fastapi import FastAPI, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, Security
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
@@ -18,6 +19,10 @@ from sqlalchemy import func, desc
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.logging_config import get_logger
+
+logger = get_logger("api")
 
 from database import (
     get_db, init_database, Carrier, Cookie, CookieFlavor, CookieStatus,
@@ -33,13 +38,36 @@ app = FastAPI(
     version="3.0.0",
 )
 
+# ---------------------------------------------------------------------------
+# CORS — configurable via environment variable (comma-separated origins)
+# ---------------------------------------------------------------------------
+_cors_origins = os.environ.get(
+    "CORS_ORIGINS", "http://localhost:8501,http://localhost:8000"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o.strip() for o in _cors_origins],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------------------------
+# Optional API-key authentication (set STF_API_KEY env var to enable)
+# ---------------------------------------------------------------------------
+_api_key_env = os.environ.get("STF_API_KEY")
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def verify_api_key(api_key: Optional[str] = Security(_api_key_header)):
+    """Validate API key when STF_API_KEY is configured."""
+    if _api_key_env is None:
+        # Authentication not enabled — allow all requests
+        return None
+    if api_key is None or api_key != _api_key_env:
+        raise HTTPException(status_code=403, detail="Invalid or missing API key")
+    return api_key
 
 # ============================================================================
 # WebSocket Connection Manager
@@ -54,12 +82,12 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
-        print(f"[WS] Client connected. Total: {len(self.active_connections)}")
+        logger.info("WebSocket client connected. Total: %d", len(self.active_connections))
     
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
-        print(f"[WS] Client disconnected. Total: {len(self.active_connections)}")
+        logger.info("WebSocket client disconnected. Total: %d", len(self.active_connections))
     
     async def broadcast(self, message: dict):
         """Broadcast message to all connected clients"""
@@ -73,7 +101,7 @@ class ConnectionManager:
             try:
                 await connection.send_text(message_json)
             except Exception as e:
-                print(f"[WS] Broadcast error: {e}")
+                logger.warning("WebSocket broadcast error: %s", e)
                 disconnected.append(connection)
         
         # Clean up disconnected clients
@@ -85,7 +113,7 @@ class ConnectionManager:
         try:
             await websocket.send_text(json.dumps(message, default=str))
         except Exception as e:
-            print(f"[WS] Send error: {e}")
+            logger.warning("WebSocket send error: %s", e)
 
 manager = ConnectionManager()
 
@@ -94,10 +122,10 @@ manager = ConnectionManager()
 # ============================================================================
 
 class HardwareStateUpdate(BaseModel):
-    device_id: str
-    x: float
-    y: float
-    z: float = 0.0
+    device_id: str = Field(..., min_length=1, max_length=50)
+    x: float = Field(..., ge=0, le=1000)
+    y: float = Field(..., ge=0, le=1000)
+    z: float = Field(0.0, ge=0, le=1000)
     status: Optional[str] = None
 
 class HardwareStateResponse(BaseModel):
@@ -122,12 +150,12 @@ class ComponentSpecResponse(BaseModel):
         from_attributes = True
 
 class MotorStateUpdate(BaseModel):
-    component_id: str
-    current_amps: float
-    voltage: float = 24.0
+    component_id: str = Field(..., min_length=1, max_length=50)
+    current_amps: float = Field(..., ge=0, le=20)
+    voltage: float = Field(24.0, ge=0, le=48)
     is_active: bool = False
-    health_score: Optional[float] = None
-    accumulated_runtime_sec: Optional[float] = None
+    health_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+    accumulated_runtime_sec: Optional[float] = Field(None, ge=0)
 
 class MotorStateResponse(BaseModel):
     component_id: str
@@ -141,7 +169,7 @@ class MotorStateResponse(BaseModel):
         from_attributes = True
 
 class SensorStateUpdate(BaseModel):
-    component_id: str
+    component_id: str = Field(..., min_length=1, max_length=50)
     is_triggered: bool
 
 class SensorStateResponse(BaseModel):
@@ -159,17 +187,17 @@ class ConveyorStateUpdate(BaseModel):
     sensors: Dict[str, bool]  # L1, L2, L3, L4
 
 class TelemetryData(BaseModel):
-    device_id: str
-    metric_name: str
+    device_id: str = Field(..., min_length=1, max_length=50)
+    metric_name: str = Field(..., min_length=1, max_length=100)
     metric_value: float
-    unit: Optional[str] = None
+    unit: Optional[str] = Field(None, max_length=20)
 
 class EnergyData(BaseModel):
-    device_id: str
-    joules: float
-    voltage: float = 24.0
-    current_amps: Optional[float] = None
-    power_watts: Optional[float] = None
+    device_id: str = Field(..., min_length=1, max_length=50)
+    joules: float = Field(..., ge=0)
+    voltage: float = Field(24.0, ge=0, le=48)
+    current_amps: Optional[float] = Field(None, ge=0, le=20)
+    power_watts: Optional[float] = Field(None, ge=0)
 
 class InventorySlotResponse(BaseModel):
     slot_name: str
@@ -223,6 +251,11 @@ class CommandResponse(BaseModel):
     slot_name: Optional[str] = None
     batch_uuid: Optional[str] = None
 
+class CommandStatusUpdate(BaseModel):
+    """Validated model for command status updates (replaces raw dict)."""
+    status: str = Field(..., pattern="^(PENDING|IN_PROGRESS|COMPLETED|FAILED)$")
+    message: Optional[str] = Field(None, max_length=500)
+
 # ============================================================================
 # WebSocket Endpoint
 # ============================================================================
@@ -258,7 +291,7 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
     except Exception as e:
-        print(f"[WS] Error: {e}")
+        logger.error("WebSocket error: %s", e)
         manager.disconnect(websocket)
 
 def get_full_dashboard_state(db: Session) -> dict:
@@ -400,9 +433,9 @@ async def broadcast_state_update(db: Session, update_type: str, data: dict):
 async def startup_event():
     try:
         init_database(seed_data=True)
-        print("STF Digital Twin API v3.0 started with WebSocket support")
+        logger.info("STF Digital Twin API v3.0 started with WebSocket support")
     except Exception as e:
-        print(f"Database init warning: {e}")
+        logger.warning("Database init warning: %s", e)
 
 # ============================================================================
 # Component Registry Endpoints
@@ -900,7 +933,7 @@ def get_dashboard_data(db: Session = Depends(get_db)):
 # ============================================================================
 
 @app.post("/maintenance/initialize", tags=["Maintenance"])
-async def initialize_system(db: Session = Depends(get_db)):
+async def initialize_system(db: Session = Depends(get_db), _key: str = Depends(verify_api_key)):
     seed_inventory_slots(db)
     seed_hardware_devices(db)
     seed_components(db)
@@ -912,7 +945,7 @@ async def initialize_system(db: Session = Depends(get_db)):
     return {"success": True, "message": "System initialized with 14 components"}
 
 @app.post("/maintenance/reset", tags=["Maintenance"])
-async def reset_system(db: Session = Depends(get_db)):
+async def reset_system(db: Session = Depends(get_db), _key: str = Depends(verify_api_key)):
     # Reset hardware positions
     devices = db.query(HardwareState).all()
     for hw in devices:
@@ -942,7 +975,7 @@ async def reset_system(db: Session = Depends(get_db)):
     return {"success": True, "message": "System reset complete"}
 
 @app.post("/maintenance/emergency-stop", tags=["Maintenance"])
-async def emergency_stop(db: Session = Depends(get_db)):
+async def emergency_stop(db: Session = Depends(get_db), _key: str = Depends(verify_api_key)):
     # Stop all hardware
     devices = db.query(HardwareState).all()
     for hw in devices:
@@ -968,12 +1001,41 @@ async def emergency_stop(db: Session = Depends(get_db)):
     return {"success": True, "message": "Emergency stop activated"}
 
 @app.get("/health", tags=["System"])
-def health_check():
+def health_check(db: Session = Depends(get_db)):
+    """Enhanced health check with database connectivity verification."""
+    checks: Dict[str, Any] = {}
+
+    # Database connectivity
+    try:
+        db.execute(func.count(HardwareState.device_id)).scalar()
+        checks["database"] = "ok"
+    except Exception as e:
+        checks["database"] = f"error: {e}"
+
+    # Component counts
+    try:
+        motor_count = db.query(func.count(MotorState.component_id)).scalar() or 0
+        sensor_count = db.query(func.count(SensorState.component_id)).scalar() or 0
+        active_alerts = (
+            db.query(func.count(Alert.id))
+            .filter(Alert.acknowledged == False)
+            .scalar()
+            or 0
+        )
+        checks["motors"] = motor_count
+        checks["sensors"] = sensor_count
+        checks["active_alerts"] = active_alerts
+    except Exception:
+        pass
+
+    overall = "healthy" if checks.get("database") == "ok" else "degraded"
+
     return {
-        "status": "healthy",
+        "status": overall,
         "timestamp": datetime.utcnow().isoformat(),
         "version": "3.0.0",
-        "websocket": f"ws://localhost:8000/ws",
+        "websocket": "ws://localhost:8000/ws",
+        "checks": checks,
     }
 
 # ============================================================================
@@ -1000,15 +1062,20 @@ def get_pending_commands(limit: int = 1, db: Session = Depends(get_db)):
     ]
 
 @app.post("/commands/{command_id}/status", tags=["Commands"])
-def update_command_status(command_id: int, status_update: dict, db: Session = Depends(get_db)):
+def update_command_status(
+    command_id: int,
+    status_update: CommandStatusUpdate,
+    db: Session = Depends(get_db),
+    _key: str = Depends(verify_api_key),
+):
     """Update command status (called by controller)."""
     command = db.query(Command).filter(Command.id == command_id).first()
     if not command:
         raise HTTPException(status_code=404, detail=f"Command {command_id} not found")
     
-    command.status = status_update.get("status", command.status)
-    if status_update.get("message"):
-        command.error_message = status_update["message"]
+    command.status = status_update.status
+    if status_update.message:
+        command.error_message = status_update.message
     
     if command.status == "IN_PROGRESS":
         command.executed_at = datetime.utcnow()

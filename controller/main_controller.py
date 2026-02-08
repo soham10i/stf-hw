@@ -28,13 +28,17 @@ from typing import Optional, Dict, List, Tuple
 
 import httpx
 
+from utils.logging_config import get_logger
+
+logger = get_logger("controller")
+
 # Optional MQTT support
 try:
     import paho.mqtt.client as mqtt
     MQTT_AVAILABLE = True
 except ImportError:
     MQTT_AVAILABLE = False
-    print("Warning: paho-mqtt not installed. MQTT features disabled.")
+    logger.warning("paho-mqtt not installed. MQTT features disabled.")
 
 # Import kinematic constants from database models
 from database.models import (
@@ -409,7 +413,7 @@ class MainController:
             True if MQTT connected successfully, False otherwise.
         """
         if not MQTT_AVAILABLE:
-            print("[Controller] MQTT not available - running in simulation mode")
+            logger.info("[Controller] MQTT not available - running in simulation mode")
             return False
         
         try:
@@ -419,10 +423,10 @@ class MainController:
             
             self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
             self.mqtt_client.loop_start()
-            print(f"[Controller] Connected to MQTT broker at {MQTT_BROKER}:{MQTT_PORT}")
+            logger.info("[Controller] Connected to MQTT broker at %s:%s", MQTT_BROKER, MQTT_PORT)
             return True
         except Exception as e:
-            print(f"[Controller] MQTT connection failed: {e}")
+            logger.error("[Controller] MQTT connection failed: %s", e)
             self.mqtt_client = None
             return False
     
@@ -438,11 +442,11 @@ class MainController:
                 ]
                 for topic in topics:
                     client.subscribe(topic)
-                print("[Controller] Subscribed to hardware status topics")
+                logger.info("[Controller] Subscribed to hardware status topics")
             else:
-                print(f"[Controller] MQTT connection failed with reason: {reason_code}")
+                logger.error("[Controller] MQTT connection failed with reason: %s", reason_code)
         except Exception as e:
-            print(f"[Controller] Error in MQTT connect handler: {e}")
+            logger.error("[Controller] Error in MQTT connect handler: %s", e)
     
     def _on_mqtt_message(self, client, userdata, msg):
         """Handle incoming MQTT messages from hardware."""
@@ -456,9 +460,9 @@ class MainController:
                 self._handle_emergency_stop()
                 
         except json.JSONDecodeError:
-            print(f"[Controller] Invalid JSON in MQTT message")
+            logger.error("[Controller] Invalid JSON in MQTT message")
         except Exception as e:
-            print(f"[Controller] Error handling MQTT message: {e}")
+            logger.error("[Controller] Error handling MQTT message: %s", e)
     
     def _update_hardware_position(self, payload: dict):
         """Update tracked hardware position from MQTT status."""
@@ -473,7 +477,7 @@ class MainController:
                     status=str(payload.get("status", "UNKNOWN")),
                 )
         except (TypeError, ValueError) as e:
-            print(f"[Controller] Error parsing hardware position: {e}")
+            logger.error("[Controller] Error parsing hardware position: %s", e)
     
     def _handle_emergency_stop(self):
         """Activate emergency stop mode."""
@@ -486,9 +490,9 @@ class MainController:
                     topic = f"{MQTT_TOPIC_PREFIX}/{device}/{MQTT_CMD_STOP}"
                     self.mqtt_client.publish(topic, json.dumps({"action": "stop"}))
             except Exception as e:
-                print(f"[Controller] MQTT emergency stop error: {e}")
+                logger.error("[Controller] MQTT emergency stop error: %s", e)
         
-        print("[Controller] *** EMERGENCY STOP ACTIVATED ***")
+        logger.critical("[Controller] *** EMERGENCY STOP ACTIVATED ***")
     
     # =========================================================================
     # Hardware Command Methods
@@ -519,7 +523,7 @@ class MainController:
                 json={"device_id": device_id, "x": x, "y": y, "z": 0, "status": "MOVING"}
             )
         except Exception as e:
-            print(f"[Controller] API update error: {e}")
+            logger.error("[Controller] API update error: %s", e)
         
         # Send MQTT command
         if self.mqtt_client:
@@ -528,9 +532,9 @@ class MainController:
                 payload = {"x": x, "y": y, "z": 0}
                 self.mqtt_client.publish(topic, json.dumps(payload))
             except Exception as e:
-                print(f"[Controller] MQTT move command error: {e}")
+                logger.error("[Controller] MQTT move command error: %s", e)
         
-        print(f"[Controller] MOVE {device_id} -> ({x}, {y})")
+        logger.info("[Controller] MOVE %s -> (%s, %s)", device_id, x, y)
         return True
     
     async def _send_gripper_command(self, device_id: str, action: str):
@@ -541,9 +545,9 @@ class MainController:
                 payload = {"action": action}
                 self.mqtt_client.publish(topic, json.dumps(payload))
             except Exception as e:
-                print(f"[Controller] MQTT gripper command error: {e}")
+                logger.error("[Controller] MQTT gripper command error: %s", e)
         
-        print(f"[Controller] GRIPPER {device_id} -> {action}")
+        logger.info("[Controller] GRIPPER %s -> %s", device_id, action)
     
     async def _send_conveyor_command(self, action: str, speed: float = 100):
         """Send conveyor belt command."""
@@ -553,9 +557,9 @@ class MainController:
                 payload = {"action": action, "speed": speed}
                 self.mqtt_client.publish(topic, json.dumps(payload))
             except Exception as e:
-                print(f"[Controller] MQTT conveyor command error: {e}")
+                logger.error("[Controller] MQTT conveyor command error: %s", e)
         
-        print(f"[Controller] CONVEYOR -> {action}")
+        logger.info("[Controller] CONVEYOR -> %s", action)
     
     # =========================================================================
     # SENSOR-BASED CONVEYOR CONTROL
@@ -591,7 +595,7 @@ class MainController:
                             "I6": hw.get("trail_sensors", {}).get("I6", {}).get("is_triggered", False),
                         }
         except Exception as e:
-            print(f"[Controller] Error fetching conveyor sensors: {e}")
+            logger.error("[Controller] Error fetching conveyor sensors: %s", e)
         
         raise RuntimeError("Unable to fetch conveyor sensor states")
     
@@ -620,7 +624,7 @@ class MainController:
         RuntimeError
             If HBW interface is blocked (I2 already triggered) or timeout occurs.
         """
-        print("[Controller] CONVEYOR INBOUND: VGR → HBW transport starting...")
+        logger.info("[Controller] CONVEYOR INBOUND: VGR → HBW transport starting...")
         
         # Step 1: Congestion Check
         try:
@@ -630,7 +634,7 @@ class MainController:
         except RuntimeError:
             raise
         except Exception as e:
-            print(f"[Controller] Warning: Could not check congestion: {e}")
+            logger.warning("[Controller] Warning: Could not check congestion: %s", e)
         
         # Step 2: Start motor (forward direction = 1)
         await self._send_conveyor_command("start_forward", speed=100)
@@ -640,9 +644,9 @@ class MainController:
                 payload = {"action": "start", "direction": 1, "motor": "M1"}  # Q1/Inwards
                 self.mqtt_client.publish(topic, json.dumps(payload))
             except Exception as e:
-                print(f"[Controller] MQTT motor start error: {e}")
+                logger.error("[Controller] MQTT motor start error: %s", e)
         
-        print("[Controller] CONVEYOR M1 started (direction: INWARD/Q1)")
+        logger.info("[Controller] CONVEYOR M1 started (direction: INWARD/Q1)")
         
         # Step 3: Monitor I2 sensor with timeout
         start_time = time.time()
@@ -655,7 +659,7 @@ class MainController:
                     i2_triggered = True
                     break
             except Exception as e:
-                print(f"[Controller] Sensor poll error: {e}")
+                logger.error("[Controller] Sensor poll error: %s", e)
             
             await asyncio.sleep(SENSOR_POLL_INTERVAL_SEC)  # Poll at 10Hz
         
@@ -667,9 +671,9 @@ class MainController:
                 payload = {"action": "stop", "motor": "M1"}
                 self.mqtt_client.publish(topic, json.dumps(payload))
             except Exception as e:
-                print(f"[Controller] MQTT motor stop error: {e}")
+                logger.error("[Controller] MQTT motor stop error: %s", e)
         
-        print("[Controller] CONVEYOR M1 stopped")
+        logger.info("[Controller] CONVEYOR M1 stopped")
         
         # Step 5: Check result and update state
         if not i2_triggered:
@@ -677,7 +681,7 @@ class MainController:
         
         # Update state: item is now at HBW interface
         position = CONVEYOR_HBW_INTERFACE_POS
-        print(f"[Controller] CONVEYOR INBOUND complete: Item at HBW interface {position}")
+        logger.info("[Controller] CONVEYOR INBOUND complete: Item at HBW interface %s", position)
         
         # Update API with new carrier position
         try:
@@ -693,7 +697,7 @@ class MainController:
                 }
             )
         except Exception as e:
-            print(f"[Controller] API state update error: {e}")
+            logger.error("[Controller] API state update error: %s", e)
         
         return {
             "success": True,
@@ -726,7 +730,7 @@ class MainController:
         RuntimeError
             If VGR interface is blocked (I3 already triggered) or timeout occurs.
         """
-        print("[Controller] CONVEYOR OUTBOUND: HBW → VGR transport starting...")
+        logger.info("[Controller] CONVEYOR OUTBOUND: HBW → VGR transport starting...")
         
         # Step 1: Congestion Check
         try:
@@ -736,7 +740,7 @@ class MainController:
         except RuntimeError:
             raise
         except Exception as e:
-            print(f"[Controller] Warning: Could not check congestion: {e}")
+            logger.warning("[Controller] Warning: Could not check congestion: %s", e)
         
         # Step 2: Start motor (reverse direction = -1)
         await self._send_conveyor_command("start_reverse", speed=100)
@@ -746,9 +750,9 @@ class MainController:
                 payload = {"action": "start", "direction": -1, "motor": "M1"}  # Q2/Outwards
                 self.mqtt_client.publish(topic, json.dumps(payload))
             except Exception as e:
-                print(f"[Controller] MQTT motor start error: {e}")
+                logger.error("[Controller] MQTT motor start error: %s", e)
         
-        print("[Controller] CONVEYOR M1 started (direction: OUTWARD/Q2)")
+        logger.info("[Controller] CONVEYOR M1 started (direction: OUTWARD/Q2)")
         
         # Step 3: Monitor I3 sensor with timeout
         start_time = time.time()
@@ -761,7 +765,7 @@ class MainController:
                     i3_triggered = True
                     break
             except Exception as e:
-                print(f"[Controller] Sensor poll error: {e}")
+                logger.error("[Controller] Sensor poll error: %s", e)
             
             await asyncio.sleep(SENSOR_POLL_INTERVAL_SEC)  # Poll at 10Hz
         
@@ -773,15 +777,15 @@ class MainController:
                 payload = {"action": "stop", "motor": "M1"}
                 self.mqtt_client.publish(topic, json.dumps(payload))
             except Exception as e:
-                print(f"[Controller] MQTT motor stop error: {e}")
+                logger.error("[Controller] MQTT motor stop error: %s", e)
         
-        print("[Controller] CONVEYOR M1 stopped")
+        logger.info("[Controller] CONVEYOR M1 stopped")
         
         # Step 5: Check result
         if not i3_triggered:
             raise RuntimeError(f"Conveyor JAMMED: I3 not triggered within {CONVEYOR_TIMEOUT_SEC}s timeout")
         
-        print("[Controller] CONVEYOR OUTBOUND complete: Item at VGR interface (I3 triggered)")
+        logger.info("[Controller] CONVEYOR OUTBOUND complete: Item at VGR interface (I3 triggered)")
         
         # Update API state - VGR interface at same global position
         vgr_pos = CONVEYOR_VGR_INTERFACE_POS
@@ -798,7 +802,7 @@ class MainController:
                 }
             )
         except Exception as e:
-            print(f"[Controller] API state update error: {e}")
+            logger.error("[Controller] API state update error: %s", e)
         
         return {
             "success": True,
@@ -823,7 +827,7 @@ class MainController:
             True if device is IDLE, False if timeout.
         """
         if not self.http_client:
-            print(f"[Controller] HTTP client not available for {device_id} status check")
+            logger.info("[Controller] HTTP client not available for %s status check", device_id)
             return False
             
         start_time = time.time()
@@ -837,11 +841,11 @@ class MainController:
                         if hw.get("device_id") == device_id and hw.get("status") == "IDLE":
                             return True
             except Exception as e:
-                print(f"[Controller] Error checking {device_id} status: {e}")
+                logger.error("[Controller] Error checking %s status: %s", device_id, e)
             
             await asyncio.sleep(0.5)
         
-        print(f"[Controller] Timeout waiting for {device_id} to be IDLE")
+        logger.warning("[Controller] Timeout waiting for %s to be IDLE", device_id)
         return False
     
     # =========================================================================
@@ -881,7 +885,7 @@ class MainController:
                 pass
                 
         except Exception as e:
-            print(f"[Controller] Error polling commands: {e}")
+            logger.error("[Controller] Error polling commands: %s", e)
         
         return None
     
@@ -893,7 +897,7 @@ class MainController:
                 json={"status": status, "message": message}
             )
         except Exception as e:
-            print(f"[Controller] Error updating command status: {e}")
+            logger.error("[Controller] Error updating command status: %s", e)
     
     # =========================================================================
     # Command Execution - Kinematic Sequence Execution
@@ -920,14 +924,14 @@ class MainController:
             True if sequence completed successfully, False on error.
         """
         if not sequence:
-            print(f"[Kinematic] Warning: Empty sequence for '{description}'")
+            logger.warning("[Kinematic] Warning: Empty sequence for '%s'", description)
             return True
             
         self.state = ControllerState.EXECUTING_SEQUENCE
         
-        print(f"\n[Kinematic] Starting sequence: {description}")
-        print(f"[Kinematic] Total steps: {len(sequence)}")
-        print("=" * 60)
+        logger.info("\n[Kinematic] Starting sequence: %s", description)
+        logger.info("[Kinematic] Total steps: %s", len(sequence))
+        logger.info("=" * 60)
         
         for i, step in enumerate(sequence):
             try:
@@ -940,9 +944,9 @@ class MainController:
                 
                 dir_str = "+" if direction > 0 else "-" if direction < 0 else "="
                 
-                print(f"\n[Step {i+1}/{len(sequence)}] {desc}")
-                print(f"  Axis: {axis}, Target: {target:.1f}mm, Pulses: {pulses}, Dir: {dir_str}")
-                print(f"  New Position: X={pos['x']:.1f}, Y={pos['y']:.1f}, Z={pos['z']:.1f}")
+                logger.info("\n[Step %s/%s] %s", i+1, len(sequence), desc)
+                logger.info("  Axis: %s, Target: %.1fmm, Pulses: %s, Dir: %s", axis, target, pulses, dir_str)
+                logger.info("  New Position: X=%.1f, Y=%.1f, Z=%.1f", pos['x'], pos['y'], pos['z'])
                 
                 # Send MQTT command for this axis movement
                 await self._send_axis_move_command("HBW", axis, target, pulses, direction)
@@ -952,7 +956,7 @@ class MainController:
                 
                 # Wait for hardware to complete movement
                 if not await self._wait_for_idle("HBW", timeout=DEFAULT_MOVE_TIMEOUT_SEC):
-                    print(f"[Kinematic] Step {i+1} timed out waiting for IDLE")
+                    logger.warning("[Kinematic] Step %s timed out waiting for IDLE", i+1)
                     return False
                 
                 # Update position tracking
@@ -962,14 +966,14 @@ class MainController:
                 await self._update_hardware_position_api("HBW", pos['x'], pos['y'], pos['z'], "IDLE")
                 
             except KeyError as e:
-                print(f"[Kinematic] Step {i+1} missing required field: {e}")
+                logger.error("[Kinematic] Step %s missing required field: %s", i+1, e)
                 return False
             except Exception as e:
-                print(f"[Kinematic] Step {i+1} failed with error: {e}")
+                logger.error("[Kinematic] Step %s failed with error: %s", i+1, e)
                 return False
         
-        print(f"\n[Kinematic] Sequence complete: {description}")
-        print("=" * 60)
+        logger.info("\n[Kinematic] Sequence complete: %s", description)
+        logger.info("=" * 60)
         
         return True
     
@@ -1017,9 +1021,9 @@ class MainController:
                     'direction': direction,
                 }
                 self.mqtt_client.publish(topic, json.dumps(payload))
-                print(f"  [MQTT] Published: {topic} = {payload}")
+                logger.info("  [MQTT] Published: %s = %s", topic, payload)
             except Exception as e:
-                print(f"[Controller] MQTT axis move error: {e}")
+                logger.error("[Controller] MQTT axis move error: %s", e)
         
         return True
     
@@ -1031,7 +1035,7 @@ class MainController:
                 json={"device_id": device_id, "x": x, "y": y, "z": z, "status": status}
             )
         except Exception as e:
-            print(f"[Controller] API position update error: {e}")
+            logger.error("[Controller] API position update error: %s", e)
     
     async def _execute_process_command(self, cmd: QueuedCommand) -> bool:
         """
@@ -1054,7 +1058,7 @@ class MainController:
         """
         slot_name = cmd.target_slot
         if not slot_name or slot_name not in SLOT_COORDINATES_3D:
-            print(f"[Controller] Invalid slot: {slot_name}")
+            logger.error("[Controller] Invalid slot: %s", slot_name)
             return False
         
         self.command_start_time = time.time()
@@ -1064,9 +1068,9 @@ class MainController:
             # Phase 1: Retrieve mold from slot to conveyor
             # =============================================
             self.state = ControllerState.EXECUTING
-            print(f"\n{'='*60}")
-            print(f"[Controller] PROCESS: Retrieving mold from {slot_name}")
-            print(f"{'='*60}")
+            logger.info("\n%s", '='*60)
+            logger.info("[Controller] PROCESS: Retrieving mold from %s", slot_name)
+            logger.info("%s", '='*60)
             
             retrieve_sequence = self.kinematics.generate_retrieve_sequence(slot_name)
             success = await self._execute_kinematic_sequence(
@@ -1075,26 +1079,26 @@ class MainController:
             )
             
             if not success:
-                print(f"[Controller] Failed to retrieve from {slot_name}")
+                logger.error("[Controller] Failed to retrieve from %s", slot_name)
                 return False
             
             # =============================================
             # Phase 2: Run oven cycle (conveyor simulation)
             # =============================================
             self.state = ControllerState.WAITING_OVEN
-            print(f"\n[Controller] Starting oven cycle...")
+            logger.info("\n[Controller] Starting oven cycle...")
             await self._send_conveyor_command("start")
             await asyncio.sleep(OVEN_CYCLE_DURATION_SEC)
             await self._send_conveyor_command("stop")
-            print(f"[Controller] Oven cycle complete")
+            logger.info("[Controller] Oven cycle complete")
             
             # =============================================
             # Phase 3: Store mold back from conveyor to slot
             # =============================================
             self.state = ControllerState.EXECUTING
-            print(f"\n{'='*60}")
-            print(f"[Controller] PROCESS: Storing baked mold back to {slot_name}")
-            print(f"{'='*60}")
+            logger.info("\n%s", '='*60)
+            logger.info("[Controller] PROCESS: Storing baked mold back to %s", slot_name)
+            logger.info("%s", '='*60)
             
             store_sequence = self.kinematics.generate_store_sequence(slot_name)
             success = await self._execute_kinematic_sequence(
@@ -1103,7 +1107,7 @@ class MainController:
             )
             
             if not success:
-                print(f"[Controller] Failed to store to {slot_name}")
+                logger.error("[Controller] Failed to store to %s", slot_name)
                 return False
             
             # =============================================
@@ -1113,13 +1117,13 @@ class MainController:
             energy_joules = MOTOR_VOLTAGE * MOTOR_CURRENT_PROCESS * elapsed_time  # V * A * s
             await self._log_energy(energy_joules, elapsed_time)
             
-            print(f"\n[Controller] PROCESS complete for {slot_name}")
-            print(f"  Duration: {elapsed_time:.1f}s, Energy: {energy_joules:.1f}J")
+            logger.info("\n[Controller] PROCESS complete for %s", slot_name)
+            logger.info("  Duration: %.1fs, Energy: %.1fJ", elapsed_time, energy_joules)
             
             return True
             
         except Exception as e:
-            print(f"[Controller] Error executing PROCESS: {e}")
+            logger.error("[Controller] Error executing PROCESS: %s", e)
             return False
     
     async def _execute_store_command(self, cmd: QueuedCommand) -> bool:
@@ -1140,15 +1144,15 @@ class MainController:
         """
         slot_name = cmd.target_slot
         if not slot_name or slot_name not in SLOT_COORDINATES_3D:
-            print(f"[Controller] Invalid slot: {slot_name}")
+            logger.error("[Controller] Invalid slot: %s", slot_name)
             return False
         
         self.command_start_time = time.time()
         
         try:
-            print(f"\n{'='*60}")
-            print(f"[Controller] STORE: Moving mold to {slot_name}")
-            print(f"{'='*60}")
+            logger.info("\n%s", '='*60)
+            logger.info("[Controller] STORE: Moving mold to %s", slot_name)
+            logger.info("%s", '='*60)
             
             store_sequence = self.kinematics.generate_store_sequence(slot_name)
             success = await self._execute_kinematic_sequence(
@@ -1161,11 +1165,11 @@ class MainController:
             energy_joules = MOTOR_VOLTAGE * MOTOR_CURRENT_MOVE * elapsed_time
             await self._log_energy(energy_joules, elapsed_time)
             
-            print(f"[Controller] STORE complete for {slot_name}")
+            logger.info("[Controller] STORE complete for %s", slot_name)
             return True
             
         except Exception as e:
-            print(f"[Controller] Error executing STORE: {e}")
+            logger.error("[Controller] Error executing STORE: %s", e)
             return False
     
     async def _execute_retrieve_command(self, cmd: QueuedCommand) -> bool:
@@ -1186,15 +1190,15 @@ class MainController:
         """
         slot_name = cmd.target_slot
         if not slot_name or slot_name not in SLOT_COORDINATES_3D:
-            print(f"[Controller] Invalid slot: {slot_name}")
+            logger.error("[Controller] Invalid slot: %s", slot_name)
             return False
         
         self.command_start_time = time.time()
         
         try:
-            print(f"\n{'='*60}")
-            print(f"[Controller] RETRIEVE: Moving mold from {slot_name} to conveyor")
-            print(f"{'='*60}")
+            logger.info("\n%s", '='*60)
+            logger.info("[Controller] RETRIEVE: Moving mold from %s to conveyor", slot_name)
+            logger.info("%s", '='*60)
             
             retrieve_sequence = self.kinematics.generate_retrieve_sequence(slot_name)
             success = await self._execute_kinematic_sequence(
@@ -1203,18 +1207,18 @@ class MainController:
             )
             
             if not success:
-                print(f"[Controller] Failed to retrieve from {slot_name}")
+                logger.error("[Controller] Failed to retrieve from %s", slot_name)
                 return False
             
             elapsed_time = time.time() - self.command_start_time
             energy_joules = MOTOR_VOLTAGE * MOTOR_CURRENT_MOVE * elapsed_time
             await self._log_energy(energy_joules, elapsed_time)
             
-            print(f"[Controller] RETRIEVE complete for {slot_name}")
+            logger.info("[Controller] RETRIEVE complete for %s", slot_name)
             return True
             
         except Exception as e:
-            print(f"[Controller] Error executing RETRIEVE: {e}")
+            logger.error("[Controller] Error executing RETRIEVE: %s", e)
             return False
     
     async def _log_energy(self, joules: float, duration_sec: float):
@@ -1231,7 +1235,7 @@ class MainController:
                 }
             )
         except Exception as e:
-            print(f"[Controller] Energy log error: {e}")
+            logger.error("[Controller] Energy log error: %s", e)
     
     # =========================================================================
     # Main Control Loop
@@ -1254,18 +1258,18 @@ class MainController:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 self.http_client = client
                 
-                print("=" * 60)
-                print("STF Digital Twin - Command Queue Controller")
-                print("=" * 60)
-                print(f"API URL: {API_URL}")
-                print(f"MQTT Broker: {MQTT_BROKER}:{MQTT_PORT}")
-                print(f"Poll Interval: {POLL_INTERVAL}s")
-                print("=" * 60)
+                logger.info("=" * 60)
+                logger.info("STF Digital Twin - Command Queue Controller")
+                logger.info("=" * 60)
+                logger.info("API URL: %s", API_URL)
+                logger.info("MQTT Broker: %s:%s", MQTT_BROKER, MQTT_PORT)
+                logger.info("Poll Interval: %ss", POLL_INTERVAL)
+                logger.info("=" * 60)
                 
                 while self.running:
                     try:
                         if self.emergency_stop_active:
-                            print("[Controller] Emergency stop active - waiting for reset")
+                            logger.critical("[Controller] Emergency stop active - waiting for reset")
                             await asyncio.sleep(5.0)
                             continue
                         
@@ -1274,7 +1278,7 @@ class MainController:
                         cmd = await self._poll_pending_commands()
                         
                         if cmd:
-                            print(f"\n[Controller] Processing command #{cmd.id}: {cmd.command_type}")
+                            logger.info("\n[Controller] Processing command #%s: %s", cmd.id, cmd.command_type)
                             self.current_command = cmd
                             self.state = ControllerState.EXECUTING
                             
@@ -1290,7 +1294,7 @@ class MainController:
                             elif cmd.command_type == "RETRIEVE":
                                 success = await self._execute_retrieve_command(cmd)
                             else:
-                                print(f"[Controller] Unknown command type: {cmd.command_type}")
+                                logger.info("[Controller] Unknown command type: %s", cmd.command_type)
                             
                             # Update final status
                             final_status = "COMPLETED" if success else "FAILED"
@@ -1303,7 +1307,7 @@ class MainController:
                         await asyncio.sleep(POLL_INTERVAL)
                         
                     except Exception as e:
-                        print(f"[Controller] Error in main loop: {e}")
+                        logger.error("[Controller] Error in main loop: %s", e)
                         self.state = ControllerState.ERROR
                         await asyncio.sleep(2.0)
         
@@ -1311,7 +1315,7 @@ class MainController:
             # Cleanup MQTT connection
             self._cleanup_mqtt()
         
-        print("[Controller] Shutdown complete")
+        logger.info("[Controller] Shutdown complete")
     
     def _cleanup_mqtt(self):
         """Clean up MQTT client connection."""
@@ -1320,7 +1324,7 @@ class MainController:
                 self.mqtt_client.loop_stop()
                 self.mqtt_client.disconnect()
             except Exception as e:
-                print(f"[Controller] MQTT cleanup error: {e}")
+                logger.error("[Controller] MQTT cleanup error: %s", e)
             finally:
                 self.mqtt_client = None
     
@@ -1336,7 +1340,7 @@ async def main():
     try:
         await controller.run()
     except KeyboardInterrupt:
-        print("\n[Controller] Interrupted by user")
+        logger.info("\n[Controller] Interrupted by user")
         controller.stop()
 
 

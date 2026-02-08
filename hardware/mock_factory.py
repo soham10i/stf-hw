@@ -5,6 +5,7 @@ High-Fidelity Component Simulation with Electrical Characteristics and Wear Mode
 
 import asyncio
 import json
+import os
 import random
 import time
 from dataclasses import dataclass, field
@@ -15,10 +16,14 @@ from typing import Dict, Optional, Callable
 import httpx
 import paho.mqtt.client as mqtt
 
-# Configuration
-API_URL = "http://localhost:8000"
-MQTT_BROKER = "localhost"
-MQTT_PORT = 1883
+from utils.logging_config import get_logger
+
+logger = get_logger("hardware")
+
+# Configuration (environment-variable driven)
+API_URL = os.environ.get("STF_API_URL", "http://localhost:8000")
+MQTT_BROKER = os.environ.get("MQTT_BROKER", "localhost")
+MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
 TICK_RATE = 10  # Hz (100ms per tick)
 TICK_INTERVAL = 1.0 / TICK_RATE
 
@@ -964,12 +969,12 @@ class MockFactory:
     def _on_mqtt_connect(self, client, userdata, flags, reason_code, properties=None):
         """MQTT connection callback"""
         if reason_code == 0:
-            print("[MQTT] Connected to broker")
+            logger.info("[MQTT] Connected to broker")
             # Subscribe to command topics
             client.subscribe("stf/+/cmd/#")
             client.subscribe("stf/global/req/#")
         else:
-            print(f"[MQTT] Connection failed: {reason_code}")
+            logger.error("[MQTT] Connection failed: %s", reason_code)
     
     def _on_mqtt_message(self, client, userdata, msg):
         """Handle incoming MQTT commands"""
@@ -979,7 +984,7 @@ class MockFactory:
         except:
             payload = msg.payload.decode()
         
-        print(f"[MQTT] Received: {topic} = {payload}")
+        logger.info("[MQTT] Received: %s = %s", topic, payload)
         
         # Parse topic
         parts = topic.split("/")
@@ -1012,7 +1017,7 @@ class MockFactory:
                 y = payload.get("y", self.hbw.y) if isinstance(payload, dict) else self.hbw.y
                 z = payload.get("z", self.hbw.z) if isinstance(payload, dict) else self.hbw.z
                 self.hbw.move_to(x, y, z)
-                print(f"[HBW] Moving to ({x}, {y}, {z})")
+                logger.info("[HBW] Moving to (%s, %s, %s)", x, y, z)
             elif action == "stop":
                 self.hbw.stop()
             elif action == "gripper":
@@ -1021,7 +1026,7 @@ class MockFactory:
                     self.hbw.gripper_closed = True
                 elif gripper_action in ["open", "retract"]:
                     self.hbw.gripper_closed = False
-                print(f"[HBW] Gripper: {gripper_action} -> closed={self.hbw.gripper_closed}")
+                logger.info("[HBW] Gripper: %s -> closed=%s", gripper_action, self.hbw.gripper_closed)
         
         elif device == "vgr" and cmd_type == "cmd":
             if action == "move":
@@ -1029,7 +1034,7 @@ class MockFactory:
                 y = payload.get("y", self.vgr.y) if isinstance(payload, dict) else self.vgr.y
                 z = payload.get("z", self.vgr.z) if isinstance(payload, dict) else self.vgr.z
                 self.vgr.move_to(x, y, z)
-                print(f"[VGR] Moving to ({x}, {y}, {z})")
+                logger.info("[VGR] Moving to (%s, %s, %s)", x, y, z)
             elif action == "stop":
                 self.vgr.stop()
             elif action == "vacuum":
@@ -1049,7 +1054,7 @@ class MockFactory:
         self.conveyor = ConveyorSimulation()
         self.hbw = HBWSimulation()
         self.vgr = VGRSimulation()
-        print("[Factory] All subsystems reset")
+        logger.info("[Factory] All subsystems reset")
     
     def _emergency_stop(self):
         """Emergency stop all subsystems"""
@@ -1057,7 +1062,7 @@ class MockFactory:
         self.hbw.stop()
         self.vgr.stop()
         self.vgr.release_vacuum()
-        print("[Factory] EMERGENCY STOP")
+        logger.critical("[Factory] EMERGENCY STOP")
     
     async def _update_api(self, conveyor_state: Dict, hbw_state: Dict, vgr_state: Dict):
         """Send state updates to API"""
@@ -1133,7 +1138,7 @@ class MockFactory:
                 })
         
         except Exception as e:
-            print(f"[API] Update error: {e}")
+            logger.error("[API] Update error: %s", e)
     
     def _publish_mqtt_status(self, conveyor_state: Dict, hbw_state: Dict, vgr_state: Dict):
         """Publish status to MQTT"""
@@ -1142,20 +1147,20 @@ class MockFactory:
             self.mqtt_client.publish("stf/hbw/status", json.dumps(hbw_state))
             self.mqtt_client.publish("stf/vgr/status", json.dumps(vgr_state))
         except Exception as e:
-            print(f"[MQTT] Publish error: {e}")
+            logger.error("[MQTT] Publish error: %s", e)
     
     async def run(self):
         """Main simulation loop"""
-        print("[Factory] Starting Mock Factory simulation...")
-        print(f"[Factory] Tick rate: {TICK_RATE} Hz")
-        print(f"[Factory] API URL: {self.api_url}")
+        logger.info("[Factory] Starting Mock Factory simulation...")
+        logger.info("[Factory] Tick rate: %s Hz", TICK_RATE)
+        logger.info("[Factory] API URL: %s", self.api_url)
         
         # Connect MQTT
         try:
             self.mqtt_client.connect(self.mqtt_broker, MQTT_PORT, 60)
             self.mqtt_client.loop_start()
         except Exception as e:
-            print(f"[MQTT] Connection error: {e}")
+            logger.error("[MQTT] Connection error: %s", e)
         
         # Create HTTP client
         self.http_client = httpx.AsyncClient(timeout=5.0)
@@ -1190,14 +1195,14 @@ class MockFactory:
                 await asyncio.sleep(sleep_time)
         
         except KeyboardInterrupt:
-            print("\n[Factory] Shutting down...")
+            logger.info("\n[Factory] Shutting down...")
         finally:
             self.running = False
             self.mqtt_client.loop_stop()
             self.mqtt_client.disconnect()
             if self.http_client:
                 await self.http_client.aclose()
-            print("[Factory] Shutdown complete")
+            logger.info("[Factory] Shutdown complete")
 
 
 async def main():
