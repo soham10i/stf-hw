@@ -446,7 +446,7 @@ class MainController:
             else:
                 logger.error("[Controller] MQTT connection failed with reason: %s", reason_code)
         except Exception as e:
-            logger.info("[Controller] Error in MQTT connect handler: %s", e)
+            logger.error("[Controller] Error in MQTT connect handler: %s", e)
     
     def _on_mqtt_message(self, client, userdata, msg):
         """Handle incoming MQTT messages from hardware."""
@@ -462,7 +462,7 @@ class MainController:
         except json.JSONDecodeError:
             logger.error("[Controller] Invalid JSON in MQTT message")
         except Exception as e:
-            logger.info("[Controller] Error handling MQTT message: %s", e)
+            logger.error("[Controller] Error handling MQTT message: %s", e)
     
     def _update_hardware_position(self, payload: dict):
         """Update tracked hardware position from MQTT status."""
@@ -477,7 +477,7 @@ class MainController:
                     status=str(payload.get("status", "UNKNOWN")),
                 )
         except (TypeError, ValueError) as e:
-            logger.info("[Controller] Error parsing hardware position: %s", e)
+            logger.error("[Controller] Error parsing hardware position: %s", e)
     
     def _handle_emergency_stop(self):
         """Activate emergency stop mode."""
@@ -595,7 +595,7 @@ class MainController:
                             "I6": hw.get("trail_sensors", {}).get("I6", {}).get("is_triggered", False),
                         }
         except Exception as e:
-            logger.info("[Controller] Error fetching conveyor sensors: %s", e)
+            logger.error("[Controller] Error fetching conveyor sensors: %s", e)
         
         raise RuntimeError("Unable to fetch conveyor sensor states")
     
@@ -841,7 +841,7 @@ class MainController:
                         if hw.get("device_id") == device_id and hw.get("status") == "IDLE":
                             return True
             except Exception as e:
-                logger.info("[Controller] Error checking %s status: %s", device_id, e)
+                logger.error("[Controller] Error checking %s status: %s", device_id, e)
             
             await asyncio.sleep(0.5)
         
@@ -885,7 +885,7 @@ class MainController:
                 pass
                 
         except Exception as e:
-            logger.info("[Controller] Error polling commands: %s", e)
+            logger.error("[Controller] Error polling commands: %s", e)
         
         return None
     
@@ -897,7 +897,7 @@ class MainController:
                 json={"status": status, "message": message}
             )
         except Exception as e:
-            logger.info("[Controller] Error updating command status: %s", e)
+            logger.error("[Controller] Error updating command status: %s", e)
     
     # =========================================================================
     # Command Execution - Kinematic Sequence Execution
@@ -931,7 +931,7 @@ class MainController:
         
         logger.info("\n[Kinematic] Starting sequence: %s", description)
         logger.info("[Kinematic] Total steps: %s", len(sequence))
-        logger.info("=" * 6")
+        logger.info("=" * 60)
         
         for i, step in enumerate(sequence):
             try:
@@ -956,7 +956,7 @@ class MainController:
                 
                 # Wait for hardware to complete movement
                 if not await self._wait_for_idle("HBW", timeout=DEFAULT_MOVE_TIMEOUT_SEC):
-                    logger.info("[Kinematic] Step %s timed out waiting for IDLE", i+1)
+                    logger.warning("[Kinematic] Step %s timed out waiting for IDLE", i+1)
                     return False
                 
                 # Update position tracking
@@ -966,14 +966,14 @@ class MainController:
                 await self._update_hardware_position_api("HBW", pos['x'], pos['y'], pos['z'], "IDLE")
                 
             except KeyError as e:
-                logger.info("[Kinematic] Step %s missing required field: %s", i+1, e)
+                logger.error("[Kinematic] Step %s missing required field: %s", i+1, e)
                 return False
             except Exception as e:
                 logger.error("[Kinematic] Step %s failed with error: %s", i+1, e)
                 return False
         
         logger.info("\n[Kinematic] Sequence complete: %s", description)
-        logger.info("=" * 6")
+        logger.info("=" * 60)
         
         return True
     
@@ -1123,7 +1123,7 @@ class MainController:
             return True
             
         except Exception as e:
-            logger.info("[Controller] Error executing PROCESS: %s", e)
+            logger.error("[Controller] Error executing PROCESS: %s", e)
             return False
     
     async def _execute_store_command(self, cmd: QueuedCommand) -> bool:
@@ -1169,7 +1169,7 @@ class MainController:
             return True
             
         except Exception as e:
-            logger.info("[Controller] Error executing STORE: %s", e)
+            logger.error("[Controller] Error executing STORE: %s", e)
             return False
     
     async def _execute_retrieve_command(self, cmd: QueuedCommand) -> bool:
@@ -1218,7 +1218,7 @@ class MainController:
             return True
             
         except Exception as e:
-            logger.info("[Controller] Error executing RETRIEVE: %s", e)
+            logger.error("[Controller] Error executing RETRIEVE: %s", e)
             return False
     
     async def _log_energy(self, joules: float, duration_sec: float):
@@ -1258,13 +1258,13 @@ class MainController:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 self.http_client = client
                 
-                logger.info("=" * 6")
+                logger.info("=" * 60)
                 logger.info("STF Digital Twin - Command Queue Controller")
-                logger.info("=" * 6")
+                logger.info("=" * 60)
                 logger.info("API URL: %s", API_URL)
                 logger.info("MQTT Broker: %s:%s", MQTT_BROKER, MQTT_PORT)
                 logger.info("Poll Interval: %ss", POLL_INTERVAL)
-                logger.info("=" * 6")
+                logger.info("=" * 60)
                 
                 while self.running:
                     try:
@@ -1307,7 +1307,7 @@ class MainController:
                         await asyncio.sleep(POLL_INTERVAL)
                         
                     except Exception as e:
-                        logger.info("[Controller] Error in main loop: %s", e)
+                        logger.error("[Controller] Error in main loop: %s", e)
                         self.state = ControllerState.ERROR
                         await asyncio.sleep(2.0)
         
