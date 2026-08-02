@@ -1,23 +1,84 @@
-# STF Digital Twin - Docker Compose Configuration
-# Provides Mosquitto MQTT broker for hardware communication
-# Database: SQLite (local file - no container needed)
+# Infrastructure for the STF digital twin.
+#
+#   docker compose up -d
+#
+# Three backing services, each with a distinct job:
+#
+#   mosquitto  the FIELD BUS, and only the field bus. Carries actuator commands
+#              and device status on stf/{device}/... It exists because that is
+#              the wire protocol a real RevolutionPi/Node-RED bridge speaks, so
+#              swapping the simulated factory for the physical one is a matter
+#              of who publishes, not of changing anything upstream.
+#
+#   redis      internal plumbing: hot state (HSET + TTL) for instant client
+#              bootstrap, pub/sub for WebSocket fan-out, and Redis Streams as
+#              the durable command queue. Replaces the previous design, which
+#              polled a growing SQL table once a second.
+#
+#   timescale  Postgres 16 with TimescaleDB. Relational tables for orders and
+#              inventory; hypertables with continuous aggregates for telemetry.
+#              Replaces the single SQLite file that four processes wrote to
+#              concurrently.
 
-version: '3.8'
+name: stf
 
 services:
-  # Mosquitto MQTT Broker
   mosquitto:
     image: eclipse-mosquitto:2
-    container_name: stf_mosquitto
+    container_name: stf-mosquitto
     restart: unless-stopped
     ports:
-      - "1883:1883"   # MQTT protocol
-      - "9001:9001"   # WebSocket (optional)
+      - "1883:1883"   # MQTT
+      - "9001:9001"   # MQTT over WebSockets
     volumes:
-      - ./mosquitto/config:/mosquitto/config
-      - mosquitto_data:/mosquitto/data
-      - mosquitto_log:/mosquitto/log
+      - ./mosquitto/config:/mosquitto/config:ro
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-W", "3"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: stf-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    # Live state is reconstructible from the kernel, so persistence is off:
+    # an fsync stall must never be able to stutter the physics loop.
+    command: >
+      redis-server
+      --save ""
+      --appendonly no
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  timescale:
+    image: timescale/timescaledb:2.17.2-pg16
+    container_name: stf-timescale
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-stf}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stf}
+      POSTGRES_DB: ${POSTGRES_DB:-stf}
+    volumes:
+      - timescale-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-stf} -d ${POSTGRES_DB:-stf}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  mosquitto_data:
-  mosquitto_log:
+  mosquitto-data:
+  mosquitto-log:
+  timescale-data:
