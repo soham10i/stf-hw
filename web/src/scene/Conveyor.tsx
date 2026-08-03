@@ -5,7 +5,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
-import { VIEW, v3, v3a } from "../coords";
+import { VIEW, v3a } from "../coords";
 import { hot } from "../store";
 import type { SceneDescriptor } from "../types";
 
@@ -51,16 +51,37 @@ export function Conveyor({ scene }: { scene: SceneDescriptor }) {
     }
   });
 
+  // Legs at each end so the raised belt stands on the table rather than floating.
+  const legs = [origin, origin.clone().add(dir.clone().multiplyScalar(len))];
+
   return (
     <group>
       {/* belt body */}
-      <mesh position={centre}>
-        <boxGeometry args={[wid, 0.04, len]} />
+      <mesh position={centre} castShadow>
+        <boxGeometry args={[wid, 0.05, len]} />
         <meshStandardMaterial color="#2c3540" metalness={0.2} roughness={0.8} />
       </mesh>
+      {/* side rails */}
+      {[-1, 1].map((s) => {
+        const off = new THREE.Vector3(dir.z, 0, -dir.x).multiplyScalar((s * wid) / 2);
+        return (
+          <mesh key={s} position={centre.clone().add(off).add(new THREE.Vector3(0, 0.03, 0))}>
+            <boxGeometry args={[0.015, 0.04, len]} />
+            <meshStandardMaterial color="#3a4658" metalness={0.4} roughness={0.6} />
+          </mesh>
+        );
+      })}
+
+      {/* support legs down to the table */}
+      {legs.map((p, i) => (
+        <mesh key={i} position={[p.x, p.y / 2, p.z]}>
+          <boxGeometry args={[wid, p.y, 0.04]} />
+          <meshStandardMaterial color="#212c38" roughness={0.9} />
+        </mesh>
+      ))}
 
       {/* workpiece on the belt */}
-      <mesh ref={workpiece} visible={false}>
+      <mesh ref={workpiece} visible={false} castShadow>
         <boxGeometry args={[0.06, 0.06, 0.06]} />
         <meshStandardMaterial color="#d9a441" />
       </mesh>
@@ -80,11 +101,6 @@ export function Conveyor({ scene }: { scene: SceneDescriptor }) {
         );
       })}
 
-      {/* end labels */}
-      <mesh position={v3(conveyor.pose[0], conveyor.pose[1], conveyor.pose[2]).add(new THREE.Vector3(0, -0.04, 0))}>
-        <boxGeometry args={[wid + 0.02, 0.02, 0.02]} />
-        <meshStandardMaterial color="#5566aa" />
-      </mesh>
     </group>
   );
 }

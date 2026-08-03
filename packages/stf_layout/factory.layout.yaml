@@ -57,8 +57,13 @@ devices:
   hbw:
     kind: cartesian_stacker
     tool: fork
+    # The mast and carriage sit in an AISLE in front of the rack (manual: the
+    # stacker crane "moves in an aisle between the rack rows"). The rack face is
+    # at depth y=0; the crane base is offset to y=-55 so the mast never passes
+    # through a bay. Only the fork (Ausleger) telescopes from the aisle into a
+    # bay. This is the fix for the crane visibly moving through the storage boxes.
     base:
-      xyz: [0.0, 0.0, 0.0]
+      xyz: [0.0, -55.0, 0.0]
     joints:
       travel:
         kind: prismatic
@@ -118,8 +123,11 @@ devices:
   vgr:
     kind: cylindrical_arm
     tool: suction
+    # Positioned at the far (VGR) end of the conveyor, on the OPPOSITE side from
+    # the crane transfer point, so it picks/places where the belt delivers. Its
+    # arm swings back over the belt end (swivel=conveyor) and reaches to it.
     base:
-      xyz: [400.0, 260.0, 0.0]
+      xyz: [400.0, -300.0, 0.0]
     joints:
       swivel:
         kind: revolute
@@ -197,16 +205,19 @@ racks:
 # -----------------------------------------------------------------------------
 # Conveyor
 # -----------------------------------------------------------------------------
-# Belt-local 0 is the VGR end and 120 the HBW end, matching the original sensor
-# constants. Speed is a belt, not a spindle drive, so it is given directly.
+# The Foerderband runs down the aisle from the crane transfer point (HBW end,
+# near the crane at x=400) out to the VGR end. The two handoff points are at
+# OPPOSITE ends: the crane deposits at the HBW end, the gripper picks at the VGR
+# end. Belt-local 0 is the VGR end (I3 at 15mm) and 120 the HBW end (I2 at
+# 105mm); pose is local 0, axis points from the VGR end back toward the crane.
 conveyor:
   length_mm: 120.0
   width_mm: 40.0
   max_speed_mm_s: 60.0
   motor_id: CONV_M1
   pose:
-    xyz: [400.0, 140.0, 100.0]
-  axis: -y
+    xyz: [400.0, -175.0, 100.0]   # VGR end (belt-local 0)
+  axis: +y                         # runs back toward the crane (HBW end at y=-55)
   sensors:
     I2:
       kind: light_barrier
