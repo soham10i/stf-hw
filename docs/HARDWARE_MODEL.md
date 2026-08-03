@@ -29,24 +29,33 @@ the workpiece back off.
 
 ### Physical structure
 
-```
-   plan view (looking down)
+**Corrected after actually viewing Abbildung 7** (the photo of the module —
+earlier revisions of this document were derived from the extracted *text*
+alone, and got the belt orientation wrong):
 
-       +Z up (3 rows: A bottom, B mid, C top)
-   ┌───────────────────────────┐
-   │   R A C K   (3 × 3 bays)   │  shelves, openings face the aisle
-   ├───────────────────────────┤  <-- rack face
-   │        A I S L E           │  stacker crane travels along here (X)
-   │     [crane mast+fork]      │      fork (Ausleger) telescopes INTO a bay
-   └───────────────┬───────────┘
-                   │ transfer at the end of the aisle
-              ┌────┴────┐
-              │Förderband│  conveyor runs OUT from the crane end (HBW end)
-              │          │  to the VGR end — the two handoff points are
-              │          │  at OPPOSITE ends of the belt
-              └────┬─────┘
-              [ VGR reach ]  vacuum gripper picks/places at the far end
 ```
+   plan view (looking down); +x to the right — THREE PARALLEL LANES
+
+   ┌──────────────────────────────┐
+   │   R A C K   (3 × 3 bays)     │   y = 0, openings face the lane
+   └──────────────────────────────┘
+   ───────── crane lane ───────────   y = -55: mast travels along x
+        Ausleger extends FORWARD (+y) into a bay
+        and BACKWARD (−y) over the belt (I5 vorne / I6 hinten)
+        ┌───────────────────────┐
+        │ Förderband ──────────►│      y = -110, runs ALONG x, parallel
+        └───────────────────────┘
+        x=400 (crane transfer,          x=520 (VGR end, local 0;
+        belt-local 120; I2 at 105)      I3 pick window at local 15)
+
+                              [VGR tower at (505, -230); at swivel 0 the
+                               arm reaches +y over the belt end]
+```
+
+The crane deposits by extending the cantilever *backward* over the belt; the
+belt carries the tray along the front lane, past the identification sensors,
+to the far end where the vacuum gripper picks it. Rack, crane travel and belt
+all share one lane direction.
 
 ### Axes (the stacker crane / Regalbediengerät)
 

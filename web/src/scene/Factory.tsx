@@ -58,10 +58,12 @@ export function Factory({ scene }: { scene: SceneDescriptor }) {
       {/* View from the aisle/output side: the rack openings face the aisle
           (negative depth), so the camera sits on that side to look into the bays
           and down the flow crane -> conveyor -> gripper. */}
+      {/* Front-left corner view: rack at the back, crane lane and belt across
+          the front, VGR tower at the far right - nothing in the foreground. */}
       <PerspectiveCamera
         makeDefault
         fov={40}
-        position={[fp.maxX + 2.8, 4.6, fp.minZ - 2.8]}
+        position={[fp.minX - 2.6, 5.0, fp.minZ - 3.6]}
       />
       <ambientLight intensity={0.6} />
       <directionalLight position={[4, 8, -4]} intensity={1.15} castShadow />

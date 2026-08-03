@@ -282,7 +282,8 @@ class SimRuntime:
             if self._active:
                 self._active.status = "completed"
             self._active = None
-            self._carrier = {"flavor": None, "holder": None, "slot": None}
+            # The delivered carrier stays visible on the pad; the next cycle
+            # replaces it when it seeds a fresh carrier in the bay.
             return
 
         phase = self._phases[self._phase_i]

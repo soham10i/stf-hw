@@ -243,6 +243,60 @@ def test_a_move_never_outruns_its_drive(layout: Layout) -> None:
 
 
 # --------------------------------------------------------------------------
+# Belt-side handoff (Abbildung 7: the belt runs parallel to the rack, one
+# lane in front - the Ausleger extends backward to reach it)
+# --------------------------------------------------------------------------
+
+
+def test_fork_is_bidirectional(layout: Layout) -> None:
+    """The Belegungsplan gives the Ausleger front AND back reference switches."""
+    fork = layout.joint(FORK)
+    assert fork.at("belt") < 0 < fork.at("retracted"), (
+        "the belt position must be a backward extension"
+    )
+    assert fork.limits[0] < fork.at("belt")
+
+
+def test_retrieve_reaches_over_the_belt(layout: Layout) -> None:
+    """
+    The deposit must happen with the cantilever extended over the belt - the
+    original one-sided fork made the carrier teleport across the lane instead.
+    """
+    traj = plan_retrieve(layout, "B2")
+    segments = list(traj)
+    deposit_i = next(
+        i for i, s in enumerate(segments) if "onto the belt" in s.description
+    )
+    fork_before = [s for s in segments[:deposit_i] if s.joint == FORK]
+    assert fork_before, "a fork move must precede the deposit"
+    assert fork_before[-1].target == pytest.approx(layout.joint(FORK).at("belt")), (
+        "the cantilever must be over the belt when the carrier is set down"
+    )
+
+
+def test_deposit_lands_on_the_belt_centreline(layout: Layout) -> None:
+    """Lane position + backward extension must equal the belt's world depth."""
+    lane_y = layout.devices["hbw"].base.xyz[1]
+    tray_y = lane_y + layout.joint(FORK).at("belt")
+    assert tray_y == pytest.approx(layout.conveyor.pose.xyz[1]), (
+        f"tray lands at y={tray_y}, belt centreline is y={layout.conveyor.pose.xyz[1]}"
+    )
+
+
+def test_vgr_pick_point_matches_the_belt_end(layout: Layout) -> None:
+    """VGR base + reach at swivel 0 must land in the I3 pick window."""
+    base = layout.devices["vgr"].base.xyz
+    pick_y = base[1] + layout.joint("vgr.reach").at("conveyor")
+    assert pick_y == pytest.approx(layout.conveyor.pose.xyz[1]), "wrong depth"
+
+    belt_local = layout.conveyor.pose.xyz[0] - base[0]
+    lo, hi = layout.conveyor.sensor_window("I3")
+    assert lo <= belt_local <= hi, (
+        f"VGR picks at belt-local {belt_local}, outside I3 window ({lo}, {hi})"
+    )
+
+
+# --------------------------------------------------------------------------
 # VGR pick-and-place
 # --------------------------------------------------------------------------
 

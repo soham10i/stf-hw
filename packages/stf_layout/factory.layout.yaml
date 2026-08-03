@@ -95,20 +95,25 @@ devices:
           spindle_pitch_mm: 4.0
           motor_rpm: 214.0
 
-      # The cantilever / telescoping fork (Q7/Q8 on the real controller).
-      # Horizontal, into the rack. This is what the old code called "Z", and
-      # the two engines disagreed on its stroke: the planner used Z_EXTENDED=50
-      # while the simulator used FORK_EXTENSION_MM=80. Resolved here, once.
+      # The cantilever / Ausleger (Q7/Q8, M4 on the real controller). It is
+      # BIDIRECTIONAL - the Belegungsplan gives it front AND back reference
+      # switches (I5 vorne / I6 hinten): it extends forward (+y) into a rack
+      # bay and backward (-y) over the conveyor, which runs parallel to the
+      # rack along the front (Abbildung 7). The first model missed this and
+      # only extended toward the rack, so the belt handoff teleported the
+      # carrier across the lane.
       fork:
         kind: prismatic
         axis: +y
-        limits: [0.0, 80.0]
+        limits: [-70.0, 80.0]
         home: 0.0
+        reference_switch: I5     # vorne; I6 = hinten (Belegungsplan)
         motor_id: HBW_Z
         positions:
           retracted: 10.0        # safe travel standoff
-          carry: 25.0            # clear of the shelf, load on the fork
+          carry: 25.0            # clear of the shelf, load on the table
           extended: 50.0         # fully into a slot (slot depth is 50 mm)
+          belt: -55.0            # back over the belt centreline (lane -55 -> -110)
         drive:
           pulses_per_rev: 75
           spindle_pitch_mm: 4.0
@@ -123,11 +128,11 @@ devices:
   vgr:
     kind: cylindrical_arm
     tool: suction
-    # Positioned at the far (VGR) end of the conveyor, on the OPPOSITE side from
-    # the crane transfer point, so it picks/places where the belt delivers. Its
-    # arm swings back over the belt end (swivel=conveyor) and reaches to it.
+    # Stands past the belt's far (VGR) end. At swivel=0 the arm reaches +y
+    # toward the belt: base (505,-230) + reach 120 puts the suction cup at
+    # (505,-110) = belt-local 15, exactly the I3 pick window.
     base:
-      xyz: [400.0, -300.0, 0.0]
+      xyz: [505.0, -230.0, 0.0]
     joints:
       swivel:
         kind: revolute
@@ -205,19 +210,22 @@ racks:
 # -----------------------------------------------------------------------------
 # Conveyor
 # -----------------------------------------------------------------------------
-# The Foerderband runs down the aisle from the crane transfer point (HBW end,
-# near the crane at x=400) out to the VGR end. The two handoff points are at
-# OPPOSITE ends: the crane deposits at the HBW end, the gripper picks at the VGR
-# end. Belt-local 0 is the VGR end (I3 at 15mm) and 120 the HBW end (I2 at
-# 105mm); pose is local 0, axis points from the VGR end back toward the crane.
+# The Foerderband runs PARALLEL to the rack along the front of the module
+# (Abbildung 7: Hochregal at the back, Hochregalbediengeraet in the middle
+# lane, "Foerdertechnik mit Identifikation" as the front lane) - all three in
+# the same lane direction. The crane deposits by extending its Ausleger
+# backward over the belt at x=400; the belt then carries the tray along x,
+# past the identification sensors, to the VGR end where the gripper picks.
+# Belt-local 0 is the VGR end (x=520, I3 at 15mm) and local 120 the crane
+# transfer end (x=400, I2 at 105mm).
 conveyor:
   length_mm: 120.0
   width_mm: 40.0
   max_speed_mm_s: 60.0
   motor_id: CONV_M1
   pose:
-    xyz: [400.0, -175.0, 100.0]   # VGR end (belt-local 0)
-  axis: +y                         # runs back toward the crane (HBW end at y=-55)
+    xyz: [520.0, -110.0, 100.0]   # VGR end (belt-local 0), one lane in front
+  axis: -x                         # runs back toward the crane transfer at x=400
   sensors:
     I2:
       kind: light_barrier

@@ -128,13 +128,17 @@ def plan_retrieve(
     b.move(LIFT, z + offsets.lift, "lift to take the carrier onto the fork")
     b.move(FORK, fork.at("carry"), "pull fork back to the carry stop")
 
-    # Phase 3 - deliver to the belt.
+    # Phase 3 - deliver to the belt. The belt runs parallel to the rack one
+    # lane in front, so the Ausleger extends BACKWARD (negative, away from the
+    # rack) to reach over it - the real cantilever has front and back
+    # reference switches (I5/I6) for exactly this.
     b.move(TRAVEL, travel.at("conveyor"), "travel to the conveyor")
-    b.move(LIFT, lift.at("conveyor") + offsets.hover, "hover above the belt")
-    b.move(LIFT, lift.at("conveyor") - offsets.place, "lower onto the belt")
+    b.move(LIFT, lift.at("conveyor") + offsets.hover, "align above the belt")
+    b.move(FORK, fork.at("belt"), "extend cantilever back over the belt")
+    b.move(LIFT, lift.at("conveyor") - offsets.place, "lower to set the carrier onto the belt")
 
-    # Phase 4 - clear out.
-    b.move(FORK, fork.at("retracted"), "retract fork clear of the belt")
+    # Phase 4 - withdraw the table from under the carrier and clear out.
+    b.move(FORK, fork.at("retracted"), "withdraw cantilever, carrier stays on the belt")
     b.move(TRAVEL, travel.at("rest"), "return to rest")
     b.move(LIFT, lift.at("rest"), "return to rest height")
 
@@ -159,11 +163,14 @@ def plan_store(
 
     b = _Builder(layout, _hbw_state(layout, start))
 
-    # Phase 1 - collect from the belt.
-    b.move(FORK, fork.at("carry"), "set fork to the carry stop")
+    # Phase 1 - collect from the belt (mirror of the retrieve deposit: slide
+    # the cantilever under the tray from the lane side, then lift it clear).
+    b.move(FORK, fork.at("retracted"), "retract cantilever for safe travel")
     b.move(TRAVEL, travel.at("conveyor"), "travel to the conveyor")
-    b.move(LIFT, lift.at("conveyor") - offsets.approach, "drop below the carrier on the belt")
+    b.move(LIFT, lift.at("conveyor") - offsets.approach, "drop below the belt line")
+    b.move(FORK, fork.at("belt"), "slide cantilever under the carrier")
     b.move(LIFT, lift.at("conveyor") + offsets.place, "lift the carrier off the belt")
+    b.move(FORK, fork.at("carry"), "pull the carrier into the lane")
 
     # Phase 2 - carry to the shelf.
     b.move(TRAVEL, x, f"travel to column of {slot}")
@@ -211,10 +218,12 @@ def check_square_path(layout: Layout, trajectory: Trajectory) -> list[str]:
     for i, seg in enumerate(trajectory.segments, 1):
         if seg.joint == FORK:
             fork_pos = seg.target
-        elif seg.joint == TRAVEL and fork_pos > fork_limit:
+        elif seg.joint == TRAVEL and abs(fork_pos) > fork_limit:
+            # abs(): the Ausleger is bidirectional - extended backward over the
+            # belt is just as unsafe to travel with as extended into a bay.
             violations.append(
                 f"segment {i}: carriage travels {seg.start:.1f}->{seg.target:.1f} "
-                f"with the fork at {fork_pos:.1f}mm (max safe {fork_limit:.1f}mm)"
+                f"with the fork at {fork_pos:.1f}mm (max safe +/-{fork_limit:.1f}mm)"
             )
     return violations
 
