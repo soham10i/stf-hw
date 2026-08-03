@@ -43,6 +43,9 @@ export function ControlPanel({ scene }: { scene: SceneDescriptor }) {
           Store {slot}
         </button>
       </div>
+      <button className="op cycle" onClick={() => fire("cycle", true)}>
+        Run full cycle from {slot}
+      </button>
       <button className="op home" onClick={() => fire("home", false)}>
         Home crane
       </button>

@@ -7,6 +7,7 @@ import { Edges, Text } from "@react-three/drei";
 import * as THREE from "three";
 import { VIEW, v3a } from "../coords";
 import type { SceneDescriptor } from "../types";
+import { Carrier } from "./Carrier";
 
 export function Rack({ scene }: { scene: SceneDescriptor }) {
   const { rack } = scene;
@@ -58,6 +59,10 @@ export function Rack({ scene }: { scene: SceneDescriptor }) {
             >
               {name}
             </Text>
+            {/* the carrier while it rests in this bay */}
+            <group position={[p.x, p.y - h / 2 + 0.04, cz]}>
+              <Carrier holder={`slot:${name}`} />
+            </group>
           </group>
         );
       })}

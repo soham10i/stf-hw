@@ -4,12 +4,28 @@
 
 import { Grid, OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import * as THREE from "three";
-import { v3a } from "../coords";
+import { VIEW, v3a } from "../coords";
 import type { SceneDescriptor } from "../types";
+import { Carrier } from "./Carrier";
 import { Conveyor } from "./Conveyor";
 import { Hbw } from "./Hbw";
 import { Rack } from "./Rack";
 import { Vgr } from "./Vgr";
+
+// Where the VGR arm sets the carrier down at "delivery": its base, plus the arm
+// tip (reach + plunge) rotated by the delivery swivel angle. Computed from the
+// layout so the delivery pad tracks the arm's actual placement pose.
+function deliveryPoint(scene: SceneDescriptor): THREE.Vector3 {
+  const vgr = scene.devices.vgr;
+  const swivelDeg = vgr.joints.swivel.positions.delivery ?? 0;
+  const reach = (vgr.joints.reach.positions.conveyor ?? 0) * VIEW;
+  const plunge = (vgr.joints.plunge.positions.pick ?? 0) * VIEW;
+  const local = new THREE.Vector3(0, plunge, reach).applyAxisAngle(
+    new THREE.Vector3(0, 1, 0),
+    -THREE.MathUtils.degToRad(swivelDeg),
+  );
+  return v3a(vgr.base).add(local);
+}
 
 // Ground footprint (in three units) spanning the whole machine, so the platform
 // sits under the rack, the aisle, the conveyor and the gripper.
@@ -77,6 +93,26 @@ export function Factory({ scene }: { scene: SceneDescriptor }) {
       <Hbw scene={scene} />
       <Vgr scene={scene} />
       <Conveyor scene={scene} />
+
+      {/* delivery stand where the gripper sets the finished carrier down */}
+      {(() => {
+        const dp = deliveryPoint(scene);
+        return (
+          <group>
+            <mesh position={[dp.x, dp.y / 2, dp.z]}>
+              <boxGeometry args={[0.12, dp.y, 0.12]} />
+              <meshStandardMaterial color="#243b4e" roughness={0.85} />
+            </mesh>
+            <mesh position={[dp.x, dp.y + 0.01, dp.z]}>
+              <boxGeometry args={[0.16, 0.02, 0.16]} />
+              <meshStandardMaterial color="#31506a" roughness={0.7} />
+            </mesh>
+            <group position={[dp.x, dp.y + 0.04, dp.z]}>
+              <Carrier holder="delivery" />
+            </group>
+          </group>
+        );
+      })()}
 
       <OrbitControls target={[cx, 0.9, cz]} enableDamping maxPolarAngle={Math.PI / 2.05} />
     </>

@@ -42,6 +42,12 @@ export interface SceneDescriptor {
   stations: Record<string, { pose: [number, number, number]; description: string | null }>;
 }
 
+export interface Carrier {
+  flavor: string | null;
+  holder: string | null; // null | "slot:B2" | "fork" | "belt" | "suction" | "delivery"
+  slot: string | null;
+}
+
 export interface Frame {
   type: "frame";
   seq: number;
@@ -52,6 +58,7 @@ export interface Frame {
   motors: Record<string, { amps: number; health: number; phase: string }>;
   belt: { position: number; object: number | null };
   sensors: Record<string, boolean>;
+  carrier?: Carrier;
 }
 
 export interface Order {

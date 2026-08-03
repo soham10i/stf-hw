@@ -28,10 +28,24 @@ make api         # FastAPI + WebSocket on http://localhost:8000
 make web         # installs web deps if needed, serves on http://localhost:5173
 ```
 
-Open <http://localhost:5173>. Pick a slot, hit **Retrieve** or **Store**, and
-watch the crane execute it in 3D while the telemetry panel updates live. The
-whole scene is built from `packages/stf_layout/factory.layout.yaml` via
+Open <http://localhost:5173>. Pick a slot, then:
+
+- **Retrieve / Store** — drive just the crane to/from a bay.
+- **Run full cycle** — the whole material flow: the crane pulls a carrier from
+  the bay, sets it on the belt, the belt conveys it to the gripper end, and the
+  VGR picks it and places it on the delivery stand. Watch the coloured cookie
+  carrier ride from station to station.
+
+The whole scene is built from `packages/stf_layout/factory.layout.yaml` via
 `GET /layout`, so moving a shelf in that file moves it in the 3D view.
+
+**Demo speed.** A full cycle runs ~2 minutes at true hardware speed (14.27 mm/s).
+To watch it faster, start the backend with a time multiplier — physics is
+unchanged, only the wall-clock pacing:
+
+```bash
+STF_TIME_SCALE=6 make api      # a full cycle in ~20 seconds
+```
 
 API surface:
 

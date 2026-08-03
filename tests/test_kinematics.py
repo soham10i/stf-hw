@@ -242,6 +242,63 @@ def test_a_move_never_outruns_its_drive(layout: Layout) -> None:
             break
 
 
+# --------------------------------------------------------------------------
+# VGR pick-and-place
+# --------------------------------------------------------------------------
+
+
+def test_vgr_unknown_station_is_rejected(layout: Layout) -> None:
+    from stf_kernel import plan_vgr_approach_pick
+
+    with pytest.raises(PlanError, match="unknown VGR station"):
+        plan_vgr_approach_pick(layout, "nowhere")
+
+
+@pytest.mark.parametrize("station", ["conveyor", "oven", "delivery"])
+def test_vgr_pick_settles_at_the_station(layout: Layout, station: str) -> None:
+    """The gripper must reach each station within one increment on every axis."""
+    from stf_kernel import Kernel, plan_vgr_approach_pick
+
+    traj = plan_vgr_approach_pick(layout, station)
+    final = Kernel(layout, seed=1).run_trajectory(traj)
+
+    assert final.joints["vgr.swivel"] == pytest.approx(
+        layout.joint("vgr.swivel").at(station),
+        abs=layout.joint("vgr.swivel").drive.units_per_pulse(),
+    )
+    assert final.joints["vgr.plunge"] == pytest.approx(
+        layout.joint("vgr.plunge").at("pick"),
+        abs=layout.joint("vgr.plunge").drive.units_per_pulse(),
+    )
+
+
+def test_vgr_pick_place_stow_chain_is_continuous(layout: Layout) -> None:
+    """
+    Planning each VGR leg from the previous leg's final pose must never command
+    an axis past a hard stop - the runtime plans lazily exactly this way.
+    """
+    from stf_kernel import (
+        Kernel,
+        plan_vgr_approach_pick,
+        plan_vgr_carry_place,
+        plan_vgr_stow,
+    )
+
+    kernel = Kernel(layout, seed=1)
+    for plan in (
+        lambda st: plan_vgr_approach_pick(layout, "conveyor", start=st),
+        lambda st: plan_vgr_carry_place(layout, "delivery", start=st),
+        lambda st: plan_vgr_stow(layout, start=st),
+    ):
+        traj = plan(kernel.backend.snapshot().joints)
+        for seg in traj:
+            assert layout.joint(seg.joint).contains(seg.target)
+        kernel.run_trajectory(traj)
+
+    stowed = kernel.backend.snapshot().joints
+    assert stowed["vgr.swivel"] == pytest.approx(layout.joint("vgr.swivel").home, abs=0.1)
+
+
 def test_cycle_time_reflects_the_real_hardware(layout: Layout) -> None:
     """
     A retrieve takes about a minute on this machine.

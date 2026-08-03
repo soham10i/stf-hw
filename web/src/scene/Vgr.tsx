@@ -16,6 +16,7 @@ import * as THREE from "three";
 import { VIEW, v3a } from "../coords";
 import { hot } from "../store";
 import type { SceneDescriptor } from "../types";
+import { Carrier } from "./Carrier";
 
 export function Vgr({ scene }: { scene: SceneDescriptor }) {
   const swivel = useRef<THREE.Group>(null);
@@ -86,6 +87,10 @@ export function Vgr({ scene }: { scene: SceneDescriptor }) {
               <cylinderGeometry args={[0.035, 0.02, 0.03, 16]} />
               <meshStandardMaterial color="#1a1f26" roughness={0.9} />
             </mesh>
+            {/* the carrier while it rides the suction */}
+            <group position={[0, -0.13, 0]}>
+              <Carrier holder="suction" />
+            </group>
           </group>
         </group>
       </group>

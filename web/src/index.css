@@ -174,8 +174,15 @@ header h1 {
 .op.store {
   background: var(--amber);
 }
+.op.cycle {
+  width: 100%;
+  margin-top: 6px;
+  background: linear-gradient(90deg, #4aa3c8, #e0a44a);
+  color: #06121a;
+}
 .op.home {
   width: 100%;
+  margin-top: 6px;
   background: #2c3a4a;
   color: var(--text);
 }

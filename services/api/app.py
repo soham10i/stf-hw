@@ -17,6 +17,7 @@ socket reads from that single authoritative simulation.
 
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -29,7 +30,13 @@ from stf_layout import get_layout
 from . import wire
 from .runtime import SimRuntime
 
-runtime = SimRuntime()
+# STF_TIME_SCALE speeds up (or slows) the DEMO only - it multiplies how much sim
+# time each real second advances. The physics is unchanged; a move still takes
+# the same number of sim-seconds. Handy for watching a full ~2-minute cycle in
+# 20 seconds. Defaults to real time.
+_TIME_SCALE = float(os.environ.get("STF_TIME_SCALE", "1.0"))
+
+runtime = SimRuntime(time_scale=_TIME_SCALE)
 
 
 @asynccontextmanager
@@ -55,7 +62,7 @@ app.add_middleware(
 
 
 class CommandRequest(BaseModel):
-    op: str = Field(description="retrieve | store | home")
+    op: str = Field(description="retrieve | store | home | cycle")
     slot: str | None = Field(default=None, description="target slot A1..C3")
 
 

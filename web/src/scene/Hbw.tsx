@@ -16,6 +16,7 @@ import * as THREE from "three";
 import { VIEW, v3a } from "../coords";
 import { hot } from "../store";
 import type { SceneDescriptor } from "../types";
+import { Carrier } from "./Carrier";
 
 export function Hbw({ scene }: { scene: SceneDescriptor }) {
   const gantry = useRef<THREE.Group>(null);
@@ -83,6 +84,10 @@ export function Hbw({ scene }: { scene: SceneDescriptor }) {
               <boxGeometry args={[0.02, 0.02, 0.08]} />
               <meshStandardMaterial color="#b06a30" roughness={0.7} />
             </mesh>
+            {/* the carrier when the fork is holding it */}
+            <group position={[0, 0.03, 0.2]}>
+              <Carrier holder="fork" />
+            </group>
           </group>
         </group>
       </group>

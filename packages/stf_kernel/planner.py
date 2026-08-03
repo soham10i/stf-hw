@@ -219,10 +219,93 @@ def check_square_path(layout: Layout, trajectory: Trajectory) -> list[str]:
     return violations
 
 
+# ---------------------------------------------------------------------------
+# Vacuum Gripper Robot
+# ---------------------------------------------------------------------------
+# The VGR is a cylindrical arm: swivel (rotate the whole column), reach (extend
+# the arm), plunge (raise/lower the suction). A pick-and-place is split into
+# three trajectories so the runtime has clean seams to attach/detach the carrier
+# at the moments the suction actually grips and releases.
+
+SWIVEL = "vgr.swivel"
+REACH = "vgr.reach"
+PLUNGE = "vgr.plunge"
+
+
+def _vgr_state(layout: Layout, start: dict[str, float] | None) -> dict[str, float]:
+    home = layout.home_vector()
+    state = {ref: home[ref] for ref in (SWIVEL, REACH, PLUNGE)}
+    if start:
+        for ref in (SWIVEL, REACH, PLUNGE):
+            if ref in start:
+                state[ref] = start[ref]
+    return state
+
+
+def _require_station(layout: Layout, station: str) -> None:
+    if station not in layout.joint(SWIVEL).positions:
+        known = sorted(layout.joint(SWIVEL).positions)
+        raise PlanError(f"unknown VGR station {station!r}; known: {known}")
+
+
+def plan_vgr_approach_pick(
+    layout: Layout, station: str, start: dict[str, float] | None = None
+) -> Trajectory:
+    """
+    Swing to a station and lower the suction onto the workpiece there.
+
+    Ends with the cup down at the pick height - the runtime grips the carrier at
+    this seam, then runs :func:`plan_vgr_carry_place`.
+    """
+    _require_station(layout, station)
+    reach = layout.joint(REACH)
+    plunge = layout.joint(PLUNGE)
+
+    b = _Builder(layout, _vgr_state(layout, start))
+    b.move(PLUNGE, plunge.at("raised"), "raise clear")
+    b.move(REACH, reach.at("retracted"), "retract arm")
+    b.move(SWIVEL, layout.joint(SWIVEL).at(station), f"swivel to {station}")
+    b.move(REACH, reach.at("conveyor"), f"reach over {station}")
+    b.move(PLUNGE, plunge.at("pick"), "lower onto workpiece")
+    return b.finish(f"vgr-pick:{station}", operation="vgr_pick", station=station)
+
+
+def plan_vgr_carry_place(
+    layout: Layout, station: str, start: dict[str, float] | None = None
+) -> Trajectory:
+    """Lift the gripped workpiece, swing to ``station`` and set it down."""
+    _require_station(layout, station)
+    reach = layout.joint(REACH)
+    plunge = layout.joint(PLUNGE)
+
+    b = _Builder(layout, _vgr_state(layout, start))
+    b.move(PLUNGE, plunge.at("transit"), "lift workpiece")
+    b.move(REACH, reach.at("retracted"), "retract arm")
+    b.move(SWIVEL, layout.joint(SWIVEL).at(station), f"swivel to {station}")
+    b.move(REACH, reach.at("conveyor"), f"reach over {station}")
+    b.move(PLUNGE, plunge.at("pick"), "lower to place")
+    return b.finish(f"vgr-place:{station}", operation="vgr_place", station=station)
+
+
+def plan_vgr_stow(layout: Layout, start: dict[str, float] | None = None) -> Trajectory:
+    """Raise, retract and swing back to the home angle."""
+    reach = layout.joint(REACH)
+    plunge = layout.joint(PLUNGE)
+
+    b = _Builder(layout, _vgr_state(layout, start))
+    b.move(PLUNGE, plunge.at("raised"), "raise clear")
+    b.move(REACH, reach.at("retracted"), "retract arm")
+    b.move(SWIVEL, layout.joint(SWIVEL).home, "return to home angle")
+    return b.finish("vgr-stow", operation="vgr_stow")
+
+
 __all__ = [
     "DEFAULT_OFFSETS",
     "FORK",
     "LIFT",
+    "PLUNGE",
+    "REACH",
+    "SWIVEL",
     "TRAVEL",
     "PickPlaceOffsets",
     "PlanError",
@@ -230,4 +313,7 @@ __all__ = [
     "plan_home",
     "plan_retrieve",
     "plan_store",
+    "plan_vgr_approach_pick",
+    "plan_vgr_carry_place",
+    "plan_vgr_stow",
 ]
