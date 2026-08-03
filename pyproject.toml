@@ -10,6 +10,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+api = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "websockets>=13",
+]
 dev = [
     "pytest>=8.3",
     "pytest-cov>=5.0",

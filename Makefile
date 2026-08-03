@@ -2,7 +2,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: help venv install test test-fast goldens lint fmt up down logs plan sim clean
+.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -11,8 +11,11 @@ help: ## Show this help
 venv: ## Create the virtualenv
 	python3 -m venv .venv && $(PIP) install -q --upgrade pip
 
-install: venv ## Install the project and dev dependencies
-	$(PIP) install -q -e ".[dev]"
+install: venv ## Install the project with dev + api dependencies
+	$(PIP) install -q -e ".[dev,api]"
+
+install-api: venv ## Install just the API/runtime dependencies
+	$(PIP) install -q -e ".[api]"
 
 test: ## Run the full test suite
 	$(PY) -m pytest
@@ -47,9 +50,15 @@ op = '$(or $(OP),retrieve)'; \
 t = (k.plan_retrieve if op == 'retrieve' else k.plan_store)(L, '$(or $(SLOT),B2)'); \
 print(t.describe())"
 
-sim: ## Watch the kernel run live, e.g. make sim SLOT=B2 OP=retrieve [FAST=1]
+sim: ## Watch the kernel run live in the terminal, e.g. make sim SLOT=B2 OP=retrieve [FAST=1]
 	@PYTHONPATH=packages:. $(PY) -m services.sim.live \
 		--slot $(or $(SLOT),B2) --op $(or $(OP),retrieve) $(if $(FAST),--fast,)
+
+api: ## Run the live twin backend (FastAPI + WebSocket) on :8000
+	PYTHONPATH=packages $(PY) -m uvicorn services.api.app:app --port 8000 --reload
+
+web: ## Run the 3D frontend dev server on :5173 (needs `make api` running)
+	cd web && npm install && npm run dev
 
 clean: ## Remove caches
 	find . -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true

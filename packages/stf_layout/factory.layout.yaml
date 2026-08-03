@@ -65,7 +65,7 @@ devices:
         axis: +x
         limits: [0.0, 420.0]     # columns at 100/200/300, conveyor at 400
         home: 0.0
-        reference_switch: I2     # per docs/recovered/FACTORY_SPECS.md
+        reference_switch: I1     # horizontal ref (Belegungsplan: I2/I3 are light barriers)
         motor_id: HBW_X
         positions:
           rest: 400.0
