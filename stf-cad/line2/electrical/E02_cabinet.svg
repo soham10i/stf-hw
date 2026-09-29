@@ -1,0 +1,379 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<defs><marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+<path d="M0,2 L10,5 L0,8 z" fill="#1b2330"/></marker>
+<marker id="f" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+<path d="M0,1 L10,5 L0,9 z" fill="#1f4e8c"/></marker>
+<pattern id="hatch" width="1.6" height="1.6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="1.6" height="1.6" fill="#eef1f5"/><line x1="0" y1="0" x2="0" y2="1.6" stroke="#1b2330" stroke-width=".18"/></pattern></defs>
+<style>
+text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
+.vt{font-size:3.2px;font-weight:700;letter-spacing:.3px}
+.dt{font-size:2.3px}
+.dim{stroke:#1b2330;stroke-width:.15;fill:none}
+.ext{stroke:#1b2330;stroke-width:.1}
+.tb{font-size:2.6px}.tbh{font-size:4.2px;font-weight:700}.tbs{font-size:2.1px;fill:#445}
+.nt{font-size:2.3px}.nh{font-size:2.8px;font-weight:700;fill:#1f4e8c}
+.co{font-size:2.1px}.col{stroke:#1f4e8c;stroke-width:.15}
+</style>
+<rect width="420" height="297" fill="#ffffff"/>
+<rect x="10" y="10" width="400" height="277" fill="none" stroke="#1b2330" stroke-width=".5"/>
+<text x="20.0" y="22.0" class="nh" text-anchor="start" >MOUNTING PLATE 980 x 720 (enclosure under the deck, height 210) - scale 1:3</text>
+<rect x="25.0" y="30.0" width="326.7" height="240.0" fill="#fafbfc" stroke="#1b2330" stroke-width="0.5"/>
+<rect x="30.0" y="34.5" width="316.7" height="11.7" fill="#ffffff" stroke="#9aa3ab" stroke-width="0.2"/>
+<rect x="30.0" y="78.2" width="316.7" height="11.3" fill="#eef1f4" stroke="#b9bec4" stroke-width="0.2"/>
+<rect x="30.5" y="35.5" width="11.7" height="30.0" fill="#e8d9a8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="36.3" y="37.5" class="tbs" transform="rotate(90 36.3 37.5)">-FC1 MCB</text>
+<rect x="42.2" y="35.5" width="5.8" height="30.0" fill="#e8d9a8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="45.1" y="37.5" class="tbs" transform="rotate(90 45.1 37.5)">-FC2 MCB</text>
+<rect x="48.0" y="35.5" width="5.8" height="30.0" fill="#e8d9a8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="50.9" y="37.5" class="tbs" transform="rotate(90 50.9 37.5)">-FC3 MCB</text>
+<rect x="53.8" y="35.5" width="28.5" height="41.7" fill="#c9d6e3" stroke="#1b2330" stroke-width="0.15"/>
+<text x="68.1" y="37.5" class="tbs" transform="rotate(90 68.1 37.5)">-TB1 SDR-480-24</text>
+<rect x="82.3" y="35.5" width="28.5" height="41.7" fill="#c9d6e3" stroke="#1b2330" stroke-width="0.15"/>
+<text x="96.6" y="37.5" class="tbs" transform="rotate(90 96.6 37.5)">-TB2 SDR-480-24</text>
+<rect x="110.8" y="35.5" width="28.5" height="41.7" fill="#c9d6e3" stroke="#1b2330" stroke-width="0.15"/>
+<text x="125.1" y="37.5" class="tbs" transform="rotate(90 125.1 37.5)">-TB3 SDR-480P-48</text>
+<rect x="139.3" y="35.5" width="15.0" height="33.3" fill="#f0c8c0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="146.8" y="37.5" class="tbs" transform="rotate(90 146.8 37.5)">-QA1 SSR AC</text>
+<rect x="154.3" y="35.5" width="15.0" height="33.3" fill="#f0c8c0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="161.8" y="37.5" class="tbs" transform="rotate(90 161.8 37.5)">-QA2 SSR AC</text>
+<rect x="169.3" y="35.5" width="15.0" height="33.3" fill="#f0c8c0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="176.8" y="37.5" class="tbs" transform="rotate(90 176.8 37.5)">-QA3 SSR AC</text>
+<rect x="184.3" y="35.5" width="7.5" height="33.3" fill="#f0c8c0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="188.1" y="37.5" class="tbs" transform="rotate(90 188.1 37.5)">-QA4 SSR DC</text>
+<rect x="191.8" y="35.5" width="7.5" height="33.3" fill="#f0c8c0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="195.6" y="37.5" class="tbs" transform="rotate(90 195.6 37.5)">-QA5 SSR DC</text>
+<rect x="199.3" y="35.5" width="7.5" height="33.3" fill="#f0c8c0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="203.1" y="37.5" class="tbs" transform="rotate(90 203.1 37.5)">-QA6 SSR DC</text>
+<rect x="206.8" y="35.5" width="7.5" height="33.3" fill="#f0c8c0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="210.6" y="37.5" class="tbs" transform="rotate(90 210.6 37.5)">-QA7 SSR DC</text>
+<text x="355.7" y="39.5" class="tbs" text-anchor="start" >row 0: 552 / 947 mm, 42% spare</text>
+<rect x="30.0" y="89.6" width="316.7" height="11.7" fill="#ffffff" stroke="#9aa3ab" stroke-width="0.2"/>
+<rect x="30.0" y="124.9" width="316.7" height="11.3" fill="#eef1f4" stroke="#b9bec4" stroke-width="0.2"/>
+<rect x="30.5" y="90.6" width="14.7" height="33.3" fill="#b8d0f0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="37.8" y="92.6" class="tbs" transform="rotate(90 37.8 92.6)">-KF100 EK1100</text>
+<rect x="45.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="49.2" y="92.6" class="tbs" transform="rotate(90 49.2 92.6)">-KF20 EL7047</text>
+<rect x="53.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="57.2" y="92.6" class="tbs" transform="rotate(90 57.2 92.6)">-KF21 EL7047</text>
+<rect x="61.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="65.2" y="92.6" class="tbs" transform="rotate(90 65.2 92.6)">-KF22 EL7047</text>
+<rect x="69.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="73.2" y="92.6" class="tbs" transform="rotate(90 73.2 92.6)">-KF23 EL7047</text>
+<rect x="77.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="81.2" y="92.6" class="tbs" transform="rotate(90 81.2 92.6)">-KF24 EL7047</text>
+<rect x="85.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="89.2" y="92.6" class="tbs" transform="rotate(90 89.2 92.6)">-KF25 EL7047</text>
+<rect x="93.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="97.2" y="92.6" class="tbs" transform="rotate(90 97.2 92.6)">-KF26 EL7047</text>
+<rect x="101.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="105.2" y="92.6" class="tbs" transform="rotate(90 105.2 92.6)">-KF27 EL7047</text>
+<rect x="109.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="113.2" y="92.6" class="tbs" transform="rotate(90 113.2 92.6)">-KF28 EL7047</text>
+<rect x="117.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="121.2" y="92.6" class="tbs" transform="rotate(90 121.2 92.6)">-KF29 EL7047</text>
+<rect x="125.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="129.2" y="92.6" class="tbs" transform="rotate(90 129.2 92.6)">-KF30 EL7047</text>
+<rect x="133.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="137.2" y="92.6" class="tbs" transform="rotate(90 137.2 92.6)">-KF31 EL7047</text>
+<rect x="141.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="145.2" y="92.6" class="tbs" transform="rotate(90 145.2 92.6)">-KF32 EL7047</text>
+<rect x="149.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="153.2" y="92.6" class="tbs" transform="rotate(90 153.2 92.6)">-KF33 EL7047</text>
+<rect x="157.2" y="90.6" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="159.2" y="92.6" class="tbs" transform="rotate(90 159.2 92.6)">-TB1115 EL9410</text>
+<rect x="161.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="165.2" y="92.6" class="tbs" transform="rotate(90 165.2 92.6)">-KF34 EL7047</text>
+<rect x="169.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="173.2" y="92.6" class="tbs" transform="rotate(90 173.2 92.6)">-KF35 EL7047</text>
+<rect x="177.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="181.2" y="92.6" class="tbs" transform="rotate(90 181.2 92.6)">-KF36 EL7047</text>
+<rect x="185.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="189.2" y="92.6" class="tbs" transform="rotate(90 189.2 92.6)">-KF37 EL7047</text>
+<rect x="193.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="197.2" y="92.6" class="tbs" transform="rotate(90 197.2 92.6)">-KF38 EL7047</text>
+<rect x="201.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="205.2" y="92.6" class="tbs" transform="rotate(90 205.2 92.6)">-KF39 EL7047</text>
+<rect x="209.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="213.2" y="92.6" class="tbs" transform="rotate(90 213.2 92.6)">-KF40 EL7047</text>
+<rect x="217.2" y="90.6" width="8.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="221.2" y="92.6" class="tbs" transform="rotate(90 221.2 92.6)">-KF41 EL7047</text>
+<rect x="225.2" y="90.6" width="1.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="355.7" y="94.6" class="tbs" text-anchor="start" >row 1: 587 / 947 mm, 38% spare</text>
+<rect x="30.0" y="136.2" width="316.7" height="11.7" fill="#ffffff" stroke="#9aa3ab" stroke-width="0.2"/>
+<rect x="30.0" y="171.6" width="316.7" height="11.3" fill="#eef1f4" stroke="#b9bec4" stroke-width="0.2"/>
+<rect x="30.5" y="137.2" width="13.3" height="33.3" fill="#b8d0f0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="37.2" y="139.2" class="tbs" transform="rotate(90 37.2 139.2)">-TB0 CX2100-0004</text>
+<rect x="43.8" y="137.2" width="23.7" height="33.3" fill="#b8d0f0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="55.7" y="139.2" class="tbs" transform="rotate(90 55.7 139.2)">-KF0 CX2020</text>
+<rect x="67.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="69.5" y="139.2" class="tbs" transform="rotate(90 69.5 139.2)">-KF1 EL1809</text>
+<rect x="71.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="73.5" y="139.2" class="tbs" transform="rotate(90 73.5 139.2)">-KF2 EL1809</text>
+<rect x="75.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="77.5" y="139.2" class="tbs" transform="rotate(90 77.5 139.2)">-KF3 EL1809</text>
+<rect x="79.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="81.5" y="139.2" class="tbs" transform="rotate(90 81.5 139.2)">-KF4 EL1809</text>
+<rect x="83.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="85.5" y="139.2" class="tbs" transform="rotate(90 85.5 139.2)">-KF5 EL1809</text>
+<rect x="87.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="89.5" y="139.2" class="tbs" transform="rotate(90 89.5 139.2)">-KF6 EL2809</text>
+<rect x="91.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="93.5" y="139.2" class="tbs" transform="rotate(90 93.5 139.2)">-KF7 EL2809</text>
+<rect x="95.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="97.5" y="139.2" class="tbs" transform="rotate(90 97.5 139.2)">-KF8 EL2809</text>
+<rect x="99.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="101.5" y="139.2" class="tbs" transform="rotate(90 101.5 139.2)">-KF9 EL3064</text>
+<rect x="103.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="105.5" y="139.2" class="tbs" transform="rotate(90 105.5 139.2)">-KF10 EL3064</text>
+<rect x="107.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="109.5" y="139.2" class="tbs" transform="rotate(90 109.5 139.2)">-KF11 EL3314</text>
+<rect x="111.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="113.5" y="139.2" class="tbs" transform="rotate(90 113.5 139.2)">-KF12 EL3314</text>
+<rect x="115.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="117.5" y="139.2" class="tbs" transform="rotate(90 117.5 139.2)">-KF13 EL3314</text>
+<rect x="119.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="121.5" y="139.2" class="tbs" transform="rotate(90 121.5 139.2)">-KF14 EL6224</text>
+<rect x="123.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="125.5" y="139.2" class="tbs" transform="rotate(90 125.5 139.2)">-TB1016 EL9410</text>
+<rect x="127.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="129.5" y="139.2" class="tbs" transform="rotate(90 129.5 139.2)">-KF15 EL6224</text>
+<rect x="131.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="133.5" y="139.2" class="tbs" transform="rotate(90 133.5 139.2)">-KF16 EL6224</text>
+<rect x="135.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="137.5" y="139.2" class="tbs" transform="rotate(90 137.5 139.2)">-KF17 EL6224</text>
+<rect x="139.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="141.5" y="139.2" class="tbs" transform="rotate(90 141.5 139.2)">-KF18 EL5101</text>
+<rect x="143.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="145.5" y="139.2" class="tbs" transform="rotate(90 145.5 139.2)">-KF19 EL5101</text>
+<rect x="147.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="149.5" y="139.2" class="tbs" transform="rotate(90 149.5 139.2)">-KF42 EL1252</text>
+<rect x="151.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="153.5" y="139.2" class="tbs" transform="rotate(90 153.5 139.2)">-KF43 EL1252</text>
+<rect x="155.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="157.5" y="139.2" class="tbs" transform="rotate(90 157.5 139.2)">-KF44 EL2252</text>
+<rect x="159.5" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="161.5" y="139.2" class="tbs" transform="rotate(90 161.5 139.2)">-KF45 EL2252</text>
+<rect x="163.5" y="137.2" width="1.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="164.5" y="137.2" width="14.7" height="33.3" fill="#b8d0f0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="171.8" y="139.2" class="tbs" transform="rotate(90 171.8 139.2)">-KF200 EK1100</text>
+<rect x="179.2" y="137.2" width="4.0" height="33.3" fill="#f2c200" stroke="#1b2330" stroke-width="0.15"/>
+<text x="181.2" y="139.2" class="tbs" transform="rotate(90 181.2 139.2)">-KF201 EL6910</text>
+<rect x="183.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="185.2" y="139.2" class="tbs" transform="rotate(90 185.2 139.2)">-KF46 EL1904</text>
+<rect x="187.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="189.2" y="139.2" class="tbs" transform="rotate(90 189.2 139.2)">-KF47 EL1904</text>
+<rect x="191.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="193.2" y="139.2" class="tbs" transform="rotate(90 193.2 139.2)">-KF48 EL1904</text>
+<rect x="195.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="197.2" y="139.2" class="tbs" transform="rotate(90 197.2 139.2)">-KF49 EL1904</text>
+<rect x="199.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="201.2" y="139.2" class="tbs" transform="rotate(90 201.2 139.2)">-KF50 EL1904</text>
+<rect x="203.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="205.2" y="139.2" class="tbs" transform="rotate(90 205.2 139.2)">-KF51 EL1904</text>
+<rect x="207.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="209.2" y="139.2" class="tbs" transform="rotate(90 209.2 139.2)">-KF52 EL1904</text>
+<rect x="211.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="213.2" y="139.2" class="tbs" transform="rotate(90 213.2 139.2)">-KF53 EL1904</text>
+<rect x="215.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="217.2" y="139.2" class="tbs" transform="rotate(90 217.2 139.2)">-KF54 EL1904</text>
+<rect x="219.2" y="137.2" width="4.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="221.2" y="139.2" class="tbs" transform="rotate(90 221.2 139.2)">-TB1211 EL9410</text>
+<rect x="223.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="225.2" y="139.2" class="tbs" transform="rotate(90 225.2 139.2)">-KF55 EL1904</text>
+<rect x="227.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="229.2" y="139.2" class="tbs" transform="rotate(90 229.2 139.2)">-KF56 EL2904</text>
+<rect x="231.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="233.2" y="139.2" class="tbs" transform="rotate(90 233.2 139.2)">-KF57 EL2904</text>
+<rect x="235.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="237.2" y="139.2" class="tbs" transform="rotate(90 237.2 139.2)">-KF58 EL2904</text>
+<rect x="239.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="241.2" y="139.2" class="tbs" transform="rotate(90 241.2 139.2)">-KF59 EL2904</text>
+<rect x="243.2" y="137.2" width="4.0" height="33.3" fill="#f2e28c" stroke="#1b2330" stroke-width="0.15"/>
+<text x="245.2" y="139.2" class="tbs" transform="rotate(90 245.2 139.2)">-KF60 EL2904</text>
+<rect x="247.2" y="137.2" width="1.0" height="33.3" fill="#d4e8d4" stroke="#1b2330" stroke-width="0.15"/>
+<text x="355.7" y="141.2" class="tbs" text-anchor="start" >row 2: 653 / 947 mm, 31% spare</text>
+<rect x="30.0" y="182.9" width="316.7" height="11.7" fill="#ffffff" stroke="#9aa3ab" stroke-width="0.2"/>
+<rect x="30.0" y="209.9" width="316.7" height="11.3" fill="#eef1f4" stroke="#b9bec4" stroke-width="0.2"/>
+<rect x="30.5" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="32.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="34.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="35.7" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="37.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="39.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="40.9" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="42.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="44.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="46.1" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="47.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="49.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="51.3" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="53.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="54.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="56.5" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="58.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="60.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="61.7" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="63.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="65.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="66.9" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="68.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="70.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="72.1" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="73.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="75.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="77.3" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="79.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="80.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="82.5" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="84.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="86.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="87.7" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="89.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="91.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="92.9" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="94.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="96.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="98.1" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="99.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="101.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="103.3" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="105.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="106.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="108.5" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="110.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="112.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="113.7" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="115.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="117.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="118.9" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="120.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="122.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="124.1" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="125.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="127.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="129.3" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="131.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="132.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="134.5" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="136.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="138.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="139.7" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="141.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="143.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="144.9" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="146.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="148.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="150.1" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="151.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="153.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="155.3" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="157.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="158.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="160.5" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="162.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="164.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="165.7" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="167.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="169.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="170.9" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="172.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="174.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="176.1" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="177.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="179.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="181.3" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="183.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="184.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="186.5" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="188.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="190.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="191.7" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="193.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="195.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="196.9" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="198.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="200.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="202.1" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="203.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="205.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="207.3" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="209.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="210.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="212.5" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="214.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="216.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="217.7" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="219.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="221.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="222.9" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="224.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="226.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="228.1" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="229.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="231.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="233.3" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="235.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="236.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="238.5" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="240.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="242.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="243.7" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="245.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="247.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="248.9" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="250.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="252.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="254.1" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="255.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="257.6" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="259.3" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="261.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="262.8" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="264.5" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="266.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="268.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<text x="355.7" y="187.9" class="tbs" text-anchor="start" >row 3: 718 / 947 mm, 24% spare</text>
+<rect x="30.0" y="221.2" width="316.7" height="11.7" fill="#ffffff" stroke="#9aa3ab" stroke-width="0.2"/>
+<rect x="30.5" y="222.2" width="15.0" height="30.0" fill="#f7b0a8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="38.0" y="224.2" class="tbs" transform="rotate(90 38.0 224.2)">-QK1 contactor</text>
+<rect x="45.5" y="222.2" width="15.0" height="30.0" fill="#f7b0a8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="53.0" y="224.2" class="tbs" transform="rotate(90 53.0 224.2)">-QK2 contactor</text>
+<rect x="60.5" y="222.2" width="15.0" height="30.0" fill="#f7b0a8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="68.0" y="224.2" class="tbs" transform="rotate(90 68.0 224.2)">-QK3 contactor</text>
+<rect x="75.5" y="222.2" width="15.0" height="30.0" fill="#f7b0a8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="83.0" y="224.2" class="tbs" transform="rotate(90 83.0 224.2)">-QK4 contactor</text>
+<rect x="90.5" y="222.2" width="15.0" height="30.0" fill="#f7b0a8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="98.0" y="224.2" class="tbs" transform="rotate(90 98.0 224.2)">-QK5 contactor</text>
+<rect x="105.5" y="222.2" width="7.5" height="33.3" fill="#f7c9a0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="109.2" y="224.2" class="tbs" transform="rotate(90 109.2 224.2)">-BT1 STL</text>
+<rect x="113.0" y="222.2" width="7.5" height="33.3" fill="#f7c9a0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="116.8" y="224.2" class="tbs" transform="rotate(90 116.8 224.2)">-BT2 STL</text>
+<rect x="120.5" y="222.2" width="7.5" height="33.3" fill="#f7c9a0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="124.2" y="224.2" class="tbs" transform="rotate(90 124.2 224.2)">-BT3 STL</text>
+<rect x="128.0" y="222.2" width="7.5" height="33.3" fill="#f7c9a0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="131.8" y="224.2" class="tbs" transform="rotate(90 131.8 224.2)">-BT4 STL</text>
+<rect x="135.5" y="222.2" width="7.5" height="33.3" fill="#f7c9a0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="139.2" y="224.2" class="tbs" transform="rotate(90 139.2 224.2)">-BT5 STL</text>
+<rect x="143.0" y="222.2" width="7.5" height="33.3" fill="#f7c9a0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="146.8" y="224.2" class="tbs" transform="rotate(90 146.8 224.2)">-BT6 STL</text>
+<rect x="150.5" y="222.2" width="7.5" height="33.3" fill="#f7c9a0" stroke="#1b2330" stroke-width="0.15"/>
+<text x="154.2" y="224.2" class="tbs" transform="rotate(90 154.2 224.2)">-BT7 STL</text>
+<text x="355.7" y="226.2" class="tbs" text-anchor="start" >row 4: 382 / 947 mm, 60% spare</text>
+<text x="355.66666666666663" y="180" class="nh">NOTES</text>
+<text x="355.66666666666663" y="184.2" class="nt">Rows use 660 of 687 mm plate depth; every rail keeps &gt;= 20 % spare.</text>
+<text x="355.66666666666663" y="187.9" class="nt">Deepest device + rail 136 mm &lt;= 205 mm inside height.</text>
+<text x="355.66666666666663" y="191.6" class="nt">Heat 255.4 W: natural dT 32.7 K &gt; 20 K -&gt; filter fan 60 m3/h, dT 12.7 K.</text>
+<text x="355.66666666666663" y="195.3" class="nt">Ducts 40 x 60 between rows; field cables enter through glands in the front wall.</text>
+<rect x="230" y="249" width="180" height="38" fill="#fff" stroke="#1b2330" stroke-width=".35"/>
+<rect x="230" y="249" width="180" height="9" fill="#1f4e8c"/>
+<text x="233" y="255.3" class="tbh" style="fill:#fff">STF-2 CONTINUOUS COOKIE LINE</text>
+<text x="233" y="264" class="tbh" style="font-size:3.6px">Electrical E02 - cabinet layout</text>
+<text x="233" y="269" class="tbs">DIN rows from plc_io.cabinet()</text>
+<text x="233" y="275" class="tbs">SCALE</text><text x="233" y="278" class="tb">1:3</text>
+<text x="293" y="275" class="tbs">SHEET</text><text x="293" y="278" class="tb">2 / 14</text>
+<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-09-29</text>
+<text x="233" y="281" class="tbs">UNITS</text><text x="233" y="284" class="tb">mm, deg</text>
+<text x="293" y="281" class="tbs">PROJECTION</text><text x="293" y="284" class="tb">third angle</text>
+<text x="353" y="281" class="tbs">SOURCE</text><text x="353" y="284" class="tb">line_model.py (generated - do not edit)</text>
+</svg>

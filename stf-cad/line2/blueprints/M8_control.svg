@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<defs><marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+<path d="M0,2 L10,5 L0,8 z" fill="#1b2330"/></marker>
+<marker id="f" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+<path d="M0,1 L10,5 L0,9 z" fill="#1f4e8c"/></marker>
+<pattern id="hatch" width="1.6" height="1.6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="1.6" height="1.6" fill="#eef1f5"/><line x1="0" y1="0" x2="0" y2="1.6" stroke="#1b2330" stroke-width=".18"/></pattern></defs>
+<style>
+text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
+.vt{font-size:3.2px;font-weight:700;letter-spacing:.3px}
+.dt{font-size:2.3px}
+.dim{stroke:#1b2330;stroke-width:.15;fill:none}
+.ext{stroke:#1b2330;stroke-width:.1}
+.tb{font-size:2.6px}.tbh{font-size:4.2px;font-weight:700}.tbs{font-size:2.1px;fill:#445}
+.nt{font-size:2.3px}.nh{font-size:2.8px;font-weight:700;fill:#1f4e8c}
+.co{font-size:2.1px}.col{stroke:#1f4e8c;stroke-width:.15}
+</style>
+<rect width="420" height="297" fill="#ffffff"/>
+<rect x="10" y="10" width="400" height="277" fill="none" stroke="#1b2330" stroke-width=".5"/>
+<rect x="32.15" y="32.15" width="97.70" height="71.70" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="32.15" y="32.15" width="97.70" height="71.70" fill="#e6e8ea" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="30.00" y="62.00" width="2.00" height="12.00" fill="#9f9fa1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="130.00" y="39.00" width="1.20" height="12.00" fill="#9f9fa1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="32.00" y="103.85" width="98.00" height="0.15" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="32.00" y="32.00" width="98.00" height="0.15" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="32.00" y="32.15" width="0.15" height="71.70" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="129.85" y="32.15" width="0.15" height="71.70" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="32.00" y="32.00" width="98.00" height="72.00" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="77.00" y="80.00" width="34.15" height="6.00" fill="#9ab8e4" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="113.15" y="80.00" width="6.00" height="6.00" fill="#9ab8e4" stroke="#1b2330" stroke-width="0.18"/>
+<text x="30.0" y="29.0" class="vt">TOP VIEW</text>
+<rect x="32.00" y="136.35" width="98.00" height="20.85" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="130.00" y="140.70" width="1.20" height="12.00" fill="#9f9fa1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="30.00" y="140.70" width="2.00" height="12.00" fill="#9f9fa1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="77.00" y="131.70" width="34.15" height="3.30" fill="#9ab8e4" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="113.15" y="126.00" width="6.00" height="9.00" fill="#9ab8e4" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="32.00" y="136.35" width="0.15" height="20.85" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="129.85" y="136.35" width="0.15" height="20.85" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="32.15" y="157.05" width="97.70" height="0.15" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="32.15" y="156.85" width="97.70" height="0.20" fill="#e6e8ea" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="32.00" y="136.20" width="98.00" height="0.15" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="32.00" y="136.35" width="98.00" height="20.85" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<text x="30.0" y="123.0" class="vt">FRONT VIEW</text>
+<rect x="183.20" y="140.70" width="12.00" height="12.00" fill="#9f9fa1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="153.35" y="136.35" width="71.70" height="20.85" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="171.20" y="131.70" width="6.00" height="3.30" fill="#9ab8e4" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="171.20" y="126.00" width="6.00" height="9.00" fill="#9ab8e4" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="153.35" y="157.05" width="71.70" height="0.15" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="153.35" y="156.85" width="71.70" height="0.20" fill="#e6e8ea" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="153.20" y="136.20" width="72.00" height="0.15" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="153.20" y="136.35" width="0.15" height="20.85" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="225.05" y="136.35" width="0.15" height="20.85" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="153.35" y="136.35" width="71.70" height="20.85" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="206.20" y="140.70" width="12.00" height="12.00" fill="#9f9fa1" stroke="#1b2330" stroke-width="0.18"/>
+<text x="153.2" y="123.0" class="vt">RIGHT VIEW</text>
+<line x1="30.00" y1="157.20" x2="30.00" y2="165.70" class="ext"/>
+<line x1="131.20" y1="157.20" x2="131.20" y2="165.70" class="ext"/>
+<line x1="30.00" y1="164.20" x2="131.20" y2="164.20" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="80.60" y="163.40" class="dt" text-anchor="middle">1012</text>
+<line x1="30.00" y1="157.20" x2="21.50" y2="157.20" class="ext"/>
+<line x1="30.00" y1="126.00" x2="21.50" y2="126.00" class="ext"/>
+<line x1="23.00" y1="157.20" x2="23.00" y2="126.00" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="21.80" y="141.60" class="dt" transform="rotate(-90 21.80 141.60)" text-anchor="middle">312</text>
+<line x1="30.00" y1="104.00" x2="21.50" y2="104.00" class="ext"/>
+<line x1="30.00" y1="32.00" x2="21.50" y2="32.00" class="ext"/>
+<line x1="23.00" y1="104.00" x2="23.00" y2="32.00" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="21.80" y="68.00" class="dt" transform="rotate(-90 21.80 68.00)" text-anchor="middle">720</text>
+<line x1="153.20" y1="157.20" x2="153.20" y2="165.70" class="ext"/>
+<line x1="225.20" y1="157.20" x2="225.20" y2="165.70" class="ext"/>
+<line x1="153.20" y1="164.20" x2="225.20" y2="164.20" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="189.20" y="163.40" class="dt" text-anchor="middle">720</text>
+<line x1="116.2" y1="83.0" x2="136.2" y2="35.2" class="col"/><circle cx="116.2" cy="83.0" r=".5" fill="#1f4e8c"/><text x="137.2" y="36.0" class="co">Q19 frl</text>
+<text x="243.2" y="84.8" class="vt">ISOMETRIC (pictorial, not to scale)</text>
+<path d="M355.24,103.27 L356.39,102.60 L344.90,95.97 L343.75,96.63 Z" fill="#4a4a4e" stroke="#1b2330" stroke-width=".06"/>
+<path d="M355.24,116.54 L356.39,115.87 L356.39,102.60 L355.24,103.27 Z" fill="#3b3b3e" stroke="#1b2330" stroke-width=".06"/>
+<path d="M355.24,116.54 L343.75,109.90 L343.75,96.63 L355.24,103.27 Z" fill="#303032" stroke="#1b2330" stroke-width=".06"/>
+<path d="M405.71,127.76 L405.86,127.68 L337.19,88.03 L337.05,88.12 Z" fill="#575b60" stroke="#1b2330" stroke-width=".06"/>
+<path d="M405.71,150.82 L405.86,150.73 L405.86,127.68 L405.71,127.76 Z" fill="#45484c" stroke="#1b2330" stroke-width=".06"/>
+<path d="M405.71,150.82 L337.05,111.17 L337.05,88.12 L405.71,127.76 Z" fill="#383b3e" stroke="#1b2330" stroke-width=".06"/>
+<path d="M243.34,142.22 L337.19,88.03 L337.05,87.95 L243.20,142.14 Z" fill="#575b60" stroke="#1b2330" stroke-width=".06"/>
+<path d="M243.34,165.27 L337.19,111.09 L337.19,88.03 L243.34,142.22 Z" fill="#45484c" stroke="#1b2330" stroke-width=".06"/>
+<path d="M243.34,165.27 L243.20,165.19 L243.20,142.14 L243.34,142.22 Z" fill="#383b3e" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.15,204.67 L405.71,150.65 L337.05,111.01 L243.49,165.03 Z" fill="#575b60" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.15,204.83 L405.71,150.82 L405.71,150.65 L312.15,204.67 Z" fill="#45484c" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.15,204.83 L243.49,165.19 L243.49,165.03 L312.15,204.67 Z" fill="#383b3e" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.15,204.45 L405.71,150.43 L337.05,110.79 L243.49,164.80 Z" fill="#d1d5d8" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.15,204.67 L405.71,150.65 L405.71,150.43 L312.15,204.45 Z" fill="#a7aaac" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.15,204.67 L243.49,165.03 L243.49,164.80 L312.15,204.45 Z" fill="#878a8c" stroke="#1b2330" stroke-width=".06"/>
+<path d="M372.63,115.68 L378.37,112.36 L372.63,109.04 L366.88,112.36 Z" fill="#407acc" stroke="#1b2330" stroke-width=".06"/>
+<path d="M372.63,125.63 L378.37,122.31 L378.37,112.36 L372.63,115.68 Z" fill="#3361a3" stroke="#1b2330" stroke-width=".06"/>
+<path d="M372.63,125.63 L366.88,122.31 L366.88,112.36 L372.63,115.68 Z" fill="#294f84" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.15,181.78 L406.00,127.59 L337.05,87.79 L243.20,141.97 Z" fill="#575b60" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.15,181.94 L406.00,127.76 L406.00,127.59 L312.15,181.78 Z" fill="#45484c" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.15,181.94 L243.20,142.14 L243.20,141.97 L312.15,181.78 Z" fill="#383b3e" stroke="#1b2330" stroke-width=".06"/>
+<path d="M338.01,141.97 L370.71,123.09 L364.96,119.77 L332.26,138.65 Z" fill="#407acc" stroke="#1b2330" stroke-width=".06"/>
+<path d="M338.01,145.62 L370.71,126.74 L370.71,123.09 L338.01,141.97 Z" fill="#3361a3" stroke="#1b2330" stroke-width=".06"/>
+<path d="M338.01,145.62 L332.26,142.30 L332.26,138.65 L338.01,141.97 Z" fill="#294f84" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.15,181.94 L406.00,127.76 L405.86,127.68 L312.01,181.86 Z" fill="#575b60" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.15,205.00 L406.00,150.82 L406.00,127.76 L312.15,181.94 Z" fill="#45484c" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.15,205.00 L312.01,204.92 L312.01,181.86 L312.15,181.94 Z" fill="#383b3e" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.01,181.86 L312.15,181.78 L243.49,142.14 L243.34,142.22 Z" fill="#575b60" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.01,204.92 L312.15,204.83 L312.15,181.78 L312.01,181.86 Z" fill="#45484c" stroke="#1b2330" stroke-width=".06"/>
+<path d="M312.01,204.92 L243.34,165.27 L243.34,142.22 L312.01,181.86 Z" fill="#383b3e" stroke="#1b2330" stroke-width=".06"/>
+<path d="M281.51,171.27 L283.42,170.17 L271.93,163.53 L270.01,164.64 Z" fill="#4a4a4e" stroke="#1b2330" stroke-width=".06"/>
+<path d="M281.51,184.54 L283.42,183.44 L283.42,170.17 L281.51,171.27 Z" fill="#3b3b3e" stroke="#1b2330" stroke-width=".06"/>
+<path d="M281.51,184.54 L270.01,177.91 L270.01,164.64 L281.51,171.27 Z" fill="#303032" stroke="#1b2330" stroke-width=".06"/>
+<text x="14" y="252" class="nh">NOTES</text>
+<text x="14" y="256.2" class="nt">Beckhoff enclosure under the deck, valve island, FRL</text>
+<text x="14" y="259.9" class="nt">I/O: Q19</text>
+<text x="14" y="263.6" class="nt">Parts: cab x9, pneu x2</text>
+<text x="14" y="267.3" class="nt">Sizes of bought ft parts from datasheets; everything tagged [assumed] in line_model.L - MEASURE.</text>
+<rect x="230" y="249" width="180" height="38" fill="#fff" stroke="#1b2330" stroke-width=".35"/>
+<rect x="230" y="249" width="180" height="9" fill="#1f4e8c"/>
+<text x="233" y="255.3" class="tbh" style="fill:#fff">STF-2 CONTINUOUS COOKIE LINE</text>
+<text x="233" y="264" class="tbh" style="font-size:3.6px">M8_control - Beckhoff enclosure under the deck, valve island, FRL</text>
+<text x="233" y="269" class="tbs">Beckhoff enclosure under the deck, valve island, FRL</text>
+<text x="233" y="275" class="tbs">SCALE</text><text x="233" y="278" class="tb">1:10</text>
+<text x="293" y="275" class="tbs">SHEET</text><text x="293" y="278" class="tb">10 / 12</text>
+<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-09-29</text>
+<text x="233" y="281" class="tbs">UNITS</text><text x="233" y="284" class="tb">mm, deg</text>
+<text x="293" y="281" class="tbs">PROJECTION</text><text x="293" y="284" class="tb">third angle</text>
+<text x="353" y="281" class="tbs">SOURCE</text><text x="353" y="284" class="tb">line_model.py (generated - do not edit)</text>
+</svg>

@@ -1,0 +1,12 @@
+- [Soham's goal for this project](user-goal-portfolio.md) — portfolio proof, not a product; depth over breadth.
+- [The one problem STF solves](stf-single-source-thesis.md) — model drift across CAD, kinematics and I/O.
+- [stf-cad generator pipeline](stf-cad-pipeline.md) — how one parameter table drives FreeCAD, drawings and the browser.
+- [HBW geometry ground truth](stf-hbw-geometry-facts.md) — what the ft manuals do and don't say, and where the old layout is wrong.
+- [VGR module model](stf-vgr-model.md) — R-P-P kinematics, spindle drives, proven swept path (vgr_path.py), viewer offset/NaN traps.
+- [Brennofen module](stf-oven-model.md) — ft 536632 rebuilt to Abb. 9: one flow line, one-stroke Q12, belt feeds the sorting line.
+- [Sortierstrecke module](stf-sorting-model.md) — colour sensor is not RGB, belt is pulse-counted, and where the factory loop closes.
+- [Factory pipeline](stf-pipeline.md) — 12 conserved cookies, the schedule, and provable deadlock freedom.
+- [stf-factory repo](stf-factory-repo.md) — production twin on :5200/:8100; its layout is the old 9-slot machine, CAD tab is slider-driven.
+- [ft components](stf-components.md) — 9 parts (4 datasheet + 5 booklet): tagged table -> FreeCAD/web/AI prompt; what is NOT documented.
+- [Controller board](stf-controller-board.md) — 24V adaptor PCB/PLC I/O from the extended description; reconciliation + 5 doc discrepancies.
+- [Factory layout](stf-factory-layout.md) — photo layout, 2x oven/sorting, PLC cabinet, precise parts + wiring (wiring.py), and the web mirror bug.

@@ -68,3 +68,6 @@ htmlcov/
 tmp/
 temp/
 *.bak
+
+# stf-cad working backups
+*.py.bak
