@@ -252,9 +252,10 @@ def _safety_io(parts, by, ios, add):
                    S["airlock_door"]["I_lock"], pos=c, extra=dict(sf="SF6", port=port)))
             add(IO(f"{t}.DRV", "DO", p.name, p.module, f"{port} airlock {what} door drive valve (force-limited)",
                    "SY3000 coil", H.LOADS["valve_coil"]["I"], pos=c))
-        elif hw == "trapdoor unit":
-            add(IO(f"{t}.CL", "SI", p.name, p.module, "trapdoor closed (position switch)", "trapdoor",
-                   S["trapdoor"]["I"], pos=c, extra=dict(sf="SF6", port="boxes")))
+        elif hw == "trapdoor unit":           # safety sensor: the boxes airlock's inner side is SF6 (PLr c)
+            for ch in "AB":
+                add(IO(f"{t}.CL{ch}", "SI", p.name, p.module, f"trapdoor closed, safety sensor OSSD {ch}", "trapdoor",
+                       S["trapdoor"]["I"] / 2, pos=c, extra=dict(sf="SF6", port="boxes")))
             add(IO(t, "DO", p.name, p.module, "trapdoor valve (spring-return closes on exhaust)", "SY3000 coil",
                    H.LOADS["valve_coil"]["I"], pos=c))
         elif hw == "light_curtain":

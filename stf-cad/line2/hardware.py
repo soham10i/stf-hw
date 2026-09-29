@@ -368,13 +368,16 @@ SAFE = {
                               "closed AND locked)", F_close=50.0, I_lock=0.35, I=0.05,
                          src="[typ] (Festo / SMC rodless drive + Schmersal AZM201 class) - force limit VERIFY"),
     "trapdoor": dict(desc="trapdoor unit: bi-parting drop flaps 2 x 81 mm (PC 4 mm) on spring-return rotary vane "
-                          "actuators 0.5 Nm (spring closes them when exhausted), closed-position switch", T=0.5,
+                          "actuators 0.5 Nm (spring closes them when exhausted), SAFETY inductive sensor (2 OSSD, "
+                          "PL d) for 'closed'", T=0.5,
                      arm=0.081, I=0.01, src="[typ] (Festo DSM-10 class)"),
     "dock": dict(desc="AMR dock sensor, M12 inductive in the docking plate", I=0.02, src="[typ]"),
     "reject_shutter": dict(desc="self-closing shutter unit under the reject hole: stainless blade in a guide "
                                 "frame, spring-closed; a push pin on the drawer's back wall holds it open only "
                                 "when the drawer is fully in (it closes within the first 20 mm of pulling)",
                            t=8.0, src="[design] (sheet-metal part + bought spring)"),
+    "brush": dict(desc="brush strip on the reject-bin rim, PP bristles wiping the deck underside", residual=4.0,
+                  src="[assumed] residual opening of a brush seal - VERIFY on the fitted strip"),
     "lift_guard": dict(desc="sheet-steel guard box 1.5 mm around the under-deck stacker lifts, flanged to the "
                             "deck, cable / hose grommets", src="[design]"),
     "drawer_switch": dict(desc="RFID safety switch, 2 OSSD, on the reject drawer", I=0.05, src="[typ]"),
@@ -384,6 +387,53 @@ SAFE = {
                       "guard-locking switch (bought kit)", depth=24.0, hinges=2, screws=8,
                  src="[typ] (Misumi / item guard door kit class)"),
 }
+# ISO 13849-1 reliability inputs [typ - VERIFY every value on the bought part's data sheet / SISTEMA library]
+#   B10d  cycles until 10 % fail dangerously (electromechanical, pneumatic); MTTFd = B10d / (0.1 n_op)
+#   PL    a certified device's own rating (electronic safety devices, TwinSAFE, STB)
+RELIAB = {
+    "estop": dict(B10d=100_000, src="[typ] E-stop contact blocks"),
+    "contactor": dict(B10d=1_300_000, src="[typ] 3RT20 class at nominal DC-1 load"),
+    "valve": dict(B10d=10_000_000, src="[typ] monitored exhaust / dump valve"),
+    "guard_lock": dict(PL="e", PFHd=1.2e-9, src="[typ] RFID guard-locking switch, certified PL e"),
+    "airlock_door": dict(PL="e", PFHd=1.2e-9, src="[typ] same switch class in the door kit"),
+    "trapdoor": dict(PL="d", PFHd=2.0e-8, src="[typ] safety inductive sensor with OSSD (PL d)"),
+    "drawer_switch": dict(PL="e", PFHd=1.2e-9, src="[typ] RFID safety switch"),
+    "stl": dict(PL="d", src="[typ] STB to EN 14597, SIL 2 / PL d certified"),
+    "twinsafe": dict(PL="e", PFHd=3.7e-9, src="[typ] EL6910 + EL1904 + EL2904, sum of the three PFHd"),
+}
+OP_YEAR = dict(days=220, hours=16.0, src="[assumed] two shifts")
+# ISO 13849-1:2015 simplified method. Figure 5 read CONSERVATIVELY (where the bar straddles two PLs the
+# lower one is taken) - VERIFY against the standard / SISTEMA; Table 11 for series subsystems.
+PL_FIG5 = {   # (category, DC class) -> {MTTFd class: PL}
+    ("B", "none"): {"low": "a", "medium": "b", "high": "b"},
+    ("1", "none"): {"high": "c"},
+    ("2", "low"): {"low": "a", "medium": "b", "high": "c"},
+    ("2", "medium"): {"low": "b", "medium": "c", "high": "c"},
+    ("3", "low"): {"low": "b", "medium": "c", "high": "c"},
+    ("3", "medium"): {"low": "c", "medium": "c", "high": "d"},
+    ("4", "high"): {"high": "e"},
+}
+
+
+def mttfd_class(y):
+    return "high" if y >= 30 else "medium" if y >= 10 else "low" if y >= 3 else "none"
+
+
+def dc_class(dc):
+    return "high" if dc >= 0.99 else "medium" if dc >= 0.90 else "low" if dc >= 0.60 else "none"
+
+
+def pl_series(pls):
+    """ISO 13849-1 Table 11: the lowest PL, one lower if too many subsystems share it."""
+    order = "abcde"
+    if any(p not in order for p in pls):            # a subsystem reaches no PL at all
+        return "-"
+    low = min(pls, key=order.index)
+    n = sum(1 for p in pls if p == low)
+    limit = {"a": 3, "b": 2, "c": 2, "d": 3, "e": 3}[low]
+    return low if n <= limit else (order[order.index(low) - 1] if low != "a" else "-")
+
+
 # ISO 13855:2010 approach speeds, ISO 13857:2019 Table 4 (persons >= 14 years, upper limbs)
 ISO13855 = dict(K_hand=2000.0, K_slow=1600.0, S_min=100.0, src="[ISO 13855] S = K T + 8 (d - 14)")
 ISO13857_T4 = (   # (e_max mm, slot distance, square distance, round distance)
@@ -488,7 +538,8 @@ def verify():
             fails.append(f"T-nut {p['tnut']} does not fit / hold in profile {s}")
         if p["depth"] <= p["lip"] + tn["h"]:
             fails.append(f"profile {s}: channel too shallow for {p['tnut']}")
-    for table in (PROFILE, TNUT, BRACKET, MGN, LEADSCREW, BEARING, STEPPER, GEARBOX, BECKHOFF, FIELD, LOADS, SAFE):
+    for table in (PROFILE, TNUT, BRACKET, MGN, LEADSCREW, BEARING, STEPPER, GEARBOX, BECKHOFF, FIELD, LOADS, SAFE,
+                  RELIAB):
         for k, v in table.items():
             s = v.get("src", "")
             if "typ" in s or "VERIFY" in s:

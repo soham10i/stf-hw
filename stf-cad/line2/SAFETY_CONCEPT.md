@@ -126,14 +126,38 @@ inner door, more than 500 mm from any running hazard (ISO 13857 needs 80 mm).
 
 **Reach audit: 55/55 checks met, no findings.**
 
+## PL estimate (G12, ISO 13849-1 simplified method)
+
+`safety.py` models every function as input -> TwinSAFE logic -> output:
+- **Electromechanical parts:** MTTFd = B10d / (0.1 n_op), with the operations per year taken from the
+  line itself (e.g. the out-zone contactor K5 switches at every cassette exchange). The category and
+  diagnostic coverage (DCavg) follow the architecture. The PL is read from Figure 5, taking the lower
+  PL wherever the bar straddles two.
+- **Certified devices** (RFID switches, TwinSAFE, STB) carry their own PL.
+- **Combination:** Table 11.
+
+Result: SF1 d, SF2 d, SF3 c, SF4 d, SF6 c (both airlocks). Every function meets its PLr (d / d / c / c / c).
+
+This caught one design error: plain position switches on the trapdoors cannot reach PLr c. They are
+now 2-channel safety sensors (PL d). Four planted weaknesses (worn contactors, a plain trapdoor switch,
+a cheap E-stop, a PL c lock) are all caught.
+
+It is an **estimate on typical data**. The real verification is SISTEMA with the ordered parts' B10d /
+PFHd; `VERIFICATION_PLAN.md` lists every value to replace.
+
+## Brush strip (reject bin)
+
+A 3 mm PP brush on the bin rim (split where the shutter crosses the back edge) closes the bin-top
+slot to about 4 mm [assumed]. ISO 13857 then needs 2 mm; the path distance is 110 mm.
+
 ## Open (engineering, not geometry)
 
 1. **Door force.** The airlock doors are force-limited to 50 N [assumed]. This must be verified on the
    bought drive (ISO 14120), or a safety edge must be added.
-2. **Reject shutter coupling.** The push-pin coupling is a design statement; its timing (it must shut
-   before the hole is exposed) needs a prototype check.
-3. **Reject drawer slot margin.** The 110 mm path distance is close to the limit (80 mm). A brush strip
-   around the bin top would give margin.
+2. **Reject shutter coupling.** The push-pin coupling needs a prototype check: it must shut before
+   the hole is exposed.
+3. **Measurements.** Every [assumed] / [typ] value is in `VERIFICATION_PLAN.md`, ranked by how close
+   its proof is to breaking.
 
 ## Still open
 

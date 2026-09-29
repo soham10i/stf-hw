@@ -171,7 +171,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="110.0" class="tbs" text-anchor="start" >Q42</text>
 <text x="118.0" y="110.0" class="tbs" text-anchor="start" >trapdoor_weiss</text>
 <text x="185.0" y="110.0" class="tbs" text-anchor="start" >trapdoor valve (spring-return closes on exhaust)</text>
-<text x="300.0" y="110.0" class="tbs" text-anchor="start" >W134</text>
+<text x="300.0" y="110.0" class="tbs" text-anchor="start" >W135</text>
 <text x="330.0" y="110.0" class="tbs" text-anchor="start" >1.42 m</text>
 <text x="360.0" y="110.0" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="113.6" class="tbs" text-anchor="start" >-KF6</text>
@@ -179,7 +179,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="113.6" class="tbs" text-anchor="start" >Q43</text>
 <text x="118.0" y="113.6" class="tbs" text-anchor="start" >trapdoor_rot</text>
 <text x="185.0" y="113.6" class="tbs" text-anchor="start" >trapdoor valve (spring-return closes on exhaust)</text>
-<text x="300.0" y="113.6" class="tbs" text-anchor="start" >W136</text>
+<text x="300.0" y="113.6" class="tbs" text-anchor="start" >W138</text>
 <text x="330.0" y="113.6" class="tbs" text-anchor="start" >1.42 m</text>
 <text x="360.0" y="113.6" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="117.2" class="tbs" text-anchor="start" >-KF6</text>
@@ -187,7 +187,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="117.2" class="tbs" text-anchor="start" >Q44</text>
 <text x="118.0" y="117.2" class="tbs" text-anchor="start" >trapdoor_blau</text>
 <text x="185.0" y="117.2" class="tbs" text-anchor="start" >trapdoor valve (spring-return closes on exhaust)</text>
-<text x="300.0" y="117.2" class="tbs" text-anchor="start" >W138</text>
+<text x="300.0" y="117.2" class="tbs" text-anchor="start" >W141</text>
 <text x="330.0" y="117.2" class="tbs" text-anchor="start" >1.43 m</text>
 <text x="360.0" y="117.2" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="120.8" class="tbs" text-anchor="start" >-KF6</text>
@@ -195,7 +195,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="120.8" class="tbs" text-anchor="start" >S30.DRV</text>
 <text x="118.0" y="120.8" class="tbs" text-anchor="start" >aldoor_boxes</text>
 <text x="185.0" y="120.8" class="tbs" text-anchor="start" >boxes airlock outer door drive valve (force-limi</text>
-<text x="300.0" y="120.8" class="tbs" text-anchor="start" >W142</text>
+<text x="300.0" y="120.8" class="tbs" text-anchor="start" >W145</text>
 <text x="330.0" y="120.8" class="tbs" text-anchor="start" >1.88 m</text>
 <text x="360.0" y="120.8" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="124.4" class="tbs" text-anchor="start" >-KF6</text>
@@ -203,7 +203,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="124.4" class="tbs" text-anchor="start" >S31.DRV</text>
 <text x="118.0" y="124.4" class="tbs" text-anchor="start" >aldoor_out</text>
 <text x="185.0" y="124.4" class="tbs" text-anchor="start" >out airlock outer door drive valve (force-limite</text>
-<text x="300.0" y="124.4" class="tbs" text-anchor="start" >W150</text>
+<text x="300.0" y="124.4" class="tbs" text-anchor="start" >W153</text>
 <text x="330.0" y="124.4" class="tbs" text-anchor="start" >2.0 m</text>
 <text x="360.0" y="124.4" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="128.0" class="tbs" text-anchor="start" >-KF6</text>
@@ -211,7 +211,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="128.0" class="tbs" text-anchor="start" >S32.DRV</text>
 <text x="118.0" y="128.0" class="tbs" text-anchor="start" >aldoor_inner</text>
 <text x="185.0" y="128.0" class="tbs" text-anchor="start" >out airlock inner door drive valve (force-limite</text>
-<text x="300.0" y="128.0" class="tbs" text-anchor="start" >W146</text>
+<text x="300.0" y="128.0" class="tbs" text-anchor="start" >W149</text>
 <text x="330.0" y="128.0" class="tbs" text-anchor="start" >1.61 m</text>
 <text x="360.0" y="128.0" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="131.6" class="tbs" text-anchor="start" >-KF6</text>

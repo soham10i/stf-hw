@@ -84,35 +84,35 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="84.4" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="88.6" class="tbs" text-anchor="start" >-KF46</text>
 <text x="48.0" y="88.6" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="88.6" class="tbs" text-anchor="start" >Q42.CL</text>
+<text x="70.0" y="88.6" class="tbs" text-anchor="start" >Q42.CLA</text>
 <text x="118.0" y="88.6" class="tbs" text-anchor="start" >trapdoor_weiss</text>
-<text x="185.0" y="88.6" class="tbs" text-anchor="start" >trapdoor closed (position switch)</text>
+<text x="185.0" y="88.6" class="tbs" text-anchor="start" >trapdoor closed, safety sensor OSSD A</text>
 <text x="300.0" y="88.6" class="tbs" text-anchor="start" >W133</text>
 <text x="330.0" y="88.6" class="tbs" text-anchor="start" >1.42 m</text>
 <text x="360.0" y="88.6" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="92.2" class="tbs" text-anchor="start" >-KF46</text>
 <text x="48.0" y="92.2" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="92.2" class="tbs" text-anchor="start" >Q43.CL</text>
-<text x="118.0" y="92.2" class="tbs" text-anchor="start" >trapdoor_rot</text>
-<text x="185.0" y="92.2" class="tbs" text-anchor="start" >trapdoor closed (position switch)</text>
-<text x="300.0" y="92.2" class="tbs" text-anchor="start" >W135</text>
+<text x="70.0" y="92.2" class="tbs" text-anchor="start" >Q42.CLB</text>
+<text x="118.0" y="92.2" class="tbs" text-anchor="start" >trapdoor_weiss</text>
+<text x="185.0" y="92.2" class="tbs" text-anchor="start" >trapdoor closed, safety sensor OSSD B</text>
+<text x="300.0" y="92.2" class="tbs" text-anchor="start" >W134</text>
 <text x="330.0" y="92.2" class="tbs" text-anchor="start" >1.42 m</text>
 <text x="360.0" y="92.2" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="95.8" class="tbs" text-anchor="start" >-KF46</text>
 <text x="48.0" y="95.8" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="95.8" class="tbs" text-anchor="start" >Q44.CL</text>
-<text x="118.0" y="95.8" class="tbs" text-anchor="start" >trapdoor_blau</text>
-<text x="185.0" y="95.8" class="tbs" text-anchor="start" >trapdoor closed (position switch)</text>
-<text x="300.0" y="95.8" class="tbs" text-anchor="start" >W137</text>
-<text x="330.0" y="95.8" class="tbs" text-anchor="start" >1.43 m</text>
+<text x="70.0" y="95.8" class="tbs" text-anchor="start" >Q43.CLA</text>
+<text x="118.0" y="95.8" class="tbs" text-anchor="start" >trapdoor_rot</text>
+<text x="185.0" y="95.8" class="tbs" text-anchor="start" >trapdoor closed, safety sensor OSSD A</text>
+<text x="300.0" y="95.8" class="tbs" text-anchor="start" >W136</text>
+<text x="330.0" y="95.8" class="tbs" text-anchor="start" >1.42 m</text>
 <text x="360.0" y="95.8" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="99.4" class="tbs" text-anchor="start" >-KF46</text>
 <text x="48.0" y="99.4" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="99.4" class="tbs" text-anchor="start" >S10.A</text>
-<text x="118.0" y="99.4" class="tbs" text-anchor="start" >estop_S10_head</text>
-<text x="185.0" y="99.4" class="tbs" text-anchor="start" >E-stop NC contact A (SF1, 2-channel)</text>
-<text x="300.0" y="99.4" class="tbs" text-anchor="start" >W151</text>
-<text x="330.0" y="99.4" class="tbs" text-anchor="start" >2.05 m</text>
+<text x="70.0" y="99.4" class="tbs" text-anchor="start" >Q43.CLB</text>
+<text x="118.0" y="99.4" class="tbs" text-anchor="start" >trapdoor_rot</text>
+<text x="185.0" y="99.4" class="tbs" text-anchor="start" >trapdoor closed, safety sensor OSSD B</text>
+<text x="300.0" y="99.4" class="tbs" text-anchor="start" >W137</text>
+<text x="330.0" y="99.4" class="tbs" text-anchor="start" >1.42 m</text>
 <text x="360.0" y="99.4" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <rect x="18.0" y="102.0" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="106.0" class="tb" text-anchor="start" >-KF47  EL1904  4 fail-safe DI 24 V (TwinSAFE, clocked test outputs)</text>
@@ -126,35 +126,35 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="111.5" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="115.7" class="tbs" text-anchor="start" >-KF47</text>
 <text x="48.0" y="115.7" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="115.7" class="tbs" text-anchor="start" >S10.B</text>
-<text x="118.0" y="115.7" class="tbs" text-anchor="start" >estop_S10_head</text>
-<text x="185.0" y="115.7" class="tbs" text-anchor="start" >E-stop NC contact B (SF1, 2-channel)</text>
-<text x="300.0" y="115.7" class="tbs" text-anchor="start" >W152</text>
-<text x="330.0" y="115.7" class="tbs" text-anchor="start" >2.05 m</text>
+<text x="70.0" y="115.7" class="tbs" text-anchor="start" >Q44.CLA</text>
+<text x="118.0" y="115.7" class="tbs" text-anchor="start" >trapdoor_blau</text>
+<text x="185.0" y="115.7" class="tbs" text-anchor="start" >trapdoor closed, safety sensor OSSD A</text>
+<text x="300.0" y="115.7" class="tbs" text-anchor="start" >W139</text>
+<text x="330.0" y="115.7" class="tbs" text-anchor="start" >1.43 m</text>
 <text x="360.0" y="115.7" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="119.3" class="tbs" text-anchor="start" >-KF47</text>
 <text x="48.0" y="119.3" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="119.3" class="tbs" text-anchor="start" >S11.A</text>
-<text x="118.0" y="119.3" class="tbs" text-anchor="start" >estop_S11_head</text>
-<text x="185.0" y="119.3" class="tbs" text-anchor="start" >E-stop NC contact A (SF1, 2-channel)</text>
-<text x="300.0" y="119.3" class="tbs" text-anchor="start" >W153</text>
-<text x="330.0" y="119.3" class="tbs" text-anchor="start" >1.71 m</text>
+<text x="70.0" y="119.3" class="tbs" text-anchor="start" >Q44.CLB</text>
+<text x="118.0" y="119.3" class="tbs" text-anchor="start" >trapdoor_blau</text>
+<text x="185.0" y="119.3" class="tbs" text-anchor="start" >trapdoor closed, safety sensor OSSD B</text>
+<text x="300.0" y="119.3" class="tbs" text-anchor="start" >W140</text>
+<text x="330.0" y="119.3" class="tbs" text-anchor="start" >1.43 m</text>
 <text x="360.0" y="119.3" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="122.9" class="tbs" text-anchor="start" >-KF47</text>
 <text x="48.0" y="122.9" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="122.9" class="tbs" text-anchor="start" >S11.B</text>
-<text x="118.0" y="122.9" class="tbs" text-anchor="start" >estop_S11_head</text>
-<text x="185.0" y="122.9" class="tbs" text-anchor="start" >E-stop NC contact B (SF1, 2-channel)</text>
+<text x="70.0" y="122.9" class="tbs" text-anchor="start" >S10.A</text>
+<text x="118.0" y="122.9" class="tbs" text-anchor="start" >estop_S10_head</text>
+<text x="185.0" y="122.9" class="tbs" text-anchor="start" >E-stop NC contact A (SF1, 2-channel)</text>
 <text x="300.0" y="122.9" class="tbs" text-anchor="start" >W154</text>
-<text x="330.0" y="122.9" class="tbs" text-anchor="start" >1.71 m</text>
+<text x="330.0" y="122.9" class="tbs" text-anchor="start" >2.05 m</text>
 <text x="360.0" y="122.9" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="126.5" class="tbs" text-anchor="start" >-KF47</text>
 <text x="48.0" y="126.5" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="126.5" class="tbs" text-anchor="start" >S12.A</text>
-<text x="118.0" y="126.5" class="tbs" text-anchor="start" >estop_S12_head</text>
-<text x="185.0" y="126.5" class="tbs" text-anchor="start" >E-stop NC contact A (SF1, 2-channel)</text>
+<text x="70.0" y="126.5" class="tbs" text-anchor="start" >S10.B</text>
+<text x="118.0" y="126.5" class="tbs" text-anchor="start" >estop_S10_head</text>
+<text x="185.0" y="126.5" class="tbs" text-anchor="start" >E-stop NC contact B (SF1, 2-channel)</text>
 <text x="300.0" y="126.5" class="tbs" text-anchor="start" >W155</text>
-<text x="330.0" y="126.5" class="tbs" text-anchor="start" >2.47 m</text>
+<text x="330.0" y="126.5" class="tbs" text-anchor="start" >2.05 m</text>
 <text x="360.0" y="126.5" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <rect x="18.0" y="129.1" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="133.1" class="tb" text-anchor="start" >-KF48  EL1904  4 fail-safe DI 24 V (TwinSAFE, clocked test outputs)</text>
@@ -168,35 +168,35 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="138.6" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="142.8" class="tbs" text-anchor="start" >-KF48</text>
 <text x="48.0" y="142.8" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="142.8" class="tbs" text-anchor="start" >S12.B</text>
-<text x="118.0" y="142.8" class="tbs" text-anchor="start" >estop_S12_head</text>
-<text x="185.0" y="142.8" class="tbs" text-anchor="start" >E-stop NC contact B (SF1, 2-channel)</text>
+<text x="70.0" y="142.8" class="tbs" text-anchor="start" >S11.A</text>
+<text x="118.0" y="142.8" class="tbs" text-anchor="start" >estop_S11_head</text>
+<text x="185.0" y="142.8" class="tbs" text-anchor="start" >E-stop NC contact A (SF1, 2-channel)</text>
 <text x="300.0" y="142.8" class="tbs" text-anchor="start" >W156</text>
-<text x="330.0" y="142.8" class="tbs" text-anchor="start" >2.47 m</text>
+<text x="330.0" y="142.8" class="tbs" text-anchor="start" >1.71 m</text>
 <text x="360.0" y="142.8" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="146.4" class="tbs" text-anchor="start" >-KF48</text>
 <text x="48.0" y="146.4" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="146.4" class="tbs" text-anchor="start" >S13</text>
-<text x="118.0" y="146.4" class="tbs" text-anchor="start" >reset_S13_head</text>
-<text x="185.0" y="146.4" class="tbs" text-anchor="start" >reset pushbutton (manual reset on the falling ed</text>
+<text x="70.0" y="146.4" class="tbs" text-anchor="start" >S11.B</text>
+<text x="118.0" y="146.4" class="tbs" text-anchor="start" >estop_S11_head</text>
+<text x="185.0" y="146.4" class="tbs" text-anchor="start" >E-stop NC contact B (SF1, 2-channel)</text>
 <text x="300.0" y="146.4" class="tbs" text-anchor="start" >W157</text>
-<text x="330.0" y="146.4" class="tbs" text-anchor="start" >2.09 m</text>
+<text x="330.0" y="146.4" class="tbs" text-anchor="start" >1.71 m</text>
 <text x="360.0" y="146.4" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="150.0" class="tbs" text-anchor="start" >-KF48</text>
 <text x="48.0" y="150.0" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="150.0" class="tbs" text-anchor="start" >S20.A</text>
-<text x="118.0" y="150.0" class="tbs" text-anchor="start" >lock_S20</text>
-<text x="185.0" y="150.0" class="tbs" text-anchor="start" >door closed AND locked, OSSD A (SF2)</text>
-<text x="300.0" y="150.0" class="tbs" text-anchor="start" >W124</text>
-<text x="330.0" y="150.0" class="tbs" text-anchor="start" >1.95 m</text>
+<text x="70.0" y="150.0" class="tbs" text-anchor="start" >S12.A</text>
+<text x="118.0" y="150.0" class="tbs" text-anchor="start" >estop_S12_head</text>
+<text x="185.0" y="150.0" class="tbs" text-anchor="start" >E-stop NC contact A (SF1, 2-channel)</text>
+<text x="300.0" y="150.0" class="tbs" text-anchor="start" >W158</text>
+<text x="330.0" y="150.0" class="tbs" text-anchor="start" >2.47 m</text>
 <text x="360.0" y="150.0" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="153.6" class="tbs" text-anchor="start" >-KF48</text>
 <text x="48.0" y="153.6" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="153.6" class="tbs" text-anchor="start" >S20.B</text>
-<text x="118.0" y="153.6" class="tbs" text-anchor="start" >lock_S20</text>
-<text x="185.0" y="153.6" class="tbs" text-anchor="start" >door closed AND locked, OSSD B (SF2)</text>
-<text x="300.0" y="153.6" class="tbs" text-anchor="start" >W125</text>
-<text x="330.0" y="153.6" class="tbs" text-anchor="start" >1.95 m</text>
+<text x="70.0" y="153.6" class="tbs" text-anchor="start" >S12.B</text>
+<text x="118.0" y="153.6" class="tbs" text-anchor="start" >estop_S12_head</text>
+<text x="185.0" y="153.6" class="tbs" text-anchor="start" >E-stop NC contact B (SF1, 2-channel)</text>
+<text x="300.0" y="153.6" class="tbs" text-anchor="start" >W159</text>
+<text x="330.0" y="153.6" class="tbs" text-anchor="start" >2.47 m</text>
 <text x="360.0" y="153.6" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <rect x="18.0" y="156.2" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="160.2" class="tb" text-anchor="start" >-KF49  EL1904  4 fail-safe DI 24 V (TwinSAFE, clocked test outputs)</text>
@@ -210,35 +210,35 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="165.7" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="169.9" class="tbs" text-anchor="start" >-KF49</text>
 <text x="48.0" y="169.9" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="169.9" class="tbs" text-anchor="start" >S21.A</text>
-<text x="118.0" y="169.9" class="tbs" text-anchor="start" >lock_S21</text>
-<text x="185.0" y="169.9" class="tbs" text-anchor="start" >door closed AND locked, OSSD A (SF2)</text>
-<text x="300.0" y="169.9" class="tbs" text-anchor="start" >W127</text>
-<text x="330.0" y="169.9" class="tbs" text-anchor="start" >1.67 m</text>
+<text x="70.0" y="169.9" class="tbs" text-anchor="start" >S13</text>
+<text x="118.0" y="169.9" class="tbs" text-anchor="start" >reset_S13_head</text>
+<text x="185.0" y="169.9" class="tbs" text-anchor="start" >reset pushbutton (manual reset on the falling ed</text>
+<text x="300.0" y="169.9" class="tbs" text-anchor="start" >W160</text>
+<text x="330.0" y="169.9" class="tbs" text-anchor="start" >2.09 m</text>
 <text x="360.0" y="169.9" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="173.5" class="tbs" text-anchor="start" >-KF49</text>
 <text x="48.0" y="173.5" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="173.5" class="tbs" text-anchor="start" >S21.B</text>
-<text x="118.0" y="173.5" class="tbs" text-anchor="start" >lock_S21</text>
-<text x="185.0" y="173.5" class="tbs" text-anchor="start" >door closed AND locked, OSSD B (SF2)</text>
-<text x="300.0" y="173.5" class="tbs" text-anchor="start" >W128</text>
-<text x="330.0" y="173.5" class="tbs" text-anchor="start" >1.67 m</text>
+<text x="70.0" y="173.5" class="tbs" text-anchor="start" >S20.A</text>
+<text x="118.0" y="173.5" class="tbs" text-anchor="start" >lock_S20</text>
+<text x="185.0" y="173.5" class="tbs" text-anchor="start" >door closed AND locked, OSSD A (SF2)</text>
+<text x="300.0" y="173.5" class="tbs" text-anchor="start" >W124</text>
+<text x="330.0" y="173.5" class="tbs" text-anchor="start" >1.95 m</text>
 <text x="360.0" y="173.5" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="177.1" class="tbs" text-anchor="start" >-KF49</text>
 <text x="48.0" y="177.1" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="177.1" class="tbs" text-anchor="start" >S22.A</text>
-<text x="118.0" y="177.1" class="tbs" text-anchor="start" >lock_S22</text>
-<text x="185.0" y="177.1" class="tbs" text-anchor="start" >door closed AND locked, OSSD A (SF2)</text>
-<text x="300.0" y="177.1" class="tbs" text-anchor="start" >W130</text>
-<text x="330.0" y="177.1" class="tbs" text-anchor="start" >2.24 m</text>
+<text x="70.0" y="177.1" class="tbs" text-anchor="start" >S20.B</text>
+<text x="118.0" y="177.1" class="tbs" text-anchor="start" >lock_S20</text>
+<text x="185.0" y="177.1" class="tbs" text-anchor="start" >door closed AND locked, OSSD B (SF2)</text>
+<text x="300.0" y="177.1" class="tbs" text-anchor="start" >W125</text>
+<text x="330.0" y="177.1" class="tbs" text-anchor="start" >1.95 m</text>
 <text x="360.0" y="177.1" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="180.7" class="tbs" text-anchor="start" >-KF49</text>
 <text x="48.0" y="180.7" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="180.7" class="tbs" text-anchor="start" >S22.B</text>
-<text x="118.0" y="180.7" class="tbs" text-anchor="start" >lock_S22</text>
-<text x="185.0" y="180.7" class="tbs" text-anchor="start" >door closed AND locked, OSSD B (SF2)</text>
-<text x="300.0" y="180.7" class="tbs" text-anchor="start" >W131</text>
-<text x="330.0" y="180.7" class="tbs" text-anchor="start" >2.24 m</text>
+<text x="70.0" y="180.7" class="tbs" text-anchor="start" >S21.A</text>
+<text x="118.0" y="180.7" class="tbs" text-anchor="start" >lock_S21</text>
+<text x="185.0" y="180.7" class="tbs" text-anchor="start" >door closed AND locked, OSSD A (SF2)</text>
+<text x="300.0" y="180.7" class="tbs" text-anchor="start" >W127</text>
+<text x="330.0" y="180.7" class="tbs" text-anchor="start" >1.67 m</text>
 <text x="360.0" y="180.7" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <rect x="18.0" y="183.3" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="187.3" class="tb" text-anchor="start" >-KF50  EL1904  4 fail-safe DI 24 V (TwinSAFE, clocked test outputs)</text>
@@ -252,35 +252,35 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="192.8" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="197.0" class="tbs" text-anchor="start" >-KF50</text>
 <text x="48.0" y="197.0" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="197.0" class="tbs" text-anchor="start" >S30.A</text>
-<text x="118.0" y="197.0" class="tbs" text-anchor="start" >aldoor_boxes</text>
-<text x="185.0" y="197.0" class="tbs" text-anchor="start" >boxes airlock outer door closed AND locked, OSSD</text>
-<text x="300.0" y="197.0" class="tbs" text-anchor="start" >W139</text>
-<text x="330.0" y="197.0" class="tbs" text-anchor="start" >1.88 m</text>
+<text x="70.0" y="197.0" class="tbs" text-anchor="start" >S21.B</text>
+<text x="118.0" y="197.0" class="tbs" text-anchor="start" >lock_S21</text>
+<text x="185.0" y="197.0" class="tbs" text-anchor="start" >door closed AND locked, OSSD B (SF2)</text>
+<text x="300.0" y="197.0" class="tbs" text-anchor="start" >W128</text>
+<text x="330.0" y="197.0" class="tbs" text-anchor="start" >1.67 m</text>
 <text x="360.0" y="197.0" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="200.6" class="tbs" text-anchor="start" >-KF50</text>
 <text x="48.0" y="200.6" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="200.6" class="tbs" text-anchor="start" >S30.B</text>
-<text x="118.0" y="200.6" class="tbs" text-anchor="start" >aldoor_boxes</text>
-<text x="185.0" y="200.6" class="tbs" text-anchor="start" >boxes airlock outer door closed AND locked, OSSD</text>
-<text x="300.0" y="200.6" class="tbs" text-anchor="start" >W140</text>
-<text x="330.0" y="200.6" class="tbs" text-anchor="start" >1.88 m</text>
+<text x="70.0" y="200.6" class="tbs" text-anchor="start" >S22.A</text>
+<text x="118.0" y="200.6" class="tbs" text-anchor="start" >lock_S22</text>
+<text x="185.0" y="200.6" class="tbs" text-anchor="start" >door closed AND locked, OSSD A (SF2)</text>
+<text x="300.0" y="200.6" class="tbs" text-anchor="start" >W130</text>
+<text x="330.0" y="200.6" class="tbs" text-anchor="start" >2.24 m</text>
 <text x="360.0" y="200.6" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="204.2" class="tbs" text-anchor="start" >-KF50</text>
 <text x="48.0" y="204.2" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="204.2" class="tbs" text-anchor="start" >S31.A</text>
-<text x="118.0" y="204.2" class="tbs" text-anchor="start" >aldoor_out</text>
-<text x="185.0" y="204.2" class="tbs" text-anchor="start" >out airlock outer door closed AND locked, OSSD A</text>
-<text x="300.0" y="204.2" class="tbs" text-anchor="start" >W147</text>
-<text x="330.0" y="204.2" class="tbs" text-anchor="start" >2.0 m</text>
+<text x="70.0" y="204.2" class="tbs" text-anchor="start" >S22.B</text>
+<text x="118.0" y="204.2" class="tbs" text-anchor="start" >lock_S22</text>
+<text x="185.0" y="204.2" class="tbs" text-anchor="start" >door closed AND locked, OSSD B (SF2)</text>
+<text x="300.0" y="204.2" class="tbs" text-anchor="start" >W131</text>
+<text x="330.0" y="204.2" class="tbs" text-anchor="start" >2.24 m</text>
 <text x="360.0" y="204.2" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="207.8" class="tbs" text-anchor="start" >-KF50</text>
 <text x="48.0" y="207.8" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="207.8" class="tbs" text-anchor="start" >S31.B</text>
-<text x="118.0" y="207.8" class="tbs" text-anchor="start" >aldoor_out</text>
-<text x="185.0" y="207.8" class="tbs" text-anchor="start" >out airlock outer door closed AND locked, OSSD B</text>
-<text x="300.0" y="207.8" class="tbs" text-anchor="start" >W148</text>
-<text x="330.0" y="207.8" class="tbs" text-anchor="start" >2.0 m</text>
+<text x="70.0" y="207.8" class="tbs" text-anchor="start" >S30.A</text>
+<text x="118.0" y="207.8" class="tbs" text-anchor="start" >aldoor_boxes</text>
+<text x="185.0" y="207.8" class="tbs" text-anchor="start" >boxes airlock outer door closed AND locked, OSSD</text>
+<text x="300.0" y="207.8" class="tbs" text-anchor="start" >W142</text>
+<text x="330.0" y="207.8" class="tbs" text-anchor="start" >1.88 m</text>
 <text x="360.0" y="207.8" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <rect x="230" y="249" width="180" height="38" fill="#fff" stroke="#1b2330" stroke-width=".35"/>
 <rect x="230" y="249" width="180" height="9" fill="#1f4e8c"/>

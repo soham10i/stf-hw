@@ -1256,6 +1256,15 @@ def _qc(A):
     hollow(A, "reject_bin", "qc", "reject", bx, by, zt - bh - gap, bw_, bd, bh, 3.0, "#474b52", hw="PP bin",
            note=f"open drawer bin UNDER the table, ~{reject_cap()} cookies; pulled from the front edge "
                 f"on two slides; level sensor -> AMR at {L['REQ_REJECT']:.0%}")
+    if L.get("SAFE1"):              # brush strip on the rim closes the bin-top slot (split where the shutter is)
+        hx0, hy0, ho = reject_hole()
+        zb, t = zt - gap, 3.0
+        segs = [("front", (bx, by), (bx + bw_, by + t)), ("left", (bx, by + t), (bx + t, by + bd - t)),
+                ("right", (bx + bw_ - t, by + t), (bx + bw_, by + bd - t)),
+                ("back_l", (bx, by + bd - t), (hx0 - 10, by + bd)), ("back_r", (hx0 + ho + 10, by + bd - t), (bx + bw_, by + bd))]
+        for nm, (a0, b0), (a1, b1) in segs:
+            A(Part(f"reject_bin_brush_{nm}", "qc", "reject", "box", (a0, b0, zb), (a1 - a0, b1 - b0, gap), "#2b2b2f",
+                   hw="brush strip 3 mm (PP bristles)", note="rides with the drawer, wipes the deck underside"))
     for k, sx in enumerate((bx - 14, bx + bw_)):          # 14 wide: an M4 into the deck needs 2 x 6.75 edge room
         A(Part(f"reject_slide_{k}", "qc", "reject", "box", (sx, 0.0, zt - 35), (14.0, by + bd, 35.0), "#b9bec4",
                hw="telescopic slide 35 x 12", note="drawer slide under the deck"))

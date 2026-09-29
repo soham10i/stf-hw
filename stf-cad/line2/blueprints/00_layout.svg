@@ -37,6 +37,11 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <rect x="75.00" y="130.30" width="0.30" height="143.40" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
 <rect x="270.70" y="130.30" width="0.30" height="143.40" fill="#a6a8aa" stroke="#1b2330" stroke-width="0.18"/>
 <rect x="280.00" y="175.80" width="14.00" height="28.00" fill="#d1d5d9" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="276.00" y="237.40" width="48.00" height="0.60" fill="#9f9fa1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="276.00" y="190.60" width="0.60" height="46.80" fill="#9f9fa1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="323.40" y="190.60" width="0.60" height="46.80" fill="#9f9fa1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="276.00" y="190.00" width="4.00" height="0.60" fill="#9f9fa1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="294.00" y="190.00" width="30.00" height="0.60" fill="#9f9fa1" stroke="#1b2330" stroke-width="0.18"/>
 <rect x="273.20" y="190.00" width="2.80" height="144.00" fill="#dfe1e4" stroke="#1b2330" stroke-width="0.18"/>
 <rect x="324.00" y="190.00" width="2.80" height="144.00" fill="#dfe1e4" stroke="#1b2330" stroke-width="0.18"/>
 <rect x="308.90" y="153.90" width="4.20" height="4.20" fill="#edf7fb" stroke="#1b2330" stroke-width="0.18"/>

@@ -333,7 +333,10 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <rect x="264.5" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
 <rect x="266.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
 <rect x="268.0" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
-<text x="355.7" y="187.9" class="tbs" text-anchor="start" >row 3: 718 / 947 mm, 24% spare</text>
+<rect x="269.7" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="271.4" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<rect x="273.2" y="183.9" width="1.7" height="25.0" fill="#e6e6e6" stroke="#1b2330" stroke-width="0.15"/>
+<text x="355.7" y="187.9" class="tbs" text-anchor="start" >row 3: 733 / 947 mm, 23% spare</text>
 <rect x="30.0" y="221.2" width="316.7" height="11.7" fill="#ffffff" stroke="#9aa3ab" stroke-width="0.2"/>
 <rect x="30.5" y="222.2" width="15.0" height="30.0" fill="#f7b0a8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="38.0" y="224.2" class="tbs" transform="rotate(90 38.0 224.2)">-QK1 contactor</text>

@@ -33,7 +33,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="39.7" class="tbs" text-anchor="start" >K3</text>
 <text x="118.0" y="39.7" class="tbs" text-anchor="start" ></text>
 <text x="185.0" y="39.7" class="tbs" text-anchor="start" >contactor coil: heater feed, channel 1 (AC SSRs </text>
-<text x="300.0" y="39.7" class="tbs" text-anchor="start" >W166</text>
+<text x="300.0" y="39.7" class="tbs" text-anchor="start" >W169</text>
 <text x="330.0" y="39.7" class="tbs" text-anchor="start" >0.8 m</text>
 <text x="360.0" y="39.7" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="43.3" class="tbs" text-anchor="start" >-KF58</text>
@@ -41,7 +41,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="43.3" class="tbs" text-anchor="start" >K4</text>
 <text x="118.0" y="43.3" class="tbs" text-anchor="start" ></text>
 <text x="185.0" y="43.3" class="tbs" text-anchor="start" >contactor coil: heater feed, channel 2 (in serie</text>
-<text x="300.0" y="43.3" class="tbs" text-anchor="start" >W167</text>
+<text x="300.0" y="43.3" class="tbs" text-anchor="start" >W170</text>
 <text x="330.0" y="43.3" class="tbs" text-anchor="start" >0.8 m</text>
 <text x="360.0" y="43.3" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="46.9" class="tbs" text-anchor="start" >-KF58</text>
@@ -49,7 +49,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="46.9" class="tbs" text-anchor="start" >K5</text>
 <text x="118.0" y="46.9" class="tbs" text-anchor="start" ></text>
 <text x="185.0" y="46.9" class="tbs" text-anchor="start" >contactor coil: 48 V branch of the out-port zone</text>
-<text x="300.0" y="46.9" class="tbs" text-anchor="start" >W168</text>
+<text x="300.0" y="46.9" class="tbs" text-anchor="start" >W171</text>
 <text x="330.0" y="46.9" class="tbs" text-anchor="start" >0.8 m</text>
 <text x="360.0" y="46.9" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="50.5" class="tbs" text-anchor="start" >-KF58</text>
@@ -75,7 +75,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="66.8" class="tbs" text-anchor="start" >Y1</text>
 <text x="118.0" y="66.8" class="tbs" text-anchor="start" >valve_island</text>
 <text x="185.0" y="66.8" class="tbs" text-anchor="start" >safe exhaust of the boxes-port pressure zone (SF</text>
-<text x="300.0" y="66.8" class="tbs" text-anchor="start" >W172</text>
+<text x="300.0" y="66.8" class="tbs" text-anchor="start" >W175</text>
 <text x="330.0" y="66.8" class="tbs" text-anchor="start" >0.83 m</text>
 <text x="360.0" y="66.8" class="tbs" text-anchor="start" >safe output / 0V</text>
 <text x="20.0" y="70.4" class="tbs" text-anchor="start" >-KF59</text>

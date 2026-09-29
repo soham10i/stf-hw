@@ -45,12 +45,12 @@ out airlock,lane belts (in-running nips),"chamber gap e = 2 at (1530, 1104, 0, 1
 out airlock,sealers D25 (crush + hot),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",271,2,ISO 13857 slot e = 2,True
 out airlock,stacker lifts D16,"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",89,2,ISO 13857 slot e = 2,True
 out airlock,oven IR bars (hot),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",832,2,ISO 13857 slot e = 2,True
-reject drawer (in),chain loop (drawing-in at bends / drive),"bin-top slot e = 10, path via hole + funnel",110,80,ISO 13857 slot e = 10,True
-reject drawer (in),delta A,"bin-top slot e = 10, path via hole + funnel",369,80,ISO 13857 slot e = 10,True
-reject drawer (in),flying stamp (screw axis + D16),"bin-top slot e = 10, path via hole + funnel",405,80,ISO 13857 slot e = 10,True
-reject drawer (in),stamp die (hot),"bin-top slot e = 10, path via hole + funnel",405,80,ISO 13857 slot e = 10,True
-reject drawer (in),lane belts (in-running nips),"bin-top slot e = 10, path via hole + funnel",242,80,ISO 13857 slot e = 10,True
-reject drawer (in),sealers D25 (crush + hot),"bin-top slot e = 10, path via hole + funnel",251,80,ISO 13857 slot e = 10,True
-reject drawer (in),stacker lifts D16,"bin-top slot e = 10, path via hole + funnel",255,80,ISO 13857 slot e = 10,True
-reject drawer (in),shuttles + cassettes,"bin-top slot e = 10, path via hole + funnel",242,80,ISO 13857 slot e = 10,True
-reject drawer (in),oven IR bars (hot),"bin-top slot e = 10, path via hole + funnel",414,80,ISO 13857 slot e = 10,True
+reject drawer (in),chain loop (drawing-in at bends / drive),"bin-top slot e = 4 (brush), path via hole + funnel",110,2,ISO 13857 slot e = 4,True
+reject drawer (in),delta A,"bin-top slot e = 4 (brush), path via hole + funnel",369,2,ISO 13857 slot e = 4,True
+reject drawer (in),flying stamp (screw axis + D16),"bin-top slot e = 4 (brush), path via hole + funnel",405,2,ISO 13857 slot e = 4,True
+reject drawer (in),stamp die (hot),"bin-top slot e = 4 (brush), path via hole + funnel",405,2,ISO 13857 slot e = 4,True
+reject drawer (in),lane belts (in-running nips),"bin-top slot e = 4 (brush), path via hole + funnel",242,2,ISO 13857 slot e = 4,True
+reject drawer (in),sealers D25 (crush + hot),"bin-top slot e = 4 (brush), path via hole + funnel",251,2,ISO 13857 slot e = 4,True
+reject drawer (in),stacker lifts D16,"bin-top slot e = 4 (brush), path via hole + funnel",255,2,ISO 13857 slot e = 4,True
+reject drawer (in),shuttles + cassettes,"bin-top slot e = 4 (brush), path via hole + funnel",242,2,ISO 13857 slot e = 4,True
+reject drawer (in),oven IR bars (hot),"bin-top slot e = 4 (brush), path via hole + funnel",414,2,ISO 13857 slot e = 4,True

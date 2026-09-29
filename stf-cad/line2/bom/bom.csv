@@ -217,7 +217,7 @@ electric,Beckhoff EL9410,E-bus power refresh 2 A + 24 V feed,3,pcs,[cat: beckhof
 electric,MCB,PSUs C6,1,pcs,[typ]
 electric,MCB,heaters C10,1,pcs,[typ]
 electric,MCB,main 2-pole C16,1,pcs,[typ]
-electric,PTTB 2.5,Phoenix PTTB 2.5 double-level push-in (+24 V / 0 V),138,pcs,[typ]
+electric,PTTB 2.5,Phoenix PTTB 2.5 double-level push-in (+24 V / 0 V),141,pcs,[typ]
 electric,SDR-480-24,SDR-480-24,2,pcs,[cat: meanwell]
 electric,SDR-480P-48,SDR-480P-48,1,pcs,[cat: meanwell]
 electric,SSR AC,Q10,1,pcs,[typ]
@@ -245,7 +245,7 @@ safety,duplex thermocouple,"duplex type K thermocouple: element 1 -> PID (EL3314
 safety,zone exhaust valve,"safe exhaust valve for a pneumatic pressure zone on the island, monitored (cat. 2 with position switch)",1,pcs,[typ] (SMC VP-X / Festo VOFA class)
 cable,M12-3,3 x 0.34 mm2,118.8,m,[typ] +10 %
 cable,M12-4,4 x 0.34 mm2,5.0,m,[typ] +10 %
-cable,M12-5,5 x 0.34 mm2,36.8,m,[typ] +10 %
+cable,M12-5,5 x 0.34 mm2,41.4,m,[typ] +10 %
 cable,M12-8,8 x 0.25 mm2,19.3,m,[typ] +10 %
 cable,enc-8,8 x 0.14 mm2,0.9,m,[typ] +10 %
 cable,gige,8 x 0.14 mm2,4.1,m,[typ] +10 %

@@ -22,6 +22,7 @@ Engineering evidence, not a certificate. PLr values and every [assumed] time / f
 | G9 airlocks | 2 chambers, largest boundary gap e = 10 mm | <= 12 mm, doors locked + interlocked | pass | outer door opens only with the inner side shut (trapdoors / inner door) and the zone at standstill |
 | G10 under-deck guard | 3 moving parts under the deck | all inside the lift guard | pass | sheet box flanged to the deck; the rods leave it only through the deck |
 | G11 reject drawer | hole 50 sq inside the bin, shutter + S34 | closed when not fully in | pass | spring shutter held open by the drawer's push pin; S34 monitors the drawer |
+| G12 PL estimate (ISO 13849-1) | 7/7 functions | PL_est >= PLr | pass | simplified method, typical data, Figure 5 read conservatively |
 
 ## Hazards
 
@@ -43,6 +44,18 @@ Engineering evidence, not a certificate. PLr values and every [assumed] time / f
 | oven IR bars (hot) | 3 | heat | high | - | - |
 | airlock doors (power-operated, force-limited) | 3 | motion | 50 N (low energy) | 0.1 | - |
 | trapdoor flaps | 3 | motion | 6 N (low energy) | 0.1 | boxes |
+
+## PL estimate (ISO 13849-1 simplified method, typical data - verify in SISTEMA)
+
+| function | PLr | PL est. | subsystems |
+|---|---|---|---|
+| SF1 E-stop | d | d | E-stop, 2 NC, clocked inputs: PL d (cat 3, DC 90% (medium), MTTFd 100 y (high), n_op 220/y) | TwinSAFE logic + safe I/O: PL e (certified device ([typ] EL6910 + EL1904 + EL2904, sum of the three PFHd)) | K1 + K2 (EDM): PL d (cat 3, DC 99% (high), MTTFd 100 y (high), n_op 2860/y) |
+| SF1 heaters | d | d | E-stop, 2 NC, clocked inputs: PL d (cat 3, DC 90% (medium), MTTFd 100 y (high), n_op 220/y) | TwinSAFE logic + safe I/O: PL e (certified device ([typ] EL6910 + EL1904 + EL2904, sum of the three PFHd)) | K3 + K4 (EDM): PL d (cat 3, DC 99% (high), MTTFd 100 y (high), n_op 660/y) |
+| SF2 guard locking | d | d | guard-locking switch: PL e (certified device ([typ] RFID guard-locking switch, certified PL e)) | TwinSAFE logic + safe I/O: PL e (certified device ([typ] EL6910 + EL1904 + EL2904, sum of the three PFHd)) | K1 + K2 (EDM): PL d (cat 3, DC 99% (high), MTTFd 100 y (high), n_op 2860/y) |
+| SF3 safe exhaust | c | c | TwinSAFE logic + safe I/O: PL e (certified device ([typ] EL6910 + EL1904 + EL2904, sum of the three PFHd)) | Q19 dump valve + position switch: PL c (cat 2, DC 90% (medium), MTTFd 100 y (high), n_op 2860/y) |
+| SF4 over-temperature | c | d | STL per zone: PL d (certified device ([typ] STB to EN 14597, SIL 2 / PL d certified)) |
+| SF6 out airlock | c | c | S31 / S32 door switches: PL e (certified device ([typ] same switch class in the door kit)) | TwinSAFE logic + safe I/O: PL e (certified device ([typ] EL6910 + EL1904 + EL2904, sum of the three PFHd)) | K5 + EDM: PL c (cat 2, DC 99% (high), MTTFd 100 y (high), n_op 39111/y) |
+| SF6 boxes airlock | c | c | S30 door switch: PL e (certified device ([typ] same switch class in the door kit)) | trapdoor safety sensors: PL d (certified device ([typ] safety inductive sensor with OSSD (PL d))) | TwinSAFE logic + safe I/O: PL e (certified device ([typ] EL6910 + EL1904 + EL2904, sum of the three PFHd)) | Y1 zone valve + position switch: PL c (cat 2, DC 90% (medium), MTTFd 100 y (high), n_op 35200/y) |
 
 ## Findings (0) - open, block operation
 
@@ -97,15 +110,15 @@ Engineering evidence, not a certificate. PLr values and every [assumed] time / f
 | out airlock | sealers D25 (crush + hot) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 271 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | stacker lifts D16 | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 89 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | oven IR bars (hot) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 832 | 2 | ISO 13857 slot e = 2 | yes |
-| reject drawer (in) | chain loop (drawing-in at bends / drive) | bin-top slot e = 10, path via hole + funnel | 110 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | delta A | bin-top slot e = 10, path via hole + funnel | 369 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | flying stamp (screw axis + D16) | bin-top slot e = 10, path via hole + funnel | 405 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | stamp die (hot) | bin-top slot e = 10, path via hole + funnel | 405 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | lane belts (in-running nips) | bin-top slot e = 10, path via hole + funnel | 242 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | sealers D25 (crush + hot) | bin-top slot e = 10, path via hole + funnel | 251 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | stacker lifts D16 | bin-top slot e = 10, path via hole + funnel | 255 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | shuttles + cassettes | bin-top slot e = 10, path via hole + funnel | 242 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | oven IR bars (hot) | bin-top slot e = 10, path via hole + funnel | 414 | 80 | ISO 13857 slot e = 10 | yes |
+| reject drawer (in) | chain loop (drawing-in at bends / drive) | bin-top slot e = 4 (brush), path via hole + funnel | 110 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | delta A | bin-top slot e = 4 (brush), path via hole + funnel | 369 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | flying stamp (screw axis + D16) | bin-top slot e = 4 (brush), path via hole + funnel | 405 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | stamp die (hot) | bin-top slot e = 4 (brush), path via hole + funnel | 405 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | lane belts (in-running nips) | bin-top slot e = 4 (brush), path via hole + funnel | 242 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | sealers D25 (crush + hot) | bin-top slot e = 4 (brush), path via hole + funnel | 251 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | stacker lifts D16 | bin-top slot e = 4 (brush), path via hole + funnel | 255 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | shuttles + cassettes | bin-top slot e = 4 (brush), path via hole + funnel | 242 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | oven IR bars (hot) | bin-top slot e = 4 (brush), path via hole + funnel | 414 | 2 | ISO 13857 slot e = 4 | yes |
 
 ## Safety functions (TwinSAFE configuration input)
 
@@ -116,4 +129,4 @@ Engineering evidence, not a certificate. PLr values and every [assumed] time / f
 | SF3 | safe exhaust | SF1 / SF2 demand | Q19 dump valve de-energised | 0 | c | Q19.FB |
 | SF4 | over-temperature | STL per zone (own duplex element) | STL relay contact opens the zone's load; trip reported on <zone>.STL | 0 (hardwired, not TwinSAFE) | c | manual STL reset |
 | SF5 | chain drawing-in | (covered by the perimeter guard: no motion with a door open) | - | - | c | no jog / enabling device in S-1 |
-| SF6 | AMR airlocks | S30.A/B (boxes outer door), S31.A/B (out outer), S32.A/B (out inner), Q42..Q44.CL trapdoors closed, S34.A/B drawer | boxes: S30 unlocks only with every trapdoor closed and Y1 exhausted; trapdoors open only with S30 locked. out: S31 unlocks only with S32 locked and K5 (shuttles) off; S32 unlocks only with S31 locked. A door opened / unlocked out of sequence -> SF1 response without heaters | 0 / zone STO | c | EDM K5.EDM, Y1.FB, lock OSSDs |
+| SF6 | AMR airlocks | S30.A/B (boxes outer door), S31.A/B (out outer), S32.A/B (out inner), Q42..Q44.CLA/B trapdoors closed (safety sensors), S34.A/B drawer | boxes: S30 unlocks only with every trapdoor closed and Y1 exhausted; trapdoors open only with S30 locked. out: S31 unlocks only with S32 locked and K5 (shuttles) off; S32 unlocks only with S31 locked. A door opened / unlocked out of sequence -> SF1 response without heaters | 0 / zone STO | c | EDM K5.EDM, Y1.FB, lock OSSDs |

@@ -90,6 +90,8 @@ def body_of(p):
         return "stacker_" + n[len("stacker_frame_"):]            # bought transfer conveyor: belt + frame
     if n.startswith("cassette_") and ("_pawl_" in n or "_lug_" in n):
         return n.rsplit("_", 2)[0]
+    if n.startswith("reject_bin_brush"):
+        return "reject_bin"                                       # bristle strips bonded into the bin rim
     if n.startswith("abox_floor"):
         return "abox_floor"                                       # one machined plate with 3 cutouts
     if n.startswith("br_") and n.endswith(("_leg1", "_leg2")):
@@ -226,6 +228,8 @@ INCIDENTAL = (
     (lambda u, v: "_curtain_" in u.name and "_wall_" in v.name, "curtain edge beside the wall"),
     (lambda u, v: u.name.startswith("collar_") and v.name.startswith("collar_"), "neighbouring collars touch"),
     (lambda u, v: u.name.startswith("stacker_rod") and v.name == "TABLE", "push rod in its deck hole"),
+    (lambda u, v: u.name.startswith("reject_bin_brush") and (v.name == "TABLE" or v.group in ("sensor", "reject")),
+     "brush strip wipes the deck underside / passes beside it"),
     (lambda u, v: u.name.startswith("lc_") and v.name == "TABLE",
      "light-curtain bar stands on the deck, held by its brackets on the post"),
     (lambda u, v: u.name.startswith("guard_panel") and (v.group == "hopper"),

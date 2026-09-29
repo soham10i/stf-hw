@@ -105,7 +105,7 @@ W103,Q27,M_shuttle_weiss,M7_pack,STEP,stepper 17HS19-2004D-E1000,-KF34 ch1,motor
 W104,Q28,M_shuttle_rot,M7_pack,STEP,stepper 17HS19-2004D-E1000,-KF35 ch1,motor-4,A1 A2 B1 B2,0.5,2.18,True
 W105,Q29,M_shuttle_blau,M7_pack,STEP,stepper 17HS19-2004D-E1000,-KF36 ch1,motor-4,A1 A2 B1 B2,0.5,2.21,True
 W106,Q19,frl,M8_control,SO,soft-start / dump valve: safe exhaust of all air (SF3),-KF58 ch4,M12-3,safe output / 0V,0.34,0.86,True
-W107,Q19.FB,frl,M8_control,SI,dump valve position switch (exhausted),-KF52 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.86,True
+W107,Q19.FB,frl,M8_control,SI,dump valve position switch (exhausted),-KF53 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.86,True
 W108,I9,I9_drop_check,M2_feeder,DITS,landing check after the last tube: did the cookie land in th,-KF42 ch1,M12-3,BN +24V / BU 0V / BK signal,0.34,0.9,True
 W109,IR1,IR1_pyrometer,M3_tunnel,AI,product temperature 0..10 V,-KF9 ch1,M12-4,BN +24V / BU 0V / BK signal,0.34,0.97,True
 W110,CAM4,CAM4_pack,M6_pick,ETH,GigE camera -> edge PC,edge PC switch,gige,Cat6,0.14,1.42,True
@@ -122,60 +122,63 @@ W120,B22,delta_A_motor_225,M6_pick,DI,delta_A_motor_225 arm index,-KF2 ch15,M12-
 W121,B23,delta_B_motor_165,M6_pick,DI,delta_B_motor_165 arm index,-KF2 ch16,M12-3,BN +24V / BU 0V / BK signal,0.34,1.32,False
 W122,B24,delta_B_motor_285,M6_pick,DI,delta_B_motor_285 arm index,-KF3 ch1,M12-3,BN +24V / BU 0V / BK signal,0.34,1.32,False
 W123,B25,delta_B_motor_405,M6_pick,DI,delta_B_motor_405 arm index,-KF3 ch2,M12-3,BN +24V / BU 0V / BK signal,0.34,1.32,False
-W124,S20.A,lock_S20,M10_safety,SI,"door closed AND locked, OSSD A (SF2)",-KF48 ch3,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.95,True
-W125,S20.B,lock_S20,M10_safety,SI,"door closed AND locked, OSSD B (SF2)",-KF48 ch4,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.95,True
+W124,S20.A,lock_S20,M10_safety,SI,"door closed AND locked, OSSD A (SF2)",-KF49 ch2,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.95,True
+W125,S20.B,lock_S20,M10_safety,SI,"door closed AND locked, OSSD B (SF2)",-KF49 ch3,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.95,True
 W126,S20.UNL,lock_S20,M10_safety,SO,"unlock solenoid (power-to-unlock, only at standstill)",-KF56 ch1,M12-8,safe output / 0V,0.25,1.95,True
-W127,S21.A,lock_S21,M10_safety,SI,"door closed AND locked, OSSD A (SF2)",-KF49 ch1,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.67,True
-W128,S21.B,lock_S21,M10_safety,SI,"door closed AND locked, OSSD B (SF2)",-KF49 ch2,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.67,True
+W127,S21.A,lock_S21,M10_safety,SI,"door closed AND locked, OSSD A (SF2)",-KF49 ch4,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.67,True
+W128,S21.B,lock_S21,M10_safety,SI,"door closed AND locked, OSSD B (SF2)",-KF50 ch1,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.67,True
 W129,S21.UNL,lock_S21,M10_safety,SO,"unlock solenoid (power-to-unlock, only at standstill)",-KF56 ch2,M12-8,safe output / 0V,0.25,1.67,True
-W130,S22.A,lock_S22,M10_safety,SI,"door closed AND locked, OSSD A (SF2)",-KF49 ch3,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,2.24,True
-W131,S22.B,lock_S22,M10_safety,SI,"door closed AND locked, OSSD B (SF2)",-KF49 ch4,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,2.24,True
+W130,S22.A,lock_S22,M10_safety,SI,"door closed AND locked, OSSD A (SF2)",-KF50 ch2,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,2.24,True
+W131,S22.B,lock_S22,M10_safety,SI,"door closed AND locked, OSSD B (SF2)",-KF50 ch3,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,2.24,True
 W132,S22.UNL,lock_S22,M10_safety,SO,"unlock solenoid (power-to-unlock, only at standstill)",-KF56 ch3,M12-8,safe output / 0V,0.25,2.24,True
-W133,Q42.CL,trapdoor_weiss,M10_safety,SI,trapdoor closed (position switch),-KF46 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
-W134,Q42,trapdoor_weiss,M10_safety,DO,trapdoor valve (spring-return closes on exhaust),-KF6 ch1,M12-3,BK signal / BU 0V,0.34,1.42,True
-W135,Q43.CL,trapdoor_rot,M10_safety,SI,trapdoor closed (position switch),-KF46 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
-W136,Q43,trapdoor_rot,M10_safety,DO,trapdoor valve (spring-return closes on exhaust),-KF6 ch2,M12-3,BK signal / BU 0V,0.34,1.42,True
-W137,Q44.CL,trapdoor_blau,M10_safety,SI,trapdoor closed (position switch),-KF46 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.43,True
-W138,Q44,trapdoor_blau,M10_safety,DO,trapdoor valve (spring-return closes on exhaust),-KF6 ch3,M12-3,BK signal / BU 0V,0.34,1.43,True
-W139,S30.A,aldoor_boxes,M10_safety,SI,"boxes airlock outer door closed AND locked, OSSD A",-KF50 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.88,True
-W140,S30.B,aldoor_boxes,M10_safety,SI,"boxes airlock outer door closed AND locked, OSSD B",-KF50 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.88,True
-W141,S30.UNL,aldoor_boxes,M10_safety,SO,boxes airlock outer door lock release (interlocked),-KF56 ch4,M12-3,safe output / 0V,0.34,1.88,True
-W142,S30.DRV,aldoor_boxes,M10_safety,DO,boxes airlock outer door drive valve (force-limited),-KF6 ch4,M12-3,BK signal / BU 0V,0.34,1.88,True
-W143,S32.A,aldoor_inner,M10_safety,SI,"out airlock inner door closed AND locked, OSSD A",-KF51 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.61,True
-W144,S32.B,aldoor_inner,M10_safety,SI,"out airlock inner door closed AND locked, OSSD B",-KF51 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.61,True
-W145,S32.UNL,aldoor_inner,M10_safety,SO,out airlock inner door lock release (interlocked),-KF57 ch2,M12-3,safe output / 0V,0.34,1.61,True
-W146,S32.DRV,aldoor_inner,M10_safety,DO,out airlock inner door drive valve (force-limited),-KF6 ch6,M12-3,BK signal / BU 0V,0.34,1.61,True
-W147,S31.A,aldoor_out,M10_safety,SI,"out airlock outer door closed AND locked, OSSD A",-KF50 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.0,True
-W148,S31.B,aldoor_out,M10_safety,SI,"out airlock outer door closed AND locked, OSSD B",-KF50 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.0,True
-W149,S31.UNL,aldoor_out,M10_safety,SO,out airlock outer door lock release (interlocked),-KF57 ch1,M12-3,safe output / 0V,0.34,2.0,True
-W150,S31.DRV,aldoor_out,M10_safety,DO,out airlock outer door drive valve (force-limited),-KF6 ch5,M12-3,BK signal / BU 0V,0.34,2.0,True
-W151,S10.A,estop_S10_head,M10_safety,SI,"E-stop NC contact A (SF1, 2-channel)",-KF46 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.05,True
-W152,S10.B,estop_S10_head,M10_safety,SI,"E-stop NC contact B (SF1, 2-channel)",-KF47 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.05,True
-W153,S11.A,estop_S11_head,M10_safety,SI,"E-stop NC contact A (SF1, 2-channel)",-KF47 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.71,True
-W154,S11.B,estop_S11_head,M10_safety,SI,"E-stop NC contact B (SF1, 2-channel)",-KF47 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.71,True
-W155,S12.A,estop_S12_head,M10_safety,SI,"E-stop NC contact A (SF1, 2-channel)",-KF47 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.47,True
-W156,S12.B,estop_S12_head,M10_safety,SI,"E-stop NC contact B (SF1, 2-channel)",-KF48 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.47,True
-W157,S13,reset_S13_head,M10_safety,SI,reset pushbutton (manual reset on the falling edge),-KF48 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.09,True
-W158,BOXES.DOCK1,port_boxes,M9_ports,DI,AMR docked at boxes (1),-KF4 ch8,M12-3,BN +24V / BU 0V / BK signal,0.34,1.07,False
-W159,BOXES.DOCK2,port_boxes,M9_ports,DI,AMR docked at boxes (2),-KF4 ch9,M12-3,BN +24V / BU 0V / BK signal,0.34,1.07,False
-W160,OUT.DOCK1,port_out,M9_ports,DI,AMR docked at out (1),-KF4 ch10,M12-3,BN +24V / BU 0V / BK signal,0.34,1.47,False
-W161,OUT.DOCK2,port_out,M9_ports,DI,AMR docked at out (2),-KF4 ch11,M12-3,BN +24V / BU 0V / BK signal,0.34,1.47,False
-W162,S34.A,reject_bin_wall_front,M5_qc,SI,"reject drawer in place, OSSD A",-KF51 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.96,False
-W163,S34.B,reject_bin_wall_front,M5_qc,SI,"reject drawer in place, OSSD B",-KF51 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.96,False
-W164,K1,,M8_control,SO,"contactor coil: 48 V motor supply, channel 1 (all EL7047)",-KF57 ch3,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W165,K2,,M8_control,SO,"contactor coil: 48 V motor supply, channel 2 (in series with K1)",-KF57 ch4,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W166,K3,,M8_control,SO,"contactor coil: heater feed, channel 1 (AC SSRs + 24 V heater PSU)",-KF58 ch1,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W167,K4,,M8_control,SO,"contactor coil: heater feed, channel 2 (in series with K3)",-KF58 ch2,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W168,K5,,M8_control,SO,"contactor coil: 48 V branch of the out-port zone (Q27, Q28, Q29)",-KF58 ch3,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W169,K1K2.EDM,,M8_control,SI,EDM: K1 + K2 mirror contacts in series (welded contact detection),-KF52 ch1,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W170,K3K4.EDM,,M8_control,SI,EDM: K3 + K4 mirror contacts (welded contact detection),-KF52 ch2,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W171,K5.EDM,,M8_control,SI,EDM: K5 mirror contact (welded contact detection),-KF52 ch3,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W172,Y1,valve_island,M8_control,SO,safe exhaust of the boxes-port pressure zone (SF6),-KF59 ch1,M12-3,safe output / 0V,0.34,0.83,True
-W173,Y1.FB,valve_island,M8_control,SI,boxes zone valve position switch (exhausted),-KF53 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.83,True
-W174,Q8.STL,oven_heater_0,M3_tunnel,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF2 ch5,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W175,Q9.STL,oven_heater_1,M3_tunnel,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF2 ch6,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W176,Q10.STL,oven_heater_2,M3_tunnel,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF2 ch4,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W177,Q36.STL,sealer_weiss_head,M7_pack,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF4 ch5,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W178,Q37.STL,sealer_rot_head,M7_pack,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF4 ch6,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W179,Q38.STL,sealer_blau_head,M7_pack,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF4 ch7,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W180,Q15.STL,stamp_die,M4_stamp,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF2 ch8,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W133,Q42.CLA,trapdoor_weiss,M10_safety,SI,"trapdoor closed, safety sensor OSSD A",-KF46 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
+W134,Q42.CLB,trapdoor_weiss,M10_safety,SI,"trapdoor closed, safety sensor OSSD B",-KF46 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
+W135,Q42,trapdoor_weiss,M10_safety,DO,trapdoor valve (spring-return closes on exhaust),-KF6 ch1,M12-3,BK signal / BU 0V,0.34,1.42,True
+W136,Q43.CLA,trapdoor_rot,M10_safety,SI,"trapdoor closed, safety sensor OSSD A",-KF46 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
+W137,Q43.CLB,trapdoor_rot,M10_safety,SI,"trapdoor closed, safety sensor OSSD B",-KF46 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
+W138,Q43,trapdoor_rot,M10_safety,DO,trapdoor valve (spring-return closes on exhaust),-KF6 ch2,M12-3,BK signal / BU 0V,0.34,1.42,True
+W139,Q44.CLA,trapdoor_blau,M10_safety,SI,"trapdoor closed, safety sensor OSSD A",-KF47 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.43,True
+W140,Q44.CLB,trapdoor_blau,M10_safety,SI,"trapdoor closed, safety sensor OSSD B",-KF47 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.43,True
+W141,Q44,trapdoor_blau,M10_safety,DO,trapdoor valve (spring-return closes on exhaust),-KF6 ch3,M12-3,BK signal / BU 0V,0.34,1.43,True
+W142,S30.A,aldoor_boxes,M10_safety,SI,"boxes airlock outer door closed AND locked, OSSD A",-KF50 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.88,True
+W143,S30.B,aldoor_boxes,M10_safety,SI,"boxes airlock outer door closed AND locked, OSSD B",-KF51 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.88,True
+W144,S30.UNL,aldoor_boxes,M10_safety,SO,boxes airlock outer door lock release (interlocked),-KF56 ch4,M12-3,safe output / 0V,0.34,1.88,True
+W145,S30.DRV,aldoor_boxes,M10_safety,DO,boxes airlock outer door drive valve (force-limited),-KF6 ch4,M12-3,BK signal / BU 0V,0.34,1.88,True
+W146,S32.A,aldoor_inner,M10_safety,SI,"out airlock inner door closed AND locked, OSSD A",-KF51 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.61,True
+W147,S32.B,aldoor_inner,M10_safety,SI,"out airlock inner door closed AND locked, OSSD B",-KF52 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.61,True
+W148,S32.UNL,aldoor_inner,M10_safety,SO,out airlock inner door lock release (interlocked),-KF57 ch2,M12-3,safe output / 0V,0.34,1.61,True
+W149,S32.DRV,aldoor_inner,M10_safety,DO,out airlock inner door drive valve (force-limited),-KF6 ch6,M12-3,BK signal / BU 0V,0.34,1.61,True
+W150,S31.A,aldoor_out,M10_safety,SI,"out airlock outer door closed AND locked, OSSD A",-KF51 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.0,True
+W151,S31.B,aldoor_out,M10_safety,SI,"out airlock outer door closed AND locked, OSSD B",-KF51 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.0,True
+W152,S31.UNL,aldoor_out,M10_safety,SO,out airlock outer door lock release (interlocked),-KF57 ch1,M12-3,safe output / 0V,0.34,2.0,True
+W153,S31.DRV,aldoor_out,M10_safety,DO,out airlock outer door drive valve (force-limited),-KF6 ch5,M12-3,BK signal / BU 0V,0.34,2.0,True
+W154,S10.A,estop_S10_head,M10_safety,SI,"E-stop NC contact A (SF1, 2-channel)",-KF47 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.05,True
+W155,S10.B,estop_S10_head,M10_safety,SI,"E-stop NC contact B (SF1, 2-channel)",-KF47 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.05,True
+W156,S11.A,estop_S11_head,M10_safety,SI,"E-stop NC contact A (SF1, 2-channel)",-KF48 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.71,True
+W157,S11.B,estop_S11_head,M10_safety,SI,"E-stop NC contact B (SF1, 2-channel)",-KF48 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.71,True
+W158,S12.A,estop_S12_head,M10_safety,SI,"E-stop NC contact A (SF1, 2-channel)",-KF48 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.47,True
+W159,S12.B,estop_S12_head,M10_safety,SI,"E-stop NC contact B (SF1, 2-channel)",-KF48 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.47,True
+W160,S13,reset_S13_head,M10_safety,SI,reset pushbutton (manual reset on the falling edge),-KF49 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.09,True
+W161,BOXES.DOCK1,port_boxes,M9_ports,DI,AMR docked at boxes (1),-KF4 ch8,M12-3,BN +24V / BU 0V / BK signal,0.34,1.07,False
+W162,BOXES.DOCK2,port_boxes,M9_ports,DI,AMR docked at boxes (2),-KF4 ch9,M12-3,BN +24V / BU 0V / BK signal,0.34,1.07,False
+W163,OUT.DOCK1,port_out,M9_ports,DI,AMR docked at out (1),-KF4 ch10,M12-3,BN +24V / BU 0V / BK signal,0.34,1.47,False
+W164,OUT.DOCK2,port_out,M9_ports,DI,AMR docked at out (2),-KF4 ch11,M12-3,BN +24V / BU 0V / BK signal,0.34,1.47,False
+W165,S34.A,reject_bin_wall_front,M5_qc,SI,"reject drawer in place, OSSD A",-KF52 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.96,False
+W166,S34.B,reject_bin_wall_front,M5_qc,SI,"reject drawer in place, OSSD B",-KF52 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.96,False
+W167,K1,,M8_control,SO,"contactor coil: 48 V motor supply, channel 1 (all EL7047)",-KF57 ch3,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W168,K2,,M8_control,SO,"contactor coil: 48 V motor supply, channel 2 (in series with K1)",-KF57 ch4,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W169,K3,,M8_control,SO,"contactor coil: heater feed, channel 1 (AC SSRs + 24 V heater PSU)",-KF58 ch1,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W170,K4,,M8_control,SO,"contactor coil: heater feed, channel 2 (in series with K3)",-KF58 ch2,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W171,K5,,M8_control,SO,"contactor coil: 48 V branch of the out-port zone (Q27, Q28, Q29)",-KF58 ch3,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W172,K1K2.EDM,,M8_control,SI,EDM: K1 + K2 mirror contacts in series (welded contact detection),-KF52 ch4,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W173,K3K4.EDM,,M8_control,SI,EDM: K3 + K4 mirror contacts (welded contact detection),-KF53 ch1,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W174,K5.EDM,,M8_control,SI,EDM: K5 mirror contact (welded contact detection),-KF53 ch2,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W175,Y1,valve_island,M8_control,SO,safe exhaust of the boxes-port pressure zone (SF6),-KF59 ch1,M12-3,safe output / 0V,0.34,0.83,True
+W176,Y1.FB,valve_island,M8_control,SI,boxes zone valve position switch (exhausted),-KF53 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.83,True
+W177,Q8.STL,oven_heater_0,M3_tunnel,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF2 ch5,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W178,Q9.STL,oven_heater_1,M3_tunnel,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF2 ch6,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W179,Q10.STL,oven_heater_2,M3_tunnel,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF2 ch4,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W180,Q36.STL,sealer_weiss_head,M7_pack,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF4 ch5,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W181,Q37.STL,sealer_rot_head,M7_pack,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF4 ch6,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W182,Q38.STL,sealer_blau_head,M7_pack,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF4 ch7,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W183,Q15.STL,stamp_die,M4_stamp,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF2 ch8,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True

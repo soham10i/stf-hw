@@ -413,7 +413,7 @@ def g9_airlocks(parts, hz, ios):
                 fails.append(f"G9 {port}: door {t_} or its lock / unlock I/O missing")
         if port == "boxes":
             tds = [p for p in parts if p.group == "trapdoor"]
-            if len(tds) != len(L["LANE_Y"]) or not all(f"{p.tag}.CL" in tags for p in tds):
+            if len(tds) != len(L["LANE_Y"]) or not all({f"{p.tag}.CLA", f"{p.tag}.CLB"} <= tags for p in tds):
                 fails.append("G9 boxes: a trapdoor or its closed switch is missing")
         for h in hz:
             if h["low"] or h["zone"] == port:
@@ -566,7 +566,8 @@ def audit(parts, hz):
         # drawer in: the hole opens into the bin; the only way in is the slot between the bin top and the deck
         bx, by_, bw_, bd, _ = L["REJECT_BIN"]
         zt = -L["TABLE"][2]
-        e = L["REJECT_GAP"]
+        brushed = "reject_bin_brush_front" in by
+        e = H.SAFE["brush"]["residual"] if brushed else L["REJECT_GAP"]     # under the shutter: 2 mm
         need = H.iso13857_distance(e, "slot")
         # the deck is solid: from the slot at the bin's top edge the only path is across the bin to the
         # hole, through the deck, up the (closed sheet) funnel and out of its top
@@ -583,7 +584,7 @@ def audit(parts, hz):
                 continue
             ok = d >= need
             rows.append(dict(opening="reject drawer (in)", hazard=h["name"],
-                             state=f"bin-top slot e = {e:g}, path via hole + funnel",
+                             state=f"bin-top slot e = {e:g}{' (brush)' if brushed else ''}, path via hole + funnel",
                              d_mm=round(d), need_mm=round(need), rule=f"ISO 13857 slot e = {e:g}", ok=ok))
             if not ok:
                 finds.append(f"reject drawer: the {e:g} mm slot over the bin is {d:.0f} mm from {h['name']}, "
@@ -654,12 +655,68 @@ SF = (   # the safety functions as configured in TwinSAFE (SAFETY_CONCEPT.md)
     ("SF5", "chain drawing-in", "(covered by the perimeter guard: no motion with a door open)", "-", "-", "c",
      "no jog / enabling device in S-1"),
     ("SF6", "AMR airlocks", "S30.A/B (boxes outer door), S31.A/B (out outer), S32.A/B (out inner), "
-     "Q42..Q44.CL trapdoors closed, S34.A/B drawer",
+     "Q42..Q44.CLA/B trapdoors closed (safety sensors), S34.A/B drawer",
      "boxes: S30 unlocks only with every trapdoor closed and Y1 exhausted; trapdoors open only with S30 locked. "
      "out: S31 unlocks only with S32 locked and K5 (shuttles) off; S32 unlocks only with S31 locked. "
      "A door opened / unlocked out of sequence -> SF1 response without heaters", "0 / zone STO", "c",
      "EDM K5.EDM, Y1.FB, lock OSSDs"),
 )
+
+
+# ------------------------------------------------------------------ PL estimate (ISO 13849-1 simplified)
+PLR = dict(SF1="d", SF2="d", SF3="c", SF4="c", SF6="c")
+
+
+def pl_estimate():
+    """Every safety function as input -> TwinSAFE logic -> output subsystems. Electromechanical
+    subsystems: MTTFd from B10d and the operations per year, category + DCavg by the architecture,
+    PL read (conservatively) from Figure 5; certified devices carry their own PL; Table 11 combines.
+    An ESTIMATE on typical data - the real verification is SISTEMA with the bought parts' values."""
+    R, Y = H.RELIAB, H.OP_YEAR
+    days, hrs = Y["days"], Y["hours"]
+    rf = M.rate_flavour()
+    a_cas = M.cass_cap() * L["PACK"] / rf
+    a_box = L["BOXMAG_CAP"] * L["PACK"] / rf
+    n = dict(estop=1 * days, stop=13 * days, heat=3 * days,
+             out=3 * 3600 / a_cas * hrs * days,
+             boxes=3 * 3600 / ((1 - L["REQ_BOXMAG"]) * a_box) * hrs * days)
+
+    def em(name, parts_, cat, dc, nop):
+        """Electromechanical subsystem: parts_ = catalogue keys in ONE channel."""
+        mt = 1 / sum(1 / (R[k]["B10d"] / (0.1 * nop)) for k in parts_)
+        mt = min(mt, 100.0)                                   # ISO 13849-1:2015 cap for categories 2 and 3
+        dcl = H.dc_class(dc)
+        key = (cat, dcl if (cat, dcl) in H.PL_FIG5 else "medium")
+        pl = H.PL_FIG5.get(key, {}).get(H.mttfd_class(mt), "-")
+        return dict(sub=name, how=f"cat {cat}, DC {dc:.0%} ({dcl}), MTTFd {mt:.0f} y ({H.mttfd_class(mt)}), "
+                                  f"n_op {nop:.0f}/y", pl=pl)
+
+    def cert(name, key):
+        return dict(sub=name, how=f"certified device ({R[key]['src']})", pl=R[key]["PL"])
+
+    logic = cert("TwinSAFE logic + safe I/O", "twinsafe")
+    k12 = em("K1 + K2 (EDM)", ["contactor"], "3", 0.99, n["stop"])
+    sfs = {
+        "SF1 E-stop": ("SF1", [em("E-stop, 2 NC, clocked inputs", ["estop"], "3", 0.90, n["estop"]), logic, k12]),
+        "SF1 heaters": ("SF1", [em("E-stop, 2 NC, clocked inputs", ["estop"], "3", 0.90, n["estop"]), logic,
+                                em("K3 + K4 (EDM)", ["contactor"], "3", 0.99, n["heat"])]),
+        "SF2 guard locking": ("SF2", [cert("guard-locking switch", "guard_lock"), logic, k12]),
+        "SF3 safe exhaust": ("SF3", [logic, em("Q19 dump valve + position switch", ["valve"], "2", 0.90, n["stop"])]),
+        "SF4 over-temperature": ("SF4", [cert("STL per zone", "stl")]),
+        "SF6 out airlock": ("SF6", [cert("S31 / S32 door switches", "airlock_door"), logic,
+                                    em("K5 + EDM", ["contactor"], "2", 0.99, n["out"])]),
+        "SF6 boxes airlock": ("SF6", [cert("S30 door switch", "airlock_door"), cert("trapdoor safety sensors", "trapdoor"),
+                                      logic, em("Y1 zone valve + position switch", ["valve"], "2", 0.90, n["boxes"])]),
+    }
+    rows, fails = [], []
+    for name, (sf, subs) in sfs.items():
+        pl = H.pl_series([x["pl"] for x in subs])
+        ok = pl != "-" and "abcde".index(pl) >= "abcde".index(PLR[sf])
+        rows.append(dict(function=name, PLr=PLR[sf], PL_est=pl, ok=ok,
+                         subsystems=" | ".join(f"{x['sub']}: PL {x['pl']} ({x['how']})" for x in subs)))
+        if not ok:
+            fails.append(f"PL {name}: estimated PL {pl} < PLr {PLR[sf]}")
+    return rows, fails
 
 
 def check(verbose=True, write=False):
@@ -676,6 +733,10 @@ def check(verbose=True, write=False):
         rows += r
         fails += f
     arows, finds = audit(parts, hz)
+    plrows, plf = pl_estimate()
+    fails += plf
+    rows.append(("G12 PL estimate (ISO 13849-1)", f"{sum(r['ok'] for r in plrows)}/{len(plrows)} functions",
+                 "PL_est >= PLr", not plf, "simplified method, typical data, Figure 5 read conservatively"))
     if verbose:
         print(f"safety S-1: {len(hz)} hazards, {sum(len(h['parts']) for h in hz)} hazardous parts, "
               f"{sum(1 for h in hz if h['low'])} low-energy (<= {H.F_LOW:g} N [assumed])")
@@ -698,13 +759,17 @@ def check(verbose=True, write=False):
             w = csv.DictWriter(fh, fieldnames=list(arows[0].keys()))
             w.writeheader()
             w.writerows(arows)
+        with open(os.path.join(OUT, "pl_estimate.csv"), "w", newline="") as fh:
+            w = csv.DictWriter(fh, fieldnames=list(plrows[0].keys()))
+            w.writeheader()
+            w.writerows(plrows)
         with open(os.path.join(OUT, "report.md"), "w") as fh:
-            fh.write(report(rows, arows, finds, hz))
+            fh.write(report(rows, arows, finds, hz, plrows))
         print("wrote", OUT)
     return fails, finds
 
 
-def report(rows, arows, finds, hz):
+def report(rows, arows, finds, hz, plrows=()):
     L_ = ["# STF-2 safety report (generated by safety.py, Upgrade S-1)", "",
           "Engineering evidence, not a certificate. PLr values and every [assumed] time / force need the "
           "risk assessment and the bought parts' data (ISO 13849-1 PL verification is still open).", "",
@@ -715,6 +780,9 @@ def report(rows, arows, finds, hz):
         L_.append(f"| {h['name']} | {len(h['parts'])} | {h['kind']} | "
                   f"{'%.0f N (low energy)' % h['force'] if h['low'] else ('%.0f N' % h['force'] if h['force'] else 'high')} | "
                   f"{h['t_mech'] if h['t_mech'] is not None else '-'} | {h['zone'] or '-'} |")
+    L_ += ["", "## PL estimate (ISO 13849-1 simplified method, typical data - verify in SISTEMA)", "",
+           "| function | PLr | PL est. | subsystems |", "|---|---|---|---|"]
+    L_ += [f"| {r['function']} | {r['PLr']} | {r['PL_est']} | {r['subsystems']} |" for r in plrows]
     L_ += ["", f"## Findings ({len(finds)}) - open, block operation", ""] + [f"{k + 1}. {f}" for k, f in enumerate(finds)]
     L_ += ["", "## Reach audit (ISO 13855 / ISO 13857)", "", "| opening | hazard | state | d mm | needed mm | rule | ok |",
            "|---|---|---|---|---|---|---|"]
