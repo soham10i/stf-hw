@@ -30,6 +30,7 @@ maintainability), not industrial size. The twin stays at its 2× structural scal
 | 10 | Throughput | **built**: dashboard, "Throughput" |
 | 11 | OT security to IEC 62443 | **built**: dashboard, "OT security" |
 | 12 | Defence in depth | **built**: dashboard "Defence in depth" |
+| 13 | Software-in-the-loop PLC | **built**: twin panel "PLC program (live)" |
 
 **The app shows one machine: Upgrade 12**, which contains every level. Each upgrade is a side panel of that view, not
 a view of its own (2026-10-01). The intermediate variants still build and are re-proven by `validate.py`; they
@@ -691,6 +692,66 @@ U6-04 maintenance plan · U6-05 structure and dynamics report.
   - A compromised PLC driving the crane sideways with the fork in a shelf moves 0 mm, against 13.5 mm with detection alone.
   - F1, F3 and the soft link are closed.
 - **Limits.** The interlocks protect the machine; they are not safety functions, and no performance level is claimed.
+
+## Upgrade 13: software-in-the-loop PLC (BUILT)
+
+**Why.** Upgrade 4 generated the PLC program, but nothing had ever compiled or run it: commissioning (U5) timed its
+steps, it did not execute them. Without hardware, the next best evidence is the program compiled by an independent
+IEC 61131-3 compiler and run, scan by scan, against a plant that only sees its outputs.
+
+**As built** (`STF_VARIANT=up12`, `stf-cad/hbw/sil/`, `web/src/sil/`):
+- **Program** (`sil/iec.py`). One IEC 61131-3 project, 1,929 lines of Structured Text, regenerated from the same models:
+  - eight unit function blocks with per-axis positioning (brake lead of half a scan), target and watchdog tables per binding;
+  - MAIN: `control.py`'s dispatcher translated statement for statement (factory state, `complete()`, the priority loop);
+  - located I/O (`%IX`, `%QX`, `%IW` RFID and colour, `%ID` encoders) and a `%MW` monitor; one 5 ms task.
+- **Compiler** (`sil/build.py`). MatIEC (`iec2c`, the compiler inside OpenPLC and Beremiz) parses and type-checks it and
+  emits C. A generated runtime places every located variable in a flat I/O image and advances the IEC clock. clang makes
+  one WebAssembly module (164 KB, no imports).
+- **Plant** (`web/src/sil/plant.ts`, numbers from `sil/plant.py`). I/O-level and material-tracking: crane, belt with RFID
+  heads, VGR with its vacuum switch, oven, Sauger, Drehtisch, Auswerfer, sorting belt with colour sensor, pulse counter,
+  ejectors and bays. It flags crashes, drops, motors driven both ways and the Ofenschieber moving against the door.
+- **One binary, two places.** The proof runs `plc.wasm` against the plant under Node; the twin runs the same file in the
+  visitor's browser.
+
+**Proofs** (`python3 -m sil.run`, about 35 s):
+1. Every one of the 103 job decisions the compiled program takes is the decision `control.py`'s proven dispatcher takes
+   from the same state (completions replayed in order).
+2. The plant ends as the order requires: 9 cookies baked and in their flavour's bay, 3 back in the rack, 12 moulds in 12
+   slots, nothing left in transit.
+3. No watchdog tripped and the plant flagged nothing.
+4. Order time 386 s against the model's 426 s, within 10 %. (Faster: the cylinders run at 80 % of the booklet time,
+   as `vc.py` assumes, and the plant has no motor ramps.)
+5. It can fail: three mutants are each rejected.
+   - SM1, production order swapped: rejected at the first decision.
+   - SM2, red and blue colour bands swapped: the sorting line refuses the cookie.
+   - SM3, slot A1 aimed at the next column: the crane fetches the wrong mould, RFID RP2 reads M02 where the record says
+     M01, and the belt's watchdog stops the line.
+   A mutant that stores in the farthest free slot is equivalent here: with 12 moulds in 12 slots there is never more
+   than one free slot to choose.
+
+**Findings.** U4's program is rejected by MatIEC (910 errors). Writing it properly, then running it, exposed ten problems:
+
+| # | Found by | Finding |
+|---|---|---|
+| F1 | compiler | the step variable was `Step`, a reserved word |
+| F2 | compiler | every positioning step waited for one undeclared `Target[Arg]` |
+| F3 | review | `Done` was never cleared, so a unit's second job could not be seen to end |
+| F4 | review | MAIN was only comments |
+| F5 | review | a three-axis VGR move drove every axis until the step ended, so the first to arrive overran |
+| F6 | compiler | conditions were prose (`RF2.tag = record`, `count(I1) = N_eject`, `I5 broken`) |
+| F7 | run | homing left the lift at its bottom switch; every crane job starts at transit height |
+| F8 | run | the single-acting oven door fell shut on the extended Ofenschieber between U10's `present` and `place_oven` |
+| F9 | run | the Drehtisch's 180° return had the time of a 90° turn, so its watchdog tripped |
+| F10 | run | watchdogs were the same for every binding: the 8 s run to the blue ejector was watched as 2.4 s |
+
+F8 is a real design flaw of Upgrade 10, not a simulation artefact: the model kept "tray presented" as a state, but the
+door only stays open while its valve is on.
+
+**Limits.** The plant has no motor ramps or bus delays (U5 covers those); the light-barrier polarity, the pulse pitch
+and the colour readings of the belt and of raw dough are assumed. Only the Upgrade 12 program is generated.
+
+**Tools** (not in the repository): MatIEC built from source (`STF_MATIEC`), and clang, wasm-ld and the WASI sysroot
+(Homebrew `llvm lld wasi-libc wasi-runtimes`). The compiled `plc.wasm` is committed, so the twin and CI need neither.
 
 ---
 

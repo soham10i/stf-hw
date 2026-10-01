@@ -1,0 +1,3682 @@
+{
+ "variant": "up12",
+ "compiler": "MatIEC iec2c matiec version 0.1",
+ "wasm_sha": "eeaa28595da0e2bf",
+ "st_lines": 1929,
+ "scan_ms": 5,
+ "u4": {
+  "accepted": false,
+  "errors": 910,
+  "first": "u4.st:26: error: invalid located variable declaration."
+ },
+ "findings": [
+  {
+   "id": "F1",
+   "kind": "compile",
+   "text": "The U4 program used `Step` as a variable, a reserved word of IEC 61131-3: MatIEC rejected it."
+  },
+  {
+   "id": "F2",
+   "kind": "compile",
+   "text": "Every positioning step waited for one undeclared `Target[Arg]`; each step needs its own target."
+  },
+  {
+   "id": "F3",
+   "kind": "logic",
+   "text": "`Done` was set and never cleared, so the orchestrator could not see a unit's second job end."
+  },
+  {
+   "id": "F4",
+   "kind": "logic",
+   "text": "The orchestrator (MAIN) existed only as comments."
+  },
+  {
+   "id": "F5",
+   "kind": "logic",
+   "text": "A multi-axis VGR move drove every axis until the step ended: the axes that arrived first overran."
+  },
+  {
+   "id": "F6",
+   "kind": "compile",
+   "text": "Several step conditions were prose (RF2.tag = record, count(I1) = N_eject, I5 broken)."
+  },
+  {
+   "id": "F7",
+   "kind": "run",
+   "text": "Homing left the crane's lift at its bottom reference switch; every job starts at transit height."
+  },
+  {
+   "id": "F8",
+   "kind": "run",
+   "text": "The oven door (single-acting) fell shut on the extended Ofenschieber between U10's present and place."
+  },
+  {
+   "id": "F9",
+   "kind": "run",
+   "text": "The Drehtisch's 180 degree return had the time of a 90 degree turn: its watchdog tripped."
+  },
+  {
+   "id": "F10",
+   "kind": "run",
+   "text": "Watchdogs were the same for every binding: the run to the blue ejector (8 s) was watched as 2.4 s."
+  }
+ ],
+ "homed_at": 4.785,
+ "done_at": 391.265,
+ "order_s": 386.48,
+ "model_s": 425.7,
+ "scans": 78253,
+ "wall_ms": 839,
+ "decisions": 103,
+ "jobs": 103,
+ "events": [
+  {
+   "t": 4.785,
+   "scan": 957,
+   "kind": "start",
+   "unit": "crane",
+   "job": "retrieve",
+   "b": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 19.68,
+   "scan": 3936,
+   "kind": "end",
+   "unit": "crane",
+   "job": "retrieve",
+   "b": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 19.68,
+   "scan": 3936,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 24.785,
+   "scan": 4957,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 24.785,
+   "scan": 4957,
+   "kind": "start",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 24.785,
+   "scan": 4957,
+   "kind": "start",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 27.59,
+   "scan": 5518,
+   "kind": "end",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 28.91,
+   "scan": 5782,
+   "kind": "end",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 28.91,
+   "scan": 5782,
+   "kind": "start",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 33.585,
+   "scan": 6717,
+   "kind": "end",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 33.585,
+   "scan": 6717,
+   "kind": "start",
+   "unit": "arm",
+   "job": "bay_to_belt",
+   "b": [
+    10,
+    1,
+    1,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 33.585,
+   "scan": 6717,
+   "kind": "start",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 41.2,
+   "scan": 8240,
+   "kind": "end",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 41.2,
+   "scan": 8240,
+   "kind": "start",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 43.55,
+   "scan": 8710,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    1,
+    10,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 43.55,
+   "scan": 8710,
+   "kind": "end",
+   "unit": "arm",
+   "job": "bay_to_belt",
+   "b": [
+    10,
+    1,
+    1,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 48.65,
+   "scan": 9730,
+   "kind": "start",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    1,
+    10,
+    1,
+    2,
+    2,
+    2
+   ]
+  },
+  {
+   "t": 48.65,
+   "scan": 9730,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    1,
+    10,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 49.96,
+   "scan": 9992,
+   "kind": "end",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 49.96,
+   "scan": 9992,
+   "kind": "start",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 58.935,
+   "scan": 11787,
+   "kind": "end",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 58.935,
+   "scan": 11787,
+   "kind": "start",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 64.735,
+   "scan": 12947,
+   "kind": "end",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 64.735,
+   "scan": 12947,
+   "kind": "start",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    1,
+    3,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 71.165,
+   "scan": 14233,
+   "kind": "end",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    1,
+    10,
+    1,
+    2,
+    2,
+    2
+   ]
+  },
+  {
+   "t": 71.165,
+   "scan": 14233,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    2,
+    2,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 76.27,
+   "scan": 15254,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    2,
+    2,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 76.27,
+   "scan": 15254,
+   "kind": "start",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    2,
+    2,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 76.27,
+   "scan": 15254,
+   "kind": "start",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 77.46,
+   "scan": 15492,
+   "kind": "end",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    1,
+    3,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 79.075,
+   "scan": 15815,
+   "kind": "end",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 80.38,
+   "scan": 16076,
+   "kind": "end",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    2,
+    2,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 80.38,
+   "scan": 16076,
+   "kind": "start",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    2,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 85.055,
+   "scan": 17011,
+   "kind": "end",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    2,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 85.055,
+   "scan": 17011,
+   "kind": "start",
+   "unit": "arm",
+   "job": "bay_to_belt",
+   "b": [
+    11,
+    2,
+    2,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 85.055,
+   "scan": 17011,
+   "kind": "start",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    2,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 92.67,
+   "scan": 18534,
+   "kind": "end",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    2,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 92.67,
+   "scan": 18534,
+   "kind": "start",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    2,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 95.435,
+   "scan": 19087,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    2,
+    11,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 95.435,
+   "scan": 19087,
+   "kind": "end",
+   "unit": "arm",
+   "job": "bay_to_belt",
+   "b": [
+    11,
+    2,
+    2,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 100.535,
+   "scan": 20107,
+   "kind": "start",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    2,
+    11,
+    2,
+    3,
+    3,
+    3
+   ]
+  },
+  {
+   "t": 100.535,
+   "scan": 20107,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    2,
+    11,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 101.43,
+   "scan": 20286,
+   "kind": "end",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    2,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 101.43,
+   "scan": 20286,
+   "kind": "start",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    2,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 110.405,
+   "scan": 22081,
+   "kind": "end",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    2,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 110.405,
+   "scan": 22081,
+   "kind": "start",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    2,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 116.205,
+   "scan": 23241,
+   "kind": "end",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    2,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 116.205,
+   "scan": 23241,
+   "kind": "start",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    2,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 121.45,
+   "scan": 24290,
+   "kind": "end",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    2,
+    11,
+    2,
+    3,
+    3,
+    3
+   ]
+  },
+  {
+   "t": 121.45,
+   "scan": 24290,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    3,
+    3,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 123.325,
+   "scan": 24665,
+   "kind": "end",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    2,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 126.555,
+   "scan": 25311,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    3,
+    3,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 126.555,
+   "scan": 25311,
+   "kind": "start",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    3,
+    3,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 126.555,
+   "scan": 25311,
+   "kind": "start",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 129.36,
+   "scan": 25872,
+   "kind": "end",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 130.665,
+   "scan": 26133,
+   "kind": "end",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    3,
+    3,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 130.665,
+   "scan": 26133,
+   "kind": "start",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    3,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 135.34,
+   "scan": 27068,
+   "kind": "end",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    3,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 135.34,
+   "scan": 27068,
+   "kind": "start",
+   "unit": "arm",
+   "job": "bay_to_belt",
+   "b": [
+    12,
+    3,
+    3,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 135.34,
+   "scan": 27068,
+   "kind": "start",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    3,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 142.955,
+   "scan": 28591,
+   "kind": "end",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    3,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 142.955,
+   "scan": 28591,
+   "kind": "start",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    3,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 146.075,
+   "scan": 29215,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    3,
+    12,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 146.075,
+   "scan": 29215,
+   "kind": "end",
+   "unit": "arm",
+   "job": "bay_to_belt",
+   "b": [
+    12,
+    3,
+    3,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 151.175,
+   "scan": 30235,
+   "kind": "start",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    3,
+    12,
+    3,
+    4,
+    4,
+    4
+   ]
+  },
+  {
+   "t": 151.175,
+   "scan": 30235,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    3,
+    12,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 151.715,
+   "scan": 30343,
+   "kind": "end",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    3,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 151.715,
+   "scan": 30343,
+   "kind": "start",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    3,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 160.69,
+   "scan": 32138,
+   "kind": "end",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    3,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 160.69,
+   "scan": 32138,
+   "kind": "start",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    3,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 166.49,
+   "scan": 33298,
+   "kind": "end",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    3,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 166.49,
+   "scan": 33298,
+   "kind": "start",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    3,
+    2,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 170.49,
+   "scan": 34098,
+   "kind": "end",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    3,
+    12,
+    3,
+    4,
+    4,
+    4
+   ]
+  },
+  {
+   "t": 170.49,
+   "scan": 34098,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    4,
+    4,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 175.595,
+   "scan": 35119,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    4,
+    4,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 175.595,
+   "scan": 35119,
+   "kind": "start",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    4,
+    4,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 175.595,
+   "scan": 35119,
+   "kind": "start",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 176.41,
+   "scan": 35282,
+   "kind": "end",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    3,
+    2,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 178.4,
+   "scan": 35680,
+   "kind": "end",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 179.705,
+   "scan": 35941,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    4,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 179.705,
+   "scan": 35941,
+   "kind": "end",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    4,
+    4,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 179.705,
+   "scan": 35941,
+   "kind": "start",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    4,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 184.38,
+   "scan": 36876,
+   "kind": "end",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    4,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 184.38,
+   "scan": 36876,
+   "kind": "start",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    4,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 184.805,
+   "scan": 36961,
+   "kind": "start",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    4,
+    0,
+    4,
+    5,
+    5,
+    5
+   ]
+  },
+  {
+   "t": 184.805,
+   "scan": 36961,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    4,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 191.995,
+   "scan": 38399,
+   "kind": "end",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    4,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 191.995,
+   "scan": 38399,
+   "kind": "start",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    4,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 200.755,
+   "scan": 40151,
+   "kind": "end",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    4,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 200.755,
+   "scan": 40151,
+   "kind": "start",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    4,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 205.72,
+   "scan": 41144,
+   "kind": "end",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    4,
+    0,
+    4,
+    5,
+    5,
+    5
+   ]
+  },
+  {
+   "t": 205.72,
+   "scan": 41144,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    5,
+    5,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 209.73,
+   "scan": 41946,
+   "kind": "end",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    4,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 209.73,
+   "scan": 41946,
+   "kind": "start",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    4,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 210.825,
+   "scan": 42165,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    5,
+    5,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 210.825,
+   "scan": 42165,
+   "kind": "start",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    5,
+    5,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 210.825,
+   "scan": 42165,
+   "kind": "start",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 213.63,
+   "scan": 42726,
+   "kind": "end",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 214.95,
+   "scan": 42990,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    5,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 214.95,
+   "scan": 42990,
+   "kind": "end",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    5,
+    5,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 214.95,
+   "scan": 42990,
+   "kind": "start",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    5,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 215.53,
+   "scan": 43106,
+   "kind": "end",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    4,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 215.53,
+   "scan": 43106,
+   "kind": "start",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    4,
+    3,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 219.625,
+   "scan": 43925,
+   "kind": "end",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    5,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 219.625,
+   "scan": 43925,
+   "kind": "start",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    5,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 220.05,
+   "scan": 44010,
+   "kind": "start",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    5,
+    0,
+    5,
+    6,
+    6,
+    6
+   ]
+  },
+  {
+   "t": 220.05,
+   "scan": 44010,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    5,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 227.24,
+   "scan": 45448,
+   "kind": "end",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    5,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 227.24,
+   "scan": 45448,
+   "kind": "start",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    5,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 228.25,
+   "scan": 45650,
+   "kind": "end",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    4,
+    3,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 236,
+   "scan": 47200,
+   "kind": "end",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    5,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 236,
+   "scan": 47200,
+   "kind": "start",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    5,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 239.365,
+   "scan": 47873,
+   "kind": "end",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    5,
+    0,
+    5,
+    6,
+    6,
+    6
+   ]
+  },
+  {
+   "t": 239.365,
+   "scan": 47873,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    6,
+    6,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 244.47,
+   "scan": 48894,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    6,
+    6,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 244.47,
+   "scan": 48894,
+   "kind": "start",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    6,
+    6,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 244.47,
+   "scan": 48894,
+   "kind": "start",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 244.975,
+   "scan": 48995,
+   "kind": "end",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    5,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 244.975,
+   "scan": 48995,
+   "kind": "start",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    5,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 247.275,
+   "scan": 49455,
+   "kind": "end",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 248.595,
+   "scan": 49719,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    6,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 248.595,
+   "scan": 49719,
+   "kind": "end",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    6,
+    6,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 248.595,
+   "scan": 49719,
+   "kind": "start",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    6,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 250.775,
+   "scan": 50155,
+   "kind": "end",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    5,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 250.775,
+   "scan": 50155,
+   "kind": "start",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    5,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 253.27,
+   "scan": 50654,
+   "kind": "end",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    6,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 253.27,
+   "scan": 50654,
+   "kind": "start",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    6,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 253.695,
+   "scan": 50739,
+   "kind": "start",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    6,
+    0,
+    6,
+    7,
+    7,
+    7
+   ]
+  },
+  {
+   "t": 253.695,
+   "scan": 50739,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    6,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 257.895,
+   "scan": 51579,
+   "kind": "end",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    5,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 260.885,
+   "scan": 52177,
+   "kind": "end",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    6,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 260.885,
+   "scan": 52177,
+   "kind": "start",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    6,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 269.645,
+   "scan": 53929,
+   "kind": "end",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    6,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 269.645,
+   "scan": 53929,
+   "kind": "start",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    6,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 271.41,
+   "scan": 54282,
+   "kind": "end",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    6,
+    0,
+    6,
+    7,
+    7,
+    7
+   ]
+  },
+  {
+   "t": 271.41,
+   "scan": 54282,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    7,
+    7,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 276.515,
+   "scan": 55303,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    7,
+    7,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 276.515,
+   "scan": 55303,
+   "kind": "start",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    7,
+    7,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 276.515,
+   "scan": 55303,
+   "kind": "start",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 278.62,
+   "scan": 55724,
+   "kind": "end",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    6,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 278.62,
+   "scan": 55724,
+   "kind": "start",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    6,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 279.32,
+   "scan": 55864,
+   "kind": "end",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 280.64,
+   "scan": 56128,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    7,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 280.64,
+   "scan": 56128,
+   "kind": "end",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    7,
+    7,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 280.64,
+   "scan": 56128,
+   "kind": "start",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    7,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 284.42,
+   "scan": 56884,
+   "kind": "end",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    6,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 284.42,
+   "scan": 56884,
+   "kind": "start",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    6,
+    2,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 285.315,
+   "scan": 57063,
+   "kind": "end",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    7,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 285.315,
+   "scan": 57063,
+   "kind": "start",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    7,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 285.74,
+   "scan": 57148,
+   "kind": "start",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    7,
+    0,
+    7,
+    8,
+    8,
+    8
+   ]
+  },
+  {
+   "t": 285.74,
+   "scan": 57148,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    7,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 292.93,
+   "scan": 58586,
+   "kind": "end",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    7,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 292.93,
+   "scan": 58586,
+   "kind": "start",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    7,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 294.34,
+   "scan": 58868,
+   "kind": "end",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    6,
+    2,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 301.69,
+   "scan": 60338,
+   "kind": "end",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    7,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 301.69,
+   "scan": 60338,
+   "kind": "start",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    7,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 301.855,
+   "scan": 60371,
+   "kind": "end",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    7,
+    0,
+    7,
+    8,
+    8,
+    8
+   ]
+  },
+  {
+   "t": 301.855,
+   "scan": 60371,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    8,
+    8,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 306.96,
+   "scan": 61392,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    8,
+    8,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 306.96,
+   "scan": 61392,
+   "kind": "start",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    8,
+    8,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 306.96,
+   "scan": 61392,
+   "kind": "start",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 309.765,
+   "scan": 61953,
+   "kind": "end",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 310.665,
+   "scan": 62133,
+   "kind": "end",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    7,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 310.665,
+   "scan": 62133,
+   "kind": "start",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    7,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 311.085,
+   "scan": 62217,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    8,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 311.085,
+   "scan": 62217,
+   "kind": "end",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    8,
+    8,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 311.085,
+   "scan": 62217,
+   "kind": "start",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    8,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 315.76,
+   "scan": 63152,
+   "kind": "end",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    8,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 315.76,
+   "scan": 63152,
+   "kind": "start",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    8,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 316.185,
+   "scan": 63237,
+   "kind": "start",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    8,
+    0,
+    8,
+    9,
+    9,
+    9
+   ]
+  },
+  {
+   "t": 316.185,
+   "scan": 63237,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    8,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 316.465,
+   "scan": 63293,
+   "kind": "end",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    7,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 316.465,
+   "scan": 63293,
+   "kind": "start",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    7,
+    3,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 323.375,
+   "scan": 64675,
+   "kind": "end",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    8,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 323.375,
+   "scan": 64675,
+   "kind": "start",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    8,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 329.185,
+   "scan": 65837,
+   "kind": "end",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    7,
+    3,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 332.135,
+   "scan": 66427,
+   "kind": "end",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    8,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 332.135,
+   "scan": 66427,
+   "kind": "start",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    8,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 336.29,
+   "scan": 67258,
+   "kind": "end",
+   "unit": "crane",
+   "job": "store_retrieve",
+   "b": [
+    8,
+    0,
+    8,
+    9,
+    9,
+    9
+   ]
+  },
+  {
+   "t": 336.29,
+   "scan": 67258,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    9,
+    9,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 341.11,
+   "scan": 68222,
+   "kind": "end",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    8,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 341.11,
+   "scan": 68222,
+   "kind": "start",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    8,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 341.395,
+   "scan": 68279,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_fwd",
+   "b": [
+    9,
+    9,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 341.395,
+   "scan": 68279,
+   "kind": "start",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    9,
+    9,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 341.395,
+   "scan": 68279,
+   "kind": "start",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 344.2,
+   "scan": 68840,
+   "kind": "end",
+   "unit": "door",
+   "job": "present",
+   "b": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 345.52,
+   "scan": 69104,
+   "kind": "start",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    9,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 345.52,
+   "scan": 69104,
+   "kind": "end",
+   "unit": "arm",
+   "job": "belt_to_oven",
+   "b": [
+    9,
+    9,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 345.52,
+   "scan": 69104,
+   "kind": "start",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    9,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 346.91,
+   "scan": 69382,
+   "kind": "end",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    8,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 346.91,
+   "scan": 69382,
+   "kind": "start",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    8,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 350.195,
+   "scan": 70039,
+   "kind": "end",
+   "unit": "arm",
+   "job": "place_oven",
+   "b": [
+    9,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 350.195,
+   "scan": 70039,
+   "kind": "start",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    9,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 350.62,
+   "scan": 70124,
+   "kind": "start",
+   "unit": "crane",
+   "job": "store",
+   "b": [
+    9,
+    0,
+    9,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 350.62,
+   "scan": 70124,
+   "kind": "end",
+   "unit": "belt",
+   "job": "belt_back",
+   "b": [
+    9,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 354.03,
+   "scan": 70806,
+   "kind": "end",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    8,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 357.81,
+   "scan": 71562,
+   "kind": "end",
+   "unit": "door",
+   "job": "bake",
+   "b": [
+    9,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 357.81,
+   "scan": 71562,
+   "kind": "start",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    9,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 364.705,
+   "scan": 72941,
+   "kind": "end",
+   "unit": "crane",
+   "job": "store",
+   "b": [
+    9,
+    0,
+    9,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 366.57,
+   "scan": 73314,
+   "kind": "end",
+   "unit": "sauger",
+   "job": "to_tt",
+   "b": [
+    9,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 366.57,
+   "scan": 73314,
+   "kind": "start",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    9,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 375.545,
+   "scan": 75109,
+   "kind": "end",
+   "unit": "turntable",
+   "job": "saw_eject",
+   "b": [
+    9,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 375.545,
+   "scan": 75109,
+   "kind": "start",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    9,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 381.345,
+   "scan": 76269,
+   "kind": "end",
+   "unit": "ovenbelt",
+   "job": "ovenbelt",
+   "b": [
+    9,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 381.345,
+   "scan": 76269,
+   "kind": "start",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    9,
+    2,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "t": 391.265,
+   "scan": 78253,
+   "kind": "end",
+   "unit": "line",
+   "job": "sort",
+   "b": [
+    9,
+    2,
+    0,
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "plant_log": [
+  {
+   "t": 10.34,
+   "text": "crane takes M01 out of A1"
+  },
+  {
+   "t": 17.65,
+   "text": "crane sets M01 on the belt"
+  },
+  {
+   "t": 28.02,
+   "text": "VGR picks c00 at belt"
+  },
+  {
+   "t": 30.18,
+   "text": "VGR sets c00 down at oven"
+  },
+  {
+   "t": 37.35,
+   "text": "VGR picks c09 at bay_weiss"
+  },
+  {
+   "t": 38.39,
+   "text": "c00 is baked"
+  },
+  {
+   "t": 40.69,
+   "text": "VGR sets c09 down at belt"
+  },
+  {
+   "t": 43.69,
+   "text": "oven Sauger lifts c00 off the tray"
+  },
+  {
+   "t": 46.19,
+   "text": "oven Sauger lays c00 in the Drehtisch"
+  },
+  {
+   "t": 50.69,
+   "text": "crane picks M01 off the belt"
+  },
+  {
+   "t": 55.45,
+   "text": "Auswerfer pushes c00 onto the oven belt"
+  },
+  {
+   "t": 58.01,
+   "text": "crane stores M01 in A1"
+  },
+  {
+   "t": 62.62,
+   "text": "crane takes M02 out of A2"
+  },
+  {
+   "t": 69.14,
+   "text": "crane sets M02 on the belt"
+  },
+  {
+   "t": 76.95,
+   "text": "c00 ejected into bay blau"
+  },
+  {
+   "t": 79.49,
+   "text": "VGR picks c01 at belt"
+  },
+  {
+   "t": 81.65,
+   "text": "VGR sets c01 down at oven"
+  },
+  {
+   "t": 88.81,
+   "text": "VGR picks c10 at bay_rot"
+  },
+  {
+   "t": 89.85,
+   "text": "c01 is baked"
+  },
+  {
+   "t": 92.57,
+   "text": "VGR sets c10 down at belt"
+  },
+  {
+   "t": 95.16,
+   "text": "oven Sauger lifts c01 off the tray"
+  },
+  {
+   "t": 97.66,
+   "text": "oven Sauger lays c01 in the Drehtisch"
+  },
+  {
+   "t": 102.57,
+   "text": "crane picks M02 off the belt"
+  },
+  {
+   "t": 106.92,
+   "text": "Auswerfer pushes c01 onto the oven belt"
+  },
+  {
+   "t": 109.09,
+   "text": "crane stores M02 in A2"
+  },
+  {
+   "t": 113.7,
+   "text": "crane takes M03 out of A3"
+  },
+  {
+   "t": 119.42,
+   "text": "crane sets M03 on the belt"
+  },
+  {
+   "t": 122.81,
+   "text": "c01 ejected into bay weiss"
+  },
+  {
+   "t": 129.77,
+   "text": "VGR picks c02 at belt"
+  },
+  {
+   "t": 131.93,
+   "text": "VGR sets c02 down at oven"
+  },
+  {
+   "t": 139.1,
+   "text": "VGR picks c11 at bay_blau"
+  },
+  {
+   "t": 140.14,
+   "text": "c02 is baked"
+  },
+  {
+   "t": 143.21,
+   "text": "VGR sets c11 down at belt"
+  },
+  {
+   "t": 145.44,
+   "text": "oven Sauger lifts c02 off the tray"
+  },
+  {
+   "t": 147.94,
+   "text": "oven Sauger lays c02 in the Drehtisch"
+  },
+  {
+   "t": 153.21,
+   "text": "crane picks M03 off the belt"
+  },
+  {
+   "t": 157.2,
+   "text": "Auswerfer pushes c02 onto the oven belt"
+  },
+  {
+   "t": 158.93,
+   "text": "crane stores M03 in A3"
+  },
+  {
+   "t": 163.54,
+   "text": "crane takes M04 out of A4"
+  },
+  {
+   "t": 168.46,
+   "text": "crane sets M04 on the belt"
+  },
+  {
+   "t": 175.89,
+   "text": "c02 ejected into bay rot"
+  },
+  {
+   "t": 178.81,
+   "text": "VGR picks c03 at belt"
+  },
+  {
+   "t": 180.97,
+   "text": "VGR sets c03 down at oven"
+  },
+  {
+   "t": 186.84,
+   "text": "crane picks M04 off the belt"
+  },
+  {
+   "t": 189.18,
+   "text": "c03 is baked"
+  },
+  {
+   "t": 191.76,
+   "text": "crane stores M04 in A4"
+  },
+  {
+   "t": 194.48,
+   "text": "oven Sauger lifts c03 off the tray"
+  },
+  {
+   "t": 196.98,
+   "text": "oven Sauger lays c03 in the Drehtisch"
+  },
+  {
+   "t": 197.17,
+   "text": "crane takes M05 out of B1"
+  },
+  {
+   "t": 203.69,
+   "text": "crane sets M05 on the belt"
+  },
+  {
+   "t": 206.24,
+   "text": "Auswerfer pushes c03 onto the oven belt"
+  },
+  {
+   "t": 214.06,
+   "text": "VGR picks c04 at belt"
+  },
+  {
+   "t": 216.22,
+   "text": "VGR sets c04 down at oven"
+  },
+  {
+   "t": 222.09,
+   "text": "crane picks M05 off the belt"
+  },
+  {
+   "t": 224.42,
+   "text": "c04 is baked"
+  },
+  {
+   "t": 227.73,
+   "text": "c03 ejected into bay blau"
+  },
+  {
+   "t": 228.6,
+   "text": "crane stores M05 in B1"
+  },
+  {
+   "t": 229.73,
+   "text": "oven Sauger lifts c04 off the tray"
+  },
+  {
+   "t": 231.62,
+   "text": "crane takes M06 out of B2"
+  },
+  {
+   "t": 232.23,
+   "text": "oven Sauger lays c04 in the Drehtisch"
+  },
+  {
+   "t": 237.33,
+   "text": "crane sets M06 on the belt"
+  },
+  {
+   "t": 241.49,
+   "text": "Auswerfer pushes c04 onto the oven belt"
+  },
+  {
+   "t": 247.7,
+   "text": "VGR picks c05 at belt"
+  },
+  {
+   "t": 249.86,
+   "text": "VGR sets c05 down at oven"
+  },
+  {
+   "t": 255.73,
+   "text": "crane picks M06 off the belt"
+  },
+  {
+   "t": 257.38,
+   "text": "c04 ejected into bay weiss"
+  },
+  {
+   "t": 258.07,
+   "text": "c05 is baked"
+  },
+  {
+   "t": 261.45,
+   "text": "crane stores M06 in B2"
+  },
+  {
+   "t": 263.37,
+   "text": "oven Sauger lifts c05 off the tray"
+  },
+  {
+   "t": 264.46,
+   "text": "crane takes M07 out of B3"
+  },
+  {
+   "t": 265.87,
+   "text": "oven Sauger lays c05 in the Drehtisch"
+  },
+  {
+   "t": 269.38,
+   "text": "crane sets M07 on the belt"
+  },
+  {
+   "t": 275.13,
+   "text": "Auswerfer pushes c05 onto the oven belt"
+  },
+  {
+   "t": 279.75,
+   "text": "VGR picks c06 at belt"
+  },
+  {
+   "t": 281.91,
+   "text": "VGR sets c06 down at oven"
+  },
+  {
+   "t": 287.78,
+   "text": "crane picks M07 off the belt"
+  },
+  {
+   "t": 290.11,
+   "text": "c06 is baked"
+  },
+  {
+   "t": 292.69,
+   "text": "crane stores M07 in B3"
+  },
+  {
+   "t": 293.82,
+   "text": "c05 ejected into bay rot"
+  },
+  {
+   "t": 295.42,
+   "text": "oven Sauger lifts c06 off the tray"
+  },
+  {
+   "t": 295.71,
+   "text": "crane takes M08 out of B4"
+  },
+  {
+   "t": 297.92,
+   "text": "oven Sauger lays c06 in the Drehtisch"
+  },
+  {
+   "t": 299.82,
+   "text": "crane sets M08 on the belt"
+  },
+  {
+   "t": 307.18,
+   "text": "Auswerfer pushes c06 onto the oven belt"
+  },
+  {
+   "t": 310.19,
+   "text": "VGR picks c07 at belt"
+  },
+  {
+   "t": 312.35,
+   "text": "VGR sets c07 down at oven"
+  },
+  {
+   "t": 318.22,
+   "text": "crane picks M08 off the belt"
+  },
+  {
+   "t": 320.56,
+   "text": "c07 is baked"
+  },
+  {
+   "t": 322.34,
+   "text": "crane stores M08 in B4"
+  },
+  {
+   "t": 325.86,
+   "text": "oven Sauger lifts c07 off the tray"
+  },
+  {
+   "t": 327.21,
+   "text": "crane takes M09 out of C1"
+  },
+  {
+   "t": 328.36,
+   "text": "oven Sauger lays c07 in the Drehtisch"
+  },
+  {
+   "t": 328.67,
+   "text": "c06 ejected into bay blau"
+  },
+  {
+   "t": 334.26,
+   "text": "crane sets M09 on the belt"
+  },
+  {
+   "t": 337.62,
+   "text": "Auswerfer pushes c07 onto the oven belt"
+  },
+  {
+   "t": 344.63,
+   "text": "VGR picks c08 at belt"
+  },
+  {
+   "t": 346.79,
+   "text": "VGR sets c08 down at oven"
+  },
+  {
+   "t": 352.66,
+   "text": "crane picks M09 off the belt"
+  },
+  {
+   "t": 353.51,
+   "text": "c07 ejected into bay weiss"
+  },
+  {
+   "t": 354.99,
+   "text": "c08 is baked"
+  },
+  {
+   "t": 359.7,
+   "text": "crane stores M09 in C1"
+  },
+  {
+   "t": 360.3,
+   "text": "oven Sauger lifts c08 off the tray"
+  },
+  {
+   "t": 362.8,
+   "text": "oven Sauger lays c08 in the Drehtisch"
+  },
+  {
+   "t": 372.06,
+   "text": "Auswerfer pushes c08 onto the oven belt"
+  },
+  {
+   "t": 390.75,
+   "text": "c08 ejected into bay rot"
+  }
+ ],
+ "final": {
+  "bays": {
+   "weiss": [
+    "c01",
+    "c04",
+    "c07"
+   ],
+   "rot": [
+    "c02",
+    "c05",
+    "c08"
+   ],
+   "blau": [
+    "c00",
+    "c03",
+    "c06"
+   ]
+  },
+  "slots": {
+   "A1": [
+    "M01",
+    "c09"
+   ],
+   "A2": [
+    "M02",
+    "c10"
+   ],
+   "A3": [
+    "M03",
+    "c11"
+   ],
+   "A4": [
+    "M04",
+    null
+   ],
+   "B1": [
+    "M05",
+    null
+   ],
+   "B2": [
+    "M06",
+    null
+   ],
+   "B3": [
+    "M07",
+    null
+   ],
+   "B4": [
+    "M08",
+    null
+   ],
+   "C1": [
+    "M09",
+    null
+   ],
+   "C2": [
+    "M10",
+    null
+   ],
+   "C3": [
+    "M11",
+    null
+   ],
+   "C4": [
+    "M12",
+    null
+   ]
+  }
+ },
+ "checks": {
+  "decisions": true,
+  "plant": true,
+  "faults": true,
+  "timing": true
+ },
+ "fails": [],
+ "mutants": [
+  {
+   "id": "SM1",
+   "what": "the production order's first two cookies swapped in MAIN",
+   "caught": true,
+   "by": "t=4.785: the program started [('retrieve', ('c01', 'M02', 'A2'))], control.py [('retrieve', ('c00', 'M01', 'A1'))]"
+  },
+  {
+   "id": "SM2",
+   "what": "the colour bands of red and blue swapped",
+   "caught": true,
+   "by": "the order did not complete in 3600 s (states {'crane': 100, 'belt': 100, 'arm': 2001, 'door': 3001, 'sauger': 100, 'turntable': 100, 'ovenbelt': 100, 'line': 1001})"
+  },
+  {
+   "id": "SM3",
+   "what": "slot A1's travel target set to the next column",
+   "caught": true,
+   "by": "the order did not complete in 3600 s (states {'crane': 100, 'belt': 910, 'arm': 100, 'door': 100, 'sauger': 100, 'turntable': 100, 'ovenbelt': 100, 'line': 100})"
+  }
+ ]
+}

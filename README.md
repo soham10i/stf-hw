@@ -16,13 +16,15 @@ its proofs pass.
 | Path | What |
 |---|---|
 | `stf-cad/hbw/` | The model and its proofs (geometry, kinematics, wiring, safety, I/O, the generated PLC program, virtual commissioning, health, lifecycle, throughput, OT security, hardening) and the analytics (`month.py`, `grid.py`, `ml/`). `validate.py` re-proves everything. |
+| `stf-cad/hbw/sil/` | Upgrade 13: the PLC program as a complete IEC 61131-3 project, compiled by MatIEC to WebAssembly and run against an I/O-level plant (`web/src/sil/`). `python3 -m sil.run` proves it. |
 | `packages/` | The physics kernel (`stf_kernel`) and the layout (`stf_layout`) that the live simulation runs on. |
 | `services/api/` | The live API: `/layout`, `/orders`, `/health`, `POST /command` (operator only, see `docs/SECURITY.md`) and the `/ws` frame stream. |
 | `web/` | The 3D twin (`index.html`) and the operations dashboard (`dashboard.html`): React, three.js. |
-| `docs/` | `UPGRADE_PLAN.md` (Upgrades 1-12, as built), `VALIDATION.md`, `SECURITY.md`. |
+| `docs/` | `UPGRADE_PLAN.md` (Upgrades 1-13, as built), `VALIDATION.md`, `SECURITY.md`. |
 | `tests/` | Kernel, layout, golden trajectories, the API's access control. |
 
-The twin shows one machine, **Upgrade 12**, which contains every upgrade before it. Each upgrade's view of it is a
+The twin shows one machine, **Upgrade 12**, which contains every upgrade before it. Its **PLC program (live)** panel runs
+the generated control program, compiled by an IEC 61131-3 compiler to WebAssembly, in your browser (Upgrade 13). Each upgrade's view of it is a
 side panel: safety, remote I/O, the PLC program and HMI, commissioning, health, AI maintenance, microgrid,
 throughput, OT security and defence in depth. The **Components** views show the parts one by one.
 

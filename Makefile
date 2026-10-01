@@ -2,7 +2,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages audit clean
+.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil audit clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -68,6 +68,9 @@ pages: ## Build the standalone site as GitHub Pages serves it (no API), on local
 	mkdir -p .cache/pages && ln -sfn ../../web/dist-pages .cache/pages/stf-hw
 	@echo "http://localhost:4180/stf-hw/"
 	python3 -m http.server 4180 --bind 127.0.0.1 --directory .cache/pages
+
+sil: ## Upgrade 13: compile the PLC program (MatIEC -> WebAssembly) and prove it against the plant
+	cd stf-cad/hbw && STF_VARIANT=up12 PYTHONPATH=. ../../$(PY) -m sil.run
 
 audit: ## Dependency vulnerability scan (Python and npm)
 	$(PY) -m pip_audit
