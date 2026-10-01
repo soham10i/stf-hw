@@ -2,7 +2,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web clean
+.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages audit clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -27,10 +27,10 @@ goldens: ## Regenerate golden trajectories (review the summary before committing
 	PYTHONPATH=packages:. $(PY) -m tests.generate_goldens
 
 lint: ## Lint
-	$(PY) -m ruff check packages tests
+	$(PY) -m ruff check packages services tests
 
 fmt: ## Format
-	$(PY) -m ruff format packages tests
+	$(PY) -m ruff format packages services tests
 
 up: ## Start Mosquitto, Redis and TimescaleDB
 	docker compose up -d
@@ -55,10 +55,23 @@ sim: ## Watch the kernel run live in the terminal, e.g. make sim SLOT=B2 OP=retr
 		--slot $(or $(SLOT),B2) --op $(or $(OP),retrieve) $(if $(FAST),--fast,)
 
 api: ## Run the live twin backend (FastAPI + WebSocket) on :8000
-	PYTHONPATH=packages $(PY) -m uvicorn services.api.app:app --port 8000 --reload
+	PYTHONPATH=packages $(PY) -m uvicorn services.api.app:app --host 127.0.0.1 --port 8000 --reload
 
-web: ## Run the 3D frontend dev server on :5173 (needs `make api` running)
+web: ## Run the 3D frontend dev server on localhost:5173 (needs `make api` running)
 	cd web && npm install && npm run dev
+
+share: ## Serve the PRODUCTION build on localhost:4173 - the one to tunnel (never the dev server)
+	cd web && npm run build && npm run preview
+
+pages: ## Build the standalone site as GitHub Pages serves it (no API), on localhost:4180/stf-hw/
+	cd web && STF_BASE=/stf-hw/ npm run build:pages
+	mkdir -p .cache/pages && ln -sfn ../../web/dist-pages .cache/pages/stf-hw
+	@echo "http://localhost:4180/stf-hw/"
+	python3 -m http.server 4180 --bind 127.0.0.1 --directory .cache/pages
+
+audit: ## Dependency vulnerability scan (Python and npm)
+	$(PY) -m pip_audit
+	cd web && npm audit
 
 clean: ## Remove caches
 	find . -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true

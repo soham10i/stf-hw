@@ -5,8 +5,9 @@ Owns the kernel and advances it in real time on a single asyncio task, drains an
 order queue, and broadcasts world frames to connected WebSocket clients. Simple
 orders (retrieve/store/home) load one crane trajectory. A `cycle` order runs a
 whole material-flow sequence - crane pulls a carrier from a bay, sets it on the
-belt, the belt conveys it to the gripper end, and the VGR picks it and delivers
-it - by stepping through a list of phases and tracking where the carrier is.
+belt, the belt conveys it to the gripper end, the VGR picks it, bakes it in the
+Brennofen (Ofenschieber in, door shut, lamp on) and delivers it - by stepping
+through a list of phases and tracking where the carrier is.
 
 Still no Redis/MQTT/database: the command-in, frames-out shape matches the
 eventual design so the browser contract will not change when those land.
@@ -17,8 +18,9 @@ from __future__ import annotations
 import asyncio
 import time
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 from stf_kernel import (
     Kernel,
@@ -51,6 +53,13 @@ VGR_PICK_MM = 15.0
 #: Belt-local coordinate the crane deposits at (the HBW end).
 HBW_DEPOSIT_MM = 118.0
 
+#: Ofenschieber (oven slider) and Ofentuer (oven door) animation speeds, as a
+#: fraction of full travel per sim-second: slider full stroke in 1.4 s, the
+#: pneumatic door in 0.9 s. Baking time per workpiece.
+OVEN_SLIDER_RATE = 1.0 / 1.4
+OVEN_DOOR_RATE = 1.0 / 0.9
+OVEN_BAKE_SECONDS = 4.0
+
 
 @dataclass
 class Order:
@@ -77,7 +86,7 @@ class Phase:
     lift and lands on the belt at the place-down, matching the motion.
     """
 
-    kind: str  # "trajectory" | "belt" | "carrier" | "wait"
+    kind: str  # "trajectory" | "belt" | "carrier" | "wait" | "oven"
     plan_fn: Callable[[dict[str, float]], Trajectory] | None = None
     markers: list[tuple[str, str]] = field(default_factory=list)  # (desc substr, holder)
     place_on_deposit: bool = False
@@ -86,12 +95,14 @@ class Phase:
     holder: str | None = None
     clear_belt: bool = False
     seconds: float = 0.0
+    action: str = ""  # oven phases: "slide_in" | "bake" | "slide_out"
 
     # runtime bookkeeping
     _traj: Trajectory | None = None
     _marker_times: list[tuple[float, str]] = field(default_factory=list)
     _start_sim: float = 0.0
     _last_holder_idx: int = -1
+    _sub: int = 0  # sub-state for multi-step phases (oven bake)
 
 
 @dataclass
@@ -111,6 +122,11 @@ class SimRuntime:
         self._phases: list[Phase] = []
         self._phase_i = 0
         self._carrier: dict[str, Any] = {"flavor": None, "holder": None, "slot": None}
+        # Brennofen state: Ofenschieber (1.0 = ausgefahren/out, 0.0 = inside the
+        # chamber), Ofentuer (1.0 = open, 0.0 = closed), oven lamp. The machine
+        # idles ready to receive: slider out, door open, lamp off.
+        self._oven: dict[str, Any] = {"slider": 1.0, "door": 1.0, "lamp": False}
+        self._oven_target = {"slider": 1.0, "door": 1.0}
         self._flavor_i = 0
         self._next_id = 1
         self._seq = 0
@@ -152,7 +168,12 @@ class SimRuntime:
 
     def _build_cycle(self, slot: str) -> list[Phase]:
         """
-        The full flow for one carrier: bay -> fork -> belt -> gripper -> delivery.
+        The full flow for one carrier: bay -> fork -> belt -> gripper -> oven
+        (bake) -> delivery. The oven steps mirror the real Multi-
+        Bearbeitungsstation (manual p31): the gripper sets the workpiece on the
+        EXTENDED Ofenschieber, the door is open; the slider draws it into the
+        Brennofen, the pneumatic door closes, the lamp bakes it; then door and
+        slider open again for the gripper to pick it back up.
         """
         L = self.layout
         return [
@@ -171,12 +192,33 @@ class SimRuntime:
             Phase(kind="belt", belt_target_mm=VGR_PICK_MM, belt_dir=-1),
             Phase(kind="wait", seconds=0.5),
             # gripper swings over and lowers onto it
-            Phase(kind="trajectory", plan_fn=lambda st: plan_vgr_approach_pick(L, "conveyor", start=st)),
+            Phase(
+                kind="trajectory",
+                plan_fn=lambda st: plan_vgr_approach_pick(L, "conveyor", start=st),
+            ),
             # grip: the carrier leaves the belt and rides the suction
             Phase(kind="carrier", holder="suction", clear_belt=True),
             Phase(kind="wait", seconds=0.4),
+            # carry to the oven and set it on the extended Ofenschieber
+            Phase(kind="trajectory", plan_fn=lambda st: plan_vgr_carry_place(L, "oven", start=st)),
+            Phase(kind="carrier", holder="oven"),
+            Phase(kind="wait", seconds=0.3),
+            # bake: slider in, door shut, lamp on; then door and slider open
+            Phase(kind="oven", action="slide_in"),
+            Phase(kind="oven", action="bake", seconds=OVEN_BAKE_SECONDS),
+            Phase(kind="oven", action="slide_out"),
+            # gripper takes the baked workpiece back off the slider
+            Phase(
+                kind="trajectory",
+                plan_fn=lambda st: plan_vgr_approach_pick(L, "oven", start=st),
+            ),
+            Phase(kind="carrier", holder="suction"),
+            Phase(kind="wait", seconds=0.4),
             # carry to delivery and set down
-            Phase(kind="trajectory", plan_fn=lambda st: plan_vgr_carry_place(L, "delivery", start=st)),
+            Phase(
+                kind="trajectory",
+                plan_fn=lambda st: plan_vgr_carry_place(L, "delivery", start=st),
+            ),
             Phase(kind="carrier", holder="delivery"),
             Phase(kind="wait", seconds=0.5),
             # gripper stows
@@ -219,6 +261,7 @@ class SimRuntime:
     def latest_frame(self) -> dict[str, Any]:
         frame = wire.frame(self.kernel.backend.snapshot(), self._seq)
         frame["carrier"] = dict(self._carrier)
+        frame["oven"] = dict(self._oven)
         return frame
 
     # -- the loop ----------------------------------------------------------
@@ -235,6 +278,7 @@ class SimRuntime:
 
             self._service()
             self.kernel.advance(dt * self.time_scale)
+            self._animate_oven(dt * self.time_scale)
 
             if now - last_broadcast >= interval:
                 self._seq += 1
@@ -309,6 +353,60 @@ class SimRuntime:
 
         if phase.kind == "belt":
             self._step_belt(phase)
+            return
+
+        if phase.kind == "oven":
+            self._step_oven(phase, sim_t)
+            return
+
+    def _animate_oven(self, dt: float) -> None:
+        """Chase the slider/door targets at the drives' honest speeds."""
+        for key, rate in (("slider", OVEN_SLIDER_RATE), ("door", OVEN_DOOR_RATE)):
+            cur = self._oven[key]
+            tgt = self._oven_target[key]
+            if cur < tgt:
+                self._oven[key] = min(tgt, cur + rate * dt)
+            elif cur > tgt:
+                self._oven[key] = max(tgt, cur - rate * dt)
+
+    def _step_oven(self, phase: Phase, sim_t: float) -> None:
+        """
+        Brennofen choreography (manual p31). The door must be open whenever the
+        Ofenschieber moves - the slider never travels through a closed door.
+        """
+        if phase.action == "slide_in":
+            self._oven_target["door"] = 1.0
+            if self._oven["door"] >= 0.98:
+                self._oven_target["slider"] = 0.0
+            if self._oven["slider"] <= 0.02:
+                self._advance_phase()
+            return
+
+        if phase.action == "slide_out":
+            self._oven_target["door"] = 1.0
+            if self._oven["door"] >= 0.98:
+                self._oven_target["slider"] = 1.0
+            if self._oven["slider"] >= 0.98:
+                self._advance_phase()
+            return
+
+        if phase.action == "bake":
+            if phase._sub == 0:
+                # slider is inside; close the door, then switch the lamp on
+                self._oven_target["door"] = 0.0
+                if self._oven["door"] <= 0.02:
+                    self._oven["lamp"] = True
+                    phase._start_sim = sim_t
+                    phase._sub = 1
+                return
+            if phase._sub == 1:
+                if sim_t - phase._start_sim >= phase.seconds:
+                    self._oven["lamp"] = False
+                    self._oven_target["door"] = 1.0
+                    phase._sub = 2
+                return
+            if self._oven["door"] >= 0.98:
+                self._advance_phase()
             return
 
     def _step_trajectory(self, phase: Phase, sim_t: float) -> None:

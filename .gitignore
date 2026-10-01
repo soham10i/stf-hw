@@ -68,3 +68,16 @@ htmlcov/
 tmp/
 temp/
 *.bak
+
+# Local tooling and scratch
+.claude/
+.tmp_img/
+
+# stf-cad: caches, FreeCAD backups, superseded versions, review screenshots and their
+# report (machine-specific paths). The vendor manuals are kept once, in docs/.
+.cache/
+*.FCBak
+*.py.bak
+stf-cad/hbw/mcp_shots/
+stf-cad/hbw/mcp_report.json
+stf-cad/hw/*.pdf

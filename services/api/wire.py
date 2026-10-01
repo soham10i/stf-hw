@@ -23,6 +23,10 @@ from stf_kernel import WorldState
 from stf_layout import Layout
 
 
+def _axis(ax) -> dict:
+    return {"count": ax.count, "pitch": ax.pitch, "labels": ax.labels}
+
+
 def scene_descriptor(layout: Layout) -> dict:
     """Everything the front end needs to build the scene, once."""
     rack = layout.main_rack
@@ -52,8 +56,8 @@ def scene_descriptor(layout: Layout) -> dict:
         },
         "rack": {
             "origin": list(rack.origin.xyz),
-            "rows": {"count": rack.rows.count, "pitch": rack.rows.pitch, "labels": rack.rows.labels},
-            "cols": {"count": rack.cols.count, "pitch": rack.cols.pitch, "labels": rack.cols.labels},
+            "rows": _axis(rack.rows),
+            "cols": _axis(rack.cols),
             "order": rack.order.value,
             "slot_envelope": list(rack.slot_envelope),
             "slots": {slot: list(layout.slot_pose(slot).xyz) for slot in rack.slot_names},
@@ -71,6 +75,10 @@ def scene_descriptor(layout: Layout) -> dict:
         "stations": {
             name: {"pose": list(st.pose.xyz), "description": st.description}
             for name, st in layout.stations.items()
+        },
+        "modules": {
+            name: {"origin": list(m.origin.xyz), "size": list(m.size), "label": m.label}
+            for name, m in layout.modules.items()
         },
     }
 
@@ -94,7 +102,9 @@ def frame(state: WorldState, seq: int) -> dict:
         },
         "belt": {
             "position": round(state.belt_position_mm, 2),
-            "object": (round(state.belt_object_mm, 2) if state.belt_object_mm is not None else None),
+            "object": (
+                round(state.belt_object_mm, 2) if state.belt_object_mm is not None else None
+            ),
         },
         "sensors": state.sensors,
     }

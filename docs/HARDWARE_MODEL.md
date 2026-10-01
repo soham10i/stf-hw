@@ -42,20 +42,26 @@ alone, and got the belt orientation wrong):
    ───────── crane lane ───────────   y = -55: mast travels along x
         Ausleger extends FORWARD (+y) into a bay
         and BACKWARD (−y) over the belt (I5 vorne / I6 hinten)
-        ┌───────────────────────┐
-        │ Förderband ──────────►│      y = -110, runs ALONG x, parallel
-        └───────────────────────┘
+   ┌───────────────────────────────────┐
+   │ Förderband ──────────────────────►│   y = -110, runs ALONG x, parallel,
+   └───────────────────────────────────┘   spanning the whole module front
         x=400 (crane transfer,          x=520 (VGR end, local 0;
         belt-local 120; I2 at 105)      I3 pick window at local 15)
 
-                              [VGR tower at (505, -230); at swivel 0 the
-                               arm reaches +y over the belt end]
+                              [VGR tower at (600, -110), right AT the belt
+                               end and in line with it; at swivel 0 the arm
+                               points back along the belt axis (−x), cup over
+                               I3. Oven at swivel +55, delivery +105, fanning
+                               across the tower's front]
 ```
 
 The crane deposits by extending the cantilever *backward* over the belt; the
 belt carries the tray along the front lane, past the identification sensors,
 to the far end where the vacuum gripper picks it. Rack, crane travel and belt
-all share one lane direction.
+all share one lane direction, and the belt's far end points straight at the
+VGR tower — the tower does not stand in front of the belt reaching back over
+it (an earlier model had the VGR rotated 90° off this, reaching +y toward the
+rack).
 
 ### Axes (the stacker crane / Regalbediengerät)
 
@@ -139,9 +145,36 @@ Concrete corrections applied to `factory.layout.yaml` and the renderer:
 3. **Opposite-end handoff.** The Förderband runs from the crane transfer point
    (HBW end) out to the VGR end; the crane deposits at one end and the VGR
    picks at the other.
-4. **VGR structure.** Rebuilt as Drehkranz (rotary base) + vertical column +
-   horizontal arm + downward suction cup, positioned to reach the far
-   (VGR) end of the conveyor — opposite the crane.
+4. **Collision-free carry stop.** The Ausleger's named stops keep the table and
+   the carrier fully inside the aisle (rack face y=0 to belt near edge y=−90)
+   whenever the crane travels: retracted 5, carry 10 (table spans −75..−15,
+   carrier −72..−18), extended 75 (table fully into the 50 mm bay, carrier at
+   the bay centre), belt −55 (carrier onto the belt centreline). An earlier
+   carry stop of 25 dragged the table and carrier through every bay front the
+   crane drove past.
+5. **VGR structure and direction.** Rebuilt as Drehkranz (rotary base) +
+   vertical column + horizontal arm + downward suction cup. The tower stands
+   **at the belt's far (VGR) end, in line with the belt centreline** at
+   (600, −110) — the Foerderband ends right at the tower base plate as in the
+   chained-factory photos; at swivel 0 the arm points back along the belt axis
+   (−x) and reach 95 puts the cup down at x=505, the I3 pick window. The
+   downstream stations (oven at
+   swivel +55°, delivery at +105°) fan across the front of the tower, and
+   their world poses are derived from the same swivel angles and reach, so the
+   layout cannot declare a station the arm cannot reach. An earlier revision
+   stood the tower 120 mm in front of the belt reaching +y — the VGR was
+   rotated 90° off its true direction with respect to the HBW — and declared
+   the stations behind the rack, three times beyond the arm's reach.
+6. **Plunge clears the rails.** The VGR's transit height (145 mm) keeps a
+   gripped carrier above the belt's side rails while the arm retracts and
+   swivels; pick (100 mm) sets the tray bottom exactly on the belt surface.
+
+The rendered mechanics follow the manual photos: the crane's travel axis is a
+long threaded spindle along the rail with its motor at the left end, the lift
+has a spindle up the mast with its motor at the head, the fork motor sits on
+the carriage; the belt web rides two end rollers with a drive motor at the HBW
+end; the VGR shows its gear ring and turntable motor, twin tower columns with
+the vertical spindle and top lift motor, and the arm's horizontal spindle.
 
 The joint *semantics* in the kernel are unchanged (travel/lift/fork for the HBW;
 swivel/reach/plunge for the VGR); only the world placement and the rendered

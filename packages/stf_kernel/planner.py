@@ -38,7 +38,9 @@ class PickPlaceOffsets:
     """
 
     approach: float = 10.0  # drop below the carrier before sliding the fork under it
-    lift: float = 10.0      # raise to take the load onto the fork
+    lift: float = 8.0       # raise to take the load: carrier bottom clears the rail
+                            # tops by 8 mm, and on a store the carrier top (30 mm)
+                            # enters the 80 mm opening 2 mm below its top edge
     hover: float = 10.0     # clearance above the belt before descending
     place: float = 5.0      # descend to set the carrier down
 

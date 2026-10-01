@@ -1,0 +1,1502 @@
+{
+ "source": "536634-Factory-simulation-24V-extended-description.pdf",
+ "board": {
+  "name": "Adapterplatine 24V / adaptor PCB 24V",
+  "blocks": {
+   "ST1": "pin header to the model (ribbon cable)",
+   "ST2": "pin header to the model (ribbon cable)",
+   "ST3": "17x2 pin header to the PLC (34 pins)",
+   "terminals": "terminals 1-30 to the PLC (alternative to ST3)",
+   "R1-R8": "relays, 4 pairs, for reversing bidirectional motors",
+   "V1-V4": "terminals for the solenoid valves"
+  },
+  "page": 4
+ },
+ "plc": {
+  "inputs": "P-lesend / sinking input: the sensor switches +24 V onto the input",
+  "outputs": "P-schaltend / sourcing output: the PLC switches +24 V to the load, load to GND",
+  "other_controllers": [
+   "interface to the adaptor PCB compatible with 24 V",
+   "cycle time at least 10 ms"
+  ],
+  "power": {
+   "1": "+24 V for the motor changeover relays -> diode -> '+24V Motor'",
+   "2": "+24 V for the sensors -> diode -> 0.2 A resettable fuse -> '+24V Sensor'",
+   "3": "GND",
+   "4": "GND",
+   "note": "internal supplies are protected against reverse polarity and overload"
+  },
+  "rules": [
+   "Light barriers: max 5 mA through the phototransistor, or it cannot pull the input to 24 V; if needed, a resistor in parallel, value found experimentally.",
+   "Unidirectional loads (lamps, valves, compressors, 1-way motors) are switched directly by the PLC; a freewheel diode is integrated for inductive loads.",
+   "Bidirectional motors: two outputs drive two changeover relays; each relay puts one motor lead on +24V Motor or GND. Each motor has a resettable fuse.",
+   "Motor speed: a reduced voltage on terminal 1 slows the motors - for ALL bidirectional motors at once (there is only one terminal).",
+   "Encoders (vacuum gripper and warehouse only): quadrature A/B, push-pull 0/24 V; single-channel counting uses B1, B3 or B5.",
+   "Trail sensor: digital 0/24 V. Colour sensor: analogue, see discrepancies."
+  ],
+  "pages": [
+   3,
+   35,
+   36,
+   37,
+   38
+  ]
+ },
+ "factory": {
+  "page": 2,
+  "supply": "24 V / 4.8 A",
+  "digital_in": 26,
+  "reference switches": 15,
+  "light barriers": 9,
+  "trail sensor inputs": 2,
+  "counter_in": 10,
+  "encoders": 5,
+  "analog_in": 1,
+  "outputs": 35,
+  "unidirectional motors": 3,
+  "bidirectional motors": 10,
+  "lamps": 1,
+  "compressors": 3,
+  "solenoid valves": 8
+ },
+ "modules": {
+  "hbw": {
+   "name": "Automated High-Bay Warehouse 24V",
+   "ft": "536631",
+   "short": "HRL",
+   "req": {
+    "supply": "24 V / 1.2 A",
+    "page": 6,
+    "digital_in": {
+     "reference switches": [
+      "I1",
+      "I4",
+      "I5",
+      "I6"
+     ],
+     "light barriers": [
+      "I2",
+      "I3"
+     ],
+     "trail sensor": [
+      "A1",
+      "A2"
+     ]
+    },
+    "counter_in": {
+     "encoders": [
+      "B1",
+      "B2",
+      "B3",
+      "B4"
+     ]
+    },
+    "analog_in": {},
+    "outputs": {
+     "bidirectional motors": [
+      "Q1",
+      "Q2",
+      "Q3",
+      "Q4",
+      "Q5",
+      "Q6",
+      "Q7",
+      "Q8"
+     ]
+    }
+   },
+   "pages": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "st3": {
+    "5": "I1",
+    "6": "I2",
+    "7": "I3",
+    "8": "I4",
+    "9": "A1",
+    "10": "A2",
+    "11": "B1",
+    "12": "B2",
+    "13": "B3",
+    "14": "B4",
+    "15": "I5",
+    "16": "I6",
+    "17": "Q1",
+    "18": "Q2",
+    "19": "Q3",
+    "20": "Q4",
+    "21": "Q5",
+    "22": "Q6",
+    "23": "Q7",
+    "24": "Q8"
+   },
+   "st1": [
+    {
+     "pin": 1,
+     "terminal": "5",
+     "signal": "I1",
+     "function": "reference switch horizontal"
+    },
+    {
+     "pin": 2,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 3,
+     "terminal": "6",
+     "signal": "I2",
+     "function": "phototransistor inside"
+    },
+    {
+     "pin": 4,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 5,
+     "terminal": "7",
+     "signal": "I3",
+     "function": "phototransistor outside"
+    },
+    {
+     "pin": 6,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 7,
+     "terminal": "17",
+     "signal": "Q1",
+     "function": "conveyor belt forward (M1)"
+    },
+    {
+     "pin": 8,
+     "terminal": "18",
+     "signal": "Q2",
+     "function": "conveyor belt backward (M1)"
+    },
+    {
+     "pin": 9,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "trail sensor supply"
+    },
+    {
+     "pin": 10,
+     "terminal": "2",
+     "signal": "9V",
+     "function": "trail sensor supply, 9 V made from 24 V"
+    },
+    {
+     "pin": 11,
+     "terminal": "9",
+     "signal": "A1",
+     "function": "trail sensor 1 (lower)"
+    },
+    {
+     "pin": 12,
+     "terminal": "10",
+     "signal": "A2",
+     "function": "trail sensor 2 (upper)"
+    },
+    {
+     "pin": 13,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "light-barrier lamps"
+    },
+    {
+     "pin": 14,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "light-barrier lamps"
+    },
+    {
+     "pin": 15,
+     "terminal": "19",
+     "signal": "Q3",
+     "function": "horizontal towards rack (M2)"
+    },
+    {
+     "pin": 16,
+     "terminal": "20",
+     "signal": "Q4",
+     "function": "horizontal towards belt (M2)"
+    },
+    {
+     "pin": 17,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "encoder horizontal supply"
+    },
+    {
+     "pin": 18,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "encoder horizontal supply"
+    },
+    {
+     "pin": 19,
+     "terminal": "11",
+     "signal": "B1",
+     "function": "encoder horizontal signal A"
+    },
+    {
+     "pin": 20,
+     "terminal": "12",
+     "signal": "B2",
+     "function": "encoder horizontal signal B"
+    }
+   ],
+   "st2": [
+    {
+     "pin": 1,
+     "terminal": "8",
+     "signal": "I4",
+     "function": "reference switch vertical"
+    },
+    {
+     "pin": 2,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 3,
+     "terminal": "21",
+     "signal": "Q5",
+     "function": "vertical axis down (M3)"
+    },
+    {
+     "pin": 4,
+     "terminal": "22",
+     "signal": "Q6",
+     "function": "vertical axis up (M3)"
+    },
+    {
+     "pin": 5,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "encoder vertical supply"
+    },
+    {
+     "pin": 6,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "encoder vertical supply"
+    },
+    {
+     "pin": 7,
+     "terminal": "13",
+     "signal": "B3",
+     "function": "encoder vertical signal A"
+    },
+    {
+     "pin": 8,
+     "terminal": "14",
+     "signal": "B4",
+     "function": "encoder vertical signal B"
+    },
+    {
+     "pin": 9,
+     "terminal": "15",
+     "signal": "I5",
+     "function": "reference switch cantilever front"
+    },
+    {
+     "pin": 10,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 11,
+     "terminal": "23",
+     "signal": "Q7",
+     "function": "cantilever forward (M4)"
+    },
+    {
+     "pin": 12,
+     "terminal": "24",
+     "signal": "Q8",
+     "function": "cantilever back (M4)"
+    },
+    {
+     "pin": 13,
+     "terminal": "16",
+     "signal": "I6",
+     "function": "reference switch cantilever back"
+    },
+    {
+     "pin": 14,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    }
+   ],
+   "relays": {
+    "R1/R2": {
+     "role": "conveyor belt",
+     "a": "Q1",
+     "b": "Q2",
+     "motor": "M1"
+    },
+    "R3/R4": {
+     "role": "horizontal",
+     "a": "Q3",
+     "b": "Q4",
+     "motor": "M2"
+    },
+    "R5/R6": {
+     "role": "vertical",
+     "a": "Q5",
+     "b": "Q6",
+     "motor": "M3"
+    },
+    "R7/R8": {
+     "role": "cantilever",
+     "a": "Q7",
+     "b": "Q8",
+     "motor": "M4"
+    }
+   },
+   "valves": {},
+   "encoders": {
+    "M2": [
+     "B1",
+     "B2"
+    ],
+    "M3": [
+     "B3",
+     "B4"
+    ]
+   }
+  },
+  "vgr": {
+   "name": "Vacuum Gripper Robot 24V",
+   "ft": "536630",
+   "short": "VKG",
+   "req": {
+    "supply": "24 V / approx. 0.9 A",
+    "page": 29,
+    "digital_in": {
+     "reference switches": [
+      "I1",
+      "I2",
+      "I3"
+     ]
+    },
+    "counter_in": {
+     "encoders": [
+      "B1",
+      "B2",
+      "B3",
+      "B4",
+      "B5",
+      "B6"
+     ]
+    },
+    "analog_in": {},
+    "outputs": {
+     "bidirectional motors": [
+      "Q1",
+      "Q2",
+      "Q3",
+      "Q4",
+      "Q5",
+      "Q6"
+     ],
+     "compressor": [
+      "Q7"
+     ],
+     "solenoid valves": [
+      "Q8"
+     ]
+    }
+   },
+   "pages": [
+    29,
+    30,
+    31,
+    32,
+    33
+   ],
+   "st3": {
+    "5": "I1",
+    "6": "I2",
+    "7": "I3",
+    "9": "B1",
+    "10": "B2",
+    "11": "B3",
+    "12": "B4",
+    "13": "B5",
+    "14": "B6",
+    "17": "Q1",
+    "18": "Q2",
+    "19": "Q3",
+    "20": "Q4",
+    "21": "Q5",
+    "22": "Q6",
+    "23": "Q7",
+    "24": "Q8"
+   },
+   "st1": [
+    {
+     "pin": 1,
+     "terminal": "17",
+     "signal": "Q1",
+     "function": "vertical up (M1)"
+    },
+    {
+     "pin": 2,
+     "terminal": "18",
+     "signal": "Q2",
+     "function": "vertical down (M1)"
+    },
+    {
+     "pin": 3,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "encoder supply"
+    },
+    {
+     "pin": 4,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "encoder supply"
+    },
+    {
+     "pin": 5,
+     "terminal": "9",
+     "signal": "B1",
+     "function": "encoder vertical signal A"
+    },
+    {
+     "pin": 6,
+     "terminal": "10",
+     "signal": "B2",
+     "function": "encoder vertical signal B"
+    },
+    {
+     "pin": 7,
+     "terminal": "5",
+     "signal": "I1",
+     "function": "reference vertical"
+    },
+    {
+     "pin": 8,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 9,
+     "terminal": "19",
+     "signal": "Q3",
+     "function": "horizontal backward (M2)"
+    },
+    {
+     "pin": 10,
+     "terminal": "20",
+     "signal": "Q4",
+     "function": "horizontal forward (M2)"
+    },
+    {
+     "pin": 11,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "encoder supply"
+    },
+    {
+     "pin": 12,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "encoder supply"
+    },
+    {
+     "pin": 13,
+     "terminal": "11",
+     "signal": "B3",
+     "function": "encoder horizontal signal A"
+    },
+    {
+     "pin": 14,
+     "terminal": "12",
+     "signal": "B4",
+     "function": "encoder horizontal signal B"
+    },
+    {
+     "pin": 15,
+     "terminal": "6",
+     "signal": "I2",
+     "function": "reference horizontal"
+    },
+    {
+     "pin": 16,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    }
+   ],
+   "st2": [
+    {
+     "pin": 1,
+     "terminal": "7",
+     "signal": "I3",
+     "function": "reference rotate"
+    },
+    {
+     "pin": 2,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 3,
+     "terminal": "21",
+     "signal": "Q5",
+     "function": "rotate clockwise (M3)"
+    },
+    {
+     "pin": 4,
+     "terminal": "22",
+     "signal": "Q6",
+     "function": "rotate counter-clockwise (M3)"
+    },
+    {
+     "pin": 5,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "encoder supply"
+    },
+    {
+     "pin": 6,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "encoder supply"
+    },
+    {
+     "pin": 7,
+     "terminal": "13",
+     "signal": "B5",
+     "function": "encoder rotate signal A"
+    },
+    {
+     "pin": 8,
+     "terminal": "14",
+     "signal": "B6",
+     "function": "encoder rotate signal B"
+    },
+    {
+     "pin": 9,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "compressor"
+    },
+    {
+     "pin": 10,
+     "terminal": "23",
+     "signal": "Q7",
+     "function": "compressor"
+    }
+   ],
+   "relays": {
+    "R1/R2": {
+     "role": "vertical",
+     "a": "Q1",
+     "b": "Q2",
+     "motor": "M1"
+    },
+    "R3/R4": {
+     "role": "horizontal",
+     "a": "Q3",
+     "b": "Q4",
+     "motor": "M2"
+    },
+    "R5/R6": {
+     "role": "turntable / rotate",
+     "a": "Q5",
+     "b": "Q6",
+     "motor": "M3"
+    },
+    "R7/R8": null
+   },
+   "valves": {
+    "V1": {
+     "role": "vacuum",
+     "q": "Q8",
+     "terminal": "24"
+    }
+   },
+   "encoders": {
+    "M1": [
+     "B1",
+     "B2"
+    ],
+    "M2": [
+     "B3",
+     "B4"
+    ],
+    "M3": [
+     "B5",
+     "B6"
+    ]
+   }
+  },
+  "oven": {
+   "name": "Multi Processing Station with Oven 24V",
+   "ft": "536632",
+   "short": "FBS",
+   "req": {
+    "supply": "24 V / approx. 1.6 A",
+    "page": 13,
+    "digital_in": {
+     "reference switches": [
+      "I1",
+      "I2",
+      "I4",
+      "I5",
+      "I6",
+      "I7",
+      "I8"
+     ],
+     "light barriers": [
+      "I3",
+      "I9"
+     ]
+    },
+    "counter_in": {},
+    "analog_in": {},
+    "outputs": {
+     "unidirectional motors": [
+      "Q3",
+      "Q4"
+     ],
+     "bidirectional motors": [
+      "Q1",
+      "Q2",
+      "Q5",
+      "Q6",
+      "Q7",
+      "Q8"
+     ],
+     "lamp": [
+      "Q9"
+     ],
+     "compressor": [
+      "Q10"
+     ],
+     "solenoid valves": [
+      "Q11",
+      "Q12",
+      "Q13",
+      "Q14"
+     ]
+    }
+   },
+   "pages": [
+    13,
+    14,
+    15,
+    16,
+    17,
+    18
+   ],
+   "st3": {
+    "5": "I1",
+    "6": "I2",
+    "7": "I3",
+    "8": "I4",
+    "9": "I5",
+    "10": "I6",
+    "11": "I7",
+    "12": "I8",
+    "13": "I9",
+    "17": "Q1",
+    "18": "Q2",
+    "19": "Q3",
+    "20": "Q4",
+    "21": "Q5",
+    "22": "Q6",
+    "23": "Q7",
+    "24": "Q8",
+    "25": "Q9",
+    "26": "Q10",
+    "27": "Q11",
+    "28": "Q12",
+    "29": "Q13",
+    "30": "Q14"
+   },
+   "st1": [
+    {
+     "pin": 1,
+     "terminal": "5",
+     "signal": "I1",
+     "function": "reference turntable (vacuum position)"
+    },
+    {
+     "pin": 2,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 3,
+     "terminal": "6",
+     "signal": "I2",
+     "function": "reference turntable (belt position)"
+    },
+    {
+     "pin": 4,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 5,
+     "terminal": "7",
+     "signal": "I3",
+     "function": "light barrier end of conveyor belt"
+    },
+    {
+     "pin": 6,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 7,
+     "terminal": "17",
+     "signal": "Q1",
+     "function": "turntable clockwise (M1)"
+    },
+    {
+     "pin": 8,
+     "terminal": "18",
+     "signal": "Q2",
+     "function": "turntable counter-clockwise (M1)"
+    },
+    {
+     "pin": 9,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "light-barrier lamp"
+    },
+    {
+     "pin": 10,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "light-barrier lamp"
+    },
+    {
+     "pin": 11,
+     "terminal": "9",
+     "signal": "I5",
+     "function": "reference vacuum (turntable position)"
+    },
+    {
+     "pin": 12,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 13,
+     "terminal": "8",
+     "signal": "I4",
+     "function": "reference turntable (saw position)"
+    },
+    {
+     "pin": 14,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 15,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "conveyor belt motor return"
+    },
+    {
+     "pin": 16,
+     "terminal": "19",
+     "signal": "Q3",
+     "function": "conveyor belt (M2)"
+    },
+    {
+     "pin": 17,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "saw motor return"
+    },
+    {
+     "pin": 18,
+     "terminal": "20",
+     "signal": "Q4",
+     "function": "saw (M3)"
+    },
+    {
+     "pin": 19,
+     "terminal": null,
+     "signal": null,
+     "function": "not used"
+    },
+    {
+     "pin": 20,
+     "terminal": null,
+     "signal": null,
+     "function": "not used"
+    }
+   ],
+   "st2": [
+    {
+     "pin": 1,
+     "terminal": null,
+     "signal": null,
+     "function": "not used"
+    },
+    {
+     "pin": 2,
+     "terminal": null,
+     "signal": null,
+     "function": "not used"
+    },
+    {
+     "pin": 3,
+     "terminal": "21",
+     "signal": "Q5",
+     "function": "oven feeder retract (M4)"
+    },
+    {
+     "pin": 4,
+     "terminal": "22",
+     "signal": "Q6",
+     "function": "oven feeder extend (M4)"
+    },
+    {
+     "pin": 5,
+     "terminal": "10",
+     "signal": "I6",
+     "function": "oven feeder inside"
+    },
+    {
+     "pin": 6,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 7,
+     "terminal": "11",
+     "signal": "I7",
+     "function": "oven feeder outside"
+    },
+    {
+     "pin": 8,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 9,
+     "terminal": "12",
+     "signal": "I8",
+     "function": "vacuum at oven"
+    },
+    {
+     "pin": 10,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 11,
+     "terminal": "23",
+     "signal": "Q7",
+     "function": "vacuum towards oven (M5)"
+    },
+    {
+     "pin": 12,
+     "terminal": "24",
+     "signal": "Q8",
+     "function": "vacuum towards turntable (M5)"
+    },
+    {
+     "pin": 13,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "oven lamp return"
+    },
+    {
+     "pin": 14,
+     "terminal": "25",
+     "signal": "Q9",
+     "function": "oven lamp"
+    },
+    {
+     "pin": 15,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "compressor return"
+    },
+    {
+     "pin": 16,
+     "terminal": "26",
+     "signal": "Q10",
+     "function": "compressor"
+    },
+    {
+     "pin": 17,
+     "terminal": "13",
+     "signal": "I9",
+     "function": "light barrier oven"
+    },
+    {
+     "pin": 18,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 19,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "light-barrier lamp"
+    },
+    {
+     "pin": 20,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "light-barrier lamp"
+    }
+   ],
+   "relays": {
+    "R1/R2": {
+     "role": "turntable",
+     "a": "Q1",
+     "b": "Q2",
+     "motor": "M1"
+    },
+    "R3/R4": null,
+    "R5/R6": {
+     "role": "oven feeder",
+     "a": "Q5",
+     "b": "Q6",
+     "motor": "M4"
+    },
+    "R7/R8": {
+     "role": "gripper / vacuum carriage",
+     "a": "Q7",
+     "b": "Q8",
+     "motor": "M5"
+    }
+   },
+   "valves": {
+    "V1": {
+     "role": "vacuum",
+     "q": "Q11",
+     "terminal": "27"
+    },
+    "V2": {
+     "role": "lowering",
+     "q": "Q12",
+     "terminal": "28"
+    },
+    "V3": {
+     "role": "oven door",
+     "q": "Q13",
+     "terminal": "29"
+    },
+    "V4": {
+     "role": "pusher turntable",
+     "q": "Q14",
+     "terminal": "30"
+    }
+   },
+   "encoders": {}
+  },
+  "sorting": {
+   "name": "Sorting Line with Detection 24V",
+   "ft": "536633",
+   "short": "BSO",
+   "req": {
+    "supply": "24 V / 1.1 A",
+    "page": 21,
+    "digital_in": {
+     "reference switches": [
+      "I1"
+     ],
+     "light barriers": [
+      "I2",
+      "I3",
+      "I5",
+      "I6",
+      "I7"
+     ]
+    },
+    "counter_in": {},
+    "analog_in": {
+     "colour sensor": [
+      "A4"
+     ]
+    },
+    "outputs": {
+     "unidirectional motors": [
+      "Q1"
+     ],
+     "compressor": [
+      "Q2"
+     ],
+     "solenoid valves": [
+      "Q3",
+      "Q4",
+      "Q5"
+     ]
+    }
+   },
+   "pages": [
+    21,
+    22,
+    23,
+    24,
+    25,
+    26
+   ],
+   "st3": {
+    "5": "I1",
+    "6": "I2",
+    "7": "I3",
+    "9": "A4",
+    "10": "I5",
+    "11": "I6",
+    "12": "I7",
+    "17": "Q1",
+    "18": "Q2",
+    "20": "Q3",
+    "21": "Q4",
+    "22": "Q5"
+   },
+   "st1": [
+    {
+     "pin": 1,
+     "terminal": "5",
+     "signal": "I1",
+     "function": "pulse counter (Impulstaster)"
+    },
+    {
+     "pin": 2,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 3,
+     "terminal": "6",
+     "signal": "I2",
+     "function": "light barrier inlet"
+    },
+    {
+     "pin": 4,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 5,
+     "terminal": "7",
+     "signal": "I3",
+     "function": "light barrier behind colour sensor"
+    },
+    {
+     "pin": 6,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 7,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "compressor return"
+    },
+    {
+     "pin": 8,
+     "terminal": "18",
+     "signal": "Q2",
+     "function": "compressor"
+    },
+    {
+     "pin": 9,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "belt motor return"
+    },
+    {
+     "pin": 10,
+     "terminal": "17",
+     "signal": "Q1",
+     "function": "conveyor belt"
+    },
+    {
+     "pin": 11,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "colour sensor"
+    },
+    {
+     "pin": 12,
+     "terminal": "2",
+     "signal": "9V",
+     "function": "colour sensor supply, 9 V made from 24 V"
+    },
+    {
+     "pin": 13,
+     "terminal": "9",
+     "signal": "A4",
+     "function": "colour sensor output"
+    },
+    {
+     "pin": 14,
+     "terminal": null,
+     "signal": null,
+     "function": "not used"
+    },
+    {
+     "pin": 15,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "light-barrier lamp"
+    },
+    {
+     "pin": 16,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "light-barrier lamp"
+    },
+    {
+     "pin": 17,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "light-barrier lamp"
+    },
+    {
+     "pin": 18,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "light-barrier lamp"
+    },
+    {
+     "pin": 19,
+     "terminal": null,
+     "signal": null,
+     "function": "not used"
+    },
+    {
+     "pin": 20,
+     "terminal": null,
+     "signal": null,
+     "function": "not used"
+    }
+   ],
+   "st2": [
+    {
+     "pin": 1,
+     "terminal": null,
+     "signal": null,
+     "function": "not used"
+    },
+    {
+     "pin": 2,
+     "terminal": null,
+     "signal": null,
+     "function": "not used"
+    },
+    {
+     "pin": 3,
+     "terminal": "10",
+     "signal": "I5",
+     "function": "light barrier white"
+    },
+    {
+     "pin": 4,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 5,
+     "terminal": "12",
+     "signal": "I7",
+     "function": "light barrier blue"
+    },
+    {
+     "pin": 6,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 7,
+     "terminal": "11",
+     "signal": "I6",
+     "function": "light barrier red"
+    },
+    {
+     "pin": 8,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "sensor supply"
+    },
+    {
+     "pin": 9,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "light-barrier lamp"
+    },
+    {
+     "pin": 10,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "light-barrier lamp"
+    },
+    {
+     "pin": 11,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "light-barrier lamp"
+    },
+    {
+     "pin": 12,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "light-barrier lamp"
+    },
+    {
+     "pin": 13,
+     "terminal": "3,4",
+     "signal": "GND",
+     "function": "light-barrier lamp"
+    },
+    {
+     "pin": 14,
+     "terminal": "2",
+     "signal": "+24V",
+     "function": "light-barrier lamp"
+    }
+   ],
+   "relays": {
+    "R1/R2": null,
+    "R3/R4": null,
+    "R5/R6": null,
+    "R7/R8": null
+   },
+   "valves": {
+    "V1": {
+     "role": "ejector white",
+     "q": "Q3",
+     "terminal": "20"
+    },
+    "V2": {
+     "role": "ejector red",
+     "q": "Q4",
+     "terminal": "21"
+    },
+    "V3": {
+     "role": "ejector blue",
+     "q": "Q5",
+     "terminal": "22"
+    }
+   },
+   "encoders": {}
+  }
+ },
+ "discrepancies": [
+  {
+   "what": "Colour sensor output range",
+   "a": "0-10 V analogue (this document p.21, p.25, p.36)",
+   "b": "0-2 V / 0-2000 mV (colour sensor datasheet 128599)",
+   "impact": "scale the analogue input for the range the sensor really delivers; measure it on the machine"
+  },
+  {
+   "what": "Warehouse vertical motor outputs",
+   "a": "'Q6/Q7 (M3)' on the wiring page (p.10)",
+   "b": "Q5/Q6 on the pin header (p.9), the Belegungsplan and terminals 21/22",
+   "impact": "typo on p.10 - Q5/Q6 is used here"
+  },
+  {
+   "what": "Processing station valve V2",
+   "a": "'Vakuum / vacuum' in the board table (p.4)",
+   "b": "Q12 'Ventil Senken / valve lowering' on terminal V2 (p.18, Belegungsplan)",
+   "impact": "V2 = lowering is used here (it is wired to Q12)"
+  },
+  {
+   "what": "Sorting line terminal 9",
+   "a": "labelled 'I4' on the pin header (p.24)",
+   "b": "A4, the analogue colour sensor, on the wiring page (p.25) and Belegungsplan",
+   "impact": "an analogue signal on a pin the header calls digital - the RevPi DIO occupancy plan lists the colour sensor as 'not used'"
+  },
+  {
+   "what": "Oven turntable Q1 direction",
+   "a": "English 'counterclockwise' for BOTH Q1 and Q2 (Belegungsplan)",
+   "b": "German 'im Uhrzeigersinn' (clockwise) for Q1",
+   "impact": "Q1 = clockwise is used here"
+  }
+ ],
+ "reconciliation": {
+  "modules": [
+   {
+    "module": "hbw",
+    "plan_signals": [
+     "A1",
+     "A2",
+     "B1",
+     "B2",
+     "B3",
+     "B4",
+     "I1",
+     "I2",
+     "I3",
+     "I4",
+     "I5",
+     "I6",
+     "Q1",
+     "Q2",
+     "Q3",
+     "Q4",
+     "Q5",
+     "Q6",
+     "Q7",
+     "Q8"
+    ],
+    "missing_in_model": [],
+    "extra_in_model": {
+     "AUX1": [
+      "CS1_colour_front_L"
+     ],
+     "AUX2": [
+      "CS2_colour_front_R"
+     ],
+     "AUX3": [
+      "LB1_pos_back_L"
+     ],
+     "AUX4": [
+      "LB2_pos_back_R"
+     ]
+    },
+    "ok": true
+   },
+   {
+    "module": "vgr",
+    "plan_signals": [
+     "B1",
+     "B2",
+     "B3",
+     "B4",
+     "B5",
+     "B6",
+     "I1",
+     "I2",
+     "I3",
+     "Q1",
+     "Q2",
+     "Q3",
+     "Q4",
+     "Q5",
+     "Q6",
+     "Q7",
+     "Q8"
+    ],
+    "missing_in_model": [],
+    "extra_in_model": {},
+    "ok": true
+   },
+   {
+    "module": "oven",
+    "plan_signals": [
+     "I1",
+     "I2",
+     "I3",
+     "I4",
+     "I5",
+     "I6",
+     "I7",
+     "I8",
+     "I9",
+     "Q1",
+     "Q2",
+     "Q3",
+     "Q4",
+     "Q5",
+     "Q6",
+     "Q7",
+     "Q8",
+     "Q9",
+     "Q10",
+     "Q11",
+     "Q12",
+     "Q13",
+     "Q14"
+    ],
+    "missing_in_model": [],
+    "extra_in_model": {},
+    "ok": true
+   },
+   {
+    "module": "sorting",
+    "plan_signals": [
+     "A4",
+     "I1",
+     "I2",
+     "I3",
+     "I5",
+     "I6",
+     "I7",
+     "Q1",
+     "Q2",
+     "Q3",
+     "Q4",
+     "Q5"
+    ],
+    "missing_in_model": [],
+    "extra_in_model": {},
+    "ok": true
+   }
+  ],
+  "totals": [
+   {
+    "what": "digital_in",
+    "doc_p2": 26,
+    "sum_of_modules": 26,
+    "ok": true
+   },
+   {
+    "what": "counter_in",
+    "doc_p2": 10,
+    "sum_of_modules": 10,
+    "ok": true
+   },
+   {
+    "what": "analog_in",
+    "doc_p2": 1,
+    "sum_of_modules": 1,
+    "ok": true
+   },
+   {
+    "what": "outputs",
+    "doc_p2": 35,
+    "sum_of_modules": 35,
+    "ok": true
+   }
+  ]
+ }
+}

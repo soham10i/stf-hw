@@ -40,12 +40,24 @@ export interface SceneDescriptor {
     sensors: Record<string, { at_mm: number | null; kind: string }>;
   };
   stations: Record<string, { pose: [number, number, number]; description: string | null }>;
+  modules: Record<
+    string,
+    { origin: [number, number, number]; size: [number, number]; label: string | null }
+  >;
 }
 
 export interface Carrier {
   flavor: string | null;
-  holder: string | null; // null | "slot:B2" | "fork" | "belt" | "suction" | "delivery"
+  holder: string | null; // null | "slot:B2" | "fork" | "belt" | "suction" | "oven" | "delivery"
   slot: string | null;
+}
+
+// Brennofen state, animated server-side: Ofenschieber (1 = out, 0 = inside the
+// chamber), Ofentuer (1 = open, 0 = closed), baking lamp.
+export interface OvenState {
+  slider: number;
+  door: number;
+  lamp: boolean;
 }
 
 export interface Frame {
@@ -59,6 +71,7 @@ export interface Frame {
   belt: { position: number; object: number | null };
   sensors: Record<string, boolean>;
   carrier?: Carrier;
+  oven?: OvenState;
 }
 
 export interface Order {

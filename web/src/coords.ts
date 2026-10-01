@@ -24,6 +24,6 @@ export const AXIS3 = {
   travel: "x", // factory +X
   lift: "y", // factory +Z (up)
   fork: "z", // factory +Y (depth, into the rack)
-  reach: "z", // factory +Y
+  reach: "x", // factory -X (the VGR arm's home direction, toward the belt)
   plunge: "y", // factory +Z (up)
 } as const;

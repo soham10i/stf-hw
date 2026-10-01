@@ -284,16 +284,55 @@ def test_deposit_lands_on_the_belt_centreline(layout: Layout) -> None:
 
 
 def test_vgr_pick_point_matches_the_belt_end(layout: Layout) -> None:
-    """VGR base + reach at swivel 0 must land in the I3 pick window."""
-    base = layout.devices["vgr"].base.xyz
-    pick_y = base[1] + layout.joint("vgr.reach").at("conveyor")
-    assert pick_y == pytest.approx(layout.conveyor.pose.xyz[1]), "wrong depth"
+    """
+    VGR base - reach at swivel 0 must land in the I3 pick window.
 
-    belt_local = layout.conveyor.pose.xyz[0] - base[0]
+    The tower stands beyond the belt's far end, in line with the belt
+    centreline; at swivel 0 the arm points back along the belt axis (-x).
+    """
+    base = layout.devices["vgr"].base.xyz
+    assert base[1] == pytest.approx(layout.conveyor.pose.xyz[1]), (
+        "the tower must stand on the belt centreline"
+    )
+
+    pick_x = base[0] - layout.joint("vgr.reach").at("conveyor")
+    belt_local = layout.conveyor.pose.xyz[0] - pick_x
     lo, hi = layout.conveyor.sensor_window("I3")
     assert lo <= belt_local <= hi, (
         f"VGR picks at belt-local {belt_local}, outside I3 window ({lo}, {hi})"
     )
+
+
+def test_stations_match_the_vgr_kinematics(layout: Layout) -> None:
+    """
+    Every station the VGR serves must lie exactly where its arm places it.
+
+    station = vgr.base + R_z(swivel.positions[name]) . (-reach.conveyor, 0),
+    at belt surface height. This is the regression test for the old layout,
+    which declared stations behind the rack, 3x beyond the arm's reach, while
+    the swivel angles claimed to serve them.
+    """
+    import math
+
+    base = layout.devices["vgr"].base.xyz
+    reach = layout.joint("vgr.reach").at("conveyor")
+    swivel = layout.joint("vgr.swivel")
+    belt_z = layout.conveyor.pose.xyz[2]
+
+    for name, station in layout.stations.items():
+        theta = math.radians(swivel.at(name))
+        expect_x = base[0] - reach * math.cos(theta)
+        expect_y = base[1] - reach * math.sin(theta)
+        x, y, z = station.pose.xyz
+        assert x == pytest.approx(expect_x, abs=1.0), (
+            f"station {name}: x={x} but the arm places at x={expect_x:.1f}"
+        )
+        assert y == pytest.approx(expect_y, abs=1.0), (
+            f"station {name}: y={y} but the arm places at y={expect_y:.1f}"
+        )
+        assert z == pytest.approx(belt_z), (
+            f"station {name}: pad height {z} != belt surface {belt_z}"
+        )
 
 
 # --------------------------------------------------------------------------

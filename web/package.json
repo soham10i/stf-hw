@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:pages": "VITE_LIVE_API=0 tsc -b && VITE_LIVE_API=0 vite build --outDir dist-pages"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.3",

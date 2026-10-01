@@ -436,6 +436,20 @@ class Station(_Frozen):
     description: str | None = None
 
 
+class Module(_Frozen):
+    """One physical base plate of the factory (render-only placement aid).
+
+    The real machine chains several dark fischertechnik plates on a white
+    table - it is not one slab. Rectangles are factory-frame millimetres:
+    ``origin`` is the plate's minimum corner, ``size`` its (dx, dy) extent.
+    Sizes are estimated from photos; see docs/FACTORY_GROUND_TRUTH.md.
+    """
+
+    origin: Pose
+    size: tuple[float, float]
+    label: str | None = None
+
+
 class Layout(_Frozen):
     """The whole factory, as data."""
 
@@ -446,6 +460,7 @@ class Layout(_Frozen):
     racks: dict[str, Rack]
     conveyor: Conveyor
     stations: dict[str, Station] = Field(default_factory=dict)
+    modules: dict[str, Module] = Field(default_factory=dict)
     components: dict[str, Component] = Field(default_factory=dict)
     render: RenderSpec = RenderSpec()
 
@@ -541,6 +556,7 @@ __all__ = [
     "Joint",
     "JointKind",
     "Layout",
+    "Module",
     "Pose",
     "Rack",
     "RackAxisSpec",

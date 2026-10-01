@@ -1,0 +1,277 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<defs><marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+<path d="M0,2 L10,5 L0,8 z" fill="#1b2330"/></marker>
+<marker id="f" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+<path d="M0,1 L10,5 L0,9 z" fill="#1f4e8c"/></marker>
+<pattern id="hatch" width="1.6" height="1.6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="1.6" height="1.6" fill="#eef1f5"/><line x1="0" y1="0" x2="0" y2="1.6" stroke="#1b2330" stroke-width=".18"/></pattern></defs>
+<style>
+text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
+.vt{font-size:3.2px;font-weight:700;letter-spacing:.3px}
+.dt{font-size:2.3px}
+.dim{stroke:#1b2330;stroke-width:.15;fill:none}
+.ext{stroke:#1b2330;stroke-width:.1}
+.tb{font-size:2.6px}.tbh{font-size:4.2px;font-weight:700}.tbs{font-size:2.1px;fill:#445}
+.nt{font-size:2.3px}.nh{font-size:2.8px;font-weight:700;fill:#1f4e8c}
+.co{font-size:2.1px}.col{stroke:#1f4e8c;stroke-width:.15}
+</style>
+<rect width="420" height="297" fill="#ffffff"/>
+<rect x="10" y="10" width="400" height="277" fill="none" stroke="#1b2330" stroke-width=".5"/>
+<text x="20.0" y="22.0" class="nh" text-anchor="start" >SAFETY FUNCTIONS (TwinSAFE EL6910) - Upgrade S-1</text>
+<text x="20.0" y="30.0" class="tb" text-anchor="start" >SF1  E-stop  (PLr d, stop cat 0 (K3/K4, Q19) + SS1 before K1/K2)</text>
+<text x="26.0" y="34.4" class="tbs" text-anchor="start" >in:  S10.A/B S11.A/B S12.A/B, S13 reset</text>
+<text x="26.0" y="38.8" class="tbs" text-anchor="start" >out: K1+K2 off (all motion, STO-equivalent), Q19 exhaust, K3+K4 off (heaters)</text>
+<text x="26.0" y="43.2" class="tbs" text-anchor="start" >diag: EDM K1K2.EDM, K3K4.EDM, Q19.FB</text>
+<text x="20.0" y="49.7" class="tb" text-anchor="start" >SF2  guard locking  (PLr d, stop SS1)</text>
+<text x="26.0" y="54.1" class="tbs" text-anchor="start" >in:  S20.A/B S21.A/B S22.A/B</text>
+<text x="26.0" y="58.5" class="tbs" text-anchor="start" >out: door opened / unlocked -&gt; SS1 -&gt; K1+K2 off, Q19 exhaust; S2x.UNL only after SS1 + standstill</text>
+<text x="26.0" y="62.9" class="tbs" text-anchor="start" >diag: EDM, lock state from the switch OSSDs</text>
+<text x="20.0" y="69.4" class="tb" text-anchor="start" >SF3  safe exhaust  (PLr c, stop 0)</text>
+<text x="26.0" y="73.8" class="tbs" text-anchor="start" >in:  SF1 / SF2 demand</text>
+<text x="26.0" y="78.2" class="tbs" text-anchor="start" >out: Q19 dump valve de-energised</text>
+<text x="26.0" y="82.6" class="tbs" text-anchor="start" >diag: Q19.FB</text>
+<text x="20.0" y="89.1" class="tb" text-anchor="start" >SF4  over-temperature  (PLr c, stop 0 (hardwired, not TwinSAFE))</text>
+<text x="26.0" y="93.5" class="tbs" text-anchor="start" >in:  STL per zone (own duplex element)</text>
+<text x="26.0" y="97.9" class="tbs" text-anchor="start" >out: STL relay contact opens the zone&#x27;s load; trip reported on &lt;zone&gt;.STL</text>
+<text x="26.0" y="102.3" class="tbs" text-anchor="start" >diag: manual STL reset</text>
+<text x="20.0" y="108.8" class="tb" text-anchor="start" >SF5  chain drawing-in  (PLr c, stop -)</text>
+<text x="26.0" y="113.2" class="tbs" text-anchor="start" >in:  (covered by the perimeter guard: no motion with a door open)</text>
+<text x="26.0" y="117.6" class="tbs" text-anchor="start" >out: -</text>
+<text x="26.0" y="122.0" class="tbs" text-anchor="start" >diag: no jog / enabling device in S-1</text>
+<text x="20.0" y="128.5" class="tb" text-anchor="start" >SF6  AMR airlocks  (PLr c, stop 0 / zone STO)</text>
+<text x="26.0" y="132.9" class="tbs" text-anchor="start" >in:  S30.A/B (boxes outer door), S31.A/B (out outer), S32.A/B (out inner), Q42..Q44.CL trapdoors closed, S34.A/B drawer</text>
+<text x="26.0" y="137.3" class="tbs" text-anchor="start" >out: boxes: S30 unlocks only with every trapdoor closed and Y1 exhausted; trapdoors open only with S30 locked. out: S31 unlocks only with S32 locked a</text>
+<text x="26.0" y="141.7" class="tbs" text-anchor="start" >diag: EDM K5.EDM, Y1.FB, lock OSSDs</text>
+<text x="20.0" y="150.2" class="nh" text-anchor="start" >SAFE I/O</text>
+<text x="20.0" y="156.2" class="tb" text-anchor="start" >kind</text>
+<text x="30.0" y="156.2" class="tb" text-anchor="start" >tag</text>
+<text x="50.0" y="156.2" class="tb" text-anchor="start" >terminal</text>
+<text x="76.0" y="156.2" class="tb" text-anchor="start" >device / part</text>
+<text x="118.0" y="156.2" class="tb" text-anchor="start" >function</text>
+<text x="20.0" y="160.7" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="160.7" class="tbs" text-anchor="start" >Q42.CL</text>
+<text x="50.0" y="160.7" class="tbs" text-anchor="start" >-KF46 ch1</text>
+<text x="76.0" y="160.7" class="tbs" text-anchor="start" >trapdoor_weiss</text>
+<text x="118.0" y="160.7" class="tbs" text-anchor="start" >trapdoor closed (position switch)</text>
+<text x="20.0" y="163.5" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="163.5" class="tbs" text-anchor="start" >Q43.CL</text>
+<text x="50.0" y="163.5" class="tbs" text-anchor="start" >-KF46 ch2</text>
+<text x="76.0" y="163.5" class="tbs" text-anchor="start" >trapdoor_rot</text>
+<text x="118.0" y="163.5" class="tbs" text-anchor="start" >trapdoor closed (position switch)</text>
+<text x="20.0" y="166.2" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="166.2" class="tbs" text-anchor="start" >Q44.CL</text>
+<text x="50.0" y="166.2" class="tbs" text-anchor="start" >-KF46 ch3</text>
+<text x="76.0" y="166.2" class="tbs" text-anchor="start" >trapdoor_blau</text>
+<text x="118.0" y="166.2" class="tbs" text-anchor="start" >trapdoor closed (position switch)</text>
+<text x="20.0" y="169.0" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="169.0" class="tbs" text-anchor="start" >S10.A</text>
+<text x="50.0" y="169.0" class="tbs" text-anchor="start" >-KF46 ch4</text>
+<text x="76.0" y="169.0" class="tbs" text-anchor="start" >estop_S10_head</text>
+<text x="118.0" y="169.0" class="tbs" text-anchor="start" >E-stop NC contact A (SF1, 2-channel)</text>
+<text x="20.0" y="171.7" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="171.7" class="tbs" text-anchor="start" >S10.B</text>
+<text x="50.0" y="171.7" class="tbs" text-anchor="start" >-KF47 ch1</text>
+<text x="76.0" y="171.7" class="tbs" text-anchor="start" >estop_S10_head</text>
+<text x="118.0" y="171.7" class="tbs" text-anchor="start" >E-stop NC contact B (SF1, 2-channel)</text>
+<text x="20.0" y="174.5" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="174.5" class="tbs" text-anchor="start" >S11.A</text>
+<text x="50.0" y="174.5" class="tbs" text-anchor="start" >-KF47 ch2</text>
+<text x="76.0" y="174.5" class="tbs" text-anchor="start" >estop_S11_head</text>
+<text x="118.0" y="174.5" class="tbs" text-anchor="start" >E-stop NC contact A (SF1, 2-channel)</text>
+<text x="20.0" y="177.2" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="177.2" class="tbs" text-anchor="start" >S11.B</text>
+<text x="50.0" y="177.2" class="tbs" text-anchor="start" >-KF47 ch3</text>
+<text x="76.0" y="177.2" class="tbs" text-anchor="start" >estop_S11_head</text>
+<text x="118.0" y="177.2" class="tbs" text-anchor="start" >E-stop NC contact B (SF1, 2-channel)</text>
+<text x="20.0" y="180.0" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="180.0" class="tbs" text-anchor="start" >S12.A</text>
+<text x="50.0" y="180.0" class="tbs" text-anchor="start" >-KF47 ch4</text>
+<text x="76.0" y="180.0" class="tbs" text-anchor="start" >estop_S12_head</text>
+<text x="118.0" y="180.0" class="tbs" text-anchor="start" >E-stop NC contact A (SF1, 2-channel)</text>
+<text x="20.0" y="182.7" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="182.7" class="tbs" text-anchor="start" >S12.B</text>
+<text x="50.0" y="182.7" class="tbs" text-anchor="start" >-KF48 ch1</text>
+<text x="76.0" y="182.7" class="tbs" text-anchor="start" >estop_S12_head</text>
+<text x="118.0" y="182.7" class="tbs" text-anchor="start" >E-stop NC contact B (SF1, 2-channel)</text>
+<text x="20.0" y="185.5" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="185.5" class="tbs" text-anchor="start" >S13</text>
+<text x="50.0" y="185.5" class="tbs" text-anchor="start" >-KF48 ch2</text>
+<text x="76.0" y="185.5" class="tbs" text-anchor="start" >reset_S13_head</text>
+<text x="118.0" y="185.5" class="tbs" text-anchor="start" >reset pushbutton (manual reset on the fallin</text>
+<text x="20.0" y="188.2" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="188.2" class="tbs" text-anchor="start" >S20.A</text>
+<text x="50.0" y="188.2" class="tbs" text-anchor="start" >-KF48 ch3</text>
+<text x="76.0" y="188.2" class="tbs" text-anchor="start" >lock_S20</text>
+<text x="118.0" y="188.2" class="tbs" text-anchor="start" >door closed AND locked, OSSD A (SF2)</text>
+<text x="20.0" y="191.0" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="191.0" class="tbs" text-anchor="start" >S20.B</text>
+<text x="50.0" y="191.0" class="tbs" text-anchor="start" >-KF48 ch4</text>
+<text x="76.0" y="191.0" class="tbs" text-anchor="start" >lock_S20</text>
+<text x="118.0" y="191.0" class="tbs" text-anchor="start" >door closed AND locked, OSSD B (SF2)</text>
+<text x="20.0" y="193.7" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="193.7" class="tbs" text-anchor="start" >S21.A</text>
+<text x="50.0" y="193.7" class="tbs" text-anchor="start" >-KF49 ch1</text>
+<text x="76.0" y="193.7" class="tbs" text-anchor="start" >lock_S21</text>
+<text x="118.0" y="193.7" class="tbs" text-anchor="start" >door closed AND locked, OSSD A (SF2)</text>
+<text x="20.0" y="196.5" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="196.5" class="tbs" text-anchor="start" >S21.B</text>
+<text x="50.0" y="196.5" class="tbs" text-anchor="start" >-KF49 ch2</text>
+<text x="76.0" y="196.5" class="tbs" text-anchor="start" >lock_S21</text>
+<text x="118.0" y="196.5" class="tbs" text-anchor="start" >door closed AND locked, OSSD B (SF2)</text>
+<text x="20.0" y="199.2" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="199.2" class="tbs" text-anchor="start" >S22.A</text>
+<text x="50.0" y="199.2" class="tbs" text-anchor="start" >-KF49 ch3</text>
+<text x="76.0" y="199.2" class="tbs" text-anchor="start" >lock_S22</text>
+<text x="118.0" y="199.2" class="tbs" text-anchor="start" >door closed AND locked, OSSD A (SF2)</text>
+<text x="20.0" y="202.0" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="202.0" class="tbs" text-anchor="start" >S22.B</text>
+<text x="50.0" y="202.0" class="tbs" text-anchor="start" >-KF49 ch4</text>
+<text x="76.0" y="202.0" class="tbs" text-anchor="start" >lock_S22</text>
+<text x="118.0" y="202.0" class="tbs" text-anchor="start" >door closed AND locked, OSSD B (SF2)</text>
+<text x="20.0" y="204.7" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="204.7" class="tbs" text-anchor="start" >S30.A</text>
+<text x="50.0" y="204.7" class="tbs" text-anchor="start" >-KF50 ch1</text>
+<text x="76.0" y="204.7" class="tbs" text-anchor="start" >aldoor_boxes</text>
+<text x="118.0" y="204.7" class="tbs" text-anchor="start" >boxes airlock outer door closed AND locked, </text>
+<text x="20.0" y="207.5" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="207.5" class="tbs" text-anchor="start" >S30.B</text>
+<text x="50.0" y="207.5" class="tbs" text-anchor="start" >-KF50 ch2</text>
+<text x="76.0" y="207.5" class="tbs" text-anchor="start" >aldoor_boxes</text>
+<text x="118.0" y="207.5" class="tbs" text-anchor="start" >boxes airlock outer door closed AND locked, </text>
+<text x="20.0" y="210.2" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="210.2" class="tbs" text-anchor="start" >S31.A</text>
+<text x="50.0" y="210.2" class="tbs" text-anchor="start" >-KF50 ch3</text>
+<text x="76.0" y="210.2" class="tbs" text-anchor="start" >aldoor_out</text>
+<text x="118.0" y="210.2" class="tbs" text-anchor="start" >out airlock outer door closed AND locked, OS</text>
+<text x="20.0" y="213.0" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="213.0" class="tbs" text-anchor="start" >S31.B</text>
+<text x="50.0" y="213.0" class="tbs" text-anchor="start" >-KF50 ch4</text>
+<text x="76.0" y="213.0" class="tbs" text-anchor="start" >aldoor_out</text>
+<text x="118.0" y="213.0" class="tbs" text-anchor="start" >out airlock outer door closed AND locked, OS</text>
+<text x="20.0" y="215.7" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="215.7" class="tbs" text-anchor="start" >S32.A</text>
+<text x="50.0" y="215.7" class="tbs" text-anchor="start" >-KF51 ch1</text>
+<text x="76.0" y="215.7" class="tbs" text-anchor="start" >aldoor_inner</text>
+<text x="118.0" y="215.7" class="tbs" text-anchor="start" >out airlock inner door closed AND locked, OS</text>
+<text x="20.0" y="218.5" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="218.5" class="tbs" text-anchor="start" >S32.B</text>
+<text x="50.0" y="218.5" class="tbs" text-anchor="start" >-KF51 ch2</text>
+<text x="76.0" y="218.5" class="tbs" text-anchor="start" >aldoor_inner</text>
+<text x="118.0" y="218.5" class="tbs" text-anchor="start" >out airlock inner door closed AND locked, OS</text>
+<text x="20.0" y="221.2" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="221.2" class="tbs" text-anchor="start" >S34.A</text>
+<text x="50.0" y="221.2" class="tbs" text-anchor="start" >-KF51 ch3</text>
+<text x="76.0" y="221.2" class="tbs" text-anchor="start" >reject_bin_wall_fr [impl.]</text>
+<text x="118.0" y="221.2" class="tbs" text-anchor="start" >reject drawer in place, OSSD A</text>
+<text x="20.0" y="224.0" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="224.0" class="tbs" text-anchor="start" >S34.B</text>
+<text x="50.0" y="224.0" class="tbs" text-anchor="start" >-KF51 ch4</text>
+<text x="76.0" y="224.0" class="tbs" text-anchor="start" >reject_bin_wall_fr [impl.]</text>
+<text x="118.0" y="224.0" class="tbs" text-anchor="start" >reject drawer in place, OSSD B</text>
+<text x="20.0" y="226.7" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="226.7" class="tbs" text-anchor="start" >K1K2.EDM</text>
+<text x="50.0" y="226.7" class="tbs" text-anchor="start" >-KF52 ch1</text>
+<text x="76.0" y="226.7" class="tbs" text-anchor="start" >contactor</text>
+<text x="118.0" y="226.7" class="tbs" text-anchor="start" >EDM: K1 + K2 mirror contacts in series (weld</text>
+<text x="20.0" y="229.5" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="229.5" class="tbs" text-anchor="start" >K3K4.EDM</text>
+<text x="50.0" y="229.5" class="tbs" text-anchor="start" >-KF52 ch2</text>
+<text x="76.0" y="229.5" class="tbs" text-anchor="start" >contactor</text>
+<text x="118.0" y="229.5" class="tbs" text-anchor="start" >EDM: K3 + K4 mirror contacts (welded contact</text>
+<text x="20.0" y="232.2" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="232.2" class="tbs" text-anchor="start" >K5.EDM</text>
+<text x="50.0" y="232.2" class="tbs" text-anchor="start" >-KF52 ch3</text>
+<text x="76.0" y="232.2" class="tbs" text-anchor="start" >contactor</text>
+<text x="118.0" y="232.2" class="tbs" text-anchor="start" >EDM: K5 mirror contact (welded contact detec</text>
+<text x="20.0" y="235.0" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="235.0" class="tbs" text-anchor="start" >Q19.FB</text>
+<text x="50.0" y="235.0" class="tbs" text-anchor="start" >-KF52 ch4</text>
+<text x="76.0" y="235.0" class="tbs" text-anchor="start" >frl</text>
+<text x="118.0" y="235.0" class="tbs" text-anchor="start" >dump valve position switch (exhausted)</text>
+<text x="20.0" y="237.7" class="tbs" text-anchor="start" >SI</text>
+<text x="30.0" y="237.7" class="tbs" text-anchor="start" >Y1.FB</text>
+<text x="50.0" y="237.7" class="tbs" text-anchor="start" >-KF53 ch1</text>
+<text x="76.0" y="237.7" class="tbs" text-anchor="start" >valve_island</text>
+<text x="118.0" y="237.7" class="tbs" text-anchor="start" >boxes zone valve position switch (exhausted)</text>
+<text x="20.0" y="240.5" class="tbs" text-anchor="start" >SO</text>
+<text x="30.0" y="240.5" class="tbs" text-anchor="start" >S20.UNL</text>
+<text x="50.0" y="240.5" class="tbs" text-anchor="start" >-KF56 ch1</text>
+<text x="76.0" y="240.5" class="tbs" text-anchor="start" >lock_S20</text>
+<text x="118.0" y="240.5" class="tbs" text-anchor="start" >unlock solenoid (power-to-unlock, only at st</text>
+<text x="20.0" y="243.2" class="tbs" text-anchor="start" >SO</text>
+<text x="30.0" y="243.2" class="tbs" text-anchor="start" >S21.UNL</text>
+<text x="50.0" y="243.2" class="tbs" text-anchor="start" >-KF56 ch2</text>
+<text x="76.0" y="243.2" class="tbs" text-anchor="start" >lock_S21</text>
+<text x="118.0" y="243.2" class="tbs" text-anchor="start" >unlock solenoid (power-to-unlock, only at st</text>
+<text x="20.0" y="246.0" class="tbs" text-anchor="start" >SO</text>
+<text x="30.0" y="246.0" class="tbs" text-anchor="start" >S22.UNL</text>
+<text x="50.0" y="246.0" class="tbs" text-anchor="start" >-KF56 ch3</text>
+<text x="76.0" y="246.0" class="tbs" text-anchor="start" >lock_S22</text>
+<text x="118.0" y="246.0" class="tbs" text-anchor="start" >unlock solenoid (power-to-unlock, only at st</text>
+<text x="215.0" y="156.2" class="tb" text-anchor="start" >kind</text>
+<text x="225.0" y="156.2" class="tb" text-anchor="start" >tag</text>
+<text x="245.0" y="156.2" class="tb" text-anchor="start" >terminal</text>
+<text x="271.0" y="156.2" class="tb" text-anchor="start" >device / part</text>
+<text x="313.0" y="156.2" class="tb" text-anchor="start" >function</text>
+<text x="215.0" y="160.7" class="tbs" text-anchor="start" >SO</text>
+<text x="225.0" y="160.7" class="tbs" text-anchor="start" >S30.UNL</text>
+<text x="245.0" y="160.7" class="tbs" text-anchor="start" >-KF56 ch4</text>
+<text x="271.0" y="160.7" class="tbs" text-anchor="start" >aldoor_boxes</text>
+<text x="313.0" y="160.7" class="tbs" text-anchor="start" >boxes airlock outer door lock release (inter</text>
+<text x="215.0" y="163.5" class="tbs" text-anchor="start" >SO</text>
+<text x="225.0" y="163.5" class="tbs" text-anchor="start" >S31.UNL</text>
+<text x="245.0" y="163.5" class="tbs" text-anchor="start" >-KF57 ch1</text>
+<text x="271.0" y="163.5" class="tbs" text-anchor="start" >aldoor_out</text>
+<text x="313.0" y="163.5" class="tbs" text-anchor="start" >out airlock outer door lock release (interlo</text>
+<text x="215.0" y="166.2" class="tbs" text-anchor="start" >SO</text>
+<text x="225.0" y="166.2" class="tbs" text-anchor="start" >S32.UNL</text>
+<text x="245.0" y="166.2" class="tbs" text-anchor="start" >-KF57 ch2</text>
+<text x="271.0" y="166.2" class="tbs" text-anchor="start" >aldoor_inner</text>
+<text x="313.0" y="166.2" class="tbs" text-anchor="start" >out airlock inner door lock release (interlo</text>
+<text x="215.0" y="169.0" class="tbs" text-anchor="start" >SO</text>
+<text x="225.0" y="169.0" class="tbs" text-anchor="start" >K1</text>
+<text x="245.0" y="169.0" class="tbs" text-anchor="start" >-KF57 ch3</text>
+<text x="271.0" y="169.0" class="tbs" text-anchor="start" >contactor</text>
+<text x="313.0" y="169.0" class="tbs" text-anchor="start" >contactor coil: 48 V motor supply, channel 1</text>
+<text x="215.0" y="171.7" class="tbs" text-anchor="start" >SO</text>
+<text x="225.0" y="171.7" class="tbs" text-anchor="start" >K2</text>
+<text x="245.0" y="171.7" class="tbs" text-anchor="start" >-KF57 ch4</text>
+<text x="271.0" y="171.7" class="tbs" text-anchor="start" >contactor</text>
+<text x="313.0" y="171.7" class="tbs" text-anchor="start" >contactor coil: 48 V motor supply, channel 2</text>
+<text x="215.0" y="174.5" class="tbs" text-anchor="start" >SO</text>
+<text x="225.0" y="174.5" class="tbs" text-anchor="start" >K3</text>
+<text x="245.0" y="174.5" class="tbs" text-anchor="start" >-KF58 ch1</text>
+<text x="271.0" y="174.5" class="tbs" text-anchor="start" >contactor</text>
+<text x="313.0" y="174.5" class="tbs" text-anchor="start" >contactor coil: heater feed, channel 1 (AC S</text>
+<text x="215.0" y="177.2" class="tbs" text-anchor="start" >SO</text>
+<text x="225.0" y="177.2" class="tbs" text-anchor="start" >K4</text>
+<text x="245.0" y="177.2" class="tbs" text-anchor="start" >-KF58 ch2</text>
+<text x="271.0" y="177.2" class="tbs" text-anchor="start" >contactor</text>
+<text x="313.0" y="177.2" class="tbs" text-anchor="start" >contactor coil: heater feed, channel 2 (in s</text>
+<text x="215.0" y="180.0" class="tbs" text-anchor="start" >SO</text>
+<text x="225.0" y="180.0" class="tbs" text-anchor="start" >K5</text>
+<text x="245.0" y="180.0" class="tbs" text-anchor="start" >-KF58 ch3</text>
+<text x="271.0" y="180.0" class="tbs" text-anchor="start" >contactor</text>
+<text x="313.0" y="180.0" class="tbs" text-anchor="start" >contactor coil: 48 V branch of the out-port </text>
+<text x="215.0" y="182.7" class="tbs" text-anchor="start" >SO</text>
+<text x="225.0" y="182.7" class="tbs" text-anchor="start" >Q19</text>
+<text x="245.0" y="182.7" class="tbs" text-anchor="start" >-KF58 ch4</text>
+<text x="271.0" y="182.7" class="tbs" text-anchor="start" >frl</text>
+<text x="313.0" y="182.7" class="tbs" text-anchor="start" >soft-start / dump valve: safe exhaust of all</text>
+<text x="215.0" y="185.5" class="tbs" text-anchor="start" >SO</text>
+<text x="225.0" y="185.5" class="tbs" text-anchor="start" >Y1</text>
+<text x="245.0" y="185.5" class="tbs" text-anchor="start" >-KF59 ch1</text>
+<text x="271.0" y="185.5" class="tbs" text-anchor="start" >valve_island</text>
+<text x="313.0" y="185.5" class="tbs" text-anchor="start" >safe exhaust of the boxes-port pressure zone</text>
+<rect x="230" y="249" width="180" height="38" fill="#fff" stroke="#1b2330" stroke-width=".35"/>
+<rect x="230" y="249" width="180" height="9" fill="#1f4e8c"/>
+<text x="233" y="255.3" class="tbh" style="fill:#fff">STF-2 CONTINUOUS COOKIE LINE</text>
+<text x="233" y="264" class="tbh" style="font-size:3.6px">Electrical E04 - safety</text>
+<text x="233" y="269" class="tbs">TwinSAFE functions + safe I/O, from safety.py</text>
+<text x="233" y="275" class="tbs">SCALE</text><text x="233" y="278" class="tb">none</text>
+<text x="293" y="275" class="tbs">SHEET</text><text x="293" y="278" class="tb">4 / 14</text>
+<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-09-29</text>
+<text x="233" y="281" class="tbs">UNITS</text><text x="233" y="284" class="tb">mm, deg</text>
+<text x="293" y="281" class="tbs">PROJECTION</text><text x="293" y="284" class="tb">third angle</text>
+<text x="353" y="281" class="tbs">SOURCE</text><text x="353" y="284" class="tb">line_model.py (generated - do not edit)</text>
+</svg>

@@ -1,0 +1,56 @@
+opening,hazard,state,d_mm,need_mm,rule,ok
+raw pour strip (into the hopper strip only),singulator discs,always,in reach,-,low energy,True
+out airlock,shuttles + cassettes,outer door open,in the chamber,-,zone at safe standstill,True
+out airlock,chain loop (drawing-in at bends / drive),"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",756,80,ISO 13857 slot e = 10,True
+out airlock,delta A,"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",522,80,ISO 13857 slot e = 10,True
+out airlock,delta B,"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",827,80,ISO 13857 slot e = 10,True
+out airlock,flying stamp (screw axis + D16),"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",699,80,ISO 13857 slot e = 10,True
+out airlock,stamp die (hot),"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",831,80,ISO 13857 slot e = 10,True
+out airlock,lane belts (in-running nips),"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",778,80,ISO 13857 slot e = 10,True
+out airlock,sealers D25 (crush + hot),"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",576,80,ISO 13857 slot e = 10,True
+out airlock,stacker lifts D16,"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",765,80,ISO 13857 slot e = 10,True
+out airlock,oven IR bars (hot),"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",932,80,ISO 13857 slot e = 10,True
+out airlock,chain loop (drawing-in at bends / drive),"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",815,2,ISO 13857 slot e = 2,True
+out airlock,delta A,"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",560,2,ISO 13857 slot e = 2,True
+out airlock,delta B,"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",850,2,ISO 13857 slot e = 2,True
+out airlock,flying stamp (screw axis + D16),"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",729,2,ISO 13857 slot e = 2,True
+out airlock,stamp die (hot),"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",866,2,ISO 13857 slot e = 2,True
+out airlock,lane belts (in-running nips),"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",836,2,ISO 13857 slot e = 2,True
+out airlock,sealers D25 (crush + hot),"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",629,2,ISO 13857 slot e = 2,True
+out airlock,stacker lifts D16,"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",825,2,ISO 13857 slot e = 2,True
+out airlock,oven IR bars (hot),"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",965,2,ISO 13857 slot e = 2,True
+out airlock,chain loop (drawing-in at bends / drive),"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",80,2,ISO 13857 slot e = 2,True
+out airlock,delta A,"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",763,2,ISO 13857 slot e = 2,True
+out airlock,flying stamp (screw axis + D16),"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",501,2,ISO 13857 slot e = 2,True
+out airlock,stamp die (hot),"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",567,2,ISO 13857 slot e = 2,True
+out airlock,lane belts (in-running nips),"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",507,2,ISO 13857 slot e = 2,True
+out airlock,sealers D25 (crush + hot),"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",552,2,ISO 13857 slot e = 2,True
+out airlock,stacker lifts D16,"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",347,2,ISO 13857 slot e = 2,True
+out airlock,oven IR bars (hot),"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",873,2,ISO 13857 slot e = 2,True
+out airlock,chain loop (drawing-in at bends / drive),"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",73,2,ISO 13857 slot e = 2,True
+out airlock,delta A,"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",489,2,ISO 13857 slot e = 2,True
+out airlock,delta B,"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",826,2,ISO 13857 slot e = 2,True
+out airlock,flying stamp (screw axis + D16),"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",460,2,ISO 13857 slot e = 2,True
+out airlock,stamp die (hot),"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",460,2,ISO 13857 slot e = 2,True
+out airlock,lane belts (in-running nips),"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",215,2,ISO 13857 slot e = 2,True
+out airlock,sealers D25 (crush + hot),"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",270,2,ISO 13857 slot e = 2,True
+out airlock,stacker lifts D16,"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",85,2,ISO 13857 slot e = 2,True
+out airlock,oven IR bars (hot),"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",622,2,ISO 13857 slot e = 2,True
+out airlock,chain loop (drawing-in at bends / drive),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",319,2,ISO 13857 slot e = 2,True
+out airlock,delta A,"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",521,2,ISO 13857 slot e = 2,True
+out airlock,delta B,"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",824,2,ISO 13857 slot e = 2,True
+out airlock,flying stamp (screw axis + D16),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",737,2,ISO 13857 slot e = 2,True
+out airlock,stamp die (hot),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",737,2,ISO 13857 slot e = 2,True
+out airlock,lane belts (in-running nips),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",216,2,ISO 13857 slot e = 2,True
+out airlock,sealers D25 (crush + hot),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",271,2,ISO 13857 slot e = 2,True
+out airlock,stacker lifts D16,"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",89,2,ISO 13857 slot e = 2,True
+out airlock,oven IR bars (hot),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",832,2,ISO 13857 slot e = 2,True
+reject drawer (in),chain loop (drawing-in at bends / drive),"bin-top slot e = 10, path via hole + funnel",110,80,ISO 13857 slot e = 10,True
+reject drawer (in),delta A,"bin-top slot e = 10, path via hole + funnel",369,80,ISO 13857 slot e = 10,True
+reject drawer (in),flying stamp (screw axis + D16),"bin-top slot e = 10, path via hole + funnel",405,80,ISO 13857 slot e = 10,True
+reject drawer (in),stamp die (hot),"bin-top slot e = 10, path via hole + funnel",405,80,ISO 13857 slot e = 10,True
+reject drawer (in),lane belts (in-running nips),"bin-top slot e = 10, path via hole + funnel",242,80,ISO 13857 slot e = 10,True
+reject drawer (in),sealers D25 (crush + hot),"bin-top slot e = 10, path via hole + funnel",251,80,ISO 13857 slot e = 10,True
+reject drawer (in),stacker lifts D16,"bin-top slot e = 10, path via hole + funnel",255,80,ISO 13857 slot e = 10,True
+reject drawer (in),shuttles + cassettes,"bin-top slot e = 10, path via hole + funnel",242,80,ISO 13857 slot e = 10,True
+reject drawer (in),oven IR bars (hot),"bin-top slot e = 10, path via hole + funnel",414,80,ISO 13857 slot e = 10,True

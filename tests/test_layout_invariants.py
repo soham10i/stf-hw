@@ -69,7 +69,8 @@ def _is_legacy(path: Path, root: Path) -> bool:
 
 
 def _source_files(root: Path) -> list[Path]:
-    skip_dirs = {".git", ".venv", "node_modules", "__pycache__", ".pytest_cache", "docs"}
+    # .claude holds agent worktrees: full copies of the repo at other commits
+    skip_dirs = {".git", ".venv", "node_modules", "__pycache__", ".pytest_cache", "docs", ".claude"}
     out: list[Path] = []
     for path in root.rglob("*"):
         if not path.is_file() or path.suffix not in SCANNED_SUFFIXES:
@@ -264,7 +265,7 @@ def test_fingerprint_changes_with_content(tmp_path: Path, layout: Layout) -> Non
     original = layout.fingerprint()
     assert original == load_layout().fingerprint(), "fingerprint must be stable"
 
-    text = DEFAULT_LAYOUT_PATH.read_text().replace("pitch: 100.0", "pitch: 110.0", 1)
+    text = DEFAULT_LAYOUT_PATH.read_text().replace("pitch: 120.0", "pitch: 110.0", 1)
     modified = tmp_path / "modified.layout.yaml"
     modified.write_text(text)
 
@@ -278,7 +279,7 @@ def test_fingerprint_changes_with_content(tmp_path: Path, layout: Layout) -> Non
 
 def test_named_position_outside_limits_is_rejected(tmp_path: Path) -> None:
     text = DEFAULT_LAYOUT_PATH.read_text().replace(
-        "          extended: 50.0", "          extended: 5000.0", 1
+        "          extended: 85.0", "          extended: 5000.0", 1
     )
     bad = tmp_path / "bad.layout.yaml"
     bad.write_text(text)

@@ -19,6 +19,8 @@ dev = [
     "pytest>=8.3",
     "pytest-cov>=5.0",
     "ruff>=0.6",
+    "httpx2",            # FastAPI's TestClient (tests/test_api_security.py)
+    "pip-audit>=2.7",    # dependency vulnerability scan
 ]
 
 [build-system]
@@ -36,12 +38,8 @@ stf_layout = ["*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["packages"]
-# tests/legacy holds the pre-rearchitecture hand-rolled runners. They are not
-# pytest-collectible (their Test* classes define __init__) and several assert
-# stale 1200mm-belt geometry against the current 120mm belt. Kept for reference
-# until their replacements land, then deleted.
-addopts = "-q --strict-markers --ignore=tests/legacy"
+pythonpath = ["packages", "."]
+addopts = "-q --strict-markers"
 markers = [
     "unit: fast, no I/O",
     "golden: golden-file regression",
@@ -52,16 +50,6 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-# Pre-rearchitecture code, scheduled for deletion as each replacement lands.
-extend-exclude = [
-    "tests/legacy",
-    "api",
-    "controller",
-    "dashboard",
-    "database",
-    "hardware",
-    "scripts",
-]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

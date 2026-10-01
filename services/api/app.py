@@ -9,6 +9,7 @@ Endpoints:
     GET  /layout        scene descriptor (the front end builds its 3D scene from this)
     GET  /orders        recent order history
     POST /command       queue an order  {"op": "retrieve", "slot": "B2"}
+                        (operator only, see security.py)
     WS   /ws            live world frames at ~30 Hz
 
 The kernel runs on one asyncio task started at app startup; every request and
@@ -17,16 +18,19 @@ socket reads from that single authoritative simulation.
 
 from __future__ import annotations
 
+import json
 import os
 from contextlib import asynccontextmanager
+from typing import Literal
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from stf_layout import get_layout
 
+from . import security as sec
 from . import wire
 from .runtime import SimRuntime
 
@@ -37,6 +41,10 @@ from .runtime import SimRuntime
 _TIME_SCALE = float(os.environ.get("STF_TIME_SCALE", "1.0"))
 
 runtime = SimRuntime(time_scale=_TIME_SCALE)
+settings = sec.Settings.from_env()
+command_guard = sec.CommandGuard(settings)
+ws_clients = sec.ClientCounter(settings.max_ws_clients)
+WS_MAX_MSG = 1024          # bytes: the client only ever sends {"type": "resync"}
 
 
 @asynccontextmanager
@@ -50,20 +58,21 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="STF Digital Twin", version="4.0.0", lifespan=lifespan)
 
-# The Vite dev server runs on a different port, so the browser needs CORS to
-# reach this API. Wide-open is fine for a local dev tool; lock it down if this
-# is ever exposed.
+# Only the web app's own origins may call the API from a browser (STF_ALLOWED_ORIGINS).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=list(settings.allowed_origins),
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-STF-Token"],
 )
 
 
 class CommandRequest(BaseModel):
-    op: str = Field(description="retrieve | store | home | cycle")
-    slot: str | None = Field(default=None, description="target slot A1..C3")
+    """A command, validated at the boundary: a fixed set of operations, a slot like B2."""
+    op: Literal["retrieve", "store", "home", "cycle"]
+    slot: str | None = Field(
+        default=None, pattern=r"^[A-C][1-4]$", description="target slot A1..C4"
+    )
 
 
 @app.get("/health")
@@ -73,6 +82,8 @@ async def health() -> dict:
         "version": "4.0.0",
         "clients": runtime.client_count,
         "layout": get_layout().fingerprint(),
+        "commands": "token" if settings.api_token else "localhost only",
+        "rejected": dict(sec.COUNTS),
     }
 
 
@@ -87,7 +98,7 @@ async def orders() -> dict:
     return {"orders": runtime.orders()}
 
 
-@app.post("/command")
+@app.post("/command", dependencies=[Depends(command_guard)])
 async def command(req: CommandRequest) -> JSONResponse:
     try:
         order = runtime.submit(req.op, req.slot)
@@ -98,7 +109,19 @@ async def command(req: CommandRequest) -> JSONResponse:
 
 @app.websocket("/ws")
 async def ws(websocket: WebSocket) -> None:
-    await websocket.accept()
+    if not sec.ws_origin_ok(settings, websocket):
+        sec.note("ws: foreign origin")
+        await websocket.close(code=1008)
+        return
+    if not ws_clients.try_add():
+        sec.note("ws: too many clients")
+        await websocket.close(code=1013)
+        return
+    try:
+        await websocket.accept()
+    except Exception:
+        ws_clients.remove()
+        raise
     # Greet with the layout fingerprint so a client holding a stale scene graph
     # can detect the mismatch and refetch /layout rather than rendering the
     # factory at coordinates that no longer exist.
@@ -111,10 +134,18 @@ async def ws(websocket: WebSocket) -> None:
         while True:
             # The client speaks only to keep the socket alive / request a
             # resync; frames are pushed, not polled.
-            msg = await websocket.receive_json()
-            if msg.get("type") == "resync":
+            raw = await websocket.receive_text()
+            if len(raw) > WS_MAX_MSG:
+                await websocket.close(code=1009)
+                break
+            try:
+                msg = json.loads(raw)
+            except ValueError:
+                continue
+            if isinstance(msg, dict) and msg.get("type") == "resync":
                 await websocket.send_json(runtime.latest_frame())
     except WebSocketDisconnect:
         pass
     finally:
         runtime.remove_client(websocket)
+        ws_clients.remove()

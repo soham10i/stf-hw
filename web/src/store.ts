@@ -7,9 +7,10 @@
 // Only discrete state (connection status, order list, the low-rate telemetry
 // sampled for the side panel) flows through React, via the tiny store below.
 
-import type { Carrier, Frame } from "./types";
+import type { Carrier, Frame, OvenState } from "./types";
 
 const NO_CARRIER: Carrier = { flavor: null, holder: null, slot: null };
+const OVEN_IDLE: OvenState = { slider: 1, door: 1, lamp: false };
 
 export const hot: {
   joints: Record<string, number>;
@@ -18,6 +19,7 @@ export const hot: {
   belt: { position: number; object: number | null };
   sensors: Record<string, boolean>;
   carrier: Carrier;
+  oven: OvenState;
   seq: number;
   t: number;
   busy: boolean;
@@ -28,6 +30,7 @@ export const hot: {
   belt: { position: 0, object: null },
   sensors: {},
   carrier: NO_CARRIER,
+  oven: OVEN_IDLE,
   seq: 0,
   t: 0,
   busy: false,
@@ -40,6 +43,7 @@ export function applyFrame(frame: Frame): void {
   hot.belt = frame.belt;
   hot.sensors = frame.sensors;
   hot.carrier = frame.carrier ?? NO_CARRIER;
+  hot.oven = frame.oven ?? OVEN_IDLE;
   hot.seq = frame.seq;
   hot.t = frame.t;
   hot.busy = frame.busy;
