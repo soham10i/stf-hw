@@ -140,6 +140,7 @@ L = dict(
     # overhead shuttle (MGN12H under a lane beam, GT2 belt) swaps it to the AMR port  [assumed]
     CASS=(170.0, 65.0, 705.0), CASS_X=(1345.0, 1545.0), CASS_Z=110.0, STACK_T=1.0, SWAP_T=3.0,
     STACK_CYL=(16, 30), PAWL_F=2.0, CASS_M=0.8,           # stacker cylinder, spring force per pawl N, empty kg
+    STACK_PLATE_W=30.0,                                   # lift plate width: it rises between the twin strands
     BOXMAG_X=(160.0, 330.0), BOXMAG_CAP=60, BOX_NEST=8.0, FORK_CYL=(8, 10),
     # rejects: chute through the table deck into a drawer bin under the table
     REJECT_BIN=(1255.0, 480.0, 240.0, 240.0, 290.0),     # x, y, w, d, h (below the deck); S-1c: 30 mm back
@@ -1056,10 +1057,8 @@ def _airlocks(A):
         if ztop < gt:                                  # under an internal roof rail: a post on the floor holds it
             prof(f"abox_post_mid_{k}", (x1 - w, (a_ + b_) / 2 - w / 2, zf + 6), (w, w, zt - zf - 6))
     side, py0, py1, oz0, oz1, tag = L["PORT_OPEN"]["boxes"]
-    A(Part("aldoor_boxes", "safety", "airlock_door", "box", (g["xLo"] - 10, py0 + 12, oz0 - 10),
-           (10.0, 580.0, gt - oz0 + 10), "#b7d3e6", tag=tag, hw="airlock_door",
-           note="outer airlock door (kit, drawn closed; parks towards the back): opens only with every trapdoor "
-                "closed and exhausted"))
+    _door(A, "aldoor_boxes", g["xLo"] - 10, g["xLo"], py0 + 14, py1 - 14, oz0 - 10, gt, tag,
+          "outer airlock door: opens only with every trapdoor closed and exhausted")
     # ---------------------------------------------------------------- out airlock (right)
     o = L["OUT_LOCK"]
     hx, ox, oy0, oy1, zd = o["hx"], o["x"], o["y0"], o["y1"], o["zdoor"]
@@ -1069,18 +1068,29 @@ def _airlocks(A):
     prof("aout_header", (hx, oy0, sz["beam"]), (30.0, oy1 - oy0, 30.0), "3030")
     # header cap up to the roof: the internal roof rail ends on its sides (guard roof, split there)
     prof("aout_header_top", (hx, oy0, sz["beam_top"]), (20.0, oy1 - oy0, 20.0))
-    A(Part("aldoor_inner", "safety", "airlock_door", "box", (ox, oy0 - t, 0.0), (hx - ox, o["park"] - oy0 + t, zd),
-           "#b7d3e6", tag="S32", hw="airlock_door",
-           note="inner airlock door (kit, drawn closed): slides behind the lanes to open; closes the standby bay "
-                "off from the stackers. Its top stays under the MGN rails; the header closes the rest"))
+    _door(A, "aldoor_inner", ox, hx, oy0 - t, oy1 + t, 0.0, zd, "S32",
+          "inner airlock door: slides behind the lanes to open; closes the standby bay off from the stackers. "
+          "Its top stays under the MGN rails; the header closes the rest")
     xr = g["xR"]
     pc("aout_wall_front", (hx, oy0 - t, 2.0), (xr - hx, t, gt - 2.0))
     pc("aout_wall_back", (hx, oy1, 2.0), (xr - hx, t, gt - 2.0))
     side, py0, py1, oz0, oz1, tag = L["PORT_OPEN"]["out"]
-    A(Part("aldoor_out", "safety", "airlock_door", "box", (g["xRo"], py0 + 12, oz0 + 2), (10.0, 590.0, gt - oz0 - 2),
-           "#b7d3e6", tag=tag, hw="airlock_door",
-           note="outer airlock door (kit, drawn closed; parks towards the back): opens only with the inner door "
-                "locked and the shuttles at safe standstill"))
+    _door(A, "aldoor_out", g["xRo"], g["xRo"] + 10, py0 + 14, py1 - 14, oz0 + 2, gt, tag,
+          "outer airlock door: opens only with the inner door locked and the shuttles at safe standstill")
+
+
+def _door(A, name, x0, x1, y0, y1, z0, z1, tag, note):
+    """A sliding airlock door kit: the LEAF (drawn closed, joint door_<tag>) and its parking guide behind it,
+    one leaf length long in +y (the leaf slides into it to open)."""
+    A(Part(name, "safety", "airlock_door", "box", (x0, y0, z0), (x1 - x0, y1 - y0, z1 - z0), "#b7d3e6", tag=tag,
+           hw="airlock_door", joint=f"door_{tag}", note=note + " (leaf, drawn closed)"))
+    A(Part(f"{name}_park", "safety", "airlock_door", "box", (x0, y1, z0), (x1 - x0, y1 - y0, z1 - z0), "#9aa3ab",
+           hw="airlock door guide + drive (kit)", note="the leaf parks in here when open"))
+
+
+def door_stroke(tag):
+    """Opening stroke (+y) of the airlock door leaf with this tag."""
+    return {p.tag: p.s[1] for p in _zone_parts() if p.hw == "airlock_door" and p.tag}[tag]
 
 
 def airlock_chambers():
@@ -1485,15 +1495,22 @@ def _lanes(A):
     for i, (f, y) in enumerate(zip(FLAV, L["LANE_Y"])):
         col = L["BAKED"][i]
         xa, xs_ = L["CASS_X"]
-        A(Part(f"stacker_{f}", "pack", "stacker", "box", (L["LANE_X"][1], y - L["LANE_W"] / 2, L["LANE_Z"] - 10),
-               (xa + cw - L["LANE_X"][1] + 5, L["LANE_W"], 10.0), "#3b3e44", mech="belt:lane",
-               hw="transfer belt (driven with the lane)", note="transfer onto the stacker platform under the active cassette"))
+        # TWIN-strand transfer conveyor: the lift plate rises BETWEEN the strands (a belt cannot have a slot -
+        # found by the motion sweep, motion.py); the pack rests on both strands
+        ps = L["STACK_PLATE_W"] / 2 + 2.0
+        for k, (a_, b_) in enumerate(((y - L["LANE_W"] / 2, y - ps), (y + ps, y + L["LANE_W"] / 2))):
+            zf_ = L["LANE_Z"] - 10 - 10 - 1                   # frame top: the strand + its side rail stand on it
+            A(Part(f"stacker_{f}_{'ab'[k]}", "pack", "stacker", "box", (L["LANE_X"][1], a_, zf_),
+                   (xa + cw - L["LANE_X"][1] + 5, b_ - a_, L["LANE_Z"] - zf_), "#3b3e44", mech="belt:lane",
+                   hw="transfer belt strand on its side rail (twin-strand conveyor, driven with the lane)",
+                   note="transfer onto the stacker platform under the active cassette"))
         A(Part(f"stacker_frame_{f}", "pack", "stacker", "box", (L["LANE_X"][1], y - L["LANE_W"] / 2 - 3, 0),
                (xa + cw - L["LANE_X"][1] + 5, L["LANE_W"] + 6, L["LANE_Z"] - 10 - 10 - 1), "#d6d9da",
                hw="transfer conveyor frame", note="the lift plate rises through it"))
-        A(Part(f"stacker_plate_{f}", "pack", "stacker", "box", (xa + cw / 2 - 60, y - 20, L["LANE_Z"] - 20),
-               (120.0, 40.0, 10.0), "#e0492f", joint=f"lift_{f}", hw="Al plate 10 mm",
-               note="lift plate, rises through a slot in the transfer belt"))
+        A(Part(f"stacker_plate_{f}", "pack", "stacker", "box",
+               (xa + cw / 2 - 60, y - L["STACK_PLATE_W"] / 2, L["LANE_Z"] - 20),
+               (120.0, L["STACK_PLATE_W"], 10.0), "#e0492f", joint=f"lift_{f}", hw="Al plate 10 mm",
+               note="lift plate, rises between the two transfer strands"))
         A(Part(f"stacker_rod_{f}", "pack", "stacker", "cyl", (xa + cw / 2, y, zt), ("z", L["LANE_Z"] - 20 - zt,
                                                                                     H.CYL[bore]["rod"]),
                "#b9bec4", joint=f"lift_{f}", hw="push rod (extended piston rod)"))
@@ -2054,6 +2071,9 @@ def allowed(a, b):
                 return "chute starts in its outlet stub"
             if v.name == "collar_" + u.name[6:]:
                 return "chute end sits in its funnel collar"
+    if a.group == b.group == "airlock_door" and {a.name, b.name} in ({n, n + "_park"} for n in
+                                                                    ("aldoor_boxes", "aldoor_inner", "aldoor_out")):
+        return "door leaf slides into its parking guide (kit)"
     if ("_reel_" in a.name and "_spindle_" in b.name) or ("_reel_" in b.name and "_spindle_" in a.name):
         if a.name.split("_")[1] == b.name.split("_")[1] and a.name[-1] == b.name[-1]:
             return "reel on its spindle"

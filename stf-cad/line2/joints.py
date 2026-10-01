@@ -86,6 +86,8 @@ def body_of(p):
     for suf in ("_wall_front", "_wall_back", "_wall_left", "_wall_right", "_wall_top", "_floor", "_flange"):
         if n.endswith(suf):
             return n[: -len(suf)]
+    if n.startswith("stacker_") and n[-2:] in ("_a", "_b") and n.count("_") == 2:
+        return "stacker_" + n.split("_")[1]                       # twin belt strands of the bought conveyor
     if n.startswith("stacker_frame_"):
         return "stacker_" + n[len("stacker_frame_"):]            # bought transfer conveyor: belt + frame
     if n.startswith("cassette_") and ("_pawl_" in n or "_lug_" in n):
@@ -215,6 +217,8 @@ KITS = (
     # Upgrade S-1 guard
     (lambda u, v: u.group == "door" and v.name.startswith("guard_post"),
      "door leaf on 2 lift-off hinges into the hinge post (bought with the door kit)", "4x M5 T-nut", 4),
+    (lambda u, v: u.group == "airlock_door" and v.group == "airlock_door",
+     "door leaf in its guide track (bought kit)", "-", 0),
     (lambda u, v: u.group == "airlock_door" and (v.name.startswith(("guard_post", "guard_panel", "aout_post"))),
      "sliding airlock door kit: guide rails bolted through the panel into the frame (bought kit)", "6x M5 T-nut", 6),
     (lambda u, v: u.group == "operator" and u.kind == "cyl" and v.name.startswith("guard_panel"),
@@ -230,6 +234,8 @@ INCIDENTAL = (
     (lambda u, v: u.name.startswith("stacker_rod") and v.name == "TABLE", "push rod in its deck hole"),
     (lambda u, v: u.name.startswith("reject_bin_brush") and (v.name == "TABLE" or v.group in ("sensor", "reject")),
      "brush strip wipes the deck underside / passes beside it"),
+    (lambda u, v: u.group == "airlock_door" and u.joint and v.name == "TABLE",
+     "sliding door leaf runs in its floor guide (never screwed down - found by the motion sweep)"),
     (lambda u, v: u.name.startswith("lc_") and v.name == "TABLE",
      "light-curtain bar stands on the deck, held by its brackets on the post"),
     (lambda u, v: u.name.startswith("guard_panel") and (v.group == "hopper"),

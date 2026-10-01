@@ -140,18 +140,18 @@ W138,Q43,trapdoor_rot,M10_safety,DO,trapdoor valve (spring-return closes on exha
 W139,Q44.CLA,trapdoor_blau,M10_safety,SI,"trapdoor closed, safety sensor OSSD A",-KF47 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.43,True
 W140,Q44.CLB,trapdoor_blau,M10_safety,SI,"trapdoor closed, safety sensor OSSD B",-KF47 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.43,True
 W141,Q44,trapdoor_blau,M10_safety,DO,trapdoor valve (spring-return closes on exhaust),-KF6 ch3,M12-3,BK signal / BU 0V,0.34,1.43,True
-W142,S30.A,aldoor_boxes,M10_safety,SI,"boxes airlock outer door closed AND locked, OSSD A",-KF50 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.88,True
-W143,S30.B,aldoor_boxes,M10_safety,SI,"boxes airlock outer door closed AND locked, OSSD B",-KF51 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.88,True
-W144,S30.UNL,aldoor_boxes,M10_safety,SO,boxes airlock outer door lock release (interlocked),-KF56 ch4,M12-3,safe output / 0V,0.34,1.88,True
-W145,S30.DRV,aldoor_boxes,M10_safety,DO,boxes airlock outer door drive valve (force-limited),-KF6 ch4,M12-3,BK signal / BU 0V,0.34,1.88,True
-W146,S32.A,aldoor_inner,M10_safety,SI,"out airlock inner door closed AND locked, OSSD A",-KF51 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.61,True
-W147,S32.B,aldoor_inner,M10_safety,SI,"out airlock inner door closed AND locked, OSSD B",-KF52 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.61,True
-W148,S32.UNL,aldoor_inner,M10_safety,SO,out airlock inner door lock release (interlocked),-KF57 ch2,M12-3,safe output / 0V,0.34,1.61,True
-W149,S32.DRV,aldoor_inner,M10_safety,DO,out airlock inner door drive valve (force-limited),-KF6 ch6,M12-3,BK signal / BU 0V,0.34,1.61,True
-W150,S31.A,aldoor_out,M10_safety,SI,"out airlock outer door closed AND locked, OSSD A",-KF51 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.0,True
-W151,S31.B,aldoor_out,M10_safety,SI,"out airlock outer door closed AND locked, OSSD B",-KF51 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.0,True
-W152,S31.UNL,aldoor_out,M10_safety,SO,out airlock outer door lock release (interlocked),-KF57 ch1,M12-3,safe output / 0V,0.34,2.0,True
-W153,S31.DRV,aldoor_out,M10_safety,DO,out airlock outer door drive valve (force-limited),-KF6 ch5,M12-3,BK signal / BU 0V,0.34,2.0,True
+W142,S30.A,aldoor_boxes,M10_safety,SI,"boxes airlock outer door closed AND locked, OSSD A",-KF50 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.8,True
+W143,S30.B,aldoor_boxes,M10_safety,SI,"boxes airlock outer door closed AND locked, OSSD B",-KF51 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.8,True
+W144,S30.UNL,aldoor_boxes,M10_safety,SO,boxes airlock outer door lock release (interlocked),-KF56 ch4,M12-3,safe output / 0V,0.34,1.8,True
+W145,S30.DRV,aldoor_boxes,M10_safety,DO,boxes airlock outer door drive valve (force-limited),-KF6 ch4,M12-3,BK signal / BU 0V,0.34,1.8,True
+W146,S32.A,aldoor_inner,M10_safety,SI,"out airlock inner door closed AND locked, OSSD A",-KF51 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.53,True
+W147,S32.B,aldoor_inner,M10_safety,SI,"out airlock inner door closed AND locked, OSSD B",-KF52 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.53,True
+W148,S32.UNL,aldoor_inner,M10_safety,SO,out airlock inner door lock release (interlocked),-KF57 ch2,M12-3,safe output / 0V,0.34,1.53,True
+W149,S32.DRV,aldoor_inner,M10_safety,DO,out airlock inner door drive valve (force-limited),-KF6 ch6,M12-3,BK signal / BU 0V,0.34,1.53,True
+W150,S31.A,aldoor_out,M10_safety,SI,"out airlock outer door closed AND locked, OSSD A",-KF51 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.91,True
+W151,S31.B,aldoor_out,M10_safety,SI,"out airlock outer door closed AND locked, OSSD B",-KF51 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.91,True
+W152,S31.UNL,aldoor_out,M10_safety,SO,out airlock outer door lock release (interlocked),-KF57 ch1,M12-3,safe output / 0V,0.34,1.91,True
+W153,S31.DRV,aldoor_out,M10_safety,DO,out airlock outer door drive valve (force-limited),-KF6 ch5,M12-3,BK signal / BU 0V,0.34,1.91,True
 W154,S10.A,estop_S10_head,M10_safety,SI,"E-stop NC contact A (SF1, 2-channel)",-KF47 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.05,True
 W155,S10.B,estop_S10_head,M10_safety,SI,"E-stop NC contact B (SF1, 2-channel)",-KF47 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.05,True
 W156,S11.A,estop_S11_head,M10_safety,SI,"E-stop NC contact A (SF1, 2-channel)",-KF48 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.71,True

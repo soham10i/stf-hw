@@ -42,7 +42,7 @@ Engineering evidence, not a certificate. PLr values and every [assumed] time / f
 | shuttles + cassettes | 45 | motion | high | 0.05 | out |
 | tray magazine forks D8 | 6 | motion | 30 N (low energy) | 0.1 | - |
 | oven IR bars (hot) | 3 | heat | high | - | - |
-| airlock doors (power-operated, force-limited) | 3 | motion | 50 N (low energy) | 0.1 | - |
+| airlock doors (power-operated, force-limited) | 6 | motion | 50 N (low energy) | 0.1 | - |
 | trapdoor flaps | 3 | motion | 6 N (low energy) | 0.1 | boxes |
 
 ## PL estimate (ISO 13849-1 simplified method, typical data - verify in SISTEMA)
@@ -99,7 +99,7 @@ Engineering evidence, not a certificate. PLr values and every [assumed] time / f
 | out airlock | stamp die (hot) | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 460 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | lane belts (in-running nips) | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 215 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | sealers D25 (crush + hot) | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 270 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | stacker lifts D16 | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 85 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | stacker lifts D16 | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 88 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | oven IR bars (hot) | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 622 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | chain loop (drawing-in at bends / drive) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 319 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | delta A | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 521 | 2 | ISO 13857 slot e = 2 | yes |
@@ -108,7 +108,7 @@ Engineering evidence, not a certificate. PLr values and every [assumed] time / f
 | out airlock | stamp die (hot) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 737 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | lane belts (in-running nips) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 216 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | sealers D25 (crush + hot) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 271 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | stacker lifts D16 | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 89 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | stacker lifts D16 | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 92 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | oven IR bars (hot) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 832 | 2 | ISO 13857 slot e = 2 | yes |
 | reject drawer (in) | chain loop (drawing-in at bends / drive) | bin-top slot e = 4 (brush), path via hole + funnel | 110 | 2 | ISO 13857 slot e = 4 | yes |
 | reject drawer (in) | delta A | bin-top slot e = 4 (brush), path via hole + funnel | 369 | 2 | ISO 13857 slot e = 4 | yes |
@@ -116,7 +116,7 @@ Engineering evidence, not a certificate. PLr values and every [assumed] time / f
 | reject drawer (in) | stamp die (hot) | bin-top slot e = 4 (brush), path via hole + funnel | 405 | 2 | ISO 13857 slot e = 4 | yes |
 | reject drawer (in) | lane belts (in-running nips) | bin-top slot e = 4 (brush), path via hole + funnel | 242 | 2 | ISO 13857 slot e = 4 | yes |
 | reject drawer (in) | sealers D25 (crush + hot) | bin-top slot e = 4 (brush), path via hole + funnel | 251 | 2 | ISO 13857 slot e = 4 | yes |
-| reject drawer (in) | stacker lifts D16 | bin-top slot e = 4 (brush), path via hole + funnel | 255 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | stacker lifts D16 | bin-top slot e = 4 (brush), path via hole + funnel | 259 | 2 | ISO 13857 slot e = 4 | yes |
 | reject drawer (in) | shuttles + cassettes | bin-top slot e = 4 (brush), path via hole + funnel | 242 | 2 | ISO 13857 slot e = 4 | yes |
 | reject drawer (in) | oven IR bars (hot) | bin-top slot e = 4 (brush), path via hole + funnel | 414 | 2 | ISO 13857 slot e = 4 | yes |
 
