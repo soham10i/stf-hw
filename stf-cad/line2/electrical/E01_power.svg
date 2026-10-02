@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<defs><marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+<path d="M0,2 L10,5 L0,8 z" fill="#1b2330"/></marker>
+<marker id="f" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+<path d="M0,1 L10,5 L0,9 z" fill="#1f4e8c"/></marker>
+<pattern id="hatch" width="1.6" height="1.6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="1.6" height="1.6" fill="#eef1f5"/><line x1="0" y1="0" x2="0" y2="1.6" stroke="#1b2330" stroke-width=".18"/></pattern></defs>
+<style>
+text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
+.vt{font-size:3.2px;font-weight:700;letter-spacing:.3px}
+.dt{font-size:2.3px}
+.dim{stroke:#1b2330;stroke-width:.15;fill:none}
+.ext{stroke:#1b2330;stroke-width:.1}
+.tb{font-size:2.6px}.tbh{font-size:4.2px;font-weight:700}.tbs{font-size:2.1px;fill:#445}
+.nt{font-size:2.3px}.nh{font-size:2.8px;font-weight:700;fill:#1f4e8c}
+.co{font-size:2.1px}.col{stroke:#1f4e8c;stroke-width:.15}
+</style>
+<rect width="420" height="297" fill="#ffffff"/>
+<rect x="10" y="10" width="400" height="277" fill="none" stroke="#1b2330" stroke-width=".5"/>
+<text x="20.0" y="22.0" class="nh" text-anchor="start" >POWER DISTRIBUTION (single line)</text>
+<line x1="30.0" y1="30.0" x2="30.0" y2="250.0" stroke="#1b2330" stroke-width="0.6"/>
+<text x="22.0" y="28.0" class="tbs" text-anchor="start" >L1 / N / PE  230 V AC</text>
+<line x1="30.0" y1="42.0" x2="60.0" y2="42.0" stroke="#1b2330" stroke-width="0.35"/>
+<rect x="60.0" y="37.0" width="26.0" height="10.0" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.3"/>
+<text x="73.0" y="43.2" class="tb" text-anchor="middle" >-FC1</text>
+<text x="90.0" y="43.2" class="tbs" text-anchor="start" >main 2-pole C16</text>
+<line x1="30.0" y1="58.0" x2="60.0" y2="58.0" stroke="#1b2330" stroke-width="0.35"/>
+<rect x="60.0" y="53.0" width="26.0" height="10.0" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.3"/>
+<text x="73.0" y="59.2" class="tb" text-anchor="middle" >-FC2</text>
+<text x="90.0" y="59.2" class="tbs" text-anchor="start" >C10 heaters</text>
+<line x1="73.0" y1="63.0" x2="73.0" y2="70.0" stroke="#1b2330" stroke-width="0.35"/>
+<line x1="73.0" y1="70.0" x2="110.0" y2="70.0" stroke="#1b2330" stroke-width="0.35"/>
+<rect x="110.0" y="66.0" width="180.0" height="8.0" fill="#fff" stroke="#1b2330" stroke-width="0.3"/>
+<text x="113.0" y="71.2" class="tbs" text-anchor="start" >-QK3 + -QK4 (TwinSAFE, in series) -&gt; heater feed</text>
+<line x1="73.0" y1="63.0" x2="73.0" y2="81.0" stroke="#1b2330" stroke-width="0.35"/>
+<line x1="73.0" y1="81.0" x2="110.0" y2="81.0" stroke="#1b2330" stroke-width="0.35"/>
+<rect x="110.0" y="77.0" width="180.0" height="8.0" fill="#fff" stroke="#1b2330" stroke-width="0.3"/>
+<text x="113.0" y="82.2" class="tbs" text-anchor="start" >-QA1..3 AC SSR -&gt; Q8/Q9/Q10 IR 300 W, each via its STL -BT contact</text>
+<line x1="30.0" y1="98.0" x2="60.0" y2="98.0" stroke="#1b2330" stroke-width="0.35"/>
+<rect x="60.0" y="93.0" width="26.0" height="10.0" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.3"/>
+<text x="73.0" y="99.2" class="tb" text-anchor="middle" >-FC3</text>
+<text x="90.0" y="99.2" class="tbs" text-anchor="start" >C6 supplies</text>
+<line x1="73.0" y1="103.0" x2="73.0" y2="110.0" stroke="#1b2330" stroke-width="0.35"/>
+<line x1="73.0" y1="110.0" x2="110.0" y2="110.0" stroke="#1b2330" stroke-width="0.35"/>
+<rect x="110.0" y="106.0" width="180.0" height="8.0" fill="#fff" stroke="#1b2330" stroke-width="0.3"/>
+<text x="113.0" y="111.2" class="tbs" text-anchor="start" >-TB1 SDR-480-24: 24 V logic + safety (PC, EL, EL69xx/19xx/29xx, sensors, coils, locks, curtains)</text>
+<line x1="73.0" y1="103.0" x2="73.0" y2="121.0" stroke="#1b2330" stroke-width="0.35"/>
+<line x1="73.0" y1="121.0" x2="110.0" y2="121.0" stroke="#1b2330" stroke-width="0.35"/>
+<rect x="110.0" y="117.0" width="180.0" height="8.0" fill="#fff" stroke="#1b2330" stroke-width="0.3"/>
+<text x="113.0" y="122.2" class="tbs" text-anchor="start" >-TB2 SDR-480-24 (fed via -QK3/-QK4): 24 V heat -&gt; DC SSR + STL -&gt; Q36-38 sealing heads, Q15 die</text>
+<line x1="73.0" y1="103.0" x2="73.0" y2="132.0" stroke="#1b2330" stroke-width="0.35"/>
+<line x1="73.0" y1="132.0" x2="110.0" y2="132.0" stroke="#1b2330" stroke-width="0.35"/>
+<rect x="110.0" y="128.0" width="180.0" height="8.0" fill="#fff" stroke="#1b2330" stroke-width="0.3"/>
+<text x="113.0" y="133.2" class="tbs" text-anchor="start" >-TB3 SDR-480P-48 -&gt; -QK1 + -QK2 (series) -&gt; 17 EL7047;</text>
+<line x1="73.0" y1="103.0" x2="73.0" y2="143.0" stroke="#1b2330" stroke-width="0.35"/>
+<line x1="73.0" y1="143.0" x2="110.0" y2="143.0" stroke="#1b2330" stroke-width="0.35"/>
+<rect x="110.0" y="139.0" width="180.0" height="8.0" fill="#fff" stroke="#1b2330" stroke-width="0.3"/>
+<text x="113.0" y="144.2" class="tbs" text-anchor="start" >   branch -QK5:  (boxes port zone)</text>
+<line x1="73.0" y1="103.0" x2="73.0" y2="154.0" stroke="#1b2330" stroke-width="0.35"/>
+<line x1="73.0" y1="154.0" x2="110.0" y2="154.0" stroke="#1b2330" stroke-width="0.35"/>
+<rect x="110.0" y="150.0" width="180.0" height="8.0" fill="#fff" stroke="#1b2330" stroke-width="0.3"/>
+<text x="113.0" y="155.2" class="tbs" text-anchor="start" >   branch -QK6: Q27, Q28, Q29 (out port zone)</text>
+<rect x="300.0" y="40.0" width="100.0" height="44.0" fill="#fff4f2" stroke="#c0392b" stroke-width="0.3"/>
+<text x="303.0" y="47.0" class="tb" text-anchor="start" >TWINSAFE (EL6910 + EL1904 / EL2904)</text>
+<text x="303.0" y="54.0" class="tbs" text-anchor="start" >SF1 E-stop, SF2 guard locking, SF3 exhaust, SF6 ports</text>
+<text x="303.0" y="60.0" class="tbs" text-anchor="start" >K1+K2 (48 V), K3+K4 (heat) in series, EDM</text>
+<text x="303.0" y="66.0" class="tbs" text-anchor="start" >K5/K6 + Y1/Y2: AMR port zones</text>
+<text x="303.0" y="72.0" class="tbs" text-anchor="start" >SF4: STL per heated zone (hardwired)</text>
+<text x="303.0" y="78.0" class="tbs" text-anchor="start" >see E04 + safety/report.md</text>
+<text x="300.0" y="100.0" class="nh" text-anchor="start" >BUDGETS (plc_io.power, &lt;= 80 % of every rating)</text>
+<text x="300.0" y="106.0" class="tbs" text-anchor="start" >OK  DO channel current (worst): 0.40 A  &lt;= EL2809 0.5 A</text>
+<text x="300.0" y="111.2" class="tbs" text-anchor="start" >OK  safe output current (worst): 0.35 A (S20.UNL)  &lt;= EL2904 0.5 A</text>
+<text x="300.0" y="116.4" class="tbs" text-anchor="start" >OK  24 V logic supply: 8.63 A  &lt;= 80% of SDR-480-24 20 A</text>
+<text x="300.0" y="121.6" class="tbs" text-anchor="start" >OK  24 V heater supply: 8.54 A  &lt;= 80% of SDR-480-24 20 A</text>
+<text x="300.0" y="126.8" class="tbs" text-anchor="start" >OK  48 V motor supply: 4.76 A (228 W)  &lt;= 80% of SDR-480P-48 10 A</text>
+<text x="300.0" y="132.0" class="tbs" text-anchor="start" >OK  stepper phase current: 2 A  &lt;= EL7047 5 A</text>
+<text x="300.0" y="137.2" class="tbs" text-anchor="start" >OK  230 V heater breaker: 3.91 A  &lt;= 80 % of C10</text>
+<text x="300.0" y="142.4" class="tbs" text-anchor="start" >OK  K1/K2 48 V (DC-1): 10 A  &lt;= 20 A</text>
+<text x="300.0" y="147.6" class="tbs" text-anchor="start" >OK  K5 out zone (DC-1): 12.0 A  &lt;= 20 A</text>
+<text x="300.0" y="152.8" class="tbs" text-anchor="start" >OK  K3/K4 heater feed (AC-1): 6.23 A  &lt;= 22 A</text>
+<text x="300.0" y="158.0" class="tbs" text-anchor="start" >OK  STL relay contact (worst zone): 2.50 A  &lt;= 3 A</text>
+<rect x="230" y="249" width="180" height="38" fill="#fff" stroke="#1b2330" stroke-width=".35"/>
+<rect x="230" y="249" width="180" height="9" fill="#1f4e8c"/>
+<text x="233" y="255.3" class="tbh" style="fill:#fff">STF-2 CONTINUOUS COOKIE LINE</text>
+<text x="233" y="264" class="tbh" style="font-size:3.6px">Electrical E01 - power distribution</text>
+<text x="233" y="269" class="tbs">single line, derived from plc_io</text>
+<text x="233" y="275" class="tbs">SCALE</text><text x="233" y="278" class="tb">none</text>
+<text x="293" y="275" class="tbs">SHEET</text><text x="293" y="278" class="tb">1 / 14</text>
+<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-09-29</text>
+<text x="233" y="281" class="tbs">UNITS</text><text x="233" y="284" class="tb">mm, deg</text>
+<text x="293" y="281" class="tbs">PROJECTION</text><text x="293" y="284" class="tb">third angle</text>
+<text x="353" y="281" class="tbs">SOURCE</text><text x="353" y="284" class="tb">line_model.py (generated - do not edit)</text>
+</svg>

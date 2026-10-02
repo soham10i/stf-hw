@@ -1,450 +1,406 @@
-#!/usr/bin/env python3
 """
-STF Digital Twin - Kinematic Controller Unit Tests
+Planner and trajectory tests.
 
-This script validates the KinematicController logic including:
-- Pulse calculations (18.75 pulses/mm)
-- Square-path motion sequences (no diagonal moves)
-- Dead reckoning position tracking
-- Collision avoidance (Z never extended during X travel)
-
-Usage:
-    python tests/test_kinematics.py
+The headline test here is :func:`test_planner_and_integrator_agree`. The
+original repository shipped two kinematic engines - a sequential analytic
+planner and a simultaneous-axis integrator - that were never checked against
+each other, so nobody could have noticed they disagreed about the fork stroke
+(50 mm vs 80 mm) or about which shelf row A was. Cross-validating them is the
+test that would have caught it.
 """
 
-import sys
-import os
+from __future__ import annotations
 
-# Add project root to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import pytest
 
-from dataclasses import dataclass
-from typing import List, Tuple, Dict
-
-# Import from project modules
-from controller.main_controller import KinematicController
-from database.models import (
-    SLOT_COORDINATES_3D,
-    REST_POS,
-    CONVEYOR_POS,
-    PULSES_PER_MM,
-    Z_RETRACTED,
-    Z_CARRY,
-    Z_EXTENDED,
+from stf_kernel import (
+    ACCEL_FACTOR,
+    DEAD_ZONE,
+    DECEL_FACTOR,
+    Kernel,
+    PlanError,
+    Trajectory,
+    check_square_path,
+    make_segment,
+    plan_home,
+    plan_retrieve,
+    plan_store,
+    profile_duration,
 )
+from stf_kernel.planner import FORK, LIFT, TRAVEL
+from stf_layout import Layout
+
+pytestmark = pytest.mark.unit
 
 
-# =============================================================================
-# TEST UTILITIES
-# =============================================================================
-
-@dataclass
-class SimulatedPosition:
-    """Tracks simulated robot position during test."""
-    x: float
-    y: float
-    z: float
-    
-    def as_tuple(self) -> Tuple[float, float, float]:
-        return (self.x, self.y, self.z)
-    
-    def update_from_step(self, step: Dict):
-        """Update position based on a kinematic step."""
-        axis = step['axis']
-        target = step['target']
-        if axis == 'X':
-            self.x = target
-        elif axis == 'Y':
-            self.y = target
-        elif axis == 'Z':
-            self.z = target
+# --------------------------------------------------------------------------
+# Trapezoidal profiles
+# --------------------------------------------------------------------------
 
 
-class TestResult:
-    """Collects test results for final summary."""
-    def __init__(self):
-        self.passed = 0
-        self.failed = 0
-        self.errors: List[str] = []
-    
-    def assert_equal(self, actual, expected, message: str):
-        if actual == expected:
-            self.passed += 1
-            print(f"  ✅ PASS: {message}")
-        else:
-            self.failed += 1
-            error = f"{message} - Expected {expected}, got {actual}"
-            self.errors.append(error)
-            print(f"  ❌ FAIL: {error}")
-    
-    def assert_true(self, condition: bool, message: str):
-        if condition:
-            self.passed += 1
-            print(f"  ✅ PASS: {message}")
-        else:
-            self.failed += 1
-            self.errors.append(message)
-            print(f"  ❌ FAIL: {message}")
-    
-    def assert_almost_equal(self, actual: float, expected: float, tolerance: float, message: str):
-        if abs(actual - expected) <= tolerance:
-            self.passed += 1
-            print(f"  ✅ PASS: {message}")
-        else:
-            self.failed += 1
-            error = f"{message} - Expected {expected} ±{tolerance}, got {actual}"
-            self.errors.append(error)
-            print(f"  ❌ FAIL: {error}")
+def test_long_move_reaches_top_speed(layout: Layout) -> None:
+    top = layout.joint(TRAVEL).drive.max_speed
+    duration, peak = profile_duration(300.0, top)
+
+    assert peak == pytest.approx(top), "a 300mm move should reach cruise"
+
+    # A trapezoid costs the cruise time plus half of each ramp: the ramps still
+    # cover ground, so they add t_a/2 + t_d/2 rather than their full duration.
+    overhead = 1.0 / (2.0 * ACCEL_FACTOR) + 1.0 / (2.0 * DECEL_FACTOR)
+    assert duration == pytest.approx(300.0 / top + overhead, abs=1e-6)
 
 
-def print_header(title: str):
-    """Print a formatted section header."""
-    print()
-    print("=" * 70)
-    print(f" {title}")
-    print("=" * 70)
+def test_short_move_is_triangular(layout: Layout) -> None:
+    top = layout.joint(TRAVEL).drive.max_speed
+    _, peak = profile_duration(0.5, top)
+    assert peak < top, "a 0.5mm move cannot reach top speed"
 
 
-def print_subheader(title: str):
-    """Print a formatted subsection header."""
-    print()
-    print(f"--- {title} ---")
+def test_profile_is_monotonic_in_distance(layout: Layout) -> None:
+    top = layout.joint(TRAVEL).drive.max_speed
+    durations = [profile_duration(d, top)[0] for d in (1, 10, 50, 100, 300)]
+    assert durations == sorted(durations)
 
 
-# =============================================================================
-# TEST: PULSE CALCULATION
-# =============================================================================
+def test_segment_position_is_continuous_and_lands_on_target(layout: Layout) -> None:
+    seg = make_segment(layout, TRAVEL, 0.0, 300.0, "test")
+    assert seg is not None
 
-def test_pulse_calculation(results: TestResult):
-    """Test the pulse calculation formula."""
-    print_header("TEST 1: Pulse Calculation")
-    
-    kc = KinematicController()
-    
-    # Test case 1: 100mm movement (400 -> 300)
-    pulses, direction = kc.calc_pulses(300, 400)
-    expected_pulses = int(100 * PULSES_PER_MM)  # 100 * 18.75 = 1875
-    
-    print(f"  Movement: 400mm -> 300mm (100mm backward)")
-    print(f"  Expected pulses: {expected_pulses}")
-    print(f"  Actual pulses: {pulses}")
-    print(f"  Direction: {direction} ({'backward' if direction < 0 else 'forward'})")
-    
-    results.assert_equal(pulses, expected_pulses, "100mm movement = 1875 pulses")
-    results.assert_equal(direction, -1, "Backward direction = -1")
-    
-    # Test case 2: 200mm movement forward
-    pulses2, direction2 = kc.calc_pulses(300, 100)
-    expected_pulses2 = int(200 * PULSES_PER_MM)  # 200 * 18.75 = 3750
-    
-    print()
-    print(f"  Movement: 100mm -> 300mm (200mm forward)")
-    print(f"  Expected pulses: {expected_pulses2}")
-    print(f"  Actual pulses: {pulses2}")
-    
-    results.assert_equal(pulses2, expected_pulses2, "200mm movement = 3750 pulses")
-    results.assert_equal(direction2, 1, "Forward direction = 1")
-    
-    # Test case 3: Small movement within dead zone
-    pulses3, direction3 = kc.calc_pulses(100.05, 100.0)
-    
-    print()
-    print(f"  Movement: 100.0mm -> 100.05mm (0.05mm, within dead zone)")
-    print(f"  Pulses: {pulses3}, Direction: {direction3}")
-    
-    results.assert_equal(pulses3, 0, "Dead zone movement = 0 pulses")
-    results.assert_equal(direction3, 0, "Dead zone direction = 0")
+    assert seg.position_at(0.0) == pytest.approx(0.0)
+    assert seg.position_at(seg.duration) == pytest.approx(300.0)
+    assert seg.position_at(seg.duration * 2) == pytest.approx(300.0), "must hold after arrival"
+
+    samples = [seg.position_at(seg.duration * f / 50) for f in range(51)]
+    assert samples == sorted(samples), "a one-way move must not reverse"
 
 
-# =============================================================================
-# TEST: RETRIEVE SEQUENCE FOR A3
-# =============================================================================
-
-def test_retrieve_a3_sequence(results: TestResult):
-    """Test the retrieve sequence for slot A3."""
-    print_header("TEST 2: Retrieve Sequence for A3")
-    
-    # Setup
-    kc = KinematicController()
-    slot_name = "A3"
-    slot_coords = SLOT_COORDINATES_3D[slot_name]
-    
-    print(f"  Start Position (REST_POS): X={REST_POS[0]}, Y={REST_POS[1]}, Z={REST_POS[2]}")
-    print(f"  Target Slot {slot_name}: X={slot_coords[0]}, Y={slot_coords[1]}, Z={slot_coords[2]}")
-    print(f"  Conveyor Position: X={CONVEYOR_POS[0]}, Y={CONVEYOR_POS[1]}, Z={CONVEYOR_POS[2]}")
-    
-    # Generate sequence
-    sequence = kc.generate_retrieve_sequence(slot_name)
-    
-    print_subheader(f"Generated Sequence ({len(sequence)} steps)")
-    
-    # Simulate with dead reckoning
-    current_pos = SimulatedPosition(x=REST_POS[0], y=REST_POS[1], z=REST_POS[2])
-    
-    # Track for collision detection
-    collision_violations: List[str] = []
-    x_move_pulses: List[int] = []  # Collect X movement pulses
-    
-    print()
-    print(f"{'Step':>4} | {'Axis':>4} | {'From':>10} | {'To':>10} | {'Pulses':>6} | {'Dir':>3} | Description")
-    print("-" * 90)
-    
-    for i, step in enumerate(sequence):
-        axis = step['axis']
-        target = step['target']
-        pulses = step['pulses']
-        direction = step['direction']
-        desc = step['description']
-        
-        # Get current value for this axis
-        if axis == 'X':
-            from_val = current_pos.x
-            x_move_pulses.append(pulses)
-        elif axis == 'Y':
-            from_val = current_pos.y
-        else:  # Z
-            from_val = current_pos.z
-        
-        dir_char = "+" if direction > 0 else "-" if direction < 0 else "="
-        
-        print(f"{i+1:>4} | {axis:>4} | {from_val:>9.1f}mm | {target:>9.1f}mm | {pulses:>6} | {dir_char:>3} | {desc}")
-        
-        # === COLLISION CHECK ===
-        # Z should never be extended (> Z_CARRY) while X is moving
-        if axis == 'X' and current_pos.z > Z_CARRY:
-            violation = f"Step {i+1}: X moving while Z={current_pos.z}mm (> {Z_CARRY}mm carry height)"
-            collision_violations.append(violation)
-        
-        # Update position (dead reckoning)
-        current_pos.update_from_step(step)
-    
-    # Print final position
-    print("-" * 90)
-    print(f"Final Position: X={current_pos.x:.1f}, Y={current_pos.y:.1f}, Z={current_pos.z:.1f}")
-    print(f"Expected (REST): X={REST_POS[0]:.1f}, Y={REST_POS[1]:.1f}, Z={REST_POS[2]:.1f}")
-    
-    print_subheader("Assertions")
-    
-    # Assert 1: Final position equals REST_POS
-    results.assert_almost_equal(current_pos.x, REST_POS[0], 0.1, "Final X = REST_POS X")
-    results.assert_almost_equal(current_pos.y, REST_POS[1], 0.1, "Final Y = REST_POS Y")
-    results.assert_almost_equal(current_pos.z, REST_POS[2], 0.1, "Final Z = REST_POS Z")
-    
-    # Assert 2: X movement from 400 -> 300 = 1875 pulses
-    # First X move should be from REST (400) to slot A3 (300) = 100mm = 1875 pulses
-    first_x_pulses = x_move_pulses[0] if x_move_pulses else 0
-    expected_first_x = int(abs(REST_POS[0] - slot_coords[0]) * PULSES_PER_MM)
-    
-    print()
-    print(f"  First X movement: {REST_POS[0]}mm -> {slot_coords[0]}mm")
-    print(f"  Expected pulses: {expected_first_x}")
-    print(f"  Actual pulses: {first_x_pulses}")
-    
-    results.assert_equal(first_x_pulses, expected_first_x, 
-                        f"X movement (400->300mm) = {expected_first_x} pulses")
-    
-    # Assert 3: No collision violations
-    if collision_violations:
-        print()
-        print("  ⚠️  Collision Violations Detected:")
-        for v in collision_violations:
-            print(f"      - {v}")
-    
-    results.assert_true(len(collision_violations) == 0, 
-                       "No Z extension during X travel (collision safety)")
+def test_segment_handles_negative_direction(layout: Layout) -> None:
+    seg = make_segment(layout, TRAVEL, 300.0, 100.0, "back")
+    assert seg is not None
+    assert seg.direction == -1
+    assert seg.position_at(seg.duration) == pytest.approx(100.0)
+    assert seg.position_at(seg.duration / 2) < 300.0
 
 
-# =============================================================================
-# TEST: STORE SEQUENCE
-# =============================================================================
-
-def test_store_sequence(results: TestResult):
-    """Test the store sequence logic."""
-    print_header("TEST 3: Store Sequence for B2")
-    
-    kc = KinematicController()
-    slot_name = "B2"
-    slot_coords = SLOT_COORDINATES_3D[slot_name]
-    
-    print(f"  Start Position (REST_POS): X={REST_POS[0]}, Y={REST_POS[1]}, Z={REST_POS[2]}")
-    print(f"  Target Slot {slot_name}: X={slot_coords[0]}, Y={slot_coords[1]}, Z={slot_coords[2]}")
-    
-    sequence = kc.generate_store_sequence(slot_name)
-    
-    print_subheader(f"Generated Sequence ({len(sequence)} steps)")
-    
-    # Verify sequence exists and has steps
-    results.assert_true(len(sequence) > 0, "Store sequence has steps")
-    
-    # Track positions
-    current_pos = SimulatedPosition(x=REST_POS[0], y=REST_POS[1], z=REST_POS[2])
-    collision_violations = []
-    
-    print()
-    print(f"{'Step':>4} | {'Axis':>4} | {'Target':>10} | {'Pulses':>6} | Description")
-    print("-" * 70)
-    
-    for i, step in enumerate(sequence):
-        axis = step['axis']
-        target = step['target']
-        pulses = step['pulses']
-        desc = step['description']
-        
-        print(f"{i+1:>4} | {axis:>4} | {target:>9.1f}mm | {pulses:>6} | {desc}")
-        
-        # Collision check
-        if axis == 'X' and current_pos.z > Z_CARRY:
-            collision_violations.append(f"Step {i+1}: X moving with Z={current_pos.z}")
-        
-        current_pos.update_from_step(step)
-    
-    print("-" * 70)
-    print(f"Final Position: X={current_pos.x:.1f}, Y={current_pos.y:.1f}, Z={current_pos.z:.1f}")
-    
-    print_subheader("Assertions")
-    
-    # Final position should return to REST_POS
-    results.assert_almost_equal(current_pos.x, REST_POS[0], 0.1, "Store ends at REST_POS X")
-    results.assert_true(len(collision_violations) == 0, "No collision violations in store sequence")
+# --------------------------------------------------------------------------
+# Dead zone and limits
+# --------------------------------------------------------------------------
 
 
-# =============================================================================
-# TEST: EDGE CASES
-# =============================================================================
-
-def test_edge_cases(results: TestResult):
-    """Test edge cases and boundary conditions."""
-    print_header("TEST 4: Edge Cases")
-    
-    kc = KinematicController()
-    
-    # Test all slots
-    print_subheader("Testing All 9 Slots")
-    
-    for slot_name in SLOT_COORDINATES_3D.keys():
-        try:
-            seq = kc.generate_retrieve_sequence(slot_name)
-            results.assert_true(len(seq) > 0, f"Retrieve sequence for {slot_name} generated")
-        except Exception as e:
-            results.assert_true(False, f"Retrieve sequence for {slot_name} - ERROR: {e}")
-    
-    # Test invalid slot
-    print_subheader("Testing Invalid Slot")
-    
-    try:
-        kc.generate_retrieve_sequence("D4")  # Invalid slot
-        results.assert_true(False, "Invalid slot should raise ValueError")
-    except ValueError as e:
-        results.assert_true(True, f"Invalid slot raises ValueError: {e}")
-    except Exception as e:
-        results.assert_true(False, f"Unexpected exception: {e}")
+def test_sub_dead_zone_move_is_dropped(layout: Layout) -> None:
+    assert make_segment(layout, TRAVEL, 100.0, 100.0 + DEAD_ZONE / 2, "tiny") is None
 
 
-# =============================================================================
-# TEST: FULL ROUND TRIP
-# =============================================================================
-
-def test_full_round_trip(results: TestResult):
-    """Test a complete retrieve + store round trip."""
-    print_header("TEST 5: Full Round Trip (Retrieve + Store)")
-    
-    kc = KinematicController()
-    slot_name = "C3"  # Top-right corner slot
-    
-    print(f"  Simulating full cycle for slot {slot_name}")
-    print(f"  Slot coordinates: {SLOT_COORDINATES_3D[slot_name]}")
-    
-    # Phase 1: Retrieve
-    retrieve_seq = kc.generate_retrieve_sequence(slot_name)
-    
-    # Simulate retrieve
-    pos = SimulatedPosition(x=REST_POS[0], y=REST_POS[1], z=REST_POS[2])
-    for step in retrieve_seq:
-        pos.update_from_step(step)
-    
-    print(f"  After RETRIEVE: X={pos.x:.1f}, Y={pos.y:.1f}, Z={pos.z:.1f}")
-    
-    # Phase 2: Store (from REST_POS again, simulating conveyor pickup)
-    # Reset kinematics position tracker
-    kc2 = KinematicController()
-    store_seq = kc2.generate_store_sequence(slot_name)
-    
-    pos2 = SimulatedPosition(x=REST_POS[0], y=REST_POS[1], z=REST_POS[2])
-    for step in store_seq:
-        pos2.update_from_step(step)
-    
-    print(f"  After STORE: X={pos2.x:.1f}, Y={pos2.y:.1f}, Z={pos2.z:.1f}")
-    
-    print_subheader("Assertions")
-    
-    # Both should end at REST_POS
-    results.assert_almost_equal(pos.x, REST_POS[0], 0.1, "Retrieve ends at REST X")
-    results.assert_almost_equal(pos.y, REST_POS[1], 0.1, "Retrieve ends at REST Y")
-    results.assert_almost_equal(pos2.x, REST_POS[0], 0.1, "Store ends at REST X")
-    results.assert_almost_equal(pos2.y, REST_POS[1], 0.1, "Store ends at REST Y")
-    
-    # Calculate total travel distance
-    total_retrieve_pulses = sum(s['pulses'] for s in retrieve_seq)
-    total_store_pulses = sum(s['pulses'] for s in store_seq)
-    
-    print()
-    print(f"  Total retrieve pulses: {total_retrieve_pulses}")
-    print(f"  Total store pulses: {total_store_pulses}")
-    print(f"  Combined cycle pulses: {total_retrieve_pulses + total_store_pulses}")
+def test_move_past_a_hard_stop_is_rejected(layout: Layout) -> None:
+    lo, hi = layout.joint(TRAVEL).limits
+    with pytest.raises(ValueError, match="outside limits"):
+        make_segment(layout, TRAVEL, 0.0, hi + 50.0, "too far")
+    with pytest.raises(ValueError, match="outside limits"):
+        make_segment(layout, TRAVEL, 0.0, lo - 50.0, "too far back")
 
 
-# =============================================================================
-# MAIN TEST RUNNER
-# =============================================================================
-
-def main():
-    """Run all tests and print summary."""
-    print()
-    print("╔══════════════════════════════════════════════════════════════════════╗")
-    print("║       STF DIGITAL TWIN - KINEMATIC CONTROLLER UNIT TESTS             ║")
-    print("╚══════════════════════════════════════════════════════════════════════╝")
-    
-    print()
-    print(f"Configuration:")
-    print(f"  PULSES_PER_MM: {PULSES_PER_MM}")
-    print(f"  Z_RETRACTED:   {Z_RETRACTED} mm")
-    print(f"  Z_CARRY:       {Z_CARRY} mm")
-    print(f"  Z_EXTENDED:    {Z_EXTENDED} mm")
-    print(f"  REST_POS:      {REST_POS}")
-    print(f"  CONVEYOR_POS:  {CONVEYOR_POS}")
-    
-    results = TestResult()
-    
-    # Run all tests
-    test_pulse_calculation(results)
-    test_retrieve_a3_sequence(results)
-    test_store_sequence(results)
-    test_edge_cases(results)
-    test_full_round_trip(results)
-    
-    # Print summary
-    print()
-    print("╔══════════════════════════════════════════════════════════════════════╗")
-    print("║                         TEST SUMMARY                                  ║")
-    print("╚══════════════════════════════════════════════════════════════════════╝")
-    print()
-    print(f"  Total Tests:  {results.passed + results.failed}")
-    print(f"  Passed:       {results.passed} ✅")
-    print(f"  Failed:       {results.failed} ❌")
-    print()
-    
-    if results.failed > 0:
-        print("  Failed Tests:")
-        for error in results.errors:
-            print(f"    - {error}")
-        print()
-        print("  ❌ TESTS FAILED")
-        return 1
-    else:
-        print("  ✅ ALL TESTS PASSED")
-        return 0
+def test_pulses_match_the_encoder_resolution(layout: Layout) -> None:
+    seg = make_segment(layout, TRAVEL, 0.0, 100.0, "100mm")
+    assert seg is not None
+    assert seg.pulses == 1875, "100mm at 18.75 pulses/mm"
 
 
-if __name__ == "__main__":
-    exit_code = main()
-    sys.exit(exit_code)
+# --------------------------------------------------------------------------
+# Choreography
+# --------------------------------------------------------------------------
+
+
+def test_unknown_slot_is_rejected(layout: Layout) -> None:
+    with pytest.raises(PlanError, match="unknown slot"):
+        plan_retrieve(layout, "D9")
+    with pytest.raises(PlanError, match="unknown slot"):
+        plan_store(layout, "Z1")
+
+
+@pytest.mark.parametrize("planner", [plan_retrieve, plan_store])
+def test_every_slot_is_plannable(layout: Layout, planner) -> None:
+    for slot in layout.all_slots():
+        traj = planner(layout, slot)
+        assert len(traj) > 0
+        assert traj.duration > 0
+
+
+@pytest.mark.parametrize("planner", [plan_retrieve, plan_store])
+def test_square_path_invariant_holds(layout: Layout, planner) -> None:
+    """
+    The crane's one safety rule: never travel with the fork in the shelving.
+
+    The original asserted this in a test but never enforced it in the planner,
+    so a later edit to the choreography could have driven an extended fork
+    through a shelf upright.
+    """
+    for slot in layout.all_slots():
+        violations = check_square_path(layout, planner(layout, slot))
+        assert not violations, f"{slot}: " + "; ".join(violations)
+
+
+def test_home_retracts_the_fork_first(layout: Layout) -> None:
+    traj = plan_home(layout, start={FORK: 50.0, TRAVEL: 300.0, LIFT: 200.0})
+    assert traj.segments[0].joint == FORK
+    assert not check_square_path(layout, traj)
+
+
+def test_retrieve_ends_at_rest(layout: Layout) -> None:
+    traj = plan_retrieve(layout, "A1")
+    finals = traj.final_targets()
+    assert finals[LIFT] == pytest.approx(layout.joint(LIFT).at("rest"))
+    assert finals[FORK] == pytest.approx(layout.joint(FORK).at("retracted"))
+
+
+def test_retrieve_visits_the_slot_then_the_conveyor(layout: Layout) -> None:
+    """Order matters: the carrier must be collected before it is delivered."""
+    slot_x, _, _ = layout.slot_pose("A1").xyz
+    conveyor_x = layout.joint(TRAVEL).at("conveyor")
+
+    travel_targets = [s.target for s in plan_retrieve(layout, "A1") if s.joint == TRAVEL]
+    assert travel_targets.index(slot_x) < travel_targets.index(conveyor_x)
+
+
+def test_store_is_the_mirror_of_retrieve(layout: Layout) -> None:
+    slot_x, _, _ = layout.slot_pose("C3").xyz
+    conveyor_x = layout.joint(TRAVEL).at("conveyor")
+
+    travel_targets = [s.target for s in plan_store(layout, "C3") if s.joint == TRAVEL]
+    assert travel_targets.index(conveyor_x) < travel_targets.index(slot_x)
+
+
+def test_no_segment_exceeds_a_joint_limit(layout: Layout) -> None:
+    for slot in layout.all_slots():
+        for planner in (plan_retrieve, plan_store):
+            for seg in planner(layout, slot):
+                joint = layout.joint(seg.joint)
+                assert joint.contains(seg.start), f"{seg.joint} starts outside limits"
+                assert joint.contains(seg.target), f"{seg.joint} targets outside limits"
+
+
+def test_planning_from_a_non_home_start(layout: Layout) -> None:
+    """A plan must be valid from wherever the crane actually is."""
+    mid = {TRAVEL: 250.0, LIFT: 180.0, FORK: 25.0}
+    traj = plan_retrieve(layout, "A1", start=mid)
+    assert not check_square_path(layout, traj)
+    first_travel = next(s for s in traj if s.joint == TRAVEL)
+    assert first_travel.start == pytest.approx(250.0)
+
+
+# --------------------------------------------------------------------------
+# Planner vs integrator - the cross-validation the original never had
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("slot", ["A1", "B2", "C3"])
+@pytest.mark.parametrize("planner", [plan_retrieve, plan_store])
+def test_planner_and_integrator_agree(layout: Layout, slot: str, planner) -> None:
+    """
+    Run the plan through the physics and confirm the crane ends where the
+    planner said it would, to within one encoder pulse.
+    """
+    traj: Trajectory = planner(layout, slot)
+    kernel = Kernel(layout, seed=42)
+    final = kernel.run_trajectory(traj)
+
+    for ref, target in traj.final_targets().items():
+        tolerance = layout.joint(ref).drive.units_per_pulse()
+        assert final.joints[ref] == pytest.approx(target, abs=tolerance), (
+            f"{ref} ended at {final.joints[ref]:.4f}, plan said {target:.4f}"
+        )
+
+
+def test_simulated_duration_tracks_the_plan(layout: Layout) -> None:
+    """
+    Physics should not take dramatically longer than the plan predicted.
+
+    Some lag is expected and correct - each motor spends 500 ms drawing inrush
+    before it delivers torque - but a large divergence means the plan's speed
+    assumptions do not match the drive.
+    """
+    traj = plan_retrieve(layout, "B2")
+    kernel = Kernel(layout, seed=42)
+    final = kernel.run_trajectory(traj)
+
+    assert final.sim_time >= traj.duration
+    assert final.sim_time < traj.duration * 1.5, (
+        f"physics took {final.sim_time:.1f}s for a {traj.duration:.1f}s plan"
+    )
+
+
+def test_a_move_never_outruns_its_drive(layout: Layout) -> None:
+    """No axis may exceed the top speed derived from the lab calibration."""
+    kernel = Kernel(layout, seed=42)
+    kernel.load(plan_retrieve(layout, "C1"))
+
+    for _ in range(4000):
+        state = kernel.step()
+        for ref, velocity in state.velocities.items():
+            limit = layout.joint(ref).drive.max_speed
+            assert abs(velocity) <= limit + 1e-6, f"{ref} moved at {velocity}, limit {limit}"
+        if not kernel.backend.busy:
+            break
+
+
+# --------------------------------------------------------------------------
+# Belt-side handoff (Abbildung 7: the belt runs parallel to the rack, one
+# lane in front - the Ausleger extends backward to reach it)
+# --------------------------------------------------------------------------
+
+
+def test_fork_is_bidirectional(layout: Layout) -> None:
+    """The Belegungsplan gives the Ausleger front AND back reference switches."""
+    fork = layout.joint(FORK)
+    assert fork.at("belt") < 0 < fork.at("retracted"), (
+        "the belt position must be a backward extension"
+    )
+    assert fork.limits[0] < fork.at("belt")
+
+
+def test_retrieve_reaches_over_the_belt(layout: Layout) -> None:
+    """
+    The deposit must happen with the cantilever extended over the belt - the
+    original one-sided fork made the carrier teleport across the lane instead.
+    """
+    traj = plan_retrieve(layout, "B2")
+    segments = list(traj)
+    deposit_i = next(
+        i for i, s in enumerate(segments) if "onto the belt" in s.description
+    )
+    fork_before = [s for s in segments[:deposit_i] if s.joint == FORK]
+    assert fork_before, "a fork move must precede the deposit"
+    assert fork_before[-1].target == pytest.approx(layout.joint(FORK).at("belt")), (
+        "the cantilever must be over the belt when the carrier is set down"
+    )
+
+
+def test_deposit_lands_on_the_belt_centreline(layout: Layout) -> None:
+    """Lane position + backward extension must equal the belt's world depth."""
+    lane_y = layout.devices["hbw"].base.xyz[1]
+    tray_y = lane_y + layout.joint(FORK).at("belt")
+    assert tray_y == pytest.approx(layout.conveyor.pose.xyz[1]), (
+        f"tray lands at y={tray_y}, belt centreline is y={layout.conveyor.pose.xyz[1]}"
+    )
+
+
+def test_vgr_pick_point_matches_the_belt_end(layout: Layout) -> None:
+    """
+    VGR base - reach at swivel 0 must land in the I3 pick window.
+
+    The tower stands beyond the belt's far end, in line with the belt
+    centreline; at swivel 0 the arm points back along the belt axis (-x).
+    """
+    base = layout.devices["vgr"].base.xyz
+    assert base[1] == pytest.approx(layout.conveyor.pose.xyz[1]), (
+        "the tower must stand on the belt centreline"
+    )
+
+    pick_x = base[0] - layout.joint("vgr.reach").at("conveyor")
+    belt_local = layout.conveyor.pose.xyz[0] - pick_x
+    lo, hi = layout.conveyor.sensor_window("I3")
+    assert lo <= belt_local <= hi, (
+        f"VGR picks at belt-local {belt_local}, outside I3 window ({lo}, {hi})"
+    )
+
+
+def test_stations_match_the_vgr_kinematics(layout: Layout) -> None:
+    """
+    Every station the VGR serves must lie exactly where its arm places it.
+
+    station = vgr.base + R_z(swivel.positions[name]) . (-reach.conveyor, 0),
+    at belt surface height. This is the regression test for the old layout,
+    which declared stations behind the rack, 3x beyond the arm's reach, while
+    the swivel angles claimed to serve them.
+    """
+    import math
+
+    base = layout.devices["vgr"].base.xyz
+    reach = layout.joint("vgr.reach").at("conveyor")
+    swivel = layout.joint("vgr.swivel")
+    belt_z = layout.conveyor.pose.xyz[2]
+
+    for name, station in layout.stations.items():
+        theta = math.radians(swivel.at(name))
+        expect_x = base[0] - reach * math.cos(theta)
+        expect_y = base[1] - reach * math.sin(theta)
+        x, y, z = station.pose.xyz
+        assert x == pytest.approx(expect_x, abs=1.0), (
+            f"station {name}: x={x} but the arm places at x={expect_x:.1f}"
+        )
+        assert y == pytest.approx(expect_y, abs=1.0), (
+            f"station {name}: y={y} but the arm places at y={expect_y:.1f}"
+        )
+        assert z == pytest.approx(belt_z), (
+            f"station {name}: pad height {z} != belt surface {belt_z}"
+        )
+
+
+# --------------------------------------------------------------------------
+# VGR pick-and-place
+# --------------------------------------------------------------------------
+
+
+def test_vgr_unknown_station_is_rejected(layout: Layout) -> None:
+    from stf_kernel import plan_vgr_approach_pick
+
+    with pytest.raises(PlanError, match="unknown VGR station"):
+        plan_vgr_approach_pick(layout, "nowhere")
+
+
+@pytest.mark.parametrize("station", ["conveyor", "oven", "delivery"])
+def test_vgr_pick_settles_at_the_station(layout: Layout, station: str) -> None:
+    """The gripper must reach each station within one increment on every axis."""
+    from stf_kernel import Kernel, plan_vgr_approach_pick
+
+    traj = plan_vgr_approach_pick(layout, station)
+    final = Kernel(layout, seed=1).run_trajectory(traj)
+
+    assert final.joints["vgr.swivel"] == pytest.approx(
+        layout.joint("vgr.swivel").at(station),
+        abs=layout.joint("vgr.swivel").drive.units_per_pulse(),
+    )
+    assert final.joints["vgr.plunge"] == pytest.approx(
+        layout.joint("vgr.plunge").at("pick"),
+        abs=layout.joint("vgr.plunge").drive.units_per_pulse(),
+    )
+
+
+def test_vgr_pick_place_stow_chain_is_continuous(layout: Layout) -> None:
+    """
+    Planning each VGR leg from the previous leg's final pose must never command
+    an axis past a hard stop - the runtime plans lazily exactly this way.
+    """
+    from stf_kernel import (
+        Kernel,
+        plan_vgr_approach_pick,
+        plan_vgr_carry_place,
+        plan_vgr_stow,
+    )
+
+    kernel = Kernel(layout, seed=1)
+    for plan in (
+        lambda st: plan_vgr_approach_pick(layout, "conveyor", start=st),
+        lambda st: plan_vgr_carry_place(layout, "delivery", start=st),
+        lambda st: plan_vgr_stow(layout, start=st),
+    ):
+        traj = plan(kernel.backend.snapshot().joints)
+        for seg in traj:
+            assert layout.joint(seg.joint).contains(seg.target)
+        kernel.run_trajectory(traj)
+
+    stowed = kernel.backend.snapshot().joints
+    assert stowed["vgr.swivel"] == pytest.approx(layout.joint("vgr.swivel").home, abs=0.1)
+
+
+def test_cycle_time_reflects_the_real_hardware(layout: Layout) -> None:
+    """
+    A retrieve takes about a minute on this machine.
+
+    Guards the 7x speed correction. The old simulator's hardcoded 100 mm/s
+    would put this trajectory near 9 s; if this assertion starts failing low,
+    the fake speed has crept back in.
+    """
+    traj = plan_retrieve(layout, "B2")
+    assert 40.0 < traj.duration < 90.0, (
+        f"retrieve took {traj.duration:.1f}s - expected ~60s at 14.27 mm/s"
+    )

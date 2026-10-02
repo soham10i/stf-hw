@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<defs><marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+<path d="M0,2 L10,5 L0,8 z" fill="#1b2330"/></marker>
+<marker id="f" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+<path d="M0,1 L10,5 L0,9 z" fill="#1f4e8c"/></marker>
+<pattern id="hatch" width="1.6" height="1.6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="1.6" height="1.6" fill="#eef1f5"/><line x1="0" y1="0" x2="0" y2="1.6" stroke="#1b2330" stroke-width=".18"/></pattern></defs>
+<style>
+text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
+.vt{font-size:3.2px;font-weight:700;letter-spacing:.3px}
+.dt{font-size:2.3px}
+.dim{stroke:#1b2330;stroke-width:.15;fill:none}
+.ext{stroke:#1b2330;stroke-width:.1}
+.tb{font-size:2.6px}.tbh{font-size:4.2px;font-weight:700}.tbs{font-size:2.1px;fill:#445}
+.nt{font-size:2.3px}.nh{font-size:2.8px;font-weight:700;fill:#1f4e8c}
+.co{font-size:2.1px}.col{stroke:#1f4e8c;stroke-width:.15}
+</style>
+<rect width="420" height="297" fill="#ffffff"/>
+<rect x="10" y="10" width="400" height="277" fill="none" stroke="#1b2330" stroke-width=".5"/>
+<rect x="30.00" y="34.00" width="160.00" height="55.00" fill="#faf9f6" stroke="#1b2330" stroke-width="0.18"/>
+<circle cx="59.00" cy="61.50" r="23.25" fill="none" stroke="#1b2330" stroke-width="0.18" stroke-dasharray="0.8 0.4"/>
+<circle cx="110.00" cy="61.50" r="23.25" fill="none" stroke="#1b2330" stroke-width="0.18" stroke-dasharray="0.8 0.4"/>
+<circle cx="161.00" cy="61.50" r="23.25" fill="none" stroke="#1b2330" stroke-width="0.18" stroke-dasharray="0.8 0.4"/>
+<circle cx="59.00" cy="61.50" r="22.50" fill="#f7f1db" stroke="#1b2330" stroke-width="0.18"/>
+<path d="M52.25,61.50h13.50M59.00,54.75v13.50" stroke="#1b2330" stroke-width="0.1"/>
+<circle cx="110.00" cy="61.50" r="22.50" fill="#f7f1db" stroke="#1b2330" stroke-width="0.18"/>
+<path d="M103.25,61.50h13.50M110.00,54.75v13.50" stroke="#1b2330" stroke-width="0.1"/>
+<text x="30.0" y="31.0" class="vt">OPEN TRAY BEING FILLED - TOP (1:1)</text>
+<line x1="30.00" y1="89.00" x2="30.00" y2="96.50" class="ext"/>
+<line x1="190.00" y1="89.00" x2="190.00" y2="96.50" class="ext"/>
+<line x1="30.00" y1="95.00" x2="190.00" y2="95.00" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="110.00" y="94.20" class="dt" text-anchor="middle">160</text>
+<line x1="59.00" y1="89.00" x2="59.00" y2="104.50" class="ext"/>
+<line x1="110.00" y1="89.00" x2="110.00" y2="104.50" class="ext"/>
+<line x1="59.00" y1="103.00" x2="110.00" y2="103.00" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="84.50" y="102.20" class="dt" text-anchor="middle">pocket pitch 51</text>
+<line x1="190.00" y1="89.00" x2="197.50" y2="89.00" class="ext"/>
+<line x1="190.00" y1="34.00" x2="197.50" y2="34.00" class="ext"/>
+<line x1="196.00" y1="89.00" x2="196.00" y2="34.00" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="194.80" y="61.50" class="dt" transform="rotate(-90 194.80 61.50)" text-anchor="middle">55</text>
+<line x1="137.75" y1="61.50" x2="137.75" y2="113.00" class="ext"/>
+<line x1="184.25" y1="61.50" x2="184.25" y2="113.00" class="ext"/>
+<line x1="137.75" y1="111.50" x2="184.25" y2="111.50" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="161.00" y="110.70" class="dt" text-anchor="middle">pocket D46.5 (cookie D45)</text>
+<rect x="30.00" y="136.00" width="160.00" height="24.00" fill="url(#hatch)" stroke="#1b2330" stroke-width="0.36"/>
+<rect x="35.75" y="136.00" width="46.50" height="21.00" fill="#ffffff" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="86.75" y="136.00" width="46.50" height="21.00" fill="#ffffff" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="137.75" y="136.00" width="46.50" height="21.00" fill="#ffffff" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="36.50" y="137.00" width="45.00" height="20.00" fill="#f7f1db" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="87.50" y="137.00" width="45.00" height="20.00" fill="#f7f1db" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="138.50" y="137.00" width="45.00" height="20.00" fill="#f7f1db" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="30.00" y="135.40" width="160.00" height="0.60" fill="#e9f2f9" stroke="#1b2330" stroke-width="0.18"/>
+<text x="30.0" y="132.4" class="vt">SEALED PACK - SECTION (1:1)</text>
+<line x1="30.00" y1="157.00" x2="22.50" y2="157.00" class="ext"/>
+<line x1="30.00" y1="136.00" x2="22.50" y2="136.00" class="ext"/>
+<line x1="24.00" y1="157.00" x2="24.00" y2="136.00" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="22.80" y="146.50" class="dt" transform="rotate(-90 22.80 146.50)" text-anchor="middle">21</text>
+<line x1="190.00" y1="160.00" x2="197.50" y2="160.00" class="ext"/>
+<line x1="190.00" y1="135.40" x2="197.50" y2="135.40" class="ext"/>
+<line x1="196.00" y1="160.00" x2="196.00" y2="135.40" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="194.80" y="147.70" class="dt" transform="rotate(-90 194.80 147.70)" text-anchor="middle">25</text>
+<text x="202.0" y="136.4" class="co">film on the 3 mm flange, 1 mm above the cookie</text>
+<rect x="263.50" y="49.75" width="42.50" height="176.25" fill="#e9edf0" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="264.75" y="55.25" width="40.00" height="168.75" fill="#f7f1db" stroke="#1b2330" stroke-width="0.18"/>
+<line x1="264.75" y1="217.75" x2="304.75" y2="217.75" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="211.50" x2="304.75" y2="211.50" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="205.25" x2="304.75" y2="205.25" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="199.00" x2="304.75" y2="199.00" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="192.75" x2="304.75" y2="192.75" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="186.50" x2="304.75" y2="186.50" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="180.25" x2="304.75" y2="180.25" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="174.00" x2="304.75" y2="174.00" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="167.75" x2="304.75" y2="167.75" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="161.50" x2="304.75" y2="161.50" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="155.25" x2="304.75" y2="155.25" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="149.00" x2="304.75" y2="149.00" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="142.75" x2="304.75" y2="142.75" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="136.50" x2="304.75" y2="136.50" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="130.25" x2="304.75" y2="130.25" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="124.00" x2="304.75" y2="124.00" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="117.75" x2="304.75" y2="117.75" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="111.50" x2="304.75" y2="111.50" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="105.25" x2="304.75" y2="105.25" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="99.00" x2="304.75" y2="99.00" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="92.75" x2="304.75" y2="92.75" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="86.50" x2="304.75" y2="86.50" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="80.25" x2="304.75" y2="80.25" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="74.00" x2="304.75" y2="74.00" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="67.75" x2="304.75" y2="67.75" stroke="#1b2330" stroke-width=".08"/>
+<line x1="264.75" y1="61.50" x2="304.75" y2="61.50" stroke="#1b2330" stroke-width=".08"/>
+<rect x="263.50" y="49.75" width="0.50" height="176.25" fill="#e9edf0" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="305.50" y="49.75" width="0.50" height="176.25" fill="#e9edf0" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="264.00" y="224.00" width="3.00" height="2.00" fill="#f1ada1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="302.50" y="224.00" width="3.00" height="2.00" fill="#f1ada1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="264.00" y="224.00" width="3.00" height="2.00" fill="#f1ada1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="302.50" y="224.00" width="3.00" height="2.00" fill="#f1ada1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="262.00" y="47.75" width="2.00" height="2.00" fill="#9f9fa1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="305.50" y="47.75" width="2.00" height="2.00" fill="#9f9fa1" stroke="#1b2330" stroke-width="0.18"/>
+<text x="262.0" y="44.8" class="vt">FULL CASSETTE - FRONT WALL REMOVED (1:4)</text>
+<line x1="262.00" y1="226.00" x2="254.50" y2="226.00" class="ext"/>
+<line x1="262.00" y1="47.75" x2="254.50" y2="47.75" class="ext"/>
+<line x1="256.00" y1="226.00" x2="256.00" y2="47.75" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="254.80" y="136.88" class="dt" transform="rotate(-90 254.80 136.88)" text-anchor="middle">713</text>
+<line x1="284.8" y1="240.0" x2="284.8" y2="227.0" stroke="#1f4e8c" stroke-width=".6" marker-end="url(#f)"/><text x="311.5" y="234.5" class="co" style="fill:#1f4e8c;font-weight:700">IN: the stacker pushes each</text>
+<line x1="284.8" y1="46.8" x2="284.8" y2="33.8" stroke="#1f4e8c" stroke-width=".6" marker-end="url(#f)"/><text x="311.5" y="41.2" class="co" style="fill:#1f4e8c;font-weight:700">OUT: top opening, FIFO</text>
+<text x="311.5" y="237.0" class="co" style="fill:#1f4e8c">pack up through the spring pawls</text>
+<text x="30" y="185" class="nh">HOW A ROUND COOKIE IS PACKED AND STORED</text>
+<text x="30" y="189.2" class="nt">1 An empty tray drops from the nested magazine (escapement forks) onto the lane.</text>
+<text x="30" y="192.9" class="nt">2 A delta sets each round cookie straight down into a round pocket: D46.5 vs D45 = 0.75 mm radial clearance &gt; 0.60 mm placement error (lane index + delta + cup).</text>
+<text x="30" y="196.6" class="nt">3 The full tray indexes under the top sealer: a heated head seals a peelable film onto the 3 mm flange in 1 s, inside the 2 s index.</text>
+<text x="30" y="200.3" class="nt">4 The stacker lifts the sealed pack through spring pawls into the cassette&#x27;s open bottom; the pawls catch the flange (2 mm) and hold the whole stack.</text>
+<text x="30" y="204.0" class="nt">5 A full cassette (27 packs = 81 cookies) shuttles to the AMR port. Packs leave through the open top: the first pack in has risen to the top, so retrieval is first in,</text>
+<text x="32" y="207.1" class="nt">first out.</text>
+<text x="30" y="210.8" class="nt">Proven on the exact CAD (line_cad.containment): every cookie sits in its pocket / tube and every stack on its pawls with zero overlap.</text>
+<rect x="230" y="249" width="180" height="38" fill="#fff" stroke="#1b2330" stroke-width=".35"/>
+<rect x="230" y="249" width="180" height="9" fill="#1f4e8c"/>
+<text x="233" y="255.3" class="tbh" style="fill:#fff">STF-2 CONTINUOUS COOKIE LINE</text>
+<text x="233" y="264" class="tbh" style="font-size:3.6px">P1 - Pack and cassette detail</text>
+<text x="233" y="269" class="tbs">tray pockets, film seal, cassette inlet/outlet</text>
+<text x="233" y="275" class="tbs">SCALE</text><text x="233" y="278" class="tb">1:1 / 1:4</text>
+<text x="293" y="275" class="tbs">SHEET</text><text x="293" y="278" class="tb">2 / 12</text>
+<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-09-29</text>
+<text x="233" y="281" class="tbs">UNITS</text><text x="233" y="284" class="tb">mm, deg</text>
+<text x="293" y="281" class="tbs">PROJECTION</text><text x="293" y="284" class="tb">third angle</text>
+<text x="353" y="281" class="tbs">SOURCE</text><text x="353" y="284" class="tb">line_model.py (generated - do not edit)</text>
+</svg>

@@ -1,0 +1,66 @@
+[project]
+name = "stf-digital-twin"
+version = "4.0.0"
+description = "Digital twin of a Fischertechnik-style smart tabletop factory"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.9",
+    "pyyaml>=6.0",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+api = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "websockets>=13",
+]
+# the model's Asset Administration Shells (stf-cad/hbw/aas, Upgrade 14)
+aas = [
+    "aas-core3.0>=1.1",
+    "basyx-python-sdk>=2.1",
+]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "httpx2",            # FastAPI's TestClient (tests/test_api_security.py)
+    "pip-audit>=2.7",    # dependency vulnerability scan
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "packages"}
+
+[tool.setuptools.packages.find]
+where = ["packages"]
+
+[tool.setuptools.package-data]
+stf_layout = ["*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["packages", "."]
+addopts = "-q --strict-markers"
+markers = [
+    "unit: fast, no I/O",
+    "golden: golden-file regression",
+    "integration: needs containers or a live service",
+    "contract: cross-language or cross-adapter contract",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# str+Enum rather than StrEnum: it is the idiom pydantic's docs use for
+# serialisable enums and it reads the same on every supported Python.
+ignore = ["UP042"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["stf_layout", "stf_kernel"]

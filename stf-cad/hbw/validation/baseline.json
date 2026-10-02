@@ -1,0 +1,17 @@
+{
+ "fingerprints": {
+  "base": "824c457c8189eb7b",
+  "up1": "000b366fd15909cd",
+  "up2": "3ec82a7265d44c9a",
+  "up3": "a5970f960fb01ec4",
+  "up4": "97134e9092eda466",
+  "up5": "8adfd516e55343a4",
+  "up6": "66b9654eaab6a0af",
+  "up7": "c9509a5d41227fd1",
+  "up10": "9b8e41238bbb3f40",
+  "up11": "4c776f070fa29158",
+  "up12": "c2be57a44db3b6b6"
+ },
+ "month_json": "f2ea4c5120bed073",
+ "note": "base..up7 recorded when each upgrade shipped; up10/up11 at their first export (2026-09-30)"
+}

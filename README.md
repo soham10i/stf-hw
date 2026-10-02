@@ -1,157 +1,78 @@
-# STF Digital Twin v3.0
+# STF digital twin
 
-A **High-Fidelity Component Twin** for warehouse automation featuring a Command Queue architecture, electrical simulation, mechanical wear modeling, synthetic data generation, and an advanced analytics dashboard.
+[![CI](https://github.com/soham10i/stf-hw/actions/workflows/ci.yml/badge.svg)](https://github.com/soham10i/stf-hw/actions/workflows/ci.yml)
+[![Pages](https://github.com/soham10i/stf-hw/actions/workflows/pages.yml/badge.svg)](https://soham10i.github.io/stf-hw/)
 
-## Overview
+**Live demo: [soham10i.github.io/stf-hw](https://soham10i.github.io/stf-hw/)** (the 3D twin) and the
+[operations dashboard](https://soham10i.github.io/stf-hw/dashboard.html). Both run entirely in the browser.
 
-The Smart Tabletop Factory (STF) Digital Twin simulates a high-bay warehouse automation system with hardware-in-the-loop capabilities. It provides real-time monitoring, control, predictive maintenance, and analytics for industrial automation scenarios. This version introduces a robust Command Queue architecture for reliable, sequential execution of complex tasks.
+A digital twin of the fischertechnik *Fabrik Simulation 24V* (536634): the warehouse (HBW), the vacuum
+gripper robot (VGR), the oven with its turntable, and the sorting line. One parametric model is the source
+of truth for the CAD, the kinematics, the I/O, the PLC program and the analytics. Nothing is exported unless
+its proofs pass.
 
-## Architecture
+## What is where
 
-The system is built on a decoupled, event-driven architecture:
+| Path | What |
+|---|---|
+| `stf-cad/hbw/` | The model and its proofs (geometry, kinematics, wiring, safety, I/O, the generated PLC program, virtual commissioning, health, lifecycle, throughput, OT security, hardening) and the analytics (`month.py`, `grid.py`, `ml/`). `validate.py` re-proves everything. |
+| `stf-cad/hbw/sil/` | Upgrade 13: the PLC program as a complete IEC 61131-3 project, compiled by MatIEC to WebAssembly and run against an I/O-level plant (`web/src/sil/`). `python3 -m sil.run` proves it. |
+| `stf-cad/hbw/aas/` | Upgrade 14 (step 1): Asset Administration Shells for the cell, its 9 part types and its 2 AI models, each submodel from its official IDTA template, verified against the AAS v3 metamodel. |
+| `stf-cad/hbw/vision/` | Upgrade 15: vision inspection - a renderer of camera images from the model, a CNN trained only on them, exported to ONNX and to the browser (`web/src/vision/`). |
+| `packages/` | The physics kernel (`stf_kernel`) and the layout (`stf_layout`) that the live simulation runs on. |
+| `services/api/` | The live API: `/layout`, `/orders`, `/health`, `POST /command` (operator only, see `docs/SECURITY.md`) and the `/ws` frame stream. |
+| `web/` | The 3D twin (`index.html`) and the operations dashboard (`dashboard.html`): React, three.js. |
+| `docs/` | `UPGRADE_PLAN.md` (Upgrades 1-15, as built), `VALIDATION.md`, `SECURITY.md`. |
+| `tests/` | Kernel, layout, golden trajectories, the API's access control. |
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     STF Digital Twin v3.0 - Command Queue Architecture    │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌──────────────┐    ┌──────────────────┐    ┌──────────────┐          │
-│  │  Streamlit   │───►│     FastAPI      │───►│    MySQL     │          │
-│  │  Dashboard   │    │  (Queue Command) │    │  (Commands)  │          │
-│  │  (Port 8501) │    │   (Port 8000)    │    │  (Port 3306) │          │
-│  └──────────────┘    └──────────────────┘    └──────▲───────┘          │
-│                                                     │ (Polls)           │
-│                                                     │                   │
-│  ┌──────────────────────────────────────────────────┴─────────────────┐  │
-│  │              Main Controller (Command Queue Processor)             │  │
-│  │  • Polls DB for PENDING commands                                  │  │
-│  │  • Executes commands sequentially (FSM logic)                     │  │
-│  │  • Updates command status (IN_PROGRESS -> COMPLETED/FAILED)       │  │
-│  └──────────────────────────────────┬─────────────────────────────────┘  │
-│                                     │ (Publishes)                       │
-│                                     ▼                                   │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │                    MQTT Broker (Port 1883)                        │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-│         │ (Subscribes)         │                    │                     │
-│         ▼                    ▼                    ▼                     │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐             │
-│  │   Mock HBW   │    │   Mock VGR   │    │  Conveyor    │             │
-│  │  (10Hz sim)  │    │  (10Hz sim)  │    │  (10Hz sim)  │             │
-│  └──────────────┘    └──────────────┘    └──────────────┘             │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+The twin shows one machine, **Upgrade 12**, which contains every upgrade before it. Its **PLC program (live)** panel runs
+the generated control program, compiled by an IEC 61131-3 compiler to WebAssembly, in your browser (Upgrade 13), and
+its **Vision inspection** panel runs a defect-detection CNN trained only on rendered images (Upgrade 15), and its
+**Asset Administration Shells** panel browses the cell's Industry 4.0 digital identity (Upgrade 14). Each upgrade's view of it is a
+side panel: safety, remote I/O, the PLC program and HMI, commissioning, health, AI maintenance, microgrid,
+throughput, OT security and defence in depth. The **Components** views show the parts one by one.
 
-## Key Features
+## Run it
 
-### Command Queue Architecture
-- **Reliable Execution**: API endpoints queue commands in the database with `PENDING` status.
-- **Decoupled Controller**: The `main_controller` polls the database for pending commands, ensuring sequential and non-blocking execution.
-- **State Management**: Commands are updated to `IN_PROGRESS`, `COMPLETED`, or `FAILED`, providing a full audit trail.
-- **Auto-Slot Selection**: The `/order/process` endpoint can now automatically select a `RAW_DOUGH` cookie if no `source_slot` is specified.
-
-### Synthetic Data Generation
-- **1-Month Historical Data**: The `scripts/generate_history.py` script populates the database with 30 days of realistic data.
-- **Breakdown Scenarios**:
-  - **Day 12: Motor Failure**: `CONV_M1` current spikes to 4.5A and health degrades to 40%.
-  - **Day 25: Sensor Drift**: `CONV_L2_PROCESS` generates intermittent ghost readings.
-- **Rich Data**: Includes order events, energy logs, motor health degradation, and predictive maintenance alerts.
-
-### Enhanced Analytics Dashboard
-- **Real Database Integration**: Charts now pull historical data directly from the database.
-- **Breakdown Visualization**: Key charts now highlight the Day 12 motor failure and Day 25 sensor drift events.
-- **Motor Health View**: A dedicated tab for tracking motor health degradation over time and viewing current status.
-- **Alerts & Events**: A new tab to display critical, warning, and info alerts with timestamps.
-- **Predictive Insights**: Health forecast chart and maintenance recommendations based on current health scores.
-
-## Quick Start
-
-### Prerequisites
-- Python 3.9+ (3.11 recommended)
-- MySQL 8.0+ (or Docker)
-
-### Installation
 ```bash
-git clone <repository-url> stf_project
-cd stf_project
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# .\venv\Scripts\activate   # Windows
-pip install -r requirements.txt
+make install          # .venv with the API and dev dependencies
+make api              # the live API on 127.0.0.1:8000
+cd web && npm install && npm run dev      # http://localhost:5173/stf/ (this machine only)
 ```
 
-### Configuration
-Create a `.env` file in the project root:
-```env
-DATABASE_URL=mysql+pymysql://stf_user:stf_password@localhost:3306/stf_warehouse
-STF_API_URL=http://localhost:8000
-STF_WS_URL=ws://localhost:8000/ws
-MQTT_BROKER=localhost
-MQTT_PORT=1883
-```
+To share it, build and tunnel the **production** build, never the dev server:
 
-### Generate Historical Data
-Run the synthetic data generator to populate the database:
 ```bash
-python scripts/generate_history.py --days 30 --orders-per-day 50
+cd web && npm run build && npm run preview     # http://localhost:4173/stf/
+ngrok http localhost:4173
 ```
 
-### Start Services
-**Option 1: Run script (Linux/macOS)**
+A tunnelled twin is read-only. Commands need the operator's machine or `STF_API_TOKEN` (see `.env.example`).
+
+### The public demo
+
+The twin does not need the API: the machine, its PLC cycle and every panel are built from the generated
+files in `web/public`. `npm run build:pages` builds it without the API (`VITE_LIVE_API=0`, into
+`web/dist-pages`), with its security policy in the page itself. `make pages` serves that build locally as
+GitHub Pages will. Every push to `main` publishes it (`.github/workflows/pages.yml`); CI runs the tests,
+lint, type check and dependency audits on every push (`ci.yml`).
+
+## Regenerate the data
+
+From `stf-cad/hbw`, with the project's venv (`../../.venv/bin/python`):
+
 ```bash
-./run_all.sh
+STF_VARIANT=up12 python3 hbw_export.py     # the machine the twin shows (runs every proof first)
+python3 validate.py                        # re-prove every variant, mutation tests, robustness (~25 min)
 ```
 
-**Option 2: Manual startup (4 terminals)**
+The analytics have their own scripts: `month.py`, `grid.py`, `ml/train.py` + `ml/tune.py`, `throughput.py`,
+`security.py`, `hardening.py`. Each script's docstring says which variant to run it with.
+
+## Tests
+
 ```bash
-# Terminal 1 - FastAPI Server
-uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
-
-# Terminal 2 - Mock Hardware
-python -m hardware.mock_factory
-
-# Terminal 3 - Main Controller
-python -m controller.main_controller
-
-# Terminal 4 - Streamlit Dashboard
-streamlit run dashboard/app.py
+make test             # pytest
+make lint             # ruff
+cd web && npx tsc --noEmit -p .
 ```
-
-### Access Points
-| Service          | URL                             |
-| ---------------- | ------------------------------- |
-| Dashboard        | http://localhost:8501           |
-| Analytics        | http://localhost:8501/analytics |
-| API Docs         | http://localhost:8000/docs      |
-
-## Project Structure
-```
-stf_project/
-├── api/                    # FastAPI REST API + WebSocket
-├── controller/             # Command Queue controller
-├── dashboard/              # Streamlit UI
-│   ├── app.py            # Main dashboard
-│   └── pages/
-│       └── analytics.py  # Enhanced historical analytics
-├── database/               # SQLAlchemy models
-├── hardware/               # Mock hardware simulation
-├── scripts/                # Data generation scripts
-│   └── generate_history.py # Synthetic data generator
-├── docs/                   # Documentation
-├── mosquitto/              # MQTT broker config
-├── docker-compose.yml      # Docker services
-├── requirements.txt        # Python dependencies
-└── run_all.sh              # Startup script
-```
-
-## API Endpoints (Updated)
-| Endpoint                        | Method | Description                                    |
-| ------------------------------- | ------ | ---------------------------------------------- |
-| `/commands/pending`             | GET    | Get pending commands for the controller        |
-| `/commands/{id}/status`         | POST   | Update the status of a command                 |
-| `/order/process`                | POST   | Queue a process command (auto-slot supported)  |
-
-(Other endpoints remain the same)
-
-

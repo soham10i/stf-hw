@@ -1,0 +1,7 @@
+SF,function,inputs,response,stop category,PLr,diagnostics
+SF1,E-stop,"S10.A/B S11.A/B S12.A/B, S13 reset","K1+K2 off (all motion, STO-equivalent), Q19 exhaust, K3+K4 off (heaters)","cat 0 (K3/K4, Q19) + SS1 before K1/K2",d,"EDM K1K2.EDM, K3K4.EDM, Q19.FB"
+SF2,guard locking,S20.A/B S21.A/B S22.A/B,"door opened / unlocked -> SS1 -> K1+K2 off, Q19 exhaust; S2x.UNL only after SS1 + standstill",SS1,d,"EDM, lock state from the switch OSSDs"
+SF3,safe exhaust,SF1 / SF2 demand,Q19 dump valve de-energised,0,c,Q19.FB
+SF4,over-temperature,STL per zone (own duplex element),STL relay contact opens the zone's load; trip reported on <zone>.STL,"0 (hardwired, not TwinSAFE)",c,manual STL reset
+SF5,chain drawing-in,(covered by the perimeter guard: no motion with a door open),-,-,c,no jog / enabling device in S-1
+SF6,AMR airlocks,"S30.A/B (boxes outer door), S31.A/B (out outer), S32.A/B (out inner), Q42..Q44.CL trapdoors closed, S34.A/B drawer",boxes: S30 unlocks only with every trapdoor closed and Y1 exhausted; trapdoors open only with S30 locked. out: S31 unlocks only with S32 locked and K5 (shuttles) off; S32 unlocks only with S31 locked. A door opened / unlocked out of sequence -> SF1 response without heaters,0 / zone STO,c,"EDM K5.EDM, Y1.FB, lock OSSDs"
