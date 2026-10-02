@@ -32,9 +32,10 @@ import { HazardZones, PcbBoard, PlcCabinet, PreciseComp, ProfileBox, SecurityOve
 import { Environment, Lightformer } from "@react-three/drei";
 import { Suspense } from "react";
 import { DragChain } from "./DragChain";
+import { useJson } from "../shared/data";
 import { MM_TO_SCENE, PreciseLibCtx, PreciseLoader, PreciseMesh, PreciseScope, usePrecise, type PreciseLib } from "./Precise";
 
-import type { CadPart, CadDoc } from "../shared/model";
+import type { CadPart, CadDoc, PlanKey } from "../shared/model";
 
 const MM = VIEW;
 
@@ -42,13 +43,29 @@ const MM = VIEW;
 /** The slot the FIRST cycle lifts its raw cookie from (review URLs rely on it). */
 const FROM = "B2";
 
-/** Orders panel -> twin: the slot the next cycle should take its raw cookie
-    from. `raw` is what the twin currently has raw dough in, for the panel. */
+/** One line of an order: a quantity of one flavour. `started` cycles have taken a raw cookie for
+    it, `done` cookies of it have been baked and sorted into their Lagerstelle. */
+export type OrderLine = { id: number; flavour: string; qty: number; started: number; done: number; demo?: boolean };
+
+/** The orders and the material state, shared between the 3D loop and the Orders panel.
+    The loop runs one cycle per ordered cookie and idles when every line is done. */
 export const twinOrders = {
-  next: null as string | null, raw: [] as string[],
+  raw: [] as string[],
   // the rack as the 3D view draws it (slot -> cookie colour, null = empty mould, absent = no mould),
   // the dough colour, and the running cycle - read by the Orders panel
-  rack: {} as Record<string, string | null>, rawColour: "", cycle: { from: "", to: "", total: 0, t: 0 },
+  rack: {} as Record<string, string | null>, rawColour: "",
+  cycle: { from: "", to: "", total: 0, t: 0, flavour: "", collect: "" as string },
+  queue: [] as OrderLine[],
+  idle: false,
+  /** the Lagerstellen: bin -> the flavours resting there, oldest first */
+  bays: {} as Record<string, string[]>,
+  /** every finished cookie's bin, in the order it arrived: the VGR collects the oldest */
+  finished: [] as string[],
+  seq: 0,
+  place(flavour: string, qty: number) {
+    const n = Math.max(1, Math.min(12, Math.round(qty)));
+    this.queue.push({ id: ++this.seq, flavour, qty: n, started: 0, done: 0 });
+  },
 };
 /** The cycle running now: whose cookie is being baked, and into which bin. */
 export const cycleHot = { from: FROM, to: "", bin: "" };
@@ -274,9 +291,8 @@ function RackBadge({ doc, rack, raw }: { doc: CadDoc; rack: Record<string, strin
   );
 }
 
-/** A cookie. Raw dough is pale and matt; a BAKED one glows softly in its
-    flavour colour and wears a ring, so a stored baked cookie reads at a glance
-    even deep in a mould, from across the table, or under the hazard zones. */
+/** A cookie. Raw dough is pale and matt; a BAKED one has its flavour colour with
+    a faint glow, so it still reads deep in a mould. */
 function Cookie({
   x, y, z, colour = DOUGH, dynamic = false, hot,
 }: {
@@ -285,17 +301,12 @@ function Cookie({
 }) {
   const r = 22.5 * MM;
   const mat = useRef<THREE.MeshStandardMaterial>(null);
-  const ring = useRef<THREE.Mesh>(null);
   const paint = (c: string) => {
     if (!mat.current) return;
     const baked = c.toLowerCase() !== DOUGH.toLowerCase();
     mat.current.color.set(c);
     mat.current.emissive.set(baked ? c : "#000000");
-    mat.current.emissiveIntensity = baked ? 0.55 : 0;
-    if (ring.current) {
-      ring.current.visible = baked;
-      (ring.current.material as THREE.MeshBasicMaterial).color.set(c);
-    }
+    mat.current.emissiveIntensity = baked ? 0.18 : 0;
   };
   useFrame(() => {
     if (hot) paint(hot.colour);
@@ -307,12 +318,6 @@ function Cookie({
       <mesh position={[0, 10 * MM, 0]} castShadow>
         <cylinderGeometry args={[r, r, 20 * MM, 32]} />
         <meshStandardMaterial ref={mat} color={colour} roughness={0.5} />
-      </mesh>
-      {/* the baked marker: a bright ring just above the mould rim */}
-      {/* drawn on top of everything (the hazard zones, the rack frame): it is a marker, not a part */}
-      <mesh ref={ring} position={[0, 21 * MM, 0]} rotation={[Math.PI / 2, 0, 0]} visible={false} renderOrder={20}>
-        <torusGeometry args={[r * 1.25, 3 * MM, 10, 40]} />
-        <meshBasicMaterial color={colour} toneMapped={false} depthTest={false} transparent opacity={0.95} />
       </mesh>
     </group>
   );
@@ -334,6 +339,8 @@ export const hbwHot = {
 };
 /** The Lagerstelle whose cookie the VGR has collected. */
 export const sortHot = { taken: null as string | null };
+/** The colour each Lagerstelle's cookie is drawn in. */
+const bayHot: Record<string, { colour: string }> = { weiss: { colour: "#FBF8F1" }, rot: { colour: "#F4A6BF" }, blau: { colour: "#5C3A1E" } };
 /** The oven + sorting flow: every joint of both stations, and the ONE cookie
     that travels through them (see OvenFlow.ts). Written once per frame. */
 export const ovenHot = {
@@ -388,21 +395,19 @@ type Key = {
   say: string;
 };
 
-/** The flavour colour of the baked cookie the VGR's tour collects: it takes it
-    from a Lagerstelle, and every Lagerstelle holds one flavour. */
-function collectedColour(doc: CadDoc) {
-  const pick = doc.vgr.plan.keys.find((k) => k.carry === "baked" && k.station?.startsWith("bay_"));
-  const bin = pick?.station?.slice(4);
+/** The flavour colour of a Lagerstelle's cookies: every Lagerstelle holds one flavour. */
+function binColour(doc: CadDoc, bin: string | null) {
   const fl = Object.values(doc.pipeline.flavours).find((f) => f.bin === bin);
   return fl?.colour ?? doc.pipeline.raw_colour;
 }
 
-function script(doc: CadDoc, FROM: string, free: string): Key[] {
+/** One cycle's choreography. `plan` is the VGR's tour (vgr_tours.json: belt -> oven, then the
+    oldest finished cookie's Lagerstelle -> belt, or nothing); `collect` is that Lagerstelle. */
+function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[], collect: string | null): Key[] {
   const T = doc.joints.travel.stops, L = doc.joints.lift.stops, F = doc.joints.fork.stops;
-  const plan = doc.vgr.plan.keys;
   const hb = doc.stations.hbw_pick[1], vg = doc.stations.vgr_pick[1];
   const RAW = doc.pipeline.raw_colour;
-  const BAKED = collectedColour(doc);
+  const BAKED = binColour(doc, collect);
   const colourOf = (c: string | null) => (c === "baked" ? BAKED : RAW);
   // "B2" = shelf row B, bay column 2; every crane stop comes from the export
   const fr = FROM[0], fc = FROM.slice(1), tr = free[0], tcol = free.slice(1);
@@ -454,16 +459,17 @@ function script(doc: CadDoc, FROM: string, free: string): Key[] {
   }
 
   // ---- the BAKED cookie goes back into the rack in its mould ----
-  k(T.conveyor, L.transit, F.retracted, hb, "belt", FROM, V0, "Q2 belt reverse — the baked cookie rides back to the crane");
+  const back = collect ? "the finished cookie" : "the empty mould";
+  k(T.conveyor, L.transit, F.retracted, hb, "belt", FROM, V0, `Q2 belt reverse — ${back} rides back to the crane`);
   k(T.conveyor, L.belt_under, F.retracted, hb, "belt", FROM, V0, "descend below the mould");
   k(T.conveyor, L.belt_under, F.conveyor, hb, "belt", FROM, V0, "Ausleger under the mould");
-  k(T.conveyor, L.belt_lift, F.conveyor, hb, "fork", FROM, V0, "lift — mould and baked cookie off the belt");
+  k(T.conveyor, L.belt_lift, F.conveyor, hb, "fork", FROM, V0, `lift — ${back} off the belt`);
   k(T.conveyor, L.belt_lift, F.retracted, hb, "fork", FROM, V0, "retract");
   k(T.conveyor, L.transit, F.retracted, hb, "fork", FROM, V0, "raise to transit");
   k(TT, L.transit, F.retracted, hb, "fork", FROM, V0, `travel to bay column ${tcol} — ${free} is free`);
   k(TT, LTl, F.retracted, hb, "fork", FROM, V0, `descend to shelf ${tr}`);
   k(TT, LTl, F.bay, hb, "fork", FROM, V0, "Ausleger into the empty bay");
-  k(TT, LTu, F.bay, hb, "shelf", free, V0, `lower — the baked cookie is stored in ${free}`);
+  k(TT, LTu, F.bay, hb, "shelf", free, V0, `lower — ${back} is stored in ${free}`);
   k(TT, LTu, F.retracted, hb, "shelf", free, V0, "retract");
   k(TT, L.transit, F.retracted, hb, "shelf", free, V0, "raise to transit");
   k(T.conveyor, L.transit, F.retracted, hb, "shelf", free, V0, "return to park — cycle complete");
@@ -473,6 +479,8 @@ function script(doc: CadDoc, FROM: string, free: string): Key[] {
 const SPEED = 14.27; // mm/s, the real encoder-motor rate
 const BELT_SPEED = 25; // mm/s - slowed so the hand-over reads clearly
 export const RATE = 4; // playback speedup
+/** Review aid: ?speed=N plays the cell N times faster still (e.g. to watch a whole order). */
+const PLAYBACK = Math.max(0.1, Math.min(50, Number(new URLSearchParams(window.location.search).get("speed")) || 1));
 
 /** Toothed drive belt wrapped round the motor pulley and the drum pulley, running
     at the pulleys' pitch-line speed. Drawn as a real loop: two tangent straights
@@ -598,7 +606,9 @@ function Barrier({ rx, tx }: { rx: CadPart; tx: CadPart }) {
   );
 }
 
-export function HbwCad({ doc, onPhase }: { doc: CadDoc; onPhase?: (s: string) => void }) {
+export function HbwCad({ doc, onPhase, tours }: {
+  doc: CadDoc; onPhase?: (s: string) => void; tours?: Record<string, PlanKey[]> | null;
+}) {
   const gTravel = useRef<THREE.Group>(null);
   const gLift = useRef<THREE.Group>(null);
   const gFork = useRef<THREE.Group>(null);
@@ -613,13 +623,15 @@ export function HbwCad({ doc, onPhase }: { doc: CadDoc; onPhase?: (s: string) =>
     travel: doc.home.travel, lift: doc.home.lift, fork: 0, belt: 0, plunge: 0, reach: 0, swivel: 0,
   });
 
-  // Each cycle takes a raw cookie out of one slot and stores a baked one in
-  // the free slot; the rack it leaves behind is where the next cycle starts.
-  // Nothing resets: when every raw cookie has been baked, the rack is restocked.
+  // Each cycle bakes one ordered cookie: a raw cookie leaves its slot, is baked in the order's
+  // flavour and sorted into that flavour's Lagerstelle. On the same tour the VGR collects the
+  // OLDEST finished cookie from whichever Lagerstelle holds one (or nothing, when all are empty)
+  // and the crane stores it - or the empty mould - in the free slot. No order: the cell idles.
   const planCycle = useMemo(() => {
     const cache = new Map<string, ReturnType<typeof plan1>>();
-    function plan1(from: string, to: string) {
-      const keys = script(doc, from, to);
+    function plan1(from: string, to: string, flavour: string, collect: string | null) {
+      const tour = tours?.[collect ?? "none"] ?? doc.vgr.plan.keys;
+      const keys = script(doc, from, to, tour, collect);
       let t0 = 0;
       const legs = keys.slice(1).map((b, i) => {
         const a = keys[i];
@@ -637,24 +649,23 @@ export function HbwCad({ doc, onPhase }: { doc: CadDoc; onPhase?: (s: string) =>
       const tOvenGo = legs.find((l) => l.a.ovenGo)?.start ?? Infinity;
       // The flow must not land its cookie in a Lagerstelle the VGR has not
       // emptied yet: two cookies cannot share one bay. If it would, it bakes longer.
-      const flavour = doc.moulds.cookie_flavour[from];
       const f0 = buildFlow(doc, flavour);
       const taken = legs.find((l) => l.a.taken === f0.bin)?.start ?? 0;
       const extra = Math.max(0, taken + 1.5 - (tOvenGo + f0.arrive));
       const flow = extra > 0 ? buildFlow(doc, flavour, extra) : f0;
       const total = Math.max(legs.reduce((q, l) => q + l.dur, 0), tOvenGo + flow.total + 3);
       const baked = doc.pipeline.flavours[flavour]?.colour ?? doc.pipeline.raw_colour;
-      return { from, to, legs, tOvenGo, flow, total, baked, bin: flow.bin as string };
+      return { from, to, legs, tOvenGo, flow, total, baked, flavour, collect,
+               collectColour: collect ? binColour(doc, collect) : null, bin: flow.bin as string };
     }
-    return (from: string, to: string) => {
-      const key = `${from}>${to}`;
-      if (!cache.has(key)) cache.set(key, plan1(from, to));
+    return (from: string, to: string, flavour: string, collect: string | null) => {
+      const key = `${from}>${to}>${flavour}>${collect}`;
+      if (!cache.has(key)) cache.set(key, plan1(from, to, flavour, collect));
       return cache.get(key)!;
     };
-  }, [doc]);
-  type Cycle = ReturnType<typeof planCycle>;
+  }, [doc, tours]);
+  type Cycle = ReturnType<typeof planCycle> & { line: number };
   const RAW = doc.pipeline.raw_colour;
-  const STORED = useMemo(() => collectedColour(doc), [doc]);
   const freshRack = useMemo(() => () => {
     const r: Rack = {};
     for (const q of doc.moulds.slots) r[q] = null;
@@ -662,23 +673,38 @@ export function HbwCad({ doc, onPhase }: { doc: CadDoc; onPhase?: (s: string) =>
     return r;
   }, [doc, RAW]);
   const rawIn = (r: Rack) => Object.keys(doc.slots).filter((q) => r[q] === RAW);
-  // Review aid: ?cycles=N starts with N cycles already done (the rack as it would stand)
+  /** The next ordered cookie, if any: its flavour and its order line. */
+  const nextWork = () => {
+    const line = twinOrders.queue.find((o) => o.started < o.qty);
+    if (!line) return null;
+    line.started++;
+    return line;
+  };
+  /** Plan the next cycle from the rack as it stands: a raw slot, the free slot, the oldest finished cookie. */
+  const begin = (r: Rack, line: OrderLine): { c: Cycle; r: Rack } => {
+    let raw = rawIn(r);
+    if (!raw.length) { r = freshRack(); raw = rawIn(r); }      // restock the rack
+    const to = Object.keys(doc.slots).find((q) => !(q in r))!;
+    const collect = twinOrders.finished[0] ?? null;
+    return { c: { ...planCycle(raw[0], to, line.flavour, collect), line: line.id }, r };
+  };
   const start = useMemo(() => {
-    let r = freshRack(), from = FROM, to = doc.moulds.free_slot;
-    const n = Number(new URLSearchParams(window.location.search).get("cycles") ?? 0);
-    for (let i = 0; i < n; i++) {
-      r = { ...r }; delete r[from]; r[to] = STORED;
-      let raw = rawIn(r);
-      if (!raw.length) { r = freshRack(); raw = rawIn(r); }
-      to = Object.keys(doc.slots).find((q) => !(q in r))!;
-      from = raw[0];
+    if (!twinOrders.queue.length) {
+      // what a visitor sees first: one cookie of each flavour, then the cell waits for an order
+      for (const f of Object.keys(doc.pipeline.flavours)) {
+        twinOrders.queue.push({ id: ++twinOrders.seq, flavour: f, qty: 1, started: 0, done: 0, demo: true });
+      }
     }
-    return { r, from, to };
+    for (const c of doc.sorting.colours) twinOrders.bays[c] ??= [];
+    const r0 = { ...freshRack() };
+    delete r0[doc.moulds.free_slot];
+    const line = nextWork()!;
+    return begin(r0, line);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc]);
+  }, [doc, planCycle]);
   const rackRef = useRef<Rack>(start.r);
   const [rack, setRack] = useState<Rack>(rackRef.current);
-  const first = useMemo(() => planCycle(start.from, start.to), [planCycle, start]);
+  const first = start.c;
   const cyc = useRef<{ c: Cycle; t0: number }>({ c: first, t0: 0 });
   const [cur, setCur] = useState<Cycle>(first);
   twinOrders.raw = rawIn(rack);
@@ -755,30 +781,42 @@ export function HbwCad({ doc, onPhase }: { doc: CadDoc; onPhase?: (s: string) =>
   }, [legs, total, flow, tOvenGo]);
 
   useFrame(({ clock }) => {
-    const el = clock.getElapsedTime();
-    if (frozen === null && el - cyc.current.t0 >= cyc.current.c.total) {
-      // the cycle is complete: its mould now sits in `to` with a baked cookie
+    const el = clock.getElapsedTime() * PLAYBACK;
+    if (frozen === null && !twinOrders.idle && el - cyc.current.t0 >= cyc.current.c.total) {
+      // the cycle is complete: the collected cookie (or the empty mould) sits in `to`, and the
+      // cookie baked in this cycle rests in its Lagerstelle
       const done = cyc.current.c;
-      let r: Rack = { ...rackRef.current };
+      const r: Rack = { ...rackRef.current };
       delete r[done.from];
-      r[done.to] = STORED;
-      let raw = rawIn(r);
-      if (!raw.length) { r = freshRack(); raw = rawIn(r); }      // restock the rack
-      const to = Object.keys(doc.slots).find((q) => !(q in r))!;
-      const want = twinOrders.next;
-      const from = want && raw.includes(want) ? want : raw[0];
-      if (want === from) twinOrders.next = null;
+      r[done.to] = done.collectColour;
+      if (done.collect) {
+        twinOrders.bays[done.collect].shift();
+        twinOrders.finished.shift();
+      }
+      twinOrders.bays[done.bin].push(done.flavour);
+      twinOrders.finished.push(done.bin);
+      const line = twinOrders.queue.find((o) => o.id === done.line);
+      if (line) line.done++;
       rackRef.current = r;
       setRack(r);
-      const c = planCycle(from, to);
-      cyc.current = { c, t0: el };
-      setCur(c);
+      twinOrders.idle = true;                      // until there is another cookie to make
+    }
+    if (twinOrders.idle && frozen === null) {
+      const line = nextWork();
+      if (line) {
+        const nx = begin(rackRef.current, line);
+        if (nx.r !== rackRef.current) { rackRef.current = nx.r; setRack(nx.r); }
+        cyc.current = { c: nx.c, t0: el };
+        setCur(nx.c);
+        twinOrders.idle = false;
+      }
     }
     const C = cyc.current.c;
     const legs = C.legs, flow = C.flow, tOvenGo = C.tOvenGo;
-    const tc = frozen ?? el - cyc.current.t0;
+    // idle: the cell rests in the pose its last cycle ended in
+    const tc = frozen ?? (twinOrders.idle ? C.total : el - cyc.current.t0);
     cycleHot.from = C.from; cycleHot.to = C.to; cycleHot.bin = C.bin;
-    twinOrders.cycle = { from: C.from, to: C.to, total: C.total, t: tc };
+    twinOrders.cycle = { from: C.from, to: C.to, total: C.total, t: tc, flavour: C.flavour, collect: C.collect ?? "" };
     let leg = legs[legs.length - 1];
     for (const l of legs) {
       if (tc < l.start + l.dur) { leg = l; break; }
@@ -802,9 +840,9 @@ export function HbwCad({ doc, onPhase }: { doc: CadDoc; onPhase?: (s: string) =>
     // vacuum builds (or bleeds off) across the step where Q8 switches
     vgrHot.seal = mix(leg.a.cup ? 1 : 0, leg.b.cup ? 1 : 0);
     vgrHot.carry = leg.a.carry;
-    vgrHot.cupColour = leg.a.carry === "baked" ? STORED : RAW;
+    vgrHot.cupColour = leg.a.carry === "baked" ? (C.collectColour ?? RAW) : RAW;
     hbwCookieHot.colour = leg.a.cc;
-    sortHot.taken = leg.a.taken;
+    sortHot.taken = twinOrders.idle ? null : leg.a.taken;
 
     // oven + sorting: idle and ready until the VGR has delivered and left, then
     // the one cookie runs its whole journey (OvenFlow.ts)
@@ -812,7 +850,8 @@ export function HbwCad({ doc, onPhase }: { doc: CadDoc; onPhase?: (s: string) =>
     const f = flow.at(tc - tOvenGo);
     ovenHot.s = f.s;
     ovenHot.mode = f.mode;
-    ovenHot.visible = tc >= tOvenGo || leg.a.ovenIn;
+    // once the cycle is done, its cookie is part of the Lagerstelle's stock (SortingModule draws it)
+    ovenHot.visible = !twinOrders.idle && (tc >= tOvenGo || leg.a.ovenIn);
     ovenHot.pos = flow.pos(f.s, f.mode);
     ovenHot.belts = flow.belts(f.s.ly);
     ovenHot.colour = new THREE.Color(RAW).lerp(new THREE.Color(C.baked), f.s.baked).getStyle();
@@ -1215,7 +1254,9 @@ function FlowBarriers({ doc }: { doc: CadDoc }) {
     const on = Math.floor(clock.getElapsedTime() * 8) % 2 === 0;
     const cookies: [number, number][] = [];
     if (ovenHot.visible) cookies.push([ovenHot.pos[0], ovenHot.pos[1]]);
-    for (const [c, xy] of Object.entries(stock)) if (sortHot.taken !== c) cookies.push(xy);
+    for (const [c, xy] of Object.entries(stock)) {
+      if ((twinOrders.bays[c] ?? []).length - (sortHot.taken === c ? 1 : 0) > 0) cookies.push(xy);
+    }
     pairs.forEach((pr, i) => {
       // where along the beam (0 = receiver, 1 = LED) a cookie blocks it: the
       // light from the LED stops at the cookie's near face, it never passes through
@@ -1295,20 +1336,27 @@ function SortingModule({ doc }: { doc: CadDoc }) {
       const sign = doc.sorting.joints.push.axis === "-y" ? -1 : 1;
       if (r.current) r.current.position.z = sign * (s && cols[i] === cycleHot.bin ? s.eject : 0) * MM;
     });
+    // a Lagerstelle shows its oldest finished cookie, unless the VGR has just collected it
     for (const c of cols) {
       const g = stock.current[c];
-      if (g) g.visible = sortHot.taken !== c;
+      const left = (twinOrders.bays[c] ?? []).length - (sortHot.taken === c ? 1 : 0);
+      if (g) g.visible = left > 0;
+      bayHot[c].colour = binColour(doc, c);
     }
   });
   const P = (p: CadPart) => <Solid key={p.n} part={p} drive={drive} pitch={4} tex={tex} />;
   return (
     <group>
       {byFrame.world.map(P)}
-      {cols.map((c) => (
-        <group key={c} ref={(g) => { stock.current[c] = g; }}>
-          {doc.sorting.parts.filter((p) => p.n.startsWith(`wp_${c}_`)).map(P)}
-        </group>
-      ))}
+      {cols.map((c) => {
+        const body = doc.sorting.parts.find((p) => p.n === `wp_${c}_body`);
+        if (!body) return null;
+        return (
+          <group key={c} ref={(g) => { stock.current[c] = g; }} visible={false}>
+            <Cookie x={body.p[0]} y={body.p[1]} z={body.p[2]} hot={bayHot[c]} />
+          </group>
+        );
+      })}
       {[0, 1, 2].map((i) => (
         <group key={i} ref={pushes[i]}>
           {byFrame[`push${i}`].map(P)}
@@ -1400,6 +1448,9 @@ export function HbwCadStage({ doc, onPhase, showZones = false, netZones = false 
 }) {
   const [px, py] = doc.factory.plate;
   const [precise, setPrecise] = useState<PreciseLib | null>(null);
+  // the VGR's tours for order mode (stf-cad/hbw/twin_tours.py); without them, the exported demo tour
+  const { data: toursDoc, error: toursErr } = useJson<{ tours: Record<string, PlanKey[]> }>("vgr_tours.json");
+  const tours = toursDoc ? toursDoc.tours : toursErr ? null : undefined;
   const vgrDrive = useRef<Drive>({ travel: 0, lift: 0, fork: 0, belt: 0, plunge: 0, reach: 0, swivel: 0 });
   // What the camera frames: the whole table (or a ?look= review point).
   const frame = useMemo(() => {
@@ -1505,7 +1556,7 @@ export function HbwCadStage({ doc, onPhase, showZones = false, netZones = false 
         position={[doc.factory.placement.translate[0] * MM, 0, doc.factory.placement.translate[1] * MM]}
         rotation={[0, -Math.PI / 2, 0]}
       >
-        <PreciseScope module="hbw"><HbwCad doc={doc} onPhase={onPhase} /></PreciseScope>
+        {tours !== undefined && <PreciseScope module="hbw"><HbwCad doc={doc} onPhase={onPhase} tours={tours} /></PreciseScope>}
       </group>
       </group>
       </PreciseLibCtx.Provider>

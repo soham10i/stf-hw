@@ -302,3 +302,34 @@ a.aas-v { color: var(--accent); }
 .aas-node > summary::before { content: "▸"; color: var(--faint); font-size: 10px; margin-right: 2px; }
 .aas-node[open] > summary::before { content: "▾"; }
 .aas-kids { padding-left: 12px; border-left: 1px solid var(--border-soft); margin-left: 4px; }
+
+/* ------------------------------------------------------------- the order form (panels/OrdersPanel.tsx) */
+.ord-form { display: grid; gap: 10px; }
+.ord-flavours { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ord-flavours .slot { padding: 9px 4px; text-transform: capitalize; font-size: 12px; }
+.ord-qty { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+.ord-qty span { margin-right: auto; }
+.ord-qty .slot { width: 34px; height: 34px; padding: 0; font-size: 16px; }
+.ord-qty input { width: 56px; height: 34px; text-align: center; font: 600 14px var(--font); color: var(--text);
+  border-radius: 10px; border: 1px solid var(--glass-edge); background: var(--glass), var(--glass-tint); box-shadow: var(--glass-hi); }
+.ord-qty em { font-style: normal; font-size: 11px; color: var(--faint); }
+.ord-qty input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.ord-queue { display: grid; gap: 6px; }
+.ord-line { display: grid; grid-template-columns: 12px 1fr auto; gap: 4px 8px; align-items: center; padding: 8px 10px;
+  border-radius: 10px; background: var(--glass), var(--glass-tint); border: 1px solid var(--glass-edge); font-size: 12px; }
+.ord-line b { font-weight: 600; text-transform: capitalize; }
+.ord-line span { color: var(--muted); font-size: 11.5px; }
+.ord-line.baking span { color: var(--accent); }
+.ord-line.done span { color: var(--ok); }
+.ord-line em { grid-column: 1 / -1; height: 5px; border-radius: 99px; background: var(--raised); overflow: hidden; }
+.ord-line em i { display: block; height: 100%; border-radius: 99px; transition: width .3s; }
+.ord-bays { display: grid; gap: 4px; }
+.ord-bays div { display: flex; align-items: center; gap: 10px; font-size: 12px; padding: 6px 10px; border-radius: 8px; background: var(--raised); }
+.ord-bays span { width: 46px; color: var(--muted); text-transform: capitalize; }
+.ord-bays b { display: flex; gap: 4px; font-weight: 400; }
+.ord-bays em { font-style: normal; color: var(--faint); font-size: 11.5px; }
+.slot.static { cursor: default; padding: 6px 0; font-size: 11.5px; }
+.slot.static:hover { transform: none; filter: none; }
+.ord-manual { font-size: 12px; margin-top: 4px; }
+.ord-manual summary { cursor: pointer; color: var(--muted); }
+.panel.orders h3 { margin-top: 18px; }
