@@ -18,6 +18,7 @@ import { HardeningPanel } from "../panels/HardeningPanel";
 import { PlcPanel } from "../panels/PlcPanel";
 import { VisionPanel } from "../panels/VisionPanel";
 import { AasPanel } from "../panels/AasPanel";
+import { OpcuaPanel } from "../panels/OpcuaPanel";
 import { GeometryPanel } from "../panels/GeometryPanel";
 
 // ---------------------------------------------------------------- views
@@ -69,6 +70,7 @@ export const PANELS: Panel[] = [
   { id: "plc", label: "PLC program (live)", icon: "play", available: () => true, render: () => <PlcPanel /> },
   { id: "vision", label: "Vision inspection", icon: "eye", available: () => true, render: () => <VisionPanel /> },
   { id: "aas", label: "Asset Administration Shells", icon: "database", available: () => true, render: () => <AasPanel /> },
+  { id: "opcua", label: "OPC UA server", icon: "network", available: () => true, render: () => <OpcuaPanel /> },
   { id: "vc", label: "Commissioning", icon: "cpu", available: (c) => !!c.doc.vc, render: (c) => <VcPanel vc={c.doc.vc!} /> },
   { id: "health", label: "Health", icon: "heart", available: (c) => !!c.doc.health, render: (c) => <HealthPanel doc={c.doc} /> },
   { id: "ai", label: "AI maintenance", icon: "brain", available: () => true, render: () => <AiPanel /> },

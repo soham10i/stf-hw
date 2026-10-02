@@ -34,7 +34,7 @@ function stateNames(st: string) {
 
 type Live = { t: number; phase: number; units: { u: string; sn: number }[]; on: Set<string>; events: JobEvent[]; log: string[]; flags: string[] };
 
-function useSil() {
+export function useSil() {
   const [err, setErr] = useState<string | null>(null);
   const [sim, setSim] = useState<Sil | null>(null);
   const [names, setNames] = useState<Record<string, Record<number, string>>>({});

@@ -2,7 +2,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas audit clean
+.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas opcua opcua-check audit clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -77,6 +77,12 @@ vision: ## Upgrade 15: render the training images, train the inspection CNN, exp
 
 aas: ## Upgrade 14: generate and verify the Asset Administration Shells (needs the [aas] extra)
 	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m aas.build
+
+opcua: ## Upgrade 14: the cell as an OPC UA server on 127.0.0.1:4840 (needs [opcua], STF_OPCUA_USER/PASSWORD)
+	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m opcua.server --speed 1
+
+opcua-check: ## Upgrade 14: prove the OPC UA server (mapping, types, Machinery, NodeSet, security, live, mutants)
+	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m opcua.check
 
 audit: ## Dependency vulnerability scan (Python and npm)
 	$(PY) -m pip_audit

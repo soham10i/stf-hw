@@ -757,12 +757,15 @@ and the colour readings of the belt and of raw dough are assumed. Only the Upgra
 
 ---
 
-## Upgrade 14: Industry 4.0 standards (step 1 of 3 BUILT: the Asset Administration Shells)
+## Upgrade 14: Industry 4.0 standards (steps 1 and 2 of 3 BUILT: the Asset Administration Shells, OPC UA)
 
 **Why.** The model already holds what an asset's digital identity needs: part data, documents, 3D files, the bill of
 material, energy and the AI models. The Asset Administration Shell (IEC 63278) is the standard container for it, and
-the one the EU's Digital Product Passport and data spaces such as Catena-X build on. Steps 2 and 3, still to come, are
-OPC UA (the running machine's information model and a server) and MQTT Sparkplug B (a Unified Namespace).
+the one the EU's Digital Product Passport and data spaces such as Catena-X build on. Step 2 is OPC UA (IEC 62541), the
+running machine's information model and a server for it. Step 3, still to come, is MQTT Sparkplug B (a Unified
+Namespace).
+
+### Step 1: the Asset Administration Shells
 
 **As built** (`stf-cad/hbw/aas/`):
 - **12 shells**, generated from the model:
@@ -804,8 +807,59 @@ OPC UA (the running machine's information model and a server) and MQTT Sparkplug
 
 The generator cleans what an instance would inherit from them; worth reporting upstream.
 
-**Limits.** These are Type 1 (passive) shells: files, not an AAS server. A Type 2 server and the links from the
-shells to live OPC UA data come with step 2.
+**Limits.** These are Type 1 (passive) shells: files, not an AAS server. Step 2 links them to the live data through
+the cell's ProductInstanceUri; a Type 2 AAS server is not built.
+
+### Step 2: the cell as an OPC UA server
+
+**As built** (`stf-cad/hbw/opcua/`, asyncua 2.0.1):
+- **On the official companion specifications.** The address space builds on OPC 10000-100 Devices (DI 1.04.0),
+  Industrial Automation (IA 1.01.4) and OPC 40001-1 Machinery (1.04.0), loaded from the OPC Foundation's NodeSet2
+  files (MIT, tag UA-1.05.06-2025-11-08, kept in `opcua/nodesets/`):
+  - the cell is organised by the Machines folder, with `Identification` (MachineIdentificationType) and
+    `MachineryItemState` as AddIns and its four modules under `Components`;
+  - Manufacturer, SerialNumber and **ProductInstanceUri** are filled; the ProductInstanceUri is the cell's Asset
+    Administration Shell asset id, so a client can go from the live machine to its shell (step 1).
+- **Generated from the compiled PLC program** (`sil/plc.json`), not drawn by hand. Each of its 71 I/O signals is one
+  node:
+  - inputs and outputs are TwoStateDiscreteType, with the Belegungsplan's text as the true and false states;
+  - encoders and the colour sensor are AnalogUnitType, with a UNECE unit and the EURange;
+  - each of the 8 unit sequencers is an `STFUnitType` object (State, StateText, Job, Busy, Fault, Alarm), and
+    `Production` holds the phase, the jobs completed, the order time and the `StartOrder` method.
+  - 324 nodes in all.
+- **Live from Upgrade 13.** The values come from the same `plc.wasm` scanning the plant, streamed by
+  `web/scripts/sil-stream.ts`; `MachineryItemState` follows it (Executing, NotExecuting, OutOfService).
+- **Secure by default** (`docs/SECURITY.md`, S14): one endpoint on 127.0.0.1:4840, Basic256Sha256 Sign & Encrypt
+  only, a user name and password from the environment (no anonymous access), a client certificate trust list, and
+  every variable read-only.
+- **In the twin**: the **OPC UA server** panel browses the exported address space. On the static site there is no
+  server, so its values come from the PLC program running in the browser, the same stream the server publishes.
+
+**Proofs** (`python3 -m opcua.check`, `make opcua-check`, about 90 s). A real server is started on a test port with
+a random password, and real clients connect to it:
+1. **Mapping.** Every signal of the PLC's I/O image is exactly one node of the right type.
+2. **Types.** Every node has each Mandatory child its type, or any supertype, declares (a walk that is independent of
+   how the nodes were made).
+3. **Machinery.** The Machines folder, the two AddIns, the identification fields, and the ProductInstanceUri equal
+   to the AAS asset id.
+4. **NodeSet.** The project's namespace exported as NodeSet2 XML (`web/public/opcua/stf.NodeSet2.xml`) loads into a
+   fresh server next to DI, IA and Machinery and gives back the same nodes, names, classes and types.
+5. **Security.** The server offers only Basic256Sha256 Sign & Encrypt, and refuses each of: a client without
+   security, an anonymous client, a wrong password, an untrusted certificate, and a write.
+6. **Live.** A client subscribes, calls StartOrder and watches the order run to "complete". The order time it reads,
+   386.47 s, and the 103 jobs equal Upgrade 13's proof run.
+7. **Mutants.** A signal without a node, a missing mandatory child, a wrong ProductInstanceUri and an endpoint that
+   allows anonymous access are each caught, each by a different check.
+
+**Found.**
+- The DI 1.05 NodeSet does not load next to Machinery 1.04 (BadParentNodeIdInvalid), so DI 1.04.0 is used.
+- asyncua's default user manager accepts any user name and password; the server replaces it.
+- asyncua's NodeSet export writes every namespace of the server, including its own application URI, unless it is
+  told the namespaces to export; the NodeSet check caught it, because the namespace index moved on re-import.
+
+**Limits.** One simulated cell, one server, on localhost; no PubSub, no alarms and conditions, no historical access.
+Running it needs Python and Node.js: `STF_OPCUA_USER=operator STF_OPCUA_PASSWORD=... make opcua`, then connect a
+client such as UaExpert and copy its certificate into `stf-cad/hbw/.cache/opcua/pki/trusted`.
 
 ---
 

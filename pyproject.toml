@@ -20,6 +20,10 @@ aas = [
     "aas-core3.0>=1.1",
     "basyx-python-sdk>=2.1",
 ]
+# the cell as an OPC UA server on the Machinery companion spec (stf-cad/hbw/opcua, Upgrade 14)
+opcua = [
+    "asyncua>=2.0.1",
+]
 dev = [
     "pytest>=8.3",
     "pytest-cov>=5.0",

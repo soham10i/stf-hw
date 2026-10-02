@@ -23,6 +23,7 @@ runs the twin.
 | S11 | `nanoid` < 3.3.18 (dev dependency). | High (dev) | **Fixed** (`npm audit fix`). |
 | S12 | `esbuild` ≤ 0.24.2 dev-server advisory (GHSA-67mh-4wv8-2f99). The fix is Vite 6+, a breaking upgrade. | Moderate (dev) | **Mitigated.** The advisory concerns esbuild's own `serve`, which Vite does not use, and the dev server is now localhost-only and never tunnelled. Upgrading Vite is left as a follow-up. |
 | S13 | `eval(c.STF_Envelope)` in `stf-cad/hbw/mcp_build.py`, which reads a property from an FCStd document. | Medium | **Open.** The file belongs to the FreeCAD build workstream and was not edited here. Replace it with `ast.literal_eval`. |
+| S14 | The OPC UA server (Upgrade 14) is a new network service that exposes the cell's live I/O and a method. asyncua's defaults offer a None endpoint, anonymous access, and a user manager that accepts any password. | High (when run) | **Designed out.** One endpoint on 127.0.0.1, Basic256Sha256 Sign & Encrypt only; user name and password from `STF_OPCUA_USER` / `STF_OPCUA_PASSWORD` (12 characters or more), compared in constant time; no anonymous token; client certificates must be in the trust list; every variable read-only. `opcua/check.py` proves each refusal against a running server, and a mutant that allows anonymous access is caught. |
 
 Python dependencies: `pip-audit` finds no known vulnerabilities. npm: 0 in production dependencies, and only S12 remains in development.
 
