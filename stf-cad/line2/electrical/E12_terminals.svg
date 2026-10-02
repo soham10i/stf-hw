@@ -196,7 +196,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="118.0" y="120.8" class="tbs" text-anchor="start" >cool_fan_2</text>
 <text x="185.0" y="120.8" class="tbs" text-anchor="start" >band cooling fan 24 V</text>
 <text x="300.0" y="120.8" class="tbs" text-anchor="start" >W036</text>
-<text x="330.0" y="120.8" class="tbs" text-anchor="start" >1.27 m</text>
+<text x="330.0" y="120.8" class="tbs" text-anchor="start" >1.28 m</text>
 <text x="360.0" y="120.8" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="124.4" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="124.4" class="tbs" text-anchor="start" >5</text>
@@ -212,7 +212,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="118.0" y="128.0" class="tbs" text-anchor="start" >cool_exfan_2</text>
 <text x="185.0" y="128.0" class="tbs" text-anchor="start" >band cooling fan 24 V</text>
 <text x="300.0" y="128.0" class="tbs" text-anchor="start" >W038</text>
-<text x="330.0" y="128.0" class="tbs" text-anchor="start" >1.08 m</text>
+<text x="330.0" y="128.0" class="tbs" text-anchor="start" >1.1 m</text>
 <text x="360.0" y="128.0" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="131.6" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="131.6" class="tbs" text-anchor="start" >7</text>

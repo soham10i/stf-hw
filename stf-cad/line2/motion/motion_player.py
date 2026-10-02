@@ -35,6 +35,7 @@ class Player:
         self.dt, self.n, self.track, self.follow = tl["dt"], tl["frames"], tl["track"], tl["follow"]
         self.phases = tl.get("phases", {})
         self.glow, self.power, self.duty = tl.get("glow", {}), tl.get("power", []), tl.get("duty", {})
+        self.temps, self.zones = tl.get("temps", []), tl.get("zones", [])
         objs = [o for o in doc.Objects if o.TypeId == "Part::Feature"]
         by_label = {}
         for o in objs:
@@ -135,4 +136,7 @@ class Player:
             txt += (f"\noven {W / 1000:.2f} kW now ({on}/{len(self.glow)} elements on)   "
                     f"L1 {a1:.1f} A   L2 {a2:.1f} A   L3 {a3:.1f} A")
             txt += "\nduty " + "  ".join(f"{z} {d:.0%}" for z, d in sorted(self.duty.items()))
+        if self.temps:
+            y = self.temps[min(k, len(self.temps) - 1)]
+            txt += "\nTC " + "  ".join(f"Z{i + 1} {v:.1f} C (set {self.zones[i]['T']:g})" for i, v in enumerate(y))
         return txt

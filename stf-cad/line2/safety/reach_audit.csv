@@ -6,8 +6,8 @@ out airlock,delta A,"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",52
 out airlock,delta B,"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",831,80,ISO 13857 slot e = 10,True
 out airlock,delta C (transfer),"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",233,80,ISO 13857 slot e = 10,True
 out airlock,mesh band + drums (in-running nips),"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",664,80,ISO 13857 slot e = 10,True
-out airlock,oven fan impellers (inside the chamber),"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",890,80,ISO 13857 slot e = 10,True
-out airlock,oven chamber + elements (210 C),"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",869,80,ISO 13857 slot e = 10,True
+out airlock,oven fan impellers (inside the chamber),"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",884,80,ISO 13857 slot e = 10,True
+out airlock,oven chamber + elements (210 C),"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",861,80,ISO 13857 slot e = 10,True
 out airlock,lane belts (in-running nips),"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",778,80,ISO 13857 slot e = 10,True
 out airlock,sealers D25 (crush + hot),"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",576,80,ISO 13857 slot e = 10,True
 out airlock,stacker lifts D16,"chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844)",765,80,ISO 13857 slot e = 10,True
@@ -16,16 +16,16 @@ out airlock,delta A,"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",568
 out airlock,delta B,"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",855,2,ISO 13857 slot e = 2,True
 out airlock,delta C (transfer),"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",248,2,ISO 13857 slot e = 2,True
 out airlock,mesh band + drums (in-running nips),"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",706,2,ISO 13857 slot e = 2,True
-out airlock,oven fan impellers (inside the chamber),"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",912,2,ISO 13857 slot e = 2,True
-out airlock,oven chamber + elements (210 C),"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",898,2,ISO 13857 slot e = 2,True
+out airlock,oven fan impellers (inside the chamber),"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",905,2,ISO 13857 slot e = 2,True
+out airlock,oven chamber + elements (210 C),"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",891,2,ISO 13857 slot e = 2,True
 out airlock,lane belts (in-running nips),"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",836,2,ISO 13857 slot e = 2,True
 out airlock,sealers D25 (crush + hot),"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",629,2,ISO 13857 slot e = 2,True
 out airlock,stacker lifts D16,"chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896)",825,2,ISO 13857 slot e = 2,True
 out airlock,chain loop (drawing-in at bends / drive),"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",80,2,ISO 13857 slot e = 2,True
 out airlock,delta A,"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",759,2,ISO 13857 slot e = 2,True
 out airlock,delta C (transfer),"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",342,2,ISO 13857 slot e = 2,True
-out airlock,mesh band + drums (in-running nips),"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",309,2,ISO 13857 slot e = 2,True
-out airlock,oven chamber + elements (210 C),"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",927,2,ISO 13857 slot e = 2,True
+out airlock,mesh band + drums (in-running nips),"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",300,2,ISO 13857 slot e = 2,True
+out airlock,oven chamber + elements (210 C),"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",916,2,ISO 13857 slot e = 2,True
 out airlock,lane belts (in-running nips),"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",507,2,ISO 13857 slot e = 2,True
 out airlock,sealers D25 (crush + hot),"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",552,2,ISO 13857 slot e = 2,True
 out airlock,stacker lifts D16,"chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2)",347,2,ISO 13857 slot e = 2,True
@@ -34,8 +34,8 @@ out airlock,delta A,"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",483,2,IS
 out airlock,delta B,"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",823,2,ISO 13857 slot e = 2,True
 out airlock,delta C (transfer),"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",333,2,ISO 13857 slot e = 2,True
 out airlock,mesh band + drums (in-running nips),"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",204,2,ISO 13857 slot e = 2,True
-out airlock,oven fan impellers (inside the chamber),"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",784,2,ISO 13857 slot e = 2,True
-out airlock,oven chamber + elements (210 C),"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",659,2,ISO 13857 slot e = 2,True
+out airlock,oven fan impellers (inside the chamber),"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",776,2,ISO 13857 slot e = 2,True
+out airlock,oven chamber + elements (210 C),"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",649,2,ISO 13857 slot e = 2,True
 out airlock,lane belts (in-running nips),"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",215,2,ISO 13857 slot e = 2,True
 out airlock,sealers D25 (crush + hot),"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",270,2,ISO 13857 slot e = 2,True
 out airlock,stacker lifts D16,"chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2)",88,2,ISO 13857 slot e = 2,True
@@ -44,8 +44,8 @@ out airlock,delta A,"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",516,2,
 out airlock,delta B,"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",821,2,ISO 13857 slot e = 2,True
 out airlock,delta C (transfer),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",520,2,ISO 13857 slot e = 2,True
 out airlock,mesh band + drums (in-running nips),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",487,2,ISO 13857 slot e = 2,True
-out airlock,oven fan impellers (inside the chamber),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",963,2,ISO 13857 slot e = 2,True
-out airlock,oven chamber + elements (210 C),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",831,2,ISO 13857 slot e = 2,True
+out airlock,oven fan impellers (inside the chamber),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",956,2,ISO 13857 slot e = 2,True
+out airlock,oven chamber + elements (210 C),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",823,2,ISO 13857 slot e = 2,True
 out airlock,lane belts (in-running nips),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",216,2,ISO 13857 slot e = 2,True
 out airlock,sealers D25 (crush + hot),"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",271,2,ISO 13857 slot e = 2,True
 out airlock,stacker lifts D16,"chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2)",92,2,ISO 13857 slot e = 2,True
@@ -53,8 +53,8 @@ reject drawer (in),chain loop (drawing-in at bends / drive),"bin-top slot e = 4 
 reject drawer (in),delta A,"bin-top slot e = 4 (brush), path via hole + funnel",361,2,ISO 13857 slot e = 4,True
 reject drawer (in),delta C (transfer),"bin-top slot e = 4 (brush), path via hole + funnel",398,2,ISO 13857 slot e = 4,True
 reject drawer (in),mesh band + drums (in-running nips),"bin-top slot e = 4 (brush), path via hole + funnel",210,2,ISO 13857 slot e = 4,True
-reject drawer (in),oven fan impellers (inside the chamber),"bin-top slot e = 4 (brush), path via hole + funnel",577,2,ISO 13857 slot e = 4,True
-reject drawer (in),oven chamber + elements (210 C),"bin-top slot e = 4 (brush), path via hole + funnel",450,2,ISO 13857 slot e = 4,True
+reject drawer (in),oven fan impellers (inside the chamber),"bin-top slot e = 4 (brush), path via hole + funnel",570,2,ISO 13857 slot e = 4,True
+reject drawer (in),oven chamber + elements (210 C),"bin-top slot e = 4 (brush), path via hole + funnel",439,2,ISO 13857 slot e = 4,True
 reject drawer (in),lane belts (in-running nips),"bin-top slot e = 4 (brush), path via hole + funnel",242,2,ISO 13857 slot e = 4,True
 reject drawer (in),sealers D25 (crush + hot),"bin-top slot e = 4 (brush), path via hole + funnel",251,2,ISO 13857 slot e = 4,True
 reject drawer (in),stacker lifts D16,"bin-top slot e = 4 (brush), path via hole + funnel",259,2,ISO 13857 slot e = 4,True

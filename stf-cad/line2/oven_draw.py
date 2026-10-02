@@ -417,8 +417,109 @@ def main():
     open(os.path.join(D.OUT, "M3_thermal.svg"), "w").write(svg)
     write_csv(d)
     write_report(d)
-    print(f"wrote blueprints/M3_thermal.svg, oven/report.md, oven/profile.csv ({len(d['rows'])} s of product history)")
+    cf = control_sheet()
+    print(f"wrote blueprints/M3_thermal.svg, blueprints/M3_control.svg, oven/report.md, oven/profile.csv "
+          f"({len(d['rows'])} s of product history)")
+    if cf:
+        print("REFUSED - the control proofs fail:\n" + "\n".join(cf))
+        return 1
     return 0
+
+
+
+# ------------------------------------------------------------------ control sheet (upgrade O-2, oven_ctrl.py)
+def control_sheet():
+    import oven_ctrl as OC
+    pl = OC.Plant()
+    gains = OC.tune(pl)
+    n = pl.n
+    cols = ["#b03a2e", "#d98a5a", "#e0a02a"]
+    full = lambda t: [1.0] * n
+    sc = {
+        "S1": OC.run(pl, gains, 2400.0, lambda t: [0.0] * n, T0=[L["T_AMB"]] * n, ramp=True, record=5.0),
+        "S2": OC.run(pl, gains, 1500.0, OC.content_fn(), record=5.0),
+        "S2pi": OC.run(pl, gains, 1500.0, OC.content_fn(), ff=False, record=5.0),
+        "S3": OC.run(pl, gains, 2400.0, OC.content_fn((0.0, 600.0)), record=5.0),
+        "S3pi": OC.run(pl, gains, 2400.0, OC.content_fn((0.0, 600.0)), ff=False, record=5.0),
+        "S4": OC.run(pl, gains, 2400.0, full, fail=(0, max(e["P"] for e in pl.els if e["zone"] == "Z1"), 600.0), record=5.0),
+        "S5": OC.run(pl, gains, 900.0, full, stuck=(0, 300.0), record=2.0),
+    }
+    win = L["BAKE_MARGIN"]
+    body = []
+
+    def panel(x0, y0, w, h, title, h_, key, yr, yl, extra=None, dev=False, pi=None):
+        o = [f'<text x="{x0}" y="{y0 + 3}" class="vt">{esc(title)}</text>']
+        tmax = h_["t"][-1] / 60
+        P = Plot(x0 + 12, y0 + 9, w - 16, h - 22, (0, tmax), yr)
+        o.append(P.frame("time (min)", yl))
+        if dev:
+            o.append(f'<rect x="{P.x}" y="{P.py(win):.2f}" width="{P.w}" height="{P.py(-win) - P.py(win):.2f}" fill="#e3f1e0"/>')
+            o.append(f'<text x="{P.x + 1}" y="{P.py(win) - 0.8:.2f}" class="dt" style="fill:#3a7d32">bake window +-{win:g} K</text>')
+        for k in range(n):
+            if dev:
+                pts = [(t / 60, r[k] - pl.Ts[k]) for t, r in zip(h_["t"], h_["T"])]
+                if pi is not None:
+                    o.append(P.line([(t / 60, min(max(r[k] - pl.Ts[k], yr[0]), yr[1])) for t, r in zip(pi["t"], pi["T"])],
+                                    cols[k], .3, "1.2,.8"))
+            else:
+                pts = [(t / 60, r[k]) for t, r in zip(h_["t"], h_[key])]
+            pts = [(a, min(max(b, yr[0]), yr[1])) for a, b in pts]
+            o.append(P.line(pts, cols[k], .5))
+        if extra:
+            o.append(extra(P))
+        o.append(legend(P.x + P.w - 30, P.y + 4, [(f"Z{k + 1} {pl.Ts[k]:g} C", cols[k], "line") for k in range(n)]
+                        + ([("PI alone (no feed-forward)", "#888", "dash")] if pi else [])))
+        return "\n".join(o)
+
+    def s1_extra(P):
+        return "".join(P.line([(t / 60, min(pl.Ts[k], L["T_AMB"] + OC.CTRL["RAMP"] * t / 60)) for t in sc["S1"]["t"]],
+                              "#1f63c4", .25, ".8,.6") for k in range(n))
+
+    def s4_extra(P):
+        o = [f'<line x1="{P.px(10):.2f}" y1="{P.y}" x2="{P.px(10):.2f}" y2="{P.y + P.h}" stroke="#1b2330" stroke-width=".3"/>'
+             f'<text x="{P.px(10) + 1:.2f}" y="{P.y + 4}" class="dt">element E1 open</text>']
+        at = sc["S4"]["alarm_t"][0]
+        if at:
+            o.append(f'<line x1="{P.px(at / 60):.2f}" y1="{P.y}" x2="{P.px(at / 60):.2f}" y2="{P.y + P.h}" stroke="#b03a2e" '
+                     f'stroke-width=".3" stroke-dasharray="1,.6"/><text x="{P.px(at / 60) + 1:.2f}" y="{P.y + 8}" class="dt" '
+                     f'style="fill:#b03a2e">duty observer alarm (+{at - 600:.0f} s)</text>')
+        return "".join(o)
+
+    def s5_extra(P):
+        tt = sc["S5"]["trip_t"][0]
+        o = [f'<line x1="{P.x}" y1="{P.py(OC.CTRL["STB_T"]):.2f}" x2="{P.x + P.w}" y2="{P.py(OC.CTRL["STB_T"]):.2f}" stroke="#b03a2e" stroke-width=".3" stroke-dasharray="1.2,.8"/>'
+             f'<text x="{P.x + 1}" y="{P.py(OC.CTRL["STB_T"]) - 1:.2f}" class="dt" style="fill:#b03a2e">STB {OC.CTRL["STB_T"]:g} C (SF4)</text>',
+             f'<line x1="{P.x}" y1="{P.py(OC.CTRL["T_LIMIT"]):.2f}" x2="{P.x + P.w}" y2="{P.py(OC.CTRL["T_LIMIT"]):.2f}" stroke="#1b2330" stroke-width=".3"/>'
+             f'<text x="{P.x + 1}" y="{P.py(OC.CTRL["T_LIMIT"]) - 1:.2f}" class="dt">limit {OC.CTRL["T_LIMIT"]:g} C</text>',
+             f'<line x1="{P.px(5):.2f}" y1="{P.y}" x2="{P.px(5):.2f}" y2="{P.y + P.h}" stroke="#1b2330" stroke-width=".3"/>'
+             f'<text x="{P.px(5) + 1:.2f}" y="{P.y + P.h - 3}" class="dt">Z1 SSRs fail ON</text>']
+        if tt:
+            o.append(f'<line x1="{P.px(tt / 60):.2f}" y1="{P.y}" x2="{P.px(tt / 60):.2f}" y2="{P.y + P.h}" stroke="#b03a2e" stroke-width=".3"/>'
+                     f'<text x="{P.px(tt / 60) + 1:.2f}" y="{P.y + P.h - 8}" class="dt" style="fill:#b03a2e">STB drops KH1</text>')
+        return "".join(o)
+
+    body.append(panel(20, 16, 180, 120, "S1 COLD START (empty band, ramp + ramp feed-forward)", sc["S1"], "y", (0, 240),
+                      "TC (C)", s1_extra))
+    body.append(panel(208, 16, 180, 120, "S2 PRODUCTION START (cold dough fills the zones)", sc["S2"], "T", (-25, 10),
+                      "zone - set point (K)", dev=True, pi=sc["S2pi"]))
+    body.append(panel(396, 16, 180, 120, "S3 DEPOSITOR STOPS 10 min, RESTARTS", sc["S3"], "T", (-25, 10),
+                      "zone - set point (K)", dev=True, pi=sc["S3pi"]))
+    body.append(panel(20, 146, 180, 120, "S4 ONE Z1 ELEMENT FAILS OPEN", sc["S4"], "T", (-8, 4), "zone - set point (K)",
+                      s4_extra, dev=True))
+    body.append(panel(208, 146, 180, 120, "S5 Z1 SSRs STUCK ON -> STB", sc["S5"], "T", (150, 320), "zone air (C)", s5_extra))
+    rows, fails, _ = OC.check(verbose=False, write=False)
+    lines = [f"{'OK' if ok else 'FAIL'} - {nm}: {v} ({lim})" for nm, v, lim, ok, _ in rows]
+    lines += ["Model: one lumped node per zone (oven.capacity, oven.wall_loss / mouth_loss, the band and product loads "
+              "of oven.zone_loads), zone-to-zone air exchange, TC lag. Assumed: ZONE_G, TC_TAU, the STB / limit "
+              "temperatures - MEASURE (oven_ctrl.py header).",
+              "FB_Oven runs exactly this: feed-forward of the band content + PI + anti-windup + set-point ramp + duty "
+              "observer; plc/FB_Oven.st carries the gains."]
+    nb, _ = D.notes_block(400, 150, 172, lines, "PROOFS (oven_ctrl.py)")
+    body.append(nb)
+    svg = D.sheet(594, 300, "\n".join(body), "M3 OVEN CONTROL - ZONES IN TIME",
+                  "feed-forward + PI per zone, 5 scenarios, STB - oven_ctrl.py", "M3-C", "-", "charts (not to scale)")
+    open(os.path.join(D.OUT, "M3_control.svg"), "w").write(svg)
+    return fails
 
 
 if __name__ == "__main__":

@@ -691,7 +691,7 @@ VAR
 END_VAR
 fbSafety();                      // first: every station below runs only while fbSafety.bRunEnable
 fbMaster(axDrive := GVL_IO.{v['Q1']}, nEncoder := GVL_IO.{v['B1']});
-fbOven(bRunEnable := fbSafety.bRunEnable);
+fbOven(bRunEnable := fbSafety.bRunEnable, aContent := fbBand.aZoneContent);   // last cycle's content
 fbBand(axBand := GVL_IO.{v['Q40']}, axRolls := GVL_IO.{v['Q41']}, axMaster := fbMaster.axMaster,
        bOvenReady := fbOven.bReady);
 fbTransfer(fMasterPos := fbMaster.fPos, fBandPos := fbBand.fPos, bPuckFull := GVL_IO.{v['I1']});
@@ -732,29 +732,60 @@ fDrift := axDrive.NcToPlc.ActPos - axMaster.NcToPlc.ActPos;
                         ", ".join(f"{e.tag} {e.extra['mains_W']:.0f} W {e.extra['face']} {e.extra['phase']}" for e in els)
                         + (f"; fan {fan.tag}" if fan else ""))
     loads = M.oven_power()[0]
-    files["FB_Oven.st"] = f"""// FB_Oven - {len(zs)} zones, PID per zone -> time-proportioning PWM (2 s) on every element's SSR
-// (Tc2_ControllerToolbox). The recipe and the element plan come from oven.py via line_model:
+    import oven_ctrl as OC
+    pl_ = OC.Plant()
+    gains = OC.tune(pl_)
+    C_ = OC.CTRL
+    zn = len(zs)
+    files["FB_Oven.st"] = f"""// FB_Oven - {zn} zones. Per zone: FEED-FORWARD of the product load (from the band content FB_Band tracks,
+// row by row) + PI on the zone TC (SIMC-tuned on the oven_ctrl.py model) with conditional-integration
+// anti-windup -> 2 s time-proportioning PWM on every element SSR of the zone. Cold start: set point ramp
+// {C_['RAMP']:g} K/min with the ramp power fed forward. Duty observer: measured duty - model duty, filtered 60 s;
+// > half an element for the zone -> element-failure alarm (proven in oven_ctrl S4). The STB (SF4) is hardware.
 """ + "\n".join(el_lines) + f"""
 // Steady load at {3600 / takt:.0f} cookies/h: """ + ", ".join(f"{z['zone']} {z['total']:.0f} W" for z in loads) + f""".
-// bReady (all zones within +-5 K for 60 s) gates the depositor: no dough goes into a cold oven.
-// The zone STB (second element of the duplex TC, SF4) drops KHn by hardware - this block only reads <TC>.STL.
+// The recipe holds +-{L['BAKE_MARGIN']:g} K (oven.py bake window); bReady = every zone inside it for 60 s.
 FUNCTION_BLOCK FB_Oven
-VAR_INPUT  bRunEnable : BOOL; END_VAR
-VAR_OUTPUT bReady : BOOL; aTemp : ARRAY[0..{len(zs) - 1}] OF LREAL; aDuty : ARRAY[0..{len(zs) - 1}] OF LREAL;
-           fPower_W : LREAL; END_VAR
+VAR_INPUT  bRunEnable : BOOL; aContent : ARRAY[0..{zn - 1}] OF LREAL;     // 0..1 zone filled (from FB_Band) END_VAR
+VAR_OUTPUT bReady : BOOL; aTemp : ARRAY[0..{zn - 1}] OF LREAL; aDuty : ARRAY[0..{zn - 1}] OF LREAL;
+           aElementAlarm : ARRAY[0..{zn - 1}] OF BOOL; fPower_W : LREAL; END_VAR
 VAR
-    aPid : ARRAY[0..{len(zs) - 1}] OF FB_CTRL_PID;  aPwm : ARRAY[0..{len(zs) - 1}] OF FB_CTRL_PWM_OUT;
-    aSet : ARRAY[0..{len(zs) - 1}] OF LREAL := [{', '.join(f"{Z['T']:.1f}" for Z in L['OVEN_ZONES'])}];   // degC (oven.py recipe)
-    tStable : TON;
+    aSet  : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{t:.1f}" for t in pl_.Ts)}];      // degC (oven.py recipe)
+    aKc   : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{g['Kc']:.4f}" for g in gains)}];  // 1/K
+    aTi   : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{g['Ti']:.0f}" for g in gains)}];  // s
+    aP    : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{p:.0f}" for p in pl_.P)}];        // W installed
+    aC    : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{c:.0f}" for c in pl_.C)}];        // J/K
+    aLoadEmpty, aLoadFull : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{pl_.load(k, pl_.Ts[k], 0.0):.0f}" for k in range(zn))}], [{', '.join(f"{pl_.load(k, pl_.Ts[k], 1.0):.0f}" for k in range(zn))}];
+    aSp, aI, aObs : ARRAY[0..{zn - 1}] OF LREAL;     // aSp := aTemp at power-up (the ramp starts where the zone is)
+    fRamp : LREAL := {C_['RAMP'] / 60:.4f};    // K/s
+    aElMin : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{min(e.extra['mains_W'] for e in els):.0f}" for z, tc, els, fan in zs)}];   // W, smallest element
+    fNow_s, fPhase : LREAL;     // fNow_s: task time in s (TwinCAT system time)
+    tStable : TON; k : INT; e, uff, u : LREAL; bRamp : BOOL;
 END_VAR
 """ + "".join(f"aTemp[{k}] := INT_TO_LREAL(GVL_IO.{v[tc.tag]}) / 10.0;\n" for k, (z, tc, els, fan) in enumerate(zs)) + \
-"""// zone k: aPid[k](fSetpointValue := aSet[k], fActualValue := aTemp[k]); aDuty[k] := aPid[k].fOut;
-//         aPwm[k](fIn := aDuty[k], tPeriod := T#2S) -> every element SSR of zone k (top/bottom share TOP_SHARE)
-""" + "".join(f"// {z}: " + " := ".join(f"GVL_IO.{v[e.tag]}" for e in els) + f" := aPwm[{k}].bOut AND bRunEnable;\n"
-              for k, (z, tc, els, fan) in enumerate(zs)) + \
+f"""FOR k := 0 TO {zn - 1} DO
+    aSp[k] := MIN(aSet[k], aSp[k] + fRamp * 0.01);  bRamp := aSp[k] < aSet[k];        // 10 ms task
+    e := aSp[k] - aTemp[k];
+    uff := (aLoadEmpty[k] + aContent[k] * (aLoadFull[k] - aLoadEmpty[k]) + SEL(bRamp, 0.0, aC[k] * fRamp)) / aP[k];
+    u := uff + aKc[k] * (e + aI[k] / aTi[k]);
+    IF (u > 0.0 AND u < 1.0) OR (u >= 1.0 AND e < 0.0) OR (u <= 0.0 AND e > 0.0) THEN aI[k] := aI[k] + e * 0.01; END_IF
+    aDuty[k] := LIMIT(0.0, u, 1.0);
+    aObs[k] := aObs[k] + (aDuty[k] - uff - aObs[k]) * 0.01 / 60.0;
+    aElementAlarm[k] := NOT bRamp AND aObs[k] > 0.5 * aElMin[k] / aP[k];
+END_FOR
+// time-proportioning, 2 s period: element i of n in a zone conducts in its own slice of the period (phase
+// [i/n, i/n + duty)) - the zone gets its duty, the phases see the load spread instead of all at once
+fPhase := LMOD(fNow_s / 2.0, 1.0);
+""" + "".join(f"GVL_IO.{v[e.tag]} := F_InSlice(fPhase, {i}.0 / {len(els)}.0, aDuty[{k}]) AND bRunEnable;   // {z}\n"
+              for k, (z, tc, els, fan) in enumerate(zs) for i, e in enumerate(els)) + \
 "".join(f"GVL_IO.{v[fan.tag]} := bRunEnable;   // {z} circulation fan\n" for z, tc, els, fan in zs if fan) + \
-f"""tStable(IN := """ + " AND ".join(f"ABS(aTemp[{k}] - aSet[{k}]) < 5.0" for k in range(len(zs))) + """, PT := T#60S);
+"tStable(IN := " + " AND ".join(f"ABS(aTemp[{k}] - aSet[{k}]) < {L['BAKE_MARGIN']:g}" for k in range(zn)) + """, PT := T#60S);
 bReady := tStable.Q;
+"""
+    files["F_InSlice.st"] = """// F_InSlice - TRUE while fPhase (0..1 of the PWM period) lies in [fStart, fStart + fDuty), wrapping at 1
+FUNCTION F_InSlice : BOOL
+VAR_INPUT fPhase, fStart, fDuty : LREAL; END_VAR
+F_InSlice := LMOD(fPhase - fStart + 1.0, 1.0) < fDuty;
 """
     files["FB_Band.st"] = f"""// FB_Band - the mesh band ({M.band_v():.3f} mm/s) and the depositor rolls are GEARED to the master axis:
 // one row of {L['BAND']['rows']} per {L['BAND']['rows']} pucks ({L['BAND']['rows'] * takt:.0f} s). The wire is cammed from the rolls.
@@ -762,7 +793,7 @@ bReady := tStable.Q;
 // A cold oven (bOvenReady FALSE) stops the depositor, never the band: what is in the oven bakes out.
 FUNCTION_BLOCK FB_Band
 VAR_INPUT axBand : AXIS_REF; axRolls : AXIS_REF; axMaster : AXIS_REF; bOvenReady : BOOL; END_VAR
-VAR_OUTPUT fPos : LREAL; END_VAR
+VAR_OUTPUT fPos : LREAL; aZoneContent : ARRAY[0..{len(L['OVEN_ZONES']) - 1}] OF LREAL; END_VAR   // 0..1 per zone, from the rows cut
 VAR fbGearBand, fbGearRolls : MC_GearIn; END_VAR
 fbGearBand(Master := axMaster, Slave := axBand, Execute := TRUE, RatioNumerator := {M.band_v() * 1000:.0f},
            RatioDenominator := {L['V'] * 1000:.0f});

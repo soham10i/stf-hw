@@ -151,26 +151,41 @@ def baked_ok(L, s):
 
 
 def _key(L):
-    keys = ("COOKIE", "DOUGH", "DOUGH_M", "BAKE_Q", "OVEN_ZONES", "OVEN_H", "BAND", "T_AMB", "COOLING", "T_TRANSFER")
-    return repr([L[k] for k in keys])
+    keys = ("COOKIE", "DOUGH", "DOUGH_M", "BAKE_Q", "OVEN_ZONES", "OVEN_H", "BAND", "T_AMB", "COOLING", "T_TRANSFER",
+            "BAKE_MARGIN")
+    return repr([L.get(k) for k in keys])
 
 
 _cache = {}
 
 
+def _shifted(L, off):
+    """L with every zone set point shifted by off (K) - for the robustness of the bake."""
+    L2 = dict(L)
+    L2["OVEN_ZONES"] = [dict(z, T=z["T"] + off) for z in L["OVEN_ZONES"]]
+    return L2
+
+
 def bake_time(L):
-    """Shortest residence (s, 5 s steps) that bakes the cookie at the zone set points, or None."""
-    k = ("bake", _key(L))
+    """Shortest residence (s, 5 s steps) that bakes the cookie with EVERY zone BAKE_MARGIN low and does not
+    over-bake it with every zone BAKE_MARGIN high (the zone control holds +-BAKE_MARGIN, oven_ctrl proves it),
+    or None."""
+    k = ("bake", _key(L), L.get("BAKE_MARGIN", 0.0))
     if k in _cache:
         return _cache[k]
+    m = L.get("BAKE_MARGIN", 0.0)
     best = None
     for tb in range(60, 1801, 5):
-        _, s = simulate(L, bake_segments(L, tb), record=1e9)
-        if baked_ok(L, s):
+        ok = True
+        for off in sorted({-m, 0.0, m}):
+            _, s = simulate(_shifted(L, off), bake_segments(_shifted(L, off), tb), record=1e9)
+            ok = ok and baked_ok(L, s)
+        if ok:
             best = float(tb)
             break
-        if s["colour"] > L["BAKE_Q"]["colour"][1] or s["T_max"] > L["BAKE_Q"]["T_burn"]:
-            break                                     # burns before it is baked: these set points cannot work
+        _, s = simulate(_shifted(L, m), bake_segments(_shifted(L, m), tb), record=1e9)
+        if s["colour"] > L["BAKE_Q"]["colour"][1] and tb > 600:
+            break
     _cache[k] = best
     return best
 
@@ -345,6 +360,16 @@ def phase_plan(L, elems, other=()):
     return ph
 
 
+def capacity(L, zone_len, band_w):
+    """J/K of one zone's chamber: inner skins, the band inside, the elements + rails, the inner half of the wool."""
+    C = L["CHAMBER"]
+    ch = chamber(L, band_w, zone_len)
+    m_skin = ch["A_wall"] * C["skin_t"] / 1000 * H.STEEL_RHO
+    m_ins = ch["A_wall"] * C["insul"] / 1000 * H.INSULATION[C["insul_mat"]]["rho"] * 0.5
+    m_band = L["BAND"]["m_area"] * band_w / 1000 * zone_len / 1000 * 2       # carry + return
+    return (m_skin + m_band) * 500.0 + m_ins * H.INSULATION[C["insul_mat"]]["cp"] + C["m_fixed"] * 500.0
+
+
 def warmup(L, loads, elems, band_w, curves=False):
     """Seconds from ambient to every zone at set point (lumped chamber, all elements on). curves=True also
     returns each zone's (t, T) samples every 30 s."""
@@ -353,10 +378,7 @@ def warmup(L, loads, elems, band_w, curves=False):
     for z in loads:
         ch = chamber(L, band_w, z["len_mm"])
         P = sum(e["P"] for e in elems if e["zone"] == z["zone"])
-        m_skin = ch["A_wall"] * C["skin_t"] / 1000 * H.STEEL_RHO
-        m_ins = ch["A_wall"] * C["insul"] / 1000 * H.INSULATION[C["insul_mat"]]["rho"] * 0.5
-        m_band = L["BAND"]["m_area"] * band_w / 1000 * z["len_mm"] / 1000 * 2       # carry + return
-        Cth = (m_skin + m_band) * 500.0 + m_ins * H.INSULATION[C["insul_mat"]]["cp"] + C["m_fixed"] * 500.0
+        Cth = capacity(L, z["len_mm"], band_w)
         T, t = L["T_AMB"], 0.0
         cur = [(0.0, T)]
         while T < z["T"] - 1.0 and t < 7200:

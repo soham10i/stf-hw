@@ -4,7 +4,7 @@
 // A cold oven (bOvenReady FALSE) stops the depositor, never the band: what is in the oven bakes out.
 FUNCTION_BLOCK FB_Band
 VAR_INPUT axBand : AXIS_REF; axRolls : AXIS_REF; axMaster : AXIS_REF; bOvenReady : BOOL; END_VAR
-VAR_OUTPUT fPos : LREAL; END_VAR
+VAR_OUTPUT fPos : LREAL; aZoneContent : ARRAY[0..2] OF LREAL; END_VAR   // 0..1 per zone, from the rows cut
 VAR fbGearBand, fbGearRolls : MC_GearIn; END_VAR
 fbGearBand(Master := axMaster, Slave := axBand, Execute := TRUE, RatioNumerator := 2292,
            RatioDenominator := 20000);

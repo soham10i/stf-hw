@@ -86,6 +86,11 @@ What changed against the draft above, and why:
 - **Fan rundown**: the impellers coast for FAN_RUNDOWN = 2 s [assumed, MEASURE] after KHn drops and are
   reachable through a band mouth (45 mm slot). The guard locks therefore wait UNLOCK_STILL = 2.5 s of
   standstill (G8 proves the unlock time covers the longest rundown).
+- **SF4 in time (`oven_ctrl.py`, upgrade O-2)**: with every Z1 SSR failed ON, the zone air rises from
+  210 C; the STB (own thermocouple element, set 250 C) drops KH1 about 2.5 min later and the air peaks
+  about 2 K over the STB setting - below the 300 C limit [assumed: glands, seals, flour-dust margin]. In no
+  normal scenario (cold start, production start, depositor stop) does a TC come within 15 K of the STB,
+  so SF4 never trips by nuisance. The STB does not depend on the PLC: FB_Oven's duty observer only alarms.
 - **Hot surfaces after a stop**: the chamber stays above 150 C for minutes after the elements are off.
   Inside the guard only; residual risk -> warning label on every door + the HMI shows the zone
   temperatures; the outer skin is below the 10 s burn threshold for bare metal (EN ISO 13732-1).

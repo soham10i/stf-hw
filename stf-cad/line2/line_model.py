@@ -105,6 +105,9 @@ L = dict(
     OVEN_ZONES=[dict(T=210.0, dT_rad=40.0), dict(T=200.0, dT_rad=30.0), dict(T=185.0, dT_rad=20.0)],  # recipe
     OVEN_H=dict(top=70.0, bot=45.0),         # W/m2K: impingement fan per zone (top), through the mesh (bottom)
     BAKE_Q=dict(core_min=95.0, core_hold=60.0, w_end=0.05, colour=(0.8, 1.3), T_burn=200.0),   # baked =
+    BAKE_MARGIN=2.0,                         # K: the bake must hold with every zone this far off its set point -
+                                             # the browning roughly doubles per 8-10 K, so +-2 K is what the colour
+                                             # window allows; oven_ctrl proves the zones hold it
     COOLING=dict(band=dict(h_top=90.0, h_bot=70.0),                  # impingement hood: down through the mesh
                  loop=dict(h_top=10.0, h_bot=2.0)),                  # still air on the puck
     T_TRANSFER=40.0, T_PACK=38.0,            # C: max anywhere in the cookie at the pick-up / at the sealer

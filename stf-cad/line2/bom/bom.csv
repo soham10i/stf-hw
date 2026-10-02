@@ -25,7 +25,7 @@ bought,PP bin,PP bin,1,pcs,[design]
 bought,SMC SY3000 manifold,"SMC SY3000 manifold, 24 V DC coils, 23 stations",1,pcs,[design]
 bought,airlock door guide + drive (kit),airlock door guide + drive (kit),3,pcs,[typ] (Misumi / item guard door kit class)
 bought,airlock_door: powered sliding guard door kit: 4 mm PC leaf in an Al frame,"airlock_door: powered sliding guard door kit: 4 mm PC leaf in an Al frame, guides, rodless pneumatic drive with force-limited closing, RFID guard-locking switch (2 OSSD = closed AND locked)",3,pcs,[typ] (Festo / SMC rodless drive + Schmersal AZM201 class) - force limit VERIFY
-bought,balanced-weave stainless mesh band,"balanced-weave stainless mesh band, 1.2 mm wire, flat edges, 370 wide, endless 3.26 m",1,pcs,[typ] (Wire Belt / Cambridge class)
+bought,balanced-weave stainless mesh band,"balanced-weave stainless mesh band, 1.2 mm wire, flat edges, 370 wide, endless 3.28 m",1,pcs,[typ] (Wire Belt / Cambridge class)
 bought,band drum D100 (stainless,"band drum D100 (stainless, crowned)",2,pcs,[design]
 bought,bellows cup D12 on spring stem,bellows cup D12 on spring stem,6,pcs,[design]
 bought,colour_sensor,colour_sensor,1,pcs,[typ]
@@ -139,13 +139,13 @@ make,"cassette, Al sheet 2 mm","170.0 x 2.0 x 705.0 mm, 0 holes total (cassette_
 make,"die plate, 6 orifices D38 (stainless)","124.0 x 410.0 x 15.0 mm, 0 holes total (dep_die)",1,pcs,[design] machined / cut to the drawing
 make,"insulated oven panel 50 mm (stainless skins, mineral wool)","50.0 x 410.0 x 35.0 mm, 0 holes total (oven_panel_in_lo, oven_panel_out_lo)",2,pcs,[design] machined / cut to the drawing
 make,"insulated oven panel 50 mm (stainless skins, mineral wool)","50.0 x 410.0 x 60.0 mm, 0 holes total (oven_panel_in_hi, oven_panel_out_hi)",2,pcs,[design] machined / cut to the drawing
-make,"insulated oven panel 50 mm (stainless skins, mineral wool)","697.0 x 50.0 x 140.0 mm, 0 holes total (oven_panel_front, oven_panel_back)",2,pcs,[design] machined / cut to the drawing
-make,"insulated oven panel 50 mm (stainless skins, mineral wool)","697.0 x 510.0 x 50.0 mm, 0 holes total (oven_panel_floor, oven_panel_roof)",2,pcs,[design] machined / cut to the drawing
+make,"insulated oven panel 50 mm (stainless skins, mineral wool)","709.0 x 50.0 x 140.0 mm, 0 holes total (oven_panel_front, oven_panel_back)",2,pcs,[design] machined / cut to the drawing
+make,"insulated oven panel 50 mm (stainless skins, mineral wool)","709.0 x 510.0 x 50.0 mm, 0 holes total (oven_panel_floor, oven_panel_roof)",2,pcs,[design] machined / cut to the drawing
 make,sheet-steel enclosure back wall,"980.0 x 850.0 x 1.5 mm, 4 holes total (cabinet_wall_top)",1,pcs,[design] machined / cut to the drawing
 make,sheet-steel hood 8 mm frame,"356.0 x 8.0 x 95.0 mm, 0 holes total (cool_hood_wall_front)",1,pcs,[design] machined / cut to the drawing
 make,sheet-steel lift guard 1.5 mm,"80.0 x 1.5 x 128.0 mm, 0 holes total (lift_guard_wall_front)",1,pcs,[design] machined / cut to the drawing
 make,sheet-steel plenum 3 mm,"356.0 x 3.0 x 59.0 mm, 0 holes total (cool_plenum_wall_front)",1,pcs,[design] machined / cut to the drawing
-make,skid bar 6 x 6 (stainless),"597.0 x 6.0 x 6.0 mm, 0 holes total (oven_skid_0, oven_skid_1)",2,pcs,[design] machined / cut to the drawing
+make,skid bar 6 x 6 (stainless),"609.0 x 6.0 x 6.0 mm, 0 holes total (oven_skid_0, oven_skid_1)",2,pcs,[design] machined / cut to the drawing
 bracket,BR20,bracket,188,pcs,[cat: misumi HBLFSN5][typ]
 bracket,BR30,bracket,55,pcs,[cat: misumi HBLFSN8-3030][typ]
 bracket,BR40,bracket,72,pcs,[cat: misumi HBLFSN8-4040][typ]

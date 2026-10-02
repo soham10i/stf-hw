@@ -226,7 +226,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="14" y="259.9" class="nt">OK - row emptied in the pick window: 30.5 s &gt;= 6 takts = 24 s delta C takes one cookie per takt; a row never reaches the nose</text>
 <text x="14" y="263.6" class="nt">OK - transfer capacity, delta C: 0.50 /s &gt;= demand 0.25 /s single transfer: a miss falls into the crumb pan (counted loss) - the band cannot stop with the oven hot</text>
 <text x="14" y="267.3" class="nt">OK - place window on the bend: 98 mm = 4.9 s &gt;= reach+grip 0.8 s delta C tracks the puck along the arc (IK at 7 points)</text>
-<text x="14" y="271.0" class="nt">OK - cookie at the picker: max 37.5 C after 68 s on the loop &lt;= T_PACK 38 C a warm cookie sealed in film sweats (condensate in the pack)</text>
+<text x="14" y="271.0" class="nt">OK - cookie at the picker: max 37.4 C after 68 s on the loop &lt;= T_PACK 38 C a warm cookie sealed in film sweats (condensate in the pack)</text>
 <text x="14" y="274.7" class="nt">I/O: I1, I9, NFC-W, delta_C.M180, delta_C.M300, delta_C.M60, delta_C.VAC</text>
 <text x="14" y="278.4" class="nt">Parts: delta_C x22, portal x4, sensor x3</text>
 <rect x="230" y="249" width="180" height="38" fill="#fff" stroke="#1b2330" stroke-width=".35"/>

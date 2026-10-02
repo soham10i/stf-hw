@@ -1,20 +1,20 @@
 {
  "nominal_1h": {
-  "loaded": 890,
+  "loaded": 894,
   "packed": {
-   "weiss": 287,
-   "rot": 278,
-   "blau": 275
+   "weiss": 281,
+   "rot": 284,
+   "blau": 279
   },
   "rejected": 38,
   "burnt": 0,
   "escapes": 0,
-  "recirc": 3,
+  "recirc": 0,
   "empty_slots": 0,
   "starved_raw": 0,
   "untopped": 0,
-  "band_lost": 20,
-  "blocked_cassette": 3,
+  "band_lost": 15,
+  "blocked_cassette": 0,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
@@ -23,41 +23,41 @@
    "blau": 4
   },
   "picks": [
-   835,
+   839,
    5
   ],
   "stops": 0,
-  "missed_pick_windows": 3,
-  "false_rejects": 6,
+  "missed_pick_windows": 0,
+  "false_rejects": 7,
   "throttled": 0,
   "scenario": "nominal_1h",
   "hours": 1.0,
-  "steady_state_per_h": 849.6,
+  "steady_state_per_h": 854.4,
   "theoretical_per_h": 900.0,
-  "line_efficiency": 0.944,
+  "line_efficiency": 0.949,
   "amr_util": [
    0.47,
    0.23
   ],
-  "amr_max_late_min": 1.1,
-  "amr_tasks": 30
+  "amr_max_late_min": 0.5,
+  "amr_tasks": 29
  },
  "delta_A_down_10min": {
-  "loaded": 893,
+  "loaded": 894,
   "packed": {
-   "weiss": 286,
-   "rot": 280,
-   "blau": 276
+   "weiss": 280,
+   "rot": 283,
+   "blau": 279
   },
-  "rejected": 39,
+  "rejected": 40,
   "burnt": 0,
   "escapes": 0,
-  "recirc": 1,
+  "recirc": 0,
   "empty_slots": 0,
   "starved_raw": 0,
   "untopped": 0,
-  "band_lost": 17,
-  "blocked_cassette": 1,
+  "band_lost": 15,
+  "blocked_cassette": 0,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
@@ -66,12 +66,12 @@
    "blau": 4
   },
   "picks": [
-   691,
-   151
+   693,
+   149
   ],
   "stops": 0,
-  "missed_pick_windows": 1,
-  "false_rejects": 12,
+  "missed_pick_windows": 0,
+  "false_rejects": 9,
   "throttled": 0,
   "scenario": "delta_A_down_10min",
   "hours": 1.0,
@@ -79,28 +79,28 @@
   "theoretical_per_h": 900.0,
   "line_efficiency": 0.947,
   "amr_util": [
-   0.46,
-   0.23
+   0.43,
+   0.22
   ],
-  "amr_max_late_min": 0.7,
-  "amr_tasks": 30
+  "amr_max_late_min": 0.5,
+  "amr_tasks": 28
  },
  "both_deltas_down_2min": {
-  "loaded": 869,
+  "loaded": 870,
   "packed": {
-   "weiss": 278,
-   "rot": 271,
-   "blau": 272
+   "weiss": 277,
+   "rot": 276,
+   "blau": 267
   },
-  "rejected": 36,
+  "rejected": 39,
   "burnt": 0,
-  "escapes": 1,
-  "recirc": 26,
+  "escapes": 0,
+  "recirc": 25,
   "empty_slots": 0,
   "starved_raw": 0,
   "untopped": 0,
-  "band_lost": 41,
-  "blocked_cassette": 1,
+  "band_lost": 39,
+  "blocked_cassette": 0,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
@@ -110,29 +110,29 @@
   },
   "picks": [
    812,
-   9
+   8
   ],
   "stops": 0,
-  "missed_pick_windows": 26,
-  "false_rejects": 10,
+  "missed_pick_windows": 25,
+  "false_rejects": 7,
   "throttled": 0,
   "scenario": "both_deltas_down_2min",
   "hours": 1.0,
-  "steady_state_per_h": 826.8,
+  "steady_state_per_h": 825.6,
   "theoretical_per_h": 900.0,
-  "line_efficiency": 0.919,
+  "line_efficiency": 0.917,
   "amr_util": [
-   0.45,
-   0.19
+   0.44,
+   0.2
   ],
-  "amr_max_late_min": 0.8,
+  "amr_max_late_min": 0.5,
   "amr_tasks": 25
  },
  "both_deltas_down_10min": {
   "loaded": 752,
   "packed": {
-   "weiss": 241,
-   "rot": 234,
+   "weiss": 238,
+   "rot": 237,
    "blau": 232
   },
   "rejected": 33,
@@ -142,7 +142,7 @@
   "empty_slots": 0,
   "starved_raw": 0,
   "untopped": 0,
-  "band_lost": 158,
+  "band_lost": 157,
   "blocked_cassette": 0,
   "blocked_boxes": 0,
   "reject_overflow": 0,
@@ -165,41 +165,41 @@
   "theoretical_per_h": 900.0,
   "line_efficiency": 0.767,
   "amr_util": [
-   0.44,
-   0.22
+   0.4,
+   0.13
   ],
-  "amr_max_late_min": 0.1,
-  "amr_tasks": 26
+  "amr_max_late_min": 0.0,
+  "amr_tasks": 21
  },
  "both_deltas_down_10min_AGENT": {
-  "loaded": 640,
+  "loaded": 638,
   "packed": {
-   "weiss": 206,
-   "rot": 199,
-   "blau": 193
+   "weiss": 201,
+   "rot": 201,
+   "blau": 196
   },
   "rejected": 29,
   "burnt": 0,
   "escapes": 0,
   "recirc": 144,
-  "empty_slots": 112,
+  "empty_slots": 114,
   "starved_raw": 0,
   "untopped": 0,
-  "band_lost": 120,
-  "blocked_cassette": 1,
+  "band_lost": 121,
+  "blocked_cassette": 0,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
    "weiss": 2,
    "rot": 2,
-   "blau": 2
+   "blau": 3
   },
   "picks": [
    593,
    5
   ],
   "stops": 0,
-  "missed_pick_windows": 145,
+  "missed_pick_windows": 144,
   "false_rejects": 5,
   "throttled": 150,
   "scenario": "both_deltas_down_10min_AGENT",
@@ -208,28 +208,28 @@
   "theoretical_per_h": 900.0,
   "line_efficiency": 0.621,
   "amr_util": [
-   0.33,
-   0.28
+   0.45,
+   0.11
   ],
-  "amr_max_late_min": 1.0,
-  "amr_tasks": 19
+  "amr_max_late_min": 0.0,
+  "amr_tasks": 17
  },
  "shift_2_AMR": {
-  "loaded": 7155,
+  "loaded": 7159,
   "packed": {
-   "weiss": 2322,
-   "rot": 2287,
-   "blau": 2263
+   "weiss": 2306,
+   "rot": 2298,
+   "blau": 2267
   },
-  "rejected": 271,
+  "rejected": 276,
   "burnt": 0,
-  "escapes": 2,
-  "recirc": 10,
+  "escapes": 1,
+  "recirc": 6,
   "empty_slots": 0,
   "starved_raw": 0,
   "untopped": 0,
-  "band_lost": 55,
-  "blocked_cassette": 10,
+  "band_lost": 50,
+  "blocked_cassette": 6,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
@@ -238,41 +238,41 @@
    "blau": 28
   },
   "picks": [
-   6826,
-   46
+   6827,
+   44
   ],
   "stops": 0,
-  "missed_pick_windows": 10,
-  "false_rejects": 57,
+  "missed_pick_windows": 6,
+  "false_rejects": 66,
   "throttled": 0,
   "scenario": "shift_2_AMR",
   "hours": 8.0,
-  "steady_state_per_h": 860.4,
+  "steady_state_per_h": 860.3,
   "theoretical_per_h": 900.0,
   "line_efficiency": 0.956,
   "amr_util": [
-   0.55,
-   0.4
+   0.56,
+   0.39
   ],
-  "amr_max_late_min": 1.1,
-  "amr_tasks": 333
+  "amr_max_late_min": 1.0,
+  "amr_tasks": 327
  },
  "shift_1_AMR": {
-  "loaded": 7127,
+  "loaded": 7107,
   "packed": {
-   "weiss": 2299,
-   "rot": 2291,
-   "blau": 2233
+   "weiss": 2298,
+   "rot": 2282,
+   "blau": 2224
   },
-  "rejected": 292,
+  "rejected": 290,
   "burnt": 0,
-  "escapes": 4,
-  "recirc": 44,
+  "escapes": 3,
+  "recirc": 66,
   "empty_slots": 0,
   "starved_raw": 0,
   "untopped": 0,
-  "band_lost": 83,
-  "blocked_cassette": 43,
+  "band_lost": 102,
+  "blocked_cassette": 65,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
@@ -281,40 +281,40 @@
    "blau": 28
   },
   "picks": [
-   6762,
-   61
+   6726,
+   78
   ],
   "stops": 0,
-  "missed_pick_windows": 43,
-  "false_rejects": 74,
+  "missed_pick_windows": 65,
+  "false_rejects": 70,
   "throttled": 0,
   "scenario": "shift_1_AMR",
   "hours": 8.0,
-  "steady_state_per_h": 854.2,
+  "steady_state_per_h": 851.7,
   "theoretical_per_h": 900.0,
-  "line_efficiency": 0.949,
+  "line_efficiency": 0.946,
   "amr_util": [
-   0.76
+   0.74
   ],
-  "amr_max_late_min": 1.6,
-  "amr_tasks": 252
+  "amr_max_late_min": 2.1,
+  "amr_tasks": 255
  },
  "shift_2_AMR_one_down_2h": {
-  "loaded": 7140,
+  "loaded": 7141,
   "packed": {
-   "weiss": 2304,
-   "rot": 2278,
-   "blau": 2252
+   "weiss": 2294,
+   "rot": 2285,
+   "blau": 2255
   },
-  "rejected": 294,
+  "rejected": 295,
   "burnt": 0,
-  "escapes": 3,
-  "recirc": 26,
+  "escapes": 2,
+  "recirc": 21,
   "empty_slots": 0,
   "starved_raw": 0,
   "untopped": 0,
-  "band_lost": 70,
-  "blocked_cassette": 25,
+  "band_lost": 68,
+  "blocked_cassette": 21,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
@@ -327,8 +327,8 @@
    42
   ],
   "stops": 0,
-  "missed_pick_windows": 25,
-  "false_rejects": 76,
+  "missed_pick_windows": 21,
+  "false_rejects": 65,
   "throttled": 0,
   "scenario": "shift_2_AMR_one_down_2h",
   "hours": 8.0,
@@ -336,28 +336,28 @@
   "theoretical_per_h": 900.0,
   "line_efficiency": 0.951,
   "amr_util": [
-   0.42,
-   0.5
+   0.41,
+   0.49
   ],
-  "amr_max_late_min": 1.5,
-  "amr_tasks": 315
+  "amr_max_late_min": 1.3,
+  "amr_tasks": 309
  },
  "shift_fleet_down_15min": {
-  "loaded": 6989,
+  "loaded": 7005,
   "packed": {
-   "weiss": 2254,
-   "rot": 2249,
+   "weiss": 2253,
+   "rot": 2248,
    "blau": 2199
   },
-  "rejected": 275,
+  "rejected": 293,
   "burnt": 0,
-  "escapes": 1,
-  "recirc": 175,
+  "escapes": 3,
+  "recirc": 160,
   "empty_slots": 0,
   "starved_raw": 0,
   "untopped": 0,
-  "band_lost": 221,
-  "blocked_cassette": 174,
+  "band_lost": 204,
+  "blocked_cassette": 158,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
@@ -366,41 +366,41 @@
    "blau": 27
   },
   "picks": [
-   6653,
-   49
+   6661,
+   39
   ],
   "stops": 0,
-  "missed_pick_windows": 174,
-  "false_rejects": 66,
+  "missed_pick_windows": 158,
+  "false_rejects": 65,
   "throttled": 0,
   "scenario": "shift_fleet_down_15min",
   "hours": 8.0,
-  "steady_state_per_h": 838.7,
+  "steady_state_per_h": 838.5,
   "theoretical_per_h": 900.0,
   "line_efficiency": 0.932,
   "amr_util": [
-   0.53,
-   0.37
+   0.55,
+   0.38
   ],
-  "amr_max_late_min": 13.8,
-  "amr_tasks": 321
+  "amr_max_late_min": 14.9,
+  "amr_tasks": 322
  },
  "shift_fleet_down_45min": {
-  "loaded": 6401,
+  "loaded": 6425,
   "packed": {
-   "weiss": 2075,
-   "rot": 2038,
-   "blau": 2004
+   "weiss": 2079,
+   "rot": 2054,
+   "blau": 2029
   },
-  "rejected": 272,
+  "rejected": 251,
   "burnt": 0,
-  "escapes": 2,
-  "recirc": 620,
-  "empty_slots": 143,
+  "escapes": 1,
+  "recirc": 600,
+  "empty_slots": 145,
   "starved_raw": 252,
   "untopped": 0,
-  "band_lost": 557,
-  "blocked_cassette": 620,
+  "band_lost": 532,
+  "blocked_cassette": 600,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
@@ -409,41 +409,41 @@
    "blau": 25
   },
   "picks": [
-   6072,
-   45
+   6119,
+   43
   ],
   "stops": 0,
-  "missed_pick_windows": 620,
-  "false_rejects": 60,
+  "missed_pick_windows": 600,
+  "false_rejects": 55,
   "throttled": 0,
   "scenario": "shift_fleet_down_45min",
   "hours": 8.0,
-  "steady_state_per_h": 764.0,
+  "steady_state_per_h": 769.8,
   "theoretical_per_h": 900.0,
-  "line_efficiency": 0.849,
+  "line_efficiency": 0.855,
   "amr_util": [
-   0.48,
-   0.34
+   0.51,
+   0.36
   ],
-  "amr_max_late_min": 43.8,
-  "amr_tasks": 294
+  "amr_max_late_min": 44.9,
+  "amr_tasks": 300
  },
  "shift_no_AMR": {
-  "loaded": 243,
+  "loaded": 244,
   "packed": {
-   "weiss": 85,
+   "weiss": 84,
    "rot": 58,
    "blau": 30
   },
-  "rejected": 56,
+  "rejected": 58,
   "burnt": 0,
   "escapes": 0,
-  "recirc": 4570,
-  "empty_slots": 2387,
+  "recirc": 4566,
+  "empty_slots": 2389,
   "starved_raw": 5862,
   "untopped": 0,
-  "band_lost": 1251,
-  "blocked_cassette": 4580,
+  "band_lost": 1250,
+  "blocked_cassette": 4577,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
@@ -453,15 +453,15 @@
   },
   "picks": [
    171,
-   2
+   1
   ],
   "stops": 0,
-  "missed_pick_windows": 4580,
-  "false_rejects": 52,
+  "missed_pick_windows": 4577,
+  "false_rejects": 47,
   "throttled": 0,
   "scenario": "shift_no_AMR",
   "hours": 8.0,
-  "steady_state_per_h": 6.9,
+  "steady_state_per_h": 6.8,
   "theoretical_per_h": 900.0,
   "line_efficiency": 0.008,
   "amr_util": [],

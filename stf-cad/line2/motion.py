@@ -81,10 +81,16 @@ def duty():
     return {z["zone"]: z["total"] / sum(e["P"] for e in els if e["zone"] == z["zone"]) for z in loads}
 
 
+_N_ZONE = {}
+
+
 def element_on(e, i, t, d):
-    """Element i of its zone conducts in a staggered slice of the 2 s period (spreads the phase current)."""
-    n = sum(1 for x in M.oven_power()[1] if x["zone"] == e["zone"])
-    u = ((t / PWM) + i / n) % 1.0
+    """Element i of n in its zone conducts in its slice [i/n, i/n + duty) of the 2 s period - FB_Oven's F_InSlice
+    (spreads the phase current)."""
+    if not _N_ZONE:
+        for x in M.oven_power()[1]:
+            _N_ZONE[x["zone"]] = _N_ZONE.get(x["zone"], 0) + 1
+    u = ((t / PWM) - i / _N_ZONE[e["zone"]]) % 1.0
     return u < d[e["zone"]]
 
 
@@ -539,10 +545,30 @@ def main():
     for t in times:
         W, amps = power_at(t, d)
         power.append([round(W), round(amps["L1"], 2), round(amps["L2"], 2), round(amps["L3"], 2)])
+    # zone temperatures: the oven_ctrl zone model driven by exactly the element pulses above (full band), from a
+    # 10 min run-in so the PWM ripple is periodic; the TC lag as in FB_Oven
+    import oven_ctrl as OC
+    pl = OC.Plant()
+    els = M.oven_power()[1]
+    order = defaultdict(int)
+    ix = []
+    for e in els:
+        ix.append(order[e["zone"]])
+        order[e["zone"]] += 1
+    Tz, yz, temps = list(pl.Ts), list(pl.Ts), []
+    sub = 0.02
+    for t in [-600.0 + k * DT for k in range(int(600 / DT))] + times:
+        for _ in range(int(DT / sub)):
+            for k in range(pl.n):
+                Pk = sum(e["P"] for e, i in zip(els, ix) if e["zone"] == f"Z{k + 1}" and element_on(e, i, t, d))
+                Tz[k] += (Pk - pl.load(k, Tz[k], 1.0)) * sub / pl.C[k]
+                yz[k] += (Tz[k] - yz[k]) * sub / OC.CTRL["TC_TAU"]
+        if t >= 0:
+            temps.append([round(v, 2) for v in yz])
     os.makedirs(OUT, exist_ok=True)
     with open(os.path.join(OUT, "timeline.json"), "w") as fh:
         json.dump(dict(dt=DT, frames=len(times), t_end=T_END, track=track, spawn=spawn, follow=follow,
-                       glow=glow, power=power, duty={k: round(v, 3) for k, v in d.items()},
+                       glow=glow, power=power, temps=temps, duty={k: round(v, 3) for k, v in d.items()},
                        zones=[dict(T=Z["T"]) for Z in L["OVEN_ZONES"]],
                        phases=dict(exchange=exchange(), kicks=KICKS, seals=SEALS, lifts=LIFTS)), fh)
     rep = [f"moving twin: {len(times)} frames x {DT:g} s = {T_END:g} s, {len(moving)} moving parts "

@@ -417,7 +417,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="14" y="252" class="nh">NOTES</text>
 <text x="14" y="256.2" class="nt">Pick cell - two tracking delta robots (N+1) on a portal</text>
 <text x="14" y="259.9" class="nt">OK - row emptied in the pick window: 30.5 s &gt;= 6 takts = 24 s delta C takes one cookie per takt; a row never reaches the nose</text>
-<text x="14" y="263.6" class="nt">OK - cookie at the picker: max 37.5 C after 68 s on the loop &lt;= T_PACK 38 C a warm cookie sealed in film sweats (condensate in the pack)</text>
+<text x="14" y="263.6" class="nt">OK - cookie at the picker: max 37.4 C after 68 s on the loop &lt;= T_PACK 38 C a warm cookie sealed in film sweats (condensate in the pack)</text>
 <text x="14" y="267.3" class="nt">OK - pick capacity, ONE delta: 0.50 /s &gt;= demand 0.25 /s N+1: either delta alone carries the line</text>
 <text x="14" y="271.0" class="nt">OK - tracking window per delta: 95 mm = 4.8 s &gt;= reach+grip 0.8 s chord of the reach circle over the back run</text>
 <text x="14" y="274.7" class="nt">I/O: CAM2, CAM4, NFC-R, delta_A.M-15, delta_A.M105, delta_A.M225, delta_A.VAC, delta_B.M165, delta_B.M285, delta_B.M405, delta_B.VAC</text>

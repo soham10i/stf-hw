@@ -184,7 +184,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="118.0" y="164.6" class="tbs" text-anchor="start" >M_band</text>
 <text x="185.0" y="164.6" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+PG27</text>
 <text x="300.0" y="164.6" class="tbs" text-anchor="start" >W017</text>
-<text x="330.0" y="164.6" class="tbs" text-anchor="start" >1.27 m</text>
+<text x="330.0" y="164.6" class="tbs" text-anchor="start" >1.28 m</text>
 <text x="360.0" y="164.6" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
 <rect x="18.0" y="167.2" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="171.2" class="tb" text-anchor="start" >-KF22  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>

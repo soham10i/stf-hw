@@ -15,7 +15,7 @@ W013,Q4.S2,top_cyl_blau,M2_depositor,DI,reed switch extended (ISO6432-16x25),-KF
 W014,IOL5,top_level_weiss,M2_depositor,IOL,ToF level (IO-Link),-KF13 ch2,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.62,True
 W015,IOL6,top_level_rot,M2_depositor,IOL,ToF level (IO-Link),-KF13 ch3,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.62,True
 W016,IOL7,top_level_blau,M2_depositor,IOL,ToF level (IO-Link),-KF13 ch4,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.62,True
-W017,Q40,M_band,M3_oven,STEP,stepper 17HS19-2004D-E1000+PG27,-KF21 ch1,motor-4,A1 A2 B1 B2,0.5,1.27,True
+W017,Q40,M_band,M3_oven,STEP,stepper 17HS19-2004D-E1000+PG27,-KF21 ch1,motor-4,A1 A2 B1 B2,0.5,1.28,True
 W018,E1T1,oven_heater_E1T1,M3_oven,DO,"oven element SSR (500 W 230 V, L1)",-KF5 ch12,M12-3,BK signal / BU 0V,0.34,1.11,True
 W019,E1T2,oven_heater_E1T2,M3_oven,DO,"oven element SSR (500 W 230 V, L2)",-KF5 ch13,M12-3,BK signal / BU 0V,0.34,1.11,True
 W020,E1T3,oven_heater_E1T3,M3_oven,DO,"oven element SSR (500 W 230 V, L3)",-KF5 ch14,M12-3,BK signal / BU 0V,0.34,1.11,True
@@ -34,9 +34,9 @@ W032,TC3,oven_tc_3,M3_oven,TC,oven zone thermocouple K (duplex: this element -> 
 W033,QX1,oven_exhaust_fan,M3_oven,DO,oven vapour exhaust fan 24 V EC,-KF6 ch10,M12-3,BK signal / BU 0V,0.34,1.41,True
 W034,IR1,IR1_pyrometer,M3_oven,AI,product temperature 0..10 V,-KF9 ch1,M12-4,BN +24V / BU 0V / BK signal,0.34,1.1,True
 W035,QC1,cool_fan_1,M3_oven,DO,band cooling fan 24 V,-KF6 ch3,M12-3,BK signal / BU 0V,0.34,1.16,True
-W036,QC2,cool_fan_2,M3_oven,DO,band cooling fan 24 V,-KF6 ch4,M12-3,BK signal / BU 0V,0.34,1.27,True
+W036,QC2,cool_fan_2,M3_oven,DO,band cooling fan 24 V,-KF6 ch4,M12-3,BK signal / BU 0V,0.34,1.28,True
 W037,QC3,cool_exfan_1,M3_oven,DO,band cooling fan 24 V,-KF6 ch5,M12-3,BK signal / BU 0V,0.34,0.97,True
-W038,QC4,cool_exfan_2,M3_oven,DO,band cooling fan 24 V,-KF6 ch6,M12-3,BK signal / BU 0V,0.34,1.08,True
+W038,QC4,cool_exfan_2,M3_oven,DO,band cooling fan 24 V,-KF6 ch6,M12-3,BK signal / BU 0V,0.34,1.1,True
 W039,delta_C.M60,delta_C_motor_60,M4_transfer,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF24 ch1,motor-4,A1 A2 B1 B2,0.5,2.03,True
 W040,delta_C.M180,delta_C_motor_180,M4_transfer,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF22 ch1,motor-4,A1 A2 B1 B2,0.5,1.87,True
 W041,delta_C.M300,delta_C_motor_300,M4_transfer,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF23 ch1,motor-4,A1 A2 B1 B2,0.5,1.92,True
