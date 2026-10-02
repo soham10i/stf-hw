@@ -105,13 +105,37 @@
 .side details > summary { cursor: pointer; color: var(--accent); font-size: 12.5px; }
 
 /* buttons and slots of the Orders panel */
-.slot { background: var(--raised); border: 1px solid var(--border); color: var(--text); border-radius: 8px; }
-.slot.active { background: var(--accent); color: var(--on-accent); border-color: transparent; }
-.op { border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 500; }
-.op:hover:not(:disabled) { background: var(--hover); }
-.op.retrieve { background: var(--accent); color: var(--on-accent); border-color: transparent; }
-.op.store { background: var(--accent-weak); color: var(--accent); border-color: transparent; }
-.op.cycle { background: linear-gradient(90deg, var(--accent), #a78bfa); color: #fff; border-color: transparent; }
+/* 3D glass controls: translucent, lit from above, lifted on hover, pressed on click */
+.slot, .op {
+  border: 1px solid var(--glass-edge); color: var(--text); font-weight: 500;
+  background: var(--glass), var(--glass-tint);
+  box-shadow: var(--glass-hi), var(--glass-drop);
+  backdrop-filter: blur(10px) saturate(140%); -webkit-backdrop-filter: blur(10px) saturate(140%);
+  transition: transform .14s ease, box-shadow .14s ease, filter .14s ease, background-color .14s ease;
+}
+.slot { border-radius: 10px; }
+.op { border-radius: 12px; }
+.slot:hover, .op:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.08);
+  box-shadow: var(--glass-hi), 0 12px 22px -10px rgba(0, 0, 0, 0.55), 0 3px 6px rgba(0, 0, 0, 0.18); }
+.slot:active, .op:active:not(:disabled) { transform: translateY(1px); filter: brightness(0.97);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 -1px 0 rgba(255, 255, 255, 0.05); }
+.slot:focus-visible, .op:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.slot.active, .op.retrieve { background: var(--glass-gloss), var(--accent); color: var(--on-accent); border-color: rgba(255, 255, 255, 0.18); }
+.slot.active { box-shadow: var(--glass-hi), 0 6px 16px -6px var(--accent), 0 0 0 1px var(--accent); }
+.op.retrieve { box-shadow: var(--glass-hi), 0 10px 20px -10px var(--accent); }
+.op.store { background: var(--glass), var(--accent-weak); color: var(--accent); }
+.op.cycle { background: var(--glass-gloss), linear-gradient(100deg, var(--accent), #a78bfa); color: #fff;
+  border-color: rgba(255, 255, 255, 0.2); box-shadow: var(--glass-hi), 0 12px 24px -10px #8b7cf6; }
+/* the order actions: one column, even gaps (the cycle button no longer touches the row below) */
+.op-actions { display: grid; gap: 10px; margin-top: 14px; }
+.op-actions .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; }
+.op-actions .op { width: 100%; margin: 0; padding: 11px 12px; }
+.panel.orders .slot-grid { gap: 8px; }
+.panel.orders .slot { padding: 8px 0; border-radius: 10px; }
+@media (prefers-reduced-motion: reduce) {
+  .slot, .op { transition: none; }
+  .slot:hover, .op:hover:not(:disabled), .slot:active, .op:active:not(:disabled) { transform: none; }
+}
 .tag { border-radius: 999px; padding: 2px 8px; font-weight: 500; }
 .tag.run { background: var(--ok-weak); color: var(--ok); }
 .tag.idle { background: var(--raised); color: var(--muted); }

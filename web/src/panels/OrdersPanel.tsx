@@ -76,18 +76,20 @@ export function OrdersPanel({ scene, slots: twinSlots }: { scene: SceneDescripto
         </div>
       )}
 
-      <button className="op cycle" onClick={() => fire("cycle", true)}>
-        Run full cycle from {slot}
-      </button>
-      {scene && (
-        <>
-          <div className="btn-row">
-            <button className="op retrieve" onClick={() => fire("retrieve", true)}>Retrieve {slot}</button>
-            <button className="op store" onClick={() => fire("store", true)}>Store {slot}</button>
-          </div>
-          <button className="op home" onClick={() => fire("home", false)}>Home crane</button>
-        </>
-      )}
+      <div className="op-actions">
+        <button className="op cycle" onClick={() => fire("cycle", true)}>
+          Run full cycle from {slot}
+        </button>
+        {scene && (
+          <>
+            <div className="btn-row">
+              <button className="op retrieve" onClick={() => fire("retrieve", true)}>Retrieve {slot}</button>
+              <button className="op store" onClick={() => fire("store", true)}>Store {slot}</button>
+            </div>
+            <button className="op home" onClick={() => fire("home", false)}>Home crane</button>
+          </>
+        )}
+      </div>
 
       {msg && <p className="msg">{msg}</p>}
     </div>
