@@ -5,10 +5,13 @@ The chain NEVER stops: there is no stop path in this code, only losses. Every
 puck passes every station at a time fixed by the master axis; each station
 decides what to do with what passes it:
 
-  feeder     loads the next flavour (heijunka W R B ...) into an EMPTY puck from
-             that flavour's hopper + A/B tube buffer; a full puck (recirculating)
-             is skipped; no raw stock -> the slot stays empty (starvation loss).
-  oven       bakes; a cookie that passes a second time is burnt.
+  band       the depositor puts a row of plain dough every BAND rows takts (no dough -> no row), the
+             topping depositor gives rows k, k+3 flavour k (no topping -> an untopped cookie, a QC
+             reject); the row bakes and cools on the band and reaches the pick window
+             (oven.py time later), where it stays PICK_W / v_band.
+  transfer   delta C places the next cookie of the band (row order = W R B W R B) into the next
+             EMPTY puck on the bend; a full puck (recirculating) is skipped; a cookie still on the
+             band at the end of the window falls into the crumb pan (band loss) - the band never stops.
   QC         vision + colour + NFC verdict (recall / false-reject rates).
   kicker     drops flagged cookies through the deck into the reject drawer
              (drawer full -> it cannot, the reject recirculates and burns).
@@ -42,9 +45,7 @@ PORT = {"raw": "front", "reject": "front", "cassette": "right", "boxes": "left"}
 def stations():
     c, _ = M.delta_window(L["DELTA_X"][0])
     st = {
-        "feed": M.s_front(sum(L["MAG_X"]) / len(L["MAG_X"])),
-        "oven": M.s_front(M.oven_x()[1]),
-        "stamp": M.s_front(L["STAMP_X0"]),
+        "transfer": M.bend_s(L["TRANSFER_TH"][1]),
         "qc": M.s_back(L["CAM_X"]),
         "kick": M.s_back(L["KICK_X"]),
     }
@@ -88,8 +89,15 @@ def run(name="nominal_1h", seed=7, **kw):
         table = down if table is None else table
         return all(not (a < t1 and t0 < b) for a, b in table.get(d, []))
 
-    raw = {f: M.hopper_cap() + 2 * L["MAG_CAP"] for f in F}
-    raw_cap = dict(raw)
+    dough = {"lvl": L["DOUGH_KG"]}
+    top = {f: L["TOP_KG"] for f in F}
+    band = []                                   # [t_avail, t_expire, flavour, topped] in row order
+    sb = M.stations()
+    vb = M.band_v()
+    t_travel = (sb["pick"][0] - sb["dep"]) / vb
+    t_window = L["PICK_W"] / vb
+    rows = L["BAND"]["rows"]
+    t_row = rows * M.takt()
     boxes = {f: L["BOXMAG_CAP"] for f in F}
     active = {f: 0 for f in F}
     standby_full = {f: False for f in F}
@@ -147,7 +155,10 @@ def run(name="nominal_1h", seed=7, **kw):
                     amr_free[i] = float("inf")
                     continue
                 if kind == "raw":
-                    raw[f] = min(raw_cap[f], raw[f] + L["RAW_TOTE"])
+                    if f == "dough":
+                        dough["lvl"] = L["DOUGH_KG"]
+                    else:
+                        top[f] = L["TOP_KG"]
                 elif kind == "boxes":
                     boxes[f] = L["BOXMAG_CAP"]
                 elif kind == "cassette":
@@ -186,14 +197,20 @@ def run(name="nominal_1h", seed=7, **kw):
     seq_i = 0
     busy = [0.0, 0.0]
     k = dict(loaded=0, packed={f: 0 for f in F}, rejected=0, burnt=0, escapes=0, recirc=0, empty_slots=0,
-             starved_raw=0, blocked_cassette=0, blocked_boxes=0, reject_overflow=0,
+             starved_raw=0, untopped=0, band_lost=0, blocked_cassette=0, blocked_boxes=0, reject_overflow=0,
              cassettes_out={f: 0 for f in F}, picks=[0, 0], stops=0, missed_pick_windows=0,
              false_rejects=0, throttled=0)
     ss_from = 600.0
     ss_packed = 0
 
     ev = []
-    order = ["feed", "oven", "stamp", "qc", "kick", "d0_in", "d1_in"]
+    # rows already on the band at t = 0 (the line was running), then one row every BAND rows takts
+    r0 = -int(t_travel // t_row) - 2
+    r = r0
+    while r * t_row < horizon:
+        heapq.heappush(ev, (r * t_row - (0 if r < 0 else 0), -1, r, "deposit"))
+        r += 1
+    order = ["transfer", "qc", "kick", "d0_in", "d1_in"]
     for pk in range(L["N"]):
         for so, sname in enumerate(order):
             t0 = ((st[sname] - pk * P) % Lp) / v
@@ -208,30 +225,48 @@ def run(name="nominal_1h", seed=7, **kw):
         for f in F:
             swap_if_possible(f, t)
         dispatch(t)
+        if sname == "deposit":
+            pre = pk < 0                                     # rows on the band before t = 0 cost no stock
+            t_dep = max(t, -1e9)
+            if not pre:
+                if policy == "agent" and not (up(0, t, t + 0.01) or up(1, t, t + 0.01)):
+                    k["throttled"] += rows                   # agent: no dough into an oven nobody can unload
+                    continue
+                if dough["lvl"] < rows * L["DOUGH_M"]:
+                    k["starved_raw"] += rows
+                    continue
+                dough["lvl"] -= rows * L["DOUGH_M"]
+                if dough["lvl"] <= L["REQ_HOPPER"] * L["DOUGH_KG"]:
+                    request("raw", "dough", t + dough["lvl"] / M.dough_rate())
+            for j in range(rows):
+                f = F[M.row_flavour(j)]
+                topped = pre or top[f] >= L["TOPPING"]["m"]
+                if not pre and topped:
+                    top[f] -= L["TOPPING"]["m"]
+                    if top[f] <= L["REQ_HOPPER"] * L["TOP_KG"]:
+                        request("raw", f, t + top[f] / (L["TOPPING"]["m"] * rf))
+                ta = t_dep + t_travel + j * M.takt() * 0       # the whole row enters the window together
+                band.append([ta, ta + t_window, f, topped])
+            continue
         c = puck[pk]
-        if sname == "feed":
+        if sname == "transfer":
+            while band and band[0][1] <= t:                  # reached the nose: into the crumb pan
+                band.pop(0)
+                k["band_lost"] += 1
             if c is not None:
                 k["recirc"] += 1
                 continue
-            if policy == "agent" and not (up(0, t, t + 0.01) or up(1, t, t + 0.01)):
-                k["throttled"] += 1
+            if not band or band[0][0] > t:
                 k["empty_slots"] += 1
                 continue
-            f = seq[seq_i % len(seq)]
-            if raw[f] <= 0:
-                k["empty_slots"] += 1
-                k["starved_raw"] += 1
-                continue
-            raw[f] -= 1
-            if raw[f] <= L["REQ_HOPPER"] * raw_cap[f]:
-                request("raw", f, t + raw[f] / rf)
-            puck[pk] = dict(flav=f, oven=0, defect=rnd.random() < RATES["p_defect"], qc=None)
-            seq_i += 1
+            if rnd.random() > L["PICK_OK"]:
+                continue                                     # the grip failed: it stays on the band, next puck
+            _, _, f, topped = band.pop(0)
+            k["untopped"] += not topped
+            puck[pk] = dict(flav=f, oven=1, defect=rnd.random() < RATES["p_defect"] or not topped, qc=None)
             k["loaded"] += 1
         elif c is None:
             continue
-        elif sname == "oven":
-            c["oven"] += 1
         elif sname == "qc":
             bad = c["defect"] or c["oven"] > 1
             if bad:
@@ -300,7 +335,8 @@ def main():
     res = {n: run(n) for n in SCENARIOS}
     for n, r in res.items():
         print(f"{n:30s} {r['hours']:.0f}h  eff {r['line_efficiency']:.2f} ({r['steady_state_per_h']:.0f}/h)  "
-              f"burnt {r['burnt']:3d}  empty {r['empty_slots']:5d} (raw-starved {r['starved_raw']:5d})  "
+              f"band lost {r['band_lost']:3d}  empty {r['empty_slots']:5d} (dough-starved {r['starved_raw']:5d}, "
+              f"untopped {r['untopped']:3d})  "
               f"blocked cass/box {r['blocked_cassette']:4d}/{r['blocked_boxes']:4d}  "
               f"AMR tasks {r['amr_tasks']:3d} util {r['amr_util']} max-late {r['amr_max_late_min']} min  "
               f"STOPS {r['stops']}")
@@ -313,7 +349,7 @@ def main():
     if any(r["stops"] for r in res.values()):
         fails.append("the chain stopped")
     fl = res["shift_fleet_down_15min"]
-    loss = "without loss" if fl["burnt"] == 0 and fl["blocked_cassette"] == 0 else \
+    loss = "without loss" if fl["band_lost"] == 0 and fl["blocked_cassette"] == 0 else \
         f"at {fl['line_efficiency']:.0%} ({fl['blocked_cassette']} cookies recirculated past late cassette exchanges)"
     print("\n".join(fails) if fails else
           "SIM CLAIMS HOLD: never stops; one delta carries the line; ONE AMR carries an 8 h shift; the fleet may "

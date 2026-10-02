@@ -21,9 +21,9 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <circle cx="59.00" cy="61.50" r="23.25" fill="none" stroke="#1b2330" stroke-width="0.18" stroke-dasharray="0.8 0.4"/>
 <circle cx="110.00" cy="61.50" r="23.25" fill="none" stroke="#1b2330" stroke-width="0.18" stroke-dasharray="0.8 0.4"/>
 <circle cx="161.00" cy="61.50" r="23.25" fill="none" stroke="#1b2330" stroke-width="0.18" stroke-dasharray="0.8 0.4"/>
-<circle cx="59.00" cy="61.50" r="22.50" fill="#f7f1db" stroke="#1b2330" stroke-width="0.18"/>
+<circle cx="59.00" cy="61.50" r="22.50" fill="#fbf8f1" stroke="#1b2330" stroke-width="0.18"/>
 <path d="M52.25,61.50h13.50M59.00,54.75v13.50" stroke="#1b2330" stroke-width="0.1"/>
-<circle cx="110.00" cy="61.50" r="22.50" fill="#f7f1db" stroke="#1b2330" stroke-width="0.18"/>
+<circle cx="110.00" cy="61.50" r="22.50" fill="#fbf8f1" stroke="#1b2330" stroke-width="0.18"/>
 <path d="M103.25,61.50h13.50M110.00,54.75v13.50" stroke="#1b2330" stroke-width="0.1"/>
 <text x="30.0" y="31.0" class="vt">OPEN TRAY BEING FILLED - TOP (1:1)</text>
 <line x1="30.00" y1="89.00" x2="30.00" y2="96.50" class="ext"/>
@@ -46,9 +46,9 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <rect x="35.75" y="136.00" width="46.50" height="21.00" fill="#ffffff" stroke="#1b2330" stroke-width="0.18"/>
 <rect x="86.75" y="136.00" width="46.50" height="21.00" fill="#ffffff" stroke="#1b2330" stroke-width="0.18"/>
 <rect x="137.75" y="136.00" width="46.50" height="21.00" fill="#ffffff" stroke="#1b2330" stroke-width="0.18"/>
-<rect x="36.50" y="137.00" width="45.00" height="20.00" fill="#f7f1db" stroke="#1b2330" stroke-width="0.18"/>
-<rect x="87.50" y="137.00" width="45.00" height="20.00" fill="#f7f1db" stroke="#1b2330" stroke-width="0.18"/>
-<rect x="138.50" y="137.00" width="45.00" height="20.00" fill="#f7f1db" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="36.50" y="149.00" width="45.00" height="8.00" fill="#fbf8f1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="87.50" y="149.00" width="45.00" height="8.00" fill="#fbf8f1" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="138.50" y="149.00" width="45.00" height="8.00" fill="#fbf8f1" stroke="#1b2330" stroke-width="0.18"/>
 <rect x="30.00" y="135.40" width="160.00" height="0.60" fill="#e9f2f9" stroke="#1b2330" stroke-width="0.18"/>
 <text x="30.0" y="132.4" class="vt">SEALED PACK - SECTION (1:1)</text>
 <line x1="30.00" y1="157.00" x2="22.50" y2="157.00" class="ext"/>
@@ -61,7 +61,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="194.80" y="147.70" class="dt" transform="rotate(-90 194.80 147.70)" text-anchor="middle">25</text>
 <text x="202.0" y="136.4" class="co">film on the 3 mm flange, 1 mm above the cookie</text>
 <rect x="263.50" y="49.75" width="42.50" height="176.25" fill="#e9edf0" stroke="#1b2330" stroke-width="0.18"/>
-<rect x="264.75" y="55.25" width="40.00" height="168.75" fill="#f7f1db" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="264.75" y="55.25" width="40.00" height="168.75" fill="#fbf8f1" stroke="#1b2330" stroke-width="0.18"/>
 <line x1="264.75" y1="217.75" x2="304.75" y2="217.75" stroke="#1b2330" stroke-width=".08"/>
 <line x1="264.75" y1="211.50" x2="304.75" y2="211.50" stroke="#1b2330" stroke-width=".08"/>
 <line x1="264.75" y1="205.25" x2="304.75" y2="205.25" stroke="#1b2330" stroke-width=".08"/>
@@ -119,7 +119,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="233" y="269" class="tbs">tray pockets, film seal, cassette inlet/outlet</text>
 <text x="233" y="275" class="tbs">SCALE</text><text x="233" y="278" class="tb">1:1 / 1:4</text>
 <text x="293" y="275" class="tbs">SHEET</text><text x="293" y="278" class="tb">2 / 12</text>
-<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-09-29</text>
+<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-10-02</text>
 <text x="233" y="281" class="tbs">UNITS</text><text x="233" y="284" class="tb">mm, deg</text>
 <text x="293" y="281" class="tbs">PROJECTION</text><text x="293" y="284" class="tb">third angle</text>
 <text x="353" y="281" class="tbs">SOURCE</text><text x="353" y="284" class="tb">line_model.py (generated - do not edit)</text>

@@ -86,10 +86,14 @@ def body_of(p):
     for suf in ("_wall_front", "_wall_back", "_wall_left", "_wall_right", "_wall_top", "_floor", "_flange"):
         if n.endswith(suf):
             return n[: -len(suf)]
+    if n.startswith("stacker_") and n[-2:] in ("_a", "_b") and n.count("_") == 2:
+        return "stacker_" + n.split("_")[1]                       # twin belt strands of the bought conveyor
     if n.startswith("stacker_frame_"):
         return "stacker_" + n[len("stacker_frame_"):]            # bought transfer conveyor: belt + frame
     if n.startswith("cassette_") and ("_pawl_" in n or "_lug_" in n):
         return n.rsplit("_", 2)[0]
+    if n.startswith("reject_bin_brush"):
+        return "reject_bin"                                       # bristle strips bonded into the bin rim
     if n.startswith("abox_floor"):
         return "abox_floor"                                       # one machined plate with 3 cutouts
     if n.startswith("br_") and n.endswith(("_leg1", "_leg2")):
@@ -186,12 +190,33 @@ def contacts(parts):
 
 
 # ------------------------------------------------------------ classification
-SLIDING = {("chain", "frame"), ("chain", "drive"), ("chain", "guide")}
+SLIDING = {("chain", "frame"), ("chain", "drive"), ("chain", "guide"),
+           ("band", "chamber"), ("band", "frame"), ("band", "pan")}     # the mesh band on its skids / bed / pan
+
+# Bought machines (2026-10-02): the band oven unit (band, drums, frame, chamber, elements, fans, hood) and the
+# depositor + topping depositor come from an oven / depositor OEM as assembled units. Their INTERNAL joints
+# are the OEM's (listed as a kit, screws not modelled); every joint between a unit and the rest of the
+# machine - legs on the deck, the depositor on the band frame - is ours and proven like any other.
+OEM_UNIT = {"M2_depositor": "wire-cut + topping depositor (OEM)", "M3_oven": "band oven unit (OEM)"}
+
+
+def _oem(u, v):
+    if u.module in OEM_UNIT and v.module in OEM_UNIT and not (J_PROFILE(u) and J_PROFILE(v)):
+        return True
+    return False
+
+
+def J_PROFILE(p):
+    return p.mech.startswith("profile:")
 
 # Bought connection kits: contacts on curved faces or bought sub-assemblies, fastened by the
 # vendor's kit. They carry load (support edges) and go into the BOM with their fastener count,
 # but their screws are NOT modelled as solids - listed as such in every report.
 KITS = (
+    (lambda u, v: _oem(u, v) and u.module == v.module,
+     "inside a bought unit: the OEM's own fastening (band oven unit / depositor)", "OEM", 0),
+    (lambda u, v: _oem(u, v) and u.module != v.module,
+     "depositor flange bolted to the band unit's side plates (OEM interface, 4 bolts)", "4x M6 (OEM)", 4),
     (lambda u, v: u.name.startswith("frame_") and u.kind == "box" and v.name.startswith("frame_") and v.kind == "arc",
      "bend-to-track connecting strip (bought), 2 per joint", "4x M5 T-nut", 4),
     (lambda u, v: u.name.startswith("leg_") and "curve" in u.name and v.name.startswith("frame_") and v.kind == "arc",
@@ -213,6 +238,8 @@ KITS = (
     # Upgrade S-1 guard
     (lambda u, v: u.group == "door" and v.name.startswith("guard_post"),
      "door leaf on 2 lift-off hinges into the hinge post (bought with the door kit)", "4x M5 T-nut", 4),
+    (lambda u, v: u.group == "airlock_door" and v.group == "airlock_door",
+     "door leaf in its guide track (bought kit)", "-", 0),
     (lambda u, v: u.group == "airlock_door" and (v.name.startswith(("guard_post", "guard_panel", "aout_post"))),
      "sliding airlock door kit: guide rails bolted through the panel into the frame (bought kit)", "6x M5 T-nut", 6),
     (lambda u, v: u.group == "operator" and u.kind == "cyl" and v.name.startswith("guard_panel"),
@@ -226,6 +253,10 @@ INCIDENTAL = (
     (lambda u, v: "_curtain_" in u.name and "_wall_" in v.name, "curtain edge beside the wall"),
     (lambda u, v: u.name.startswith("collar_") and v.name.startswith("collar_"), "neighbouring collars touch"),
     (lambda u, v: u.name.startswith("stacker_rod") and v.name == "TABLE", "push rod in its deck hole"),
+    (lambda u, v: u.name.startswith("reject_bin_brush") and (v.name == "TABLE" or v.group in ("sensor", "reject")),
+     "brush strip wipes the deck underside / passes beside it"),
+    (lambda u, v: u.group == "airlock_door" and u.joint and v.name == "TABLE",
+     "sliding door leaf runs in its floor guide (never screwed down - found by the motion sweep)"),
     (lambda u, v: u.name.startswith("lc_") and v.name == "TABLE",
      "light-curtain bar stands on the deck, held by its brackets on the post"),
     (lambda u, v: u.name.startswith("guard_panel") and (v.group == "hopper"),

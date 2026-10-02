@@ -19,7 +19,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <rect x="10" y="10" width="400" height="277" fill="none" stroke="#1b2330" stroke-width=".5"/>
 <text x="20.0" y="22.0" class="nh" text-anchor="start" >TERMINAL PLAN 3/10</text>
 <rect x="18.0" y="26.0" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="30.0" class="tb" text-anchor="start" >-KF5  EL1809  16 DI 24 V DC, 3 ms, 1-wire</text>
+<text x="20.0" y="30.0" class="tb" text-anchor="start" >-KF5  EL2809  16 DO 24 V DC 0.5 A, 1-wire</text>
 <text x="20.0" y="35.5" class="tbs" text-anchor="start" >terminal</text>
 <text x="48.0" y="35.5" class="tbs" text-anchor="start" >ch</text>
 <text x="70.0" y="35.5" class="tbs" text-anchor="start" >tag</text>
@@ -30,132 +30,132 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="35.5" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="39.7" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="39.7" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="39.7" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="39.7" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="39.7" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="39.7" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="39.7" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="39.7" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="39.7" class="tbs" text-anchor="start" >Q42</text>
+<text x="118.0" y="39.7" class="tbs" text-anchor="start" >trapdoor_weiss</text>
+<text x="185.0" y="39.7" class="tbs" text-anchor="start" >trapdoor valve (spring-return closes on exhaust)</text>
+<text x="300.0" y="39.7" class="tbs" text-anchor="start" >W131</text>
+<text x="330.0" y="39.7" class="tbs" text-anchor="start" >1.42 m</text>
+<text x="360.0" y="39.7" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="43.3" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="43.3" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="43.3" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="43.3" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="43.3" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="43.3" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="43.3" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="43.3" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="43.3" class="tbs" text-anchor="start" >Q43</text>
+<text x="118.0" y="43.3" class="tbs" text-anchor="start" >trapdoor_rot</text>
+<text x="185.0" y="43.3" class="tbs" text-anchor="start" >trapdoor valve (spring-return closes on exhaust)</text>
+<text x="300.0" y="43.3" class="tbs" text-anchor="start" >W134</text>
+<text x="330.0" y="43.3" class="tbs" text-anchor="start" >1.42 m</text>
+<text x="360.0" y="43.3" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="46.9" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="46.9" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="46.9" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="46.9" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="46.9" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="46.9" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="46.9" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="46.9" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="46.9" class="tbs" text-anchor="start" >Q44</text>
+<text x="118.0" y="46.9" class="tbs" text-anchor="start" >trapdoor_blau</text>
+<text x="185.0" y="46.9" class="tbs" text-anchor="start" >trapdoor valve (spring-return closes on exhaust)</text>
+<text x="300.0" y="46.9" class="tbs" text-anchor="start" >W137</text>
+<text x="330.0" y="46.9" class="tbs" text-anchor="start" >1.42 m</text>
+<text x="360.0" y="46.9" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="50.5" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="50.5" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="50.5" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="50.5" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="50.5" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="50.5" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="50.5" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="50.5" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="50.5" class="tbs" text-anchor="start" >S30.DRV</text>
+<text x="118.0" y="50.5" class="tbs" text-anchor="start" >aldoor_boxes</text>
+<text x="185.0" y="50.5" class="tbs" text-anchor="start" >boxes airlock outer door drive valve (force-limi</text>
+<text x="300.0" y="50.5" class="tbs" text-anchor="start" >W141</text>
+<text x="330.0" y="50.5" class="tbs" text-anchor="start" >1.8 m</text>
+<text x="360.0" y="50.5" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="54.1" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="54.1" class="tbs" text-anchor="start" >5</text>
-<text x="70.0" y="54.1" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="54.1" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="54.1" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="54.1" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="54.1" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="54.1" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="54.1" class="tbs" text-anchor="start" >S31.DRV</text>
+<text x="118.0" y="54.1" class="tbs" text-anchor="start" >aldoor_out</text>
+<text x="185.0" y="54.1" class="tbs" text-anchor="start" >out airlock outer door drive valve (force-limite</text>
+<text x="300.0" y="54.1" class="tbs" text-anchor="start" >W149</text>
+<text x="330.0" y="54.1" class="tbs" text-anchor="start" >1.91 m</text>
+<text x="360.0" y="54.1" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="57.7" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="57.7" class="tbs" text-anchor="start" >6</text>
-<text x="70.0" y="57.7" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="57.7" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="57.7" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="57.7" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="57.7" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="57.7" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="57.7" class="tbs" text-anchor="start" >S32.DRV</text>
+<text x="118.0" y="57.7" class="tbs" text-anchor="start" >aldoor_inner</text>
+<text x="185.0" y="57.7" class="tbs" text-anchor="start" >out airlock inner door drive valve (force-limite</text>
+<text x="300.0" y="57.7" class="tbs" text-anchor="start" >W145</text>
+<text x="330.0" y="57.7" class="tbs" text-anchor="start" >1.53 m</text>
+<text x="360.0" y="57.7" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="61.3" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="61.3" class="tbs" text-anchor="start" >7</text>
-<text x="70.0" y="61.3" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="61.3" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="61.3" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="61.3" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="61.3" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="61.3" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="61.3" class="tbs" text-anchor="start" >Q2</text>
+<text x="118.0" y="61.3" class="tbs" text-anchor="start" >top_cyl_weiss</text>
+<text x="185.0" y="61.3" class="tbs" text-anchor="start" >valve coil (ISO6432-16x25)</text>
+<text x="300.0" y="61.3" class="tbs" text-anchor="start" >W005</text>
+<text x="330.0" y="61.3" class="tbs" text-anchor="start" >1.16 m</text>
+<text x="360.0" y="61.3" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="64.9" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="64.9" class="tbs" text-anchor="start" >8</text>
-<text x="70.0" y="64.9" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="64.9" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="64.9" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="64.9" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="64.9" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="64.9" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="64.9" class="tbs" text-anchor="start" >Q3</text>
+<text x="118.0" y="64.9" class="tbs" text-anchor="start" >top_cyl_rot</text>
+<text x="185.0" y="64.9" class="tbs" text-anchor="start" >valve coil (ISO6432-16x25)</text>
+<text x="300.0" y="64.9" class="tbs" text-anchor="start" >W008</text>
+<text x="330.0" y="64.9" class="tbs" text-anchor="start" >1.16 m</text>
+<text x="360.0" y="64.9" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="68.5" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="68.5" class="tbs" text-anchor="start" >9</text>
-<text x="70.0" y="68.5" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="68.5" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="68.5" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="68.5" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="68.5" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="68.5" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="68.5" class="tbs" text-anchor="start" >Q4</text>
+<text x="118.0" y="68.5" class="tbs" text-anchor="start" >top_cyl_blau</text>
+<text x="185.0" y="68.5" class="tbs" text-anchor="start" >valve coil (ISO6432-16x25)</text>
+<text x="300.0" y="68.5" class="tbs" text-anchor="start" >W011</text>
+<text x="330.0" y="68.5" class="tbs" text-anchor="start" >1.16 m</text>
+<text x="360.0" y="68.5" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="72.1" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="72.1" class="tbs" text-anchor="start" >10</text>
-<text x="70.0" y="72.1" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="72.1" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="72.1" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="72.1" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="72.1" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="72.1" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="72.1" class="tbs" text-anchor="start" >E1B1</text>
+<text x="118.0" y="72.1" class="tbs" text-anchor="start" >oven_heater_E1B1</text>
+<text x="185.0" y="72.1" class="tbs" text-anchor="start" >oven element SSR (500 W 230 V, L1)</text>
+<text x="300.0" y="72.1" class="tbs" text-anchor="start" >W021</text>
+<text x="330.0" y="72.1" class="tbs" text-anchor="start" >1.02 m</text>
+<text x="360.0" y="72.1" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="75.7" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="75.7" class="tbs" text-anchor="start" >11</text>
-<text x="70.0" y="75.7" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="75.7" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="75.7" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="75.7" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="75.7" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="75.7" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="75.7" class="tbs" text-anchor="start" >E1B2</text>
+<text x="118.0" y="75.7" class="tbs" text-anchor="start" >oven_heater_E1B2</text>
+<text x="185.0" y="75.7" class="tbs" text-anchor="start" >oven element SSR (500 W 230 V, L2)</text>
+<text x="300.0" y="75.7" class="tbs" text-anchor="start" >W022</text>
+<text x="330.0" y="75.7" class="tbs" text-anchor="start" >1.02 m</text>
+<text x="360.0" y="75.7" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="79.3" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="79.3" class="tbs" text-anchor="start" >12</text>
-<text x="70.0" y="79.3" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="79.3" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="79.3" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="79.3" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="79.3" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="79.3" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="79.3" class="tbs" text-anchor="start" >E1T1</text>
+<text x="118.0" y="79.3" class="tbs" text-anchor="start" >oven_heater_E1T1</text>
+<text x="185.0" y="79.3" class="tbs" text-anchor="start" >oven element SSR (500 W 230 V, L1)</text>
+<text x="300.0" y="79.3" class="tbs" text-anchor="start" >W018</text>
+<text x="330.0" y="79.3" class="tbs" text-anchor="start" >1.11 m</text>
+<text x="360.0" y="79.3" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="82.9" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="82.9" class="tbs" text-anchor="start" >13</text>
-<text x="70.0" y="82.9" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="82.9" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="82.9" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="82.9" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="82.9" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="82.9" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="82.9" class="tbs" text-anchor="start" >E1T2</text>
+<text x="118.0" y="82.9" class="tbs" text-anchor="start" >oven_heater_E1T2</text>
+<text x="185.0" y="82.9" class="tbs" text-anchor="start" >oven element SSR (500 W 230 V, L2)</text>
+<text x="300.0" y="82.9" class="tbs" text-anchor="start" >W019</text>
+<text x="330.0" y="82.9" class="tbs" text-anchor="start" >1.11 m</text>
+<text x="360.0" y="82.9" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="86.5" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="86.5" class="tbs" text-anchor="start" >14</text>
-<text x="70.0" y="86.5" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="86.5" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="86.5" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="86.5" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="86.5" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="86.5" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="86.5" class="tbs" text-anchor="start" >E1T3</text>
+<text x="118.0" y="86.5" class="tbs" text-anchor="start" >oven_heater_E1T3</text>
+<text x="185.0" y="86.5" class="tbs" text-anchor="start" >oven element SSR (500 W 230 V, L3)</text>
+<text x="300.0" y="86.5" class="tbs" text-anchor="start" >W020</text>
+<text x="330.0" y="86.5" class="tbs" text-anchor="start" >1.11 m</text>
+<text x="360.0" y="86.5" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="90.1" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="90.1" class="tbs" text-anchor="start" >15</text>
-<text x="70.0" y="90.1" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="90.1" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="90.1" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="90.1" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="90.1" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="90.1" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="90.1" class="tbs" text-anchor="start" >E2B1</text>
+<text x="118.0" y="90.1" class="tbs" text-anchor="start" >oven_heater_E2B1</text>
+<text x="185.0" y="90.1" class="tbs" text-anchor="start" >oven element SSR (350 W 230 V, L2)</text>
+<text x="300.0" y="90.1" class="tbs" text-anchor="start" >W026</text>
+<text x="330.0" y="90.1" class="tbs" text-anchor="start" >1.02 m</text>
+<text x="360.0" y="90.1" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="93.7" class="tbs" text-anchor="start" >-KF5</text>
 <text x="48.0" y="93.7" class="tbs" text-anchor="start" >16</text>
-<text x="70.0" y="93.7" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="93.7" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="93.7" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="93.7" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="93.7" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="93.7" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="93.7" class="tbs" text-anchor="start" >E2T1</text>
+<text x="118.0" y="93.7" class="tbs" text-anchor="start" >oven_heater_E2T1</text>
+<text x="185.0" y="93.7" class="tbs" text-anchor="start" >oven element SSR (500 W 230 V, L3)</text>
+<text x="300.0" y="93.7" class="tbs" text-anchor="start" >W025</text>
+<text x="330.0" y="93.7" class="tbs" text-anchor="start" >1.11 m</text>
+<text x="360.0" y="93.7" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <rect x="18.0" y="96.3" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="100.3" class="tb" text-anchor="start" >-KF6  EL2809  16 DO 24 V DC 0.5 A, 1-wire</text>
 <text x="20.0" y="105.8" class="tbs" text-anchor="start" >terminal</text>
@@ -168,131 +168,131 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="105.8" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="110.0" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="110.0" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="110.0" class="tbs" text-anchor="start" >Q42</text>
-<text x="118.0" y="110.0" class="tbs" text-anchor="start" >trapdoor_weiss</text>
-<text x="185.0" y="110.0" class="tbs" text-anchor="start" >trapdoor valve (spring-return closes on exhaust)</text>
-<text x="300.0" y="110.0" class="tbs" text-anchor="start" >W134</text>
-<text x="330.0" y="110.0" class="tbs" text-anchor="start" >1.42 m</text>
+<text x="70.0" y="110.0" class="tbs" text-anchor="start" >E3B1</text>
+<text x="118.0" y="110.0" class="tbs" text-anchor="start" >oven_heater_E3B1</text>
+<text x="185.0" y="110.0" class="tbs" text-anchor="start" >oven element SSR (350 W 230 V, L3)</text>
+<text x="300.0" y="110.0" class="tbs" text-anchor="start" >W030</text>
+<text x="330.0" y="110.0" class="tbs" text-anchor="start" >1.02 m</text>
 <text x="360.0" y="110.0" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="113.6" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="113.6" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="113.6" class="tbs" text-anchor="start" >Q43</text>
-<text x="118.0" y="113.6" class="tbs" text-anchor="start" >trapdoor_rot</text>
-<text x="185.0" y="113.6" class="tbs" text-anchor="start" >trapdoor valve (spring-return closes on exhaust)</text>
-<text x="300.0" y="113.6" class="tbs" text-anchor="start" >W136</text>
-<text x="330.0" y="113.6" class="tbs" text-anchor="start" >1.42 m</text>
+<text x="70.0" y="113.6" class="tbs" text-anchor="start" >E3T1</text>
+<text x="118.0" y="113.6" class="tbs" text-anchor="start" >oven_heater_E3T1</text>
+<text x="185.0" y="113.6" class="tbs" text-anchor="start" >oven element SSR (500 W 230 V, L1)</text>
+<text x="300.0" y="113.6" class="tbs" text-anchor="start" >W029</text>
+<text x="330.0" y="113.6" class="tbs" text-anchor="start" >1.11 m</text>
 <text x="360.0" y="113.6" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="117.2" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="117.2" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="117.2" class="tbs" text-anchor="start" >Q44</text>
-<text x="118.0" y="117.2" class="tbs" text-anchor="start" >trapdoor_blau</text>
-<text x="185.0" y="117.2" class="tbs" text-anchor="start" >trapdoor valve (spring-return closes on exhaust)</text>
-<text x="300.0" y="117.2" class="tbs" text-anchor="start" >W138</text>
-<text x="330.0" y="117.2" class="tbs" text-anchor="start" >1.43 m</text>
+<text x="70.0" y="117.2" class="tbs" text-anchor="start" >QC1</text>
+<text x="118.0" y="117.2" class="tbs" text-anchor="start" >cool_fan_1</text>
+<text x="185.0" y="117.2" class="tbs" text-anchor="start" >band cooling fan 24 V</text>
+<text x="300.0" y="117.2" class="tbs" text-anchor="start" >W035</text>
+<text x="330.0" y="117.2" class="tbs" text-anchor="start" >1.16 m</text>
 <text x="360.0" y="117.2" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="120.8" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="120.8" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="120.8" class="tbs" text-anchor="start" >S30.DRV</text>
-<text x="118.0" y="120.8" class="tbs" text-anchor="start" >aldoor_boxes</text>
-<text x="185.0" y="120.8" class="tbs" text-anchor="start" >boxes airlock outer door drive valve (force-limi</text>
-<text x="300.0" y="120.8" class="tbs" text-anchor="start" >W142</text>
-<text x="330.0" y="120.8" class="tbs" text-anchor="start" >1.88 m</text>
+<text x="70.0" y="120.8" class="tbs" text-anchor="start" >QC2</text>
+<text x="118.0" y="120.8" class="tbs" text-anchor="start" >cool_fan_2</text>
+<text x="185.0" y="120.8" class="tbs" text-anchor="start" >band cooling fan 24 V</text>
+<text x="300.0" y="120.8" class="tbs" text-anchor="start" >W036</text>
+<text x="330.0" y="120.8" class="tbs" text-anchor="start" >1.27 m</text>
 <text x="360.0" y="120.8" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="124.4" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="124.4" class="tbs" text-anchor="start" >5</text>
-<text x="70.0" y="124.4" class="tbs" text-anchor="start" >S31.DRV</text>
-<text x="118.0" y="124.4" class="tbs" text-anchor="start" >aldoor_out</text>
-<text x="185.0" y="124.4" class="tbs" text-anchor="start" >out airlock outer door drive valve (force-limite</text>
-<text x="300.0" y="124.4" class="tbs" text-anchor="start" >W150</text>
-<text x="330.0" y="124.4" class="tbs" text-anchor="start" >2.0 m</text>
+<text x="70.0" y="124.4" class="tbs" text-anchor="start" >QC3</text>
+<text x="118.0" y="124.4" class="tbs" text-anchor="start" >cool_exfan_1</text>
+<text x="185.0" y="124.4" class="tbs" text-anchor="start" >band cooling fan 24 V</text>
+<text x="300.0" y="124.4" class="tbs" text-anchor="start" >W037</text>
+<text x="330.0" y="124.4" class="tbs" text-anchor="start" >0.97 m</text>
 <text x="360.0" y="124.4" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="128.0" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="128.0" class="tbs" text-anchor="start" >6</text>
-<text x="70.0" y="128.0" class="tbs" text-anchor="start" >S32.DRV</text>
-<text x="118.0" y="128.0" class="tbs" text-anchor="start" >aldoor_inner</text>
-<text x="185.0" y="128.0" class="tbs" text-anchor="start" >out airlock inner door drive valve (force-limite</text>
-<text x="300.0" y="128.0" class="tbs" text-anchor="start" >W146</text>
-<text x="330.0" y="128.0" class="tbs" text-anchor="start" >1.61 m</text>
+<text x="70.0" y="128.0" class="tbs" text-anchor="start" >QC4</text>
+<text x="118.0" y="128.0" class="tbs" text-anchor="start" >cool_exfan_2</text>
+<text x="185.0" y="128.0" class="tbs" text-anchor="start" >band cooling fan 24 V</text>
+<text x="300.0" y="128.0" class="tbs" text-anchor="start" >W038</text>
+<text x="330.0" y="128.0" class="tbs" text-anchor="start" >1.08 m</text>
 <text x="360.0" y="128.0" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="131.6" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="131.6" class="tbs" text-anchor="start" >7</text>
-<text x="70.0" y="131.6" class="tbs" text-anchor="start" >Q2</text>
-<text x="118.0" y="131.6" class="tbs" text-anchor="start" >esc_cyl_weiss_A</text>
-<text x="185.0" y="131.6" class="tbs" text-anchor="start" >valve coil (ISO6432-10x50)</text>
-<text x="300.0" y="131.6" class="tbs" text-anchor="start" >W003</text>
-<text x="330.0" y="131.6" class="tbs" text-anchor="start" >0.95 m</text>
+<text x="70.0" y="131.6" class="tbs" text-anchor="start" >QF1</text>
+<text x="118.0" y="131.6" class="tbs" text-anchor="start" >oven_fan_1_motor</text>
+<text x="185.0" y="131.6" class="tbs" text-anchor="start" >oven circulation fan 230 V 35 W (L2), coupling r</text>
+<text x="300.0" y="131.6" class="tbs" text-anchor="start" >W023</text>
+<text x="330.0" y="131.6" class="tbs" text-anchor="start" >1.23 m</text>
 <text x="360.0" y="131.6" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="135.2" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="135.2" class="tbs" text-anchor="start" >8</text>
-<text x="70.0" y="135.2" class="tbs" text-anchor="start" >Q3</text>
-<text x="118.0" y="135.2" class="tbs" text-anchor="start" >esc_cyl_weiss_B</text>
-<text x="185.0" y="135.2" class="tbs" text-anchor="start" >valve coil (ISO6432-10x50)</text>
-<text x="300.0" y="135.2" class="tbs" text-anchor="start" >W007</text>
-<text x="330.0" y="135.2" class="tbs" text-anchor="start" >0.95 m</text>
+<text x="70.0" y="135.2" class="tbs" text-anchor="start" >QF2</text>
+<text x="118.0" y="135.2" class="tbs" text-anchor="start" >oven_fan_2_motor</text>
+<text x="185.0" y="135.2" class="tbs" text-anchor="start" >oven circulation fan 230 V 35 W (L3), coupling r</text>
+<text x="300.0" y="135.2" class="tbs" text-anchor="start" >W027</text>
+<text x="330.0" y="135.2" class="tbs" text-anchor="start" >1.23 m</text>
 <text x="360.0" y="135.2" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="138.8" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="138.8" class="tbs" text-anchor="start" >9</text>
-<text x="70.0" y="138.8" class="tbs" text-anchor="start" >Q4</text>
-<text x="118.0" y="138.8" class="tbs" text-anchor="start" >esc_cyl_rot_A</text>
-<text x="185.0" y="138.8" class="tbs" text-anchor="start" >valve coil (ISO6432-10x50)</text>
-<text x="300.0" y="138.8" class="tbs" text-anchor="start" >W011</text>
-<text x="330.0" y="138.8" class="tbs" text-anchor="start" >0.95 m</text>
+<text x="70.0" y="138.8" class="tbs" text-anchor="start" >QF3</text>
+<text x="118.0" y="138.8" class="tbs" text-anchor="start" >oven_fan_3_motor</text>
+<text x="185.0" y="138.8" class="tbs" text-anchor="start" >oven circulation fan 230 V 35 W (L2), coupling r</text>
+<text x="300.0" y="138.8" class="tbs" text-anchor="start" >W031</text>
+<text x="330.0" y="138.8" class="tbs" text-anchor="start" >1.23 m</text>
 <text x="360.0" y="138.8" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="142.4" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="142.4" class="tbs" text-anchor="start" >10</text>
-<text x="70.0" y="142.4" class="tbs" text-anchor="start" >Q5</text>
-<text x="118.0" y="142.4" class="tbs" text-anchor="start" >esc_cyl_rot_B</text>
-<text x="185.0" y="142.4" class="tbs" text-anchor="start" >valve coil (ISO6432-10x50)</text>
-<text x="300.0" y="142.4" class="tbs" text-anchor="start" >W015</text>
-<text x="330.0" y="142.4" class="tbs" text-anchor="start" >0.95 m</text>
+<text x="70.0" y="142.4" class="tbs" text-anchor="start" >QX1</text>
+<text x="118.0" y="142.4" class="tbs" text-anchor="start" >oven_exhaust_fan</text>
+<text x="185.0" y="142.4" class="tbs" text-anchor="start" >oven vapour exhaust fan 24 V EC</text>
+<text x="300.0" y="142.4" class="tbs" text-anchor="start" >W033</text>
+<text x="330.0" y="142.4" class="tbs" text-anchor="start" >1.41 m</text>
 <text x="360.0" y="142.4" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="146.0" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="146.0" class="tbs" text-anchor="start" >11</text>
-<text x="70.0" y="146.0" class="tbs" text-anchor="start" >Q6</text>
-<text x="118.0" y="146.0" class="tbs" text-anchor="start" >esc_cyl_blau_A</text>
-<text x="185.0" y="146.0" class="tbs" text-anchor="start" >valve coil (ISO6432-10x50)</text>
-<text x="300.0" y="146.0" class="tbs" text-anchor="start" >W019</text>
-<text x="330.0" y="146.0" class="tbs" text-anchor="start" >0.95 m</text>
+<text x="70.0" y="146.0" class="tbs" text-anchor="start" >delta_C.VAC</text>
+<text x="118.0" y="146.0" class="tbs" text-anchor="start" >delta_C_cup_a</text>
+<text x="185.0" y="146.0" class="tbs" text-anchor="start" >vacuum ejector valve</text>
+<text x="300.0" y="146.0" class="tbs" text-anchor="start" >W042</text>
+<text x="330.0" y="146.0" class="tbs" text-anchor="start" >1.5 m</text>
 <text x="360.0" y="146.0" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="149.6" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="149.6" class="tbs" text-anchor="start" >12</text>
-<text x="70.0" y="149.6" class="tbs" text-anchor="start" >Q7</text>
-<text x="118.0" y="149.6" class="tbs" text-anchor="start" >esc_cyl_blau_B</text>
-<text x="185.0" y="149.6" class="tbs" text-anchor="start" >valve coil (ISO6432-10x50)</text>
-<text x="300.0" y="149.6" class="tbs" text-anchor="start" >W023</text>
-<text x="330.0" y="149.6" class="tbs" text-anchor="start" >0.95 m</text>
+<text x="70.0" y="149.6" class="tbs" text-anchor="start" >Q17</text>
+<text x="118.0" y="149.6" class="tbs" text-anchor="start" >qc_ringlight</text>
+<text x="185.0" y="149.6" class="tbs" text-anchor="start" >ring light 24 V</text>
+<text x="300.0" y="149.6" class="tbs" text-anchor="start" >W049</text>
+<text x="330.0" y="149.6" class="tbs" text-anchor="start" >1.16 m</text>
 <text x="360.0" y="149.6" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="153.2" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="153.2" class="tbs" text-anchor="start" >13</text>
-<text x="70.0" y="153.2" class="tbs" text-anchor="start" >Q10</text>
-<text x="118.0" y="153.2" class="tbs" text-anchor="start" >oven_heater_2</text>
-<text x="185.0" y="153.2" class="tbs" text-anchor="start" >oven heater SSR (230 V 300 W)</text>
-<text x="300.0" y="153.2" class="tbs" text-anchor="start" >W039</text>
-<text x="330.0" y="153.2" class="tbs" text-anchor="start" >0.95 m</text>
+<text x="70.0" y="153.2" class="tbs" text-anchor="start" >Q18</text>
+<text x="118.0" y="153.2" class="tbs" text-anchor="start" >kick_cylinder</text>
+<text x="185.0" y="153.2" class="tbs" text-anchor="start" >valve coil (ISO6432-10x100)</text>
+<text x="300.0" y="153.2" class="tbs" text-anchor="start" >W054</text>
+<text x="330.0" y="153.2" class="tbs" text-anchor="start" >1.02 m</text>
 <text x="360.0" y="153.2" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="156.8" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="156.8" class="tbs" text-anchor="start" >14</text>
-<text x="70.0" y="156.8" class="tbs" text-anchor="start" >Q11</text>
-<text x="118.0" y="156.8" class="tbs" text-anchor="start" >cool_fan_0</text>
-<text x="185.0" y="156.8" class="tbs" text-anchor="start" >cooling fan 24 V</text>
-<text x="300.0" y="156.8" class="tbs" text-anchor="start" >W041</text>
-<text x="330.0" y="156.8" class="tbs" text-anchor="start" >0.99 m</text>
+<text x="70.0" y="156.8" class="tbs" text-anchor="start" >delta_A.VAC</text>
+<text x="118.0" y="156.8" class="tbs" text-anchor="start" >delta_A_cup_a</text>
+<text x="185.0" y="156.8" class="tbs" text-anchor="start" >vacuum ejector valve</text>
+<text x="300.0" y="156.8" class="tbs" text-anchor="start" >W061</text>
+<text x="330.0" y="156.8" class="tbs" text-anchor="start" >1.03 m</text>
 <text x="360.0" y="156.8" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="160.4" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="160.4" class="tbs" text-anchor="start" >15</text>
-<text x="70.0" y="160.4" class="tbs" text-anchor="start" >Q12</text>
-<text x="118.0" y="160.4" class="tbs" text-anchor="start" >cool_fan_1</text>
-<text x="185.0" y="160.4" class="tbs" text-anchor="start" >cooling fan 24 V</text>
-<text x="300.0" y="160.4" class="tbs" text-anchor="start" >W042</text>
-<text x="330.0" y="160.4" class="tbs" text-anchor="start" >1.1 m</text>
+<text x="70.0" y="160.4" class="tbs" text-anchor="start" >delta_B.VAC</text>
+<text x="118.0" y="160.4" class="tbs" text-anchor="start" >delta_B_cup_a</text>
+<text x="185.0" y="160.4" class="tbs" text-anchor="start" >vacuum ejector valve</text>
+<text x="300.0" y="160.4" class="tbs" text-anchor="start" >W066</text>
+<text x="330.0" y="160.4" class="tbs" text-anchor="start" >1.03 m</text>
 <text x="360.0" y="160.4" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <text x="20.0" y="164.0" class="tbs" text-anchor="start" >-KF6</text>
 <text x="48.0" y="164.0" class="tbs" text-anchor="start" >16</text>
-<text x="70.0" y="164.0" class="tbs" text-anchor="start" >Q8</text>
-<text x="118.0" y="164.0" class="tbs" text-anchor="start" >oven_heater_0</text>
-<text x="185.0" y="164.0" class="tbs" text-anchor="start" >oven heater SSR (230 V 300 W)</text>
-<text x="300.0" y="164.0" class="tbs" text-anchor="start" >W035</text>
-<text x="330.0" y="164.0" class="tbs" text-anchor="start" >0.95 m</text>
+<text x="70.0" y="164.0" class="tbs" text-anchor="start" >Q24</text>
+<text x="118.0" y="164.0" class="tbs" text-anchor="start" >stacker_lift_weiss</text>
+<text x="185.0" y="164.0" class="tbs" text-anchor="start" >valve coil (ISO6432-16x30)</text>
+<text x="300.0" y="164.0" class="tbs" text-anchor="start" >W089</text>
+<text x="330.0" y="164.0" class="tbs" text-anchor="start" >1.01 m</text>
 <text x="360.0" y="164.0" class="tbs" text-anchor="start" >BK signal / BU 0V</text>
 <rect x="230" y="249" width="180" height="38" fill="#fff" stroke="#1b2330" stroke-width=".35"/>
 <rect x="230" y="249" width="180" height="9" fill="#1f4e8c"/>
@@ -301,7 +301,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="233" y="269" class="tbs">every channel -&gt; tag -&gt; cable</text>
 <text x="233" y="275" class="tbs">SCALE</text><text x="233" y="278" class="tb">none</text>
 <text x="293" y="275" class="tbs">SHEET</text><text x="293" y="278" class="tb">7 / 14</text>
-<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-09-29</text>
+<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-10-02</text>
 <text x="233" y="281" class="tbs">UNITS</text><text x="233" y="284" class="tb">mm, deg</text>
 <text x="293" y="281" class="tbs">PROJECTION</text><text x="293" y="284" class="tb">third angle</text>
 <text x="353" y="281" class="tbs">SOURCE</text><text x="353" y="284" class="tb">line_model.py (generated - do not edit)</text>

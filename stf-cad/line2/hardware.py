@@ -368,13 +368,16 @@ SAFE = {
                               "closed AND locked)", F_close=50.0, I_lock=0.35, I=0.05,
                          src="[typ] (Festo / SMC rodless drive + Schmersal AZM201 class) - force limit VERIFY"),
     "trapdoor": dict(desc="trapdoor unit: bi-parting drop flaps 2 x 81 mm (PC 4 mm) on spring-return rotary vane "
-                          "actuators 0.5 Nm (spring closes them when exhausted), closed-position switch", T=0.5,
+                          "actuators 0.5 Nm (spring closes them when exhausted), SAFETY inductive sensor (2 OSSD, "
+                          "PL d) for 'closed'", T=0.5,
                      arm=0.081, I=0.01, src="[typ] (Festo DSM-10 class)"),
     "dock": dict(desc="AMR dock sensor, M12 inductive in the docking plate", I=0.02, src="[typ]"),
     "reject_shutter": dict(desc="self-closing shutter unit under the reject hole: stainless blade in a guide "
                                 "frame, spring-closed; a push pin on the drawer's back wall holds it open only "
                                 "when the drawer is fully in (it closes within the first 20 mm of pulling)",
                            t=8.0, src="[design] (sheet-metal part + bought spring)"),
+    "brush": dict(desc="brush strip on the reject-bin rim, PP bristles wiping the deck underside", residual=4.0,
+                  src="[assumed] residual opening of a brush seal - VERIFY on the fitted strip"),
     "lift_guard": dict(desc="sheet-steel guard box 1.5 mm around the under-deck stacker lifts, flanged to the "
                             "deck, cable / hose grommets", src="[design]"),
     "drawer_switch": dict(desc="RFID safety switch, 2 OSSD, on the reject drawer", I=0.05, src="[typ]"),
@@ -384,6 +387,53 @@ SAFE = {
                       "guard-locking switch (bought kit)", depth=24.0, hinges=2, screws=8,
                  src="[typ] (Misumi / item guard door kit class)"),
 }
+# ISO 13849-1 reliability inputs [typ - VERIFY every value on the bought part's data sheet / SISTEMA library]
+#   B10d  cycles until 10 % fail dangerously (electromechanical, pneumatic); MTTFd = B10d / (0.1 n_op)
+#   PL    a certified device's own rating (electronic safety devices, TwinSAFE, STB)
+RELIAB = {
+    "estop": dict(B10d=100_000, src="[typ] E-stop contact blocks"),
+    "contactor": dict(B10d=1_300_000, src="[typ] 3RT20 class at nominal DC-1 load"),
+    "valve": dict(B10d=10_000_000, src="[typ] monitored exhaust / dump valve"),
+    "guard_lock": dict(PL="e", PFHd=1.2e-9, src="[typ] RFID guard-locking switch, certified PL e"),
+    "airlock_door": dict(PL="e", PFHd=1.2e-9, src="[typ] same switch class in the door kit"),
+    "trapdoor": dict(PL="d", PFHd=2.0e-8, src="[typ] safety inductive sensor with OSSD (PL d)"),
+    "drawer_switch": dict(PL="e", PFHd=1.2e-9, src="[typ] RFID safety switch"),
+    "stl": dict(PL="d", src="[typ] STB to EN 14597, SIL 2 / PL d certified"),
+    "twinsafe": dict(PL="e", PFHd=3.7e-9, src="[typ] EL6910 + EL1904 + EL2904, sum of the three PFHd"),
+}
+OP_YEAR = dict(days=220, hours=16.0, src="[assumed] two shifts")
+# ISO 13849-1:2015 simplified method. Figure 5 read CONSERVATIVELY (where the bar straddles two PLs the
+# lower one is taken) - VERIFY against the standard / SISTEMA; Table 11 for series subsystems.
+PL_FIG5 = {   # (category, DC class) -> {MTTFd class: PL}
+    ("B", "none"): {"low": "a", "medium": "b", "high": "b"},
+    ("1", "none"): {"high": "c"},
+    ("2", "low"): {"low": "a", "medium": "b", "high": "c"},
+    ("2", "medium"): {"low": "b", "medium": "c", "high": "c"},
+    ("3", "low"): {"low": "b", "medium": "c", "high": "c"},
+    ("3", "medium"): {"low": "c", "medium": "c", "high": "d"},
+    ("4", "high"): {"high": "e"},
+}
+
+
+def mttfd_class(y):
+    return "high" if y >= 30 else "medium" if y >= 10 else "low" if y >= 3 else "none"
+
+
+def dc_class(dc):
+    return "high" if dc >= 0.99 else "medium" if dc >= 0.90 else "low" if dc >= 0.60 else "none"
+
+
+def pl_series(pls):
+    """ISO 13849-1 Table 11: the lowest PL, one lower if too many subsystems share it."""
+    order = "abcde"
+    if any(p not in order for p in pls):            # a subsystem reaches no PL at all
+        return "-"
+    low = min(pls, key=order.index)
+    n = sum(1 for p in pls if p == low)
+    limit = {"a": 3, "b": 2, "c": 2, "d": 3, "e": 3}[low]
+    return low if n <= limit else (order[order.index(low) - 1] if low != "a" else "-")
+
+
 # ISO 13855:2010 approach speeds, ISO 13857:2019 Table 4 (persons >= 14 years, upper limbs)
 ISO13855 = dict(K_hand=2000.0, K_slow=1600.0, S_min=100.0, src="[ISO 13855] S = K T + 8 (d - 14)")
 ISO13857_T4 = (   # (e_max mm, slot distance, square distance, round distance)
@@ -460,7 +510,40 @@ LOADS = {      # powered loads that are not motors
     "valve_coil": dict(desc="SY3000 coil 24 V 0.35 W", I=0.015, src="[cat: smc][typ]"),
     "sealer_head": dict(desc="heated sealing bar 24 V 60 W", I=2.5, src="[typ]"),
     "singulator": dict(desc="rotary disc: NEMA 17 on EL7047", I=0.0, src="[derived]"),
+    "exhaust_fan": dict(desc="24 V EC duct fan D60, oven vapour exhaust", I=0.4, src="[typ]"),
 }
+
+# ------------------------------------------------------------- band oven (2026-10-02, oven.py)
+STEEL_RHO = 7900.0         # kg/m3 stainless
+# straight tubular heating elements, Incoloy 800 sheath, 230 V, cold ends through the side walls with an
+# M14 gland; heated length spans the chamber, the cold ends cross the insulation      [typ] (Backer/Watlow)
+TUBULAR = [dict(model=f"tubular element D8.5 {lh} mm heated, {P} W 230 V", d=8.5, L_heated=float(lh),
+                L=float(lh) + 2 * 75.0, P=float(P), gland="M14x1.5", src="[typ]")
+           for lh in (300, 350, 380, 400, 450, 500) for P in (250, 350, 500, 650, 800)]
+TUBULAR_WCM2 = 5.0         # sheath surface load limit in forced air (Incoloy, 200 C air)        [typ]
+BAND_MESH = dict(desc="balanced-weave stainless mesh band, 1.2 mm wire, flat edges", cp=500.0, t=5.0,
+                 mu_skid=0.25, src="[typ] (Wire Belt / Cambridge class)")
+INSULATION = {
+    "mineral wool": dict(rho=100.0, cp=840.0, k=lambda T: 0.035 + 1.0e-4 * T, T_max=650.0,
+                         src="[typ] (Rockwool board 100 kg/m3: k 0.045 at 100 C, 0.055 at 200 C)"),
+}
+OVEN_FAN = dict(desc="oven circulation fan: 230 V shaded-pole motor outside the roof, long shaft, "
+                     "D90 radial impeller inside", P=35.0, I=0.25, d_imp=90.0, motor=(60.0, 60.0, 70.0),
+                src="[typ] (EBM-papst RRL class)")
+RELAY6 = dict(model="Phoenix PLC-RSC 24DC/21 coupling relay 6.2 mm (230 V fan)", w=6.2, h=80.0, d=94.0, ctl_A=0.009,
+              I=6.0, src="[cat: Phoenix Contact PLC-RSC][typ]")
+ZONE_CONTACTOR = dict(desc="oven zone contactor 3-pole AC-1 25 A, 24 V DC coil; the zone STB contact is in its coil",
+                      w=45.0, h=90.0, d=95.0, coil_A=0.17, AC1=25.0, src="[typ] (3RT2015 class)")
+MCB3 = dict(model="3-pole MCB C16 (oven zone feed)", w=52.5, src="[typ]")
+COOL_FAN = dict(desc="120 mm 24 V DC axial fan, band cooling", I=0.25, size=120.0, holes=105.0, src="[typ]")
+SSR_AC25 = dict(model="Crydom D2425 25 A AC SSR on a DIN heatsink", w=45.0, h=100.0, d=110.0, ctl_A=0.012,
+                I=25.0, U_drop=1.6, R_th=1.1, src="[typ] (heatsink K/W for the derating check)")
+SUPPLY = dict(desc="400 V 3N~ 50 Hz, CEE 16 A 5-pole plug, main switch, RCD type A 30 mA", U=230.0, U_LL=400.0,
+              I=16.0, load_max=0.8, rcd_mA=30.0, src="[typ] IEC 60309 / IEC 60204-1")
+TEMP_LIMIT = {"POM chain": 80.0, "UHMW-PE track": 80.0, "NFC tag": 85.0}   # C, continuous [typ]
+LEAK_mA = dict(tubular=0.5, psu=0.5, src="[typ] protective-conductor current per item, hot and dry")
+CABLE_AC = {1.5: dict(I=16.0, T=180.0, model="SiF 1.5 mm2 (silicone, 180 C)"),       # free air, in the oven
+            2.5: dict(I=21.0, T=90.0, model="H07V-K 2.5 mm2 in the cabinet")}         # [typ] IEC 60364-5-52
 
 
 # ------------------------------------------------------------- self-check
@@ -488,7 +571,8 @@ def verify():
             fails.append(f"T-nut {p['tnut']} does not fit / hold in profile {s}")
         if p["depth"] <= p["lip"] + tn["h"]:
             fails.append(f"profile {s}: channel too shallow for {p['tnut']}")
-    for table in (PROFILE, TNUT, BRACKET, MGN, LEADSCREW, BEARING, STEPPER, GEARBOX, BECKHOFF, FIELD, LOADS, SAFE):
+    for table in (PROFILE, TNUT, BRACKET, MGN, LEADSCREW, BEARING, STEPPER, GEARBOX, BECKHOFF, FIELD, LOADS, SAFE,
+                  RELIAB):
         for k, v in table.items():
             s = v.get("src", "")
             if "typ" in s or "VERIFY" in s:
