@@ -81,3 +81,6 @@ temp/
 stf-cad/hbw/mcp_shots/
 stf-cad/hbw/mcp_report.json
 stf-cad/hw/*.pdf
+
+# a stray npm install at the repo root (the web app has its own, in web/)
+/node_modules/
