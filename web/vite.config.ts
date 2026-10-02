@@ -92,6 +92,11 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       host: "localhost",
       proxy: API_PROXY,
+      // STF_TUNNEL_DEV=1 (launch config "web-tunnel"): the dev server behind ngrok, on request.
+      // It serves the source and HMR, so it is off by default; the shared build is 4173.
+      ...(env.STF_TUNNEL_DEV === "1"
+        ? { allowedHosts: [".ngrok-free.dev", ".ngrok.app", ".ngrok.io"], hmr: { clientPort: 443 } }
+        : {}),
     },
   };
 });
