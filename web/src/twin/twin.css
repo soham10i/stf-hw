@@ -257,3 +257,24 @@
 .vis-detail .np-row { grid-template-columns: 74px 1fr 40px; font-size: 11.5px; }
 .vis-v { font-weight: 600; text-transform: uppercase; font-size: 11.5px; } .vis-v.pass { color: var(--ok); } .vis-v.reject { color: var(--bad); } .vis-v.check { color: var(--warn); }
 .vis-fl { color: var(--muted); margin-top: 6px !important; }
+
+/* ------------------------------------------------------------- U14 AAS panel (panels/AasPanel.tsx) */
+.aas-desc { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.aas-ids { display: grid; grid-template-columns: 42px 1fr; gap: 2px 8px; font-size: 11px; color: var(--faint); }
+.aas-ids code { font: 11px var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.aas-tabs { flex-wrap: wrap; display: flex; }
+.aas-tabs button { font-family: inherit; }
+.aas-tree { padding: 8px 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; }
+.aas-sem { font: 10.5px var(--mono); color: var(--faint); margin-bottom: 6px; overflow-wrap: anywhere; }
+.aas-row { display: flex; align-items: baseline; gap: 6px; padding: 2px 0; min-width: 0; }
+.aas-row b { font-weight: 500; white-space: nowrap; cursor: help; }
+.aas-row em { font: 9.5px var(--mono); font-style: normal; color: var(--faint); background: var(--raised); padding: 0 4px; border-radius: 4px; }
+.aas-row i { font-style: normal; font-size: 10.5px; color: var(--faint); margin-left: auto; }
+.aas-v { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.aas-v.muted { color: var(--faint); }
+a.aas-v { color: var(--accent); }
+.aas-link { border: 0; background: none; color: var(--accent); cursor: pointer; font-size: 12px; padding: 0; }
+.aas-node > summary { cursor: pointer; list-style: none; }
+.aas-node > summary::before { content: "▸"; color: var(--faint); font-size: 10px; margin-right: 2px; }
+.aas-node[open] > summary::before { content: "▾"; }
+.aas-kids { padding-left: 12px; border-left: 1px solid var(--border-soft); margin-left: 4px; }

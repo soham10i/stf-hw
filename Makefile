@@ -2,7 +2,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision audit clean
+.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas audit clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -74,6 +74,9 @@ sil: ## Upgrade 13: compile the PLC program (MatIEC -> WebAssembly) and prove it
 
 vision: ## Upgrade 15: render the training images, train the inspection CNN, export it (ONNX + browser)
 	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m vision.train
+
+aas: ## Upgrade 14: generate and verify the Asset Administration Shells (needs the [aas] extra)
+	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m aas.build
 
 audit: ## Dependency vulnerability scan (Python and npm)
 	$(PY) -m pip_audit

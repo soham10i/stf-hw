@@ -15,6 +15,11 @@ api = [
     "uvicorn[standard]>=0.30",
     "websockets>=13",
 ]
+# the model's Asset Administration Shells (stf-cad/hbw/aas, Upgrade 14)
+aas = [
+    "aas-core3.0>=1.1",
+    "basyx-python-sdk>=2.1",
+]
 dev = [
     "pytest>=8.3",
     "pytest-cov>=5.0",

@@ -31,6 +31,7 @@ maintainability), not industrial size. The twin stays at its 2× structural scal
 | 11 | OT security to IEC 62443 | **built**: dashboard, "OT security" |
 | 12 | Defence in depth | **built**: dashboard "Defence in depth" |
 | 13 | Software-in-the-loop PLC | **built**: twin panel "PLC program (live)" |
+| 14 | Industry 4.0 standards: AAS (step 1 of 3 built), OPC UA and Sparkplug B next | **AAS built**: twin panel "Asset Administration Shells" |
 | 15 | Vision inspection, trained on rendered images | **built**: twin panel "Vision inspection" |
 
 **The app shows one machine: Upgrade 12**, which contains every level. Each upgrade is a side panel of that view, not
@@ -753,6 +754,60 @@ and the colour readings of the belt and of raw dough are assumed. Only the Upgra
 
 **Tools** (not in the repository): MatIEC built from source (`STF_MATIEC`), and clang, wasm-ld and the WASI sysroot
 (Homebrew `llvm lld wasi-libc wasi-runtimes`). The compiled `plc.wasm` is committed, so the twin and CI need neither.
+
+---
+
+## Upgrade 14: Industry 4.0 standards (step 1 of 3 BUILT: the Asset Administration Shells)
+
+**Why.** The model already holds what an asset's digital identity needs: part data, documents, 3D files, the bill of
+material, energy and the AI models. The Asset Administration Shell (IEC 63278) is the standard container for it, and
+the one the EU's Digital Product Passport and data spaces such as Catena-X build on. Steps 2 and 3, still to come, are
+OPC UA (the running machine's information model and a server) and MQTT Sparkplug B (a Unified Namespace).
+
+**As built** (`stf-cad/hbw/aas/`):
+- **12 shells**, generated from the model:
+  - the cell (a virtual instance), with 7 submodels: Nameplate, TechnicalData, the bill of material, HandoverDocumentation,
+    CarbonFootprint, TimeSeries and Models3D;
+  - the 9 fischertechnik part types, each with Nameplate, TechnicalData, the datasheet, and STEP and GLB models;
+  - the 2 AI models (U8 maintenance, U15 vision), each with an AI Model Nameplate.
+- **From the official templates.** Every submodel is instantiated by `aas/smt.py` from the IDTA template (8 templates,
+  CC BY 4.0, kept in `aas/idta/`), so every element, idShort and semanticId is the template's:
+  - a mandatory element without data is an error, and an optional one is dropped;
+  - recursive elements (a BoM node inside a node) inherit their parent's definition.
+- **Semantic IDs** are the templates' own, from the free IEC Common Data Dictionary; the project's own properties get
+  concept descriptions under `cd/`.
+- **Honesty.**
+  - The part shells say they are compiled from fischertechnik's public datasheets and booklet, not issued by
+    fischertechnik.
+  - All IDs are IRIs under the project's GitHub Pages address.
+  - The nameplate's AddressInformation is present and empty, because the sources publish no address.
+  - The carbon footprint is the use phase only: 0.37 g CO2e per cookie, from U9's simulated month with PV and battery.
+
+**Proofs** (`python3 -m aas.build`, `make aas`):
+1. The environment passes the official AAS v3 metamodel verification (`aas-core3.0`, every AASd constraint) with no
+   error.
+2. Every submodel conforms to its template, checked by a walk that is independent of the instantiation.
+3. Every reference resolves: each HasPart points to an entity in its submodel, each part entity to a shell in the
+   environment, and each of the 39 file links to a file in the repository.
+4. The AASX package written by Eclipse BaSyx reads back with the same 12 shells, 45 submodels and 1,961 elements.
+5. The checks can fail. Five mutants are each rejected, each by a different check: a missing mandatory element, a
+   changed semanticId, two texts in one language, a BoM entity without a shell, a dead file link.
+
+**Found.** Four of the eight published IDTA templates fail the AAS v3 metamodel verification themselves:
+
+| Template | Violations | For example |
+|---|---|---|
+| Technical Data 2.0 | 32 | one qualifier type repeated on an element |
+| Handover Documentation 2.0 | 15 | "Klassenname" tagged as English |
+| Digital Nameplate 3.0 | 13 | idShorts on list items |
+| Bills of Material 1.1 | 12 | model references that do not start at an identifiable |
+
+The generator cleans what an instance would inherit from them; worth reporting upstream.
+
+**Limits.** These are Type 1 (passive) shells: files, not an AAS server. A Type 2 server and the links from the
+shells to live OPC UA data come with step 2.
+
+---
 
 ## Upgrade 15: vision inspection, trained on rendered images (BUILT)
 
