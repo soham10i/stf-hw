@@ -16,13 +16,14 @@ that keeps a person safe.** Safety is a separate, non-learned layer that the mod
 | Module | Hazard | Source | Exposure |
 |---|---|---|---|
 | M6 pick | impact / crushing | two delta robots, 0.5 m/s, NEMA 17 + strain-wave | reaching into the cell, clearing a jam |
-| M4 stamp | crushing / burn | carriage on Tr8x4, D16 cylinder, heated die | reaching under the portal |
+| M2 depositor | drawing-in / cutting | feed rolls, cutting wire, topping pistons D16 | reaching into the dough hopper |
+| M4 transfer | impact | delta C (band -> puck) | reaching over the band end |
 | M5 QC | impact | kicker D10x100 across the chain | hand at the guide gap |
 | M1 loop | drawing-in | chain entering the bends / drive unit | hand on the chain |
-| M3 oven | burn | 3 x 300 W IR bars, product ~180 C | reaching into the tunnel |
+| M3 band oven | burn / drawing-in / fan | 9 tubular elements (4.2 kW, 210 C zones), band drum nips, 3 impellers | reaching into a band mouth, the drums, the hot chamber after a stop |
 | M7 pack | crushing / burn | sealer D25 (188 N), heated heads, stacker lifts | clearing a tray |
 | M7 shuttle | crushing | cassette shuttle, 7 kg moving | AMR port / manual swap |
-| M8 | electric / stored energy | 230 V heaters, 48 V motors, 6 bar air | maintenance |
+| M8 | electric / stored energy | 400 V 3N~ oven feed, 48 V motors, 6 bar air | maintenance |
 
 ## Required safety functions
 
@@ -53,22 +54,42 @@ What changed against the draft above, and why:
 - **Perimeter guard instead of "pick cell + stamp".** The chain loop runs through every module, so a
   partial guard always has chain openings next to a hazard (ISO 13857 wants 850 mm behind any opening
   > 120 mm). The whole deck is enclosed: 2020 frame, 4 mm PC outside it, PC roof on 2040 rails, top at
-  900 mm. The front wall steps from 16 mm (feeder) to 60 mm, and the back wall sits 60 mm in, so the
+  900 mm. The front wall steps from 16 mm (depositor) to 60 mm, and the back wall sits 60 mm in, so the
   E-stop heads stay on the deck.
-- **3 doors with guard locking**: S20 front (oven exit / stamp / QC), S21 back (pick cell), S22 back
+- **3 doors with guard locking**: S20 front (oven exit / cooling / transfer), S21 back (pick cell), S22 back
   (pack). Power-to-unlock RFID switches; unlock only after SS1 plus 1 s standstill.
 - **3 E-stops** (S10 front, S11 back, S12 back-right) and a reset S13, all panel-mounted.
 - **AMR ports**:
   - *boxes* (left) and *out* (right) are **airlocks** (S-1b, below). The light curtains are gone.
-  - *raw*: a pour strip over the front of the hoppers. Fixed lids behind it mean it opens only into the
-    hopper interiors, where the singulator discs are low-energy (0.5 Nm, about 6 N).
+  - *raw*: a pour strip over the front of the dough hopper and the three topping hoppers. Fixed lids behind
+    it mean it opens only into the hopper interiors. The feed rolls under the dough are NOT low-energy:
+    a welded 40 mm square-mesh grid sits more than the ISO 13857 Table 4 distance above them (audit row).
 - **TwinSAFE**: EL6910 + 10 x EL1904 + 4 x EL2904, on their own EK1100 bus segment. K1+K2 in series
   on the 48 V supply, K3+K4 in series on the heater feed, each pair with mirror-contact EDM. The
   dump valve Q19 is now a monitored safe output.
-- **SF4**: a duplex thermocouple per heated zone (7). One element goes to the PID, the other to a
-  hardwired STL whose relay contact sits in that zone's load path.
-- **Cabinet**: grown to 980 x 720 x 210 (the TwinSAFE rail, 6 contactors, 7 STLs). The 24 V logic
-  supply is now an SDR-480-24.
+- **SF4**: a duplex thermocouple per heated unit (3 oven zones + 3 sealing heads). One element goes to
+  the PID, the other to a hardwired STB. An oven zone's STB contact is in the coil of its zone
+  contactor KHn (3-pole, every element + the fan of the zone); a sealing head's STB is in its load path.
+- **Cabinet**: grown to 980 x 850 x 210 (the TwinSAFE rail, 6 contactors, 3 zone contactors, 6 STBs, one
+  SSR per oven element). The 24 V logic supply is an SDR-480-24.
+
+## Band oven (2026-10-02, `oven.py`, proven in `line_model.oven_proofs` and `safety.py`)
+- **The puck chain never enters the heat.** The plastic chain (POM), its UHMW-PE track and the NFC tags are
+  limited to about 80-85 C; the band oven is raised over the loop and the chain runs under its insulated
+  floor (skin <= {max(z['skin'] for z in loads):.0f} C).
+- **Supply**: 400 V 3N~ through a CEE 16 A plug, main switch + RCD 30 mA type A, K3/K4 (SF1, TwinSAFE,
+  3-pole), a 3-pole C16 per zone, the zone contactor KHn (SF4), one SSR per element. Phase loads with every
+  element on: {', '.join(f"{p} {sum(w for _, w in items) / 230:.1f} A" for p, items in plan.items())} (+ the 24 V heater
+  PSU on L1) - all <= 80 % of 16 A.
+- **E-stop / door**: SF1 drops K3/K4 (all elements and fans) and K1/K2 (the band stops with the chain).
+  What is in the oven then over-bakes - a counted loss, never a hazard.
+- **Fan rundown**: the impellers coast for FAN_RUNDOWN = 2 s [assumed, MEASURE] after KHn drops and are
+  reachable through a band mouth (45 mm slot). The guard locks therefore wait UNLOCK_STILL = 2.5 s of
+  standstill (G8 proves the unlock time covers the longest rundown).
+- **Hot surfaces after a stop**: the chamber stays above 150 C for minutes after the elements are off.
+  Inside the guard only; residual risk -> warning label on every door + the HMI shows the zone
+  temperatures; the outer skin is below the 10 s burn threshold for bare metal (EN ISO 13732-1).
+
 
 ## Airlocks (S-1b, built) - replace the curtain-protected side ports
 
@@ -126,14 +147,38 @@ inner door, more than 500 mm from any running hazard (ISO 13857 needs 80 mm).
 
 **Reach audit: 55/55 checks met, no findings.**
 
+## PL estimate (G12, ISO 13849-1 simplified method)
+
+`safety.py` models every function as input -> TwinSAFE logic -> output:
+- **Electromechanical parts:** MTTFd = B10d / (0.1 n_op), with the operations per year taken from the
+  line itself (e.g. the out-zone contactor K5 switches at every cassette exchange). The category and
+  diagnostic coverage (DCavg) follow the architecture. The PL is read from Figure 5, taking the lower
+  PL wherever the bar straddles two.
+- **Certified devices** (RFID switches, TwinSAFE, STB) carry their own PL.
+- **Combination:** Table 11.
+
+Result: SF1 d, SF2 d, SF3 c, SF4 d, SF6 c (both airlocks). Every function meets its PLr (d / d / c / c / c).
+
+This caught one design error: plain position switches on the trapdoors cannot reach PLr c. They are
+now 2-channel safety sensors (PL d). Four planted weaknesses (worn contactors, a plain trapdoor switch,
+a cheap E-stop, a PL c lock) are all caught.
+
+It is an **estimate on typical data**. The real verification is SISTEMA with the ordered parts' B10d /
+PFHd; `VERIFICATION_PLAN.md` lists every value to replace.
+
+## Brush strip (reject bin)
+
+A 3 mm PP brush on the bin rim (split where the shutter crosses the back edge) closes the bin-top
+slot to about 4 mm [assumed]. ISO 13857 then needs 2 mm; the path distance is 110 mm.
+
 ## Open (engineering, not geometry)
 
 1. **Door force.** The airlock doors are force-limited to 50 N [assumed]. This must be verified on the
    bought drive (ISO 14120), or a safety edge must be added.
-2. **Reject shutter coupling.** The push-pin coupling is a design statement; its timing (it must shut
-   before the hole is exposed) needs a prototype check.
-3. **Reject drawer slot margin.** The 110 mm path distance is close to the limit (80 mm). A brush strip
-   around the bin top would give margin.
+2. **Reject shutter coupling.** The push-pin coupling needs a prototype check: it must shut before
+   the hole is exposed.
+3. **Measurements.** Every [assumed] / [typ] value is in `VERIFICATION_PLAN.md`, ranked by how close
+   its proof is to breaking.
 
 ## Still open
 

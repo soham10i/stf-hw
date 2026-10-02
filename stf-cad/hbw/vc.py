@@ -32,6 +32,7 @@ import math
 
 import control as C
 import io_nodes as N
+import pipeline as PL
 from variant import UP5, UP7
 
 SCAN = {"default": 0.010}          # PLC task per unit, s (ACCURACY may shorten one)

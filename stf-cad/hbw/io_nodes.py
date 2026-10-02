@@ -27,7 +27,7 @@ import math
 import os
 from dataclasses import dataclass
 
-from variant import UP3, UP4, UP5, UP12
+from variant import UP3, UP4, UP5
 
 CH = {"DI": 8, "DO": 8, "AI": 2, "CNT": 1, "IOL": 4}
 SPARE_MIN = 0.20
@@ -37,8 +37,6 @@ RAIL_H = 7.5
 CLEAR = 10.0
 STEP = 5.0
 CTL = os.path.expanduser("~/workspace/stf-hw/web/public/controller.json")
-RETIRED = {"vgr": ("Q7",), "oven": ("Q10",), "sorting": ("Q2",)}   # = control.RETIRED (hardening.py checks)
-RELAY = (12.5, 90.0, 72.0)                                          # interface relay module (ASSUMED size)
 
 
 @dataclass
@@ -75,10 +73,6 @@ def signals(module):
             out["AI"].append(sig)                 # the Farbsensor: analogue 0-2 V
         else:
             out["DI"].append(sig)                 # I*, and the HBW's A1/A2 IR trail sensors
-    if UP12:
-        # Upgrade 12 (U11 finding F1): the compressors Upgrade 1 retired lose their wire -
-        # a coil the program never drives is a coil an attacker could (control.RETIRED)
-        out["DO"] = [q for q in out["DO"] if q not in RETIRED.get(module, ())]
     for k in range(0, len(enc), 2):               # B1/B2 = one encoder's A/B channels
         out["CNT"].append("/".join(enc[k:k + 2]))
     if UP4 and module == "hbw":                   # Upgrade 4: the RFID heads (control.py)
@@ -97,10 +91,7 @@ def slices(module):
         n = len(sig.get(t, ()))
         if n == 0:
             continue
-        # spare is a share of CAPACITY (as check() counts it). The first version sized n * (1 + spare) - spare
-        # of what is USED - which agreed for every count until Upgrade 12 left the oven 13 outputs: 2 slices,
-        # 3 free = 18.75 %. For every count that passed before, both give the same number of slices.
-        k = math.ceil(n / (CH[t] * (1 - SPARE_MIN)) - 1e-9)
+        k = math.ceil(n * (1 + SPARE_MIN) / CH[t])
         for i in range(k):
             chans = sig[t][i * CH[t]:(i + 1) * CH[t]]
             out.append((f"{t}{i + 1}", t, chans + [None] * (CH[t] - len(chans))))
@@ -108,15 +99,8 @@ def slices(module):
 
 
 def node_length(module):
-    # coupler + field-supply slice + I/O slices + end module (+ Upgrade 12's interlock relays)
-    return COUPLER[0] + SLICE[0] + len(slices(module)) * SLICE[0] + SLICE[0] + _n_relays(module) * RELAY[0]
-
-
-def _n_relays(module):
-    if not UP12:
-        return 0
-    import interlock
-    return len(interlock.relays(module))
+    # coupler + field-supply slice + I/O slices + end module
+    return COUPLER[0] + SLICE[0] + len(slices(module)) * SLICE[0] + SLICE[0]
 
 
 # ------------------------------------------------------------- placement
@@ -125,7 +109,7 @@ def _obstacles():
     authoring / parked pose, the PLC cabinet, Upgrade 1's air station and
     buffer, and every swept hazard zone."""
     import factory_layout as FL, hbw_model as HM, oven_model as OM, sorting_model as SM
-    import vgr_model as VG, upgrade as U, safety as SF
+    import vgr_model as VG, plc_model as PM, upgrade as U, safety as SF
     boxes = []
     for p in HM.build(HM.P["CV_X"], 260.0, 0.0):
         if p.group == "frame":
@@ -225,7 +209,7 @@ def place(module):
 
 def _module_parts(module):
     """The module's parts as exported dicts (for the PCB position)."""
-    import oven_model as OM, sorting_model as SM, vgr_model as VG
+    import hbw_model as HM, oven_model as OM, sorting_model as SM, vgr_model as VG
     from hbw_frames import by_frame
     src = {"hbw": [p for fr in by_frame().values() for p in fr], "vgr": VG.build(),
            "oven": OM.build(), "sorting": SM.build()}[module]
@@ -274,14 +258,6 @@ def parts(module):
             note=f"{t} slice, {CH[t]} ch: {', '.join(used) or '-'} ({CH[t] - len(used)} spare)")
         a += SLICE[0]
     box(f"io_{module}_end", a, a + SLICE[0], (RAIL_H, RAIL_H + SLICE[2]), "grey", note="end module")
-    a += SLICE[0]
-    if UP12:
-        import interlock
-        for k, perm, contact in interlock.relays(module):
-            box(f"io_{module}_{k}", a, a + RELAY[0], (RAIL_H, RAIL_H + RELAY[2]), "rfid", tag=k,
-                note=f"Upgrade 12 interlock relay {k}: coil in parallel with {perm} ({contact}); its NO contact in "
-                     f"series with the coil supply of {', '.join(interlock.CANDIDATES[k][1])}")
-            a += RELAY[0]
     return out
 
 

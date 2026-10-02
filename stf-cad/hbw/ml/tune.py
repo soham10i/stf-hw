@@ -18,6 +18,7 @@ import os
 import numpy as np
 import torch
 
+import month as M
 from ml import train as T
 from ml.model import Net
 
@@ -70,7 +71,7 @@ def main():
     nets = {}
     for nm in ("semi", "sup"):
         n = Net(T.N_IN, 1)
-        n.load_state_dict(torch.load(os.path.join(os.path.dirname(__file__), "ckpt", f"{nm}.pt"), map_location="cpu", weights_only=True))
+        n.load_state_dict(torch.load(os.path.join(os.path.dirname(__file__), "ckpt", f"{nm}.pt"), map_location="cpu"))
         nets[nm] = n.eval()
     fails = {r: D.F[r] for r in range(T.N_RUNS)}
     nrun = {r: len(D.X[r]) for r in range(T.N_RUNS)}

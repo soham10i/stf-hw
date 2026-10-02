@@ -1,0 +1,4038 @@
+{
+ "proofs": {
+  "ok": true,
+  "fails": {},
+  "checked": [
+   "HBW",
+   "VGR",
+   "OVEN",
+   "SORTING",
+   "PLC",
+   "CROSS",
+   "VGR PATH",
+   "GUIDES",
+   "OVEN MOTION"
+  ],
+  "seconds": 91.2,
+  "t": "00:29:48"
+ },
+ "_last": "save",
+ "table": {
+  "doc": "STF_Factory_MCP",
+  "table": [
+   1870.0,
+   1510.0,
+   10.0
+  ],
+  "ok": true,
+  "seconds": 0.9,
+  "t": "00:29:56"
+ },
+ "hbw": {
+  "model_parts": 182,
+  "precise_solids": 166,
+  "components": 16,
+  "all_parts_built": true,
+  "component_seating": [
+   {
+    "part": "M2_travel_motor",
+    "comp": "encoder_motor",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     -1,
+     -1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 110.58,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I1_ref_horizontal",
+    "comp": "mini_switch",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     2,
+     1
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "M1_belt_motor",
+    "comp": "s_motor",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     -1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 10.98,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -15.0,
+     -15.0,
+     0.0
+    ]
+   },
+   {
+    "part": "CS1_colour_front_L",
+    "comp": "colour_sensor",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "CS2_colour_front_R",
+    "comp": "colour_sensor",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "LB1_pos_back_L",
+    "comp": "phototransistor",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -15.0,
+     0.0,
+     -7.5
+    ]
+   },
+   {
+    "part": "LB2_pos_back_R",
+    "comp": "phototransistor",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -15.0,
+     0.0,
+     -7.5
+    ]
+   },
+   {
+    "part": "I2_lightbarrier_inner_rx",
+    "comp": "phototransistor",
+    "perm": [
+     1,
+     2,
+     0
+    ],
+    "fit_perm": [
+     1,
+     2,
+     0
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I3_lightbarrier_outer_rx",
+    "comp": "phototransistor",
+    "perm": [
+     1,
+     2,
+     0
+    ],
+    "fit_perm": [
+     1,
+     2,
+     0
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "A1_trail_lower",
+    "comp": "ir_track_sensor",
+    "perm": [
+     1,
+     2,
+     0
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     -1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 22.51,
+    "interference_mm3": 49.72,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     7.5,
+     15.0,
+     0.0
+    ]
+   },
+   {
+    "part": "A2_trail_upper",
+    "comp": "ir_track_sensor",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     -1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 22.51,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     22.5,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "M3_lift_motor",
+    "comp": "encoder_motor",
+    "perm": [
+     2,
+     0,
+     1
+    ],
+    "fit_perm": [
+     2,
+     0,
+     1
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 110.58,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I4_ref_vertical",
+    "comp": "mini_switch",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     2,
+     1
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "M4_fork_motor",
+    "comp": "s_motor",
+    "perm": [
+     1,
+     0,
+     2
+    ],
+    "fit_perm": [
+     1,
+     0,
+     2
+    ],
+    "sign": [
+     -1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 7.04,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     -15.0,
+     -15.0
+    ]
+   },
+   {
+    "part": "I6_ref_ausleger_back",
+    "comp": "mini_switch",
+    "perm": [
+     1,
+     0,
+     2
+    ],
+    "fit_perm": [
+     1,
+     0,
+     2
+    ],
+    "sign": [
+     -1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 226.98,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I5_ref_ausleger_front",
+    "comp": "mini_switch",
+    "perm": [
+     1,
+     0,
+     2
+    ],
+    "fit_perm": [
+     1,
+     0,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  ],
+  "components_bigger_than_envelope": [
+   [
+    "M2_travel_motor",
+    "encoder_motor",
+    [
+     7.5,
+     0.0,
+     0.0
+    ]
+   ],
+   [
+    "I1_ref_horizontal",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ],
+   [
+    "M1_belt_motor",
+    "s_motor",
+    [
+     15.0,
+     10.0,
+     0.0
+    ]
+   ],
+   [
+    "CS1_colour_front_L",
+    "colour_sensor",
+    [
+     0.0,
+     0.0,
+     12.0
+    ]
+   ],
+   [
+    "CS2_colour_front_R",
+    "colour_sensor",
+    [
+     0.0,
+     0.0,
+     12.0
+    ]
+   ],
+   [
+    "LB1_pos_back_L",
+    "phototransistor",
+    [
+     -15.0,
+     0.0,
+     -7.5
+    ]
+   ],
+   [
+    "LB2_pos_back_R",
+    "phototransistor",
+    [
+     -15.0,
+     0.0,
+     -7.5
+    ]
+   ],
+   [
+    "A1_trail_lower",
+    "ir_track_sensor",
+    [
+     22.5,
+     0.0,
+     12.0
+    ]
+   ],
+   [
+    "A2_trail_upper",
+    "ir_track_sensor",
+    [
+     22.5,
+     0.0,
+     12.0
+    ]
+   ],
+   [
+    "M3_lift_motor",
+    "encoder_motor",
+    [
+     7.5,
+     0.0,
+     0.0
+    ]
+   ],
+   [
+    "I4_ref_vertical",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ],
+   [
+    "M4_fork_motor",
+    "s_motor",
+    [
+     15.0,
+     10.0,
+     0.0
+    ]
+   ],
+   [
+    "I6_ref_ausleger_back",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ],
+   [
+    "I5_ref_ausleger_front",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ]
+  ],
+  "bbox_factory": [
+   1218.0,
+   150.0,
+   -10.0,
+   1858.0,
+   1010.0,
+   545.0
+  ],
+  "ok": true,
+  "seconds": 36.8,
+  "t": "00:30:33"
+ },
+ "shot_01_hbw": {
+  "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/01_hbw.png",
+  "t": "23:49:12"
+ },
+ "shot_01b": {
+  "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/01b_hbw_close.png",
+  "t": "23:49:23"
+ },
+ "vgr": {
+  "model_parts": 33,
+  "precise_solids": 25,
+  "components": 8,
+  "all_parts_built": true,
+  "component_seating": [
+   {
+    "part": "M3_swivel_motor",
+    "comp": "encoder_motor",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     -1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 3.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I3_ref_swivel",
+    "comp": "mini_switch",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     2,
+     1
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "M1_plunge_motor",
+    "comp": "encoder_motor",
+    "perm": [
+     2,
+     0,
+     1
+    ],
+    "fit_perm": [
+     2,
+     0,
+     1
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 110.58,
+    "output_to_drive_mm": 6.34,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I1_ref_plunge",
+    "comp": "mini_switch",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     2,
+     1
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I2_ref_reach",
+    "comp": "mini_switch",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     2,
+     1
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "M2_reach_motor",
+    "comp": "encoder_motor",
+    "perm": [
+     1,
+     0,
+     2
+    ],
+    "fit_perm": [
+     1,
+     0,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "compressor",
+    "comp": "compressor",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -6.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "vacuum_valve",
+    "comp": "solenoid_valve",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -20.0,
+     0.0,
+     -8.0
+    ]
+   }
+  ],
+  "components_bigger_than_envelope": [
+   [
+    "M3_swivel_motor",
+    "encoder_motor",
+    [
+     7.5,
+     0.0,
+     0.0
+    ]
+   ],
+   [
+    "I3_ref_swivel",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ],
+   [
+    "M1_plunge_motor",
+    "encoder_motor",
+    [
+     7.5,
+     0.0,
+     0.0
+    ]
+   ],
+   [
+    "I1_ref_plunge",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ],
+   [
+    "I2_ref_reach",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ],
+   [
+    "M2_reach_motor",
+    "encoder_motor",
+    [
+     7.5,
+     0.0,
+     0.0
+    ]
+   ]
+  ],
+  "bbox_factory": [
+   720.0,
+   760.0,
+   -10.0,
+   1215.0,
+   1510.0,
+   674.0
+  ],
+  "ok": true,
+  "seconds": 11.6,
+  "t": "00:30:45"
+ },
+ "oven": {
+  "model_parts": 74,
+  "precise_solids": 50,
+  "components": 24,
+  "all_parts_built": true,
+  "component_seating": [
+   {
+    "part": "Q13_door_cylinder",
+    "comp": "pneumatic_cylinder",
+    "perm": [
+     2,
+     1,
+     0
+    ],
+    "fit_perm": [
+     2,
+     1,
+     0
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -5.0,
+     0.0,
+     -9.0
+    ]
+   },
+   {
+    "part": "M4_slider_motor",
+    "comp": "s_motor",
+    "perm": [
+     1,
+     0,
+     2
+    ],
+    "fit_perm": [
+     1,
+     0,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -10.0,
+     -30.0,
+     -15.0
+    ]
+   },
+   {
+    "part": "I6_ref_slider_in",
+    "comp": "mini_switch",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     2,
+     1
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I7_ref_slider_out",
+    "comp": "mini_switch",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     2,
+     1
+    ],
+    "sign": [
+     1,
+     -1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I9_lightbarrier_rx",
+    "comp": "phototransistor",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     2,
+     1
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "M5_sauger_motor",
+    "comp": "s_motor",
+    "perm": [
+     1,
+     0,
+     2
+    ],
+    "fit_perm": [
+     1,
+     0,
+     2
+    ],
+    "sign": [
+     1,
+     -1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -10.0,
+     -30.0,
+     -15.0
+    ]
+   },
+   {
+    "part": "I8_ref_sauger_oven",
+    "comp": "mini_switch",
+    "perm": [
+     1,
+     2,
+     0
+    ],
+    "fit_perm": [
+     1,
+     2,
+     0
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I5_ref_sauger_turntable",
+    "comp": "mini_switch",
+    "perm": [
+     1,
+     2,
+     0
+    ],
+    "fit_perm": [
+     1,
+     2,
+     0
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "Q12_lower_cylinder",
+    "comp": "pneumatic_cylinder",
+    "perm": [
+     2,
+     0,
+     1
+    ],
+    "fit_perm": [
+     2,
+     0,
+     1
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 2.02,
+    "interference_mm3": 1270.54,
+    "output_to_drive_mm": 8.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -5.0,
+     -5.0,
+     2.0
+    ]
+   },
+   {
+    "part": "M1_turntable_motor",
+    "comp": "s_motor",
+    "perm": [
+     1,
+     0,
+     2
+    ],
+    "fit_perm": [
+     1,
+     0,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -10.0,
+     -30.0,
+     -15.0
+    ]
+   },
+   {
+    "part": "I1_ref_turn_sauger",
+    "comp": "mini_switch",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     2,
+     1
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0002,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I4_ref_turn_saege",
+    "comp": "mini_switch",
+    "perm": [
+     1,
+     2,
+     0
+    ],
+    "fit_perm": [
+     1,
+     2,
+     0
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I2_ref_turn_band",
+    "comp": "mini_switch",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     2,
+     1
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0003,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "M3_saw_motor",
+    "comp": "s_motor",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 26.3,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -30.0,
+     -25.0,
+     0.0
+    ]
+   },
+   {
+    "part": "Q14_pusher_cylinder",
+    "comp": "pneumatic_cylinder",
+    "perm": [
+     1,
+     0,
+     2
+    ],
+    "fit_perm": [
+     1,
+     0,
+     2
+    ],
+    "sign": [
+     -1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     -9.0,
+     -5.0
+    ]
+   },
+   {
+    "part": "M2_belt_motor",
+    "comp": "s_motor",
+    "perm": [
+     1,
+     0,
+     2
+    ],
+    "fit_perm": [
+     1,
+     0,
+     2
+    ],
+    "sign": [
+     1,
+     -1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -10.0,
+     -30.0,
+     -15.0
+    ]
+   },
+   {
+    "part": "I3_lightbarrier_rx",
+    "comp": "phototransistor",
+    "perm": [
+     1,
+     2,
+     0
+    ],
+    "fit_perm": [
+     1,
+     2,
+     0
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "Q10_compressor",
+    "comp": "compressor",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -6.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "V1_valve_vakuum",
+    "comp": "solenoid_valve",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -20.0,
+     0.0,
+     -8.0
+    ]
+   },
+   {
+    "part": "V2_valve_senken",
+    "comp": "solenoid_valve",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -20.0,
+     0.0,
+     -8.0
+    ]
+   },
+   {
+    "part": "V3_valve_ofentuer",
+    "comp": "solenoid_valve",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -20.0,
+     0.0,
+     -8.0
+    ]
+   },
+   {
+    "part": "V4_valve_schieber",
+    "comp": "solenoid_valve",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -20.0,
+     0.0,
+     -8.0
+    ]
+   },
+   {
+    "part": "vacuum_cylinder_a",
+    "comp": "pneumatic_cylinder",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -9.0,
+     0.0,
+     -5.0
+    ]
+   },
+   {
+    "part": "vacuum_cylinder_b",
+    "comp": "pneumatic_cylinder",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -9.0,
+     0.0,
+     -5.0
+    ]
+   }
+  ],
+  "components_bigger_than_envelope": [
+   [
+    "I6_ref_slider_in",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ],
+   [
+    "I7_ref_slider_out",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ],
+   [
+    "I8_ref_sauger_oven",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ],
+   [
+    "I5_ref_sauger_turntable",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ],
+   [
+    "Q12_lower_cylinder",
+    "pneumatic_cylinder",
+    [
+     11.0,
+     -5.0,
+     0.0
+    ]
+   ],
+   [
+    "I1_ref_turn_sauger",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ],
+   [
+    "I4_ref_turn_saege",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ],
+   [
+    "I2_ref_turn_band",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ]
+  ],
+  "bbox_factory": [
+   417.0,
+   10.0,
+   -10.0,
+   1212.0,
+   670.0,
+   445.0
+  ],
+  "ok": true,
+  "seconds": 82.1,
+  "t": "00:32:16"
+ },
+ "shot_02_oven": {
+  "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/02_oven.png",
+  "t": "23:51:37"
+ },
+ "shot_02b": {
+  "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/02b_oven_top.png",
+  "t": "23:51:49"
+ },
+ "shot_02c": {
+  "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/02c_oven_iso.png",
+  "t": "23:52:50"
+ },
+ "shot_02d": {
+  "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/02d_oven_top.png",
+  "t": "23:52:50"
+ },
+ "shot_02e": {
+  "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/02e_oven_iso.png",
+  "t": "23:53:32"
+ },
+ "shot_02f": {
+  "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/02f_oven_top.png",
+  "t": "23:53:32"
+ },
+ "sorting": {
+  "model_parts": 62,
+  "precise_solids": 47,
+  "components": 15,
+  "all_parts_built": true,
+  "component_seating": [
+   {
+    "part": "Q1_belt_motor",
+    "comp": "s_motor",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -30.0,
+     -10.0,
+     -15.0
+    ]
+   },
+   {
+    "part": "I1_impulstaster",
+    "comp": "mini_switch",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     2,
+     1
+    ],
+    "sign": [
+     1,
+     -1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I2_inlet_rx",
+    "comp": "phototransistor",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     2,
+     1
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I3_after_colour_rx",
+    "comp": "phototransistor",
+    "perm": [
+     0,
+     2,
+     1
+    ],
+    "fit_perm": [
+     0,
+     2,
+     1
+    ],
+    "sign": [
+     1,
+     1,
+     -1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "A4_colour_sensor",
+    "comp": "colour_sensor",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "Q3_cylinder_weiss",
+    "comp": "pneumatic_cylinder",
+    "perm": [
+     1,
+     0,
+     2
+    ],
+    "fit_perm": [
+     1,
+     0,
+     2
+    ],
+    "sign": [
+     1,
+     -1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     -9.0,
+     -5.0
+    ]
+   },
+   {
+    "part": "I5_bay_weiss_rx",
+    "comp": "phototransistor",
+    "perm": [
+     1,
+     2,
+     0
+    ],
+    "fit_perm": [
+     1,
+     2,
+     0
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "Q4_cylinder_rot",
+    "comp": "pneumatic_cylinder",
+    "perm": [
+     1,
+     0,
+     2
+    ],
+    "fit_perm": [
+     1,
+     0,
+     2
+    ],
+    "sign": [
+     1,
+     -1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     -9.0,
+     -5.0
+    ]
+   },
+   {
+    "part": "I6_bay_rot_rx",
+    "comp": "phototransistor",
+    "perm": [
+     1,
+     2,
+     0
+    ],
+    "fit_perm": [
+     1,
+     2,
+     0
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "Q5_cylinder_blau",
+    "comp": "pneumatic_cylinder",
+    "perm": [
+     1,
+     0,
+     2
+    ],
+    "fit_perm": [
+     1,
+     0,
+     2
+    ],
+    "sign": [
+     1,
+     -1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     -9.0,
+     -5.0
+    ]
+   },
+   {
+    "part": "I7_bay_blau_rx",
+    "comp": "phototransistor",
+    "perm": [
+     1,
+     2,
+     0
+    ],
+    "fit_perm": [
+     1,
+     2,
+     0
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "Q2_compressor",
+    "comp": "compressor",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -6.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "part": "valve_weiss",
+    "comp": "solenoid_valve",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -20.0,
+     0.0,
+     -8.0
+    ]
+   },
+   {
+    "part": "valve_rot",
+    "comp": "solenoid_valve",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -20.0,
+     0.0,
+     -8.0
+    ]
+   },
+   {
+    "part": "valve_blau",
+    "comp": "solenoid_valve",
+    "perm": [
+     0,
+     1,
+     2
+    ],
+    "fit_perm": [
+     0,
+     1,
+     2
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -20.0,
+     0.0,
+     -8.0
+    ]
+   },
+   {
+    "part": "M2_belt_motor",
+    "comp": "s_motor",
+    "perm": [
+     1,
+     2,
+     0
+    ],
+    "fit_perm": [
+     1,
+     0,
+     2
+    ],
+    "sign": [
+     -1,
+     -1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     -1
+    ],
+    "housing_excess_mm": 0.0,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     -25.0,
+     -30.0,
+     0.0
+    ]
+   },
+   {
+    "part": "I3_lightbarrier_rx",
+    "comp": "phototransistor",
+    "perm": [
+     1,
+     2,
+     0
+    ],
+    "fit_perm": [
+     1,
+     2,
+     0
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "fit_sign": [
+     1,
+     1,
+     1
+    ],
+    "housing_excess_mm": 0.01,
+    "interference_mm3": 0.0,
+    "output_to_drive_mm": 0.0,
+    "housing_centre_dev_mm": 0.0,
+    "housing_minus_envelope_mm": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  ],
+  "components_bigger_than_envelope": [
+   [
+    "I1_impulstaster",
+    "mini_switch",
+    [
+     6.0,
+     0.0,
+     2.5
+    ]
+   ],
+   [
+    "A4_colour_sensor",
+    "colour_sensor",
+    [
+     0.0,
+     0.0,
+     12.0
+    ]
+   ]
+  ],
+  "bbox_factory": [
+   10.0,
+   424.0,
+   -10.0,
+   650.0,
+   1464.0,
+   140.0
+  ],
+  "ok": true,
+  "seconds": 23.7,
+  "t": "00:32:49"
+ },
+ "plc": {
+  "model_parts": 20,
+  "precise_solids": 20,
+  "components": 0,
+  "all_parts_built": true,
+  "component_seating": [],
+  "components_bigger_than_envelope": [],
+  "bbox_factory": [
+   60.0,
+   20.0,
+   -10.0,
+   360.0,
+   400.0,
+   121.0
+  ],
+  "ok": true,
+  "seconds": 0.7,
+  "t": "00:32:49"
+ },
+ "shot_03": {
+  "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/03_full_factory_iso.png",
+  "t": "23:55:58"
+ },
+ "wiring": {
+  "conductors_by_role": {
+   "+24V": 48,
+   "DI": 70,
+   "0V": 38,
+   "DO": 63,
+   "ENC": 21,
+   "AI": 7,
+   "L": 1,
+   "N": 1,
+   "PE": 2,
+   "AIR": 13
+  },
+  "runs": 69,
+  "hoses": 13,
+  "note": "conductor/hose diameters are assumed (WIRE_D, HOSE_D) - measure",
+  "ok": true,
+  "seconds": 4.0,
+  "t": "00:32:53"
+ },
+ "shot_04": {
+  "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/04_wiring_full.png",
+  "t": "23:56:20"
+ },
+ "shot_04b": {
+  "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/04b_wiring_plc.png",
+  "t": "23:56:20"
+ },
+ "interference": {
+  "component_hits_new": 5,
+  "component_hit_list": [
+   [
+    "M1_belt_motor.u_gearbox",
+    "M1_shaft",
+    75.4
+   ],
+   [
+    "M1_belt_motor.worm_shaft",
+    "M1_shaft",
+    14.14
+   ],
+   [
+    "M1_belt_motor.worm_wheel",
+    "M1_shaft",
+    20.08
+   ],
+   [
+    "Q11_suction_cup",
+    "Q12_lower_cylinder.housing",
+    126.52
+   ],
+   [
+    "Q14_pusher_cylinder.air_nipple",
+    "pusher_beam",
+    7.9
+   ]
+  ],
+  "component_hits_inherited_from_model": 21,
+  "inherited_list": [
+   [
+    "M3_pinion",
+    "M3_swivel_motor.bearing_collar",
+    1.22
+   ],
+   [
+    "M3_pinion",
+    "M3_swivel_motor.housing",
+    19627.22
+   ],
+   [
+    "M4_fork_motor.u_gearbox",
+    "ausleger_spindle",
+    2.82
+   ],
+   [
+    "M4_fork_motor.worm_shaft",
+    "ausleger_spindle",
+    25.77
+   ],
+   [
+    "Q12_lower_cylinder.barrel",
+    "sauger_carriage",
+    628.32
+   ],
+   [
+    "Q12_lower_cylinder.housing",
+    "Q12_piston_rod",
+    528.52
+   ],
+   [
+    "Q12_lower_cylinder.piston",
+    "Q12_piston_rod",
+    150.8
+   ],
+   [
+    "Q12_lower_cylinder.piston_rod",
+    "Q12_piston_rod",
+    477.52
+   ],
+   [
+    "Q12_lower_cylinder.piston_rod",
+    "sauger_carriage",
+    251.33
+   ],
+   [
+    "Q12_lower_cylinder.spring",
+    "Q12_piston_rod",
+    142.12
+   ],
+   [
+    "Q12_lower_cylinder.spring",
+    "sauger_carriage",
+    94.73
+   ],
+   [
+    "Q12_lower_cylinder.tie_rods",
+    "sauger_carriage",
+    125.66
+   ],
+   [
+    "Q13_door_cylinder.housing",
+    "door_rod",
+    269.17
+   ],
+   [
+    "Q13_door_cylinder.piston_rod",
+    "door_rod",
+    257.61
+   ],
+   [
+    "Q13_door_cylinder.rod_end",
+    "door_rod",
+    113.1
+   ],
+   [
+    "Q13_door_cylinder.spring",
+    "door_rod",
+    33.0
+   ],
+   [
+    "Q14_pusher_cylinder.barrel",
+    "pusher_rod",
+    121.62
+   ],
+   [
+    "Q14_pusher_cylinder.housing",
+    "pusher_rod",
+    289.69
+   ],
+   [
+    "Q14_pusher_cylinder.piston_rod",
+    "pusher_rod",
+    301.05
+   ],
+   [
+    "Q14_pusher_cylinder.rod_end",
+    "pusher_rod",
+    71.01
+   ],
+   [
+    "Q14_pusher_cylinder.spring",
+    "pusher_rod",
+    29.08
+   ]
+  ],
+  "output_engagements": [
+   [
+    "M1_plunge_motor.bearing_collar",
+    "tower_top_plate",
+    38.48
+   ],
+   [
+    "M1_plunge_motor.output_shaft",
+    "tower_top_plate",
+    72.09
+   ],
+   [
+    "M2_reach_motor.bearing_collar",
+    "reach_spindle",
+    38.48
+   ],
+   [
+    "M2_reach_motor.output_shaft",
+    "reach_spindle",
+    72.09
+   ],
+   [
+    "M2_travel_motor.bearing_collar",
+    "M2_coupler",
+    38.48
+   ],
+   [
+    "M2_travel_motor.bearing_collar",
+    "rail_block_L",
+    38.48
+   ],
+   [
+    "M2_travel_motor.output_shaft",
+    "M2_coupler",
+    72.09
+   ],
+   [
+    "M2_travel_motor.output_shaft",
+    "rail_block_L",
+    72.09
+   ],
+   [
+    "M3_lift_motor.bearing_collar",
+    "M3_coupler",
+    38.48
+   ],
+   [
+    "M3_lift_motor.bearing_collar",
+    "mast_top_plate",
+    38.48
+   ],
+   [
+    "M3_lift_motor.output_shaft",
+    "M3_coupler",
+    72.09
+   ],
+   [
+    "M3_lift_motor.output_shaft",
+    "mast_top_plate",
+    72.09
+   ],
+   [
+    "Q12_lower_cylinder.piston_rod",
+    "Q11_suction_cup",
+    43.98
+   ],
+   [
+    "Q13_door_cylinder.piston_rod",
+    "door_gantry",
+    6.28
+   ],
+   [
+    "Q13_door_cylinder.rod_end",
+    "door_gantry",
+    113.1
+   ],
+   [
+    "Q14_pusher_cylinder.rod_end",
+    "pusher_paddle",
+    70.69
+   ],
+   [
+    "Q3_cylinder_weiss.piston_rod",
+    "pusher_weiss",
+    6.28
+   ],
+   [
+    "Q3_cylinder_weiss.rod_end",
+    "pusher_weiss",
+    113.1
+   ],
+   [
+    "Q4_cylinder_rot.piston_rod",
+    "pusher_rot",
+    6.28
+   ],
+   [
+    "Q4_cylinder_rot.rod_end",
+    "pusher_rot",
+    113.1
+   ],
+   [
+    "Q5_cylinder_blau.piston_rod",
+    "pusher_blau",
+    6.28
+   ],
+   [
+    "Q5_cylinder_blau.rod_end",
+    "pusher_blau",
+    113.1
+   ]
+  ],
+  "wire_route_hits": 104,
+  "wire_route_list": [
+   [
+    "Cable_00_A1_trail_lower",
+    "cv_side_rail_L",
+    69.27
+   ],
+   [
+    "Cable_01_A2_trail_upper",
+    "A1_trail_lower.housing",
+    23.09
+   ],
+   [
+    "Cable_01_A2_trail_upper",
+    "cv_side_rail_L",
+    69.27
+   ],
+   [
+    "Cable_02_CS1_colour_front_L",
+    "cv_belt_L",
+    6.16
+   ],
+   [
+    "Cable_03_CS2_colour_front_R",
+    "cv_belt_R",
+    6.16
+   ],
+   [
+    "Cable_04_LB1_pos_back_L",
+    "cv_belt_L",
+    6.16
+   ],
+   [
+    "Cable_05_LB2_pos_back_R",
+    "cv_belt_R",
+    6.16
+   ],
+   [
+    "Cable_07_I2_lightbarrier_inner_rx",
+    "cv_side_rail_L",
+    69.27
+   ],
+   [
+    "Cable_08_I2_lightbarrier_inner_tx",
+    "cv_side_rail_R",
+    69.27
+   ],
+   [
+    "Cable_09_I3_lightbarrier_outer_rx",
+    "cv_side_rail_L",
+    69.27
+   ],
+   [
+    "Cable_10_I3_lightbarrier_outer_tx",
+    "M1_belt_motor.u_gearbox",
+    4.62
+   ],
+   [
+    "Cable_10_I3_lightbarrier_outer_tx",
+    "M1_belt_motor.u_gearbox",
+    10.21
+   ],
+   [
+    "Cable_10_I3_lightbarrier_outer_tx",
+    "cv_side_rail_R",
+    69.27
+   ],
+   [
+    "Cable_14_M3_swivel_motor",
+    "M3_pinion",
+    21.84
+   ],
+   [
+    "Cable_14_M3_swivel_motor",
+    "M3_pinion",
+    43.67
+   ],
+   [
+    "Cable_19_I3_lightbarrier_rx",
+    "belt_rail_L",
+    46.18
+   ],
+   [
+    "Cable_20_I3_lightbarrier_tx",
+    "belt_rail_R",
+    2.07
+   ],
+   [
+    "Cable_20_I3_lightbarrier_tx",
+    "belt_rail_R",
+    43.24
+   ],
+   [
+    "Cable_20_I3_lightbarrier_tx",
+    "belt_web.belt",
+    0.29
+   ],
+   [
+    "Cable_20_I3_lightbarrier_tx",
+    "belt_web.belt",
+    5.87
+   ],
+   [
+    "Cable_22_I5_ref_sauger_turntable",
+    "sauger_carriage",
+    30.79
+   ],
+   [
+    "Cable_22_I5_ref_sauger_turntable",
+    "sauger_rail.profile",
+    14.61
+   ],
+   [
+    "Cable_22_I5_ref_sauger_turntable",
+    "sauger_rail.profile",
+    23.09
+   ],
+   [
+    "Cable_23_I6_ref_slider_in",
+    "oven_wall_R.blocks",
+    20.27
+   ],
+   [
+    "Cable_23_I6_ref_slider_in",
+    "oven_wall_R.blocks",
+    20.28
+   ],
+   [
+    "Cable_25_I8_ref_sauger_oven",
+    "sauger_rail.profile",
+    14.61
+   ],
+   [
+    "Cable_25_I8_ref_sauger_oven",
+    "sauger_rail.profile",
+    23.09
+   ],
+   [
+    "Cable_25_I8_ref_sauger_oven",
+    "slider_rail.axle",
+    9.33
+   ],
+   [
+    "Cable_25_I8_ref_sauger_oven",
+    "slider_rail.axle",
+    11.44
+   ],
+   [
+    "Cable_35_M3_saw_motor",
+    "drehtisch_disc.disc",
+    18.47
+   ],
+   [
+    "Cable_39_A4_colour_sensor",
+    "belt_web001",
+    6.16
+   ],
+   [
+    "Cable_41_I2_inlet_rx",
+    "belt_rail_F",
+    46.18
+   ],
+   [
+    "Cable_42_I2_inlet_tx",
+    "belt_rail_B",
+    46.18
+   ],
+   [
+    "Cable_43_I3_after_colour_rx",
+    "belt_rail_F",
+    46.18
+   ],
+   [
+    "Cable_44_I3_after_colour_tx",
+    "belt_rail_B",
+    46.18
+   ],
+   [
+    "Cable_45_I5_bay_weiss_rx",
+    "bay_weiss_wall_L",
+    14.9
+   ],
+   [
+    "Cable_45_I5_bay_weiss_rx",
+    "bay_weiss_wall_L",
+    16.13
+   ],
+   [
+    "Cable_46_I5_bay_weiss_tx",
+    "bay_weiss_floor",
+    1.37
+   ],
+   [
+    "Cable_46_I5_bay_weiss_tx",
+    "bay_weiss_wall_R",
+    17.57
+   ],
+   [
+    "Cable_46_I5_bay_weiss_tx",
+    "bay_weiss_wall_R",
+    20.63
+   ],
+   [
+    "Cable_47_I6_bay_rot_rx",
+    "bay_rot_wall_L",
+    14.9
+   ],
+   [
+    "Cable_47_I6_bay_rot_rx",
+    "bay_rot_wall_L",
+    16.13
+   ],
+   [
+    "Cable_48_I6_bay_rot_tx",
+    "bay_rot_floor",
+    1.37
+   ],
+   [
+    "Cable_48_I6_bay_rot_tx",
+    "bay_rot_wall_R",
+    17.57
+   ],
+   [
+    "Cable_48_I6_bay_rot_tx",
+    "bay_rot_wall_R",
+    20.63
+   ],
+   [
+    "Cable_49_I7_bay_blau_rx",
+    "bay_blau_wall_L",
+    14.9
+   ],
+   [
+    "Cable_49_I7_bay_blau_rx",
+    "bay_blau_wall_L",
+    16.13
+   ],
+   [
+    "Cable_50_I7_bay_blau_tx",
+    "bay_blau_floor",
+    1.37
+   ],
+   [
+    "Cable_50_I7_bay_blau_tx",
+    "bay_blau_wall_R",
+    17.57
+   ],
+   [
+    "Cable_50_I7_bay_blau_tx",
+    "bay_blau_wall_R",
+    20.63
+   ],
+   [
+    "Hoses",
+    "Q11_suction_cup",
+    98.86
+   ],
+   [
+    "Hoses",
+    "Q12_lower_cylinder.housing",
+    23.25
+   ],
+   [
+    "Hoses",
+    "Q12_lower_cylinder.piston_rod",
+    24.04
+   ],
+   [
+    "Hoses",
+    "Q13_oven_door.guide_shoes",
+    91.84
+   ],
+   [
+    "Hoses",
+    "Q13_oven_door.panel",
+    750.5
+   ],
+   [
+    "Hoses",
+    "Q3_cylinder_weiss.barrel",
+    15.78
+   ],
+   [
+    "Hoses",
+    "Q3_cylinder_weiss.piston_rod",
+    24.04
+   ],
+   [
+    "Hoses",
+    "Q3_cylinder_weiss.spring",
+    4.45
+   ],
+   [
+    "Hoses",
+    "Q3_stand_weiss",
+    394.43
+   ],
+   [
+    "Hoses",
+    "Q4_cylinder_rot.barrel",
+    15.78
+   ],
+   [
+    "Hoses",
+    "Q4_cylinder_rot.piston_rod",
+    24.04
+   ],
+   [
+    "Hoses",
+    "Q4_cylinder_rot.spring",
+    4.45
+   ],
+   [
+    "Hoses",
+    "Q4_stand_rot",
+    229.73
+   ],
+   [
+    "Hoses",
+    "Q4_stand_rot",
+    394.43
+   ],
+   [
+    "Hoses",
+    "Q5_cylinder_blau.barrel",
+    15.78
+   ],
+   [
+    "Hoses",
+    "Q5_cylinder_blau.piston_rod",
+    24.04
+   ],
+   [
+    "Hoses",
+    "Q5_cylinder_blau.spring",
+    4.45
+   ],
+   [
+    "Hoses",
+    "Q5_stand_blau",
+    229.73
+   ],
+   [
+    "Hoses",
+    "Q5_stand_blau",
+    394.43
+   ],
+   [
+    "Hoses",
+    "V1_valve_vakuum.port_1_P",
+    30.63
+   ],
+   [
+    "Hoses",
+    "V2_valve_senken.coil",
+    12.8
+   ],
+   [
+    "Hoses",
+    "V2_valve_senken.port_1_P",
+    30.63
+   ],
+   [
+    "Hoses",
+    "V3_valve_ofentuer.coil",
+    9.03
+   ],
+   [
+    "Hoses",
+    "V3_valve_ofentuer.housing",
+    32.76
+   ],
+   [
+    "Hoses",
+    "V3_valve_ofentuer.port_1_P",
+    30.63
+   ],
+   [
+    "Hoses",
+    "V3_valve_ofentuer.spring",
+    13.48
+   ],
+   [
+    "Hoses",
+    "V4_valve_schieber.coil",
+    30.02
+   ],
+   [
+    "Hoses",
+    "V4_valve_schieber.housing",
+    24.86
+   ],
+   [
+    "Hoses",
+    "V4_valve_schieber.plunger",
+    94.81
+   ],
+   [
+    "Hoses",
+    "V4_valve_schieber.port_1_P",
+    30.63
+   ]
+  ],
+  "wire_endpoint_contacts": 179,
+  "ok": true,
+  "seconds": 75.1,
+  "t": "00:56:19"
+ },
+ "interference2": {
+  "component_hits_new": 5,
+  "component_hit_list": [
+   [
+    "M1_belt_motor.u_gearbox",
+    "M1_shaft",
+    75.4
+   ],
+   [
+    "M1_belt_motor.worm_shaft",
+    "M1_shaft",
+    14.14
+   ],
+   [
+    "M1_belt_motor.worm_wheel",
+    "M1_shaft",
+    20.08
+   ],
+   [
+    "Q11_suction_cup",
+    "Q12_lower_cylinder.housing",
+    126.52
+   ],
+   [
+    "Q14_pusher_cylinder.air_nipple",
+    "pusher_beam",
+    7.9
+   ]
+  ],
+  "component_hits_inherited_from_model": 22,
+  "inherited_list": [
+   [
+    "M3_pinion",
+    "M3_swivel_motor.bearing_collar",
+    1.22
+   ],
+   [
+    "M3_pinion",
+    "M3_swivel_motor.housing",
+    19627.22
+   ],
+   [
+    "M4_fork_motor.u_gearbox",
+    "ausleger_spindle",
+    2.82
+   ],
+   [
+    "M4_fork_motor.worm_shaft",
+    "ausleger_spindle",
+    25.77
+   ],
+   [
+    "Q12_lower_cylinder.barrel",
+    "sauger_carriage",
+    628.32
+   ],
+   [
+    "Q12_lower_cylinder.housing",
+    "Q12_piston_rod",
+    528.52
+   ],
+   [
+    "Q12_lower_cylinder.piston",
+    "Q12_piston_rod",
+    150.8
+   ],
+   [
+    "Q12_lower_cylinder.piston_rod",
+    "Q12_piston_rod",
+    477.52
+   ],
+   [
+    "Q12_lower_cylinder.piston_rod",
+    "sauger_carriage",
+    251.33
+   ],
+   [
+    "Q12_lower_cylinder.spring",
+    "Q12_piston_rod",
+    142.12
+   ],
+   [
+    "Q12_lower_cylinder.spring",
+    "sauger_carriage",
+    94.73
+   ],
+   [
+    "Q12_lower_cylinder.tie_rods",
+    "sauger_carriage",
+    125.66
+   ],
+   [
+    "Q13_door_cylinder.housing",
+    "door_rod",
+    1023.15
+   ],
+   [
+    "Q13_door_cylinder.piston",
+    "door_rod",
+    150.8
+   ],
+   [
+    "Q13_door_cylinder.piston_rod",
+    "door_rod",
+    552.92
+   ],
+   [
+    "Q13_door_cylinder.rod_end",
+    "door_rod",
+    113.1
+   ],
+   [
+    "Q13_door_cylinder.spring",
+    "door_rod",
+    142.12
+   ],
+   [
+    "Q14_pusher_cylinder.barrel",
+    "pusher_rod",
+    121.62
+   ],
+   [
+    "Q14_pusher_cylinder.housing",
+    "pusher_rod",
+    289.69
+   ],
+   [
+    "Q14_pusher_cylinder.piston_rod",
+    "pusher_rod",
+    301.05
+   ],
+   [
+    "Q14_pusher_cylinder.rod_end",
+    "pusher_rod",
+    71.01
+   ],
+   [
+    "Q14_pusher_cylinder.spring",
+    "pusher_rod",
+    29.08
+   ]
+  ],
+  "output_engagements": [
+   [
+    "M1_plunge_motor.bearing_collar",
+    "tower_top_plate",
+    38.48
+   ],
+   [
+    "M1_plunge_motor.output_shaft",
+    "tower_top_plate",
+    72.09
+   ],
+   [
+    "M2_reach_motor.bearing_collar",
+    "reach_spindle",
+    38.48
+   ],
+   [
+    "M2_reach_motor.output_shaft",
+    "reach_bearing_B",
+    33.64
+   ],
+   [
+    "M2_reach_motor.output_shaft",
+    "reach_spindle",
+    72.09
+   ],
+   [
+    "M2_travel_motor.bearing_collar",
+    "M2_coupler",
+    38.48
+   ],
+   [
+    "M2_travel_motor.bearing_collar",
+    "rail_block_L",
+    38.48
+   ],
+   [
+    "M2_travel_motor.output_shaft",
+    "M2_coupler",
+    72.09
+   ],
+   [
+    "M2_travel_motor.output_shaft",
+    "rail_block_L",
+    72.09
+   ],
+   [
+    "M3_lift_motor.bearing_collar",
+    "M3_coupler",
+    38.48
+   ],
+   [
+    "M3_lift_motor.bearing_collar",
+    "mast_top_plate",
+    38.48
+   ],
+   [
+    "M3_lift_motor.output_shaft",
+    "M3_coupler",
+    72.09
+   ],
+   [
+    "M3_lift_motor.output_shaft",
+    "mast_top_plate",
+    72.09
+   ],
+   [
+    "Q12_lower_cylinder.piston_rod",
+    "Q11_suction_cup",
+    43.98
+   ],
+   [
+    "Q13_door_cylinder.piston_rod",
+    "door_gantry",
+    6.28
+   ],
+   [
+    "Q13_door_cylinder.rod_end",
+    "door_gantry",
+    113.1
+   ],
+   [
+    "Q14_pusher_cylinder.rod_end",
+    "pusher_paddle",
+    70.69
+   ],
+   [
+    "Q3_cylinder_weiss.piston_rod",
+    "pusher_weiss",
+    6.28
+   ],
+   [
+    "Q3_cylinder_weiss.rod_end",
+    "pusher_weiss",
+    113.1
+   ],
+   [
+    "Q4_cylinder_rot.piston_rod",
+    "pusher_rot",
+    6.28
+   ],
+   [
+    "Q4_cylinder_rot.rod_end",
+    "pusher_rot",
+    113.1
+   ],
+   [
+    "Q5_cylinder_blau.piston_rod",
+    "pusher_blau",
+    6.28
+   ],
+   [
+    "Q5_cylinder_blau.rod_end",
+    "pusher_blau",
+    113.1
+   ]
+  ],
+  "wire_route_hits": 107,
+  "wire_route_list": [
+   [
+    "Cable_00_A1_trail_lower",
+    "cv_side_rail_L",
+    69.27
+   ],
+   [
+    "Cable_01_A2_trail_upper",
+    "A1_trail_lower.housing",
+    23.09
+   ],
+   [
+    "Cable_01_A2_trail_upper",
+    "cv_side_rail_L",
+    69.27
+   ],
+   [
+    "Cable_02_CS1_colour_front_L",
+    "cv_belt_L",
+    6.16
+   ],
+   [
+    "Cable_03_CS2_colour_front_R",
+    "cv_belt_R",
+    6.16
+   ],
+   [
+    "Cable_04_LB1_pos_back_L",
+    "cv_belt_L",
+    6.16
+   ],
+   [
+    "Cable_05_LB2_pos_back_R",
+    "cv_belt_R",
+    6.16
+   ],
+   [
+    "Cable_07_I2_lightbarrier_inner_rx",
+    "cv_side_rail_L",
+    69.27
+   ],
+   [
+    "Cable_08_I2_lightbarrier_inner_tx",
+    "cv_side_rail_R",
+    69.27
+   ],
+   [
+    "Cable_09_I3_lightbarrier_outer_rx",
+    "cv_side_rail_L",
+    69.27
+   ],
+   [
+    "Cable_10_I3_lightbarrier_outer_tx",
+    "M1_belt_motor.u_gearbox",
+    4.62
+   ],
+   [
+    "Cable_10_I3_lightbarrier_outer_tx",
+    "M1_belt_motor.u_gearbox",
+    10.21
+   ],
+   [
+    "Cable_10_I3_lightbarrier_outer_tx",
+    "cv_side_rail_R",
+    69.27
+   ],
+   [
+    "Cable_14_M3_swivel_motor",
+    "M3_pinion",
+    21.84
+   ],
+   [
+    "Cable_14_M3_swivel_motor",
+    "M3_pinion",
+    43.67
+   ],
+   [
+    "Cable_19_I3_lightbarrier_rx",
+    "belt_rail_L",
+    46.18
+   ],
+   [
+    "Cable_20_I3_lightbarrier_tx",
+    "belt_rail_R",
+    2.07
+   ],
+   [
+    "Cable_20_I3_lightbarrier_tx",
+    "belt_rail_R",
+    43.24
+   ],
+   [
+    "Cable_20_I3_lightbarrier_tx",
+    "belt_web",
+    0.18
+   ],
+   [
+    "Cable_20_I3_lightbarrier_tx",
+    "belt_web",
+    5.1
+   ],
+   [
+    "Cable_22_I5_ref_sauger_turntable",
+    "sauger_carriage",
+    30.79
+   ],
+   [
+    "Cable_22_I5_ref_sauger_turntable",
+    "sauger_rail",
+    23.09
+   ],
+   [
+    "Cable_23_I6_ref_slider_in",
+    "oven_wall_R",
+    20.27
+   ],
+   [
+    "Cable_23_I6_ref_slider_in",
+    "oven_wall_R",
+    20.28
+   ],
+   [
+    "Cable_25_I8_ref_sauger_oven",
+    "sauger_rail",
+    23.09
+   ],
+   [
+    "Cable_25_I8_ref_sauger_oven",
+    "slider_rail",
+    15.39
+   ],
+   [
+    "Cable_35_M3_saw_motor",
+    "drehtisch_disc",
+    18.47
+   ],
+   [
+    "Cable_39_A4_colour_sensor",
+    "belt_web001",
+    6.16
+   ],
+   [
+    "Cable_41_I2_inlet_rx",
+    "belt_rail_F",
+    46.18
+   ],
+   [
+    "Cable_42_I2_inlet_tx",
+    "belt_rail_B",
+    46.18
+   ],
+   [
+    "Cable_43_I3_after_colour_rx",
+    "belt_rail_F",
+    46.18
+   ],
+   [
+    "Cable_44_I3_after_colour_tx",
+    "belt_rail_B",
+    46.18
+   ],
+   [
+    "Cable_45_I5_bay_weiss_rx",
+    "bay_weiss_wall_L",
+    14.9
+   ],
+   [
+    "Cable_45_I5_bay_weiss_rx",
+    "bay_weiss_wall_L",
+    16.13
+   ],
+   [
+    "Cable_46_I5_bay_weiss_tx",
+    "bay_weiss_floor",
+    1.37
+   ],
+   [
+    "Cable_46_I5_bay_weiss_tx",
+    "bay_weiss_wall_R",
+    17.57
+   ],
+   [
+    "Cable_46_I5_bay_weiss_tx",
+    "bay_weiss_wall_R",
+    20.63
+   ],
+   [
+    "Cable_47_I6_bay_rot_rx",
+    "bay_rot_wall_L",
+    14.9
+   ],
+   [
+    "Cable_47_I6_bay_rot_rx",
+    "bay_rot_wall_L",
+    16.13
+   ],
+   [
+    "Cable_48_I6_bay_rot_tx",
+    "bay_rot_floor",
+    1.37
+   ],
+   [
+    "Cable_48_I6_bay_rot_tx",
+    "bay_rot_wall_R",
+    17.57
+   ],
+   [
+    "Cable_48_I6_bay_rot_tx",
+    "bay_rot_wall_R",
+    20.63
+   ],
+   [
+    "Cable_49_I7_bay_blau_rx",
+    "bay_blau_wall_L",
+    14.9
+   ],
+   [
+    "Cable_49_I7_bay_blau_rx",
+    "bay_blau_wall_L",
+    16.13
+   ],
+   [
+    "Cable_50_I7_bay_blau_tx",
+    "bay_blau_floor",
+    1.37
+   ],
+   [
+    "Cable_50_I7_bay_blau_tx",
+    "bay_blau_wall_R",
+    17.57
+   ],
+   [
+    "Cable_50_I7_bay_blau_tx",
+    "bay_blau_wall_R",
+    20.63
+   ],
+   [
+    "Hoses",
+    "Q13_door_cylinder.housing",
+    114.86
+   ],
+   [
+    "Hoses",
+    "Q13_door_cylinder.piston",
+    22.97
+   ],
+   [
+    "Hoses",
+    "Q13_door_cylinder.piston_rod",
+    336.94
+   ],
+   [
+    "Hoses",
+    "Q13_door_cylinder.rod_end",
+    30.63
+   ],
+   [
+    "Hoses",
+    "Q13_oven_door",
+    842.34
+   ],
+   [
+    "Hoses",
+    "Q14_pusher_cylinder.barrel",
+    15.78
+   ],
+   [
+    "Hoses",
+    "Q14_pusher_cylinder.piston_rod",
+    24.04
+   ],
+   [
+    "Hoses",
+    "Q14_pusher_cylinder.spring",
+    4.45
+   ],
+   [
+    "Hoses",
+    "Q3_cylinder_weiss.barrel",
+    15.78
+   ],
+   [
+    "Hoses",
+    "Q3_cylinder_weiss.piston_rod",
+    24.04
+   ],
+   [
+    "Hoses",
+    "Q3_cylinder_weiss.spring",
+    4.45
+   ],
+   [
+    "Hoses",
+    "Q3_stand_weiss",
+    394.43
+   ],
+   [
+    "Hoses",
+    "Q4_cylinder_rot.barrel",
+    15.78
+   ],
+   [
+    "Hoses",
+    "Q4_cylinder_rot.piston_rod",
+    24.04
+   ],
+   [
+    "Hoses",
+    "Q4_cylinder_rot.spring",
+    4.45
+   ],
+   [
+    "Hoses",
+    "Q4_stand_rot",
+    229.73
+   ],
+   [
+    "Hoses",
+    "Q4_stand_rot",
+    394.43
+   ],
+   [
+    "Hoses",
+    "Q5_cylinder_blau.barrel",
+    15.78
+   ],
+   [
+    "Hoses",
+    "Q5_cylinder_blau.piston_rod",
+    24.04
+   ],
+   [
+    "Hoses",
+    "Q5_cylinder_blau.spring",
+    4.45
+   ],
+   [
+    "Hoses",
+    "Q5_stand_blau",
+    229.73
+   ],
+   [
+    "Hoses",
+    "Q5_stand_blau",
+    394.43
+   ],
+   [
+    "Hoses",
+    "V1_valve_vakuum.port_1_P",
+    30.63
+   ],
+   [
+    "Hoses",
+    "V2_valve_senken.coil",
+    12.8
+   ],
+   [
+    "Hoses",
+    "V2_valve_senken.port_1_P",
+    30.63
+   ],
+   [
+    "Hoses",
+    "V3_valve_ofentuer.coil",
+    9.03
+   ],
+   [
+    "Hoses",
+    "V3_valve_ofentuer.housing",
+    32.76
+   ],
+   [
+    "Hoses",
+    "V3_valve_ofentuer.port_1_P",
+    30.63
+   ],
+   [
+    "Hoses",
+    "V3_valve_ofentuer.spring",
+    13.48
+   ],
+   [
+    "Hoses",
+    "V4_valve_schieber.coil",
+    30.02
+   ],
+   [
+    "Hoses",
+    "V4_valve_schieber.housing",
+    24.86
+   ],
+   [
+    "Hoses",
+    "V4_valve_schieber.plunger",
+    94.81
+   ],
+   [
+    "Hoses",
+    "V4_valve_schieber.port_1_P",
+    30.63
+   ]
+  ],
+  "wire_endpoint_contacts": 179,
+  "t": "00:02:51"
+ },
+ "shot_05": {
+  "1": {
+   "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/05_full_iso.png"
+  },
+  "2": {
+   "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/05b_full_top.png"
+  },
+  "3": {
+   "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/05c_vgr.png"
+  },
+  "4": {
+   "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/05d_sorting.png"
+  },
+  "5": {
+   "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/05e_plc.png"
+  },
+  "t": "00:03:15"
+ },
+ "save": {
+  "fcstd": "/Users/sohampatel/workspace/stf-factory/cad/STF_Factory_MCP.FCStd",
+  "fcstd_mb": 12.2,
+  "step": "/Users/sohampatel/workspace/stf-factory/cad/STF_Factory_MCP.step",
+  "step_mb": 109.3,
+  "features": 822,
+  "containers": 178,
+  "ok": true,
+  "seconds": 30.3,
+  "t": "00:56:49"
+ },
+ "closeups": {
+  "a": {
+   "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/12_vgr_carriage_close.png",
+   "hidden": 807
+  },
+  "b": {
+   "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/13_oven_kiln_close.png",
+   "hidden": 793
+  },
+  "c": {
+   "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/14_oven_saw_close.png",
+   "hidden": 781
+  },
+  "d": {
+   "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/15_hbw_lift_close.png",
+   "hidden": 774
+  },
+  "t": "00:33:59"
+ },
+ "closeup_saw": {
+  "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/14_oven_saw_close.png",
+  "hidden": 806,
+  "t": "00:34:25"
+ },
+ "closeup_turn": {
+  "path": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/16_oven_drehtisch_close.png",
+  "hidden": 782,
+  "t": "00:34:31"
+ },
+ "film": {
+  "frames": 352,
+  "mp4": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/factory_motion.mp4",
+  "gif": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/factory_motion.gif",
+  "ok": true,
+  "seconds": 171.7,
+  "t": "00:53:36"
+ },
+ "film_oven": {
+  "frames": 224,
+  "mp4": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/oven_motion.mp4",
+  "gif": "/Users/sohampatel/workspace/stf-cad/hbw/mcp_shots/oven_motion.gif",
+  "t": "00:54:45"
+ },
+ "pose": {
+  "t": "00:55:04",
+  "poses": {
+   "hbw": {
+    "travel": 665.0,
+    "lift": 260.0,
+    "fork": 0.0
+   },
+   "vgr": {
+    "swivel": 0.0,
+    "plunge": 500.0,
+    "reach": 0.0,
+    "carry": 0.0
+   },
+   "oven": {
+    "slider": 250.0,
+    "door": 50.0,
+    "turn": 0.0,
+    "sauger": 335.0,
+    "lower": 0.0,
+    "push": 0.0
+   },
+   "sorting": {
+    "push0": 0.0,
+    "push1": 0.0,
+    "push2": 0.0
+   }
+  },
+  "ok": true,
+  "seconds": 7.3
+ }
+}

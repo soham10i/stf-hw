@@ -35,6 +35,7 @@ def scenario(rnd):
 def machine(i):
     rnd = random.Random(1000 + i)
     m = M.Month(skip_pm=tuple(COMPS), scenario=scenario(rnd), seed=5000 + i, days=DAYS).run()
+    idx = {o["t"]: n for n, o in enumerate(m.orders)}
     rules = []
     for e in m.events:
         if e["kind"] == "warning":

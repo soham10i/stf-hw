@@ -42,6 +42,7 @@ def chains():
     acc = {a["axis"]: a["error_mm"] for a in V.ACC}
     cup = VG.V["CUP_D"]
     wp = q["WP_D"]
+    pocket = min(q["MOULD"][0], q["MOULD"][1]) - 2 * q["RIM_T"]
     pocket_y = max(q["MOULD"][0], q["MOULD"][1]) - 2 * q["RIM_T"]
     seat = 0.2 if UP7 else (pocket_y - wp) / 2
     belt_w = SM.S["BELT"][3]

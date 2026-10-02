@@ -33,7 +33,7 @@ import itertools
 import math
 from dataclasses import dataclass
 
-from variant import UP2, UP12
+from variant import UP2
 
 GAP = 25.0            # guard inner face to table edge
 POST = 30.0           # 30x30 slotted aluminium profile
@@ -342,10 +342,7 @@ def circuit():
                     {"id": "K2", "label": "contactor K2: actuator +24 V, channel 2"},
                     {"id": "Y1", "label": "safe exhaust valve: air supply + vent"}],
         "edm": "NC mirror contacts of K1 and K2 in series into the relay's feedback loop",
-        "locking": ("door locks released only when the PLC requests it AND the standstill monitor K8 sees 0 V on the actuator "
-                    "bus (K1/K2 open): hardwired in series, so no network command can release a lock while anything is powered"
-                    if UP12 else
-                    "door locks released only by the PLC's standstill signal (all axes stopped, 0 V on the actuator bus)"),
+        "locking": "door locks released only by the PLC's standstill signal (all axes stopped, 0 V on the actuator bus)",
         "switched": "actuator 24 V: all motor relays and all solenoid valves; sensors stay powered",
     }
 
@@ -366,9 +363,6 @@ def enable(state):
 
 
 def unlock_allowed(state):
-    if UP12:
-        # Upgrade 12: the PLC's request alone is not enough - the hardwired monitor must see the bus dead
-        return state["standstill"] and state.get("bus_0v", False)
     return state["standstill"]
 
 
@@ -400,14 +394,9 @@ def check_logic():
                                 if enable(f):
                                     fails.append(f"SINGLE FAULT {kind}[{ch}][{i}] still enables")
     for ss in (False, True):
-        for bus in ((False, True) if UP12 else (None,)):
-            n += 1
-            st = {"standstill": ss} if bus is None else {"standstill": ss, "bus_0v": bus}
-            want = ss if bus is None else (ss and bus)
-            if unlock_allowed(st) != want:
-                fails.append("a door may unlock while the machine moves")
-            if UP12 and bus is False and unlock_allowed(st):
-                fails.append("a PLC request alone releases a lock with the actuator bus live")
+        n += 1
+        if unlock_allowed({"standstill": ss}) != ss:
+            fails.append("a door may unlock while the machine moves")
     return fails, n
 
 

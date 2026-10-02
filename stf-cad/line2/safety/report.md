@@ -6,7 +6,7 @@ Engineering evidence, not a certificate. PLr values and every [assumed] time / f
 
 | proof | value | limit | result | note |
 |---|---|---|---|---|
-| G1 hazards inside the guard | 147 hazardous parts above the deck | all inside | pass | guard volume = inner panel faces + roof |
+| G1 hazards inside the guard | 190 hazardous parts above the deck | all inside | pass | guard volume = inner panel faces + roof |
 | G2 wall F1 | largest gap e = 4 mm | <= 6 mm | pass | panels + doors + posts + curtain bars; declared openings excluded |
 | G2 wall step | largest gap e = 2 mm | <= 6 mm | pass | panels + doors + posts + curtain bars; declared openings excluded |
 | G2 wall F2 | largest gap e = 4 mm | <= 6 mm | pass | panels + doors + posts + curtain bars; declared openings excluded |
@@ -17,32 +17,46 @@ Engineering evidence, not a certificate. PLr values and every [assumed] time / f
 | G4 roof sag (worst) | 2.1 mm (guard_panel_roof_1_0) | <= 3 mm and clear | pass | one-way span, 4 mm PC, own weight |
 | G5 doors | 3 doors, each locked | F_hold 2000 >= 1000 N | pass | RFID-coded power-to-unlock switch on every lock post |
 | G6 E-stops | 3, worst door -> E-stop 65 mm | <= 2000 mm | pass | heads outside the guard, 2 NC each (ISO 13850) |
-| G7 cut-off coverage | 17 steppers behind K1/K2, 14 valves behind Q19, 7 STLs | all | pass | zones: boxes: 0 motors, 3 valves behind Y1, out: 3 motors behind K5, 0 valves |
-| G8 SS1 + unlock timing | SS1 1.20 s, unlock >= 2.23 s | >= ramp 1.00 s / run-down 1.10 s | pass | guard locking: no access before standstill |
+| G7 cut-off coverage | 18 steppers behind K1/K2, 10 valves behind Q19, 6 STLs | all | pass | zones: boxes: 0 motors, 3 valves behind Y1, out: 3 motors behind K5, 0 valves |
+| G8 SS1 + unlock timing | SS1 1.20 s, unlock >= 3.73 s | >= ramp 1.00 s / run-down 3.00 s | pass | guard locking: no access before standstill |
 | G9 airlocks | 2 chambers, largest boundary gap e = 10 mm | <= 12 mm, doors locked + interlocked | pass | outer door opens only with the inner side shut (trapdoors / inner door) and the zone at standstill |
 | G10 under-deck guard | 3 moving parts under the deck | all inside the lift guard | pass | sheet box flanged to the deck; the rods leave it only through the deck |
 | G11 reject drawer | hole 50 sq inside the bin, shutter + S34 | closed when not fully in | pass | spring shutter held open by the drawer's push pin; S34 monitors the drawer |
+| G12 PL estimate (ISO 13849-1) | 7/7 functions | PL_est >= PLr | pass | simplified method, typical data, Figure 5 read conservatively |
 
 ## Hazards
 
 | hazard | parts | kind | force | t_mech [assumed] | port zone |
 |---|---|---|---|---|---|
 | chain loop (drawing-in at bends / drive) | 7 | motion | high | 0.02 | - |
-| delta A | 21 | motion | high | 0.1 | - |
-| delta B | 21 | motion | high | 0.1 | - |
-| flying stamp (screw axis + D16) | 8 | motion | high | 0.1 | - |
-| stamp die (hot) | 1 | heat | high | - | - |
+| delta A | 22 | motion | high | 0.1 | - |
+| delta B | 22 | motion | high | 0.1 | - |
+| delta C (transfer) | 22 | motion | high | 0.1 | - |
+| mesh band + drums (in-running nips) | 11 | motion | high | 0.05 | - |
+| depositor feed rolls + cutting wire | 4 | motion | high | 0.05 | - |
+| topping dosing pistons D10 | 3 | motion | 47 N (low energy) | 0.1 | - |
+| oven fan impellers (inside the chamber) | 3 | motion | high | 2.0 | - |
+| oven chamber + elements (210 C) | 19 | heat | high | - | - |
 | QC kicker D10 | 5 | motion | 47 N (low energy) | 0.1 | - |
-| escapement gates D10 | 6 | motion | 47 N (low energy) | 0.1 | - |
-| singulator discs | 3 | motion | 6 N (low energy) | 0.02 | - |
 | lane belts (in-running nips) | 3 | motion | high | 0.02 | - |
 | sealers D25 (crush + hot) | 9 | motion | high | 0.1 | - |
 | stacker lifts D16 | 9 | motion | 121 N | 0.1 | - |
 | shuttles + cassettes | 45 | motion | high | 0.05 | out |
 | tray magazine forks D8 | 6 | motion | 30 N (low energy) | 0.1 | - |
-| oven IR bars (hot) | 3 | heat | high | - | - |
-| airlock doors (power-operated, force-limited) | 3 | motion | 50 N (low energy) | 0.1 | - |
+| airlock doors (power-operated, force-limited) | 6 | motion | 50 N (low energy) | 0.1 | - |
 | trapdoor flaps | 3 | motion | 6 N (low energy) | 0.1 | boxes |
+
+## PL estimate (ISO 13849-1 simplified method, typical data - verify in SISTEMA)
+
+| function | PLr | PL est. | subsystems |
+|---|---|---|---|
+| SF1 E-stop | d | d | E-stop, 2 NC, clocked inputs: PL d (cat 3, DC 90% (medium), MTTFd 100 y (high), n_op 220/y) | TwinSAFE logic + safe I/O: PL e (certified device ([typ] EL6910 + EL1904 + EL2904, sum of the three PFHd)) | K1 + K2 (EDM): PL d (cat 3, DC 99% (high), MTTFd 100 y (high), n_op 2860/y) |
+| SF1 heaters | d | d | E-stop, 2 NC, clocked inputs: PL d (cat 3, DC 90% (medium), MTTFd 100 y (high), n_op 220/y) | TwinSAFE logic + safe I/O: PL e (certified device ([typ] EL6910 + EL1904 + EL2904, sum of the three PFHd)) | K3 + K4 (EDM): PL d (cat 3, DC 99% (high), MTTFd 100 y (high), n_op 660/y) |
+| SF2 guard locking | d | d | guard-locking switch: PL e (certified device ([typ] RFID guard-locking switch, certified PL e)) | TwinSAFE logic + safe I/O: PL e (certified device ([typ] EL6910 + EL1904 + EL2904, sum of the three PFHd)) | K1 + K2 (EDM): PL d (cat 3, DC 99% (high), MTTFd 100 y (high), n_op 2860/y) |
+| SF3 safe exhaust | c | c | TwinSAFE logic + safe I/O: PL e (certified device ([typ] EL6910 + EL1904 + EL2904, sum of the three PFHd)) | Q19 dump valve + position switch: PL c (cat 2, DC 90% (medium), MTTFd 100 y (high), n_op 2860/y) |
+| SF4 over-temperature | c | c | STB per zone: PL d (certified device ([typ] STB to EN 14597, SIL 2 / PL d certified)) | zone contactor KHn (well-tried): PL c (cat 1, DC 0% (none), MTTFd 100 y (high), n_op 660/y) |
+| SF6 out airlock | c | c | S31 / S32 door switches: PL e (certified device ([typ] same switch class in the door kit)) | TwinSAFE logic + safe I/O: PL e (certified device ([typ] EL6910 + EL1904 + EL2904, sum of the three PFHd)) | K5 + EDM: PL c (cat 2, DC 99% (high), MTTFd 100 y (high), n_op 39111/y) |
+| SF6 boxes airlock | c | c | S30 door switch: PL e (certified device ([typ] same switch class in the door kit)) | trapdoor safety sensors: PL d (certified device ([typ] safety inductive sensor with OSSD (PL d))) | TwinSAFE logic + safe I/O: PL e (certified device ([typ] EL6910 + EL1904 + EL2904, sum of the three PFHd)) | Y1 zone valve + position switch: PL c (cat 2, DC 90% (medium), MTTFd 100 y (high), n_op 35200/y) |
 
 ## Findings (0) - open, block operation
 
@@ -51,61 +65,66 @@ Engineering evidence, not a certificate. PLr values and every [assumed] time / f
 
 | opening | hazard | state | d mm | needed mm | rule | ok |
 |---|---|---|---|---|---|---|
-| raw pour strip (into the hopper strip only) | singulator discs | always | in reach | - | low energy | yes |
+| raw pour strip (into the dough + topping hoppers only) | depositor feed rolls + cutting wire | always | 210 below the grid | 200 (square e 40) | ISO 13857 Table 4 | yes |
 | out airlock | shuttles + cassettes | outer door open | in the chamber | - | zone at safe standstill | yes |
 | out airlock | chain loop (drawing-in at bends / drive) | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 756 | 80 | ISO 13857 slot e = 10 | yes |
-| out airlock | delta A | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 522 | 80 | ISO 13857 slot e = 10 | yes |
-| out airlock | delta B | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 827 | 80 | ISO 13857 slot e = 10 | yes |
-| out airlock | flying stamp (screw axis + D16) | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 699 | 80 | ISO 13857 slot e = 10 | yes |
-| out airlock | stamp die (hot) | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 831 | 80 | ISO 13857 slot e = 10 | yes |
+| out airlock | delta A | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 529 | 80 | ISO 13857 slot e = 10 | yes |
+| out airlock | delta B | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 831 | 80 | ISO 13857 slot e = 10 | yes |
+| out airlock | delta C (transfer) | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 233 | 80 | ISO 13857 slot e = 10 | yes |
+| out airlock | mesh band + drums (in-running nips) | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 664 | 80 | ISO 13857 slot e = 10 | yes |
+| out airlock | oven fan impellers (inside the chamber) | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 890 | 80 | ISO 13857 slot e = 10 | yes |
+| out airlock | oven chamber + elements (210 C) | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 869 | 80 | ISO 13857 slot e = 10 | yes |
 | out airlock | lane belts (in-running nips) | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 778 | 80 | ISO 13857 slot e = 10 | yes |
 | out airlock | sealers D25 (crush + hot) | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 576 | 80 | ISO 13857 slot e = 10 | yes |
 | out airlock | stacker lifts D16 | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 765 | 80 | ISO 13857 slot e = 10 | yes |
-| out airlock | oven IR bars (hot) | chamber gap e = 10 at (1522, 852, 834, 1560, 1074, 844) | 932 | 80 | ISO 13857 slot e = 10 | yes |
 | out airlock | chain loop (drawing-in at bends / drive) | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 815 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | delta A | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 560 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | delta B | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 850 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | flying stamp (screw axis + D16) | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 729 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | stamp die (hot) | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 866 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | delta A | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 568 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | delta B | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 855 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | delta C (transfer) | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 248 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | mesh band + drums (in-running nips) | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 706 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | oven fan impellers (inside the chamber) | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 912 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | oven chamber + elements (210 C) | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 898 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | lane belts (in-running nips) | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 836 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | sealers D25 (crush + hot) | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 629 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | stacker lifts D16 | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 825 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | oven IR bars (hot) | chamber gap e = 2 at (1522, 822, 894, 1560, 1104, 896) | 965 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | chain loop (drawing-in at bends / drive) | chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2) | 80 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | delta A | chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2) | 763 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | flying stamp (screw axis + D16) | chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2) | 501 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | stamp die (hot) | chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2) | 567 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | delta A | chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2) | 759 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | delta C (transfer) | chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2) | 342 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | mesh band + drums (in-running nips) | chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2) | 309 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | oven chamber + elements (210 C) | chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2) | 927 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | lane belts (in-running nips) | chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2) | 507 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | sealers D25 (crush + hot) | chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2) | 552 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | stacker lifts D16 | chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2) | 347 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | oven IR bars (hot) | chamber gap e = 2 at (1832, 822, 0, 1856, 1104, 2) | 873 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | chain loop (drawing-in at bends / drive) | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 73 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | delta A | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 489 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | delta B | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 826 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | flying stamp (screw axis + D16) | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 460 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | stamp die (hot) | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 460 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | delta A | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 483 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | delta B | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 823 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | delta C (transfer) | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 333 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | mesh band + drums (in-running nips) | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 204 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | oven fan impellers (inside the chamber) | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 784 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | oven chamber + elements (210 C) | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 659 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | lane belts (in-running nips) | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 215 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | sealers D25 (crush + hot) | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 270 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | stacker lifts D16 | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 85 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | oven IR bars (hot) | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 622 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | stacker lifts D16 | chamber gap e = 2 at (1530, 818, 0, 1832, 822, 2) | 88 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | chain loop (drawing-in at bends / drive) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 319 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | delta A | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 521 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | delta B | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 824 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | flying stamp (screw axis + D16) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 737 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | stamp die (hot) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 737 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | delta A | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 516 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | delta B | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 821 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | delta C (transfer) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 520 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | mesh band + drums (in-running nips) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 487 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | oven fan impellers (inside the chamber) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 963 | 2 | ISO 13857 slot e = 2 | yes |
+| out airlock | oven chamber + elements (210 C) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 831 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | lane belts (in-running nips) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 216 | 2 | ISO 13857 slot e = 2 | yes |
 | out airlock | sealers D25 (crush + hot) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 271 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | stacker lifts D16 | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 89 | 2 | ISO 13857 slot e = 2 | yes |
-| out airlock | oven IR bars (hot) | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 832 | 2 | ISO 13857 slot e = 2 | yes |
-| reject drawer (in) | chain loop (drawing-in at bends / drive) | bin-top slot e = 10, path via hole + funnel | 110 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | delta A | bin-top slot e = 10, path via hole + funnel | 369 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | flying stamp (screw axis + D16) | bin-top slot e = 10, path via hole + funnel | 405 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | stamp die (hot) | bin-top slot e = 10, path via hole + funnel | 405 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | lane belts (in-running nips) | bin-top slot e = 10, path via hole + funnel | 242 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | sealers D25 (crush + hot) | bin-top slot e = 10, path via hole + funnel | 251 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | stacker lifts D16 | bin-top slot e = 10, path via hole + funnel | 255 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | shuttles + cassettes | bin-top slot e = 10, path via hole + funnel | 242 | 80 | ISO 13857 slot e = 10 | yes |
-| reject drawer (in) | oven IR bars (hot) | bin-top slot e = 10, path via hole + funnel | 414 | 80 | ISO 13857 slot e = 10 | yes |
+| out airlock | stacker lifts D16 | chamber gap e = 2 at (1530, 1104, 0, 1832, 1108, 2) | 92 | 2 | ISO 13857 slot e = 2 | yes |
+| reject drawer (in) | chain loop (drawing-in at bends / drive) | bin-top slot e = 4 (brush), path via hole + funnel | 110 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | delta A | bin-top slot e = 4 (brush), path via hole + funnel | 361 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | delta C (transfer) | bin-top slot e = 4 (brush), path via hole + funnel | 398 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | mesh band + drums (in-running nips) | bin-top slot e = 4 (brush), path via hole + funnel | 210 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | oven fan impellers (inside the chamber) | bin-top slot e = 4 (brush), path via hole + funnel | 577 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | oven chamber + elements (210 C) | bin-top slot e = 4 (brush), path via hole + funnel | 450 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | lane belts (in-running nips) | bin-top slot e = 4 (brush), path via hole + funnel | 242 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | sealers D25 (crush + hot) | bin-top slot e = 4 (brush), path via hole + funnel | 251 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | stacker lifts D16 | bin-top slot e = 4 (brush), path via hole + funnel | 259 | 2 | ISO 13857 slot e = 4 | yes |
+| reject drawer (in) | shuttles + cassettes | bin-top slot e = 4 (brush), path via hole + funnel | 242 | 2 | ISO 13857 slot e = 4 | yes |
 
 ## Safety functions (TwinSAFE configuration input)
 
@@ -114,6 +133,6 @@ Engineering evidence, not a certificate. PLr values and every [assumed] time / f
 | SF1 | E-stop | S10.A/B S11.A/B S12.A/B, S13 reset | K1+K2 off (all motion, STO-equivalent), Q19 exhaust, K3+K4 off (heaters) | cat 0 (K3/K4, Q19) + SS1 before K1/K2 | d | EDM K1K2.EDM, K3K4.EDM, Q19.FB |
 | SF2 | guard locking | S20.A/B S21.A/B S22.A/B | door opened / unlocked -> SS1 -> K1+K2 off, Q19 exhaust; S2x.UNL only after SS1 + standstill | SS1 | d | EDM, lock state from the switch OSSDs |
 | SF3 | safe exhaust | SF1 / SF2 demand | Q19 dump valve de-energised | 0 | c | Q19.FB |
-| SF4 | over-temperature | STL per zone (own duplex element) | STL relay contact opens the zone's load; trip reported on <zone>.STL | 0 (hardwired, not TwinSAFE) | c | manual STL reset |
+| SF4 | over-temperature | STB per oven zone + per sealing head (own duplex element) | oven zone: the STB contact drops zone contactor KHn (every element + the fan of the zone); sealing head: the STB contact opens its load; trip reported on <unit>.STL | 0 (hardwired, not TwinSAFE) | c | manual STB reset |
 | SF5 | chain drawing-in | (covered by the perimeter guard: no motion with a door open) | - | - | c | no jog / enabling device in S-1 |
-| SF6 | AMR airlocks | S30.A/B (boxes outer door), S31.A/B (out outer), S32.A/B (out inner), Q42..Q44.CL trapdoors closed, S34.A/B drawer | boxes: S30 unlocks only with every trapdoor closed and Y1 exhausted; trapdoors open only with S30 locked. out: S31 unlocks only with S32 locked and K5 (shuttles) off; S32 unlocks only with S31 locked. A door opened / unlocked out of sequence -> SF1 response without heaters | 0 / zone STO | c | EDM K5.EDM, Y1.FB, lock OSSDs |
+| SF6 | AMR airlocks | S30.A/B (boxes outer door), S31.A/B (out outer), S32.A/B (out inner), trapdoors .CLA/B closed (safety sensors), S34.A/B drawer | boxes: S30 unlocks only with every trapdoor closed and Y1 exhausted; trapdoors open only with S30 locked. out: S31 unlocks only with S32 locked and K5 (shuttles) off; S32 unlocks only with S31 locked. A door opened / unlocked out of sequence -> SF1 response without heaters | 0 / zone STO | c | EDM K5.EDM, Y1.FB, lock OSSDs |

@@ -52,7 +52,6 @@ ETA = 0.95                     # each way
 INV_STANDBY = 8.0              # W
 PEAK_CAP = 70.0                # W: the peak-shaving target - below the cell's natural ~86 W peak, so it shaves
 DR_CAP = 15.0                  # W: import cap during a demand-response event
-DR_FLOOR = {"soc": SOC_MIN}    # how low a DR window may take the battery (Upgrade 12 raises it to RESERVE)
 DEG_EUR_KWH = 0.06             # battery wear per kWh throughput
 PSU_EFF = 0.90
 
@@ -206,7 +205,7 @@ def simulate(m, scenario, weath, rnd_seed=SEED):
                 p_b = e_b / ETA / STEP_H if e_b > 0 else e_b * ETA / STEP_H
                 if dr[i] and net + p_b > DR_CAP:
                     p_b = max(-P_BATT, DR_CAP - net)
-                room = (soc - RESERVE) * BATT_WH * ETA / STEP_H if not dr[i] else (soc - DR_FLOOR["soc"]) * BATT_WH * ETA / STEP_H
+                room = (soc - RESERVE) * BATT_WH * ETA / STEP_H if not dr[i] else (soc - SOC_MIN) * BATT_WH * ETA / STEP_H
                 p_b = max(p_b, -max(0.0, room))
                 p_b = min(p_b, (SOC_MAX - soc) * BATT_WH / ETA / STEP_H, P_BATT)
                 # real-time guard: the plan used a forecast; never let a charge (or a missing
@@ -267,6 +266,7 @@ def ride_through(ev, series, batt):
 
 # ---------------------------------------------------------------- power-asset health
 def assets(m, weath, soil_log, cycles_wh, series):
+    rnd = random.Random(SEED + 1)
     days = M.DAYS
     hall = [M.temperature(h) for h in range(days * 24)]
     out = {}

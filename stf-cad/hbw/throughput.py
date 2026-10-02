@@ -159,7 +159,7 @@ def main():
                  f"of the order. The critical path ran round the mould loop - crane, belt, VGR pick, belt back, crane - because one "
                  f"mould shuttles the belt and the VGR held it for its whole tour to the oven. The largest share of the path: "
                  + ", ".join(f"{k} {v} s" for k, v in list(cp_before[1].items())[:3]) + "."},
-        {"title": "What each measure is worth (removed from the full set): " + ", ".join(f"{m} {marg[m]} s" for m in MEASURES),
+        {"title": f"What each measure is worth (removed from the full set): " + ", ".join(f"{m} {marg[m]} s" for m in MEASURES),
          "text": "Alone against the old program: " + ", ".join(f"{m} {alone[m]} s" for m in MEASURES) +
                  f". {max(marg, key=marg.get)} is worth most. The sum of the parts alone ({round(sum(alone.values()), 1)} s) "
                  f"differs from the whole ({round(base['vc_s'] - up['vc_s'], 1)} s) because they share the loop. "

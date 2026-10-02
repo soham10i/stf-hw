@@ -314,7 +314,7 @@ def _blend_one(keys, f0, mov, f1):
     splits = SPLITS if len(mov) == 2 else ((0.0, 0.0), (0.5, 0.5), (1.0, 1.0))
     best = None
     for a, b in splits:
-        def ok(h, fine=False, a=a, b=b):      # bind this split, not the loop's last
+        def ok(h, fine=False):
             return _legs_clear([A] + _place(keys, f0, mov, f1, a, b, h) + [B], fine)
         # the lowest clear height: clearance grows with height (everything is below TRANSIT)
         k_lo, k_hi = 0, len(grid) - 1

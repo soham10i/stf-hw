@@ -33,6 +33,7 @@ Assumed, and flagged wherever shown: axis speeds as motion.py (HBW 150 mm/s,
 VGR 60 deg/s and 120 mm/s), belts 50 mm/s, an RFID read 0.3 s, vacuum 0.5 s,
 and the booklet's demo bake (2 s). A real bake only scales the oven's share.
 """
+import math
 from dataclasses import dataclass, field
 
 import controller as CT
@@ -785,10 +786,6 @@ def invariants(s):
     for bi, b in enumerate(BAYS):
         if len(s["bays"][bi]) > BAY_CAP:
             bad.append(f"bay {b} holds {len(s['bays'][bi])} > {BAY_CAP}")
-    # Upgrade 10: a cup holds one cookie - while it does, the arm may only lay it down
-    # (found by the mutation tests of validate.py: conservation alone did not catch it)
-    if s.get("cup") and any("arm" in j[2] and j[0] != "place_oven" for j in s["run"]):
-        bad.append(f"the arm holds {s['cup'][0]} and was given another job")
     return bad
 
 

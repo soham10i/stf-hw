@@ -1,99 +1,105 @@
 {
  "nominal_1h": {
-  "loaded": 900,
+  "loaded": 890,
   "packed": {
-   "weiss": 281,
-   "rot": 279,
-   "blau": 273
+   "weiss": 287,
+   "rot": 278,
+   "blau": 275
   },
   "rejected": 38,
   "burnt": 0,
   "escapes": 0,
-  "recirc": 0,
+  "recirc": 3,
   "empty_slots": 0,
   "starved_raw": 0,
-  "blocked_cassette": 0,
-  "blocked_boxes": 0,
-  "reject_overflow": 0,
-  "cassettes_out": {
-   "weiss": 3,
-   "rot": 3,
-   "blau": 3
-  },
-  "picks": [
-   829,
-   4
-  ],
-  "stops": 0,
-  "missed_pick_windows": 0,
-  "false_rejects": 8,
-  "throttled": 0,
-  "scenario": "nominal_1h",
-  "hours": 1.0,
-  "steady_state_per_h": 859.2,
-  "theoretical_per_h": 900.0,
-  "line_efficiency": 0.955,
-  "amr_util": [
-   0.49,
-   0.26
-  ],
-  "amr_max_late_min": 0.3,
-  "amr_tasks": 33
- },
- "delta_A_down_10min": {
-  "loaded": 896,
-  "packed": {
-   "weiss": 278,
-   "rot": 275,
-   "blau": 270
-  },
-  "rejected": 44,
-  "burnt": 4,
-  "escapes": 0,
-  "recirc": 4,
-  "empty_slots": 0,
-  "starved_raw": 0,
+  "untopped": 0,
+  "band_lost": 20,
   "blocked_cassette": 3,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
    "weiss": 3,
    "rot": 3,
-   "blau": 3
+   "blau": 4
   },
   "picks": [
-   676,
-   147
+   835,
+   5
   ],
   "stops": 0,
   "missed_pick_windows": 3,
-  "false_rejects": 8,
+  "false_rejects": 6,
+  "throttled": 0,
+  "scenario": "nominal_1h",
+  "hours": 1.0,
+  "steady_state_per_h": 849.6,
+  "theoretical_per_h": 900.0,
+  "line_efficiency": 0.944,
+  "amr_util": [
+   0.47,
+   0.23
+  ],
+  "amr_max_late_min": 1.1,
+  "amr_tasks": 30
+ },
+ "delta_A_down_10min": {
+  "loaded": 893,
+  "packed": {
+   "weiss": 286,
+   "rot": 280,
+   "blau": 276
+  },
+  "rejected": 39,
+  "burnt": 0,
+  "escapes": 0,
+  "recirc": 1,
+  "empty_slots": 0,
+  "starved_raw": 0,
+  "untopped": 0,
+  "band_lost": 17,
+  "blocked_cassette": 1,
+  "blocked_boxes": 0,
+  "reject_overflow": 0,
+  "cassettes_out": {
+   "weiss": 3,
+   "rot": 3,
+   "blau": 4
+  },
+  "picks": [
+   691,
+   151
+  ],
+  "stops": 0,
+  "missed_pick_windows": 1,
+  "false_rejects": 12,
   "throttled": 0,
   "scenario": "delta_A_down_10min",
   "hours": 1.0,
-  "steady_state_per_h": 847.2,
+  "steady_state_per_h": 852.0,
   "theoretical_per_h": 900.0,
-  "line_efficiency": 0.941,
+  "line_efficiency": 0.947,
   "amr_util": [
-   0.49,
-   0.27
+   0.46,
+   0.23
   ],
-  "amr_max_late_min": 1.1,
-  "amr_tasks": 33
+  "amr_max_late_min": 0.7,
+  "amr_tasks": 30
  },
  "both_deltas_down_2min": {
-  "loaded": 872,
+  "loaded": 869,
   "packed": {
-   "weiss": 263,
-   "rot": 261,
-   "blau": 253
+   "weiss": 278,
+   "rot": 271,
+   "blau": 272
   },
-  "rejected": 66,
-  "burnt": 27,
+  "rejected": 36,
+  "burnt": 0,
   "escapes": 1,
-  "recirc": 28,
+  "recirc": 26,
   "empty_slots": 0,
   "starved_raw": 0,
+  "untopped": 0,
+  "band_lost": 41,
   "blocked_cassette": 1,
   "blocked_boxes": 0,
   "reject_overflow": 0,
@@ -103,121 +109,212 @@
    "blau": 3
   },
   "picks": [
-   771,
-   6
+   812,
+   9
   ],
   "stops": 0,
-  "missed_pick_windows": 27,
+  "missed_pick_windows": 26,
   "false_rejects": 10,
   "throttled": 0,
   "scenario": "both_deltas_down_2min",
   "hours": 1.0,
-  "steady_state_per_h": 792.0,
+  "steady_state_per_h": 826.8,
   "theoretical_per_h": 900.0,
-  "line_efficiency": 0.88,
+  "line_efficiency": 0.919,
   "amr_util": [
-   0.49,
-   0.3
+   0.45,
+   0.19
   ],
-  "amr_max_late_min": 0.7,
-  "amr_tasks": 34
+  "amr_max_late_min": 0.8,
+  "amr_tasks": 25
  },
  "both_deltas_down_10min": {
-  "loaded": 807,
+  "loaded": 752,
   "packed": {
-   "weiss": 220,
-   "rot": 218,
-   "blau": 212
+   "weiss": 241,
+   "rot": 234,
+   "blau": 232
   },
-  "rejected": 128,
-  "burnt": 92,
+  "rejected": 33,
+  "burnt": 0,
   "escapes": 0,
-  "recirc": 93,
+  "recirc": 144,
   "empty_slots": 0,
   "starved_raw": 0,
+  "untopped": 0,
+  "band_lost": 158,
   "blocked_cassette": 0,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
    "weiss": 2,
-   "rot": 2,
+   "rot": 3,
    "blau": 3
   },
   "picks": [
-   646,
-   4
+   701,
+   6
   ],
   "stops": 0,
-  "missed_pick_windows": 93,
-  "false_rejects": 8,
+  "missed_pick_windows": 144,
+  "false_rejects": 6,
   "throttled": 0,
   "scenario": "both_deltas_down_10min",
   "hours": 1.0,
-  "steady_state_per_h": 639.6,
+  "steady_state_per_h": 690.0,
   "theoretical_per_h": 900.0,
-  "line_efficiency": 0.711,
+  "line_efficiency": 0.767,
   "amr_util": [
-   0.45,
-   0.29
+   0.44,
+   0.22
   ],
-  "amr_max_late_min": 0.9,
-  "amr_tasks": 31
+  "amr_max_late_min": 0.1,
+  "amr_tasks": 26
  },
  "both_deltas_down_10min_AGENT": {
-  "loaded": 750,
+  "loaded": 640,
   "packed": {
-   "weiss": 225,
-   "rot": 219,
-   "blau": 213
+   "weiss": 206,
+   "rot": 199,
+   "blau": 193
   },
-  "rejected": 64,
-  "burnt": 30,
+  "rejected": 29,
+  "burnt": 0,
   "escapes": 0,
-  "recirc": 30,
-  "empty_slots": 120,
+  "recirc": 144,
+  "empty_slots": 112,
   "starved_raw": 0,
-  "blocked_cassette": 0,
+  "untopped": 0,
+  "band_lost": 120,
+  "blocked_cassette": 1,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
    "weiss": 2,
    "rot": 2,
-   "blau": 3
+   "blau": 2
   },
   "picks": [
-   653,
-   4
+   593,
+   5
   ],
   "stops": 0,
-  "missed_pick_windows": 30,
-  "false_rejects": 10,
-  "throttled": 120,
+  "missed_pick_windows": 145,
+  "false_rejects": 5,
+  "throttled": 150,
   "scenario": "both_deltas_down_10min_AGENT",
   "hours": 1.0,
-  "steady_state_per_h": 648.0,
+  "steady_state_per_h": 559.2,
   "theoretical_per_h": 900.0,
-  "line_efficiency": 0.72,
+  "line_efficiency": 0.621,
   "amr_util": [
-   0.42,
-   0.26
+   0.33,
+   0.28
   ],
-  "amr_max_late_min": 0.7,
-  "amr_tasks": 30
+  "amr_max_late_min": 1.0,
+  "amr_tasks": 19
  },
  "shift_2_AMR": {
-  "loaded": 7183,
+  "loaded": 7155,
   "packed": {
-   "weiss": 2296,
-   "rot": 2274,
-   "blau": 2270
+   "weiss": 2322,
+   "rot": 2287,
+   "blau": 2263
   },
-  "rejected": 314,
-  "burnt": 17,
-  "escapes": 4,
-  "recirc": 17,
+  "rejected": 271,
+  "burnt": 0,
+  "escapes": 2,
+  "recirc": 10,
   "empty_slots": 0,
   "starved_raw": 0,
-  "blocked_cassette": 17,
+  "untopped": 0,
+  "band_lost": 55,
+  "blocked_cassette": 10,
+  "blocked_boxes": 0,
+  "reject_overflow": 0,
+  "cassettes_out": {
+   "weiss": 28,
+   "rot": 28,
+   "blau": 28
+  },
+  "picks": [
+   6826,
+   46
+  ],
+  "stops": 0,
+  "missed_pick_windows": 10,
+  "false_rejects": 57,
+  "throttled": 0,
+  "scenario": "shift_2_AMR",
+  "hours": 8.0,
+  "steady_state_per_h": 860.4,
+  "theoretical_per_h": 900.0,
+  "line_efficiency": 0.956,
+  "amr_util": [
+   0.55,
+   0.4
+  ],
+  "amr_max_late_min": 1.1,
+  "amr_tasks": 333
+ },
+ "shift_1_AMR": {
+  "loaded": 7127,
+  "packed": {
+   "weiss": 2299,
+   "rot": 2291,
+   "blau": 2233
+  },
+  "rejected": 292,
+  "burnt": 0,
+  "escapes": 4,
+  "recirc": 44,
+  "empty_slots": 0,
+  "starved_raw": 0,
+  "untopped": 0,
+  "band_lost": 83,
+  "blocked_cassette": 43,
+  "blocked_boxes": 0,
+  "reject_overflow": 0,
+  "cassettes_out": {
+   "weiss": 28,
+   "rot": 28,
+   "blau": 28
+  },
+  "picks": [
+   6762,
+   61
+  ],
+  "stops": 0,
+  "missed_pick_windows": 43,
+  "false_rejects": 74,
+  "throttled": 0,
+  "scenario": "shift_1_AMR",
+  "hours": 8.0,
+  "steady_state_per_h": 854.2,
+  "theoretical_per_h": 900.0,
+  "line_efficiency": 0.949,
+  "amr_util": [
+   0.76
+  ],
+  "amr_max_late_min": 1.6,
+  "amr_tasks": 252
+ },
+ "shift_2_AMR_one_down_2h": {
+  "loaded": 7140,
+  "packed": {
+   "weiss": 2304,
+   "rot": 2278,
+   "blau": 2252
+  },
+  "rejected": 294,
+  "burnt": 0,
+  "escapes": 3,
+  "recirc": 26,
+  "empty_slots": 0,
+  "starved_raw": 0,
+  "untopped": 0,
+  "band_lost": 70,
+  "blocked_cassette": 25,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
@@ -227,203 +324,128 @@
   },
   "picks": [
    6792,
-   48
+   42
   ],
   "stops": 0,
-  "missed_pick_windows": 17,
-  "false_rejects": 74,
-  "throttled": 0,
-  "scenario": "shift_2_AMR",
-  "hours": 8.0,
-  "steady_state_per_h": 858.3,
-  "theoretical_per_h": 900.0,
-  "line_efficiency": 0.954,
-  "amr_util": [
-   0.61,
-   0.44
-  ],
-  "amr_max_late_min": 1.4,
-  "amr_tasks": 358
- },
- "shift_1_AMR": {
-  "loaded": 7131,
-  "packed": {
-   "weiss": 2239,
-   "rot": 2245,
-   "blau": 2253
-  },
-  "rejected": 365,
-  "burnt": 68,
-  "escapes": 4,
-  "recirc": 69,
-  "empty_slots": 0,
-  "starved_raw": 0,
-  "blocked_cassette": 69,
-  "blocked_boxes": 0,
-  "reject_overflow": 0,
-  "cassettes_out": {
-   "weiss": 27,
-   "rot": 28,
-   "blau": 28
-  },
-  "picks": [
-   6658,
-   79
-  ],
-  "stops": 0,
-  "missed_pick_windows": 69,
-  "false_rejects": 78,
-  "throttled": 0,
-  "scenario": "shift_1_AMR",
-  "hours": 8.0,
-  "steady_state_per_h": 845.1,
-  "theoretical_per_h": 900.0,
-  "line_efficiency": 0.939,
-  "amr_util": [
-   0.75
-  ],
-  "amr_max_late_min": 1.9,
-  "amr_tasks": 267
- },
- "shift_2_AMR_one_down_2h": {
-  "loaded": 7176,
-  "packed": {
-   "weiss": 2273,
-   "rot": 2283,
-   "blau": 2275
-  },
-  "rejected": 316,
-  "burnt": 24,
-  "escapes": 5,
-  "recirc": 24,
-  "empty_slots": 0,
-  "starved_raw": 0,
-  "blocked_cassette": 24,
-  "blocked_boxes": 0,
-  "reject_overflow": 0,
-  "cassettes_out": {
-   "weiss": 28,
-   "rot": 28,
-   "blau": 28
-  },
-  "picks": [
-   6783,
-   48
-  ],
-  "stops": 0,
-  "missed_pick_windows": 24,
-  "false_rejects": 75,
+  "missed_pick_windows": 25,
+  "false_rejects": 76,
   "throttled": 0,
   "scenario": "shift_2_AMR_one_down_2h",
   "hours": 8.0,
-  "steady_state_per_h": 857.1,
+  "steady_state_per_h": 855.6,
   "theoretical_per_h": 900.0,
-  "line_efficiency": 0.952,
+  "line_efficiency": 0.951,
   "amr_util": [
-   0.45,
+   0.42,
    0.5
   ],
-  "amr_max_late_min": 1.6,
-  "amr_tasks": 333
+  "amr_max_late_min": 1.5,
+  "amr_tasks": 315
  },
  "shift_fleet_down_15min": {
-  "loaded": 7134,
+  "loaded": 6989,
   "packed": {
-   "weiss": 2246,
-   "rot": 2223,
-   "blau": 2271
+   "weiss": 2254,
+   "rot": 2249,
+   "blau": 2199
   },
-  "rejected": 365,
-  "burnt": 66,
-  "escapes": 4,
-  "recirc": 66,
+  "rejected": 275,
+  "burnt": 0,
+  "escapes": 1,
+  "recirc": 175,
   "empty_slots": 0,
   "starved_raw": 0,
-  "blocked_cassette": 65,
+  "untopped": 0,
+  "band_lost": 221,
+  "blocked_cassette": 174,
   "blocked_boxes": 0,
   "reject_overflow": 0,
   "cassettes_out": {
    "weiss": 27,
-   "rot": 27,
-   "blau": 28
+   "rot": 28,
+   "blau": 27
   },
   "picks": [
-   6696,
-   44
+   6653,
+   49
   ],
   "stops": 0,
-  "missed_pick_windows": 66,
-  "false_rejects": 75,
+  "missed_pick_windows": 174,
+  "false_rejects": 66,
   "throttled": 0,
   "scenario": "shift_fleet_down_15min",
   "hours": 8.0,
-  "steady_state_per_h": 845.5,
+  "steady_state_per_h": 838.7,
   "theoretical_per_h": 900.0,
-  "line_efficiency": 0.939,
+  "line_efficiency": 0.932,
   "amr_util": [
-   0.55,
-   0.42
+   0.53,
+   0.37
   ],
-  "amr_max_late_min": 10.4,
-  "amr_tasks": 345
+  "amr_max_late_min": 13.8,
+  "amr_tasks": 321
  },
  "shift_fleet_down_45min": {
-  "loaded": 6713,
+  "loaded": 6401,
   "packed": {
-   "weiss": 2066,
-   "rot": 2048,
-   "blau": 2104
+   "weiss": 2075,
+   "rot": 2038,
+   "blau": 2004
   },
-  "rejected": 466,
-  "burnt": 188,
-  "escapes": 5,
-  "recirc": 487,
-  "empty_slots": 0,
-  "starved_raw": 0,
-  "blocked_cassette": 196,
+  "rejected": 272,
+  "burnt": 0,
+  "escapes": 2,
+  "recirc": 620,
+  "empty_slots": 143,
+  "starved_raw": 252,
+  "untopped": 0,
+  "band_lost": 557,
+  "blocked_cassette": 620,
   "blocked_boxes": 0,
-  "reject_overflow": 290,
+  "reject_overflow": 0,
   "cassettes_out": {
    "weiss": 25,
    "rot": 25,
-   "blau": 26
+   "blau": 25
   },
   "picks": [
-   6179,
-   39
+   6072,
+   45
   ],
   "stops": 0,
-  "missed_pick_windows": 197,
-  "false_rejects": 69,
+  "missed_pick_windows": 620,
+  "false_rejects": 60,
   "throttled": 0,
   "scenario": "shift_fleet_down_45min",
   "hours": 8.0,
-  "steady_state_per_h": 778.9,
+  "steady_state_per_h": 764.0,
   "theoretical_per_h": 900.0,
-  "line_efficiency": 0.865,
+  "line_efficiency": 0.849,
   "amr_util": [
-   0.5,
-   0.36
+   0.48,
+   0.34
   ],
-  "amr_max_late_min": 40.4,
-  "amr_tasks": 306
+  "amr_max_late_min": 43.8,
+  "amr_tasks": 294
  },
  "shift_no_AMR": {
-  "loaded": 481,
+  "loaded": 243,
   "packed": {
-   "weiss": 84,
-   "rot": 57,
+   "weiss": 85,
+   "rot": 58,
    "blau": 30
   },
-  "rejected": 262,
-  "burnt": 242,
+  "rejected": 56,
+  "burnt": 0,
   "escapes": 0,
-  "recirc": 6719,
-  "empty_slots": 0,
-  "starved_raw": 0,
-  "blocked_cassette": 418,
+  "recirc": 4570,
+  "empty_slots": 2387,
+  "starved_raw": 5862,
+  "untopped": 0,
+  "band_lost": 1251,
+  "blocked_cassette": 4580,
   "blocked_boxes": 0,
-  "reject_overflow": 6324,
+  "reject_overflow": 0,
   "cassettes_out": {
    "weiss": 0,
    "rot": 0,
@@ -431,17 +453,17 @@
   },
   "picks": [
    171,
-   0
+   2
   ],
   "stops": 0,
-  "missed_pick_windows": 418,
-  "false_rejects": 9,
+  "missed_pick_windows": 4580,
+  "false_rejects": 52,
   "throttled": 0,
   "scenario": "shift_no_AMR",
   "hours": 8.0,
-  "steady_state_per_h": 7.8,
+  "steady_state_per_h": 6.9,
   "theoretical_per_h": 900.0,
-  "line_efficiency": 0.009,
+  "line_efficiency": 0.008,
   "amr_util": [],
   "amr_max_late_min": 0.0,
   "amr_tasks": 0

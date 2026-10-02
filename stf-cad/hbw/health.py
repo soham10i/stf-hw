@@ -33,6 +33,7 @@ import random
 
 import control as C
 import vc as V
+from variant import UP6
 
 EWMA = 0.02            # smoothing per observation
 SOFT = 0.50            # warn when half the margin to failure is used

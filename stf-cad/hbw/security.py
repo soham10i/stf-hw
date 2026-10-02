@@ -547,13 +547,13 @@ def main():
     cov = a2["coverage"]
     ex = R["exposed"]
     findings = [
-        {"title": "Plain Modbus: anything on the cell network could move the machine",
+        {"title": f"Plain Modbus: anything on the cell network could move the machine",
          "text": f"The nodes cannot authenticate. The allow-list, generated from the program, cuts the {len(vc.signal_map())} "
                  f"mapped signals down to {len(R['rules'])} rules; nothing but the PLC may write, and only the coils it drives."},
         {"title": f"F1: {len(ex)} outputs were writable that the program never uses",
          "text": "; ".join(f"{e['module']}.{e['signal']} ({e['what'] or 'spare'})" for e in ex) +
                  ". The compressors Upgrade 1 retired are still wired to live coils. Blocked by the allow-list; the wires should go."},
-        {"title": "F2: detection is too slow for the crane - only prevention works",
+        {"title": f"F2: detection is too slow for the crane - only prevention works",
          "text": f"A rogue travel command hits the rack after {a1['numbers']['t_hit_ms']} ms; read-back sees it in "
                  f"{a1['numbers']['detect_ms']} ms but the crane has moved {a1['numbers']['travel_mm']} mm by the time it stops "
                  f"({a1['numbers']['clearance_mm']:.0f} mm clearance). Every jog rule of control.JOG is software: a hardwired "
@@ -568,7 +568,7 @@ def main():
          "text": f"No device of the {len(R['sf'])} safety functions is networked. The guard locks, though, are released by the "
                  "PLC's standstill signal: a compromised PLC could unlock early. The door switches still drop K0 the moment a door "
                  "opens; a standstill monitor on the actuator bus would make the release hardwired too."},
-        {"title": "F3: a forged demand-response event can empty the ride-through reserve",
+        {"title": f"F3: a forged demand-response event can empty the ride-through reserve",
          "text": R["attacks"][5]["without"] + ". U9's EMS let a DR window go below the reserve; with U11 it opts out instead."},
     ]
     doc = {

@@ -19,13 +19,8 @@ import hbw_model as HMOD
 
 from variant import UP1, UP2, UP3, UP4, UP5, UP6, UP7, VARIANT
 PUB = os.path.expanduser("~/workspace/stf-hw/web/public")
-# The base export is read by every upgrade for its before/after metrics, and by the
-# FreeCAD build (mcp_build.py): it always lives in web/public.
 BASE_OUT = os.path.join(PUB, "hbw_parts.json")
-# The web app ships only Upgrade 12 (and the base, above). Any other variant - and every
-# variant re-proven by validate.py - goes to STF_EXPORT_DIR, so nothing lands in the app.
-_DIR = os.environ.get("STF_EXPORT_DIR") or PUB
-OUT = os.path.join(_DIR, f"hbw_parts_{VARIANT}.json" if UP1 else "hbw_parts.json")
+OUT = os.path.join(PUB, f"hbw_parts_{VARIANT}.json" if UP1 else "hbw_parts.json")
 
 COLOUR = {
     "black": "#2b2b2f", "red": "#cf3a2f", "alu": "#d6d9da", "steel": "#aeb4b8",
