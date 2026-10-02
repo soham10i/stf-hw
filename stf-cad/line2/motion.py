@@ -2,8 +2,12 @@
 STF-2 moving twin: one timeline of every moving part, DERIVED from line_model (never animated by hand),
 plus a sweep check of the whole motion.
 
-  timeline   T = 40 s at dt = 0.1 s. The chain + pucks run continuously; the flying stamp runs its cycle
-             every takt; the kicker fires twice; both deltas run real pick -> place cycles (delta_ik at
+  timeline   T = 40 s at dt = 0.1 s. The chain + pucks run continuously; the mesh band carries every row
+             from the depositor (the wire cuts a row every 6 takts) through the oven (each cookie spreads
+             and browns as oven.py says) to the pick window; delta C moves one cookie per takt from the
+             band into a passing puck; every oven element switches with its zone's duty cycle (time-
+             proportioning, 2 s) and the timeline carries the phase currents; the kicker fires twice; both
+             deltas run real pick -> place cycles (delta_ik at
              every frame: an unreachable frame is a failure); the three sealers and stackers cycle; lane
              'weiss' runs a full cassette exchange through the out airlock (carrier out, inner door shut,
              outer door open, AMR swap, outer shut, inner open, carrier back).
@@ -68,19 +72,78 @@ def exchange():
     return out
 
 
-def stamp_offsets(t):
-    """(dx, dz) of the stamp carriage / die: geared to the belt while stamping, then the fast return."""
-    st = L["STAMP_T"]
-    track, dist, cyc = M.stamp_cycle()
-    u = t % M.takt()
-    if u <= track:
-        dx = L["V"] * u
-    elif u <= cyc - st["settle"]:
-        dx = dist * (1 - smooth((u - track) / (cyc - st["settle"] - track)))
-    else:
-        dx = 0.0
-    dz = -L["STAMP_CLEAR"] * pulse(u, st["sync"], st["down"], st["dwell"], st["up"])
-    return dx, dz
+PWM = 2.0                                     # s, time-proportioning period of the element SSRs (FB_Oven)
+
+
+def duty():
+    """Zone duty = steady load / installed (oven.py) - what the PID settles to in production."""
+    loads, els, _, _ = M.oven_power()
+    return {z["zone"]: z["total"] / sum(e["P"] for e in els if e["zone"] == z["zone"]) for z in loads}
+
+
+def element_on(e, i, t, d):
+    """Element i of its zone conducts in a staggered slice of the 2 s period (spreads the phase current)."""
+    n = sum(1 for x in M.oven_power()[1] if x["zone"] == e["zone"])
+    u = ((t / PWM) + i / n) % 1.0
+    return u < d[e["zone"]]
+
+
+def power_at(t, d):
+    """(W total, {phase: A}) of the oven elements + fans at time t."""
+    _, els, plan, _ = M.oven_power()
+    ph = {tg: p for p, items in plan.items() for tg, _ in items}
+    amps = {"L1": 0.0, "L2": 0.0, "L3": 0.0}
+    W = 0.0
+    idx = defaultdict(int)
+    for e in els:
+        i = idx[e["zone"]]
+        idx[e["zone"]] += 1
+        if element_on(e, i, t, d):
+            W += e["P"]
+            amps[ph[e["tag"]]] += e["P"] / 230.0
+    for k in range(len(L["OVEN_ZONES"])):
+        W += M.H.OVEN_FAN["P"]
+        amps[ph[f"QF{k + 1}"]] += M.H.OVEN_FAN["P"] / 230.0
+    return W, amps
+
+
+def wire_dx(t):
+    """The cutting wire sweeps across the die once per row (cam on the roll drive)."""
+    period = L["BAND"]["spacing"] / M.band_v()
+    u = t % period
+    return (L["DOUGH_SLUG"][0] + 10.0) * (pulse(u, 0.0, 0.3, 0.0, 0.3) - 0.5)
+
+
+def delta_c_pose(t):
+    """Delta C: pick cookie k of the row in the window at t_pick, place it 1 s later into the puck at s_place
+    (tracking the puck along the bend), back to travel height. Returns (pose, carrying, (row, k))."""
+    T = M.takt()
+    t_enter, s_pl = M.transfer_times()
+    period = L["BAND"]["rows"] * T
+    st = M.stations()
+    v = M.band_v()
+    xc = L["DELTA_C"]["x"]
+    zt, zb, zp = M.travel_z(xc), M.band_pick_z(), M.pick_z()
+    # the pick this cycle belongs to: t_pick = r * period + t_enter + (k+1) T, with u in [-0.5, 3.5) around it
+    n = math.floor((t - t_enter + 0.5) / T)                # picks since the row r = 0 ... in takt counts
+    t_pick = t_enter + n * T
+    r, kk = divmod(n - 1, L["BAND"]["rows"])
+    u = t - t_pick
+    xp = st["dep"] + v * (t_pick - r * period)              # the cookie's x at the pick moment
+    yp = M.row_y(kk)
+    sp = lambda tt: (s_pl + L["V"] * (tt - (t_pick + 1.0)))
+    def at_s(tt, z):
+        (x, y), _ = M.pos(sp(tt))
+        return (x, y, z)
+    way = [(-0.5, (xp, yp, zt)), (-0.2, (xp, yp, zb)), (0.0, (xp, yp, zb)), (0.25, (xp + v * 0.25, yp, zt)),
+           (0.75, at_s(t_pick + 0.75, zt)), (1.0, at_s(t_pick + 1.0, zp)), (1.1, at_s(t_pick + 1.1, zp)),
+           (1.35, at_s(t_pick + 1.35, zt)), (2.0, (xp + v * T, M.row_y((kk + 1) % L["BAND"]["rows"]), zt)),
+           (3.5, (xp + v * T, M.row_y((kk + 1) % L["BAND"]["rows"]), zt))]
+    for (ta, a), (tb, b) in zip(way, way[1:]):
+        if ta <= u <= tb:
+            f = smooth((u - ta) / (tb - ta))
+            return tuple(a[j] + (b[j] - a[j]) * f for j in range(3)), (0.0 <= u <= 1.05), (r, kk)
+    return way[-1][1], False, (r, kk)
 
 
 def delta_pose(i, t):
@@ -184,18 +247,18 @@ def frame(t, base):
         pk = next(p for p in loop if p.name == f"puck_{k:02d}")
         now[pk.name] = pk
         ck = M.Part(f"cookie_{k:02d}", pk.module, "cookie", "cyl", (pk.p[0], pk.p[1], M.z_seat()),
-                    ("z", L["COOKIE"][1], L["COOKIE"][0]), L["BAKED"][k % 3], joint="loop")
+                    ("z", L["COOKIE"][1], L["COOKIE"][0]), M.cookie_hex(), joint="loop")
         now[ck.name] = ck
         vis[ck.name] = ck.name in shown
-    # stamp
-    dx, dz = stamp_offsets(t)
-    for p in base.values():
-        if p.joint == "stamp_x":
-            now[p.name] = shifted(p, (dx, 0, 0))
-        elif p.joint == "stamp_z" and p.name != "stamp_rod":
-            now[p.name] = shifted(p, (dx, 0, dz))
-    r = base["stamp_rod"]                              # extends out of the cylinder on the carriage
-    now["stamp_rod"] = cyl(r, (r.p[0] + dx, r.p[1], r.p[2] + dz), "z", r.s[1] - dz)
+        tp = M.Part(f"cookie_{k:02d}_top", pk.module, "cookie", "cyl", (pk.p[0], pk.p[1], M.z_cookie_top()),
+                    ("z", L["TOPPING"]["h"], L["TOPPING"]["d"]), L["BAKED"][k % 3], joint="loop")
+        now[tp.name] = tp
+        vis[tp.name] = tp.name in shown
+    # band: every row of the window [0, T_END] - re-shaped per frame (the slug spreads, the colour browns)
+    for n in BAND_NAMES:
+        now[n], vis[n] = band_pose(n, t)
+    # cutting wire
+    now["dep_wire"] = shifted(base["dep_wire"], (wire_dx(t), 0, 0))
     # kicker
     ky = -L["KICK_STROKE"] * sum(pulse(t, t0, L["KICK_T"], 0.1, L["KICK_T"]) for t0 in KICKS)
     now["kick_paddle"] = shifted(base["kick_paddle"], (0, ky, 0))
@@ -224,8 +287,23 @@ def frame(t, base):
     outer = M.door_stroke("S31") * (ramp(t, *ph["outer door open"]) - ramp(t, *ph["outer door shut"]))
     now["aldoor_inner"] = shifted(base["aldoor_inner"], (0, inner, 0))
     now["aldoor_out"] = shifted(base["aldoor_out"], (0, outer, 0))
-    # deltas
+    # delta C: band -> puck
     bad = []
+    pose, carrying, _ = delta_c_pose(t)
+    arms = []
+    try:
+        M._delta(arms.append, "delta_C", L["DELTA_C"]["x"], pose, static=False, module="transfer")
+        for p in arms:
+            p.module = "M4_transfer"
+            now[p.name] = p
+        cup = now["delta_C_cup_a"]
+        held = M.Part("held_C", "M4_transfer", "cookie", "cyl", (pose[0], pose[1], cup.p[2] - L["COOKIE"][1]),
+                      ("z", L["COOKIE"][1], L["COOKIE"][0]), M.cookie_hex(), joint="held")
+        now[held.name] = held
+        vis[held.name] = carrying
+    except ValueError:
+        bad.append(f"delta_C cannot reach {tuple(round(v) for v in pose)} at t={t:.1f}")
+    # deltas
     for i, xd in enumerate(L["DELTA_X"]):
         pose, carrying = delta_pose(i, t)
         arms = []
@@ -237,7 +315,7 @@ def frame(t, base):
         for p in arms:
             p.module = "M6_pick"
             now[p.name] = p
-        cup = now[f"delta_{'AB'[i]}_cup"]
+        cup = now[f"delta_{'AB'[i]}_cup_a"]
         held = M.Part(f"held_{'AB'[i]}", "M6_pick", "cookie", "cyl", (pose[0], pose[1], cup.p[2] - L["COOKIE"][1]),
                       ("z", L["COOKIE"][1], L["COOKIE"][0]), L["BAKED"][i], joint="held")
         now[held.name] = held
@@ -255,13 +333,16 @@ def _exempt(a, b):
     if (ga, gb) in SKIP_GROUPS or (gb, ga) in SKIP_GROUPS:
         return True
     names = (a.name, b.name)
-    if any(n.endswith("_cup") for n in names) and {ga, gb} & {"cookie", "puck", "tray", "stock"}:
+    if any("_cup_" in n for n in names) and {ga, gb} & {"cookie", "puck", "tray", "stock"}:
         return True                                    # the cup takes the cookie / sets it in the pocket
     if any(n.startswith("held_") for n in names):
         other = b if a.name.startswith("held_") else a
-        return other.group in ("tray", "stock", "cookie", "puck") or other.name.endswith(("_cup", "_effector"))
-    if "stamp_die" in names and {ga, gb} & {"cookie"}:
-        return True                                    # the stamp presses the cookie (that is the process)
+        return other.group in ("tray", "stock", "cookie", "puck") or "_cup_" in other.name or \
+            other.name.endswith("_effector")
+    if {ga, gb} == {"cookie", "band"} or (ga == gb == "cookie" and a.name.split("_top")[0] == b.name.split("_top")[0]):
+        return True                                    # the product lies on the band / its drop on it
+    if "dep_wire" in names and {ga, gb} & {"cookie"}:
+        return True                                    # the wire cuts the slug free (that is the process)
     if "kick_paddle" in names and {ga, gb} & {"cookie"}:
         return True                                    # the kicker pushes a cookie off (that is the process)
     if "stacker_plate" in a.name + b.name and {ga, gb} & {"stock"}:
@@ -306,6 +387,8 @@ def sweep(times, base, moving_names):
         bad += b_
         live = [p for n, p in now.items() if vis.get(n, True)]
         for p in live:
+            if p.name.startswith("band_r"):
+                continue                                   # band product vs the machine: line_model.band_clearance
             pa = p.aabb()
             for q in grid.near(pa):
                 if not M._ovl(pa, q.aabb()) or _exempt(p, q):
@@ -326,6 +409,51 @@ def sweep(times, base, moving_names):
     return hits, bad, pairs
 
 
+def band_pose(n, t):
+    """(Part, visible) of band product n ('band_r<r+100>_<k>[_top]') at time t, in closed form: the row was
+    deposited at r * period; before that it waits (hidden) at the die, after the pick it rests (hidden)
+    where delta C took it."""
+    top = n.endswith("_top")
+    r, k = n[len("band_r"):].split("_")[:2]
+    r, k = int(r) - 100, int(k)
+    st = M.stations()
+    v = M.band_v()
+    T = M.takt()
+    period = L["BAND"]["rows"] * T
+    t_enter = M.transfer_times()[0]
+    t_in = t - r * period
+    t_gone = t_enter + (k + 1) * T                      # delta C has it
+    vis = 0.0 <= t_in < t_gone
+    ti = min(max(t_in, 0.0), t_gone)
+    d, h, col, topped = M.band_state(ti)
+    x = M.g1(st["dep"] + v * ti)
+    zb = L["BAND"]["z"]
+    if top:
+        Tp = L["TOPPING"]
+        p = M.Part(n, "M3_oven", "cookie", "cyl", (x, M.row_y(k), zb + round(h, 2)), ("z", Tp["h"], Tp["d"]),
+                   L["BAKED"][M.row_flavour(k)], joint="band")
+        return p, vis and topped
+    p = M.Part(n, "M3_oven", "cookie", "cyl", (x, M.row_y(k), zb), ("z", round(h, 2), round(d, 2)), col, joint="band")
+    return p, vis
+
+
+def _band_names():
+    out = []
+    for t in (0.0, T_END / 2, T_END):
+        ps = []
+        M._band_product(ps.append, t)
+        out += [p.name for p in ps]
+    seen = []
+    for t in [k * DT for k in range(int(T_END / DT) + 1)][::10]:
+        ps = []
+        M._band_product(ps.append, t)
+        seen += [p.name for p in ps]
+    return sorted(set(out) | set(seen))
+
+
+BAND_NAMES = _band_names()
+
+
 def _sweep_chunk(times):
     base = {p.name: p for p in M.build()}
     f0, _, _ = frame(0.0, base)
@@ -344,6 +472,9 @@ def main():
     for n, p in f0.items():
         if n not in base:
             spawn.append(dict(name=n, kind="cyl", p=p.p, s=list(p.s), colour=p.colour))
+    for n in BAND_NAMES:                                 # rows deposited later in the window
+        if n not in base and n not in f0:
+            raise SystemExit(f"band row {n} has no first pose")
     from multiprocessing import Pool
     n = os.cpu_count() or 4
     chunks = [times[i::n] for i in range(n)]
@@ -358,7 +489,8 @@ def main():
     for k in hits:
         hits[k].sort()
     # transforms per frame (rigid) and re-shapes (extending rods)
-    reshape = {"stamp_rod", "kick_rod"} | {f"sealer_{f}_rod" for f in FLAV} | {f"stacker_rod_{f}" for f in FLAV}
+    reshape = {"kick_rod"} | {f"sealer_{f}_rod" for f in FLAV} | {f"stacker_rod_{f}" for f in FLAV} | \
+        {n for n in BAND_NAMES if not n.endswith("_top")}
     ref = dict(base)
     for s in spawn:
         ref[s["name"]] = f0[s["name"]]
@@ -367,7 +499,11 @@ def main():
         now, vis, _ = frame(t, base)
         for n, p in now.items():
             if n in reshape:
-                track[n].append(dict(c=[p.p[0], p.p[1], p.p[2]], ax=p.s[0], len=round(p.s[1], 3), dia=p.s[2]))
+                e = dict(c=[p.p[0], p.p[1], p.p[2]], ax=p.s[0], len=round(p.s[1], 3), dia=p.s[2])
+                if n.startswith("band_r"):
+                    e["col"] = p.colour
+                    e["vis"] = 1 if vis.get(n, True) else 0
+                track[n].append(e)
             else:
                 q, tr = rigid(ref[n], p)
                 track[n].append([round(v, 3) for v in tr] + [round(v, 6) for v in q] + [1 if vis.get(n, True) else 0])
@@ -392,9 +528,22 @@ def main():
         mv = [x for x in parts_ if x in moving and x not in reshape]
         if mv and all(x in moving for x in parts_ if x in base):
             follow[br.name] = mv[0]
+    d = duty()
+    glow, power = {}, []
+    idx = defaultdict(int)
+    for e in M.oven_power()[1]:
+        i = idx[e["zone"]]
+        idx[e["zone"]] += 1
+        glow[f"oven_heater_{e['tag']}"] = dict(on="#ff6a1a", off="#5a2a1c",
+                                               bits="".join("1" if element_on(e, i, t, d) else "0" for t in times))
+    for t in times:
+        W, amps = power_at(t, d)
+        power.append([round(W), round(amps["L1"], 2), round(amps["L2"], 2), round(amps["L3"], 2)])
     os.makedirs(OUT, exist_ok=True)
     with open(os.path.join(OUT, "timeline.json"), "w") as fh:
         json.dump(dict(dt=DT, frames=len(times), t_end=T_END, track=track, spawn=spawn, follow=follow,
+                       glow=glow, power=power, duty={k: round(v, 3) for k, v in d.items()},
+                       zones=[dict(T=Z["T"]) for Z in L["OVEN_ZONES"]],
                        phases=dict(exchange=exchange(), kicks=KICKS, seals=SEALS, lifts=LIFTS)), fh)
     rep = [f"moving twin: {len(times)} frames x {DT:g} s = {T_END:g} s, {len(moving)} moving parts "
            f"({len(spawn)} spawned cookies), {len(follow)} screws/brackets follow their body, {pairs} exact pair "

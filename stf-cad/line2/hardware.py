@@ -510,7 +510,40 @@ LOADS = {      # powered loads that are not motors
     "valve_coil": dict(desc="SY3000 coil 24 V 0.35 W", I=0.015, src="[cat: smc][typ]"),
     "sealer_head": dict(desc="heated sealing bar 24 V 60 W", I=2.5, src="[typ]"),
     "singulator": dict(desc="rotary disc: NEMA 17 on EL7047", I=0.0, src="[derived]"),
+    "exhaust_fan": dict(desc="24 V EC duct fan D60, oven vapour exhaust", I=0.4, src="[typ]"),
 }
+
+# ------------------------------------------------------------- band oven (2026-10-02, oven.py)
+STEEL_RHO = 7900.0         # kg/m3 stainless
+# straight tubular heating elements, Incoloy 800 sheath, 230 V, cold ends through the side walls with an
+# M14 gland; heated length spans the chamber, the cold ends cross the insulation      [typ] (Backer/Watlow)
+TUBULAR = [dict(model=f"tubular element D8.5 {lh} mm heated, {P} W 230 V", d=8.5, L_heated=float(lh),
+                L=float(lh) + 2 * 75.0, P=float(P), gland="M14x1.5", src="[typ]")
+           for lh in (300, 350, 380, 400, 450, 500) for P in (250, 350, 500, 650, 800)]
+TUBULAR_WCM2 = 5.0         # sheath surface load limit in forced air (Incoloy, 200 C air)        [typ]
+BAND_MESH = dict(desc="balanced-weave stainless mesh band, 1.2 mm wire, flat edges", cp=500.0, t=5.0,
+                 mu_skid=0.25, src="[typ] (Wire Belt / Cambridge class)")
+INSULATION = {
+    "mineral wool": dict(rho=100.0, cp=840.0, k=lambda T: 0.035 + 1.0e-4 * T, T_max=650.0,
+                         src="[typ] (Rockwool board 100 kg/m3: k 0.045 at 100 C, 0.055 at 200 C)"),
+}
+OVEN_FAN = dict(desc="oven circulation fan: 230 V shaded-pole motor outside the roof, long shaft, "
+                     "D90 radial impeller inside", P=35.0, I=0.25, d_imp=90.0, motor=(60.0, 60.0, 70.0),
+                src="[typ] (EBM-papst RRL class)")
+RELAY6 = dict(model="Phoenix PLC-RSC 24DC/21 coupling relay 6.2 mm (230 V fan)", w=6.2, h=80.0, d=94.0, ctl_A=0.009,
+              I=6.0, src="[cat: Phoenix Contact PLC-RSC][typ]")
+ZONE_CONTACTOR = dict(desc="oven zone contactor 3-pole AC-1 25 A, 24 V DC coil; the zone STB contact is in its coil",
+                      w=45.0, h=90.0, d=95.0, coil_A=0.17, AC1=25.0, src="[typ] (3RT2015 class)")
+MCB3 = dict(model="3-pole MCB C16 (oven zone feed)", w=52.5, src="[typ]")
+COOL_FAN = dict(desc="120 mm 24 V DC axial fan, band cooling", I=0.25, size=120.0, holes=105.0, src="[typ]")
+SSR_AC25 = dict(model="Crydom D2425 25 A AC SSR on a DIN heatsink", w=45.0, h=100.0, d=110.0, ctl_A=0.012,
+                I=25.0, U_drop=1.6, R_th=1.1, src="[typ] (heatsink K/W for the derating check)")
+SUPPLY = dict(desc="400 V 3N~ 50 Hz, CEE 16 A 5-pole plug, main switch, RCD type A 30 mA", U=230.0, U_LL=400.0,
+              I=16.0, load_max=0.8, rcd_mA=30.0, src="[typ] IEC 60309 / IEC 60204-1")
+TEMP_LIMIT = {"POM chain": 80.0, "UHMW-PE track": 80.0, "NFC tag": 85.0}   # C, continuous [typ]
+LEAK_mA = dict(tubular=0.5, psu=0.5, src="[typ] protective-conductor current per item, hot and dry")
+CABLE_AC = {1.5: dict(I=16.0, T=180.0, model="SiF 1.5 mm2 (silicone, 180 C)"),       # free air, in the oven
+            2.5: dict(I=21.0, T=90.0, model="H07V-K 2.5 mm2 in the cabinet")}         # [typ] IEC 60364-5-52
 
 
 # ------------------------------------------------------------- self-check

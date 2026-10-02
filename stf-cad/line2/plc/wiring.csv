@@ -1,184 +1,179 @@
 W,tag,part,module,kind,desc,terminal,cable,cores,mm2,length_m,cad
-W001,Q1,M1_master_drive,M1_loop,STEP,stepper 17HS19-2004D-E1000+PG27,-KF20 ch1,motor-4,A1 A2 B1 B2,0.5,0.85,True
-W002,B1,B1_master_encoder,M1_loop,ENC,"master encoder, 1024 ppr RS422",-KF18 ch1,enc-8,A /A B /B Z /Z 5V 0V,0.14,0.86,True
-W003,Q2,esc_cyl_weiss_A,M2_feeder,DO,valve coil (ISO6432-10x50),-KF6 ch7,M12-3,BK signal / BU 0V,0.34,0.95,True
-W004,Q2.S1,esc_cyl_weiss_A,M2_feeder,DI,reed switch retracted (ISO6432-10x50),-KF1 ch8,M12-3,BN +24V / BU 0V / BK signal,0.34,0.95,True
-W005,Q2.S2,esc_cyl_weiss_A,M2_feeder,DI,reed switch extended (ISO6432-10x50),-KF1 ch9,M12-3,BN +24V / BU 0V / BK signal,0.34,0.95,True
-W006,I2,mag_empty_weiss_A,M2_feeder,DI,"tube-low sensor, clipped to the tube -> AMR refill request",-KF1 ch2,M12-3,BN +24V / BU 0V / BK signal,0.34,0.97,True
-W007,Q3,esc_cyl_weiss_B,M2_feeder,DO,valve coil (ISO6432-10x50),-KF6 ch8,M12-3,BK signal / BU 0V,0.34,0.95,True
-W008,Q3.S1,esc_cyl_weiss_B,M2_feeder,DI,reed switch retracted (ISO6432-10x50),-KF1 ch10,M12-3,BN +24V / BU 0V / BK signal,0.34,0.95,True
-W009,Q3.S2,esc_cyl_weiss_B,M2_feeder,DI,reed switch extended (ISO6432-10x50),-KF1 ch11,M12-3,BN +24V / BU 0V / BK signal,0.34,0.95,True
-W010,I3,mag_empty_weiss_B,M2_feeder,DI,"tube-low sensor, clipped to the tube -> AMR refill request",-KF1 ch3,M12-3,BN +24V / BU 0V / BK signal,0.34,0.97,True
-W011,Q4,esc_cyl_rot_A,M2_feeder,DO,valve coil (ISO6432-10x50),-KF6 ch9,M12-3,BK signal / BU 0V,0.34,0.95,True
-W012,Q4.S1,esc_cyl_rot_A,M2_feeder,DI,reed switch retracted (ISO6432-10x50),-KF1 ch12,M12-3,BN +24V / BU 0V / BK signal,0.34,0.95,True
-W013,Q4.S2,esc_cyl_rot_A,M2_feeder,DI,reed switch extended (ISO6432-10x50),-KF1 ch13,M12-3,BN +24V / BU 0V / BK signal,0.34,0.95,True
-W014,I4,mag_empty_rot_A,M2_feeder,DI,"tube-low sensor, clipped to the tube -> AMR refill request",-KF1 ch4,M12-3,BN +24V / BU 0V / BK signal,0.34,0.97,True
-W015,Q5,esc_cyl_rot_B,M2_feeder,DO,valve coil (ISO6432-10x50),-KF6 ch10,M12-3,BK signal / BU 0V,0.34,0.95,True
-W016,Q5.S1,esc_cyl_rot_B,M2_feeder,DI,reed switch retracted (ISO6432-10x50),-KF1 ch14,M12-3,BN +24V / BU 0V / BK signal,0.34,0.95,True
-W017,Q5.S2,esc_cyl_rot_B,M2_feeder,DI,reed switch extended (ISO6432-10x50),-KF1 ch15,M12-3,BN +24V / BU 0V / BK signal,0.34,0.95,True
-W018,I5,mag_empty_rot_B,M2_feeder,DI,"tube-low sensor, clipped to the tube -> AMR refill request",-KF1 ch5,M12-3,BN +24V / BU 0V / BK signal,0.34,0.97,True
-W019,Q6,esc_cyl_blau_A,M2_feeder,DO,valve coil (ISO6432-10x50),-KF6 ch11,M12-3,BK signal / BU 0V,0.34,0.95,True
-W020,Q6.S1,esc_cyl_blau_A,M2_feeder,DI,reed switch retracted (ISO6432-10x50),-KF1 ch16,M12-3,BN +24V / BU 0V / BK signal,0.34,0.95,True
-W021,Q6.S2,esc_cyl_blau_A,M2_feeder,DI,reed switch extended (ISO6432-10x50),-KF2 ch1,M12-3,BN +24V / BU 0V / BK signal,0.34,0.95,True
-W022,I6,mag_empty_blau_A,M2_feeder,DI,"tube-low sensor, clipped to the tube -> AMR refill request",-KF1 ch6,M12-3,BN +24V / BU 0V / BK signal,0.34,0.97,True
-W023,Q7,esc_cyl_blau_B,M2_feeder,DO,valve coil (ISO6432-10x50),-KF6 ch12,M12-3,BK signal / BU 0V,0.34,0.95,True
-W024,Q7.S1,esc_cyl_blau_B,M2_feeder,DI,reed switch retracted (ISO6432-10x50),-KF2 ch2,M12-3,BN +24V / BU 0V / BK signal,0.34,0.95,True
-W025,Q7.S2,esc_cyl_blau_B,M2_feeder,DI,reed switch extended (ISO6432-10x50),-KF2 ch3,M12-3,BN +24V / BU 0V / BK signal,0.34,0.95,True
-W026,I7,mag_empty_blau_B,M2_feeder,DI,"tube-low sensor, clipped to the tube -> AMR refill request",-KF1 ch7,M12-3,BN +24V / BU 0V / BK signal,0.34,0.97,True
-W027,IOL1,hopper_weiss_level,M2_feeder,IOL,ToF level (IO-Link),-KF14 ch1,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.7,True
-W028,Q30,M_singulator_weiss,M2_feeder,STEP,stepper 17HS19-2004D-E1000+PG14,-KF21 ch1,motor-4,A1 A2 B1 B2,0.5,1.44,True
-W029,IOL2,hopper_rot_level,M2_feeder,IOL,ToF level (IO-Link),-KF14 ch2,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.7,True
-W030,Q31,M_singulator_rot,M2_feeder,STEP,stepper 17HS19-2004D-E1000+PG14,-KF22 ch1,motor-4,A1 A2 B1 B2,0.5,1.44,True
-W031,IOL3,hopper_blau_level,M2_feeder,IOL,ToF level (IO-Link),-KF14 ch3,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.7,True
-W032,Q32,M_singulator_blau,M2_feeder,STEP,stepper 17HS19-2004D-E1000+PG14,-KF23 ch1,motor-4,A1 A2 B1 B2,0.5,1.44,True
-W033,I1,feeder_empty_check,M2_feeder,DI,light barrier: puck already full (recirculating) -> do NOT l,-KF1 ch1,M12-3,BN +24V / BU 0V / BK signal,0.34,0.91,True
-W034,NFC-W,nfc_writer,M2_feeder,IOL,RFID/NFC head (IO-Link),-KF14 ch4,iol-4,BN L+ / BU L- / BK C/Q,0.34,0.88,True
-W035,Q8,oven_heater_0,M3_tunnel,DO,oven heater SSR (230 V 300 W),-KF6 ch16,M12-3,BK signal / BU 0V,0.34,0.95,True
-W036,TC1,oven_tc_0,M3_tunnel,TC,oven zone thermocouple K,-KF11 ch1,tc-K,GN + / WH -,0.22,0.95,True
-W037,Q9,oven_heater_1,M3_tunnel,DO,oven heater SSR (230 V 300 W),-KF7 ch1,M12-3,BK signal / BU 0V,0.34,0.95,True
-W038,TC2,oven_tc_1,M3_tunnel,TC,oven zone thermocouple K,-KF11 ch2,tc-K,GN + / WH -,0.22,0.95,True
-W039,Q10,oven_heater_2,M3_tunnel,DO,oven heater SSR (230 V 300 W),-KF6 ch13,M12-3,BK signal / BU 0V,0.34,0.95,True
-W040,TC3,oven_tc_2,M3_tunnel,TC,oven zone thermocouple K,-KF11 ch3,tc-K,GN + / WH -,0.22,0.95,True
-W041,Q11,cool_fan_0,M3_tunnel,DO,cooling fan 24 V,-KF6 ch14,M12-3,BK signal / BU 0V,0.34,0.99,True
-W042,Q12,cool_fan_1,M3_tunnel,DO,cooling fan 24 V,-KF6 ch15,M12-3,BK signal / BU 0V,0.34,1.1,True
-W043,Q14,M_stamp_axis,M4_stamp,STEP,stepper 17HS19-2004D-E1000,-KF24 ch1,motor-4,A1 A2 B1 B2,0.5,1.52,True
-W044,Q16,stamp_cylinder,M4_stamp,DO,valve coil (ISO6432-16x30),-KF7 ch3,M12-3,BK signal / BU 0V,0.34,1.29,True
-W045,Q16.S1,stamp_cylinder,M4_stamp,DI,reed switch retracted (ISO6432-16x30),-KF2 ch9,M12-3,BN +24V / BU 0V / BK signal,0.34,1.29,True
-W046,Q16.S2,stamp_cylinder,M4_stamp,DI,reed switch extended (ISO6432-16x30),-KF2 ch10,M12-3,BN +24V / BU 0V / BK signal,0.34,1.29,True
-W047,Q16.P,stamp_cylinder,M4_stamp,IOL,stamp pressure (force = p x A),-KF15 ch1,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.29,True
-W048,I8,stamp_sync_sensor,M4_stamp,DITS,puck-edge sensor: latches the master-axis position to phase ,-KF42 ch2,M12-3,BN +24V / BU 0V / BK signal,0.34,1.06,True
-W049,CAM1,qc_camera,M5_qc,ETH,GigE camera -> edge PC,edge PC switch,gige,Cat6,0.14,1.18,True
-W050,CAM1.TRG,qc_camera,M5_qc,DOTS,camera trigger (timestamped),-KF44 ch1,M12-3,BK trigger / BU 0V,0.34,1.18,True
-W051,Q17,qc_ringlight,M5_qc,DO,ring light 24 V,-KF7 ch4,M12-3,BK signal / BU 0V,0.34,1.16,True
-W052,AI1.R,A1_colour_sensor,M5_qc,AI,colour R 0..10 V,-KF9 ch4,M12-4,BN +24V / BU 0V / BK signal,0.34,1.19,True
-W053,AI1.G,A1_colour_sensor,M5_qc,AI,colour G 0..10 V,-KF9 ch3,M12-4,BN +24V / BU 0V / BK signal,0.34,1.19,True
-W054,AI1.B,A1_colour_sensor,M5_qc,AI,colour B 0..10 V,-KF9 ch2,M12-4,BN +24V / BU 0V / BK signal,0.34,1.19,True
-W055,NFC-W2,nfc_qc,M5_qc,IOL,RFID/NFC head (IO-Link),-KF15 ch3,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.03,True
-W056,Q18,kick_cylinder,M5_qc,DO,valve coil (ISO6432-10x100),-KF7 ch5,M12-3,BK signal / BU 0V,0.34,1.02,True
-W057,Q18.S1,kick_cylinder,M5_qc,DI,reed switch retracted (ISO6432-10x100),-KF2 ch11,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
-W058,Q18.S2,kick_cylinder,M5_qc,DI,reed switch extended (ISO6432-10x100),-KF2 ch12,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
-W059,IOL4,reject_level,M5_qc,IOL,ToF level (IO-Link),-KF15 ch2,iol-4,BN L+ / BU L- / BK C/Q,0.34,0.96,True
-W060,delta_A.M-15,delta_A_motor_-15,M6_pick,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF25 ch1,motor-4,A1 A2 B1 B2,0.5,1.32,True
-W061,delta_A.M105,delta_A_motor_105,M6_pick,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF26 ch1,motor-4,A1 A2 B1 B2,0.5,1.32,True
-W062,delta_A.M225,delta_A_motor_225,M6_pick,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF27 ch1,motor-4,A1 A2 B1 B2,0.5,1.32,True
-W063,delta_A.VAC,delta_A_cup,M6_pick,DO,vacuum ejector valve,-KF7 ch6,M12-3,BK signal / BU 0V,0.34,1.04,True
-W064,delta_A.VAC.P,delta_A_cup,M6_pick,IOL,vacuum level (analogue grip quality),-KF16 ch1,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.04,True
-W065,delta_B.M165,delta_B_motor_165,M6_pick,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF28 ch1,motor-4,A1 A2 B1 B2,0.5,1.32,True
-W066,delta_B.M285,delta_B_motor_285,M6_pick,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF29 ch1,motor-4,A1 A2 B1 B2,0.5,1.32,True
-W067,delta_B.M405,delta_B_motor_405,M6_pick,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF30 ch1,motor-4,A1 A2 B1 B2,0.5,1.32,True
-W068,delta_B.VAC,delta_B_cup,M6_pick,DO,vacuum ejector valve,-KF7 ch7,M12-3,BK signal / BU 0V,0.34,1.04,True
-W069,delta_B.VAC.P,delta_B_cup,M6_pick,IOL,vacuum level (analogue grip quality),-KF16 ch2,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.04,True
-W070,CAM2,track_camera,M6_pick,ETH,GigE camera -> edge PC,edge PC switch,gige,Cat6,0.14,1.13,True
-W071,CAM2.TRG,track_camera,M6_pick,DOTS,camera trigger (timestamped),-KF44 ch2,M12-3,BK trigger / BU 0V,0.34,1.13,True
-W072,NFC-R,nfc_pick,M6_pick,IOL,RFID/NFC head (IO-Link),-KF15 ch4,iol-4,BN L+ / BU L- / BK C/Q,0.34,0.87,True
-W073,Q20,lane_weiss_frame,M7_pack,STEP,"stepper mini belt conveyor 60, end drive 17HS19-2004D-E1000+PG5 inside the frame",-KF31 ch1,motor-4,A1 A2 B1 B2,0.5,0.85,True
-W074,Q33,boxmag_weiss_fork_l,M7_pack,DO,valve coil (ISO6432-8x10),-KF7 ch11,M12-3,BK signal / BU 0V,0.34,1.02,True
-W075,Q33.S1,boxmag_weiss_fork_l,M7_pack,DI,reed switch retracted (ISO6432-8x10),-KF3 ch15,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
-W076,Q33.S2,boxmag_weiss_fork_l,M7_pack,DI,reed switch extended (ISO6432-8x10),-KF3 ch16,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
-W077,Q36,sealer_weiss_head,M7_pack,DO,sealing head DC SSR (24 V 60 W),-KF7 ch14,M12-3,BK signal / BU 0V,0.34,0.95,True
-W078,Q36.TC,sealer_weiss_head,M7_pack,TC,sealing head thermocouple (integrated),-KF12 ch1,tc-K,GN + / WH -,0.22,0.95,True
-W079,Q21,lane_rot_frame,M7_pack,STEP,"stepper mini belt conveyor 60, end drive 17HS19-2004D-E1000+PG5 inside the frame",-KF32 ch1,motor-4,A1 A2 B1 B2,0.5,0.85,True
-W080,Q34,boxmag_rot_fork_l,M7_pack,DO,valve coil (ISO6432-8x10),-KF7 ch12,M12-3,BK signal / BU 0V,0.34,1.02,True
-W081,Q34.S1,boxmag_rot_fork_l,M7_pack,DI,reed switch retracted (ISO6432-8x10),-KF4 ch1,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
-W082,Q34.S2,boxmag_rot_fork_l,M7_pack,DI,reed switch extended (ISO6432-8x10),-KF4 ch2,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
-W083,Q37,sealer_rot_head,M7_pack,DO,sealing head DC SSR (24 V 60 W),-KF7 ch15,M12-3,BK signal / BU 0V,0.34,0.95,True
-W084,Q37.TC,sealer_rot_head,M7_pack,TC,sealing head thermocouple (integrated),-KF12 ch2,tc-K,GN + / WH -,0.22,0.95,True
-W085,Q22,lane_blau_frame,M7_pack,STEP,"stepper mini belt conveyor 60, end drive 17HS19-2004D-E1000+PG5 inside the frame",-KF33 ch1,motor-4,A1 A2 B1 B2,0.5,0.86,True
-W086,Q35,boxmag_blau_fork_l,M7_pack,DO,valve coil (ISO6432-8x10),-KF7 ch13,M12-3,BK signal / BU 0V,0.34,1.03,True
-W087,Q35.S1,boxmag_blau_fork_l,M7_pack,DI,reed switch retracted (ISO6432-8x10),-KF4 ch3,M12-3,BN +24V / BU 0V / BK signal,0.34,1.03,True
-W088,Q35.S2,boxmag_blau_fork_l,M7_pack,DI,reed switch extended (ISO6432-8x10),-KF4 ch4,M12-3,BN +24V / BU 0V / BK signal,0.34,1.03,True
-W089,Q38,sealer_blau_head,M7_pack,DO,sealing head DC SSR (24 V 60 W),-KF7 ch16,M12-3,BK signal / BU 0V,0.34,0.96,True
-W090,Q38.TC,sealer_blau_head,M7_pack,TC,sealing head thermocouple (integrated),-KF12 ch3,tc-K,GN + / WH -,0.22,0.96,True
-W091,Q24,stacker_lift_weiss,M7_pack,DO,valve coil (ISO6432-16x30),-KF7 ch8,M12-3,BK signal / BU 0V,0.34,1.01,True
-W092,Q24.S1,stacker_lift_weiss,M7_pack,DI,reed switch retracted (ISO6432-16x30),-KF3 ch9,M12-3,BN +24V / BU 0V / BK signal,0.34,1.01,True
-W093,Q24.S2,stacker_lift_weiss,M7_pack,DI,reed switch extended (ISO6432-16x30),-KF3 ch10,M12-3,BN +24V / BU 0V / BK signal,0.34,1.01,True
-W094,I12,stack_count_weiss,M7_pack,DI,"reed switch on the lift cylinder: lifts are counted, the cas",-KF3 ch6,M12-3,BN +24V / BU 0V / BK signal,0.34,0.99,True
-W095,Q25,stacker_lift_rot,M7_pack,DO,valve coil (ISO6432-16x30),-KF7 ch9,M12-3,BK signal / BU 0V,0.34,1.01,True
-W096,Q25.S1,stacker_lift_rot,M7_pack,DI,reed switch retracted (ISO6432-16x30),-KF3 ch11,M12-3,BN +24V / BU 0V / BK signal,0.34,1.01,True
-W097,Q25.S2,stacker_lift_rot,M7_pack,DI,reed switch extended (ISO6432-16x30),-KF3 ch12,M12-3,BN +24V / BU 0V / BK signal,0.34,1.01,True
-W098,I13,stack_count_rot,M7_pack,DI,"reed switch on the lift cylinder: lifts are counted, the cas",-KF3 ch7,M12-3,BN +24V / BU 0V / BK signal,0.34,0.99,True
-W099,Q26,stacker_lift_blau,M7_pack,DO,valve coil (ISO6432-16x30),-KF7 ch10,M12-3,BK signal / BU 0V,0.34,1.02,True
-W100,Q26.S1,stacker_lift_blau,M7_pack,DI,reed switch retracted (ISO6432-16x30),-KF3 ch13,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
-W101,Q26.S2,stacker_lift_blau,M7_pack,DI,reed switch extended (ISO6432-16x30),-KF3 ch14,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
-W102,I14,stack_count_blau,M7_pack,DI,"reed switch on the lift cylinder: lifts are counted, the cas",-KF3 ch8,M12-3,BN +24V / BU 0V / BK signal,0.34,1.0,True
-W103,Q27,M_shuttle_weiss,M7_pack,STEP,stepper 17HS19-2004D-E1000,-KF34 ch1,motor-4,A1 A2 B1 B2,0.5,2.18,True
-W104,Q28,M_shuttle_rot,M7_pack,STEP,stepper 17HS19-2004D-E1000,-KF35 ch1,motor-4,A1 A2 B1 B2,0.5,2.18,True
-W105,Q29,M_shuttle_blau,M7_pack,STEP,stepper 17HS19-2004D-E1000,-KF36 ch1,motor-4,A1 A2 B1 B2,0.5,2.21,True
-W106,Q19,frl,M8_control,SO,soft-start / dump valve: safe exhaust of all air (SF3),-KF58 ch4,M12-3,safe output / 0V,0.34,0.86,True
-W107,Q19.FB,frl,M8_control,SI,dump valve position switch (exhausted),-KF53 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.86,True
-W108,I9,I9_drop_check,M2_feeder,DITS,landing check after the last tube: did the cookie land in th,-KF42 ch1,M12-3,BN +24V / BU 0V / BK signal,0.34,0.9,True
-W109,IR1,IR1_pyrometer,M3_tunnel,AI,product temperature 0..10 V,-KF9 ch1,M12-4,BN +24V / BU 0V / BK signal,0.34,0.97,True
-W110,CAM4,CAM4_pack,M6_pick,ETH,GigE camera -> edge PC,edge PC switch,gige,Cat6,0.14,1.42,True
-W111,CAM4.TRG,CAM4_pack,M6_pick,DOTS,camera trigger (timestamped),-KF45 ch1,M12-3,BK trigger / BU 0V,0.34,1.42,True
-W112,Q15,stamp_die,M4_stamp,DO,stamp die heater DC SSR (24 V 25 W),-KF7 ch2,M12-3,BK signal / BU 0V,0.34,1.21,True
-W113,Q15.TC,stamp_die,M4_stamp,TC,stamp die thermocouple (integrated),-KF11 ch4,tc-K,GN + / WH -,0.22,1.21,True
-W114,B2,M_stamp_axis,M4_stamp,DI,stamp carriage home,-KF2 ch7,M12-3,BN +24V / BU 0V / BK signal,0.34,1.52,False
-W115,B10,M_shuttle_weiss,M7_pack,DI,shuttle weiss home,-KF3 ch3,M12-3,BN +24V / BU 0V / BK signal,0.34,2.18,False
-W116,B11,M_shuttle_rot,M7_pack,DI,shuttle rot home,-KF3 ch4,M12-3,BN +24V / BU 0V / BK signal,0.34,2.18,False
-W117,B12,M_shuttle_blau,M7_pack,DI,shuttle blau home,-KF3 ch5,M12-3,BN +24V / BU 0V / BK signal,0.34,2.21,False
-W118,B20,delta_A_motor_-15,M6_pick,DI,delta_A_motor_-15 arm index,-KF2 ch13,M12-3,BN +24V / BU 0V / BK signal,0.34,1.32,False
-W119,B21,delta_A_motor_105,M6_pick,DI,delta_A_motor_105 arm index,-KF2 ch14,M12-3,BN +24V / BU 0V / BK signal,0.34,1.32,False
-W120,B22,delta_A_motor_225,M6_pick,DI,delta_A_motor_225 arm index,-KF2 ch15,M12-3,BN +24V / BU 0V / BK signal,0.34,1.32,False
-W121,B23,delta_B_motor_165,M6_pick,DI,delta_B_motor_165 arm index,-KF2 ch16,M12-3,BN +24V / BU 0V / BK signal,0.34,1.32,False
-W122,B24,delta_B_motor_285,M6_pick,DI,delta_B_motor_285 arm index,-KF3 ch1,M12-3,BN +24V / BU 0V / BK signal,0.34,1.32,False
-W123,B25,delta_B_motor_405,M6_pick,DI,delta_B_motor_405 arm index,-KF3 ch2,M12-3,BN +24V / BU 0V / BK signal,0.34,1.32,False
-W124,S20.A,lock_S20,M10_safety,SI,"door closed AND locked, OSSD A (SF2)",-KF49 ch2,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.95,True
-W125,S20.B,lock_S20,M10_safety,SI,"door closed AND locked, OSSD B (SF2)",-KF49 ch3,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.95,True
-W126,S20.UNL,lock_S20,M10_safety,SO,"unlock solenoid (power-to-unlock, only at standstill)",-KF56 ch1,M12-8,safe output / 0V,0.25,1.95,True
-W127,S21.A,lock_S21,M10_safety,SI,"door closed AND locked, OSSD A (SF2)",-KF49 ch4,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.67,True
-W128,S21.B,lock_S21,M10_safety,SI,"door closed AND locked, OSSD B (SF2)",-KF50 ch1,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.67,True
-W129,S21.UNL,lock_S21,M10_safety,SO,"unlock solenoid (power-to-unlock, only at standstill)",-KF56 ch2,M12-8,safe output / 0V,0.25,1.67,True
-W130,S22.A,lock_S22,M10_safety,SI,"door closed AND locked, OSSD A (SF2)",-KF50 ch2,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,2.24,True
-W131,S22.B,lock_S22,M10_safety,SI,"door closed AND locked, OSSD B (SF2)",-KF50 ch3,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,2.24,True
-W132,S22.UNL,lock_S22,M10_safety,SO,"unlock solenoid (power-to-unlock, only at standstill)",-KF56 ch3,M12-8,safe output / 0V,0.25,2.24,True
-W133,Q42.CLA,trapdoor_weiss,M10_safety,SI,"trapdoor closed, safety sensor OSSD A",-KF46 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
-W134,Q42.CLB,trapdoor_weiss,M10_safety,SI,"trapdoor closed, safety sensor OSSD B",-KF46 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
-W135,Q42,trapdoor_weiss,M10_safety,DO,trapdoor valve (spring-return closes on exhaust),-KF6 ch1,M12-3,BK signal / BU 0V,0.34,1.42,True
-W136,Q43.CLA,trapdoor_rot,M10_safety,SI,"trapdoor closed, safety sensor OSSD A",-KF46 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
-W137,Q43.CLB,trapdoor_rot,M10_safety,SI,"trapdoor closed, safety sensor OSSD B",-KF46 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
-W138,Q43,trapdoor_rot,M10_safety,DO,trapdoor valve (spring-return closes on exhaust),-KF6 ch2,M12-3,BK signal / BU 0V,0.34,1.42,True
-W139,Q44.CLA,trapdoor_blau,M10_safety,SI,"trapdoor closed, safety sensor OSSD A",-KF47 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.43,True
-W140,Q44.CLB,trapdoor_blau,M10_safety,SI,"trapdoor closed, safety sensor OSSD B",-KF47 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.43,True
-W141,Q44,trapdoor_blau,M10_safety,DO,trapdoor valve (spring-return closes on exhaust),-KF6 ch3,M12-3,BK signal / BU 0V,0.34,1.43,True
-W142,S30.A,aldoor_boxes,M10_safety,SI,"boxes airlock outer door closed AND locked, OSSD A",-KF50 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.8,True
-W143,S30.B,aldoor_boxes,M10_safety,SI,"boxes airlock outer door closed AND locked, OSSD B",-KF51 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.8,True
-W144,S30.UNL,aldoor_boxes,M10_safety,SO,boxes airlock outer door lock release (interlocked),-KF56 ch4,M12-3,safe output / 0V,0.34,1.8,True
-W145,S30.DRV,aldoor_boxes,M10_safety,DO,boxes airlock outer door drive valve (force-limited),-KF6 ch4,M12-3,BK signal / BU 0V,0.34,1.8,True
-W146,S32.A,aldoor_inner,M10_safety,SI,"out airlock inner door closed AND locked, OSSD A",-KF51 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.53,True
-W147,S32.B,aldoor_inner,M10_safety,SI,"out airlock inner door closed AND locked, OSSD B",-KF52 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.53,True
-W148,S32.UNL,aldoor_inner,M10_safety,SO,out airlock inner door lock release (interlocked),-KF57 ch2,M12-3,safe output / 0V,0.34,1.53,True
-W149,S32.DRV,aldoor_inner,M10_safety,DO,out airlock inner door drive valve (force-limited),-KF6 ch6,M12-3,BK signal / BU 0V,0.34,1.53,True
-W150,S31.A,aldoor_out,M10_safety,SI,"out airlock outer door closed AND locked, OSSD A",-KF51 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.91,True
-W151,S31.B,aldoor_out,M10_safety,SI,"out airlock outer door closed AND locked, OSSD B",-KF51 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.91,True
-W152,S31.UNL,aldoor_out,M10_safety,SO,out airlock outer door lock release (interlocked),-KF57 ch1,M12-3,safe output / 0V,0.34,1.91,True
-W153,S31.DRV,aldoor_out,M10_safety,DO,out airlock outer door drive valve (force-limited),-KF6 ch5,M12-3,BK signal / BU 0V,0.34,1.91,True
-W154,S10.A,estop_S10_head,M10_safety,SI,"E-stop NC contact A (SF1, 2-channel)",-KF47 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.05,True
-W155,S10.B,estop_S10_head,M10_safety,SI,"E-stop NC contact B (SF1, 2-channel)",-KF47 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.05,True
-W156,S11.A,estop_S11_head,M10_safety,SI,"E-stop NC contact A (SF1, 2-channel)",-KF48 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.71,True
-W157,S11.B,estop_S11_head,M10_safety,SI,"E-stop NC contact B (SF1, 2-channel)",-KF48 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.71,True
-W158,S12.A,estop_S12_head,M10_safety,SI,"E-stop NC contact A (SF1, 2-channel)",-KF48 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.47,True
-W159,S12.B,estop_S12_head,M10_safety,SI,"E-stop NC contact B (SF1, 2-channel)",-KF48 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.47,True
-W160,S13,reset_S13_head,M10_safety,SI,reset pushbutton (manual reset on the falling edge),-KF49 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.09,True
-W161,BOXES.DOCK1,port_boxes,M9_ports,DI,AMR docked at boxes (1),-KF4 ch8,M12-3,BN +24V / BU 0V / BK signal,0.34,1.07,False
-W162,BOXES.DOCK2,port_boxes,M9_ports,DI,AMR docked at boxes (2),-KF4 ch9,M12-3,BN +24V / BU 0V / BK signal,0.34,1.07,False
-W163,OUT.DOCK1,port_out,M9_ports,DI,AMR docked at out (1),-KF4 ch10,M12-3,BN +24V / BU 0V / BK signal,0.34,1.47,False
-W164,OUT.DOCK2,port_out,M9_ports,DI,AMR docked at out (2),-KF4 ch11,M12-3,BN +24V / BU 0V / BK signal,0.34,1.47,False
-W165,S34.A,reject_bin_wall_front,M5_qc,SI,"reject drawer in place, OSSD A",-KF52 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.96,False
-W166,S34.B,reject_bin_wall_front,M5_qc,SI,"reject drawer in place, OSSD B",-KF52 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.96,False
-W167,K1,,M8_control,SO,"contactor coil: 48 V motor supply, channel 1 (all EL7047)",-KF57 ch3,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W168,K2,,M8_control,SO,"contactor coil: 48 V motor supply, channel 2 (in series with K1)",-KF57 ch4,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W169,K3,,M8_control,SO,"contactor coil: heater feed, channel 1 (AC SSRs + 24 V heater PSU)",-KF58 ch1,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W170,K4,,M8_control,SO,"contactor coil: heater feed, channel 2 (in series with K3)",-KF58 ch2,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W171,K5,,M8_control,SO,"contactor coil: 48 V branch of the out-port zone (Q27, Q28, Q29)",-KF58 ch3,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W172,K1K2.EDM,,M8_control,SI,EDM: K1 + K2 mirror contacts in series (welded contact detection),-KF52 ch4,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W173,K3K4.EDM,,M8_control,SI,EDM: K3 + K4 mirror contacts (welded contact detection),-KF53 ch1,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W174,K5.EDM,,M8_control,SI,EDM: K5 mirror contact (welded contact detection),-KF53 ch2,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W175,Y1,valve_island,M8_control,SO,safe exhaust of the boxes-port pressure zone (SF6),-KF59 ch1,M12-3,safe output / 0V,0.34,0.83,True
-W176,Y1.FB,valve_island,M8_control,SI,boxes zone valve position switch (exhausted),-KF53 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.83,True
-W177,Q8.STL,oven_heater_0,M3_tunnel,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF2 ch5,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W178,Q9.STL,oven_heater_1,M3_tunnel,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF2 ch6,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W179,Q10.STL,oven_heater_2,M3_tunnel,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF2 ch4,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W180,Q36.STL,sealer_weiss_head,M7_pack,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF4 ch5,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W181,Q37.STL,sealer_rot_head,M7_pack,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF4 ch6,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W182,Q38.STL,sealer_blau_head,M7_pack,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF4 ch7,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W183,Q15.STL,stamp_die,M4_stamp,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF2 ch8,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W001,Q1,M1_master_drive,M1_loop,STEP,stepper 17HS19-2004D-E1000+PG27,-KF19 ch1,motor-4,A1 A2 B1 B2,0.5,0.85,True
+W002,B1,B1_master_encoder,M1_loop,ENC,"master encoder, 1024 ppr RS422",-KF17 ch1,enc-8,A /A B /B Z /Z 5V 0V,0.14,0.86,True
+W003,Q41,M_dep_rolls,M2_depositor,STEP,stepper 17HS19-2004D-E1000+PG27,-KF20 ch1,motor-4,A1 A2 B1 B2,0.5,1.17,True
+W004,IOL1,dep_hopper_level,M2_depositor,IOL,ToF level (IO-Link),-KF13 ch1,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.59,True
+W005,Q2,top_cyl_weiss,M2_depositor,DO,valve coil (ISO6432-16x25),-KF5 ch7,M12-3,BK signal / BU 0V,0.34,1.16,True
+W006,Q2.S1,top_cyl_weiss,M2_depositor,DI,reed switch retracted (ISO6432-16x25),-KF1 ch1,M12-3,BN +24V / BU 0V / BK signal,0.34,1.16,True
+W007,Q2.S2,top_cyl_weiss,M2_depositor,DI,reed switch extended (ISO6432-16x25),-KF1 ch2,M12-3,BN +24V / BU 0V / BK signal,0.34,1.16,True
+W008,Q3,top_cyl_rot,M2_depositor,DO,valve coil (ISO6432-16x25),-KF5 ch8,M12-3,BK signal / BU 0V,0.34,1.16,True
+W009,Q3.S1,top_cyl_rot,M2_depositor,DI,reed switch retracted (ISO6432-16x25),-KF1 ch3,M12-3,BN +24V / BU 0V / BK signal,0.34,1.16,True
+W010,Q3.S2,top_cyl_rot,M2_depositor,DI,reed switch extended (ISO6432-16x25),-KF1 ch4,M12-3,BN +24V / BU 0V / BK signal,0.34,1.16,True
+W011,Q4,top_cyl_blau,M2_depositor,DO,valve coil (ISO6432-16x25),-KF5 ch9,M12-3,BK signal / BU 0V,0.34,1.16,True
+W012,Q4.S1,top_cyl_blau,M2_depositor,DI,reed switch retracted (ISO6432-16x25),-KF1 ch5,M12-3,BN +24V / BU 0V / BK signal,0.34,1.16,True
+W013,Q4.S2,top_cyl_blau,M2_depositor,DI,reed switch extended (ISO6432-16x25),-KF1 ch6,M12-3,BN +24V / BU 0V / BK signal,0.34,1.16,True
+W014,IOL5,top_level_weiss,M2_depositor,IOL,ToF level (IO-Link),-KF13 ch2,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.62,True
+W015,IOL6,top_level_rot,M2_depositor,IOL,ToF level (IO-Link),-KF13 ch3,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.62,True
+W016,IOL7,top_level_blau,M2_depositor,IOL,ToF level (IO-Link),-KF13 ch4,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.62,True
+W017,Q40,M_band,M3_oven,STEP,stepper 17HS19-2004D-E1000+PG27,-KF21 ch1,motor-4,A1 A2 B1 B2,0.5,1.27,True
+W018,E1T1,oven_heater_E1T1,M3_oven,DO,"oven element SSR (500 W 230 V, L1)",-KF5 ch12,M12-3,BK signal / BU 0V,0.34,1.11,True
+W019,E1T2,oven_heater_E1T2,M3_oven,DO,"oven element SSR (500 W 230 V, L2)",-KF5 ch13,M12-3,BK signal / BU 0V,0.34,1.11,True
+W020,E1T3,oven_heater_E1T3,M3_oven,DO,"oven element SSR (500 W 230 V, L3)",-KF5 ch14,M12-3,BK signal / BU 0V,0.34,1.11,True
+W021,E1B1,oven_heater_E1B1,M3_oven,DO,"oven element SSR (500 W 230 V, L1)",-KF5 ch10,M12-3,BK signal / BU 0V,0.34,1.02,True
+W022,E1B2,oven_heater_E1B2,M3_oven,DO,"oven element SSR (500 W 230 V, L2)",-KF5 ch11,M12-3,BK signal / BU 0V,0.34,1.02,True
+W023,QF1,oven_fan_1_motor,M3_oven,DO,"oven circulation fan 230 V 35 W (L2), coupling relay",-KF6 ch7,M12-3,BK signal / BU 0V,0.34,1.23,True
+W024,TC1,oven_tc_1,M3_oven,TC,oven zone thermocouple K (duplex: this element -> PID),-KF11 ch1,tc-K,GN + / WH -,0.22,1.22,True
+W025,E2T1,oven_heater_E2T1,M3_oven,DO,"oven element SSR (500 W 230 V, L3)",-KF5 ch16,M12-3,BK signal / BU 0V,0.34,1.11,True
+W026,E2B1,oven_heater_E2B1,M3_oven,DO,"oven element SSR (350 W 230 V, L2)",-KF5 ch15,M12-3,BK signal / BU 0V,0.34,1.02,True
+W027,QF2,oven_fan_2_motor,M3_oven,DO,"oven circulation fan 230 V 35 W (L3), coupling relay",-KF6 ch8,M12-3,BK signal / BU 0V,0.34,1.23,True
+W028,TC2,oven_tc_2,M3_oven,TC,oven zone thermocouple K (duplex: this element -> PID),-KF11 ch2,tc-K,GN + / WH -,0.22,1.22,True
+W029,E3T1,oven_heater_E3T1,M3_oven,DO,"oven element SSR (500 W 230 V, L1)",-KF6 ch2,M12-3,BK signal / BU 0V,0.34,1.11,True
+W030,E3B1,oven_heater_E3B1,M3_oven,DO,"oven element SSR (350 W 230 V, L3)",-KF6 ch1,M12-3,BK signal / BU 0V,0.34,1.02,True
+W031,QF3,oven_fan_3_motor,M3_oven,DO,"oven circulation fan 230 V 35 W (L2), coupling relay",-KF6 ch9,M12-3,BK signal / BU 0V,0.34,1.23,True
+W032,TC3,oven_tc_3,M3_oven,TC,oven zone thermocouple K (duplex: this element -> PID),-KF11 ch3,tc-K,GN + / WH -,0.22,1.22,True
+W033,QX1,oven_exhaust_fan,M3_oven,DO,oven vapour exhaust fan 24 V EC,-KF6 ch10,M12-3,BK signal / BU 0V,0.34,1.41,True
+W034,IR1,IR1_pyrometer,M3_oven,AI,product temperature 0..10 V,-KF9 ch1,M12-4,BN +24V / BU 0V / BK signal,0.34,1.1,True
+W035,QC1,cool_fan_1,M3_oven,DO,band cooling fan 24 V,-KF6 ch3,M12-3,BK signal / BU 0V,0.34,1.16,True
+W036,QC2,cool_fan_2,M3_oven,DO,band cooling fan 24 V,-KF6 ch4,M12-3,BK signal / BU 0V,0.34,1.27,True
+W037,QC3,cool_exfan_1,M3_oven,DO,band cooling fan 24 V,-KF6 ch5,M12-3,BK signal / BU 0V,0.34,0.97,True
+W038,QC4,cool_exfan_2,M3_oven,DO,band cooling fan 24 V,-KF6 ch6,M12-3,BK signal / BU 0V,0.34,1.08,True
+W039,delta_C.M60,delta_C_motor_60,M4_transfer,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF24 ch1,motor-4,A1 A2 B1 B2,0.5,2.03,True
+W040,delta_C.M180,delta_C_motor_180,M4_transfer,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF22 ch1,motor-4,A1 A2 B1 B2,0.5,1.87,True
+W041,delta_C.M300,delta_C_motor_300,M4_transfer,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF23 ch1,motor-4,A1 A2 B1 B2,0.5,1.92,True
+W042,delta_C.VAC,delta_C_cup_a,M4_transfer,DO,vacuum ejector valve,-KF6 ch11,M12-3,BK signal / BU 0V,0.34,1.5,True
+W043,delta_C.VAC.P,delta_C_cup_a,M4_transfer,IOL,vacuum level (analogue grip quality),-KF14 ch2,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.5,True
+W044,I1,I1_full_check,M4_transfer,DI,puck already full (recirculating) -> delta C does NOT place ,-KF1 ch13,M12-3,BN +24V / BU 0V / BK signal,0.34,1.45,True
+W045,NFC-W,nfc_writer,M4_transfer,IOL,RFID/NFC head (IO-Link),-KF14 ch1,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.45,True
+W046,I9,I9_landing_check,M4_transfer,DITS,landing check after the place: is the cookie seated in the n,-KF42 ch1,M12-3,BN +24V / BU 0V / BK signal,0.34,1.49,True
+W047,CAM1,qc_camera,M5_qc,ETH,GigE camera -> edge PC,edge PC switch,gige,Cat6,0.14,1.18,True
+W048,CAM1.TRG,qc_camera,M5_qc,DOTS,camera trigger (timestamped),-KF43 ch1,M12-3,BK trigger / BU 0V,0.34,1.18,True
+W049,Q17,qc_ringlight,M5_qc,DO,ring light 24 V,-KF6 ch12,M12-3,BK signal / BU 0V,0.34,1.16,True
+W050,AI1.R,A1_colour_sensor,M5_qc,AI,colour R 0..10 V,-KF9 ch4,M12-4,BN +24V / BU 0V / BK signal,0.34,1.18,True
+W051,AI1.G,A1_colour_sensor,M5_qc,AI,colour G 0..10 V,-KF9 ch3,M12-4,BN +24V / BU 0V / BK signal,0.34,1.18,True
+W052,AI1.B,A1_colour_sensor,M5_qc,AI,colour B 0..10 V,-KF9 ch2,M12-4,BN +24V / BU 0V / BK signal,0.34,1.18,True
+W053,NFC-W2,nfc_qc,M5_qc,IOL,RFID/NFC head (IO-Link),-KF14 ch4,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.03,True
+W054,Q18,kick_cylinder,M5_qc,DO,valve coil (ISO6432-10x100),-KF6 ch13,M12-3,BK signal / BU 0V,0.34,1.02,True
+W055,Q18.S1,kick_cylinder,M5_qc,DI,reed switch retracted (ISO6432-10x100),-KF1 ch14,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
+W056,Q18.S2,kick_cylinder,M5_qc,DI,reed switch extended (ISO6432-10x100),-KF1 ch15,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
+W057,IOL4,reject_level,M5_qc,IOL,ToF level (IO-Link),-KF14 ch3,iol-4,BN L+ / BU L- / BK C/Q,0.34,0.96,True
+W058,delta_A.M-15,delta_A_motor_-15,M6_pick,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF25 ch1,motor-4,A1 A2 B1 B2,0.5,1.31,True
+W059,delta_A.M105,delta_A_motor_105,M6_pick,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF26 ch1,motor-4,A1 A2 B1 B2,0.5,1.31,True
+W060,delta_A.M225,delta_A_motor_225,M6_pick,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF27 ch1,motor-4,A1 A2 B1 B2,0.5,1.31,True
+W061,delta_A.VAC,delta_A_cup_a,M6_pick,DO,vacuum ejector valve,-KF6 ch14,M12-3,BK signal / BU 0V,0.34,1.03,True
+W062,delta_A.VAC.P,delta_A_cup_a,M6_pick,IOL,vacuum level (analogue grip quality),-KF15 ch2,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.03,True
+W063,delta_B.M165,delta_B_motor_165,M6_pick,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF28 ch1,motor-4,A1 A2 B1 B2,0.5,1.31,True
+W064,delta_B.M285,delta_B_motor_285,M6_pick,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF29 ch1,motor-4,A1 A2 B1 B2,0.5,1.31,True
+W065,delta_B.M405,delta_B_motor_405,M6_pick,STEP,stepper 17HS19-2004D-E1000+SWG17-30,-KF30 ch1,motor-4,A1 A2 B1 B2,0.5,1.31,True
+W066,delta_B.VAC,delta_B_cup_a,M6_pick,DO,vacuum ejector valve,-KF6 ch15,M12-3,BK signal / BU 0V,0.34,1.03,True
+W067,delta_B.VAC.P,delta_B_cup_a,M6_pick,IOL,vacuum level (analogue grip quality),-KF15 ch3,iol-4,BN L+ / BU L- / BK C/Q,0.34,1.03,True
+W068,CAM2,track_camera,M6_pick,ETH,GigE camera -> edge PC,edge PC switch,gige,Cat6,0.14,1.13,True
+W069,CAM2.TRG,track_camera,M6_pick,DOTS,camera trigger (timestamped),-KF43 ch2,M12-3,BK trigger / BU 0V,0.34,1.13,True
+W070,NFC-R,nfc_pick,M6_pick,IOL,RFID/NFC head (IO-Link),-KF15 ch1,iol-4,BN L+ / BU L- / BK C/Q,0.34,0.87,True
+W071,Q20,lane_weiss_frame,M7_pack,STEP,"stepper mini belt conveyor 60, end drive 17HS19-2004D-E1000+PG5 inside the frame",-KF31 ch1,motor-4,A1 A2 B1 B2,0.5,0.85,True
+W072,Q33,boxmag_weiss_fork_l,M7_pack,DO,valve coil (ISO6432-8x10),-KF7 ch3,M12-3,BK signal / BU 0V,0.34,1.02,True
+W073,Q33.S1,boxmag_weiss_fork_l,M7_pack,DI,reed switch retracted (ISO6432-8x10),-KF3 ch2,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
+W074,Q33.S2,boxmag_weiss_fork_l,M7_pack,DI,reed switch extended (ISO6432-8x10),-KF3 ch3,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
+W075,Q36,sealer_weiss_head,M7_pack,DO,sealing head DC SSR (24 V 60 W),-KF7 ch6,M12-3,BK signal / BU 0V,0.34,0.95,True
+W076,Q36.TC,sealer_weiss_head,M7_pack,TC,sealing head thermocouple (integrated),-KF11 ch4,tc-K,GN + / WH -,0.22,0.95,True
+W077,Q21,lane_rot_frame,M7_pack,STEP,"stepper mini belt conveyor 60, end drive 17HS19-2004D-E1000+PG5 inside the frame",-KF32 ch1,motor-4,A1 A2 B1 B2,0.5,0.85,True
+W078,Q34,boxmag_rot_fork_l,M7_pack,DO,valve coil (ISO6432-8x10),-KF7 ch4,M12-3,BK signal / BU 0V,0.34,1.02,True
+W079,Q34.S1,boxmag_rot_fork_l,M7_pack,DI,reed switch retracted (ISO6432-8x10),-KF3 ch4,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
+W080,Q34.S2,boxmag_rot_fork_l,M7_pack,DI,reed switch extended (ISO6432-8x10),-KF3 ch5,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
+W081,Q37,sealer_rot_head,M7_pack,DO,sealing head DC SSR (24 V 60 W),-KF7 ch7,M12-3,BK signal / BU 0V,0.34,0.95,True
+W082,Q37.TC,sealer_rot_head,M7_pack,TC,sealing head thermocouple (integrated),-KF12 ch1,tc-K,GN + / WH -,0.22,0.95,True
+W083,Q22,lane_blau_frame,M7_pack,STEP,"stepper mini belt conveyor 60, end drive 17HS19-2004D-E1000+PG5 inside the frame",-KF33 ch1,motor-4,A1 A2 B1 B2,0.5,0.85,True
+W084,Q35,boxmag_blau_fork_l,M7_pack,DO,valve coil (ISO6432-8x10),-KF7 ch5,M12-3,BK signal / BU 0V,0.34,1.02,True
+W085,Q35.S1,boxmag_blau_fork_l,M7_pack,DI,reed switch retracted (ISO6432-8x10),-KF3 ch6,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
+W086,Q35.S2,boxmag_blau_fork_l,M7_pack,DI,reed switch extended (ISO6432-8x10),-KF3 ch7,M12-3,BN +24V / BU 0V / BK signal,0.34,1.02,True
+W087,Q38,sealer_blau_head,M7_pack,DO,sealing head DC SSR (24 V 60 W),-KF7 ch8,M12-3,BK signal / BU 0V,0.34,0.95,True
+W088,Q38.TC,sealer_blau_head,M7_pack,TC,sealing head thermocouple (integrated),-KF12 ch2,tc-K,GN + / WH -,0.22,0.95,True
+W089,Q24,stacker_lift_weiss,M7_pack,DO,valve coil (ISO6432-16x30),-KF6 ch16,M12-3,BK signal / BU 0V,0.34,1.01,True
+W090,Q24.S1,stacker_lift_weiss,M7_pack,DI,reed switch retracted (ISO6432-16x30),-KF2 ch12,M12-3,BN +24V / BU 0V / BK signal,0.34,1.01,True
+W091,Q24.S2,stacker_lift_weiss,M7_pack,DI,reed switch extended (ISO6432-16x30),-KF2 ch13,M12-3,BN +24V / BU 0V / BK signal,0.34,1.01,True
+W092,I12,stack_count_weiss,M7_pack,DI,"reed switch on the lift cylinder: lifts are counted, the cas",-KF2 ch9,M12-3,BN +24V / BU 0V / BK signal,0.34,0.99,True
+W093,Q25,stacker_lift_rot,M7_pack,DO,valve coil (ISO6432-16x30),-KF7 ch1,M12-3,BK signal / BU 0V,0.34,1.01,True
+W094,Q25.S1,stacker_lift_rot,M7_pack,DI,reed switch retracted (ISO6432-16x30),-KF2 ch14,M12-3,BN +24V / BU 0V / BK signal,0.34,1.01,True
+W095,Q25.S2,stacker_lift_rot,M7_pack,DI,reed switch extended (ISO6432-16x30),-KF2 ch15,M12-3,BN +24V / BU 0V / BK signal,0.34,1.01,True
+W096,I13,stack_count_rot,M7_pack,DI,"reed switch on the lift cylinder: lifts are counted, the cas",-KF2 ch10,M12-3,BN +24V / BU 0V / BK signal,0.34,0.99,True
+W097,Q26,stacker_lift_blau,M7_pack,DO,valve coil (ISO6432-16x30),-KF7 ch2,M12-3,BK signal / BU 0V,0.34,1.01,True
+W098,Q26.S1,stacker_lift_blau,M7_pack,DI,reed switch retracted (ISO6432-16x30),-KF2 ch16,M12-3,BN +24V / BU 0V / BK signal,0.34,1.01,True
+W099,Q26.S2,stacker_lift_blau,M7_pack,DI,reed switch extended (ISO6432-16x30),-KF3 ch1,M12-3,BN +24V / BU 0V / BK signal,0.34,1.01,True
+W100,I14,stack_count_blau,M7_pack,DI,"reed switch on the lift cylinder: lifts are counted, the cas",-KF2 ch11,M12-3,BN +24V / BU 0V / BK signal,0.34,0.99,True
+W101,Q27,M_shuttle_weiss,M7_pack,STEP,stepper 17HS19-2004D-E1000,-KF34 ch1,motor-4,A1 A2 B1 B2,0.5,2.18,True
+W102,Q28,M_shuttle_rot,M7_pack,STEP,stepper 17HS19-2004D-E1000,-KF35 ch1,motor-4,A1 A2 B1 B2,0.5,2.18,True
+W103,Q29,M_shuttle_blau,M7_pack,STEP,stepper 17HS19-2004D-E1000,-KF36 ch1,motor-4,A1 A2 B1 B2,0.5,2.18,True
+W104,Q19,frl,M8_control,SO,soft-start / dump valve: safe exhaust of all air (SF3),-KF57 ch4,M12-3,safe output / 0V,0.34,0.86,True
+W105,Q19.FB,frl,M8_control,SI,dump valve position switch (exhausted),-KF52 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.86,True
+W106,CAM4,CAM4_pack,M6_pick,ETH,GigE camera -> edge PC,edge PC switch,gige,Cat6,0.14,1.41,True
+W107,CAM4.TRG,CAM4_pack,M6_pick,DOTS,camera trigger (timestamped),-KF44 ch1,M12-3,BK trigger / BU 0V,0.34,1.41,True
+W108,B10,M_shuttle_weiss,M7_pack,DI,shuttle weiss home,-KF2 ch6,M12-3,BN +24V / BU 0V / BK signal,0.34,2.18,False
+W109,B11,M_shuttle_rot,M7_pack,DI,shuttle rot home,-KF2 ch7,M12-3,BN +24V / BU 0V / BK signal,0.34,2.18,False
+W110,B12,M_shuttle_blau,M7_pack,DI,shuttle blau home,-KF2 ch8,M12-3,BN +24V / BU 0V / BK signal,0.34,2.18,False
+W111,B20,delta_C_motor_60,M4_transfer,DI,delta_C_motor_60 arm index,-KF1 ch10,M12-3,BN +24V / BU 0V / BK signal,0.34,2.03,False
+W112,B21,delta_C_motor_180,M4_transfer,DI,delta_C_motor_180 arm index,-KF1 ch11,M12-3,BN +24V / BU 0V / BK signal,0.34,1.87,False
+W113,B22,delta_C_motor_300,M4_transfer,DI,delta_C_motor_300 arm index,-KF1 ch12,M12-3,BN +24V / BU 0V / BK signal,0.34,1.92,False
+W114,B23,delta_A_motor_-15,M6_pick,DI,delta_A_motor_-15 arm index,-KF1 ch16,M12-3,BN +24V / BU 0V / BK signal,0.34,1.31,False
+W115,B24,delta_A_motor_105,M6_pick,DI,delta_A_motor_105 arm index,-KF2 ch1,M12-3,BN +24V / BU 0V / BK signal,0.34,1.31,False
+W116,B25,delta_A_motor_225,M6_pick,DI,delta_A_motor_225 arm index,-KF2 ch2,M12-3,BN +24V / BU 0V / BK signal,0.34,1.31,False
+W117,B26,delta_B_motor_165,M6_pick,DI,delta_B_motor_165 arm index,-KF2 ch3,M12-3,BN +24V / BU 0V / BK signal,0.34,1.31,False
+W118,B27,delta_B_motor_285,M6_pick,DI,delta_B_motor_285 arm index,-KF2 ch4,M12-3,BN +24V / BU 0V / BK signal,0.34,1.31,False
+W119,B28,delta_B_motor_405,M6_pick,DI,delta_B_motor_405 arm index,-KF2 ch5,M12-3,BN +24V / BU 0V / BK signal,0.34,1.31,False
+W120,S20.A,lock_S20,M10_safety,SI,"door closed AND locked, OSSD A (SF2)",-KF48 ch2,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.95,True
+W121,S20.B,lock_S20,M10_safety,SI,"door closed AND locked, OSSD B (SF2)",-KF48 ch3,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.95,True
+W122,S20.UNL,lock_S20,M10_safety,SO,"unlock solenoid (power-to-unlock, only at standstill)",-KF55 ch1,M12-8,safe output / 0V,0.25,1.95,True
+W123,S21.A,lock_S21,M10_safety,SI,"door closed AND locked, OSSD A (SF2)",-KF48 ch4,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.54,True
+W124,S21.B,lock_S21,M10_safety,SI,"door closed AND locked, OSSD B (SF2)",-KF49 ch1,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,1.54,True
+W125,S21.UNL,lock_S21,M10_safety,SO,"unlock solenoid (power-to-unlock, only at standstill)",-KF55 ch2,M12-8,safe output / 0V,0.25,1.54,True
+W126,S22.A,lock_S22,M10_safety,SI,"door closed AND locked, OSSD A (SF2)",-KF49 ch2,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,2.11,True
+W127,S22.B,lock_S22,M10_safety,SI,"door closed AND locked, OSSD B (SF2)",-KF49 ch3,M12-8,test pulse out / safe input (2-ch devices: 2 x),0.25,2.11,True
+W128,S22.UNL,lock_S22,M10_safety,SO,"unlock solenoid (power-to-unlock, only at standstill)",-KF55 ch3,M12-8,safe output / 0V,0.25,2.11,True
+W129,Q42.CLA,trapdoor_weiss,M10_safety,SI,"trapdoor closed, safety sensor OSSD A",-KF45 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
+W130,Q42.CLB,trapdoor_weiss,M10_safety,SI,"trapdoor closed, safety sensor OSSD B",-KF45 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
+W131,Q42,trapdoor_weiss,M10_safety,DO,trapdoor valve (spring-return closes on exhaust),-KF5 ch1,M12-3,BK signal / BU 0V,0.34,1.42,True
+W132,Q43.CLA,trapdoor_rot,M10_safety,SI,"trapdoor closed, safety sensor OSSD A",-KF45 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
+W133,Q43.CLB,trapdoor_rot,M10_safety,SI,"trapdoor closed, safety sensor OSSD B",-KF45 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
+W134,Q43,trapdoor_rot,M10_safety,DO,trapdoor valve (spring-return closes on exhaust),-KF5 ch2,M12-3,BK signal / BU 0V,0.34,1.42,True
+W135,Q44.CLA,trapdoor_blau,M10_safety,SI,"trapdoor closed, safety sensor OSSD A",-KF46 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
+W136,Q44.CLB,trapdoor_blau,M10_safety,SI,"trapdoor closed, safety sensor OSSD B",-KF46 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.42,True
+W137,Q44,trapdoor_blau,M10_safety,DO,trapdoor valve (spring-return closes on exhaust),-KF5 ch3,M12-3,BK signal / BU 0V,0.34,1.42,True
+W138,S30.A,aldoor_boxes,M10_safety,SI,"boxes airlock outer door closed AND locked, OSSD A",-KF49 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.8,True
+W139,S30.B,aldoor_boxes,M10_safety,SI,"boxes airlock outer door closed AND locked, OSSD B",-KF50 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.8,True
+W140,S30.UNL,aldoor_boxes,M10_safety,SO,boxes airlock outer door lock release (interlocked),-KF55 ch4,M12-3,safe output / 0V,0.34,1.8,True
+W141,S30.DRV,aldoor_boxes,M10_safety,DO,boxes airlock outer door drive valve (force-limited),-KF5 ch4,M12-3,BK signal / BU 0V,0.34,1.8,True
+W142,S32.A,aldoor_inner,M10_safety,SI,"out airlock inner door closed AND locked, OSSD A",-KF50 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.53,True
+W143,S32.B,aldoor_inner,M10_safety,SI,"out airlock inner door closed AND locked, OSSD B",-KF51 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.53,True
+W144,S32.UNL,aldoor_inner,M10_safety,SO,out airlock inner door lock release (interlocked),-KF56 ch2,M12-3,safe output / 0V,0.34,1.53,True
+W145,S32.DRV,aldoor_inner,M10_safety,DO,out airlock inner door drive valve (force-limited),-KF5 ch6,M12-3,BK signal / BU 0V,0.34,1.53,True
+W146,S31.A,aldoor_out,M10_safety,SI,"out airlock outer door closed AND locked, OSSD A",-KF50 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.91,True
+W147,S31.B,aldoor_out,M10_safety,SI,"out airlock outer door closed AND locked, OSSD B",-KF50 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.91,True
+W148,S31.UNL,aldoor_out,M10_safety,SO,out airlock outer door lock release (interlocked),-KF56 ch1,M12-3,safe output / 0V,0.34,1.91,True
+W149,S31.DRV,aldoor_out,M10_safety,DO,out airlock outer door drive valve (force-limited),-KF5 ch5,M12-3,BK signal / BU 0V,0.34,1.91,True
+W150,S10.A,estop_S10_head,M10_safety,SI,"E-stop NC contact A (SF1, 2-channel)",-KF46 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.05,True
+W151,S10.B,estop_S10_head,M10_safety,SI,"E-stop NC contact B (SF1, 2-channel)",-KF46 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.05,True
+W152,S11.A,estop_S11_head,M10_safety,SI,"E-stop NC contact A (SF1, 2-channel)",-KF47 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.58,True
+W153,S11.B,estop_S11_head,M10_safety,SI,"E-stop NC contact B (SF1, 2-channel)",-KF47 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,1.58,True
+W154,S12.A,estop_S12_head,M10_safety,SI,"E-stop NC contact A (SF1, 2-channel)",-KF47 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.34,True
+W155,S12.B,estop_S12_head,M10_safety,SI,"E-stop NC contact B (SF1, 2-channel)",-KF47 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.34,True
+W156,S13,reset_S13_head,M10_safety,SI,reset pushbutton (manual reset on the falling edge),-KF48 ch1,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,2.09,True
+W157,BOXES.DOCK1,port_boxes,M9_ports,DI,AMR docked at boxes (1),-KF3 ch11,M12-3,BN +24V / BU 0V / BK signal,0.34,1.07,False
+W158,BOXES.DOCK2,port_boxes,M9_ports,DI,AMR docked at boxes (2),-KF3 ch12,M12-3,BN +24V / BU 0V / BK signal,0.34,1.07,False
+W159,OUT.DOCK1,port_out,M9_ports,DI,AMR docked at out (1),-KF3 ch13,M12-3,BN +24V / BU 0V / BK signal,0.34,1.47,False
+W160,OUT.DOCK2,port_out,M9_ports,DI,AMR docked at out (2),-KF3 ch14,M12-3,BN +24V / BU 0V / BK signal,0.34,1.47,False
+W161,S34.A,reject_bin_wall_front,M5_qc,SI,"reject drawer in place, OSSD A",-KF51 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.96,False
+W162,S34.B,reject_bin_wall_front,M5_qc,SI,"reject drawer in place, OSSD B",-KF51 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.96,False
+W163,K1,,M8_control,SO,"contactor coil: 48 V motor supply, channel 1 (all EL7047)",-KF56 ch3,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W164,K2,,M8_control,SO,"contactor coil: 48 V motor supply, channel 2 (in series with K1)",-KF56 ch4,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W165,K3,,M8_control,SO,"contactor coil: 400 V oven feed + 24 V heater PSU, channel 1 (3-pole)",-KF57 ch1,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W166,K4,,M8_control,SO,"contactor coil: 400 V oven feed + 24 V heater PSU, channel 2 (in series with K3)",-KF57 ch2,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W167,K5,,M8_control,SO,"contactor coil: 48 V branch of the out-port zone (Q27, Q28, Q29)",-KF57 ch3,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W168,K1K2.EDM,,M8_control,SI,EDM: K1 + K2 mirror contacts in series (welded contact detection),-KF51 ch4,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W169,K3K4.EDM,,M8_control,SI,EDM: K3 + K4 mirror contacts (welded contact detection),-KF52 ch1,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W170,K5.EDM,,M8_control,SI,EDM: K5 mirror contact (welded contact detection),-KF52 ch2,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W171,Y1,valve_island,M8_control,SO,safe exhaust of the boxes-port pressure zone (SF6),-KF58 ch1,M12-3,safe output / 0V,0.34,0.83,True
+W172,Y1.FB,valve_island,M8_control,SI,boxes zone valve position switch (exhausted),-KF52 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.83,True
+W173,TC1.STL,oven_tc_1,M3_oven,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its contact is in the coil of zone contactor KH1)",-KF1 ch7,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W174,TC2.STL,oven_tc_2,M3_oven,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its contact is in the coil of zone contactor KH2)",-KF1 ch8,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W175,TC3.STL,oven_tc_3,M3_oven,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its contact is in the coil of zone contactor KH3)",-KF1 ch9,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W176,Q36.STL,sealer_weiss_head,M7_pack,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF3 ch8,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W177,Q37.STL,sealer_rot_head,M7_pack,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF3 ch9,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W178,Q38.STL,sealer_blau_head,M7_pack,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)",-KF3 ch10,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True

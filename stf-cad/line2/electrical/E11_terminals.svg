@@ -30,132 +30,132 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="35.5" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="39.7" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="39.7" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="39.7" class="tbs" text-anchor="start" >B24</text>
-<text x="118.0" y="39.7" class="tbs" text-anchor="start" >delta_B_motor_285</text>
-<text x="185.0" y="39.7" class="tbs" text-anchor="start" >delta_B_motor_285 arm index  [implied]</text>
-<text x="300.0" y="39.7" class="tbs" text-anchor="start" >W122</text>
-<text x="330.0" y="39.7" class="tbs" text-anchor="start" >1.32 m</text>
+<text x="70.0" y="39.7" class="tbs" text-anchor="start" >Q26.S2</text>
+<text x="118.0" y="39.7" class="tbs" text-anchor="start" >stacker_lift_blau</text>
+<text x="185.0" y="39.7" class="tbs" text-anchor="start" >reed switch extended (ISO6432-16x30)</text>
+<text x="300.0" y="39.7" class="tbs" text-anchor="start" >W099</text>
+<text x="330.0" y="39.7" class="tbs" text-anchor="start" >1.01 m</text>
 <text x="360.0" y="39.7" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="43.3" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="43.3" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="43.3" class="tbs" text-anchor="start" >B25</text>
-<text x="118.0" y="43.3" class="tbs" text-anchor="start" >delta_B_motor_405</text>
-<text x="185.0" y="43.3" class="tbs" text-anchor="start" >delta_B_motor_405 arm index  [implied]</text>
-<text x="300.0" y="43.3" class="tbs" text-anchor="start" >W123</text>
-<text x="330.0" y="43.3" class="tbs" text-anchor="start" >1.32 m</text>
+<text x="70.0" y="43.3" class="tbs" text-anchor="start" >Q33.S1</text>
+<text x="118.0" y="43.3" class="tbs" text-anchor="start" >boxmag_weiss_fork_l</text>
+<text x="185.0" y="43.3" class="tbs" text-anchor="start" >reed switch retracted (ISO6432-8x10)</text>
+<text x="300.0" y="43.3" class="tbs" text-anchor="start" >W073</text>
+<text x="330.0" y="43.3" class="tbs" text-anchor="start" >1.02 m</text>
 <text x="360.0" y="43.3" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="46.9" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="46.9" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="46.9" class="tbs" text-anchor="start" >B10</text>
-<text x="118.0" y="46.9" class="tbs" text-anchor="start" >M_shuttle_weiss</text>
-<text x="185.0" y="46.9" class="tbs" text-anchor="start" >shuttle weiss home  [implied]</text>
-<text x="300.0" y="46.9" class="tbs" text-anchor="start" >W115</text>
-<text x="330.0" y="46.9" class="tbs" text-anchor="start" >2.18 m</text>
+<text x="70.0" y="46.9" class="tbs" text-anchor="start" >Q33.S2</text>
+<text x="118.0" y="46.9" class="tbs" text-anchor="start" >boxmag_weiss_fork_l</text>
+<text x="185.0" y="46.9" class="tbs" text-anchor="start" >reed switch extended (ISO6432-8x10)</text>
+<text x="300.0" y="46.9" class="tbs" text-anchor="start" >W074</text>
+<text x="330.0" y="46.9" class="tbs" text-anchor="start" >1.02 m</text>
 <text x="360.0" y="46.9" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="50.5" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="50.5" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="50.5" class="tbs" text-anchor="start" >B11</text>
-<text x="118.0" y="50.5" class="tbs" text-anchor="start" >M_shuttle_rot</text>
-<text x="185.0" y="50.5" class="tbs" text-anchor="start" >shuttle rot home  [implied]</text>
-<text x="300.0" y="50.5" class="tbs" text-anchor="start" >W116</text>
-<text x="330.0" y="50.5" class="tbs" text-anchor="start" >2.18 m</text>
+<text x="70.0" y="50.5" class="tbs" text-anchor="start" >Q34.S1</text>
+<text x="118.0" y="50.5" class="tbs" text-anchor="start" >boxmag_rot_fork_l</text>
+<text x="185.0" y="50.5" class="tbs" text-anchor="start" >reed switch retracted (ISO6432-8x10)</text>
+<text x="300.0" y="50.5" class="tbs" text-anchor="start" >W079</text>
+<text x="330.0" y="50.5" class="tbs" text-anchor="start" >1.02 m</text>
 <text x="360.0" y="50.5" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="54.1" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="54.1" class="tbs" text-anchor="start" >5</text>
-<text x="70.0" y="54.1" class="tbs" text-anchor="start" >B12</text>
-<text x="118.0" y="54.1" class="tbs" text-anchor="start" >M_shuttle_blau</text>
-<text x="185.0" y="54.1" class="tbs" text-anchor="start" >shuttle blau home  [implied]</text>
-<text x="300.0" y="54.1" class="tbs" text-anchor="start" >W117</text>
-<text x="330.0" y="54.1" class="tbs" text-anchor="start" >2.21 m</text>
+<text x="70.0" y="54.1" class="tbs" text-anchor="start" >Q34.S2</text>
+<text x="118.0" y="54.1" class="tbs" text-anchor="start" >boxmag_rot_fork_l</text>
+<text x="185.0" y="54.1" class="tbs" text-anchor="start" >reed switch extended (ISO6432-8x10)</text>
+<text x="300.0" y="54.1" class="tbs" text-anchor="start" >W080</text>
+<text x="330.0" y="54.1" class="tbs" text-anchor="start" >1.02 m</text>
 <text x="360.0" y="54.1" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="57.7" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="57.7" class="tbs" text-anchor="start" >6</text>
-<text x="70.0" y="57.7" class="tbs" text-anchor="start" >I12</text>
-<text x="118.0" y="57.7" class="tbs" text-anchor="start" >stack_count_weiss</text>
-<text x="185.0" y="57.7" class="tbs" text-anchor="start" >reed switch on the lift cylinder: lifts are coun</text>
-<text x="300.0" y="57.7" class="tbs" text-anchor="start" >W094</text>
-<text x="330.0" y="57.7" class="tbs" text-anchor="start" >0.99 m</text>
+<text x="70.0" y="57.7" class="tbs" text-anchor="start" >Q35.S1</text>
+<text x="118.0" y="57.7" class="tbs" text-anchor="start" >boxmag_blau_fork_l</text>
+<text x="185.0" y="57.7" class="tbs" text-anchor="start" >reed switch retracted (ISO6432-8x10)</text>
+<text x="300.0" y="57.7" class="tbs" text-anchor="start" >W085</text>
+<text x="330.0" y="57.7" class="tbs" text-anchor="start" >1.02 m</text>
 <text x="360.0" y="57.7" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="61.3" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="61.3" class="tbs" text-anchor="start" >7</text>
-<text x="70.0" y="61.3" class="tbs" text-anchor="start" >I13</text>
-<text x="118.0" y="61.3" class="tbs" text-anchor="start" >stack_count_rot</text>
-<text x="185.0" y="61.3" class="tbs" text-anchor="start" >reed switch on the lift cylinder: lifts are coun</text>
-<text x="300.0" y="61.3" class="tbs" text-anchor="start" >W098</text>
-<text x="330.0" y="61.3" class="tbs" text-anchor="start" >0.99 m</text>
+<text x="70.0" y="61.3" class="tbs" text-anchor="start" >Q35.S2</text>
+<text x="118.0" y="61.3" class="tbs" text-anchor="start" >boxmag_blau_fork_l</text>
+<text x="185.0" y="61.3" class="tbs" text-anchor="start" >reed switch extended (ISO6432-8x10)</text>
+<text x="300.0" y="61.3" class="tbs" text-anchor="start" >W086</text>
+<text x="330.0" y="61.3" class="tbs" text-anchor="start" >1.02 m</text>
 <text x="360.0" y="61.3" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="64.9" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="64.9" class="tbs" text-anchor="start" >8</text>
-<text x="70.0" y="64.9" class="tbs" text-anchor="start" >I14</text>
-<text x="118.0" y="64.9" class="tbs" text-anchor="start" >stack_count_blau</text>
-<text x="185.0" y="64.9" class="tbs" text-anchor="start" >reed switch on the lift cylinder: lifts are coun</text>
-<text x="300.0" y="64.9" class="tbs" text-anchor="start" >W102</text>
-<text x="330.0" y="64.9" class="tbs" text-anchor="start" >1.0 m</text>
-<text x="360.0" y="64.9" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="64.9" class="tbs" text-anchor="start" >Q36.STL</text>
+<text x="118.0" y="64.9" class="tbs" text-anchor="start" >sealer_weiss_head</text>
+<text x="185.0" y="64.9" class="tbs" text-anchor="start" >safety temperature limiter tripped (SF4, own ele</text>
+<text x="300.0" y="64.9" class="tbs" text-anchor="start" >W176</text>
+<text x="330.0" y="64.9" class="tbs" text-anchor="start" >0.8 m</text>
+<text x="360.0" y="64.9" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="68.5" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="68.5" class="tbs" text-anchor="start" >9</text>
-<text x="70.0" y="68.5" class="tbs" text-anchor="start" >Q24.S1</text>
-<text x="118.0" y="68.5" class="tbs" text-anchor="start" >stacker_lift_weiss</text>
-<text x="185.0" y="68.5" class="tbs" text-anchor="start" >reed switch retracted (ISO6432-16x30)</text>
-<text x="300.0" y="68.5" class="tbs" text-anchor="start" >W092</text>
-<text x="330.0" y="68.5" class="tbs" text-anchor="start" >1.01 m</text>
-<text x="360.0" y="68.5" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="68.5" class="tbs" text-anchor="start" >Q37.STL</text>
+<text x="118.0" y="68.5" class="tbs" text-anchor="start" >sealer_rot_head</text>
+<text x="185.0" y="68.5" class="tbs" text-anchor="start" >safety temperature limiter tripped (SF4, own ele</text>
+<text x="300.0" y="68.5" class="tbs" text-anchor="start" >W177</text>
+<text x="330.0" y="68.5" class="tbs" text-anchor="start" >0.8 m</text>
+<text x="360.0" y="68.5" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="72.1" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="72.1" class="tbs" text-anchor="start" >10</text>
-<text x="70.0" y="72.1" class="tbs" text-anchor="start" >Q24.S2</text>
-<text x="118.0" y="72.1" class="tbs" text-anchor="start" >stacker_lift_weiss</text>
-<text x="185.0" y="72.1" class="tbs" text-anchor="start" >reed switch extended (ISO6432-16x30)</text>
-<text x="300.0" y="72.1" class="tbs" text-anchor="start" >W093</text>
-<text x="330.0" y="72.1" class="tbs" text-anchor="start" >1.01 m</text>
-<text x="360.0" y="72.1" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="72.1" class="tbs" text-anchor="start" >Q38.STL</text>
+<text x="118.0" y="72.1" class="tbs" text-anchor="start" >sealer_blau_head</text>
+<text x="185.0" y="72.1" class="tbs" text-anchor="start" >safety temperature limiter tripped (SF4, own ele</text>
+<text x="300.0" y="72.1" class="tbs" text-anchor="start" >W178</text>
+<text x="330.0" y="72.1" class="tbs" text-anchor="start" >0.8 m</text>
+<text x="360.0" y="72.1" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="75.7" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="75.7" class="tbs" text-anchor="start" >11</text>
-<text x="70.0" y="75.7" class="tbs" text-anchor="start" >Q25.S1</text>
-<text x="118.0" y="75.7" class="tbs" text-anchor="start" >stacker_lift_rot</text>
-<text x="185.0" y="75.7" class="tbs" text-anchor="start" >reed switch retracted (ISO6432-16x30)</text>
-<text x="300.0" y="75.7" class="tbs" text-anchor="start" >W096</text>
-<text x="330.0" y="75.7" class="tbs" text-anchor="start" >1.01 m</text>
+<text x="70.0" y="75.7" class="tbs" text-anchor="start" >BOXES.DOCK1</text>
+<text x="118.0" y="75.7" class="tbs" text-anchor="start" >port_boxes</text>
+<text x="185.0" y="75.7" class="tbs" text-anchor="start" >AMR docked at boxes (1)  [implied]</text>
+<text x="300.0" y="75.7" class="tbs" text-anchor="start" >W157</text>
+<text x="330.0" y="75.7" class="tbs" text-anchor="start" >1.07 m</text>
 <text x="360.0" y="75.7" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="79.3" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="79.3" class="tbs" text-anchor="start" >12</text>
-<text x="70.0" y="79.3" class="tbs" text-anchor="start" >Q25.S2</text>
-<text x="118.0" y="79.3" class="tbs" text-anchor="start" >stacker_lift_rot</text>
-<text x="185.0" y="79.3" class="tbs" text-anchor="start" >reed switch extended (ISO6432-16x30)</text>
-<text x="300.0" y="79.3" class="tbs" text-anchor="start" >W097</text>
-<text x="330.0" y="79.3" class="tbs" text-anchor="start" >1.01 m</text>
+<text x="70.0" y="79.3" class="tbs" text-anchor="start" >BOXES.DOCK2</text>
+<text x="118.0" y="79.3" class="tbs" text-anchor="start" >port_boxes</text>
+<text x="185.0" y="79.3" class="tbs" text-anchor="start" >AMR docked at boxes (2)  [implied]</text>
+<text x="300.0" y="79.3" class="tbs" text-anchor="start" >W158</text>
+<text x="330.0" y="79.3" class="tbs" text-anchor="start" >1.07 m</text>
 <text x="360.0" y="79.3" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="82.9" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="82.9" class="tbs" text-anchor="start" >13</text>
-<text x="70.0" y="82.9" class="tbs" text-anchor="start" >Q26.S1</text>
-<text x="118.0" y="82.9" class="tbs" text-anchor="start" >stacker_lift_blau</text>
-<text x="185.0" y="82.9" class="tbs" text-anchor="start" >reed switch retracted (ISO6432-16x30)</text>
-<text x="300.0" y="82.9" class="tbs" text-anchor="start" >W100</text>
-<text x="330.0" y="82.9" class="tbs" text-anchor="start" >1.02 m</text>
+<text x="70.0" y="82.9" class="tbs" text-anchor="start" >OUT.DOCK1</text>
+<text x="118.0" y="82.9" class="tbs" text-anchor="start" >port_out</text>
+<text x="185.0" y="82.9" class="tbs" text-anchor="start" >AMR docked at out (1)  [implied]</text>
+<text x="300.0" y="82.9" class="tbs" text-anchor="start" >W159</text>
+<text x="330.0" y="82.9" class="tbs" text-anchor="start" >1.47 m</text>
 <text x="360.0" y="82.9" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="86.5" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="86.5" class="tbs" text-anchor="start" >14</text>
-<text x="70.0" y="86.5" class="tbs" text-anchor="start" >Q26.S2</text>
-<text x="118.0" y="86.5" class="tbs" text-anchor="start" >stacker_lift_blau</text>
-<text x="185.0" y="86.5" class="tbs" text-anchor="start" >reed switch extended (ISO6432-16x30)</text>
-<text x="300.0" y="86.5" class="tbs" text-anchor="start" >W101</text>
-<text x="330.0" y="86.5" class="tbs" text-anchor="start" >1.02 m</text>
+<text x="70.0" y="86.5" class="tbs" text-anchor="start" >OUT.DOCK2</text>
+<text x="118.0" y="86.5" class="tbs" text-anchor="start" >port_out</text>
+<text x="185.0" y="86.5" class="tbs" text-anchor="start" >AMR docked at out (2)  [implied]</text>
+<text x="300.0" y="86.5" class="tbs" text-anchor="start" >W160</text>
+<text x="330.0" y="86.5" class="tbs" text-anchor="start" >1.47 m</text>
 <text x="360.0" y="86.5" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="90.1" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="90.1" class="tbs" text-anchor="start" >15</text>
-<text x="70.0" y="90.1" class="tbs" text-anchor="start" >Q33.S1</text>
-<text x="118.0" y="90.1" class="tbs" text-anchor="start" >boxmag_weiss_fork_l</text>
-<text x="185.0" y="90.1" class="tbs" text-anchor="start" >reed switch retracted (ISO6432-8x10)</text>
-<text x="300.0" y="90.1" class="tbs" text-anchor="start" >W075</text>
-<text x="330.0" y="90.1" class="tbs" text-anchor="start" >1.02 m</text>
-<text x="360.0" y="90.1" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="90.1" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="90.1" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="90.1" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="90.1" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="90.1" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="90.1" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="93.7" class="tbs" text-anchor="start" >-KF3</text>
 <text x="48.0" y="93.7" class="tbs" text-anchor="start" >16</text>
-<text x="70.0" y="93.7" class="tbs" text-anchor="start" >Q33.S2</text>
-<text x="118.0" y="93.7" class="tbs" text-anchor="start" >boxmag_weiss_fork_l</text>
-<text x="185.0" y="93.7" class="tbs" text-anchor="start" >reed switch extended (ISO6432-8x10)</text>
-<text x="300.0" y="93.7" class="tbs" text-anchor="start" >W076</text>
-<text x="330.0" y="93.7" class="tbs" text-anchor="start" >1.02 m</text>
-<text x="360.0" y="93.7" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="93.7" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="93.7" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="93.7" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="93.7" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="93.7" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="93.7" class="tbs" text-anchor="start" ></text>
 <rect x="18.0" y="96.3" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="100.3" class="tb" text-anchor="start" >-KF4  EL1809  16 DI 24 V DC, 3 ms, 1-wire</text>
 <text x="20.0" y="105.8" class="tbs" text-anchor="start" >terminal</text>
@@ -168,92 +168,92 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="105.8" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="110.0" class="tbs" text-anchor="start" >-KF4</text>
 <text x="48.0" y="110.0" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="110.0" class="tbs" text-anchor="start" >Q34.S1</text>
-<text x="118.0" y="110.0" class="tbs" text-anchor="start" >boxmag_rot_fork_l</text>
-<text x="185.0" y="110.0" class="tbs" text-anchor="start" >reed switch retracted (ISO6432-8x10)</text>
-<text x="300.0" y="110.0" class="tbs" text-anchor="start" >W081</text>
-<text x="330.0" y="110.0" class="tbs" text-anchor="start" >1.02 m</text>
-<text x="360.0" y="110.0" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="110.0" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="110.0" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="110.0" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="110.0" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="110.0" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="110.0" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="113.6" class="tbs" text-anchor="start" >-KF4</text>
 <text x="48.0" y="113.6" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="113.6" class="tbs" text-anchor="start" >Q34.S2</text>
-<text x="118.0" y="113.6" class="tbs" text-anchor="start" >boxmag_rot_fork_l</text>
-<text x="185.0" y="113.6" class="tbs" text-anchor="start" >reed switch extended (ISO6432-8x10)</text>
-<text x="300.0" y="113.6" class="tbs" text-anchor="start" >W082</text>
-<text x="330.0" y="113.6" class="tbs" text-anchor="start" >1.02 m</text>
-<text x="360.0" y="113.6" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="113.6" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="113.6" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="113.6" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="113.6" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="113.6" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="113.6" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="117.2" class="tbs" text-anchor="start" >-KF4</text>
 <text x="48.0" y="117.2" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="117.2" class="tbs" text-anchor="start" >Q35.S1</text>
-<text x="118.0" y="117.2" class="tbs" text-anchor="start" >boxmag_blau_fork_l</text>
-<text x="185.0" y="117.2" class="tbs" text-anchor="start" >reed switch retracted (ISO6432-8x10)</text>
-<text x="300.0" y="117.2" class="tbs" text-anchor="start" >W087</text>
-<text x="330.0" y="117.2" class="tbs" text-anchor="start" >1.03 m</text>
-<text x="360.0" y="117.2" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="117.2" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="117.2" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="117.2" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="117.2" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="117.2" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="117.2" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="120.8" class="tbs" text-anchor="start" >-KF4</text>
 <text x="48.0" y="120.8" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="120.8" class="tbs" text-anchor="start" >Q35.S2</text>
-<text x="118.0" y="120.8" class="tbs" text-anchor="start" >boxmag_blau_fork_l</text>
-<text x="185.0" y="120.8" class="tbs" text-anchor="start" >reed switch extended (ISO6432-8x10)</text>
-<text x="300.0" y="120.8" class="tbs" text-anchor="start" >W088</text>
-<text x="330.0" y="120.8" class="tbs" text-anchor="start" >1.03 m</text>
-<text x="360.0" y="120.8" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="120.8" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="120.8" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="120.8" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="120.8" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="120.8" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="120.8" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="124.4" class="tbs" text-anchor="start" >-KF4</text>
 <text x="48.0" y="124.4" class="tbs" text-anchor="start" >5</text>
-<text x="70.0" y="124.4" class="tbs" text-anchor="start" >Q36.STL</text>
-<text x="118.0" y="124.4" class="tbs" text-anchor="start" >sealer_weiss_head</text>
-<text x="185.0" y="124.4" class="tbs" text-anchor="start" >safety temperature limiter tripped (SF4, own ele</text>
-<text x="300.0" y="124.4" class="tbs" text-anchor="start" >W180</text>
-<text x="330.0" y="124.4" class="tbs" text-anchor="start" >0.8 m</text>
-<text x="360.0" y="124.4" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
+<text x="70.0" y="124.4" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="124.4" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="124.4" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="124.4" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="124.4" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="124.4" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="128.0" class="tbs" text-anchor="start" >-KF4</text>
 <text x="48.0" y="128.0" class="tbs" text-anchor="start" >6</text>
-<text x="70.0" y="128.0" class="tbs" text-anchor="start" >Q37.STL</text>
-<text x="118.0" y="128.0" class="tbs" text-anchor="start" >sealer_rot_head</text>
-<text x="185.0" y="128.0" class="tbs" text-anchor="start" >safety temperature limiter tripped (SF4, own ele</text>
-<text x="300.0" y="128.0" class="tbs" text-anchor="start" >W181</text>
-<text x="330.0" y="128.0" class="tbs" text-anchor="start" >0.8 m</text>
-<text x="360.0" y="128.0" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
+<text x="70.0" y="128.0" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="128.0" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="128.0" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="128.0" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="128.0" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="128.0" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="131.6" class="tbs" text-anchor="start" >-KF4</text>
 <text x="48.0" y="131.6" class="tbs" text-anchor="start" >7</text>
-<text x="70.0" y="131.6" class="tbs" text-anchor="start" >Q38.STL</text>
-<text x="118.0" y="131.6" class="tbs" text-anchor="start" >sealer_blau_head</text>
-<text x="185.0" y="131.6" class="tbs" text-anchor="start" >safety temperature limiter tripped (SF4, own ele</text>
-<text x="300.0" y="131.6" class="tbs" text-anchor="start" >W182</text>
-<text x="330.0" y="131.6" class="tbs" text-anchor="start" >0.8 m</text>
-<text x="360.0" y="131.6" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
+<text x="70.0" y="131.6" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="131.6" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="131.6" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="131.6" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="131.6" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="131.6" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="135.2" class="tbs" text-anchor="start" >-KF4</text>
 <text x="48.0" y="135.2" class="tbs" text-anchor="start" >8</text>
-<text x="70.0" y="135.2" class="tbs" text-anchor="start" >BOXES.DOCK1</text>
-<text x="118.0" y="135.2" class="tbs" text-anchor="start" >port_boxes</text>
-<text x="185.0" y="135.2" class="tbs" text-anchor="start" >AMR docked at boxes (1)  [implied]</text>
-<text x="300.0" y="135.2" class="tbs" text-anchor="start" >W161</text>
-<text x="330.0" y="135.2" class="tbs" text-anchor="start" >1.07 m</text>
-<text x="360.0" y="135.2" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="135.2" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="135.2" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="135.2" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="135.2" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="135.2" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="135.2" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="138.8" class="tbs" text-anchor="start" >-KF4</text>
 <text x="48.0" y="138.8" class="tbs" text-anchor="start" >9</text>
-<text x="70.0" y="138.8" class="tbs" text-anchor="start" >BOXES.DOCK2</text>
-<text x="118.0" y="138.8" class="tbs" text-anchor="start" >port_boxes</text>
-<text x="185.0" y="138.8" class="tbs" text-anchor="start" >AMR docked at boxes (2)  [implied]</text>
-<text x="300.0" y="138.8" class="tbs" text-anchor="start" >W162</text>
-<text x="330.0" y="138.8" class="tbs" text-anchor="start" >1.07 m</text>
-<text x="360.0" y="138.8" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="138.8" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="138.8" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="138.8" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="138.8" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="138.8" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="138.8" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="142.4" class="tbs" text-anchor="start" >-KF4</text>
 <text x="48.0" y="142.4" class="tbs" text-anchor="start" >10</text>
-<text x="70.0" y="142.4" class="tbs" text-anchor="start" >OUT.DOCK1</text>
-<text x="118.0" y="142.4" class="tbs" text-anchor="start" >port_out</text>
-<text x="185.0" y="142.4" class="tbs" text-anchor="start" >AMR docked at out (1)  [implied]</text>
-<text x="300.0" y="142.4" class="tbs" text-anchor="start" >W163</text>
-<text x="330.0" y="142.4" class="tbs" text-anchor="start" >1.47 m</text>
-<text x="360.0" y="142.4" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="142.4" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="142.4" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="142.4" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="142.4" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="142.4" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="142.4" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="146.0" class="tbs" text-anchor="start" >-KF4</text>
 <text x="48.0" y="146.0" class="tbs" text-anchor="start" >11</text>
-<text x="70.0" y="146.0" class="tbs" text-anchor="start" >OUT.DOCK2</text>
-<text x="118.0" y="146.0" class="tbs" text-anchor="start" >port_out</text>
-<text x="185.0" y="146.0" class="tbs" text-anchor="start" >AMR docked at out (2)  [implied]</text>
-<text x="300.0" y="146.0" class="tbs" text-anchor="start" >W164</text>
-<text x="330.0" y="146.0" class="tbs" text-anchor="start" >1.47 m</text>
-<text x="360.0" y="146.0" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="146.0" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="146.0" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="146.0" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="146.0" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="146.0" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="146.0" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="149.6" class="tbs" text-anchor="start" >-KF4</text>
 <text x="48.0" y="149.6" class="tbs" text-anchor="start" >12</text>
 <text x="70.0" y="149.6" class="tbs" text-anchor="start" >spare</text>
@@ -301,7 +301,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="233" y="269" class="tbs">every channel -&gt; tag -&gt; cable</text>
 <text x="233" y="275" class="tbs">SCALE</text><text x="233" y="278" class="tb">none</text>
 <text x="293" y="275" class="tbs">SHEET</text><text x="293" y="278" class="tb">6 / 14</text>
-<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-09-29</text>
+<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-10-02</text>
 <text x="233" y="281" class="tbs">UNITS</text><text x="233" y="284" class="tb">mm, deg</text>
 <text x="293" y="281" class="tbs">PROJECTION</text><text x="293" y="284" class="tb">third angle</text>
 <text x="353" y="281" class="tbs">SOURCE</text><text x="353" y="284" class="tb">line_model.py (generated - do not edit)</text>

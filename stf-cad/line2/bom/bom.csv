@@ -1,54 +1,62 @@
 category,item,spec,qty,unit,source
-profile,B-type profile 2020,"HFS5-2020, 28.62 m cut (46 pieces) -> 6 x 6 m",28.62,m,[cat: misumi HFS5-2020][typ]
-profile,B-type profile 2040,"HFS5-2040, 9.75 m cut (23 pieces) -> 2 x 6 m",9.75,m,[cat: misumi HFS5-2020][typ]
-profile,B-type profile 3030,"HFS8-3030, 18.27 m cut (46 pieces) -> 4 x 6 m",18.27,m,[cat: misumi HFS8-3030][typ]
-profile,B-type profile 4040,"HFS8-4040, 5.24 m cut (16 pieces) -> 1 x 6 m",5.24,m,[cat: misumi HFS8-4040][typ]
+profile,B-type profile 2020,"HFS5-2020, 28.72 m cut (46 pieces) -> 6 x 6 m",28.72,m,[cat: misumi HFS5-2020][typ]
+profile,B-type profile 2040,"HFS5-2040, 9.72 m cut (23 pieces) -> 2 x 6 m",9.72,m,[cat: misumi HFS5-2020][typ]
+profile,B-type profile 3030,"HFS8-3030, 9.63 m cut (24 pieces) -> 2 x 6 m",9.63,m,[cat: misumi HFS8-3030][typ]
+profile,B-type profile 4040,"HFS8-4040, 9.73 m cut (34 pieces) -> 2 x 6 m",9.73,m,[cat: misumi HFS8-4040][typ]
 bought,side-flex chain,"side-flexing flat-top chain, POM, 63 mm, 3.84 m + take-up",1,loop,"[typ] (Regina/Rexnord 1873-class; mass kg/m, working load N at 20 C, mu on UHMW-PE)"
-bought,17HS19-2004D-E1000,17HS19-2004D-E1000,4,pcs,"[cat: nema] closed loop, 1000 ppr encoder"
-bought,17HS19-2004D-E1000+PG14,17HS19-2004D-E1000+PG14,3,pcs,"[cat: nema] closed loop, 1000 ppr encoder"
-bought,17HS19-2004D-E1000+PG27,17HS19-2004D-E1000+PG27,1,pcs,"[cat: nema] closed loop, 1000 ppr encoder"
-bought,17HS19-2004D-E1000+SWG17-30,17HS19-2004D-E1000+SWG17-30,6,pcs,"[cat: nema] closed loop, 1000 ppr encoder"
+bought,120 mm 24 V DC axial fan,"120 mm 24 V DC axial fan, band cooling",4,pcs,[typ]
+bought,17HS19-2004D-E1000,17HS19-2004D-E1000,3,pcs,"[cat: nema] closed loop, 1000 ppr encoder"
+bought,17HS19-2004D-E1000+PG27,17HS19-2004D-E1000+PG27,3,pcs,"[cat: nema] closed loop, 1000 ppr encoder"
+bought,17HS19-2004D-E1000+SWG17-30,17HS19-2004D-E1000+SWG17-30,9,pcs,"[cat: nema] closed loop, 1000 ppr encoder"
 bought,BEND,BEND,2,pcs,[typ]
-bought,CFK rod 5 + ball joints,CFK rod 5 + ball joints,12,pcs,[design]
-bought,CFK tube 12 + clamp hub,CFK tube 12 + clamp hub,6,pcs,[design]
+bought,CFK rod 5 + ball joints,CFK rod 5 + ball joints,18,pcs,[design]
+bought,CFK tube 12 + clamp hub,CFK tube 12 + clamp hub,9,pcs,[design]
+bought,D90 radial impeller,D90 radial impeller,3,pcs,[design]
 bought,DRIVE_UNIT,DRIVE_UNIT,1,pcs,[typ]
 bought,FRL + soft-start / dump valve 24 V,FRL + soft-start / dump valve 24 V,1,pcs,[design]
 bought,GigE global-shutter camera,GigE global-shutter camera,3,pcs,[design]
 bought,ISO6432-10x100,ISO6432-10x100,1,pcs,[ISO 6432][typ lengths]
-bought,ISO6432-10x50,ISO6432-10x50,6,pcs,[ISO 6432][typ lengths]
-bought,ISO6432-16x30,ISO6432-16x30,4,pcs,[ISO 6432][typ lengths]
+bought,ISO6432-16x25,ISO6432-16x25,3,pcs,[ISO 6432][typ lengths]
+bought,ISO6432-16x30,ISO6432-16x30,3,pcs,[ISO 6432][typ lengths]
 bought,ISO6432-25x30,ISO6432-25x30,3,pcs,[ISO 6432][typ lengths]
 bought,ISO6432-8x10 + POM fork,ISO6432-8x10 + POM fork,6,pcs,[ISO 6432][typ lengths]
-bought,MGN12H rail,"MGN12H rail, L = 145 mm",1,pcs,[cat: hiwin MGN12H]
 bought,MGN12H rail,"MGN12H rail, L = 350 mm",3,pcs,[cat: hiwin MGN12H]
-bought,NEMA17 L bracket 5 mm,NEMA17 L bracket 5 mm,2,pcs,[design]
-bought,PG14 output shaft D8,PG14 output shaft D8,3,pcs,[cat: pg17]
 bought,PP bin,PP bin,1,pcs,[design]
-bought,SMC SY3000 manifold,"SMC SY3000 manifold, 24 V DC coils, 27 stations",1,pcs,[design]
-bought,TUBE,TUBE,6,pcs,[typ]
-bought,Tr8x4,Tr8x4,1,pcs,"[ISO 2901][cat: tr8][typ eff: brass nut, greased]"
+bought,SMC SY3000 manifold,"SMC SY3000 manifold, 24 V DC coils, 23 stations",1,pcs,[design]
+bought,airlock door guide + drive (kit),airlock door guide + drive (kit),3,pcs,[typ] (Misumi / item guard door kit class)
 bought,airlock_door: powered sliding guard door kit: 4 mm PC leaf in an Al frame,"airlock_door: powered sliding guard door kit: 4 mm PC leaf in an Al frame, guides, rodless pneumatic drive with force-limited closing, RFID guard-locking switch (2 OSSD = closed AND locked)",3,pcs,[typ] (Festo / SMC rodless drive + Schmersal AZM201 class) - force limit VERIFY
-bought,bellows cup D24 on spring stem,bellows cup D24 on spring stem,2,pcs,[design]
+bought,balanced-weave stainless mesh band,"balanced-weave stainless mesh band, 1.2 mm wire, flat edges, 370 wide, endless 3.26 m",1,pcs,[typ] (Wire Belt / Cambridge class)
+bought,band drum D100 (stainless,"band drum D100 (stainless, crowned)",2,pcs,[design]
+bought,bellows cup D12 on spring stem,bellows cup D12 on spring stem,6,pcs,[design]
 bought,colour_sensor,colour_sensor,1,pcs,[typ]
 bought,contact element (bought with the head),contact element (bought with the head),4,pcs,[design]
-bought,diffuse_M12,diffuse_M12,9,pcs,[typ] (ifm OGH / Sick W4 class)
-bought,elbow cross pin D8,"elbow cross pin D8, ball studs",6,pcs,[design]
+bought,crumb pan 7 mm (stainless,"crumb pan 7 mm (stainless, U-folded)",2,pcs,[design]
+bought,diffuse_M12,diffuse_M12,2,pcs,[typ] (ifm OGH / Sick W4 class)
+bought,dough hopper 3 mm stainless,dough hopper 3 mm stainless,1,pcs,[design]
+bought,elbow cross pin D8,"elbow cross pin D8, ball studs",9,pcs,[design]
+bought,element terminal cover,element terminal cover,18,pcs,[design]
 bought,encoder_wheel,encoder_wheel,1,pcs,[typ] (Kuebler 3720 class)
 bought,estop: E-stop pushbutton,"estop: E-stop pushbutton, panel mount 22.5 mm, 2 NC positive opening (IEC 60947-5-5, ISO 13850)",3,pcs,[typ] (Eaton M22-PV class)
 bought,exhaust filter grille 120 mm,exhaust filter grille 120 mm,1,pcs,[design]
-bought,fan_80,fan_80,2,pcs,[typ]
+bought,exhaust stack D60 + damper,exhaust stack D60 + damper,1,pcs,[design]
+bought,exhaust_fan,exhaust_fan,1,pcs,[typ]
+bought,fan shaft D8 (through the roof),fan shaft D8 (through the roof),3,pcs,[design]
 bought,filter fan 24 V 60 m3/h,"filter fan 24 V 60 m3/h, 120 mm",1,pcs,[design]
-bought,flexible coupling 5/8 D20,flexible coupling 5/8 D20,1,pcs,[design]
+bought,flanged bearing unit UCF204 class,flanged bearing unit UCF204 class,4,pcs,[design]
+bought,fluted feed roll D60 (stainless),fluted feed roll D60 (stainless),2,pcs,[design]
+bought,food hose D10,food hose D10,9,pcs,[design]
 bought,galvanised mounting plate 2 mm,galvanised mounting plate 2 mm,1,pcs,[design]
 bought,guard door leaf: 2020 frame + 4 mm PC,"guard door leaf: 2020 frame + 4 mm PC, 2 lift-off hinges, handle, actuator for the guard-locking switch (bought kit), leaf 558 x 872",1,pcs,[typ] (Misumi / item guard door kit class)
 bought,guard door leaf: 2020 frame + 4 mm PC,"guard door leaf: 2020 frame + 4 mm PC, 2 lift-off hinges, handle, actuator for the guard-locking switch (bought kit), leaf 658 x 872",2,pcs,[typ] (Misumi / item guard door kit class)
 bought,guard_lock: guard-locking switch,"guard_lock: guard-locking switch, power-to-unlock, RFID coded (ISO 14119 type 4, high coding), 2 OSSD = closed AND locked, escape release inside",3,pcs,[typ] (Schmersal AZM201 / Euchner CTM class)
 bought,guide bracket 3 mm S235,"guide bracket 3 mm S235, zinc",32,pcs,[design]
-bought,heated flavour die,heated flavour die,1,pcs,[design]
+bought,hanger 8 mm (stainless),hanger 8 mm (stainless),14,pcs,[design]
 bought,ir_pyrometer,ir_pyrometer,1,pcs,[typ] (Optris CS class)
 bought,mini belt conveyor 60,"mini belt conveyor 60, end drive 17HS19-2004D-E1000+PG5 inside the frame",3,pcs,"[cat: nema] closed loop, 1000 ppr encoder"
 bought,mini belt conveyor belt 60,mini belt conveyor belt 60,3,pcs,[design]
 bought,nfc_head,nfc_head,3,pcs,[typ] (ifm DTI410 / Balluff BIS M class)
+bought,oven circulation fan: 230 V shaded-pole motor outside the roof,"oven circulation fan: 230 V shaded-pole motor outside the roof, long shaft, D90 radial impeller inside",3,pcs,[typ] (EBM-papst RRL class)
+bought,perforated slider bed 6 mm (stainless),perforated slider bed 6 mm (stainless),1,pcs,[design]
 bought,push rod (extended piston rod),push rod (extended piston rod),3,pcs,[design]
 bought,reed,reed,3,pcs,[typ]
 bought,reel chuck D76 (expanding core) on a D20 Al spindle,reel chuck D76 (expanding core) on a D20 Al spindle,6,pcs,[design]
@@ -57,8 +65,12 @@ bought,reset: reset pushbutton,"reset: reset pushbutton, blue, illuminated 22.5 
 bought,ringlight,ringlight,1,pcs,[typ]
 bought,rod end M4 into the paddle,rod end M4 into the paddle,1,pcs,[design]
 bought,rod extension,rod extension,3,pcs,[design]
+bought,roll housing (stainless),roll housing (stainless),1,pcs,[design]
+bought,safety grid 40 mm square mesh (stainless,"safety grid 40 mm square mesh (stainless, welded in)",1,pcs,[design]
 bought,sealer_head,sealer_head,3,pcs,[typ]
-bought,silicone-glass curtain,silicone-glass curtain,4,pcs,[design]
+bought,shaft D20,shaft D20,2,pcs,[design]
+bought,skid post 6 x 6 (stainless),skid post 6 x 6 (stainless),8,pcs,[design]
+bought,slider bed 6 mm (stainless),slider bed 6 mm (stainless),1,pcs,[design]
 bought,stainless flat bar 15 x 6 with UHMW facing,"stainless flat bar 15 x 6 with UHMW facing, L = 1000 mm",2,pcs,[typ]
 bought,stainless flat bar 15 x 6 with UHMW facing,"stainless flat bar 15 x 6 with UHMW facing, L = 1292 mm",2,pcs,[typ]
 bought,stainless flat bar 15 x 6 with UHMW facing,"stainless flat bar 15 x 6 with UHMW facing, L = 232 mm",2,pcs,[typ]
@@ -66,41 +78,39 @@ bought,stainless flat bar 15 x 6 with UHMW facing,"stainless flat bar 15 x 6 wit
 bought,stainless flat bar 15 x 6 with UHMW facing,"stainless flat bar 15 x 6 with UHMW facing, L = 476 mm",2,pcs,[typ]
 bought,tc_K,tc_K,3,pcs,[typ]
 bought,telescopic slide 35 x 12,telescopic slide 35 x 12,2,pcs,[design]
-bought,tof_level,tof_level,4,pcs,[typ] (ifm O1D class)
-bought,transfer belt (driven with the lane),transfer belt (driven with the lane),3,pcs,[design]
-bought,transfer conveyor frame,transfer conveyor frame,3,pcs,[design]
+bought,thermocouple head + gland,thermocouple head + gland,3,pcs,[design]
+bought,tof_level,tof_level,5,pcs,[typ] (ifm O1D class)
+bought,topping hopper (heated jacket for chocolate),topping hopper (heated jacket for chocolate),3,pcs,[design]
+bought,topping manifold,"topping manifold, 6 nozzles (stainless)",1,pcs,[design]
+bought,transfer belt strand on its side rail (twin-strand conveyor,"transfer belt strand on its side rail (twin-strand conveyor, driven with the lane)",3,pcs,[design]
 bought,trapdoor unit,trapdoor unit,3,pcs,[typ] (Festo DSM-10 class)
-make,2x 608-2RS fixed block,"15.0 x 24.0 x 43.0 mm, 1 holes total (stamp_bearing_0)",1,pcs,[design] machined / cut to the drawing
-make,608-2RS in pillow block,"15.0 x 24.0 x 43.0 mm, 1 holes total (stamp_bearing_1)",1,pcs,[design] machined / cut to the drawing
+bought,tubular element D8.5 380 mm heated,"tubular element D8.5 380 mm heated, 350 W 230 V",2,pcs,[typ]
+bought,tubular element D8.5 380 mm heated,"tubular element D8.5 380 mm heated, 500 W 230 V",7,pcs,[typ]
+bought,wire-cut frame (cam-driven by the roll drive),wire-cut frame (cam-driven by the roll drive),1,pcs,[design]
 make,Al angle 4 mm,"4.0 x 17.0 x 480.0 mm, 12 holes total (boxmag_weiss_guide_0, boxmag_weiss_guide_1, boxmag_weiss_guide_2, boxmag_weiss_guide_3 ...)",12,pcs,[design] machined / cut to the drawing
 make,Al bar 30x8,"182.0 x 32.0 x 8.0 mm, 24 holes total (shuttle_bar_weiss, shuttle_bar_rot, shuttle_bar_blau)",3,pcs,[design] machined / cut to the drawing
-make,Al base plate 12 mm,"260.0 x 260.0 x 12.0 mm, 2 holes total (delta_A_base, delta_B_base)",2,pcs,[design] machined / cut to the drawing
-make,Al composite panel 10 mm (threaded inserts),"12.0 x 134.0 x 80.0 mm, 6 holes total (qc_lip_in, qc_lip_out)",2,pcs,[design] machined / cut to the drawing
+make,Al base plate 12 mm,"260.0 x 260.0 x 12.0 mm, 3 holes total (delta_C_base, delta_A_base, delta_B_base)",3,pcs,[design] machined / cut to the drawing
+make,Al bracket 8 mm,"30.0 x 8.0 x 37.0 mm, 0 holes total (dep_bracket_f0, dep_bracket_f1, dep_bracket_b0, dep_bracket_b1)",4,pcs,[design] machined / cut to the drawing
+make,Al bracket 8 mm,"40.0 x 8.0 x 57.0 mm, 0 holes total (top_bracket_f, top_bracket_b)",2,pcs,[design] machined / cut to the drawing
+make,Al composite panel 10 mm (threaded inserts),"12.0 x 134.0 x 92.0 mm, 6 holes total (qc_lip_in, qc_lip_out)",2,pcs,[design] machined / cut to the drawing
 make,Al composite panel 10 mm (threaded inserts),"140.0 x 12.0 x 200.0 mm, 10 holes total (qc_wall_in, qc_wall_out)",2,pcs,[design] machined / cut to the drawing
 make,Al composite panel 12 mm (threaded inserts),"140.0 x 158.0 x 12.0 mm, 6 holes total (qc_roof)",1,pcs,[design] machined / cut to the drawing
-make,Al effector,"76.0 x 76.0 x 10.0 mm, 4 holes total (delta_A_effector, delta_B_effector)",2,pcs,[design] machined / cut to the drawing
+make,Al effector,"76.0 x 76.0 x 10.0 mm, 6 holes total (delta_C_effector, delta_A_effector, delta_B_effector)",3,pcs,[design] machined / cut to the drawing
 make,Al motor plate 8 mm,"8.0 x 52.0 x 79.0 mm, 18 holes total (shuttle_plate_weiss, shuttle_plate_rot, shuttle_plate_blau)",3,pcs,[design] machined / cut to the drawing
 make,Al paddle 6 mm,"40.0 x 6.0 x 45.5 mm, 0 holes total (kick_paddle)",1,pcs,[design] machined / cut to the drawing
-make,Al plate 10 mm,"120.0 x 40.0 x 10.0 mm, 12 holes total (stacker_plate_weiss, stacker_plate_rot, stacker_plate_blau)",3,pcs,[design] machined / cut to the drawing
-make,Al plate 10 mm,"60.0 x 95.0 x 10.0 mm, 8 holes total (stamp_carriage)",1,pcs,[design] machined / cut to the drawing
-make,Al plate 15 mm,"140.0 x 150.0 x 15.0 mm, 18 holes total (singulator_plate_weiss, singulator_plate_rot, singulator_plate_blau)",3,pcs,[design] machined / cut to the drawing
+make,Al plate 10 mm,"120.0 x 30.0 x 10.0 mm, 0 holes total (stacker_plate_weiss, stacker_plate_rot, stacker_plate_blau)",3,pcs,[design] machined / cut to the drawing
+make,Al plate 10 mm,"280.0 x 92.0 x 10.0 mm, 0 holes total (top_rack)",1,pcs,[design] machined / cut to the drawing
 make,Al plate 15 mm,"75.0 x 15.0 x 301.7 mm, 15 holes total (sealer_weiss_reelarm, sealer_rot_reelarm, sealer_blau_reelarm)",3,pcs,[design] machined / cut to the drawing
 make,Al plate 6 mm,"29.0 x 30.0 x 6.0 mm, 2 holes total (kick_mount)",1,pcs,[design] machined / cut to the drawing
 make,"Al plate 6 mm (chamber floor, 3 cutouts)","131.0 x 234.0 x 6.0 mm, 5 holes total (abox_floor_l)",1,pcs,[design] machined / cut to the drawing
-make,Al plate 8 mm,"245.0 x 180.0 x 8.0 mm, 9 holes total (stamp_plate)",1,pcs,[design] machined / cut to the drawing
+make,Al plate 8 mm,"290.0 x 8.0 x 75.0 mm, 0 holes total (band_plate_in_f, band_plate_in_b)",2,pcs,[design] machined / cut to the drawing
+make,Al plate 8 mm,"606.0 x 8.0 x 75.0 mm, 0 holes total (band_plate_out_f, band_plate_out_b)",2,pcs,[design] machined / cut to the drawing
 make,Al sheet funnel,"70.0 x 70.0 x 82.0 mm, 2 holes total (reject_funnel)",1,pcs,[design] machined / cut to the drawing
-make,MGN12H block,"45.4 x 27.0 x 10.0 mm, 28 holes total (stamp_block, shuttle_block_weiss_0, shuttle_block_weiss_1, shuttle_block_rot_0 ...)",7,pcs,[design] machined / cut to the drawing
-make,PC chute D50,"100.0 x 140.0 x 180.0 mm, 0 holes total (chute_rot_B)",1,pcs,[design] machined / cut to the drawing
-make,PC chute D50,"130.0 x 140.0 x 180.0 mm, 0 holes total (chute_weiss_A)",1,pcs,[design] machined / cut to the drawing
-make,PC chute D50,"150.0 x 140.0 x 180.0 mm, 0 holes total (chute_blau_A)",1,pcs,[design] machined / cut to the drawing
-make,PC chute D50,"190.0 x 140.0 x 180.0 mm, 0 holes total (chute_weiss_B)",1,pcs,[design] machined / cut to the drawing
-make,PC chute D50,"60.0 x 140.0 x 180.0 mm, 0 holes total (chute_rot_A)",1,pcs,[design] machined / cut to the drawing
-make,PC chute D50,"90.0 x 140.0 x 180.0 mm, 0 holes total (chute_blau_B)",1,pcs,[design] machined / cut to the drawing
-make,PC funnel collar on the tube top,"60.0 x 60.0 x 15.0 mm, 0 holes total (collar_weiss_A, collar_weiss_B, collar_rot_A, collar_rot_B ...)",6,pcs,[design] machined / cut to the drawing
+make,MGN12H block,"45.4 x 27.0 x 10.0 mm, 24 holes total (shuttle_block_weiss_0, shuttle_block_weiss_1, shuttle_block_rot_0, shuttle_block_rot_1 ...)",6,pcs,[design] machined / cut to the drawing
 make,PC guard panel 4 mm,"120.0 x 4.0 x 894.0 mm, 2 holes total (guard_panel_B_1)",1,pcs,[design] machined / cut to the drawing
-make,PC guard panel 4 mm,"136.0 x 4.0 x 894.0 mm, 14 holes total (guard_panel_F1a)",1,pcs,[design] machined / cut to the drawing
-make,PC guard panel 4 mm,"136.0 x 494.0 x 4.0 mm, 10 holes total (guard_panel_roof_0_0a)",1,pcs,[design] machined / cut to the drawing
 make,PC guard panel 4 mm,"166.0 x 4.0 x 894.0 mm, 8 holes total (guard_panel_F2_1)",1,pcs,[design] machined / cut to the drawing
+make,PC guard panel 4 mm,"170.0 x 4.0 x 894.0 mm, 8 holes total (guard_panel_F1c)",1,pcs,[design] machined / cut to the drawing
+make,PC guard panel 4 mm,"170.0 x 494.0 x 4.0 mm, 10 holes total (guard_panel_roof_0_0c)",1,pcs,[design] machined / cut to the drawing
 make,PC guard panel 4 mm,"186.0 x 4.0 x 894.0 mm, 2 holes total (guard_panel_F2_0)",1,pcs,[design] machined / cut to the drawing
 make,PC guard panel 4 mm,"302.0 x 4.0 x 894.0 mm, 15 holes total (aout_wall_front)",1,pcs,[design] machined / cut to the drawing
 make,PC guard panel 4 mm,"342.0 x 4.0 x 280.0 mm, 4 holes total (abox_wall_front)",1,pcs,[design] machined / cut to the drawing
@@ -115,149 +125,138 @@ make,PC guard panel 4 mm,"4.0 x 40.0 x 260.0 mm, 2 holes total (abox_wall_right_
 make,PC guard panel 4 mm,"4.0 x 48.0 x 894.0 mm, 8 holes total (guard_panel_step)",1,pcs,[design] machined / cut to the drawing
 make,PC guard panel 4 mm,"4.0 x 744.0 x 894.0 mm, 18 holes total (guard_panel_right_0)",1,pcs,[design] machined / cut to the drawing
 make,PC guard panel 4 mm,"4.0 x 788.0 x 894.0 mm, 19 holes total (guard_panel_left_0)",1,pcs,[design] machined / cut to the drawing
-make,PC guard panel 4 mm,"50.0 x 4.0 x 894.0 mm, 8 holes total (guard_panel_F1c)",1,pcs,[design] machined / cut to the drawing
-make,PC guard panel 4 mm,"50.0 x 494.0 x 4.0 mm, 10 holes total (guard_panel_roof_0_0c)",1,pcs,[design] machined / cut to the drawing
+make,PC guard panel 4 mm,"46.0 x 4.0 x 894.0 mm, 8 holes total (guard_panel_F1a)",1,pcs,[design] machined / cut to the drawing
+make,PC guard panel 4 mm,"46.0 x 494.0 x 4.0 mm, 9 holes total (guard_panel_roof_0_0a)",1,pcs,[design] machined / cut to the drawing
 make,PC guard panel 4 mm,"516.0 x 450.0 x 4.0 mm, 14 holes total (guard_panel_roof_0_2)",1,pcs,[design] machined / cut to the drawing
 make,PC guard panel 4 mm,"516.0 x 470.0 x 4.0 mm, 30 holes total (guard_panel_roof_1_2, guard_panel_roof_2_2)",2,pcs,[design] machined / cut to the drawing
 make,PC guard panel 4 mm,"520.0 x 450.0 x 4.0 mm, 14 holes total (guard_panel_roof_0_1)",1,pcs,[design] machined / cut to the drawing
 make,PC guard panel 4 mm,"520.0 x 470.0 x 4.0 mm, 30 holes total (guard_panel_roof_1_1, guard_panel_roof_2_1)",2,pcs,[design] machined / cut to the drawing
-make,PC guard panel 4 mm,"620.0 x 360.0 x 4.0 mm, 10 holes total (guard_panel_roof_0_0b)",1,pcs,[design] machined / cut to the drawing
-make,PC guard panel 4 mm,"620.0 x 4.0 x 868.0 mm, 24 holes total (guard_panel_F1b)",1,pcs,[design] machined / cut to the drawing
+make,PC guard panel 4 mm,"590.0 x 360.0 x 4.0 mm, 8 holes total (guard_panel_roof_0_0b)",1,pcs,[design] machined / cut to the drawing
+make,PC guard panel 4 mm,"590.0 x 4.0 x 660.0 mm, 5 holes total (guard_panel_F1b)",1,pcs,[design] machined / cut to the drawing
 make,PC guard panel 4 mm,"66.0 x 4.0 x 894.0 mm, 8 holes total (guard_panel_B_2)",1,pcs,[design] machined / cut to the drawing
 make,PC guard panel 4 mm,"806.0 x 470.0 x 4.0 mm, 38 holes total (guard_panel_roof_1_0, guard_panel_roof_2_0)",2,pcs,[design] machined / cut to the drawing
-make,PC outlet stub,"60.0 x 30.0 x 30.0 mm, 3 holes total (chute_stub_weiss, chute_stub_rot, chute_stub_blau)",3,pcs,[design] machined / cut to the drawing
-make,PC sheet 3 mm,"200.0 x 3.0 x 310.0 mm, 0 holes total (hopper_weiss_wall_front, hopper_rot_wall_front, hopper_blau_wall_front)",3,pcs,[design] machined / cut to the drawing
-make,"POM disc 180 x 20, 6 pockets","180.0 x 180.0 x 20.0 mm, 0 holes total (singulator_weiss, singulator_rot, singulator_blau)",3,pcs,[design] machined / cut to the drawing
-make,Tr8x4 brass flange nut in a block,"30.0 x 32.0 x 20.0 mm, 2 holes total (stamp_nut)",1,pcs,[design] machined / cut to the drawing
 make,"cassette, Al sheet 2 mm","170.0 x 2.0 x 705.0 mm, 0 holes total (cassette_weiss_active_wall_front, cassette_rot_active_wall_front, cassette_blau_active_wall_front)",3,pcs,[design] machined / cut to the drawing
-make,escapement block POM,"56.0 x 180.0 x 25.0 mm, 30 holes total (esc_weiss_A, esc_weiss_B, esc_rot_A, esc_rot_B ...)",6,pcs,[design] machined / cut to the drawing
-make,heater_bar,"8.0 x 136.0 x 8.0 mm, 0 holes total (oven_heater_0, oven_heater_1, oven_heater_2)",3,pcs,[design] machined / cut to the drawing
-make,insulated panel 12 mm (threaded inserts),"240.0 x 12.0 x 150.0 mm, 6 holes total (cool_wall_in, cool_wall_out)",2,pcs,[design] machined / cut to the drawing
-make,insulated panel 12 mm (threaded inserts),"480.0 x 12.0 x 150.0 mm, 8 holes total (oven_wall_in, oven_wall_out)",2,pcs,[design] machined / cut to the drawing
-make,insulated panel 15 mm (threaded inserts),"240.0 x 160.0 x 15.0 mm, 6 holes total (cool_roof)",1,pcs,[design] machined / cut to the drawing
-make,insulated panel 15 mm (threaded inserts),"480.0 x 160.0 x 15.0 mm, 2 holes total (oven_roof)",1,pcs,[design] machined / cut to the drawing
-make,sheet-steel enclosure back wall,"980.0 x 720.0 x 1.5 mm, 4 holes total (cabinet_wall_top)",1,pcs,[design] machined / cut to the drawing
+make,"die plate, 6 orifices D38 (stainless)","124.0 x 410.0 x 15.0 mm, 0 holes total (dep_die)",1,pcs,[design] machined / cut to the drawing
+make,"insulated oven panel 50 mm (stainless skins, mineral wool)","50.0 x 410.0 x 35.0 mm, 0 holes total (oven_panel_in_lo, oven_panel_out_lo)",2,pcs,[design] machined / cut to the drawing
+make,"insulated oven panel 50 mm (stainless skins, mineral wool)","50.0 x 410.0 x 60.0 mm, 0 holes total (oven_panel_in_hi, oven_panel_out_hi)",2,pcs,[design] machined / cut to the drawing
+make,"insulated oven panel 50 mm (stainless skins, mineral wool)","697.0 x 50.0 x 140.0 mm, 0 holes total (oven_panel_front, oven_panel_back)",2,pcs,[design] machined / cut to the drawing
+make,"insulated oven panel 50 mm (stainless skins, mineral wool)","697.0 x 510.0 x 50.0 mm, 0 holes total (oven_panel_floor, oven_panel_roof)",2,pcs,[design] machined / cut to the drawing
+make,sheet-steel enclosure back wall,"980.0 x 850.0 x 1.5 mm, 4 holes total (cabinet_wall_top)",1,pcs,[design] machined / cut to the drawing
+make,sheet-steel hood 8 mm frame,"356.0 x 8.0 x 95.0 mm, 0 holes total (cool_hood_wall_front)",1,pcs,[design] machined / cut to the drawing
 make,sheet-steel lift guard 1.5 mm,"80.0 x 1.5 x 128.0 mm, 0 holes total (lift_guard_wall_front)",1,pcs,[design] machined / cut to the drawing
-bracket,BR20,bracket,200,pcs,[cat: misumi HBLFSN5][typ]
-bracket,BR30,bracket,105,pcs,[cat: misumi HBLFSN8-3030][typ]
-bracket,BR40,bracket,36,pcs,[cat: misumi HBLFSN8-4040][typ]
+make,sheet-steel plenum 3 mm,"356.0 x 3.0 x 59.0 mm, 0 holes total (cool_plenum_wall_front)",1,pcs,[design] machined / cut to the drawing
+make,skid bar 6 x 6 (stainless),"597.0 x 6.0 x 6.0 mm, 0 holes total (oven_skid_0, oven_skid_1)",2,pcs,[design] machined / cut to the drawing
+bracket,BR20,bracket,188,pcs,[cat: misumi HBLFSN5][typ]
+bracket,BR30,bracket,55,pcs,[cat: misumi HBLFSN8-3030][typ]
+bracket,BR40,bracket,72,pcs,[cat: misumi HBLFSN8-4040][typ]
 bracket,HFS5-2020 stand,mount,3,pcs,[typ]
 fastener,ISO 10642 M3x20,screw,2,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 10642 M5x10,screw,16,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 10642 M5x10,screw,18,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
 fastener,ISO 10642 M5x16,screw,2,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4032 M5,nut,2,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
 fastener,ISO 4032 M6,nut,4,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M3x10,screw,28,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M3x12,screw,28,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M3x16,screw,8,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M3x20,screw,10,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M3x6,screw,32,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M3x8,screw,16,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M4x10,screw,6,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M4x12,screw,9,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M4x16,screw,14,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 4762 M3x10,screw,30,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 4762 M3x12,screw,27,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 4762 M3x20,screw,6,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 4762 M3x6,screw,29,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 4762 M3x8,screw,12,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 4762 M4x12,screw,5,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
 fastener,ISO 4762 M4x40,screw,1,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
 fastener,ISO 4762 M4x50,screw,3,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
 fastener,ISO 4762 M4x8,screw,4,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M5x10,screw,305,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 4762 M5x10,screw,299,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
 fastener,ISO 4762 M5x12,screw,24,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M5x16,screw,14,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M5x20,screw,4,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 4762 M5x16,screw,12,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 4762 M5x20,screw,2,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
 fastener,ISO 4762 M5x8,screw,8,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
 fastener,ISO 4762 M6x10,screw,4,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M6x12,screw,212,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M6x16,screw,205,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 4762 M6x12,screw,118,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 4762 M6x16,screw,231,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
 fastener,ISO 4762 M6x20,screw,4,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M6x25,screw,16,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M6x35,screw,24,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M8x20,screw,14,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 4762 M8x25,screw,2,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 7089 3,washer,28,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 4762 M6x25,screw,12,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 4762 M8x20,screw,2,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 4762 M8x25,screw,3,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 7089 3,washer,24,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
 fastener,ISO 7089 5,washer,34,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 7089 6,washer,36,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 7380-1 M4x10,screw,98,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,ISO 7380-1 M4x8,screw,302,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,T-nut TN6-M4,nut,292,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,T-nut TN6-M5,nut,337,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 7089 6,washer,12,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 7380-1 M4x10,screw,86,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,ISO 7380-1 M4x8,screw,290,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,T-nut TN6-M4,nut,290,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+fastener,T-nut TN6-M5,nut,333,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
 fastener,T-nut TN8-M3,nut,24,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
 fastener,T-nut TN8-M4,nut,1,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-fastener,T-nut TN8-M6,nut,274,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
-bracket,sensor bracket 3 mm S235,mount,11,pcs,[typ]
-kit,IR emitter end holder into the panel insert,IR emitter end holder into the panel insert (2x M4x10) - fasteners NOT modelled,6,joints,[bought kit][typ]
-kit,M12 sensor clamp on the tube,M12 sensor clamp on the tube (1x clamp) - fasteners NOT modelled,6,joints,[bought kit][typ]
-kit,NEMA 17 L-bracket under the base plate,NEMA 17 L-bracket under the base plate (4x M3 + 2x M5) - fasteners NOT modelled,6,joints,[bought kit][typ]
+fastener,T-nut TN8-M6,nut,204,pcs,[ISO 261][ISO 273][ISO 4762][ISO 7089][ISO 4032][VDI 2230]
+bracket,sensor bracket 3 mm S235,mount,9,pcs,[typ]
+kit,NEMA 17 L-bracket under the base plate,NEMA 17 L-bracket under the base plate (4x M3 + 2x M5) - fasteners NOT modelled,9,joints,[bought kit][typ]
 kit,bend foot into the leg's end tap,bend foot into the leg's end tap (1x M8x30) - fasteners NOT modelled,6,joints,[bought kit][typ]
 kit,bend-to-track connecting strip,"bend-to-track connecting strip (bought), 2 per joint (4x M5 T-nut) - fasteners NOT modelled",4,joints,[bought kit][typ]
 kit,contact block clipped to the head's adapter through the panel,contact block clipped to the head's adapter through the panel (1x clip adapter) - fasteners NOT modelled,4,joints,[bought kit][typ]
-kit,curtain hem on a rod in 2 roof clips,curtain hem on a rod in 2 roof clips (2x M4x10) - fasteners NOT modelled,4,joints,[bought kit][typ]
+kit,depositor flange bolted to the band unit's side plates,"depositor flange bolted to the band unit's side plates (OEM interface, 4 bolts) (4x M6 (OEM)) - fasteners NOT modelled",6,joints,[bought kit][typ]
 kit,door leaf on 2 lift-off hinges into the hinge post,door leaf on 2 lift-off hinges into the hinge post (bought with the door kit) (4x M5 T-nut) - fasteners NOT modelled,3,joints,[bought kit][typ]
 kit,gearbox on the drive unit's motor adapter flange,gearbox on the drive unit's motor adapter flange (bought with the unit) (4x M4x12) - fasteners NOT modelled,1,joints,[bought kit][typ]
 kit,guide bar onto its bracket,guide bar onto its bracket (1x M3x6) - fasteners NOT modelled,4,joints,[bought kit][typ]
 kit,guide bracket into a bend insert,guide bracket into a bend insert (1x M5x10 button) - fasteners NOT modelled,4,joints,[bought kit][typ]
+kit,inside a bought unit: the OEM's own fastening,inside a bought unit: the OEM's own fastening (band oven unit / depositor) (OEM) - fasteners NOT modelled,206,joints,[bought kit][typ]
 kit,"operator head in a 22.5 mm panel hole, ring nut","operator head in a 22.5 mm panel hole, ring nut (IEC 60947-5-5) (1x ring nut) - fasteners NOT modelled",4,joints,[bought kit][typ]
-kit,sliding airlock door kit: guide rails bolted through the panel into the frame,sliding airlock door kit: guide rails bolted through the panel into the frame (bought kit) (6x M5 T-nut) - fasteners NOT modelled,5,joints,[bought kit][typ]
-kit,thermocouple compression gland M8x1 in the roof,thermocouple compression gland M8x1 in the roof (1x gland) - fasteners NOT modelled,3,joints,[bought kit][typ]
+kit,sliding airlock door kit: guide rails bolted through the panel into the frame,sliding airlock door kit: guide rails bolted through the panel into the frame (bought kit) (6x M5 T-nut) - fasteners NOT modelled,6,joints,[bought kit][typ]
 electric,Beckhoff CX2020,"Embedded PC, Celeron 1.4 GHz 2-core, TwinCAT 3 XAR",1,pcs,[cat: beckhoff][typ w - VERIFY]
 electric,Beckhoff CX2100-0004,"CX2000 power supply unit 24 V, E-bus",1,pcs,[cat: beckhoff][typ w - VERIFY]
 electric,Beckhoff EK1100,EtherCAT coupler,2,pcs,[cat: beckhoff]
-electric,Beckhoff EL1252,2 DI 24 V with distributed-clock timestamps (latch),2,pcs,[cat: beckhoff][typ ebus]
-electric,Beckhoff EL1809,"16 DI 24 V DC, 3 ms, 1-wire",5,pcs,[cat: beckhoff]
+electric,Beckhoff EL1252,2 DI 24 V with distributed-clock timestamps (latch),1,pcs,[cat: beckhoff][typ ebus]
+electric,Beckhoff EL1809,"16 DI 24 V DC, 3 ms, 1-wire",4,pcs,[cat: beckhoff]
 electric,Beckhoff EL1904,"4 fail-safe DI 24 V (TwinSAFE, clocked test outputs)",10,pcs,[cat: beckhoff][typ ebus - VERIFY]
 electric,Beckhoff EL2252,2 DO 24 V with distributed-clock timestamps (camera triggers),2,pcs,[cat: beckhoff][typ ebus]
-electric,Beckhoff EL2809,"16 DO 24 V DC 0.5 A, 1-wire",3,pcs,[cat: beckhoff]
+electric,Beckhoff EL2809,"16 DO 24 V DC 0.5 A, 1-wire",4,pcs,[cat: beckhoff]
 electric,Beckhoff EL2904,4 fail-safe DO 24 V DC 0.5 A (TwinSAFE),5,pcs,[cat: beckhoff][typ ebus - VERIFY]
 electric,Beckhoff EL3064,"4 ch AI 0..10 V, 12 bit",2,pcs,[cat: beckhoff]
-electric,Beckhoff EL3314,4 ch thermocouple (type K) + cold junction,3,pcs,[cat: beckhoff]
+electric,Beckhoff EL3314,4 ch thermocouple (type K) + cold junction,2,pcs,[cat: beckhoff]
 electric,Beckhoff EL5101,"1 ch incremental encoder RS422, 5 V supply",2,pcs,[cat: beckhoff]
 electric,Beckhoff EL6224,4 port IO-Link master,4,pcs,[cat: beckhoff]
 electric,Beckhoff EL6910,"TwinSAFE logic terminal (PLe / SIL 3), FSoE master",1,pcs,[cat: beckhoff][typ ebus - VERIFY]
-electric,Beckhoff EL7047,1 ch stepper 48 V DC 5 A + incremental encoder input,22,pcs,[cat: beckhoff][typ w - VERIFY]
+electric,Beckhoff EL7047,1 ch stepper 48 V DC 5 A + incremental encoder input,23,pcs,[cat: beckhoff][typ w - VERIFY]
 electric,Beckhoff EL9011,bus end cover,3,pcs,[cat: beckhoff][typ w]
 electric,Beckhoff EL9410,E-bus power refresh 2 A + 24 V feed,3,pcs,[cat: beckhoff]
 electric,MCB,PSUs C6,1,pcs,[typ]
-electric,MCB,heaters C10,1,pcs,[typ]
-electric,MCB,main 2-pole C16,1,pcs,[typ]
-electric,PTTB 2.5,Phoenix PTTB 2.5 double-level push-in (+24 V / 0 V),141,pcs,[typ]
+electric,MCB 3-pole,3-pole MCB C16 (oven zone feed),3,pcs,[typ]
+electric,PTTB 2.5,Phoenix PTTB 2.5 double-level push-in (+24 V / 0 V),137,pcs,[typ]
 electric,SDR-480-24,SDR-480-24,2,pcs,[cat: meanwell]
 electric,SDR-480P-48,SDR-480P-48,1,pcs,[cat: meanwell]
-electric,SSR AC,Q10,1,pcs,[typ]
-electric,SSR AC,Q8,1,pcs,[typ]
-electric,SSR AC,Q9,1,pcs,[typ]
-electric,SSR DC,Q15,1,pcs,[typ]
+electric,SSR AC 25 A,Crydom D2425 25 A AC SSR on a DIN heatsink,9,pcs,[typ]
 electric,SSR DC,Q36,1,pcs,[typ]
 electric,SSR DC,Q37,1,pcs,[typ]
 electric,SSR DC,Q38,1,pcs,[typ]
-electric,STL,"safety temperature limiter STB (EN 14597), DIN 22.5 mm, own sensor element, manual reset, relay contact in the heater load path",7,pcs,[typ] (JUMO safetyM STB class)
+electric,STL,"safety temperature limiter STB (EN 14597), DIN 22.5 mm, own sensor element, manual reset, relay contact in the heater load path",6,pcs,[typ] (JUMO safetyM STB class)
 electric,contactor,"contactor 24 V DC coil with mirror contact (IEC 60947-4-1 Annex F), 3 NO",5,pcs,[typ] (Siemens 3RT2016-1BB42 class)
-electric,enclosure,"sheet steel 980 x 720 x 210, filter fan 60 m3/h + grille",1,pcs,"[IEC 60890 simplified][typ] W/m2K, K, filter fan"
+electric,main switch,"400 V 3N~ 50 Hz, CEE 16 A 5-pole plug, main switch, RCD type A 30 mA",1,pcs,[typ]
+electric,relay 6.2,Phoenix PLC-RSC 24DC/21 coupling relay 6.2 mm (230 V fan),3,pcs,[typ]
+electric,zone contactor,"oven zone contactor 3-pole AC-1 25 A, 24 V DC coil; the zone STB contact is in its coil",3,pcs,[typ]
+electric,enclosure,"sheet steel 980 x 850 x 210, filter fan 60 m3/h + grille",1,pcs,"[IEC 60890 simplified][typ] W/m2K, K, filter fan"
 sensor,colour_sensor,"true-colour sensor, 3 x 0..10 V (R, G, B)",3,pcs,[typ]
-sensor,diffuse_M12,"diffuse photoelectric M12, PNP NO",17,pcs,[typ] (ifm OGH / Sick W4 class)
+sensor,diffuse_M12,"diffuse photoelectric M12, PNP NO",13,pcs,[typ] (ifm OGH / Sick W4 class)
 sensor,encoder_wheel,"measuring-wheel encoder 1024 ppr RS422, wheel C = 200 mm",1,pcs,[typ] (Kuebler 3720 class)
 sensor,ir_pyrometer,"IR pyrometer 0..300 C, 0..10 V, 15:1 optics",1,pcs,[typ] (Optris CS class)
 sensor,nfc_head,"13.56 MHz RFID read/write head, IO-Link, ISO 15693",3,pcs,[typ] (ifm DTI410 / Balluff BIS M class)
-sensor,pressure_iol,"pressure sensor 0..10 bar, IO-Link (stamp force = p x A)",1,pcs,[typ] (ifm PN class)
-sensor,reed,"cylinder reed switch, PNP, T-slot",31,pcs,[typ]
-sensor,tc_K,"type K thermocouple, 3 mm sheath",7,pcs,[typ]
-sensor,tof_level,"ToF distance sensor, IO-Link",4,pcs,[typ] (ifm O1D class)
-sensor,vac_iol,"vacuum sensor -1..0 bar, IO-Link (analogue grip quality)",2,pcs,[typ] (ifm PV class)
+sensor,reed,"cylinder reed switch, PNP, T-slot",23,pcs,[typ]
+sensor,tc_K,"type K thermocouple, 3 mm sheath",6,pcs,[typ]
+sensor,tof_level,"ToF distance sensor, IO-Link",5,pcs,[typ] (ifm O1D class)
+sensor,vac_iol,"vacuum sensor -1..0 bar, IO-Link (analogue grip quality)",3,pcs,[typ] (ifm PV class)
 safety,drawer_switch,"RFID safety switch, 2 OSSD, on the reject drawer",1,pcs,[typ]
-safety,duplex thermocouple,"duplex type K thermocouple: element 1 -> PID (EL3314), element 2 -> STL (replaces the single TCs)",7,pcs,[typ]
+safety,duplex thermocouple,"duplex type K thermocouple: element 1 -> PID (EL3314), element 2 -> STL (replaces the single TCs)",6,pcs,[typ]
 safety,zone exhaust valve,"safe exhaust valve for a pneumatic pressure zone on the island, monitored (cat. 2 with position switch)",1,pcs,[typ] (SMC VP-X / Festo VOFA class)
-cable,M12-3,3 x 0.34 mm2,118.8,m,[typ] +10 %
-cable,M12-4,4 x 0.34 mm2,5.0,m,[typ] +10 %
-cable,M12-5,5 x 0.34 mm2,41.4,m,[typ] +10 %
-cable,M12-8,8 x 0.25 mm2,19.3,m,[typ] +10 %
+cable,M12-3,3 x 0.34 mm2,120.9,m,[typ] +10 %
+cable,M12-4,4 x 0.34 mm2,5.1,m,[typ] +10 %
+cable,M12-5,5 x 0.34 mm2,40.3,m,[typ] +10 %
+cable,M12-8,8 x 0.25 mm2,18.5,m,[typ] +10 %
 cable,enc-8,8 x 0.14 mm2,0.9,m,[typ] +10 %
 cable,gige,8 x 0.14 mm2,4.1,m,[typ] +10 %
-cable,iol-4,4 x 0.34 mm2,13.4,m,[typ] +10 %
-cable,motor-4,4 x 0.5 mm2,26.1,m,[typ] +10 %
-cable,tc-K,2 x 0.22 mm2,7.6,m,[typ] +10 %
-cable,wire-0.75,1 x 0.75 mm2,13.2,m,[typ] +10 %
+cable,iol-4,4 x 0.34 mm2,15.8,m,[typ] +10 %
+cable,motor-4,4 x 0.5 mm2,28.7,m,[typ] +10 %
+cable,tc-K,2 x 0.22 mm2,7.2,m,[typ] +10 %
+cable,wire-0.75,1 x 0.75 mm2,12.3,m,[typ] +10 %
 pneumatic,ISO6432-10x100,"ISO 6432 cylinder, magnetic piston, cushioned",1,pcs,[ISO 6432]
-pneumatic,ISO6432-10x50,"ISO 6432 cylinder, magnetic piston, cushioned",6,pcs,[ISO 6432]
-pneumatic,ISO6432-16x30,"ISO 6432 cylinder, magnetic piston, cushioned",4,pcs,[ISO 6432]
+pneumatic,ISO6432-16x25,"ISO 6432 cylinder, magnetic piston, cushioned",3,pcs,[ISO 6432]
+pneumatic,ISO6432-16x30,"ISO 6432 cylinder, magnetic piston, cushioned",3,pcs,[ISO 6432]
 pneumatic,ISO6432-25x30,"ISO 6432 cylinder, magnetic piston, cushioned",3,pcs,[ISO 6432]
 pneumatic,ISO6432-8x10,"ISO 6432 cylinder, magnetic piston, cushioned",6,pcs,[ISO 6432]
-pneumatic,PU tube 4 x 2.5,"valve island -> every cylinder, 2 lines",44.1,m,[typ]
-pneumatic,push-in fittings M5 / G1/8,2 per cylinder,40,pcs,[typ]
-pneumatic,vacuum ejector + switch,"vacuum ejector, 0.5 mm nozzle",2,pcs,[typ] (Festo VN-05 class)
+pneumatic,PU tube 4 x 2.5,"valve island -> every cylinder, 2 lines",42.3,m,[typ]
+pneumatic,push-in fittings M5 / G1/8,2 per cylinder,32,pcs,[typ]
+pneumatic,vacuum ejector + switch,"vacuum ejector, 0.5 mm nozzle",3,pcs,[typ] (Festo VN-05 class)

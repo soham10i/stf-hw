@@ -190,12 +190,33 @@ def contacts(parts):
 
 
 # ------------------------------------------------------------ classification
-SLIDING = {("chain", "frame"), ("chain", "drive"), ("chain", "guide")}
+SLIDING = {("chain", "frame"), ("chain", "drive"), ("chain", "guide"),
+           ("band", "chamber"), ("band", "frame"), ("band", "pan")}     # the mesh band on its skids / bed / pan
+
+# Bought machines (2026-10-02): the band oven unit (band, drums, frame, chamber, elements, fans, hood) and the
+# depositor + topping depositor come from an oven / depositor OEM as assembled units. Their INTERNAL joints
+# are the OEM's (listed as a kit, screws not modelled); every joint between a unit and the rest of the
+# machine - legs on the deck, the depositor on the band frame - is ours and proven like any other.
+OEM_UNIT = {"M2_depositor": "wire-cut + topping depositor (OEM)", "M3_oven": "band oven unit (OEM)"}
+
+
+def _oem(u, v):
+    if u.module in OEM_UNIT and v.module in OEM_UNIT and not (J_PROFILE(u) and J_PROFILE(v)):
+        return True
+    return False
+
+
+def J_PROFILE(p):
+    return p.mech.startswith("profile:")
 
 # Bought connection kits: contacts on curved faces or bought sub-assemblies, fastened by the
 # vendor's kit. They carry load (support edges) and go into the BOM with their fastener count,
 # but their screws are NOT modelled as solids - listed as such in every report.
 KITS = (
+    (lambda u, v: _oem(u, v) and u.module == v.module,
+     "inside a bought unit: the OEM's own fastening (band oven unit / depositor)", "OEM", 0),
+    (lambda u, v: _oem(u, v) and u.module != v.module,
+     "depositor flange bolted to the band unit's side plates (OEM interface, 4 bolts)", "4x M6 (OEM)", 4),
     (lambda u, v: u.name.startswith("frame_") and u.kind == "box" and v.name.startswith("frame_") and v.kind == "arc",
      "bend-to-track connecting strip (bought), 2 per joint", "4x M5 T-nut", 4),
     (lambda u, v: u.name.startswith("leg_") and "curve" in u.name and v.name.startswith("frame_") and v.kind == "arc",

@@ -30,36 +30,36 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="35.5" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="39.7" class="tbs" text-anchor="start" >-KF58</text>
 <text x="48.0" y="39.7" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="39.7" class="tbs" text-anchor="start" >K3</text>
-<text x="118.0" y="39.7" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="39.7" class="tbs" text-anchor="start" >contactor coil: heater feed, channel 1 (AC SSRs </text>
-<text x="300.0" y="39.7" class="tbs" text-anchor="start" >W169</text>
-<text x="330.0" y="39.7" class="tbs" text-anchor="start" >0.8 m</text>
-<text x="360.0" y="39.7" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
+<text x="70.0" y="39.7" class="tbs" text-anchor="start" >Y1</text>
+<text x="118.0" y="39.7" class="tbs" text-anchor="start" >valve_island</text>
+<text x="185.0" y="39.7" class="tbs" text-anchor="start" >safe exhaust of the boxes-port pressure zone (SF</text>
+<text x="300.0" y="39.7" class="tbs" text-anchor="start" >W171</text>
+<text x="330.0" y="39.7" class="tbs" text-anchor="start" >0.83 m</text>
+<text x="360.0" y="39.7" class="tbs" text-anchor="start" >safe output / 0V</text>
 <text x="20.0" y="43.3" class="tbs" text-anchor="start" >-KF58</text>
 <text x="48.0" y="43.3" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="43.3" class="tbs" text-anchor="start" >K4</text>
+<text x="70.0" y="43.3" class="tbs" text-anchor="start" >spare</text>
 <text x="118.0" y="43.3" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="43.3" class="tbs" text-anchor="start" >contactor coil: heater feed, channel 2 (in serie</text>
-<text x="300.0" y="43.3" class="tbs" text-anchor="start" >W170</text>
-<text x="330.0" y="43.3" class="tbs" text-anchor="start" >0.8 m</text>
-<text x="360.0" y="43.3" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
+<text x="185.0" y="43.3" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="43.3" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="43.3" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="43.3" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="46.9" class="tbs" text-anchor="start" >-KF58</text>
 <text x="48.0" y="46.9" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="46.9" class="tbs" text-anchor="start" >K5</text>
+<text x="70.0" y="46.9" class="tbs" text-anchor="start" >spare</text>
 <text x="118.0" y="46.9" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="46.9" class="tbs" text-anchor="start" >contactor coil: 48 V branch of the out-port zone</text>
-<text x="300.0" y="46.9" class="tbs" text-anchor="start" >W171</text>
-<text x="330.0" y="46.9" class="tbs" text-anchor="start" >0.8 m</text>
-<text x="360.0" y="46.9" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
+<text x="185.0" y="46.9" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="46.9" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="46.9" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="46.9" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="50.5" class="tbs" text-anchor="start" >-KF58</text>
 <text x="48.0" y="50.5" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="50.5" class="tbs" text-anchor="start" >Q19</text>
-<text x="118.0" y="50.5" class="tbs" text-anchor="start" >frl</text>
-<text x="185.0" y="50.5" class="tbs" text-anchor="start" >soft-start / dump valve: safe exhaust of all air</text>
-<text x="300.0" y="50.5" class="tbs" text-anchor="start" >W106</text>
-<text x="330.0" y="50.5" class="tbs" text-anchor="start" >0.86 m</text>
-<text x="360.0" y="50.5" class="tbs" text-anchor="start" >safe output / 0V</text>
+<text x="70.0" y="50.5" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="50.5" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="50.5" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="50.5" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="50.5" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="50.5" class="tbs" text-anchor="start" ></text>
 <rect x="18.0" y="53.1" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="57.1" class="tb" text-anchor="start" >-KF59  EL2904  4 fail-safe DO 24 V DC 0.5 A (TwinSAFE)</text>
 <text x="20.0" y="62.6" class="tbs" text-anchor="start" >terminal</text>
@@ -72,12 +72,12 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="62.6" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="66.8" class="tbs" text-anchor="start" >-KF59</text>
 <text x="48.0" y="66.8" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="66.8" class="tbs" text-anchor="start" >Y1</text>
-<text x="118.0" y="66.8" class="tbs" text-anchor="start" >valve_island</text>
-<text x="185.0" y="66.8" class="tbs" text-anchor="start" >safe exhaust of the boxes-port pressure zone (SF</text>
-<text x="300.0" y="66.8" class="tbs" text-anchor="start" >W175</text>
-<text x="330.0" y="66.8" class="tbs" text-anchor="start" >0.83 m</text>
-<text x="360.0" y="66.8" class="tbs" text-anchor="start" >safe output / 0V</text>
+<text x="70.0" y="66.8" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="66.8" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="66.8" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="66.8" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="66.8" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="66.8" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="70.4" class="tbs" text-anchor="start" >-KF59</text>
 <text x="48.0" y="70.4" class="tbs" text-anchor="start" >2</text>
 <text x="70.0" y="70.4" class="tbs" text-anchor="start" >spare</text>
@@ -102,48 +102,6 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="300.0" y="77.6" class="tbs" text-anchor="start" ></text>
 <text x="330.0" y="77.6" class="tbs" text-anchor="start" ></text>
 <text x="360.0" y="77.6" class="tbs" text-anchor="start" ></text>
-<rect x="18.0" y="80.2" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="84.2" class="tb" text-anchor="start" >-KF60  EL2904  4 fail-safe DO 24 V DC 0.5 A (TwinSAFE)</text>
-<text x="20.0" y="89.7" class="tbs" text-anchor="start" >terminal</text>
-<text x="48.0" y="89.7" class="tbs" text-anchor="start" >ch</text>
-<text x="70.0" y="89.7" class="tbs" text-anchor="start" >tag</text>
-<text x="118.0" y="89.7" class="tbs" text-anchor="start" >part</text>
-<text x="185.0" y="89.7" class="tbs" text-anchor="start" >description</text>
-<text x="300.0" y="89.7" class="tbs" text-anchor="start" >cable</text>
-<text x="330.0" y="89.7" class="tbs" text-anchor="start" >length</text>
-<text x="360.0" y="89.7" class="tbs" text-anchor="start" >cores</text>
-<text x="20.0" y="93.9" class="tbs" text-anchor="start" >-KF60</text>
-<text x="48.0" y="93.9" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="93.9" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="93.9" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="93.9" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="93.9" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="93.9" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="93.9" class="tbs" text-anchor="start" ></text>
-<text x="20.0" y="97.5" class="tbs" text-anchor="start" >-KF60</text>
-<text x="48.0" y="97.5" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="97.5" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="97.5" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="97.5" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="97.5" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="97.5" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="97.5" class="tbs" text-anchor="start" ></text>
-<text x="20.0" y="101.1" class="tbs" text-anchor="start" >-KF60</text>
-<text x="48.0" y="101.1" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="101.1" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="101.1" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="101.1" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="101.1" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="101.1" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="101.1" class="tbs" text-anchor="start" ></text>
-<text x="20.0" y="104.7" class="tbs" text-anchor="start" >-KF60</text>
-<text x="48.0" y="104.7" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="104.7" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="104.7" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="104.7" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="104.7" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="104.7" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="104.7" class="tbs" text-anchor="start" ></text>
 <rect x="230" y="249" width="180" height="38" fill="#fff" stroke="#1b2330" stroke-width=".35"/>
 <rect x="230" y="249" width="180" height="9" fill="#1f4e8c"/>
 <text x="233" y="255.3" class="tbh" style="fill:#fff">STF-2 CONTINUOUS COOKIE LINE</text>
@@ -151,7 +109,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="233" y="269" class="tbs">every channel -&gt; tag -&gt; cable</text>
 <text x="233" y="275" class="tbs">SCALE</text><text x="233" y="278" class="tb">none</text>
 <text x="293" y="275" class="tbs">SHEET</text><text x="293" y="278" class="tb">14 / 14</text>
-<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-09-29</text>
+<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-10-02</text>
 <text x="233" y="281" class="tbs">UNITS</text><text x="233" y="284" class="tb">mm, deg</text>
 <text x="293" y="281" class="tbs">PROJECTION</text><text x="293" y="284" class="tb">third angle</text>
 <text x="353" y="281" class="tbs">SOURCE</text><text x="353" y="284" class="tb">line_model.py (generated - do not edit)</text>

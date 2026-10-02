@@ -345,24 +345,21 @@ def key_dims(mod, views):
         o.append(T.dim_h(clx, crx, yf, 6 + 8, f"S = {M.straight():.1f} (N*P = 2S + 2piR)"))
         o.append(T.dim_v(yf, yb, clx - L["R"] - 40, -6, f"2R = {2 * L['R']:.0f}"))
         o.append(F_.dim_v(0, L["BELT_Z"], clx, -10, f"chain top {L['BELT_Z']:.0f}"))
-    elif mod == "M2_feeder":
-        hx = L["HOPPER_X"][0]
-        hw, hd, hh = L["HOPPER"]
-        o.append(F_.dim_v(L["HOPPER_Z"], L["HOPPER_Z"] + hh, hx, -16, f"hopper {hh:.0f} ({M.hopper_cap()} cookies)"))
-        xs = L["MAG_X"]
-        o.append(T.dim_h(xs[0], xs[1], yf, 10, f"{xs[1] - xs[0]:.0f}"))
-        o.append(T.dim_h(xs[1], xs[2], yf, 10, f"{xs[2] - xs[1]:.0f}"))
-        o.append(F_.dim_v(M.z_cookie_top(), M.z_cookie_top() + L["DROP_H"], xs[0], -12, f"drop {L['DROP_H']:.0f}"))
-    elif mod == "M3_tunnel":
-        o0, o1 = M.oven_x()
-        c0, c1 = M.cool_x()
-        o.append(T.dim_h(o0, o1, yf - L["TUN_HALF"], 8, f"oven {M.oven_len():.0f} = v x {L['BAKE_S']:g} s"))
-        o.append(T.dim_h(c0, c1, yf - L["TUN_HALF"], 8, f"cool {M.cool_len():.0f}"))
-        o.append(F_.dim_v(M.z_cookie_top(), M.z_cookie_top() + L["TUN_CLEAR"], o0, -10, f"clear {L['TUN_CLEAR']:.0f}"))
-    elif mod == "M4_stamp":
-        x0 = L["STAMP_X0"]
-        o.append(T.dim_h(x0, x0 + L["STAMP_STROKE"], yf, 8, f"stroke {L['STAMP_STROKE']:.0f}"))
-        o.append(F_.dim_v(M.z_cookie_top(), M.z_cookie_top() + L["STAMP_CLEAR"], x0, -10, f"{L['STAMP_CLEAR']:.0f}"))
+    elif mod == "M2_depositor":
+        st, dz = M.stations(), M.dep_z()
+        o.append(T.dim_h(st["dep"], st["top"], M.band_y()[0], 10, f"die -> topping {st['top'] - st['dep']:.0f}"))
+        o.append(F_.dim_v(L["BAND"]["z"], dz["die"], st["dep"], -12, f"die {dz['die'] - L['BAND']['z']:.0f} over the band"))
+        o.append(R.dim_v(M.row_y(0), M.row_y(1), L["BAND"]["z"], 10, f"row pitch {L['BAND']['spacing']:g}"))
+    elif mod == "M3_oven":
+        st, cz = M.stations(), M.chamber_z()
+        o.append(T.dim_h(st["zones"][0], st["zones"][0] + 3 * M.zone_len(), M.chamber_y()["o0"], 8,
+                         f"3 zones x {M.zone_len():.0f} = v x {M.bake_t():.0f} s"))
+        o.append(T.dim_h(st["c0"], st["c1"], M.chamber_y()["o0"], 8, f"cooling {M.cool_len():.0f} = {M.cool_t():.0f} s"))
+        o.append(F_.dim_v(cz["floor"][0], cz["roof"][1], st["o0"], -12, f"chamber {cz['roof'][1] - cz['floor'][0]:.0f}"))
+        o.append(F_.dim_v(0, L["BAND"]["z"], st["x0"], -12, f"band top {L['BAND']['z']:.0f} (over the loop)"))
+    elif mod == "M4_transfer":
+        c = L["DELTA_C"]
+        o.append(R.dim_v(M.band_pick_z(), c["z"], c["y"], 14, f"base -> band pick {c['z'] - M.band_pick_z():.0f}"))
     elif mod == "M5_qc":
         x0, x1 = L["QC_X"]
         o.append(T.dim_h(L["KICK_X"], L["CAM_X"], yb, 12, f"cam -> kicker {L['CAM_X'] - L['KICK_X']:.0f}"))
@@ -382,8 +379,11 @@ def key_dims(mod, views):
 
 
 def module_notes(mod, parts, trows):
-    rel = {"M1_loop": ["takt", "loop"], "M2_feeder": ["feeder", "singulator", "STOCK raw", "AMR deadline: raw"], "M3_tunnel": ["oven", "cooling"],
-           "M4_stamp": ["stamp"], "M5_qc": ["QC", "kick", "STOCK rejects"], "M6_pick": ["pick", "tracking"],
+    rel = {"M1_loop": ["takt", "loop"], "M2_depositor": ["flavour rows", "dough", "topping", "STOCK dough",
+                                                           "STOCK topping", "AMR deadline: dough", "AMR deadline: topping"],
+           "M3_oven": ["band", "bake", "oven", "Z1", "Z2", "Z3", "element", "warm-up", "skin", "supply", "phase",
+                       "protective", "SSR", "energy"],
+           "M4_transfer": ["row emptied", "transfer", "place window", "picker"], "M5_qc": ["QC", "kick", "STOCK rejects"], "M6_pick": ["pick", "tracking"],
            "M7_pack": ["cookie into", "pockets", "below the film", "sealer", "guided", "pawls", "film", "STOCK finished",
                        "STOCK empty", "AMR deadline: cassette"],
            "M8_control": [], "M9_ports": ["AMR"], "M10_safety": ["height"]}[mod]
@@ -532,9 +532,7 @@ def layout_sheet(parts, trows, sim, n):
         body.append(f'<line x1="{top.X(x0):.1f}" y1="{top.Y(y0):.1f}" x2="{top.X(x1):.1f}" y2="{top.Y(y1):.1f}" '
                     f'stroke="{ACCENT}" stroke-width=".6" marker-end="url(#f)"/>')
         s += 160.0
-    st = [("FEED", M.s_front(sum(L["MAG_X"]) / 6)), ("OVEN in", M.s_front(M.oven_x()[0])),
-          ("OVEN out", M.s_front(M.oven_x()[1])), ("COOL out", M.s_front(M.cool_x()[1])),
-          ("STAMP", M.s_front(L["STAMP_X0"])), ("QC", M.s_back(L["CAM_X"])), ("KICK", M.s_back(L["KICK_X"])),
+    st = [("TRANSFER (delta C)", M.bend_s(L["TRANSFER_TH"][1])), ("QC", M.s_back(L["CAM_X"])), ("KICK", M.s_back(L["KICK_X"])),
           ("DELTA A", M.s_back(L["DELTA_X"][0])), ("DELTA B", M.s_back(L["DELTA_X"][1]))]
     s0 = st[0][1]
     for i, (nm, s_) in enumerate(st):
@@ -554,14 +552,14 @@ def layout_sheet(parts, trows, sim, n):
     tl = [f"{'OK' if ok else 'FAIL'}  {name}: {v} {lim}" for name, v, lim, ok, _ in trows]
     nb, yy = notes_block(x0, yy + 4, W - 10 - x0 - 4, tl, "TIMING PROOF (line_model.check)")
     body.append(nb)
-    sl = [f"{k} ({v['hours']:.0f} h): eff {v['line_efficiency']:.2f}, burnt {v['burnt']}, "
+    sl = [f"{k} ({v['hours']:.0f} h): eff {v['line_efficiency']:.2f}, band lost {v['band_lost']}, "
           f"AMR util {v['amr_util']}, STOPS {v['stops']}" for k, v in sim.items()]
     nb, yy = notes_block(x0, yy + 4, W - 10 - x0 - 4, sl, "FLOW SIMULATION (line_sim.py)")
     body.append(nb)
     # AMR docking faces (the robots stay on the floor)
     for nm, (x, y) in (("AMR: cassettes out/in", (L["TABLE"][0] + 6, L["LANE_Y"][0])),
                        ("AMR: box stacks", (-150, L["LANE_Y"][-1] + 90)),
-                       ("AMR: raw totes + reject drawer", (L["HOPPER_X"][0], -40))):
+                       ("AMR: dough tub + toppings + reject drawer", (M.raw_strip()[0], -40))):
         body.append(f'<text x="{top.X(x):.1f}" y="{top.Y(y):.1f}" class="co" style="fill:#1f4e8c;font-weight:700">{esc(nm)}</text>')
     return sheet(W, H, "\n".join(body), "00 - General arrangement", "whole table, flow, stations, timing, simulation",
                  1, n, "1:5")
@@ -571,7 +569,7 @@ def book(files, trows, sim):
     rows = "".join(f"<tr><td>{'✅' if ok else '❌'}</td><td>{esc(n)}</td><td>{esc(v)}</td><td>{esc(l)}</td>"
                    f"<td>{esc(nt)}</td></tr>" for n, v, l, ok, nt in trows)
     srows = "".join(f"<tr><td>{esc(k)}</td><td>{v['hours']:.0f} h</td><td>{v['steady_state_per_h']:.0f}</td>"
-                    f"<td>{v['line_efficiency']:.2f}</td><td>{v['burnt']}</td><td>{v['empty_slots']}</td>"
+                    f"<td>{v['line_efficiency']:.2f}</td><td>{v['band_lost']}</td><td>{v['empty_slots']}</td>"
                     f"<td>{v['blocked_cassette']}/{v['blocked_boxes']}</td><td>{v['amr_tasks']}</td>"
                     f"<td>{v['amr_util']}</td><td>{v['amr_max_late_min']}</td><td>{v['stops']}</td></tr>"
                     for k, v in sim.items())
@@ -590,19 +588,19 @@ no single robot in the critical path.</p>
 <table><tr><th></th><th>536634 factory (today)</th><th>STF-2 continuous line</th></tr>
 <tr><td>Flow</td><td>stop-and-go; every machine starts/stops per workpiece</td><td>one chain loop that never stops; takt {M.takt():.1f} s</td></tr>
 <tr><td>Transfers</td><td>one VGR serves belt, oven and 3 bays (single point of failure)</td><td>fixed stations on the loop; two delta pickers, either alone carries the line (N+1)</td></tr>
-<tr><td>Oven</td><td>batch: door, slider, one part at a time</td><td>tunnel oven: bake = length / speed ({M.oven_len():.0f} mm = {L['BAKE_S']:g} s)</td></tr>
-<tr><td>Processing</td><td>turntable indexes under the saw</td><td>flying stamp slaved to the master axis ({M.stamp_cycle()[2]:.2f} s cycle)</td></tr>
+<tr><td>Oven</td><td>batch: door, slider, one part at a time</td><td>real band oven: plain dough on a {L['BAND']['rows']}-row stainless mesh band, 3 zones {' / '.join(f"{z['T']:g}" for z in L['OVEN_ZONES'])} C, bake {M.bake_t():.0f} s (oven.py: core, water, colour), impingement cooling {M.cool_t():.0f} s; the plastic puck chain never enters the heat</td></tr>
+<tr><td>Processing</td><td>turntable indexes under the saw</td><td>thumbprint topping before the oven: rows k, k+3 get flavour k; delta C moves each cookie from the band to a puck</td></tr>
 <tr><td>Sorting / storage</td><td>colour sensor + ejectors into bays; 12-slot AS/RS</td><td>product carries its recipe (NFC); vision QC; per-flavour box lanes into tall pack cassettes, exchanged by AMR through an airlock</td></tr>
-<tr><td>Stock</td><td>12 workpieces in the rack</td><td>raw hopper {M.hopper_cap()} + finished cassettes 2 x {M.cass_cap() * L['PACK']} per flavour; the AMR loop makes it unlimited (proven below)</td></tr>
-<tr><td>Failure behaviour</td><td>any machine down = factory down</td><td>losses, never stops: a missed cookie recirculates, a starved flavour leaves an empty puck</td></tr></table>
+<tr><td>Stock</td><td>12 workpieces in the rack</td><td>dough hopper {L['DOUGH_KG']:g} kg ({M.dough_autonomy() / 60:.0f} min), 3 topping hoppers, finished cassettes of {M.cass_cap() * L['PACK']}; the AMR loop makes it unlimited (proven below)</td></tr>
+<tr><td>Failure behaviour</td><td>any machine down = factory down</td><td>losses, never stops: a missed cookie recirculates, a cookie the transfer cannot place falls into the crumb pan, no dough leaves empty band rows</td></tr></table>
 <h2>Physical AI architecture</h2>
 <ul>
 <li><b>One time base.</b> The loop drive's encoder is the master axis; every station latches it (puck-edge sensors) and runs as its own agent on its own I/O node.</li>
-<li><b>The product carries its recipe.</b> NFC tag per puck: flavour + batch written at the feeder, QC verdict at the hood, read before the pickers.</li>
+<li><b>The product carries its recipe.</b> NFC tag per puck: flavour (band row) + batch + bake log (zone temperatures, IR1) written at the transfer, QC verdict at the hood, read before the pickers.</li>
 <li><b>Vision QC</b> (CAM1 + ft colour sensor in a light-tight hood): flavour, burn, crack, size. Trained on images rendered from this CAD twin (sim-to-real), fine-tuned on the real line; verdict budget {L['AI_LATENCY']:g} s vs {(L['CAM_X'] - L['KICK_X']) / L['V']:.1f} s of travel to the kicker.</li>
 <li><b>Tracking pickers</b> (CAM2 upstream): cookie pose + puck phase; the delta IK is part of this model and every pick/place point is proven reachable.</li>
 <li><b>Health</b>: current + encoder per motor, zone thermocouples; anomalies feed the scheduler.</li>
-<li><b>Self-throttling</b>: when both pickers report down, the feeder stops loading (the chain keeps running). Simulated: burnt scrap in a 10-min double outage falls from 91 to 26.</li>
+<li><b>No self-throttling at the depositor</b>: the band holds ~9 min of product, so stopping the dough when both pickers fail leaves a 9-min hole after they recover. Simulated (10-min double outage): throttled 0.62 vs keep-baking 0.77 - the agent keeps baking and lets the crumb pan take the overflow.</li>
 <li><b>AMR fleet</b> ({L['N_AMR']}, N+1): every buffer raises a task with a deadline = the autonomy it has left; earliest deadline first; one visit per port serves all its pending tasks. Proven: ONE robot's worst case (all 10 port tasks queued) beats every deadline; simulated: one robot carries an 8 h shift, the fleet may vanish for 15 min without loss.</li>
 </ul>
 <h2>Packaging and storage - how a round cookie ends up in a rectangular pack</h2>
@@ -630,13 +628,14 @@ across the outlet) are all caught.</p>
 <ul>
 <li>Every parameter tagged [assumed] (chain, delta arm lengths, pick time, bake/cool times, puck) must be validated on hardware.</li>
 <li>A fleet outage longer than the shortest buffer (~17 min) runs the box magazines dry first: taller box magazines or a second box port are the next lever.</li>
-<li>Short double-picker outages still scrap the cookies already in flight (feed -> pick is {(M.s_back(L['DELTA_X'][0]) - M.s_front(sum(L['MAG_X']) / 6)) / L['V']:.0f} s): add an overflow buffer lane or an oven bypass (next design step).</li>
+<li>The band cannot stop with the oven hot: a picker outage longer than the loop's empty pucks last sends cookies into the crumb pan (counted as band loss); delta C is a single transfer (a second one does not fit the bend).</li>
+<li>The food data in oven.py (dough water, conductivities, browning constants, fan heat-transfer coefficients) are [assumed] - MEASURE on the first bake; see blueprints/M3_thermal.svg.</li>
 <li>The delta arms are checked for reach, not yet swept for collision with the portal over the whole workspace; lane indexing is simplified (independent box spots).</li>
 <li>Isometric pictorials are schematic (painter's order); the three orthographic views are exact.</li>
 </ul>
 <h2>Timing proof</h2><table><tr><th></th><th>check</th><th>value</th><th>limit</th><th>note</th></tr>{rows}</table>
 <h2>Flow simulation (seeded; 1 h picker scenarios, 8 h stock + AMR shifts)</h2><table><tr><th>scenario</th><th>span</th>
-<th>steady /h</th><th>efficiency</th><th>burnt</th><th>empty slots</th><th>blocked cass/box</th><th>AMR tasks</th>
+<th>steady /h</th><th>efficiency</th><th>band lost</th><th>empty slots</th><th>blocked cass/box</th><th>AMR tasks</th>
 <th>AMR util</th><th>max late (min)</th><th>stops</th></tr>{srows}</table>
 <h2>Sheets</h2>{sheets}</body></html>"""
 

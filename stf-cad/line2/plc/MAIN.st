@@ -2,9 +2,9 @@
 PROGRAM MAIN
 VAR
     fbMaster  : FB_MasterAxis;
-    fbFeeder  : FB_Feeder;
-    fbOven    : FB_Oven;
-    fbStamp   : FB_FlyingStamp;
+    fbOven    : FB_Oven;          // zones, elements, fans, warm-up gate (oven.py recipe)
+    fbBand    : FB_Band;          // band + depositor + topping, geared to the master
+    fbTransfer: FB_Transfer;      // delta C: band row -> passing puck, NFC write
     fbQC      : FB_QC;
     fbPickA, fbPickB : FB_DeltaPicker;
     fbLane    : ARRAY[0..2] OF FB_Lane;
@@ -13,9 +13,10 @@ VAR
 END_VAR
 fbSafety();                      // first: every station below runs only while fbSafety.bRunEnable
 fbMaster(axDrive := GVL_IO.axQ1, nEncoder := GVL_IO.encB1);
-fbFeeder(fMasterPos := fbMaster.fPos);
-fbOven();
-fbStamp(axStamp := GVL_IO.axQ14, axMaster := fbMaster.axMaster, bPuckEdge := GVL_IO.itsI8);
+fbOven(bRunEnable := fbSafety.bRunEnable);
+fbBand(axBand := GVL_IO.axQ40, axRolls := GVL_IO.axQ41, axMaster := fbMaster.axMaster,
+       bOvenReady := fbOven.bReady);
+fbTransfer(fMasterPos := fbMaster.fPos, fBandPos := fbBand.fPos, bPuckFull := GVL_IO.iI1);
 fbQC(fMasterPos := fbMaster.fPos);
 fbPickA(fMasterPos := fbMaster.fPos, bUpstream := TRUE);
 fbPickB(fMasterPos := fbMaster.fPos, bUpstream := FALSE, bPartnerMissed := fbPickA.bMissed);

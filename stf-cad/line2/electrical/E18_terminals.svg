@@ -30,36 +30,36 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="35.5" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="39.7" class="tbs" text-anchor="start" >-KF51</text>
 <text x="48.0" y="39.7" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="39.7" class="tbs" text-anchor="start" >S30.B</text>
-<text x="118.0" y="39.7" class="tbs" text-anchor="start" >aldoor_boxes</text>
-<text x="185.0" y="39.7" class="tbs" text-anchor="start" >boxes airlock outer door closed AND locked, OSSD</text>
+<text x="70.0" y="39.7" class="tbs" text-anchor="start" >S32.B</text>
+<text x="118.0" y="39.7" class="tbs" text-anchor="start" >aldoor_inner</text>
+<text x="185.0" y="39.7" class="tbs" text-anchor="start" >out airlock inner door closed AND locked, OSSD B</text>
 <text x="300.0" y="39.7" class="tbs" text-anchor="start" >W143</text>
-<text x="330.0" y="39.7" class="tbs" text-anchor="start" >1.88 m</text>
+<text x="330.0" y="39.7" class="tbs" text-anchor="start" >1.53 m</text>
 <text x="360.0" y="39.7" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="43.3" class="tbs" text-anchor="start" >-KF51</text>
 <text x="48.0" y="43.3" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="43.3" class="tbs" text-anchor="start" >S31.A</text>
-<text x="118.0" y="43.3" class="tbs" text-anchor="start" >aldoor_out</text>
-<text x="185.0" y="43.3" class="tbs" text-anchor="start" >out airlock outer door closed AND locked, OSSD A</text>
-<text x="300.0" y="43.3" class="tbs" text-anchor="start" >W150</text>
-<text x="330.0" y="43.3" class="tbs" text-anchor="start" >2.0 m</text>
+<text x="70.0" y="43.3" class="tbs" text-anchor="start" >S34.A</text>
+<text x="118.0" y="43.3" class="tbs" text-anchor="start" >reject_bin_wall_front</text>
+<text x="185.0" y="43.3" class="tbs" text-anchor="start" >reject drawer in place, OSSD A  [implied]</text>
+<text x="300.0" y="43.3" class="tbs" text-anchor="start" >W161</text>
+<text x="330.0" y="43.3" class="tbs" text-anchor="start" >0.96 m</text>
 <text x="360.0" y="43.3" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="46.9" class="tbs" text-anchor="start" >-KF51</text>
 <text x="48.0" y="46.9" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="46.9" class="tbs" text-anchor="start" >S31.B</text>
-<text x="118.0" y="46.9" class="tbs" text-anchor="start" >aldoor_out</text>
-<text x="185.0" y="46.9" class="tbs" text-anchor="start" >out airlock outer door closed AND locked, OSSD B</text>
-<text x="300.0" y="46.9" class="tbs" text-anchor="start" >W151</text>
-<text x="330.0" y="46.9" class="tbs" text-anchor="start" >2.0 m</text>
+<text x="70.0" y="46.9" class="tbs" text-anchor="start" >S34.B</text>
+<text x="118.0" y="46.9" class="tbs" text-anchor="start" >reject_bin_wall_front</text>
+<text x="185.0" y="46.9" class="tbs" text-anchor="start" >reject drawer in place, OSSD B  [implied]</text>
+<text x="300.0" y="46.9" class="tbs" text-anchor="start" >W162</text>
+<text x="330.0" y="46.9" class="tbs" text-anchor="start" >0.96 m</text>
 <text x="360.0" y="46.9" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="50.5" class="tbs" text-anchor="start" >-KF51</text>
 <text x="48.0" y="50.5" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="50.5" class="tbs" text-anchor="start" >S32.A</text>
-<text x="118.0" y="50.5" class="tbs" text-anchor="start" >aldoor_inner</text>
-<text x="185.0" y="50.5" class="tbs" text-anchor="start" >out airlock inner door closed AND locked, OSSD A</text>
-<text x="300.0" y="50.5" class="tbs" text-anchor="start" >W146</text>
-<text x="330.0" y="50.5" class="tbs" text-anchor="start" >1.61 m</text>
-<text x="360.0" y="50.5" class="tbs" text-anchor="start" >test pulse out / safe input </text>
+<text x="70.0" y="50.5" class="tbs" text-anchor="start" >K1K2.EDM</text>
+<text x="118.0" y="50.5" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="50.5" class="tbs" text-anchor="start" >EDM: K1 + K2 mirror contacts in series (welded c</text>
+<text x="300.0" y="50.5" class="tbs" text-anchor="start" >W168</text>
+<text x="330.0" y="50.5" class="tbs" text-anchor="start" >0.8 m</text>
+<text x="360.0" y="50.5" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <rect x="18.0" y="53.1" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="57.1" class="tb" text-anchor="start" >-KF52  EL1904  4 fail-safe DI 24 V (TwinSAFE, clocked test outputs)</text>
 <text x="20.0" y="62.6" class="tbs" text-anchor="start" >terminal</text>
@@ -72,36 +72,36 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="62.6" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="66.8" class="tbs" text-anchor="start" >-KF52</text>
 <text x="48.0" y="66.8" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="66.8" class="tbs" text-anchor="start" >S32.B</text>
-<text x="118.0" y="66.8" class="tbs" text-anchor="start" >aldoor_inner</text>
-<text x="185.0" y="66.8" class="tbs" text-anchor="start" >out airlock inner door closed AND locked, OSSD B</text>
-<text x="300.0" y="66.8" class="tbs" text-anchor="start" >W147</text>
-<text x="330.0" y="66.8" class="tbs" text-anchor="start" >1.61 m</text>
-<text x="360.0" y="66.8" class="tbs" text-anchor="start" >test pulse out / safe input </text>
+<text x="70.0" y="66.8" class="tbs" text-anchor="start" >K3K4.EDM</text>
+<text x="118.0" y="66.8" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="66.8" class="tbs" text-anchor="start" >EDM: K3 + K4 mirror contacts (welded contact det</text>
+<text x="300.0" y="66.8" class="tbs" text-anchor="start" >W169</text>
+<text x="330.0" y="66.8" class="tbs" text-anchor="start" >0.8 m</text>
+<text x="360.0" y="66.8" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="70.4" class="tbs" text-anchor="start" >-KF52</text>
 <text x="48.0" y="70.4" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="70.4" class="tbs" text-anchor="start" >S34.A</text>
-<text x="118.0" y="70.4" class="tbs" text-anchor="start" >reject_bin_wall_front</text>
-<text x="185.0" y="70.4" class="tbs" text-anchor="start" >reject drawer in place, OSSD A  [implied]</text>
-<text x="300.0" y="70.4" class="tbs" text-anchor="start" >W165</text>
-<text x="330.0" y="70.4" class="tbs" text-anchor="start" >0.96 m</text>
-<text x="360.0" y="70.4" class="tbs" text-anchor="start" >test pulse out / safe input </text>
+<text x="70.0" y="70.4" class="tbs" text-anchor="start" >K5.EDM</text>
+<text x="118.0" y="70.4" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="70.4" class="tbs" text-anchor="start" >EDM: K5 mirror contact (welded contact detection</text>
+<text x="300.0" y="70.4" class="tbs" text-anchor="start" >W170</text>
+<text x="330.0" y="70.4" class="tbs" text-anchor="start" >0.8 m</text>
+<text x="360.0" y="70.4" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="74.0" class="tbs" text-anchor="start" >-KF52</text>
 <text x="48.0" y="74.0" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="74.0" class="tbs" text-anchor="start" >S34.B</text>
-<text x="118.0" y="74.0" class="tbs" text-anchor="start" >reject_bin_wall_front</text>
-<text x="185.0" y="74.0" class="tbs" text-anchor="start" >reject drawer in place, OSSD B  [implied]</text>
-<text x="300.0" y="74.0" class="tbs" text-anchor="start" >W166</text>
-<text x="330.0" y="74.0" class="tbs" text-anchor="start" >0.96 m</text>
+<text x="70.0" y="74.0" class="tbs" text-anchor="start" >Q19.FB</text>
+<text x="118.0" y="74.0" class="tbs" text-anchor="start" >frl</text>
+<text x="185.0" y="74.0" class="tbs" text-anchor="start" >dump valve position switch (exhausted)</text>
+<text x="300.0" y="74.0" class="tbs" text-anchor="start" >W105</text>
+<text x="330.0" y="74.0" class="tbs" text-anchor="start" >0.86 m</text>
 <text x="360.0" y="74.0" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <text x="20.0" y="77.6" class="tbs" text-anchor="start" >-KF52</text>
 <text x="48.0" y="77.6" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="77.6" class="tbs" text-anchor="start" >K1K2.EDM</text>
-<text x="118.0" y="77.6" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="77.6" class="tbs" text-anchor="start" >EDM: K1 + K2 mirror contacts in series (welded c</text>
+<text x="70.0" y="77.6" class="tbs" text-anchor="start" >Y1.FB</text>
+<text x="118.0" y="77.6" class="tbs" text-anchor="start" >valve_island</text>
+<text x="185.0" y="77.6" class="tbs" text-anchor="start" >boxes zone valve position switch (exhausted)</text>
 <text x="300.0" y="77.6" class="tbs" text-anchor="start" >W172</text>
-<text x="330.0" y="77.6" class="tbs" text-anchor="start" >0.8 m</text>
-<text x="360.0" y="77.6" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
+<text x="330.0" y="77.6" class="tbs" text-anchor="start" >0.83 m</text>
+<text x="360.0" y="77.6" class="tbs" text-anchor="start" >test pulse out / safe input </text>
 <rect x="18.0" y="80.2" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="84.2" class="tb" text-anchor="start" >-KF53  EL1904  4 fail-safe DI 24 V (TwinSAFE, clocked test outputs)</text>
 <text x="20.0" y="89.7" class="tbs" text-anchor="start" >terminal</text>
@@ -114,36 +114,36 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="89.7" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="93.9" class="tbs" text-anchor="start" >-KF53</text>
 <text x="48.0" y="93.9" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="93.9" class="tbs" text-anchor="start" >K3K4.EDM</text>
+<text x="70.0" y="93.9" class="tbs" text-anchor="start" >spare</text>
 <text x="118.0" y="93.9" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="93.9" class="tbs" text-anchor="start" >EDM: K3 + K4 mirror contacts (welded contact det</text>
-<text x="300.0" y="93.9" class="tbs" text-anchor="start" >W173</text>
-<text x="330.0" y="93.9" class="tbs" text-anchor="start" >0.8 m</text>
-<text x="360.0" y="93.9" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
+<text x="185.0" y="93.9" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="93.9" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="93.9" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="93.9" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="97.5" class="tbs" text-anchor="start" >-KF53</text>
 <text x="48.0" y="97.5" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="97.5" class="tbs" text-anchor="start" >K5.EDM</text>
+<text x="70.0" y="97.5" class="tbs" text-anchor="start" >spare</text>
 <text x="118.0" y="97.5" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="97.5" class="tbs" text-anchor="start" >EDM: K5 mirror contact (welded contact detection</text>
-<text x="300.0" y="97.5" class="tbs" text-anchor="start" >W174</text>
-<text x="330.0" y="97.5" class="tbs" text-anchor="start" >0.8 m</text>
-<text x="360.0" y="97.5" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
+<text x="185.0" y="97.5" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="97.5" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="97.5" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="97.5" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="101.1" class="tbs" text-anchor="start" >-KF53</text>
 <text x="48.0" y="101.1" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="101.1" class="tbs" text-anchor="start" >Q19.FB</text>
-<text x="118.0" y="101.1" class="tbs" text-anchor="start" >frl</text>
-<text x="185.0" y="101.1" class="tbs" text-anchor="start" >dump valve position switch (exhausted)</text>
-<text x="300.0" y="101.1" class="tbs" text-anchor="start" >W107</text>
-<text x="330.0" y="101.1" class="tbs" text-anchor="start" >0.86 m</text>
-<text x="360.0" y="101.1" class="tbs" text-anchor="start" >test pulse out / safe input </text>
+<text x="70.0" y="101.1" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="101.1" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="101.1" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="101.1" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="101.1" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="101.1" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="104.7" class="tbs" text-anchor="start" >-KF53</text>
 <text x="48.0" y="104.7" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="104.7" class="tbs" text-anchor="start" >Y1.FB</text>
-<text x="118.0" y="104.7" class="tbs" text-anchor="start" >valve_island</text>
-<text x="185.0" y="104.7" class="tbs" text-anchor="start" >boxes zone valve position switch (exhausted)</text>
-<text x="300.0" y="104.7" class="tbs" text-anchor="start" >W176</text>
-<text x="330.0" y="104.7" class="tbs" text-anchor="start" >0.83 m</text>
-<text x="360.0" y="104.7" class="tbs" text-anchor="start" >test pulse out / safe input </text>
+<text x="70.0" y="104.7" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="104.7" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="104.7" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="104.7" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="104.7" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="104.7" class="tbs" text-anchor="start" ></text>
 <rect x="18.0" y="107.3" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="111.3" class="tb" text-anchor="start" >-KF54  EL1904  4 fail-safe DI 24 V (TwinSAFE, clocked test outputs)</text>
 <text x="20.0" y="116.8" class="tbs" text-anchor="start" >terminal</text>
@@ -187,7 +187,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="330.0" y="131.8" class="tbs" text-anchor="start" ></text>
 <text x="360.0" y="131.8" class="tbs" text-anchor="start" ></text>
 <rect x="18.0" y="134.4" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="138.4" class="tb" text-anchor="start" >-KF55  EL1904  4 fail-safe DI 24 V (TwinSAFE, clocked test outputs)</text>
+<text x="20.0" y="138.4" class="tb" text-anchor="start" >-KF55  EL2904  4 fail-safe DO 24 V DC 0.5 A (TwinSAFE)</text>
 <text x="20.0" y="143.9" class="tbs" text-anchor="start" >terminal</text>
 <text x="48.0" y="143.9" class="tbs" text-anchor="start" >ch</text>
 <text x="70.0" y="143.9" class="tbs" text-anchor="start" >tag</text>
@@ -198,36 +198,36 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="143.9" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="148.1" class="tbs" text-anchor="start" >-KF55</text>
 <text x="48.0" y="148.1" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="148.1" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="148.1" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="148.1" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="148.1" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="148.1" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="148.1" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="148.1" class="tbs" text-anchor="start" >S20.UNL</text>
+<text x="118.0" y="148.1" class="tbs" text-anchor="start" >lock_S20</text>
+<text x="185.0" y="148.1" class="tbs" text-anchor="start" >unlock solenoid (power-to-unlock, only at stands</text>
+<text x="300.0" y="148.1" class="tbs" text-anchor="start" >W122</text>
+<text x="330.0" y="148.1" class="tbs" text-anchor="start" >1.95 m</text>
+<text x="360.0" y="148.1" class="tbs" text-anchor="start" >safe output / 0V</text>
 <text x="20.0" y="151.7" class="tbs" text-anchor="start" >-KF55</text>
 <text x="48.0" y="151.7" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="151.7" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="151.7" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="151.7" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="151.7" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="151.7" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="151.7" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="151.7" class="tbs" text-anchor="start" >S21.UNL</text>
+<text x="118.0" y="151.7" class="tbs" text-anchor="start" >lock_S21</text>
+<text x="185.0" y="151.7" class="tbs" text-anchor="start" >unlock solenoid (power-to-unlock, only at stands</text>
+<text x="300.0" y="151.7" class="tbs" text-anchor="start" >W125</text>
+<text x="330.0" y="151.7" class="tbs" text-anchor="start" >1.54 m</text>
+<text x="360.0" y="151.7" class="tbs" text-anchor="start" >safe output / 0V</text>
 <text x="20.0" y="155.3" class="tbs" text-anchor="start" >-KF55</text>
 <text x="48.0" y="155.3" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="155.3" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="155.3" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="155.3" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="155.3" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="155.3" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="155.3" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="155.3" class="tbs" text-anchor="start" >S22.UNL</text>
+<text x="118.0" y="155.3" class="tbs" text-anchor="start" >lock_S22</text>
+<text x="185.0" y="155.3" class="tbs" text-anchor="start" >unlock solenoid (power-to-unlock, only at stands</text>
+<text x="300.0" y="155.3" class="tbs" text-anchor="start" >W128</text>
+<text x="330.0" y="155.3" class="tbs" text-anchor="start" >2.11 m</text>
+<text x="360.0" y="155.3" class="tbs" text-anchor="start" >safe output / 0V</text>
 <text x="20.0" y="158.9" class="tbs" text-anchor="start" >-KF55</text>
 <text x="48.0" y="158.9" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="158.9" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="158.9" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="158.9" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="158.9" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="158.9" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="158.9" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="158.9" class="tbs" text-anchor="start" >S30.UNL</text>
+<text x="118.0" y="158.9" class="tbs" text-anchor="start" >aldoor_boxes</text>
+<text x="185.0" y="158.9" class="tbs" text-anchor="start" >boxes airlock outer door lock release (interlock</text>
+<text x="300.0" y="158.9" class="tbs" text-anchor="start" >W140</text>
+<text x="330.0" y="158.9" class="tbs" text-anchor="start" >1.8 m</text>
+<text x="360.0" y="158.9" class="tbs" text-anchor="start" >safe output / 0V</text>
 <rect x="18.0" y="161.5" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="165.5" class="tb" text-anchor="start" >-KF56  EL2904  4 fail-safe DO 24 V DC 0.5 A (TwinSAFE)</text>
 <text x="20.0" y="171.0" class="tbs" text-anchor="start" >terminal</text>
@@ -240,36 +240,36 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="171.0" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="175.2" class="tbs" text-anchor="start" >-KF56</text>
 <text x="48.0" y="175.2" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="175.2" class="tbs" text-anchor="start" >S20.UNL</text>
-<text x="118.0" y="175.2" class="tbs" text-anchor="start" >lock_S20</text>
-<text x="185.0" y="175.2" class="tbs" text-anchor="start" >unlock solenoid (power-to-unlock, only at stands</text>
-<text x="300.0" y="175.2" class="tbs" text-anchor="start" >W126</text>
-<text x="330.0" y="175.2" class="tbs" text-anchor="start" >1.95 m</text>
+<text x="70.0" y="175.2" class="tbs" text-anchor="start" >S31.UNL</text>
+<text x="118.0" y="175.2" class="tbs" text-anchor="start" >aldoor_out</text>
+<text x="185.0" y="175.2" class="tbs" text-anchor="start" >out airlock outer door lock release (interlocked</text>
+<text x="300.0" y="175.2" class="tbs" text-anchor="start" >W148</text>
+<text x="330.0" y="175.2" class="tbs" text-anchor="start" >1.91 m</text>
 <text x="360.0" y="175.2" class="tbs" text-anchor="start" >safe output / 0V</text>
 <text x="20.0" y="178.8" class="tbs" text-anchor="start" >-KF56</text>
 <text x="48.0" y="178.8" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="178.8" class="tbs" text-anchor="start" >S21.UNL</text>
-<text x="118.0" y="178.8" class="tbs" text-anchor="start" >lock_S21</text>
-<text x="185.0" y="178.8" class="tbs" text-anchor="start" >unlock solenoid (power-to-unlock, only at stands</text>
-<text x="300.0" y="178.8" class="tbs" text-anchor="start" >W129</text>
-<text x="330.0" y="178.8" class="tbs" text-anchor="start" >1.67 m</text>
+<text x="70.0" y="178.8" class="tbs" text-anchor="start" >S32.UNL</text>
+<text x="118.0" y="178.8" class="tbs" text-anchor="start" >aldoor_inner</text>
+<text x="185.0" y="178.8" class="tbs" text-anchor="start" >out airlock inner door lock release (interlocked</text>
+<text x="300.0" y="178.8" class="tbs" text-anchor="start" >W144</text>
+<text x="330.0" y="178.8" class="tbs" text-anchor="start" >1.53 m</text>
 <text x="360.0" y="178.8" class="tbs" text-anchor="start" >safe output / 0V</text>
 <text x="20.0" y="182.4" class="tbs" text-anchor="start" >-KF56</text>
 <text x="48.0" y="182.4" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="182.4" class="tbs" text-anchor="start" >S22.UNL</text>
-<text x="118.0" y="182.4" class="tbs" text-anchor="start" >lock_S22</text>
-<text x="185.0" y="182.4" class="tbs" text-anchor="start" >unlock solenoid (power-to-unlock, only at stands</text>
-<text x="300.0" y="182.4" class="tbs" text-anchor="start" >W132</text>
-<text x="330.0" y="182.4" class="tbs" text-anchor="start" >2.24 m</text>
-<text x="360.0" y="182.4" class="tbs" text-anchor="start" >safe output / 0V</text>
+<text x="70.0" y="182.4" class="tbs" text-anchor="start" >K1</text>
+<text x="118.0" y="182.4" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="182.4" class="tbs" text-anchor="start" >contactor coil: 48 V motor supply, channel 1 (al</text>
+<text x="300.0" y="182.4" class="tbs" text-anchor="start" >W163</text>
+<text x="330.0" y="182.4" class="tbs" text-anchor="start" >0.8 m</text>
+<text x="360.0" y="182.4" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="186.0" class="tbs" text-anchor="start" >-KF56</text>
 <text x="48.0" y="186.0" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="186.0" class="tbs" text-anchor="start" >S30.UNL</text>
-<text x="118.0" y="186.0" class="tbs" text-anchor="start" >aldoor_boxes</text>
-<text x="185.0" y="186.0" class="tbs" text-anchor="start" >boxes airlock outer door lock release (interlock</text>
-<text x="300.0" y="186.0" class="tbs" text-anchor="start" >W144</text>
-<text x="330.0" y="186.0" class="tbs" text-anchor="start" >1.88 m</text>
-<text x="360.0" y="186.0" class="tbs" text-anchor="start" >safe output / 0V</text>
+<text x="70.0" y="186.0" class="tbs" text-anchor="start" >K2</text>
+<text x="118.0" y="186.0" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="186.0" class="tbs" text-anchor="start" >contactor coil: 48 V motor supply, channel 2 (in</text>
+<text x="300.0" y="186.0" class="tbs" text-anchor="start" >W164</text>
+<text x="330.0" y="186.0" class="tbs" text-anchor="start" >0.8 m</text>
+<text x="360.0" y="186.0" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <rect x="18.0" y="188.6" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="192.6" class="tb" text-anchor="start" >-KF57  EL2904  4 fail-safe DO 24 V DC 0.5 A (TwinSAFE)</text>
 <text x="20.0" y="198.1" class="tbs" text-anchor="start" >terminal</text>
@@ -282,36 +282,36 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="198.1" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="202.3" class="tbs" text-anchor="start" >-KF57</text>
 <text x="48.0" y="202.3" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="202.3" class="tbs" text-anchor="start" >S31.UNL</text>
-<text x="118.0" y="202.3" class="tbs" text-anchor="start" >aldoor_out</text>
-<text x="185.0" y="202.3" class="tbs" text-anchor="start" >out airlock outer door lock release (interlocked</text>
-<text x="300.0" y="202.3" class="tbs" text-anchor="start" >W152</text>
-<text x="330.0" y="202.3" class="tbs" text-anchor="start" >2.0 m</text>
-<text x="360.0" y="202.3" class="tbs" text-anchor="start" >safe output / 0V</text>
+<text x="70.0" y="202.3" class="tbs" text-anchor="start" >K3</text>
+<text x="118.0" y="202.3" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="202.3" class="tbs" text-anchor="start" >contactor coil: 400 V oven feed + 24 V heater PS</text>
+<text x="300.0" y="202.3" class="tbs" text-anchor="start" >W165</text>
+<text x="330.0" y="202.3" class="tbs" text-anchor="start" >0.8 m</text>
+<text x="360.0" y="202.3" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="205.9" class="tbs" text-anchor="start" >-KF57</text>
 <text x="48.0" y="205.9" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="205.9" class="tbs" text-anchor="start" >S32.UNL</text>
-<text x="118.0" y="205.9" class="tbs" text-anchor="start" >aldoor_inner</text>
-<text x="185.0" y="205.9" class="tbs" text-anchor="start" >out airlock inner door lock release (interlocked</text>
-<text x="300.0" y="205.9" class="tbs" text-anchor="start" >W148</text>
-<text x="330.0" y="205.9" class="tbs" text-anchor="start" >1.61 m</text>
-<text x="360.0" y="205.9" class="tbs" text-anchor="start" >safe output / 0V</text>
+<text x="70.0" y="205.9" class="tbs" text-anchor="start" >K4</text>
+<text x="118.0" y="205.9" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="205.9" class="tbs" text-anchor="start" >contactor coil: 400 V oven feed + 24 V heater PS</text>
+<text x="300.0" y="205.9" class="tbs" text-anchor="start" >W166</text>
+<text x="330.0" y="205.9" class="tbs" text-anchor="start" >0.8 m</text>
+<text x="360.0" y="205.9" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="209.5" class="tbs" text-anchor="start" >-KF57</text>
 <text x="48.0" y="209.5" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="209.5" class="tbs" text-anchor="start" >K1</text>
+<text x="70.0" y="209.5" class="tbs" text-anchor="start" >K5</text>
 <text x="118.0" y="209.5" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="209.5" class="tbs" text-anchor="start" >contactor coil: 48 V motor supply, channel 1 (al</text>
+<text x="185.0" y="209.5" class="tbs" text-anchor="start" >contactor coil: 48 V branch of the out-port zone</text>
 <text x="300.0" y="209.5" class="tbs" text-anchor="start" >W167</text>
 <text x="330.0" y="209.5" class="tbs" text-anchor="start" >0.8 m</text>
 <text x="360.0" y="209.5" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="213.1" class="tbs" text-anchor="start" >-KF57</text>
 <text x="48.0" y="213.1" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="213.1" class="tbs" text-anchor="start" >K2</text>
-<text x="118.0" y="213.1" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="213.1" class="tbs" text-anchor="start" >contactor coil: 48 V motor supply, channel 2 (in</text>
-<text x="300.0" y="213.1" class="tbs" text-anchor="start" >W168</text>
-<text x="330.0" y="213.1" class="tbs" text-anchor="start" >0.8 m</text>
-<text x="360.0" y="213.1" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
+<text x="70.0" y="213.1" class="tbs" text-anchor="start" >Q19</text>
+<text x="118.0" y="213.1" class="tbs" text-anchor="start" >frl</text>
+<text x="185.0" y="213.1" class="tbs" text-anchor="start" >soft-start / dump valve: safe exhaust of all air</text>
+<text x="300.0" y="213.1" class="tbs" text-anchor="start" >W104</text>
+<text x="330.0" y="213.1" class="tbs" text-anchor="start" >0.86 m</text>
+<text x="360.0" y="213.1" class="tbs" text-anchor="start" >safe output / 0V</text>
 <rect x="230" y="249" width="180" height="38" fill="#fff" stroke="#1b2330" stroke-width=".35"/>
 <rect x="230" y="249" width="180" height="9" fill="#1f4e8c"/>
 <text x="233" y="255.3" class="tbh" style="fill:#fff">STF-2 CONTINUOUS COOKIE LINE</text>
@@ -319,7 +319,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="233" y="269" class="tbs">every channel -&gt; tag -&gt; cable</text>
 <text x="233" y="275" class="tbs">SCALE</text><text x="233" y="278" class="tb">none</text>
 <text x="293" y="275" class="tbs">SHEET</text><text x="293" y="278" class="tb">13 / 14</text>
-<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-09-29</text>
+<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-10-02</text>
 <text x="233" y="281" class="tbs">UNITS</text><text x="233" y="284" class="tb">mm, deg</text>
 <text x="293" y="281" class="tbs">PROJECTION</text><text x="293" y="284" class="tb">third angle</text>
 <text x="353" y="281" class="tbs">SOURCE</text><text x="353" y="284" class="tb">line_model.py (generated - do not edit)</text>

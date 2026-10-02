@@ -53,14 +53,14 @@ HAZARDS = (
     ("chain loop (drawing-in at bends / drive)", lambda p: p.group in ("chain", "drive"), "motion", 0.02, None),
     ("delta A", lambda p: p.group == "delta_A", "motion", 0.10, None),
     ("delta B", lambda p: p.group == "delta_B", "motion", 0.10, None),
-    ("flying stamp (screw axis + D16)", lambda p: p.group in ("carriage", "tool") or p.name.startswith(("stamp_spindle",
-                                                                                                         "M_stamp")),
-     "motion", 0.10, None),
-    ("stamp die (hot)", lambda p: p.name == "stamp_die", "heat", None, None),
+    ("delta C (transfer)", lambda p: p.group == "delta_C", "motion", 0.10, None),
+    ("mesh band + drums (in-running nips)", lambda p: p.group == "band", "motion", 0.05, None),
+    ("depositor feed rolls + cutting wire", lambda p: p.name.startswith(("dep_roll", "dep_wire", "M_dep_rolls")),
+     "motion", 0.05, None),
+    ("topping dosing pistons D10", lambda p: p.name.startswith("top_cyl_"), "motion", 0.10, H.cyl_force(10)),
+    ("oven fan impellers (inside the chamber)", lambda p: p.name.endswith("_imp"), "motion", L["FAN_RUNDOWN"], None),
+    ("oven chamber + elements (210 C)", lambda p: p.name.startswith(("oven_heater_", "oven_skid")), "heat", None, None),
     ("QC kicker D10", lambda p: p.name.startswith("kick_"), "motion", 0.10, H.cyl_force(10)),
-    ("escapement gates D10", lambda p: p.name.startswith(("esc_cyl", "esc_gate")), "motion", 0.10, H.cyl_force(10)),
-    ("singulator discs", lambda p: p.name.startswith("singulator_") and p.kind == "cyl" and "shaft" not in p.name,
-     "motion", 0.02, L["SING_T"] / 0.09),
     ("lane belts (in-running nips)", lambda p: p.name.startswith("lane_") and p.name.endswith("_belt"), "motion",
      0.02, None),
     ("sealers D25 (crush + hot)", lambda p: p.name.startswith("sealer_") and p.name.endswith(("_head", "_cyl", "_rod")),
@@ -72,7 +72,6 @@ HAZARDS = (
                                                           "M_shuttle")) or p.group == "cassette",
      "motion", 0.05, None),
     ("tray magazine forks D8", lambda p: p.group == "boxmag" and "_fork_" in p.name, "motion", 0.10, H.cyl_force(8)),
-    ("oven IR bars (hot)", lambda p: "_heater_" in p.name, "heat", None, None),
     ("airlock doors (power-operated, force-limited)", lambda p: p.group == "airlock_door", "motion", 0.10,
      H.SAFE["airlock_door"]["F_close"]),
     ("trapdoor flaps", lambda p: p.group == "trapdoor", "motion", 0.10,
@@ -123,8 +122,8 @@ def walls():
 def openings():
     """Declared openings: (wall, a0, a1, z0, z1, kind, name)."""
     g = M.guard()
-    out = [("F1", L["HOPPER_X"][0], L["HOPPER_X"][-1] + L["HOPPER"][0], L["HOPPER_Z"] + L["HOPPER"][2],
-            L["GUARD_TOP"], "raw", "raw pour strip (into the hopper strip only)")]
+    rx0, rx1, rim = M.raw_strip()
+    out = [("F1", rx0, rx1, rim, L["GUARD_TOP"], "raw", "raw pour strip (into the dough + topping hoppers only)")]
     for name, (side, y0, y1, z0, z1, tag) in L["PORT_OPEN"].items():
         if L.get("AIRLOCK"):             # the outer airlock door's opening, between the port posts
             out.append((side, y0 + g["w"], y1 - g["w"], z0, min(z1, g["zt"]), "airlock", name))
@@ -473,13 +472,19 @@ def audit(parts, hz):
     g = M.guard()
     for wall, o0, o1, z0, z1, kind, oname in openings():
         if kind == "raw":
-            # declared: the strip opens only into the hopper interiors (walls, lids, 6 mm slots to the rails)
+            # declared: the strip opens only into the hopper interiors (walls, lids, 6 mm slots to the rails).
+            # Under the dough hopper's safety grid (square e) run the feed rolls: ISO 13857 Table 4 distance.
+            grid = next(p for p in parts if p.name == "dep_hopper_grid")
+            e = L["DEP_GRID"]
+            need = H.iso13857_distance(e, "square")
             for h in hz:
-                if all(p.group == "hopper" for p in h["parts"]):
-                    rows.append(dict(opening=oname, hazard=h["name"], state="always", d_mm="in reach",
-                                     need_mm="-", rule="low energy" if h["low"] else "GUARD", ok=h["low"]))
-                    if not h["low"]:
-                        finds.append(f"{oname}: {h['name']} is reachable and not low-energy")
+                if h["name"].startswith("depositor"):
+                    d = min(grid.aabb()[2] - p.aabb()[5] for p in h["parts"])
+                    ok = d >= need
+                    rows.append(dict(opening=oname, hazard=h["name"], state="always", d_mm=f"{d:.0f} below the grid",
+                                     need_mm=f"{need:g} (square e {e:g})", rule="ISO 13857 Table 4", ok=ok))
+                    if not ok:
+                        finds.append(f"{oname}: {h['name']} is {d:.0f} mm under the {e:g} mm grid (< {need:g})")
             continue
         if kind == "airlock":
             box = M.airlock_chambers()[oname]
@@ -650,12 +655,14 @@ SF = (   # the safety functions as configured in TwinSAFE (SAFETY_CONCEPT.md)
     ("SF2", "guard locking", "S20.A/B S21.A/B S22.A/B", "door opened / unlocked -> SS1 -> K1+K2 off, Q19 exhaust; "
      "S2x.UNL only after SS1 + standstill", "SS1", "d", "EDM, lock state from the switch OSSDs"),
     ("SF3", "safe exhaust", "SF1 / SF2 demand", "Q19 dump valve de-energised", "0", "c", "Q19.FB"),
-    ("SF4", "over-temperature", "STL per zone (own duplex element)", "STL relay contact opens the zone's load; "
-     "trip reported on <zone>.STL", "0 (hardwired, not TwinSAFE)", "c", "manual STL reset"),
+    ("SF4", "over-temperature", "STB per oven zone + per sealing head (own duplex element)",
+     "oven zone: the STB contact drops zone contactor KHn (every element + the fan of the zone); sealing head: "
+     "the STB contact opens its load; trip reported on <unit>.STL", "0 (hardwired, not TwinSAFE)", "c",
+     "manual STB reset"),
     ("SF5", "chain drawing-in", "(covered by the perimeter guard: no motion with a door open)", "-", "-", "c",
      "no jog / enabling device in S-1"),
     ("SF6", "AMR airlocks", "S30.A/B (boxes outer door), S31.A/B (out outer), S32.A/B (out inner), "
-     "Q42..Q44.CLA/B trapdoors closed (safety sensors), S34.A/B drawer",
+     "trapdoors .CLA/B closed (safety sensors), S34.A/B drawer",
      "boxes: S30 unlocks only with every trapdoor closed and Y1 exhausted; trapdoors open only with S30 locked. "
      "out: S31 unlocks only with S32 locked and K5 (shuttles) off; S32 unlocks only with S31 locked. "
      "A door opened / unlocked out of sequence -> SF1 response without heaters", "0 / zone STO", "c",
@@ -702,7 +709,8 @@ def pl_estimate():
                                 em("K3 + K4 (EDM)", ["contactor"], "3", 0.99, n["heat"])]),
         "SF2 guard locking": ("SF2", [cert("guard-locking switch", "guard_lock"), logic, k12]),
         "SF3 safe exhaust": ("SF3", [logic, em("Q19 dump valve + position switch", ["valve"], "2", 0.90, n["stop"])]),
-        "SF4 over-temperature": ("SF4", [cert("STL per zone", "stl")]),
+        "SF4 over-temperature": ("SF4", [cert("STB per zone", "stl"),
+                                         em("zone contactor KHn (well-tried)", ["contactor"], "1", 0.0, n["heat"])]),
         "SF6 out airlock": ("SF6", [cert("S31 / S32 door switches", "airlock_door"), logic,
                                     em("K5 + EDM", ["contactor"], "2", 0.99, n["out"])]),
         "SF6 boxes airlock": ("SF6", [cert("S30 door switch", "airlock_door"), cert("trapdoor safety sensors", "trapdoor"),

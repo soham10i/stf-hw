@@ -4,8 +4,10 @@ Shared by the GUI macro (play_motion.FCMacro) and the headless check (validate_m
 
 Every CAD solid was built in absolute coordinates, so a frame is applied as
     Placement = Placement(t, q) * original placement
-for rigid parts, a re-built cylinder for the extending piston rods, and Visibility for the cookies.
-Screws and brackets of a moving body take that body's placement.
+for rigid parts, a re-built cylinder for the extending piston rods and the band cookies (they spread and
+brown in the oven: colour from oven.py), and Visibility for the cookies. Screws and brackets of a moving body
+take that body's placement. The oven elements glow while their SSR conducts (zone duty, 2 s PWM) and the
+panel shows the oven power and the current on L1 / L2 / L3 at every frame.
 """
 import json
 import os
@@ -32,6 +34,7 @@ class Player:
         tl = json.load(open(timeline_path))
         self.dt, self.n, self.track, self.follow = tl["dt"], tl["frames"], tl["track"], tl["follow"]
         self.phases = tl.get("phases", {})
+        self.glow, self.power, self.duty = tl.get("glow", {}), tl.get("power", []), tl.get("duty", {})
         objs = [o for o in doc.Objects if o.TypeId == "Part::Feature"]
         by_label = {}
         for o in objs:
@@ -60,6 +63,8 @@ class Player:
             body = self.follow.get(key)
             if body and body in self.obj:
                 self.fol.append((o, body, App.Placement(o.Placement)))
+        self.glow_obj = {n: by_label[n] for n in self.glow if n in by_label}
+        self.base_col = {n: (o.ViewObject.ShapeColor if App.GuiUp else None) for n, o in self.glow_obj.items()}
         self.frame = 0
 
     def placement(self, name, k):
@@ -72,9 +77,17 @@ class Player:
         moved = {}
         for n, o in self.obj.items():
             v = self.track[n][k]
-            if isinstance(v, dict):                 # an extending piston rod: rebuild the cylinder
+            if isinstance(v, dict):                 # an extending rod / a band cookie: rebuild the cylinder
                 ax = {"x": App.Vector(1, 0, 0), "y": App.Vector(0, 1, 0), "z": App.Vector(0, 0, 1)}[v["ax"]]
                 o.Shape = Part.makeCylinder(v["dia"] / 2, max(v["len"], 0.01), App.Vector(*v["c"]), ax)
+                if "vis" in v:
+                    o.Visibility = bool(v["vis"])
+                if App.GuiUp:
+                    if "col" in v:
+                        h = v["col"].lstrip("#")
+                        o.ViewObject.ShapeColor = tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+                    if "vis" in v:
+                        o.ViewObject.Visibility = bool(v["vis"])
                 continue
             pl, vis = self.placement(n, k)
             o.Placement = pl.multiply(self.base_pl[n])
@@ -85,6 +98,11 @@ class Player:
         for o, body, base in self.fol:
             if body in moved:
                 o.Placement = moved[body].multiply(base)
+        if App.GuiUp:
+            for n, o in self.glow_obj.items():
+                g = self.glow[n]
+                h = (g["on"] if g["bits"][k] == "1" else g["off"]).lstrip("#")
+                o.ViewObject.ShapeColor = tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
         return k
 
     def reset(self):
@@ -97,6 +115,10 @@ class Player:
                 o.ViewObject.Visibility = True
         for o, body, base in self.fol:
             o.Placement = base
+        if App.GuiUp:
+            for n, o in self.glow_obj.items():
+                if self.base_col.get(n) is not None:
+                    o.ViewObject.ShapeColor = self.base_col[n]
         for o in self.spawned:
             self.doc.removeObject(o.Name)
         self.spawned = []
@@ -107,4 +129,10 @@ class Player:
         for name, t0, d in self.phases.get("exchange", []):
             if t0 <= t < t0 + d:
                 txt += f"  |  airlock: {name}"
+        if self.power:
+            W, a1, a2, a3 = self.power[min(k, len(self.power) - 1)]
+            on = sum(1 for g in self.glow.values() if g["bits"][k] == "1")
+            txt += (f"\noven {W / 1000:.2f} kW now ({on}/{len(self.glow)} elements on)   "
+                    f"L1 {a1:.1f} A   L2 {a2:.1f} A   L3 {a3:.1f} A")
+            txt += "\nduty " + "  ".join(f"{z} {d:.0%}" for z, d in sorted(self.duty.items()))
         return txt

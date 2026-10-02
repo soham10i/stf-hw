@@ -47,18 +47,25 @@ def power_sheet(ios, prows, no, n):
     b.append(t(20, 22, "POWER DISTRIBUTION (single line)", "nh"))
     # mains bus
     b.append(line(30, y0, 30, 250, 0.6))
-    b.append(t(22, y0 - 2, "L1 / N / PE  230 V AC", "tbs"))
+    b.append(t(22, y0 - 2, "L1 / L2 / L3 / N / PE  400 V 3N~ (CEE 16 A, RCD 30 mA)", "tbs"))
     safe = any(io.kind in P.SAFE_KINDS for io in ios)
     n_step = sum(1 for io in ios if io.kind == "STEP")
     if safe:
         zs = P.zones()
-        feeds = [("-FC1", "main 2-pole C16", None),
-                 ("-FC2", "C10 heaters", ["-QK3 + -QK4 (TwinSAFE, in series) -> heater feed",
-                                          "-QA1..3 AC SSR -> Q8/Q9/Q10 IR 300 W, each via its STL -BT contact"]),
+        _, els, plan, _ = M.oven_power()
+        phase = {tg: p for p, items in plan.items() for tg, _ in items}
+        oz = []
+        for k in range(len(M.L["OVEN_ZONES"])):
+            e_ = [e for e in els if e["zone"] == f"Z{k + 1}"]
+            oz.append(f"-FC{10 + k} C16 3p -> -QKH{k + 1} (coil via STB Z{k + 1}) -> " +
+                      ", ".join(f"{e['tag']} {e['P']:.0f} W {phase[e['tag']]}" for e in e_) + f", fan QF{k + 1}")
+        feeds = [("-QB0", "main switch 4-pole + RCD", None),
+                 ("-QK3/4", "oven feed (TwinSAFE, series)", oz + ["each element on its own -QA SSR 25 A; "
+                                                                   "details: blueprints/M3_thermal.svg"]),
                  ("-FC3", "C6 supplies", [f"-TB1 {P.LOGIC_PSU[0]}: 24 V logic + safety (PC, EL, EL69xx/19xx/29xx, "
                                           "sensors, coils, locks, curtains)",
-                                          "-TB2 SDR-480-24 (fed via -QK3/-QK4): 24 V heat -> DC SSR + STL -> "
-                                          "Q36-38 sealing heads, Q15 die",
+                                          "-TB2 SDR-480-24 (L1, fed via -QK3/-QK4): 24 V heat -> DC SSR + STL -> "
+                                          "Q36-38 sealing heads",
                                           f"-TB3 SDR-480P-48 -> -QK1 + -QK2 (series) -> {n_step} EL7047;",
                                           f"   branch -QK5: {', '.join(zs['boxes']['motors'])} (boxes port zone)",
                                           f"   branch -QK6: {', '.join(zs['out']['motors'])} (out port zone)"])]
@@ -87,8 +94,8 @@ def power_sheet(ios, prows, no, n):
     b.append(box(300, 40, 100, 44, "#fff4f2", "#c0392b"))
     if safe:
         b.append(t(303, 47, "TWINSAFE (EL6910 + EL1904 / EL2904)", "tb"))
-        msg = ["SF1 E-stop, SF2 guard locking, SF3 exhaust, SF6 ports", "K1+K2 (48 V), K3+K4 (heat) in series, EDM",
-               "K5/K6 + Y1/Y2: AMR port zones", "SF4: STL per heated zone (hardwired)", "see E04 + safety/report.md"]
+        msg = ["SF1 E-stop, SF2 guard locking, SF3 exhaust, SF6 ports", "K1+K2 (48 V), K3+K4 (400 V oven) in series, EDM",
+               "K5/K6 + Y1/Y2: AMR port zones", "SF4: STB per oven zone -> KHn coil (hardwired)", "see E04 + safety/report.md"]
     else:
         b.append(t(303, 47, "-KF90 E-STOP RELAY (PNOZ class)", "tb"))
         msg = ["2-channel E-stop chain -> S0 / S1 (EL1809)", "cuts the 48 V motor supply",

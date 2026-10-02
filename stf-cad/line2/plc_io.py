@@ -15,7 +15,7 @@ STF-2 controls: the Beckhoff EtherCAT I/O, derived from line_model (never typed)
   wiring()         terminal-level wiring table: device -> cable -> EL terminal point,
                    cable length from the layout, voltage drop on every DC supply cable
   twincat()        TwinCAT 3 Structured Text skeletons: GVL with every I/O mapped,
-                   master axis, flying stamp geared to it, lead-compensated feeder,
+                   master axis, band + depositor geared to it, delta C transfer,
                    oven PID, QC/kicker, delta tracking, lanes/stacker/shuttle, AMR ports
 
 Run: python3 plc_io.py   -> plc/io_list.csv, plc/wiring.csv, plc/cabinet.json, plc/*.st
@@ -70,6 +70,11 @@ def _centre(p):
     return tuple((b[i] + b[i + 3]) / 2 for i in range(3))
 
 
+_, _ELS, _PLAN, _ = M.oven_power()
+ELEM = {e["tag"]: e for e in _ELS}
+PHASE = {tag: ph for ph, items in _PLAN.items() for tag, _ in items}
+
+
 def io_list():
     parts = M.build(with_product=False)
     by = {p.name: p for p in parts}
@@ -95,9 +100,6 @@ def io_list():
                     add(IO(f"{t}.{end}", "DI", p.name, p.module,
                            f"reed switch {'retracted' if end == 'S1' else 'extended'} ({hw.split(' ')[0]})", "reed",
                            H.FIELD["reed"]["I"], pos=c))
-            if L.get("PA1") and p.name == "stamp_cylinder":
-                add(IO(f"{t}.P", "IOL", p.name, p.module, "stamp pressure (force = p x A)", "pressure_iol",
-                       H.FIELD["pressure_iol"]["I"], pos=c))
         elif "17HS" in hw:
             motor = next(k for k in H.STEPPER if k in hw)
             add(IO(t, "STEP", p.name, p.module, f"stepper {hw}", motor, supply="48V", pos=c,
@@ -118,12 +120,20 @@ def io_list():
                 add(IO(f"{t}.{ch}", "AI", p.name, p.module, f"colour {ch} 0..10 V", hw,
                        H.FIELD[hw]["I"] / 3, pos=c))
         elif hw == "tc_K":
-            add(IO(t, "TC", p.name, p.module, "oven zone thermocouple K", hw, pos=c))
-        elif hw == "heater_bar":
-            add(IO(t, "DO", p.name, p.module, "oven heater SSR (230 V 300 W)", "SSR_AC", H.SSR_AC["ctl_A"], pos=c,
-                   extra=dict(mains_W=H.LOADS["heater_bar"]["P"])))
-        elif hw == "fan_80":
-            add(IO(t, "DO", p.name, p.module, "cooling fan 24 V", hw, H.LOADS["fan_80"]["I"], pos=c))
+            add(IO(t, "TC", p.name, p.module, "oven zone thermocouple K (duplex: this element -> PID)", hw, pos=c,
+                   extra=dict(zone=f"Z{t[-1]}")))
+        elif hw == "tubular":
+            e = ELEM[t]
+            add(IO(t, "DO", p.name, p.module, f"oven element SSR ({e['P']:.0f} W 230 V, {PHASE[t]})", "SSR_AC25",
+                   H.SSR_AC25["ctl_A"], pos=c, extra=dict(mains_W=e["P"], zone=e["zone"], phase=PHASE[t], face=e["face"])))
+        elif hw == "OVEN_FAN":
+            add(IO(t, "DO", p.name, p.module, f"oven circulation fan 230 V {H.OVEN_FAN['P']:g} W ({PHASE[t]}), "
+                   "coupling relay", "RELAY6", H.RELAY6["ctl_A"], pos=c,
+                   extra=dict(mains_W=H.OVEN_FAN["P"], zone=f"Z{t[-1]}", phase=PHASE[t], fan=True)))
+        elif hw == "COOL_FAN":
+            add(IO(t, "DO", p.name, p.module, "band cooling fan 24 V", hw, H.COOL_FAN["I"], pos=c))
+        elif hw == "exhaust_fan":
+            add(IO(t, "DO", p.name, p.module, "oven vapour exhaust fan 24 V EC", hw, H.LOADS["exhaust_fan"]["I"], pos=c))
         elif hw == "ringlight":
             add(IO(t, "DO", p.name, p.module, "ring light 24 V", hw, H.LOADS["ringlight"]["I"], pos=c))
         elif hw == "sealer_head":
@@ -152,14 +162,8 @@ def io_list():
             add(IO(t, "ETH", p.name, p.module, "GigE camera -> edge PC", hw, pos=c))
             if L.get("PA1"):                            # hardware trigger at a master-axis position, DC-stamped
                 add(IO(f"{t}.TRG", "DOTS", p.name, p.module, "camera trigger (timestamped)", "trigger", 0.01, pos=c))
-    # heated stamp die: heater + thermocouple implied by the part
-    die = by["stamp_die"]
-    add(IO("Q15", "DO", die.name, die.module, "stamp die heater DC SSR (24 V 25 W)", "SSR_DC", H.SSR_DC["ctl_A"],
-           pos=_centre(die), extra=dict(heat_A=25.0 / 24.0)))
-    add(IO("Q15.TC", "TC", die.name, die.module, "stamp die thermocouple (integrated)", "tc_K", pos=_centre(die)))
     # home switches every axis needs (not drawn yet)
-    homes = [("B2", "M_stamp_axis", "stamp carriage home")] + \
-        [(f"B{10 + i}", f"M_shuttle_{f}", f"shuttle {f} home") for i, f in enumerate(M.FLAV)] + \
+    homes = [(f"B{10 + i}", f"M_shuttle_{f}", f"shuttle {f} home") for i, f in enumerate(M.FLAV)] + \
         [(f"B{20 + k}", n.name, f"{n.name} arm index") for k, n in
          enumerate(p for p in parts if "_motor_" in p.name and p.group.startswith("delta_"))]
     for tag, pn, d in homes:
@@ -177,8 +181,29 @@ def io_list():
 
 
 def heaters(ios):
-    """Every heated zone (each gets its own safety temperature limiter, SF4)."""
-    return [io for io in ios if io.kind == "DO" and (io.extra.get("mains_W") or io.extra.get("heat_A"))]
+    """Every heated unit with its own safety temperature limiter (SF4): an oven ZONE (carried by its TC; its
+    elements are fed through the zone contactor KHn whose coil runs through the STB contact) or a 24 V
+    sealing head (the STB contact in its load path)."""
+    out = []
+    for io in ios:
+        if io.kind == "TC" and io.extra.get("zone"):
+            io.extra["zone_W"] = sum(e.extra["mains_W"] for e in ios if e.extra.get("zone") == io.extra["zone"]
+                                     and e.extra.get("mains_W") and not e.extra.get("fan"))
+            out.append(io)
+        elif io.kind == "DO" and io.extra.get("heat_A"):
+            out.append(io)
+    return out
+
+
+def oven_zones(ios):
+    """[(zone, TC io, [element ios], fan io)] in zone order."""
+    out = []
+    for io in sorted((i for i in ios if i.kind == "TC" and i.extra.get("zone")), key=lambda i: i.extra["zone"]):
+        z = io.extra["zone"]
+        els = [e for e in ios if e.extra.get("zone") == z and e.extra.get("mains_W") and not e.extra.get("fan")]
+        fan = next((e for e in ios if e.extra.get("zone") == z and e.extra.get("fan")), None)
+        out.append((z, io, els, fan))
+    return out
 
 
 def zones(parts=None):
@@ -196,8 +221,8 @@ def zones(parts=None):
 BASE_CONTACTORS = (      # tag, what it switches, safety functions
     ("K1", "48 V motor supply, channel 1 (all EL7047)", "SF1 SF2 SF6"),
     ("K2", "48 V motor supply, channel 2 (in series with K1)", "SF1 SF2 SF6"),
-    ("K3", "heater feed, channel 1 (AC SSRs + 24 V heater PSU)", "SF1"),
-    ("K4", "heater feed, channel 2 (in series with K3)", "SF1"),
+    ("K3", "400 V oven feed + 24 V heater PSU, channel 1 (3-pole)", "SF1"),
+    ("K4", "400 V oven feed + 24 V heater PSU, channel 2 (in series with K3)", "SF1"),
 )
 
 
@@ -291,8 +316,10 @@ def _safety_io(parts, by, ios, add):
         add(IO(f"{tag}.FB", "SI", isl.name, isl.module, f"{port} zone valve position switch (exhausted)",
                "zone_valve", H.FIELD["reed"]["I"], pos=_centre(isl), extra=dict(sf="SF6", port=port)))
     for io in heaters(ios):
+        how = f"its contact is in the coil of zone contactor KH{io.tag[-1]}" if io.extra.get("zone") else \
+            "its relay contact is in the heater load path"
         add(IO(f"{io.tag}.STL", "DI", io.part, io.module, "safety temperature limiter tripped (SF4, own element "
-               "of a duplex thermocouple; its relay contact is in the heater load path)", "stl",
+               f"of a duplex thermocouple; {how})", "stl",
                S["stl"]["P"] / 24.0, pos=io.pos, extra=dict(sf="SF4", stl=True, cabinet=True)))
 
 
@@ -394,7 +421,7 @@ def power(ios):
     heat = sum(io.extra.get("heat_A", 0.0) for io in ios)
     psu2 = H.PSU["SDR-480-24"]
     row("24 V heater supply", f"{heat:.2f} A", f"<= {H.PSU_LOAD_MAX:.0%} of SDR-480-24 {psu2['I']:g} A",
-        heat <= H.PSU_LOAD_MAX * psu2["I"], "3 sealing heads + stamp die via DC SSRs")
+        heat <= H.PSU_LOAD_MAX * psu2["I"], "3 sealing heads via DC SSRs")
     # 48 V motors: copper loss of both phases + 20 % driver loss, from the supply
     motors = [io for io in ios if io.kind == "STEP"]
     p48 = sum(1.2 * 2 * H.STEPPER[io.extra["motor"]]["I"] ** 2 * H.STEPPER[io.extra["motor"]]["R"] for io in motors)
@@ -405,8 +432,21 @@ def power(ios):
     worst_i = max(H.STEPPER[io.extra["motor"]]["I"] for io in motors)
     row("stepper phase current", f"{worst_i:g} A", f"<= EL7047 {H.BECKHOFF['EL7047']['I_max']:g} A",
         worst_i <= H.BECKHOFF["EL7047"]["I_max"], "")
-    mains = sum(io.extra.get("mains_W", 0.0) for io in ios) / 230.0
-    row("230 V heater breaker", f"{mains:.2f} A", "<= 80 % of C10", mains <= 8.0, "3 IR bars via AC SSRs")
+    # 400 V 3N~ oven supply: every 230 V load on its phase (elements + circulation fans), per phase and zone
+    S = H.SUPPLY
+    ph_W = {ph: sum(io.extra["mains_W"] for io in ios if io.extra.get("phase") == ph) for ph in ("L1", "L2", "L3")}
+    psu_in = H.PSU["SDR-480-24"]["U"] * H.PSU["SDR-480-24"]["I"] / H.PSU_EFF
+    ph_W["L1"] += psu_in                                   # the 24 V heater PSU hangs on L1 (sealing heads)
+    for ph, w in ph_W.items():
+        row(f"oven feed {ph}", f"{w / S['U']:.2f} A ({w:.0f} W)", f"<= {S['load_max']:.0%} of {S['I']:g} A",
+            w / S["U"] <= S["load_max"] * S["I"], "elements + fans" + (" + 24 V heater PSU" if ph == "L1" else ""))
+    mains = max(ph_W.values()) / S["U"]
+    for z, tc, els, fan in oven_zones(ios):
+        zw = {ph: sum(e.extra["mains_W"] for e in els + ([fan] if fan else []) if e.extra["phase"] == ph) for ph in ph_W}
+        zi = max(zw.values()) / S["U"]
+        row(f"{z} feed (3-pole C16 + KH{z[-1]})", f"{zi:.2f} A worst phase", f"<= C16 / KH AC-1 {H.ZONE_CONTACTOR['AC1']:g} A",
+            zi <= 16.0 * 0.8 and zi <= H.ZONE_CONTACTOR["AC1"], f"{len(els)} elements on " +
+            ", ".join(f"{p} {w:.0f} W" for p, w in zw.items() if w))
     if so:
         C = H.SAFE["contactor"]
         row("K1/K2 48 V (DC-1)", f"{psu3['I']:g} A", f"<= {C['DC1_48']:g} A", psu3["I"] <= C["DC1_48"],
@@ -417,19 +457,18 @@ def power(ios):
             iz = sum(H.STEPPER[io.extra["motor"]]["I"] * 2 for io in motors if io.tag in zs[port]["motors"])
             row(f"{tag} {port} zone (DC-1)", f"{iz:.1f} A", f"<= {C['DC1_48']:g} A", iz <= C["DC1_48"],
                 f"{len(zs[port]['motors'])} motors, both phases at rated current")
-        feed = mains + H.PSU["SDR-480-24"]["U"] * H.PSU["SDR-480-24"]["I"] / H.PSU_EFF / 230.0
-        row("K3/K4 heater feed (AC-1)", f"{feed:.2f} A", f"<= {C['AC1']:g} A", feed <= C["AC1"],
-            "IR bars + the 24 V heater PSU input at full rating")
+        row("K3/K4 oven feed (AC-1, 3-pole)", f"{mains:.2f} A worst phase", f"<= {C['AC1']:g} A", mains <= C["AC1"],
+            "every element + fan + the 24 V heater PSU input, per pole")
         st = H.SAFE["stl"]
+        def stl_load(io):              # an oven zone's STB switches the zone contactor coil, a head its load
+            return H.ZONE_CONTACTOR["coil_A"] if io.extra.get("zone") else io.extra.get("heat_A", 0.0)
         for io in heaters(ios):
-            ac = io.extra.get("mains_W", 0.0) / 230.0
-            dc = io.extra.get("heat_A", 0.0)
-            ok = ac <= st["I_AC"] and dc <= st["I_DC24"]
-            if not ok:
-                row(f"STL contact {io.tag}", f"{max(ac, dc):.2f} A", "<= 3 A", False, "")
-        worst = max(max(io.extra.get("mains_W", 0.0) / 230.0, io.extra.get("heat_A", 0.0)) for io in heaters(ios))
-        row("STL relay contact (worst zone)", f"{worst:.2f} A", f"<= {st['I_AC']:g} A", worst <= st["I_AC"],
-            f"{len(heaters(ios))} heated zones, each switched by its own STL")
+            if stl_load(io) > st["I_DC24"]:
+                row(f"STL contact {io.tag}", f"{stl_load(io):.2f} A", "<= 3 A", False, "")
+        worst = max(heaters(ios), key=stl_load)
+        row("STL relay contact (worst unit)", f"{stl_load(worst):.2f} A ({worst.tag})", f"<= {st['I_DC24']:g} A",
+            stl_load(worst) <= st["I_DC24"], f"{len(heaters(ios))} heated units: oven zones via KH coils "
+            f"({max(io.extra.get('zone_W', 0) for io in heaters(ios)):.0f} W max), sealing heads in the load path")
     return rows, fails
 
 
@@ -455,9 +494,11 @@ def cabinet(rails):
     duct = H.DUCT
     rows = defaultdict(list)
     # row 0: supplies, breakers, SSRs, safety relay
-    rows[0] += [Dev("-FC1", "MCB", H.MCB_W * 2, 90, 70, 0, note="main 2-pole C16"),
-                Dev("-FC2", "MCB", H.MCB_W, 90, 70, 0, note="heaters C10"),
+    rows[0] += [Dev("-QB0", "main switch", H.MCB_W * 4, 90, 70, 0, note="4-pole main switch 16 A + RCD 30 mA type A"),
                 Dev("-FC3", "MCB", H.MCB_W, 90, 70, 0, note="PSUs C6")]
+    zs = oven_zones(IOS)
+    rows[0] += [Dev(f"-FC{10 + k}", "MCB 3-pole", H.MCB3["w"], 90, 70, 0, note=f"{z} feed C16") for k, (z, *_) in
+                enumerate(zs)]
     for k, tb in ((LOGIC_PSU[0], "-TB1"), ("SDR-480-24", "-TB2"), ("SDR-480P-48", "-TB3")):
         p = H.PSU[k]
         rows[0].append(Dev(tb, k, p["w"], p["h"], p["d"], 0))
@@ -465,10 +506,15 @@ def cabinet(rails):
     if not safe:
         rows[0].append(Dev("-KF90", "safety relay", H.SAFETY_RELAY["w"], H.SAFETY_RELAY["h"], H.SAFETY_RELAY["d"], 0,
                            note="E-stop: 48 V cut + dump valve (concept open)"))
-    for k in range(3):
-        rows[0].append(Dev(f"-QA{k + 1}", "SSR AC", H.SSR_AC["w"], H.SSR_AC["h"], H.SSR_AC["d"], 0, note=f"Q{8 + k}"))
-    for k, t in enumerate(("Q36", "Q37", "Q38", "Q15")):
-        rows[0].append(Dev(f"-QA{k + 4}", "SSR DC", H.SSR_DC["w"], H.SSR_DC["h"], H.SSR_DC["d"], 0, note=t))
+    ssr_row = []
+    for z, tc, els, fan in zs:
+        ssr_row += [Dev(f"-QA{e.tag}", "SSR AC 25 A", H.SSR_AC25["w"], H.SSR_AC25["h"], H.SSR_AC25["d"], 0,
+                        note=f"{e.tag} {e.extra['phase']}") for e in els]
+        if fan:
+            ssr_row.append(Dev(f"-KA{fan.tag}", "relay 6.2", H.RELAY6["w"], H.RELAY6["h"], H.RELAY6["d"], 0,
+                               note=f"{fan.tag} {fan.extra['phase']}"))
+    for t in sorted(io.tag for io in IOS if io.extra.get("heat_A")):
+        ssr_row.append(Dev(f"-QA{t}", "SSR DC", H.SSR_DC["w"], H.SSR_DC["h"], H.SSR_DC["d"], 0, note=t))
     # bus segments (each starts with its CX / EK1100) packed first-fit onto DIN rows, 20 % spare kept
     cap = (cw - 3 - 2 * 15) / (1 + SPARE_MIN)
     seg_w = [sum(H.BECKHOFF[t]["w"] for t, _, _ in rail) for rail in rails]
@@ -487,7 +533,8 @@ def cabinet(rails):
                                        note=note))
     n_dist = sum(1 for io in IOS if io.kind in ("DI", "DO", "IOL", "AI", "ENC", "DITS", "DOTS", "SI", "SO")
                  and not io.extra.get("cabinet"))
-    r0 = 1 + len(din)
+    rows[1 + len(din)] = [Dev(d.name, d.type, d.w, d.h, d.d, 1 + len(din), note=d.note) for d in ssr_row]
+    r0 = 2 + len(din)
     if safe:      # S-1: one row of double-level blocks (+24 V over 0 V) instead of two single rows
         tb = H.TERMINAL_BLOCK2
         rows[r0] = [Dev(f"-XD1.{k + 1}", "PTTB 2.5", tb["pitch"], tb["h"], tb["d"], r0, note="+24 V / 0 V")
@@ -495,6 +542,9 @@ def cabinet(rails):
         C, T = H.SAFE["contactor"], H.SAFE["stl"]
         rows[r0 + 1] = [Dev(f"-Q{tag}", "contactor", C["w"], C["h"], C["d"], r0 + 1, note=what)
                         for tag, what, _ in contactors()]
+        Z = H.ZONE_CONTACTOR
+        rows[r0 + 1] += [Dev(f"-QKH{z[-1]}", "zone contactor", Z["w"], Z["h"], Z["d"], r0 + 1, note=f"{z} (coil via STB)")
+                         for z, *_ in zs]
         rows[r0 + 1] += [Dev(f"-BT{k + 1}", "STL", T["w"], T["h"], T["d"], r0 + 1, note=io.tag)
                          for k, io in enumerate(heaters(IOS))]
     else:
@@ -530,8 +580,10 @@ def cabinet(rails):
     ploss = sum(H.PSU_LOAD_MAX * H.PSU[k]["U"] * H.PSU[k]["I"] * (1 - H.PSU_EFF) for k in
                 (LOGIC_PSU[0], "SDR-480-24", "SDR-480P-48"))
     if safe:                                   # contactor coils are energised whenever the line runs; STLs
-        ploss += len(contactors()) * 24.0 * H.SAFE["contactor"]["coil_A"] + \
+        ploss += (len(contactors()) + len(zs)) * 24.0 * H.SAFE["contactor"]["coil_A"] + \
             len(heaters(IOS)) * H.SAFE["stl"]["P"]
+    ploss += sum(H.SSR_AC25["U_drop"] * io.extra["mains_W"] / H.SUPPLY["U"] for io in IOS
+                 if io.hw == "SSR_AC25")                                     # element SSRs, at full on
     ploss += H.CX_POWER["CX2020"] + H.CX_POWER["terminal"] * sum(len(r) for r in rails)
     ploss += sum(0.2 * 2 * H.STEPPER[io.extra["motor"]]["I"] ** 2 * H.STEPPER[io.extra["motor"]]["R"]
                  for io in IOS if io.kind == "STEP")
@@ -624,14 +676,13 @@ def twincat(ios):
     files["GVL_IO.st"] = "\n".join(lines) + "\n"
     v = {io.tag: _var(io) for io in ios}
     takt = M.takt()
-    lead = L["V"] * M.drop_time()
     files["MAIN.st"] = f"""// MAIN - one cycle of every station agent; all stations run on ONE time base (the master axis)
 PROGRAM MAIN
 VAR
     fbMaster  : FB_MasterAxis;
-    fbFeeder  : FB_Feeder;
-    fbOven    : FB_Oven;
-    fbStamp   : FB_FlyingStamp;
+    fbOven    : FB_Oven;          // zones, elements, fans, warm-up gate (oven.py recipe)
+    fbBand    : FB_Band;          // band + depositor + topping, geared to the master
+    fbTransfer: FB_Transfer;      // delta C: band row -> passing puck, NFC write
     fbQC      : FB_QC;
     fbPickA, fbPickB : FB_DeltaPicker;
     fbLane    : ARRAY[0..2] OF FB_Lane;
@@ -640,9 +691,10 @@ VAR
 END_VAR
 fbSafety();                      // first: every station below runs only while fbSafety.bRunEnable
 fbMaster(axDrive := GVL_IO.{v['Q1']}, nEncoder := GVL_IO.{v['B1']});
-fbFeeder(fMasterPos := fbMaster.fPos);
-fbOven();
-fbStamp(axStamp := GVL_IO.{v['Q14']}, axMaster := fbMaster.axMaster, bPuckEdge := GVL_IO.{v['I8']});
+fbOven(bRunEnable := fbSafety.bRunEnable);
+fbBand(axBand := GVL_IO.{v['Q40']}, axRolls := GVL_IO.{v['Q41']}, axMaster := fbMaster.axMaster,
+       bOvenReady := fbOven.bReady);
+fbTransfer(fMasterPos := fbMaster.fPos, fBandPos := fbBand.fPos, bPuckFull := GVL_IO.{v['I1']});
 fbQC(fMasterPos := fbMaster.fPos);
 fbPickA(fMasterPos := fbMaster.fPos, bUpstream := TRUE);
 fbPickB(fMasterPos := fbMaster.fPos, bUpstream := FALSE, bPartnerMissed := fbPickA.bMissed);
@@ -671,55 +723,59 @@ fbVel(Axis := axDrive, Execute := fbPower.Status, Velocity := {L['V']:.1f}, Acce
 fPos := LMOD(axMaster.NcToPlc.ActPos, {L['N'] * L['PITCH']:.1f});
 fDrift := axDrive.NcToPlc.ActPos - axMaster.NcToPlc.ActPos;
 """
-    files["FB_Feeder.st"] = f"""// FB_Feeder - heijunka W R B ..., lead-compensated gravity drop.
-// Fall time {M.drop_time() * 1000:.0f} ms -> the belt moves {lead:.2f} mm: the gate opens {lead:.2f} mm BEFORE the
-// puck centre is under the tube (proven in line_model.timing). A puck the light barrier I1
-// sees as full (recirculating) is skipped; an empty tube leaves the puck empty (counted loss).
-FUNCTION_BLOCK FB_Feeder
-VAR_INPUT fMasterPos : LREAL; END_VAR
-VAR
-    aTubeX   : ARRAY[0..5] OF LREAL := [{', '.join(f'{M.s_front(x):.1f}' for x in L['MAG_X'])}];  // loop position of each tube
-    aGate    : ARRAY[0..5] OF POINTER TO BOOL;
-    nSeq     : UINT;                 // heijunka index
-    fLead    : LREAL := {lead:.2f};
-END_VAR
-aGate[0] := ADR(GVL_IO.{v['Q2']}); aGate[1] := ADR(GVL_IO.{v['Q3']}); aGate[2] := ADR(GVL_IO.{v['Q4']});
-aGate[3] := ADR(GVL_IO.{v['Q5']}); aGate[4] := ADR(GVL_IO.{v['Q6']}); aGate[5] := ADR(GVL_IO.{v['Q7']});
-// for the next puck: choose flavour nSeq MOD 3, tube A or B (the one not low: I2..I7),
-// fire when LMOD(fMasterPos - aTubeX[k] + fLead, {L['PITCH']:g}) crosses 0; write the tag via IO-Link (NFC-W)
-"""
-    files["FB_FlyingStamp.st"] = f"""// FB_FlyingStamp - carriage GEARED 1:1 to the master while stamping (MC_GearIn),
-// phase from the puck-edge sensor I8 latched by a touch probe; return at {L['RETURN_V']:g}x.
-FUNCTION_BLOCK FB_FlyingStamp
-VAR_INPUT
-    axStamp  : AXIS_REF;   axMaster : AXIS_REF;   bPuckEdge : BOOL;
-END_VAR
-VAR
-    eState : (IDLE, SYNC, DOWN, DWELL, UP, RETURN);
-    fbGearIn : MC_GearIn; fbGearOut : MC_GearOut; fbHome : MC_MoveAbsolute; fPhase : LREAL;
-    tDwell : TON;
-END_VAR
-CASE eState OF
-IDLE:   // I8 is on an EL1252: its distributed-clock timestamp of the puck edge, converted to a master
-        // position (master pos at the DC time), phases the carriage - v3 wrongly used a touch probe on an EL1809
-        IF GVL_IO.itsI8.bNewEdge THEN fPhase := F_MasterPosAt(GVL_IO.itsI8.nTimestamp); eState := SYNC; END_IF
-SYNC:   fbGearIn(Master := axMaster, Slave := axStamp, Execute := TRUE, RatioNumerator := 1, RatioDenominator := 1);
-        IF fbGearIn.InGear THEN GVL_IO.{v['Q16']} := TRUE; eState := DOWN; END_IF
-DOWN:   IF NOT GVL_IO.{v['Q16']} THEN ; END_IF eState := DWELL;
-DWELL:  tDwell(IN := TRUE, PT := T#{int(L['STAMP_T']['dwell'] * 1000)}MS); IF tDwell.Q THEN GVL_IO.{v['Q16']} := FALSE; eState := UP; END_IF
-UP:     fbGearOut(Slave := axStamp, Execute := TRUE); eState := RETURN;
-RETURN: fbHome(Axis := axStamp, Execute := TRUE, Position := 0, Velocity := {L['RETURN_V'] * L['V']:.0f});
-        IF fbHome.Done THEN eState := IDLE; END_IF
-END_CASE
-"""
-    files["FB_Oven.st"] = """// FB_Oven - three zones, PID -> slow PWM on the SSRs (Tc2_ControllerToolbox)
+    zs = oven_zones(ios)
+    st = M.stations()
+    zl = M.zone_len()
+    el_lines = []
+    for z, tc, els, fan in zs:
+        el_lines.append(f"//   {z} {L['OVEN_ZONES'][int(z[1]) - 1]['T']:g} C: TC {tc.tag} -> " +
+                        ", ".join(f"{e.tag} {e.extra['mains_W']:.0f} W {e.extra['face']} {e.extra['phase']}" for e in els)
+                        + (f"; fan {fan.tag}" if fan else ""))
+    loads = M.oven_power()[0]
+    files["FB_Oven.st"] = f"""// FB_Oven - {len(zs)} zones, PID per zone -> time-proportioning PWM (2 s) on every element's SSR
+// (Tc2_ControllerToolbox). The recipe and the element plan come from oven.py via line_model:
+""" + "\n".join(el_lines) + f"""
+// Steady load at {3600 / takt:.0f} cookies/h: """ + ", ".join(f"{z['zone']} {z['total']:.0f} W" for z in loads) + f""".
+// bReady (all zones within +-5 K for 60 s) gates the depositor: no dough goes into a cold oven.
+// The zone STB (second element of the duplex TC, SF4) drops KHn by hardware - this block only reads <TC>.STL.
 FUNCTION_BLOCK FB_Oven
+VAR_INPUT  bRunEnable : BOOL; END_VAR
+VAR_OUTPUT bReady : BOOL; aTemp : ARRAY[0..{len(zs) - 1}] OF LREAL; aDuty : ARRAY[0..{len(zs) - 1}] OF LREAL;
+           fPower_W : LREAL; END_VAR
 VAR
-    aPid : ARRAY[0..2] OF FB_CTRL_PID;  aPwm : ARRAY[0..2] OF FB_CTRL_PWM_OUT;
-    aSet : ARRAY[0..2] OF LREAL := [180.0, 180.0, 170.0];     // degC [assumed recipe]
+    aPid : ARRAY[0..{len(zs) - 1}] OF FB_CTRL_PID;  aPwm : ARRAY[0..{len(zs) - 1}] OF FB_CTRL_PWM_OUT;
+    aSet : ARRAY[0..{len(zs) - 1}] OF LREAL := [{', '.join(f"{Z['T']:.1f}" for Z in L['OVEN_ZONES'])}];   // degC (oven.py recipe)
+    tStable : TON;
 END_VAR
-// zone k: aPid[k](fSetpointValue := aSet[k], fActualValue := INT_TO_LREAL(GVL_IO.tcTC1) / 10.0, ...)
-//         aPwm[k](...) -> GVL_IO.qQ8 / qQ9 / qQ10
+""" + "".join(f"aTemp[{k}] := INT_TO_LREAL(GVL_IO.{v[tc.tag]}) / 10.0;\n" for k, (z, tc, els, fan) in enumerate(zs)) + \
+"""// zone k: aPid[k](fSetpointValue := aSet[k], fActualValue := aTemp[k]); aDuty[k] := aPid[k].fOut;
+//         aPwm[k](fIn := aDuty[k], tPeriod := T#2S) -> every element SSR of zone k (top/bottom share TOP_SHARE)
+""" + "".join(f"// {z}: " + " := ".join(f"GVL_IO.{v[e.tag]}" for e in els) + f" := aPwm[{k}].bOut AND bRunEnable;\n"
+              for k, (z, tc, els, fan) in enumerate(zs)) + \
+"".join(f"GVL_IO.{v[fan.tag]} := bRunEnable;   // {z} circulation fan\n" for z, tc, els, fan in zs if fan) + \
+f"""tStable(IN := """ + " AND ".join(f"ABS(aTemp[{k}] - aSet[{k}]) < 5.0" for k in range(len(zs))) + """, PT := T#60S);
+bReady := tStable.Q;
+"""
+    files["FB_Band.st"] = f"""// FB_Band - the mesh band ({M.band_v():.3f} mm/s) and the depositor rolls are GEARED to the master axis:
+// one row of {L['BAND']['rows']} per {L['BAND']['rows']} pucks ({L['BAND']['rows'] * takt:.0f} s). The wire is cammed from the rolls.
+// Topping: rows k and k+3 get flavour k (Q2/Q3/Q4), {st['top'] - st['dep']:.0f} mm after the die.
+// A cold oven (bOvenReady FALSE) stops the depositor, never the band: what is in the oven bakes out.
+FUNCTION_BLOCK FB_Band
+VAR_INPUT axBand : AXIS_REF; axRolls : AXIS_REF; axMaster : AXIS_REF; bOvenReady : BOOL; END_VAR
+VAR_OUTPUT fPos : LREAL; END_VAR
+VAR fbGearBand, fbGearRolls : MC_GearIn; END_VAR
+fbGearBand(Master := axMaster, Slave := axBand, Execute := TRUE, RatioNumerator := {M.band_v() * 1000:.0f},
+           RatioDenominator := {L['V'] * 1000:.0f});
+fbGearRolls(Master := axMaster, Slave := axRolls, Execute := bOvenReady, RatioNumerator := 1, RatioDenominator := 1);
+fPos := axBand.NcToPlc.ActPos;
+"""
+    files["FB_Transfer.st"] = f"""// FB_Transfer - delta C takes the cookies of the row in the pick window ({L['PICK_W']:g} mm = {L['PICK_W'] / M.band_v():.0f} s,
+// >= {L['BAND']['rows']} takts) in row order (W R B W R B) and places each into the next empty puck on the bend
+// ({L['PLACE_TH'][0]:g}..{L['PLACE_TH'][1]:g} deg). I1 = puck already full (recirculating): skip it, the cookie waits.
+// NFC-W writes flavour (band row), batch and the bake log (zone temperatures, IR1) into the tag; I9 confirms.
+FUNCTION_BLOCK FB_Transfer
+VAR_INPUT fMasterPos : LREAL; fBandPos : LREAL; bPuckFull : BOOL; END_VAR
+VAR nRow : UINT; nNext : UINT; END_VAR
 """
     files["FB_QC.st"] = f"""// FB_QC - camera verdict (edge PC via ADS) + colour sensor; kick on the fly.
 // Camera -> kicker = {L['CAM_X'] - L['KICK_X']:.0f} mm = {(L['CAM_X'] - L['KICK_X']) / L['V']:.1f} s >= AI latency {L['AI_LATENCY']:g} s.
@@ -828,11 +884,10 @@ FUNCTION_BLOCK FB_AmrPorts
 
 
 def safety_ss1():
-    """SS1 delay (s): the longest controlled ramp-down of any axis + margin (the chain, the stamp, the
-    deltas, the shuttles and the lanes stop under NC control before the contactors remove power)."""
+    """SS1 delay (s): the longest controlled ramp-down of any axis + margin (the chain and the band geared
+    to it, the deltas, the shuttles and the lanes stop under NC control before the contactors remove power)."""
     ramps = [L["V"] / 20.0,                                   # master: 20 mm/s at 20 mm/s2 (FB_MasterAxis)
-             L["DELTA_VMAX"] / L["DELTA_ACC"],                # effector at peak speed
-             L["RETURN_V"] * L["V"] / (L["RETURN_V"] * L["V"] / L["T_ACC"])]   # stamp return at its accel
+             L["DELTA_VMAX"] / L["DELTA_ACC"]]                # effector at peak speed
     return max(ramps) + L["SS1_MARGIN"]
 
 

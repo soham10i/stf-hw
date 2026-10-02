@@ -73,34 +73,34 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="20.0" y="66.8" class="tbs" text-anchor="start" >-KF11</text>
 <text x="48.0" y="66.8" class="tbs" text-anchor="start" >1</text>
 <text x="70.0" y="66.8" class="tbs" text-anchor="start" >TC1</text>
-<text x="118.0" y="66.8" class="tbs" text-anchor="start" >oven_tc_0</text>
-<text x="185.0" y="66.8" class="tbs" text-anchor="start" >oven zone thermocouple K</text>
-<text x="300.0" y="66.8" class="tbs" text-anchor="start" >W036</text>
-<text x="330.0" y="66.8" class="tbs" text-anchor="start" >0.95 m</text>
+<text x="118.0" y="66.8" class="tbs" text-anchor="start" >oven_tc_1</text>
+<text x="185.0" y="66.8" class="tbs" text-anchor="start" >oven zone thermocouple K (duplex: this element -</text>
+<text x="300.0" y="66.8" class="tbs" text-anchor="start" >W024</text>
+<text x="330.0" y="66.8" class="tbs" text-anchor="start" >1.22 m</text>
 <text x="360.0" y="66.8" class="tbs" text-anchor="start" >GN + / WH -</text>
 <text x="20.0" y="70.4" class="tbs" text-anchor="start" >-KF11</text>
 <text x="48.0" y="70.4" class="tbs" text-anchor="start" >2</text>
 <text x="70.0" y="70.4" class="tbs" text-anchor="start" >TC2</text>
-<text x="118.0" y="70.4" class="tbs" text-anchor="start" >oven_tc_1</text>
-<text x="185.0" y="70.4" class="tbs" text-anchor="start" >oven zone thermocouple K</text>
-<text x="300.0" y="70.4" class="tbs" text-anchor="start" >W038</text>
-<text x="330.0" y="70.4" class="tbs" text-anchor="start" >0.95 m</text>
+<text x="118.0" y="70.4" class="tbs" text-anchor="start" >oven_tc_2</text>
+<text x="185.0" y="70.4" class="tbs" text-anchor="start" >oven zone thermocouple K (duplex: this element -</text>
+<text x="300.0" y="70.4" class="tbs" text-anchor="start" >W028</text>
+<text x="330.0" y="70.4" class="tbs" text-anchor="start" >1.22 m</text>
 <text x="360.0" y="70.4" class="tbs" text-anchor="start" >GN + / WH -</text>
 <text x="20.0" y="74.0" class="tbs" text-anchor="start" >-KF11</text>
 <text x="48.0" y="74.0" class="tbs" text-anchor="start" >3</text>
 <text x="70.0" y="74.0" class="tbs" text-anchor="start" >TC3</text>
-<text x="118.0" y="74.0" class="tbs" text-anchor="start" >oven_tc_2</text>
-<text x="185.0" y="74.0" class="tbs" text-anchor="start" >oven zone thermocouple K</text>
-<text x="300.0" y="74.0" class="tbs" text-anchor="start" >W040</text>
-<text x="330.0" y="74.0" class="tbs" text-anchor="start" >0.95 m</text>
+<text x="118.0" y="74.0" class="tbs" text-anchor="start" >oven_tc_3</text>
+<text x="185.0" y="74.0" class="tbs" text-anchor="start" >oven zone thermocouple K (duplex: this element -</text>
+<text x="300.0" y="74.0" class="tbs" text-anchor="start" >W032</text>
+<text x="330.0" y="74.0" class="tbs" text-anchor="start" >1.22 m</text>
 <text x="360.0" y="74.0" class="tbs" text-anchor="start" >GN + / WH -</text>
 <text x="20.0" y="77.6" class="tbs" text-anchor="start" >-KF11</text>
 <text x="48.0" y="77.6" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="77.6" class="tbs" text-anchor="start" >Q15.TC</text>
-<text x="118.0" y="77.6" class="tbs" text-anchor="start" >stamp_die</text>
-<text x="185.0" y="77.6" class="tbs" text-anchor="start" >stamp die thermocouple (integrated)</text>
-<text x="300.0" y="77.6" class="tbs" text-anchor="start" >W113</text>
-<text x="330.0" y="77.6" class="tbs" text-anchor="start" >1.21 m</text>
+<text x="70.0" y="77.6" class="tbs" text-anchor="start" >Q36.TC</text>
+<text x="118.0" y="77.6" class="tbs" text-anchor="start" >sealer_weiss_head</text>
+<text x="185.0" y="77.6" class="tbs" text-anchor="start" >sealing head thermocouple (integrated)</text>
+<text x="300.0" y="77.6" class="tbs" text-anchor="start" >W076</text>
+<text x="330.0" y="77.6" class="tbs" text-anchor="start" >0.95 m</text>
 <text x="360.0" y="77.6" class="tbs" text-anchor="start" >GN + / WH -</text>
 <rect x="18.0" y="80.2" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="84.2" class="tb" text-anchor="start" >-KF12  EL3314  4 ch thermocouple (type K) + cold junction</text>
@@ -114,28 +114,28 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="89.7" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="93.9" class="tbs" text-anchor="start" >-KF12</text>
 <text x="48.0" y="93.9" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="93.9" class="tbs" text-anchor="start" >Q36.TC</text>
-<text x="118.0" y="93.9" class="tbs" text-anchor="start" >sealer_weiss_head</text>
+<text x="70.0" y="93.9" class="tbs" text-anchor="start" >Q37.TC</text>
+<text x="118.0" y="93.9" class="tbs" text-anchor="start" >sealer_rot_head</text>
 <text x="185.0" y="93.9" class="tbs" text-anchor="start" >sealing head thermocouple (integrated)</text>
-<text x="300.0" y="93.9" class="tbs" text-anchor="start" >W078</text>
+<text x="300.0" y="93.9" class="tbs" text-anchor="start" >W082</text>
 <text x="330.0" y="93.9" class="tbs" text-anchor="start" >0.95 m</text>
 <text x="360.0" y="93.9" class="tbs" text-anchor="start" >GN + / WH -</text>
 <text x="20.0" y="97.5" class="tbs" text-anchor="start" >-KF12</text>
 <text x="48.0" y="97.5" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="97.5" class="tbs" text-anchor="start" >Q37.TC</text>
-<text x="118.0" y="97.5" class="tbs" text-anchor="start" >sealer_rot_head</text>
+<text x="70.0" y="97.5" class="tbs" text-anchor="start" >Q38.TC</text>
+<text x="118.0" y="97.5" class="tbs" text-anchor="start" >sealer_blau_head</text>
 <text x="185.0" y="97.5" class="tbs" text-anchor="start" >sealing head thermocouple (integrated)</text>
-<text x="300.0" y="97.5" class="tbs" text-anchor="start" >W084</text>
+<text x="300.0" y="97.5" class="tbs" text-anchor="start" >W088</text>
 <text x="330.0" y="97.5" class="tbs" text-anchor="start" >0.95 m</text>
 <text x="360.0" y="97.5" class="tbs" text-anchor="start" >GN + / WH -</text>
 <text x="20.0" y="101.1" class="tbs" text-anchor="start" >-KF12</text>
 <text x="48.0" y="101.1" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="101.1" class="tbs" text-anchor="start" >Q38.TC</text>
-<text x="118.0" y="101.1" class="tbs" text-anchor="start" >sealer_blau_head</text>
-<text x="185.0" y="101.1" class="tbs" text-anchor="start" >sealing head thermocouple (integrated)</text>
-<text x="300.0" y="101.1" class="tbs" text-anchor="start" >W090</text>
-<text x="330.0" y="101.1" class="tbs" text-anchor="start" >0.96 m</text>
-<text x="360.0" y="101.1" class="tbs" text-anchor="start" >GN + / WH -</text>
+<text x="70.0" y="101.1" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="101.1" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="101.1" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="101.1" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="101.1" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="101.1" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="104.7" class="tbs" text-anchor="start" >-KF12</text>
 <text x="48.0" y="104.7" class="tbs" text-anchor="start" >4</text>
 <text x="70.0" y="104.7" class="tbs" text-anchor="start" >spare</text>
@@ -145,7 +145,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="330.0" y="104.7" class="tbs" text-anchor="start" ></text>
 <text x="360.0" y="104.7" class="tbs" text-anchor="start" ></text>
 <rect x="18.0" y="107.3" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="111.3" class="tb" text-anchor="start" >-KF13  EL3314  4 ch thermocouple (type K) + cold junction</text>
+<text x="20.0" y="111.3" class="tb" text-anchor="start" >-KF13  EL6224  4 port IO-Link master</text>
 <text x="20.0" y="116.8" class="tbs" text-anchor="start" >terminal</text>
 <text x="48.0" y="116.8" class="tbs" text-anchor="start" >ch</text>
 <text x="70.0" y="116.8" class="tbs" text-anchor="start" >tag</text>
@@ -156,36 +156,36 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="116.8" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="121.0" class="tbs" text-anchor="start" >-KF13</text>
 <text x="48.0" y="121.0" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="121.0" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="121.0" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="121.0" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="121.0" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="121.0" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="121.0" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="121.0" class="tbs" text-anchor="start" >IOL1</text>
+<text x="118.0" y="121.0" class="tbs" text-anchor="start" >dep_hopper_level</text>
+<text x="185.0" y="121.0" class="tbs" text-anchor="start" >ToF level (IO-Link)</text>
+<text x="300.0" y="121.0" class="tbs" text-anchor="start" >W004</text>
+<text x="330.0" y="121.0" class="tbs" text-anchor="start" >1.59 m</text>
+<text x="360.0" y="121.0" class="tbs" text-anchor="start" >BN L+ / BU L- / BK C/Q</text>
 <text x="20.0" y="124.6" class="tbs" text-anchor="start" >-KF13</text>
 <text x="48.0" y="124.6" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="124.6" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="124.6" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="124.6" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="124.6" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="124.6" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="124.6" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="124.6" class="tbs" text-anchor="start" >IOL5</text>
+<text x="118.0" y="124.6" class="tbs" text-anchor="start" >top_level_weiss</text>
+<text x="185.0" y="124.6" class="tbs" text-anchor="start" >ToF level (IO-Link)</text>
+<text x="300.0" y="124.6" class="tbs" text-anchor="start" >W014</text>
+<text x="330.0" y="124.6" class="tbs" text-anchor="start" >1.62 m</text>
+<text x="360.0" y="124.6" class="tbs" text-anchor="start" >BN L+ / BU L- / BK C/Q</text>
 <text x="20.0" y="128.2" class="tbs" text-anchor="start" >-KF13</text>
 <text x="48.0" y="128.2" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="128.2" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="128.2" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="128.2" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="128.2" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="128.2" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="128.2" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="128.2" class="tbs" text-anchor="start" >IOL6</text>
+<text x="118.0" y="128.2" class="tbs" text-anchor="start" >top_level_rot</text>
+<text x="185.0" y="128.2" class="tbs" text-anchor="start" >ToF level (IO-Link)</text>
+<text x="300.0" y="128.2" class="tbs" text-anchor="start" >W015</text>
+<text x="330.0" y="128.2" class="tbs" text-anchor="start" >1.62 m</text>
+<text x="360.0" y="128.2" class="tbs" text-anchor="start" >BN L+ / BU L- / BK C/Q</text>
 <text x="20.0" y="131.8" class="tbs" text-anchor="start" >-KF13</text>
 <text x="48.0" y="131.8" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="131.8" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="131.8" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="131.8" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="131.8" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="131.8" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="131.8" class="tbs" text-anchor="start" ></text>
+<text x="70.0" y="131.8" class="tbs" text-anchor="start" >IOL7</text>
+<text x="118.0" y="131.8" class="tbs" text-anchor="start" >top_level_blau</text>
+<text x="185.0" y="131.8" class="tbs" text-anchor="start" >ToF level (IO-Link)</text>
+<text x="300.0" y="131.8" class="tbs" text-anchor="start" >W016</text>
+<text x="330.0" y="131.8" class="tbs" text-anchor="start" >1.62 m</text>
+<text x="360.0" y="131.8" class="tbs" text-anchor="start" >BN L+ / BU L- / BK C/Q</text>
 <rect x="18.0" y="134.4" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="138.4" class="tb" text-anchor="start" >-KF14  EL6224  4 port IO-Link master</text>
 <text x="20.0" y="143.9" class="tbs" text-anchor="start" >terminal</text>
@@ -198,35 +198,35 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="143.9" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="148.1" class="tbs" text-anchor="start" >-KF14</text>
 <text x="48.0" y="148.1" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="148.1" class="tbs" text-anchor="start" >IOL1</text>
-<text x="118.0" y="148.1" class="tbs" text-anchor="start" >hopper_weiss_level</text>
-<text x="185.0" y="148.1" class="tbs" text-anchor="start" >ToF level (IO-Link)</text>
-<text x="300.0" y="148.1" class="tbs" text-anchor="start" >W027</text>
-<text x="330.0" y="148.1" class="tbs" text-anchor="start" >1.7 m</text>
+<text x="70.0" y="148.1" class="tbs" text-anchor="start" >NFC-W</text>
+<text x="118.0" y="148.1" class="tbs" text-anchor="start" >nfc_writer</text>
+<text x="185.0" y="148.1" class="tbs" text-anchor="start" >RFID/NFC head (IO-Link)</text>
+<text x="300.0" y="148.1" class="tbs" text-anchor="start" >W045</text>
+<text x="330.0" y="148.1" class="tbs" text-anchor="start" >1.45 m</text>
 <text x="360.0" y="148.1" class="tbs" text-anchor="start" >BN L+ / BU L- / BK C/Q</text>
 <text x="20.0" y="151.7" class="tbs" text-anchor="start" >-KF14</text>
 <text x="48.0" y="151.7" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="151.7" class="tbs" text-anchor="start" >IOL2</text>
-<text x="118.0" y="151.7" class="tbs" text-anchor="start" >hopper_rot_level</text>
-<text x="185.0" y="151.7" class="tbs" text-anchor="start" >ToF level (IO-Link)</text>
-<text x="300.0" y="151.7" class="tbs" text-anchor="start" >W029</text>
-<text x="330.0" y="151.7" class="tbs" text-anchor="start" >1.7 m</text>
+<text x="70.0" y="151.7" class="tbs" text-anchor="start" >delta_C.VAC.P</text>
+<text x="118.0" y="151.7" class="tbs" text-anchor="start" >delta_C_cup_a</text>
+<text x="185.0" y="151.7" class="tbs" text-anchor="start" >vacuum level (analogue grip quality)</text>
+<text x="300.0" y="151.7" class="tbs" text-anchor="start" >W043</text>
+<text x="330.0" y="151.7" class="tbs" text-anchor="start" >1.5 m</text>
 <text x="360.0" y="151.7" class="tbs" text-anchor="start" >BN L+ / BU L- / BK C/Q</text>
 <text x="20.0" y="155.3" class="tbs" text-anchor="start" >-KF14</text>
 <text x="48.0" y="155.3" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="155.3" class="tbs" text-anchor="start" >IOL3</text>
-<text x="118.0" y="155.3" class="tbs" text-anchor="start" >hopper_blau_level</text>
+<text x="70.0" y="155.3" class="tbs" text-anchor="start" >IOL4</text>
+<text x="118.0" y="155.3" class="tbs" text-anchor="start" >reject_level</text>
 <text x="185.0" y="155.3" class="tbs" text-anchor="start" >ToF level (IO-Link)</text>
-<text x="300.0" y="155.3" class="tbs" text-anchor="start" >W031</text>
-<text x="330.0" y="155.3" class="tbs" text-anchor="start" >1.7 m</text>
+<text x="300.0" y="155.3" class="tbs" text-anchor="start" >W057</text>
+<text x="330.0" y="155.3" class="tbs" text-anchor="start" >0.96 m</text>
 <text x="360.0" y="155.3" class="tbs" text-anchor="start" >BN L+ / BU L- / BK C/Q</text>
 <text x="20.0" y="158.9" class="tbs" text-anchor="start" >-KF14</text>
 <text x="48.0" y="158.9" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="158.9" class="tbs" text-anchor="start" >NFC-W</text>
-<text x="118.0" y="158.9" class="tbs" text-anchor="start" >nfc_writer</text>
+<text x="70.0" y="158.9" class="tbs" text-anchor="start" >NFC-W2</text>
+<text x="118.0" y="158.9" class="tbs" text-anchor="start" >nfc_qc</text>
 <text x="185.0" y="158.9" class="tbs" text-anchor="start" >RFID/NFC head (IO-Link)</text>
-<text x="300.0" y="158.9" class="tbs" text-anchor="start" >W034</text>
-<text x="330.0" y="158.9" class="tbs" text-anchor="start" >0.88 m</text>
+<text x="300.0" y="158.9" class="tbs" text-anchor="start" >W053</text>
+<text x="330.0" y="158.9" class="tbs" text-anchor="start" >1.03 m</text>
 <text x="360.0" y="158.9" class="tbs" text-anchor="start" >BN L+ / BU L- / BK C/Q</text>
 <rect x="18.0" y="161.5" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="165.5" class="tb" text-anchor="start" >-KF15  EL6224  4 port IO-Link master</text>
@@ -240,36 +240,36 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="171.0" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="175.2" class="tbs" text-anchor="start" >-KF15</text>
 <text x="48.0" y="175.2" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="175.2" class="tbs" text-anchor="start" >Q16.P</text>
-<text x="118.0" y="175.2" class="tbs" text-anchor="start" >stamp_cylinder</text>
-<text x="185.0" y="175.2" class="tbs" text-anchor="start" >stamp pressure (force = p x A)</text>
-<text x="300.0" y="175.2" class="tbs" text-anchor="start" >W047</text>
-<text x="330.0" y="175.2" class="tbs" text-anchor="start" >1.29 m</text>
+<text x="70.0" y="175.2" class="tbs" text-anchor="start" >NFC-R</text>
+<text x="118.0" y="175.2" class="tbs" text-anchor="start" >nfc_pick</text>
+<text x="185.0" y="175.2" class="tbs" text-anchor="start" >RFID/NFC head (IO-Link)</text>
+<text x="300.0" y="175.2" class="tbs" text-anchor="start" >W070</text>
+<text x="330.0" y="175.2" class="tbs" text-anchor="start" >0.87 m</text>
 <text x="360.0" y="175.2" class="tbs" text-anchor="start" >BN L+ / BU L- / BK C/Q</text>
 <text x="20.0" y="178.8" class="tbs" text-anchor="start" >-KF15</text>
 <text x="48.0" y="178.8" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="178.8" class="tbs" text-anchor="start" >IOL4</text>
-<text x="118.0" y="178.8" class="tbs" text-anchor="start" >reject_level</text>
-<text x="185.0" y="178.8" class="tbs" text-anchor="start" >ToF level (IO-Link)</text>
-<text x="300.0" y="178.8" class="tbs" text-anchor="start" >W059</text>
-<text x="330.0" y="178.8" class="tbs" text-anchor="start" >0.96 m</text>
+<text x="70.0" y="178.8" class="tbs" text-anchor="start" >delta_A.VAC.P</text>
+<text x="118.0" y="178.8" class="tbs" text-anchor="start" >delta_A_cup_a</text>
+<text x="185.0" y="178.8" class="tbs" text-anchor="start" >vacuum level (analogue grip quality)</text>
+<text x="300.0" y="178.8" class="tbs" text-anchor="start" >W062</text>
+<text x="330.0" y="178.8" class="tbs" text-anchor="start" >1.03 m</text>
 <text x="360.0" y="178.8" class="tbs" text-anchor="start" >BN L+ / BU L- / BK C/Q</text>
 <text x="20.0" y="182.4" class="tbs" text-anchor="start" >-KF15</text>
 <text x="48.0" y="182.4" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="182.4" class="tbs" text-anchor="start" >NFC-W2</text>
-<text x="118.0" y="182.4" class="tbs" text-anchor="start" >nfc_qc</text>
-<text x="185.0" y="182.4" class="tbs" text-anchor="start" >RFID/NFC head (IO-Link)</text>
-<text x="300.0" y="182.4" class="tbs" text-anchor="start" >W055</text>
+<text x="70.0" y="182.4" class="tbs" text-anchor="start" >delta_B.VAC.P</text>
+<text x="118.0" y="182.4" class="tbs" text-anchor="start" >delta_B_cup_a</text>
+<text x="185.0" y="182.4" class="tbs" text-anchor="start" >vacuum level (analogue grip quality)</text>
+<text x="300.0" y="182.4" class="tbs" text-anchor="start" >W067</text>
 <text x="330.0" y="182.4" class="tbs" text-anchor="start" >1.03 m</text>
 <text x="360.0" y="182.4" class="tbs" text-anchor="start" >BN L+ / BU L- / BK C/Q</text>
 <text x="20.0" y="186.0" class="tbs" text-anchor="start" >-KF15</text>
 <text x="48.0" y="186.0" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="186.0" class="tbs" text-anchor="start" >NFC-R</text>
-<text x="118.0" y="186.0" class="tbs" text-anchor="start" >nfc_pick</text>
-<text x="185.0" y="186.0" class="tbs" text-anchor="start" >RFID/NFC head (IO-Link)</text>
-<text x="300.0" y="186.0" class="tbs" text-anchor="start" >W072</text>
-<text x="330.0" y="186.0" class="tbs" text-anchor="start" >0.87 m</text>
-<text x="360.0" y="186.0" class="tbs" text-anchor="start" >BN L+ / BU L- / BK C/Q</text>
+<text x="70.0" y="186.0" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="186.0" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="186.0" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="186.0" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="186.0" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="186.0" class="tbs" text-anchor="start" ></text>
 <rect x="18.0" y="188.6" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
 <text x="20.0" y="192.6" class="tb" text-anchor="start" >-KF16  EL6224  4 port IO-Link master</text>
 <text x="20.0" y="198.1" class="tbs" text-anchor="start" >terminal</text>
@@ -282,20 +282,20 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="198.1" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="202.3" class="tbs" text-anchor="start" >-KF16</text>
 <text x="48.0" y="202.3" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="202.3" class="tbs" text-anchor="start" >delta_A.VAC.P</text>
-<text x="118.0" y="202.3" class="tbs" text-anchor="start" >delta_A_cup</text>
-<text x="185.0" y="202.3" class="tbs" text-anchor="start" >vacuum level (analogue grip quality)</text>
-<text x="300.0" y="202.3" class="tbs" text-anchor="start" >W064</text>
-<text x="330.0" y="202.3" class="tbs" text-anchor="start" >1.04 m</text>
-<text x="360.0" y="202.3" class="tbs" text-anchor="start" >BN L+ / BU L- / BK C/Q</text>
+<text x="70.0" y="202.3" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="202.3" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="202.3" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="202.3" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="202.3" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="202.3" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="205.9" class="tbs" text-anchor="start" >-KF16</text>
 <text x="48.0" y="205.9" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="205.9" class="tbs" text-anchor="start" >delta_B.VAC.P</text>
-<text x="118.0" y="205.9" class="tbs" text-anchor="start" >delta_B_cup</text>
-<text x="185.0" y="205.9" class="tbs" text-anchor="start" >vacuum level (analogue grip quality)</text>
-<text x="300.0" y="205.9" class="tbs" text-anchor="start" >W069</text>
-<text x="330.0" y="205.9" class="tbs" text-anchor="start" >1.04 m</text>
-<text x="360.0" y="205.9" class="tbs" text-anchor="start" >BN L+ / BU L- / BK C/Q</text>
+<text x="70.0" y="205.9" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="205.9" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="205.9" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="205.9" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="205.9" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="205.9" class="tbs" text-anchor="start" ></text>
 <text x="20.0" y="209.5" class="tbs" text-anchor="start" >-KF16</text>
 <text x="48.0" y="209.5" class="tbs" text-anchor="start" >3</text>
 <text x="70.0" y="209.5" class="tbs" text-anchor="start" >spare</text>
@@ -319,7 +319,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="233" y="269" class="tbs">every channel -&gt; tag -&gt; cable</text>
 <text x="233" y="275" class="tbs">SCALE</text><text x="233" y="278" class="tb">none</text>
 <text x="293" y="275" class="tbs">SHEET</text><text x="293" y="278" class="tb">9 / 14</text>
-<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-09-29</text>
+<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-10-02</text>
 <text x="233" y="281" class="tbs">UNITS</text><text x="233" y="284" class="tb">mm, deg</text>
 <text x="293" y="281" class="tbs">PROJECTION</text><text x="293" y="284" class="tb">third angle</text>
 <text x="353" y="281" class="tbs">SOURCE</text><text x="353" y="284" class="tb">line_model.py (generated - do not edit)</text>

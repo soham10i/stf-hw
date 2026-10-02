@@ -26,16 +26,21 @@ METHOD = {
     "PUCK": "measure the moulded puck (D, H) and weigh 10",
     "NEST": "measure the nest D and depth on the puck",
     "COOKIE": "weigh 20 workpieces; D x H from the ft datasheet",
-    "ESC_F": "spring scale on the gate under a full tube (10 cookies), 10 pulls",
-    "SING_T": "torque wrench / motor current on the disc with a full hopper; also confirms the <= 50 N "
-              "low-energy class in safety.py",
-    "PACKING": "fill a hopper, count the cookies",
-    "VALVE_JITTER": "scope the valve coil vs the reed switch over 100 strokes (EL1252 timestamps)",
-    "BAKE_S": "bake trials: surface temperature (IR1) vs time; set the chain speed",
-    "COOL_S": "cooling trials: product temperature at the tunnel exit",
-    "STAMP_F": "force gauge under the die; recipe value",
-    "CARR_L": "measure the machined carriage", "STAMP_M": "weigh the carriage assembly",
-    "T_ACC": "NC trace of the stamp axis (TwinCAT scope)",
+    "PACKING": "fill the reject drawer with cookies, count them",
+    "DOUGH_SLUG": "weigh + measure 20 cut slugs at the die", "DOUGH_M": "weigh 20 cut slugs",
+    "DOUGH": "lab: water content (oven-dry), conductivity (line-heat probe), cp (DSC); colour index = "
+             "Lab colour of baked samples vs bake time at 165 C (fits brown_Ea / brown_t)",
+    "TOPPING": "weigh 20 drops; measure the dome", "DEP_HOPPER": "measure the delivered hopper",
+    "DOUGH_KG": "fill level vs the ToF reading", "TOP_HOPPER": "measure the delivered hopper", "TOP_KG": "weigh a fill",
+    "TOP_F": "pressure trace on the dosing piston with the real jam / chocolate", "DEP_T": "roll motor current at a row cut",
+    "BAND": "weigh 1 m of the delivered mesh band (m_area); confirm the pitch on the band",
+    "T_AMB": "air thermometer inside the guard next to the oven, running",
+    "OVEN_ZONES": "recipe trials: IR1 product temperature + Lab colour at the oven exit",
+    "OVEN_H": "heat-flux sensor / lumped copper slug through each zone (h from its heating curve)",
+    "COOLING": "copper slug through the hood and along the loop (h from its cooling curve)",
+    "T_TRANSFER": "IR1-style spot reading at the pick window", "T_PACK": "probe cookies at the sealer",
+    "CHAMBER": "thermography of the skin at steady state; mouth flow with a smoke test",
+    "FAN_RUNDOWN": "time the impeller coast-down after KHn drops (tacho / video), 10 stops",
     "AI_LATENCY": "time stamp image capture -> verdict over 1000 images on the edge PC",
     "T_PICK": "delta cycle with the NC trace, 100 picks", "T_GRAB": "vacuum build-up time (IO-Link vac sensor)",
     "PICK_OK": "count grips over a 1000-pick run",
@@ -156,7 +161,7 @@ def main():
         lo, hi = res.get((it["target"], 1 - BAND)), res.get((it["target"], 1 + BAND))
         breaks = " / ".join(f"{s}: {r[:110]}" for s, r in (("-20 %", lo), ("+20 %", hi)) if r)
         tested = lo is not None
-        safety = it["where"].startswith(("hardware", "safety")) or it["key"] in ("SING_T", "DOOR_T", "AMR_EXCH")
+        safety = it["where"].startswith(("hardware", "safety")) or it["key"] in ("FAN_RUNDOWN", "DOOR_T", "AMR_EXCH")
         prio = 1 if breaks else (2 if safety else 3)
         rows.append(dict(priority=prio, key=it["key"], where=it["where"], value=it["value"],
                          sensitivity=breaks or ("holds at +/-20 %" if tested else "not numeric - verify"),

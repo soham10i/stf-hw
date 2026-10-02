@@ -127,7 +127,17 @@ def build():
             spec = f"{p.hw}, L = {max(p.s):.0f} mm"
         if p.hw in ("GUIDE_BAR",):
             spec = f"{H.GUIDE_BAR['desc']}, L = {max(p.aabb()[3] - p.aabb()[0], p.aabb()[4] - p.aabb()[1]):.0f} mm"
-        bought[(spec, _src(p.hw))] += 1
+        src = _src(p.hw)
+        if p.hw == "tubular":                    # band oven element: the catalogue item oven.py chose
+            e = plc_io.ELEM[p.tag]
+            spec, src = e["cat"]["model"], e["cat"]["src"]
+        if p.hw in ("OVEN_FAN", "COOL_FAN", "BAND_MESH"):
+            spec, src = getattr(H, p.hw)["desc"], getattr(H, p.hw)["src"]
+            if p.hw == "BAND_MESH":
+                if p.name != "band_carry":
+                    continue
+                spec += f", {M.band_w():.0f} wide, endless {2 * (M.stations()['e'] - M.stations()['x0']) / 1000 + math.pi * M.L['BAND']['drum'] / 1000:.2f} m"
+        bought[(spec, src)] += 1
     add("bought", "side-flex chain", f"{H.CHAIN['desc']}, {M.loop_len() / 1000:.2f} m + take-up", 1, "loop",
         H.CHAIN["src"])
     for (spec, src), q in sorted(bought.items()):
@@ -151,11 +161,13 @@ def build():
     for t, q in sorted(et.items()):
         add("electric", f"Beckhoff {t}", H.BECKHOFF[t]["desc"], q, "pcs", H.BECKHOFF[t]["src"])
     lay, _, dims = plc_io.cabinet(rails)
-    dev = Counter((d["type"], d["note"] if d["type"].startswith("SSR") or d["type"] == "MCB" else "")
+    dev = Counter((d["type"], d["note"] if d["type"] in ("SSR DC", "MCB") else "")
                   for r in lay for d in r["devices"] if d["type"] not in H.BECKHOFF)
     for (t, note), q in sorted(dev.items()):
         spec = {"contactor": H.SAFE["contactor"]["desc"], "STL": H.SAFE["stl"]["desc"],
-                "PTTB 2.5": H.TERMINAL_BLOCK2["model"]}.get(t, note or t)
+                "PTTB 2.5": H.TERMINAL_BLOCK2["model"], "zone contactor": H.ZONE_CONTACTOR["desc"],
+                "SSR AC 25 A": H.SSR_AC25["model"], "relay 6.2": H.RELAY6["model"], "MCB 3-pole": H.MCB3["model"],
+                "main switch": H.SUPPLY["desc"]}.get(t, note or t)
         src = {"contactor": H.SAFE["contactor"]["src"], "STL": H.SAFE["stl"]["src"]}.get(
             t, "[cat: meanwell]" if t.startswith("SDR") else "[typ]")
         add("electric", t, spec, q, "pcs", src)
@@ -195,7 +207,7 @@ def build():
                for p in parts if p.hw.startswith("ISO6432"))
     add("pneumatic", "PU tube 4 x 2.5", "valve island -> every cylinder, 2 lines", round(tube, 1), "m", "[typ]")
     add("pneumatic", "push-in fittings M5 / G1/8", "2 per cylinder", 2 * sum(cyl.values()), "pcs", "[typ]")
-    add("pneumatic", "vacuum ejector + switch", H.EJECTOR["desc"], len(M.L["DELTA_X"]), "pcs", H.EJECTOR["src"])
+    add("pneumatic", "vacuum ejector + switch", H.EJECTOR["desc"], len(M.L["DELTA_X"]) + 1, "pcs", H.EJECTOR["src"])
     return rows, cut
 
 

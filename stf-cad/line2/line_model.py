@@ -49,6 +49,7 @@ import math
 from dataclasses import dataclass
 
 import hardware as H
+import oven as OV
 
 # --------------------------------------------------------------- parameters
 L = dict(
@@ -73,39 +74,51 @@ L = dict(
     # ---- carrier / product
     PUCK=(60.0, 12.0), PUCK_M=0.06,          # puck D x H (NFC tag inside), mass kg         [assumed]
     NEST=(48.0, 2.0),                        # chamfered nest D x depth               [assumed]
-    COOKIE=(45.0, 20.0), COOKIE_M=0.03,      # workpiece D x H [ft], mass kg [assumed]
+    COOKIE=(45.0, 8.0), COOKIE_M=0.012,      # BAKED base cookie D [ft] x H, kg incl. topping (oven.simulate)
     FLAVOURS=("weiss", "rot", "blau"),       # vanilla / strawberry / chocolate (sorting-line bins)
     MIX=(1, 1, 1),                           # demand ratio -> heijunka sequence W R B W R B ...
-    RAW="#f2eee6", BAKED=("#efe0b0", "#d9536f", "#4a2c17"),
-    # ---- M2 feeder: dual magazine per flavour (A/B swap = refill without stopping)
-    MAG_X=(330.0, 390.0, 450.0, 510.0, 570.0, 630.0),   # tube axes over the front run (pitch 60)
-    MAG_OD=H.TUBE["od"], MAG_ID=H.TUBE["id"], MAG_CAP=10,
-    ESC_BLOCK=(56.0, 180.0, 25.0),           # POM escapement block per tube (holds the tube, guides the gate)
-    GATE_Z=(5.0, 15.0),                      # gate slot in the block: bottom / top above the block underside
-    ESC_CYL=(10, 50),                        # ISO 6432 bore x stroke                 [hw]
-    ESC_F=5.0,                               # N to pull the gate under a full tube   [assumed, MEASURE]
-    # bulk raw stock: one tall hopper per flavour + rotary singulating disc     [assumed]
-    HOPPER=(200.0, 240.0, 310.0), HOPPER_Z=560.0, HOPPER_X=(150.0, 360.0, 570.0), HOPPER_Y=20.0,  # over their tubes
-    CHUTE_SLOPE=30.0,                        # min chute angle for a cookie sliding on PMMA (mu ~0.3 = 17 deg)
-    SING_T=0.5,                              # Nm on the singulator disc                [assumed, MEASURE]
-    PACKING=0.50,                            # bulk packing fraction of loose cookies  [assumed, MEASURE]
-    SINGULATE_S=1.5,                         # s per cookie from the disc (must beat the flavour rate)
+    RAW="#ecddbe", BAKED=("#f7f1e1", "#c8233c", "#3b2112"),   # dough colour; TOPPING colour of each flavour
+    # ---- M2 depositor + topping (2026-10-02, oven.py). ONE plain dough for every cookie; the flavour is a drop
+    # of vanilla cream / strawberry jam / chocolate in a thumbprint well, put onto the raw slug BEFORE the oven
+    # (industrial thumbprint-cookie practice). 6 band rows: row k carries flavour k mod 3 -> the transfer
+    # delta picks a row in order and the heijunka sequence W R B W R B comes out by itself.
+    DOUGH_SLUG=(38.0, 12.0), DOUGH_M=0.0112,  # wire-cut slug D x H, kg; spreads to COOKIE in the oven [assumed]
+    DOUGH=dict(w0=0.18, cp_dry=1600.0, k_wet=0.40, k_dry=0.12,      # water (wet basis), J/kgK, W/mK      [typ]
+               h_contact=150.0, contact_frac=0.3, eps=0.9,           # band contact W/m2K on 30 % of the base
+               brown_Ea=1.2e5, brown_Tref=165.0, brown_t=150.0,      # Maillard: J/mol, C, s to golden at Tref
+               rgb_raw=(236, 221, 190), rgb_baked=(205, 150, 80), rgb_dark=(110, 62, 28)),   # [assumed]
+    TOPPING=dict(d=14.0, h=1.0, m=0.0015),   # drop D in its well, dome above the cookie top, kg     [assumed]
+    DEP_DROP=5.0,                            # die underside above the slug top (the wire cuts there)
+    DEP_ROLL=50.0, DEP_HOPPER=(190.0, 300.0),   # feed roll D; dough hopper length x height        [assumed]
+    DEP_HOPPER_Y0=44.0,                      # hopper front wall: under the raw pour strip (AMR tips the tub)
+    DEP_GRID=40.0,                           # safety grid in the hopper: square mesh e (ISO 13857 Table 4)
+    DOUGH_KG=15.0, DOUGH_RHO=1150.0,         # kg dough when full (fill <= 80 %), kg/m3            [assumed]
+    TOP_HOPPER=(80.0, 220.0), TOP_KG=0.8, TOP_RHO=1300.0,   # topping hopper D x H, kg full, kg/m3 [assumed]
     MAX_H=900.0,                             # user: "taller is fine" - nothing above this
-    DROP_H=15.0,                             # escapement block underside above the seated cookie top
-    VALVE_JITTER=0.005,                      # s, release-time jitter (valve + scan)  [assumed]
-    NFC_WRITE_X=590.0,                       # writes the flavour the heijunka sequence assigned to the puck
-    # ---- M3 tunnel oven + cooling tunnel
-    BAKE_S=24.0, COOL_S=12.0,                # residence times (s)                    [assumed]
-    OVEN_X0=660.0, TUN_GAP=20.0,
-    TUN_HALF=80.0, TUN_WALL=12.0, TUN_ROOF=15.0, TUN_CLEAR=40.0,   # clear height above the cookie
-    CURTAIN_GAP=5.0,                         # fabric curtain hem above the cookie top
-    HEATERS=3, FANS=2,
-    # ---- M4 flying stamp (decor / processing on the fly): MGN12H + Tr8x4 + NEMA 17
-    STAMP_X0=1455.0, STAMP_STROKE=60.0, STAMP_CLEAR=30.0, STAMP_D=40.0,
-    STAMP_T=dict(sync=0.30, down=0.25, dwell=0.50, up=0.25, settle=0.20), RETURN_V=4.0,
-    STAMP_CYL=(16, 30), STAMP_F=40.0, ROD_OUT=20.0,    # ISO 6432 bore x stroke, stamp force N [assumed], rod out
-    CARR_L=60.0, STAMP_M=1.5, T_ACC=0.05,               # carriage length, moving mass kg, accel time s [assumed]
-    STAMP_RAIL="MGN12H", STAMP_RAIL_DY=-25.0, STAMP_SCREW="Tr8x4", STAMP_MOTOR="17HS19-2004D-E1000",
+    TOP_CYL=(16, 25), TOP_F=20.0,            # dosing piston (ISO 6432); N to push 2 drops through [assumed]
+    DEP_T=2.0,                               # Nm at the feed rolls to extrude a row          [assumed, MEASURE]
+    # ---- M3 band oven + band cooling (oven.py sizes it): a stainless mesh band, NOT the puck chain, goes
+    # through the heat; plain steel, glass-fibre and mineral wool are the only materials in the chamber
+    BAND=dict(rows=6, spacing=55.0, edge=20.0, m_area=2.5,         # rows across, mm pitch, kg/m2 mesh  [typ]
+              z=240.0, yc=370.0, drum=100.0, x0=110.0),            # carry-run top, centre line, drum D, feed drum x
+    T_AMB=25.0,                              # air inside the guard next to the oven              [assumed]
+    OVEN_ZONES=[dict(T=210.0, dT_rad=40.0), dict(T=200.0, dT_rad=30.0), dict(T=185.0, dT_rad=20.0)],  # recipe
+    OVEN_H=dict(top=70.0, bot=45.0),         # W/m2K: impingement fan per zone (top), through the mesh (bottom)
+    BAKE_Q=dict(core_min=95.0, core_hold=60.0, w_end=0.05, colour=(0.8, 1.3), T_burn=200.0),   # baked =
+    COOLING=dict(band=dict(h_top=90.0, h_bot=70.0),                  # impingement hood: down through the mesh
+                 loop=dict(h_top=10.0, h_bot=2.0)),                  # still air on the puck
+    T_TRANSFER=40.0, T_PACK=38.0,            # C: max anywhere in the cookie at the pick-up / at the sealer
+    CHAMBER=dict(side_gap=20.0, h_inner=140.0, insul=50.0, insul_mat="mineral wool", h_out=9.0, mouth_h=45.0,
+                 mouth_F=0.5, mouth_Cd=0.6, skin_t=0.8, m_fixed=1.5),   # mouth = band underside .. +45
+    X_EXHAUST=0.05,                          # kg water per kg exhaust air                         [typ]
+    HEADROOM=0.7, TOP_SHARE=0.6,             # steady load <= 70 % installed; top elements' share
+    WARMUP_MAX=1800.0, SKIN_MAX=55.0,        # s cold start; outer skin C (EN ISO 13732-1, metal 10 s) [typ]
+    OVEN_GAP=50.0, COOL_GAP=40.0, NOSE_GAP=150.0,   # topping -> inlet wall, outlet wall -> hood, hood -> drum
+    DEP_DX=80.0, TOP_DX=100.0,               # feed drum -> depositor die, die -> topping nozzles
+    # ---- M4 transfer: delta C picks every cookie off the band end and places it into a passing puck on the
+    # right bend (the band cannot stop: a miss falls into the catch tray - counted, never a stop)
+    DELTA_C=dict(x=1640.0, y=440.0, z=720.0, rot=60.0, l1=200.0, l2=440.0), PICK_W=70.0,   # base centre; band pick window (mm)
+    CUP_OFF=14.0, CUP_D=12.0,                # twin cups off centre: they straddle the topping drop
     # ---- M5 vision QC + reject
     QC_X=(1360.0, 1500.0), CAM_X=1420.0, CS_X=1470.0, SENSOR_GAP=25.0,   # colour sensor at the hood entry (its mount clears the ring light)
     AI_LATENCY=0.50,                         # s, camera -> verdict budget            [assumed]
@@ -113,11 +126,11 @@ L = dict(
     FUNNEL=(70.0, 70.0),
     # ---- M6 pick & place: two delta robots, each alone faster than the takt
     DELTA_X=(910.0, 590.0),                 # A (upstream on the back run), B
-    DELTA_Y=905.0, DELTA_Z=510.0,            # base (shoulder plane)
+    DELTA_Y=905.0, DELTA_Z=498.0,            # base (shoulder plane): 12 lower for the 8 mm cookie
     DELTA_RB=70.0, DELTA_RE=30.0, DELTA_L1=130.0, DELTA_L2=300.0,
     DELTA_LIM=(-60.0, 90.0),                 # shoulder limits (deg, + = arm down)
     DELTA_ROT=(-15.0, 165.0),                # arm set rotation: the 90 deg arm/motor gap faces the other delta
-    CUP_L=40.0, TRAVEL_Z=250.0,              # effector underside -> cup tip; home/travel height
+    CUP_L=40.0, TRAVEL_Z=238.0,              # effector underside -> cup tip; home/travel height
     T_PICK=2.0, T_GRAB=0.8,                  # full pick-place cycle; reach+grip part  [assumed]
     PICK_OK=0.995,                           # grip success probability                [assumed]
     DELTA_MOTOR="17HS19-2004D-E1000", DELTA_GEAR="SWG17-30",
@@ -147,21 +160,22 @@ L = dict(
                                                           # so the bin covers the whole deck hole
     FUNNEL_OUT=50.0,                                      # square outlet of the funnel = the hole in the deck
     REJECT_GAP=10.0,                                      # bin top below the deck underside (the shutter's room)
+    PACKING=0.50,                                         # bulk packing fraction of loose cookies  [assumed]
     # AMR service (the stock is finite; the AMR loop is what makes it unlimited)       [assumed]
-    N_AMR=2, AMR_TRIP=60.0, AMR_HANDLE=30.0, RAW_TOTE=200,
+    N_AMR=2, AMR_TRIP=60.0, AMR_HANDLE=30.0,
     REQ_HOPPER=0.35, REQ_BOXMAG=0.50, REQ_REJECT=0.70,
     # ---- M8 control: Beckhoff enclosure UNDER the deck; air from an off-table compressor
-    CAB=(250.0, 300.0, 980.0, 720.0, 210.0),             # x, y, w, d, h of the enclosure under the deck
-                                                          # (S-1: +TwinSAFE rail, contactors, STLs -> grown)
+    CAB=(250.0, 300.0, 980.0, 850.0, 210.0),             # x, y, w, d, h of the enclosure under the deck
+                                                          # (S-1: +TwinSAFE rail, contactors, STLs -> grown;
+                                                          #  2026-10-02: + element SSRs, zone contactors -> 850)
                                                           # (sized by plc_io.cabinet(); clear of the reject bin)
     ISLAND_XY=(700.0, 480.0), FRL=(60.0, 60.0, 90.0),
     VALVE_SPARE=0.2,                                      # >= 20 % spare valve stations
     # ---- Upgrade PA-1 (physical AI): every actuator reports back, sensing where decisions happen
     PA1=True,
-    SING_MOTOR="17HS19-2004D-E1000", LANE_MOTOR="17HS19-2004D-E1000", SHUTTLE_MOTOR="17HS19-2004D-E1000",
-    DROP_CHECK_X=635.0,                                   # I9 landing check after the last tube
-    PYRO_X=1142.5,                                        # IR1 product temperature in the oven/cooler gap
-    PACK_CAM=(1070.0, 960.0, 590.0),                      # CAM4 over the three lanes, before the sealer
+    LANE_MOTOR="17HS19-2004D-E1000", SHUTTLE_MOTOR="17HS19-2004D-E1000",
+    TRANSFER_TH=(-36.0, -16.0, 14.0), PLACE_TH=(-30.0, -2.0),                    # bend angles: I1 full-puck check, place, I9 landing
+    PACK_CAM=(1070.0, 960.0, 578.0),                      # CAM4 over the three lanes, before the sealer
     # ---- Upgrade S-1 (safety, SAFETY_CONCEPT.md): a closed perimeter guard - the loop runs through every
     # module, so no partial guard can close around a hazard. 2020 frame, 4 mm PC outside it, PC roof.
     SAFE1=True,
@@ -194,7 +208,9 @@ L = dict(
     PORT_ZONE=dict(boxes=("trapdoor",), out=("gantry",)),   # part groups a port's zone stops (S-1b airlocks:
                                                           # only what is IN the chamber; lanes + stackers run on)
     SS1_MARGIN=0.2,                                       # s added to the longest ramp-down before K1/K2 drop
-    UNLOCK_STILL=1.0,                                     # s of encoder standstill before a door unlocks (SF2)
+    UNLOCK_STILL=2.5,                                     # s of standstill before a door unlocks (SF2): covers the
+                                                          # oven fan rundown, the fans have no encoder
+    FAN_RUNDOWN=2.0,                                      # s, oven impeller coast-down after KHn drops [assumed, MEASURE]
 )
 
 FLAV = L["FLAVOURS"]
@@ -333,9 +349,19 @@ def cookie_vol():
     return math.pi * (d / 2) ** 2 * h
 
 
-def hopper_cap():
-    w, d, h = L["HOPPER"]
-    return int(w * d * h * L["PACKING"] / cookie_vol())
+def dough_rate():
+    """kg/s of dough at one cookie per takt."""
+    return L["DOUGH_M"] / takt()
+
+
+def dough_autonomy():
+    """s of production in a full dough hopper."""
+    return L["DOUGH_KG"] / dough_rate()
+
+
+def topping_autonomy():
+    """s of production in a full topping hopper (each flavour feeds a third of the cookies)."""
+    return L["TOP_KG"] / (L["TOPPING"]["m"] * rate_flavour())
 
 
 def cass_cap():
@@ -380,43 +406,129 @@ def rate_flavour():
     return 1 / takt() * L["MIX"][0] / sum(L["MIX"])
 
 
-# ------------------------------------------------------------ station timing
-def oven_len():
-    return L["V"] * L["BAKE_S"]
+# ------------------------------------------------------------ band oven (oven.py does the physics)
+def band_v():
+    """Band speed: one row of BAND rows cookies per BAND rows takts."""
+    B = L["BAND"]
+    return B["spacing"] / (B["rows"] * takt())
+
+
+def band_w():
+    B = L["BAND"]
+    return B["rows"] * B["spacing"] + 2 * B["edge"]
+
+
+def band_y():
+    yc = L["BAND"]["yc"]
+    return yc - band_w() / 2, yc + band_w() / 2
+
+
+def row_y(k):
+    B = L["BAND"]
+    return band_y()[0] + B["edge"] + B["spacing"] / 2 + k * B["spacing"]
+
+
+def row_flavour(k):
+    return k % len(FLAV)
+
+
+def bake_t():
+    t = OV.bake_time(L)
+    if t is None:
+        raise ValueError("oven.bake_time: the recipe burns before it bakes - no band length exists")
+    return t
+
+
+def band_gaps():
+    """(s of still air from the last zone to the hood, s from the hood end to the pick window start)."""
+    v = band_v()
+    return (L["CHAMBER"]["insul"] + L["COOL_GAP"]) / v, (L["NOSE_GAP"] - L["PICK_W"]) / v
+
+
+def cool_t():
+    t = OV.cool_time(L, bake_t(), *band_gaps())
+    if t is None:
+        raise ValueError("oven.cool_time: the band cooling never reaches T_TRANSFER")
+    return t
+
+
+def zone_len():
+    """Length of one heated zone (whole mm): the band speed x the bake time / zones."""
+    return float(math.ceil(band_v() * bake_t() / len(L["OVEN_ZONES"])))
 
 
 def cool_len():
-    return L["V"] * L["COOL_S"]
+    return float(math.ceil(band_v() * cool_t()))
 
 
-def oven_x():
-    x0 = L["OVEN_X0"]
-    return x0, x0 + oven_len()
+def stations():
+    """x of every station along the band (flow +X): feed drum, depositor die, topping nozzles, chamber outer
+    faces, zone starts, cooling hood, pick window, discharge drum."""
+    ins = L["CHAMBER"]["insul"]
+    x0 = L["BAND"]["x0"]
+    dep = x0 + L["DEP_DX"]
+    top = dep + L["TOP_DX"]
+    o0 = top + L["OVEN_GAP"]
+    zl = zone_len()
+    zs = [o0 + ins + k * zl for k in range(len(L["OVEN_ZONES"]))]
+    o1 = zs[-1] + zl + ins
+    c0 = o1 + L["COOL_GAP"]
+    c1 = c0 + cool_len()
+    e = c1 + L["NOSE_GAP"]
+    return dict(x0=x0, dep=dep, top=top, o0=o0, zones=zs, o1=o1, c0=c0, c1=c1, pick=(e - L["PICK_W"], e), e=e)
 
 
-def cool_x():
-    o1 = oven_x()[1] + L["TUN_GAP"]
-    return o1, o1 + cool_len()
+def chamber_z():
+    """z levels of the band unit (bottom up)."""
+    zb = L["BAND"]["z"]
+    t = H.BAND_MESH["t"]
+    ins = L["CHAMBER"]["insul"]
+    r = L["BAND"]["drum"] / 2
+    zc = zb - t - r                                       # drum axis: the carry run lies on its top
+    f1 = zb - 45.0                                        # floor inner face
+    return dict(band=zb, under=zb - t, drum=zc, ret=(zc - r - t, zc - r), pan=(zc - r - t - 7.0, zc - r - t),
+                floor=(f1 - ins, f1), roof=(f1 + L["CHAMBER"]["h_inner"], f1 + L["CHAMBER"]["h_inner"] + ins),
+                el_bot=zb - 30.0, el_top=zb + 60.0, mouth=(zb - t - 5.0, zb - t - 5.0 + L["CHAMBER"]["mouth_h"]),
+                skid=(zb - t - 6.0, zb - t))
 
 
-def z_esc():
-    """Underside of the escapement blocks."""
-    return z_cookie_top() + L["DROP_H"]
+def chamber_y():
+    yb0, yb1 = band_y()
+    g, ins = L["CHAMBER"]["side_gap"], L["CHAMBER"]["insul"]
+    return dict(i0=yb0 - g, i1=yb1 + g, o0=yb0 - g - ins, o1=yb1 + g + ins)
 
 
-def drop_time():
-    """Free fall of the cookie bottom from the gate top to the nest (from the
-    geometry - v3 used DROP_H + H and forgot the gate thickness)."""
-    h = z_esc() + L["GATE_Z"][1] - z_seat()
-    return math.sqrt(2 * h / 1000.0 / G)
+def oven_power():
+    """(zone loads, elements, phase plan, warm-up) from oven.py at the production rate."""
+    st = stations()
+    loads = OV.zone_loads(L, bake_t(), band_w(), band_v(), 1 / takt())
+    cy = chamber_y()
+    els = OV.elements(L, loads, cy["i1"] - cy["i0"])
+    fans = [(f"QF{k + 1}", H.OVEN_FAN["P"]) for k in range(len(L["OVEN_ZONES"]))]
+    plan = OV.phase_plan(L, els, fans)
+    warm = OV.warmup(L, loads, els, band_w())
+    return loads, els, plan, warm
 
 
-def stamp_cycle():
-    t = L["STAMP_T"]
-    track = t["sync"] + t["down"] + t["dwell"] + t["up"]
-    dist = L["V"] * track
-    ret = dist / (L["RETURN_V"] * L["V"]) + t["settle"]
-    return track, dist, track + ret
+def element_x(zone_k, face):
+    """x of every element of a zone face, evenly spaced; top elements leave the zone centre to the fan."""
+    els = [e for e in oven_power()[1] if e["zone"] == f"Z{zone_k + 1}" and e["face"] == face]
+    zl = zone_len()
+    x0 = stations()["zones"][zone_k]
+    n = len(els)
+    xs = [g1(x0 + (i + 0.5) * zl / n) for i in range(n)]
+    return list(zip(els, xs))
+
+
+def bend_s(theta):
+    """Loop arc length of the right bend at angle theta (deg, -90 = start of the bend)."""
+    return straight() + L["R"] * math.radians(theta + 90.0)
+
+
+def bend_xy(theta, r=None):
+    (crx, cry) = centres()[1]
+    r = L["R"] if r is None else r
+    return crx + r * math.cos(math.radians(theta)), cry + r * math.sin(math.radians(theta))
 
 
 def delta_window(xd):
@@ -430,18 +542,35 @@ def delta_window(xd):
 
 
 # ------------------------------------------------------------ delta kinematics
+def _dbase(xd):
+    """(y, z, rot) of the delta whose base centre is at x = xd: A/B on the portal, C over the band end."""
+    c = L["DELTA_C"]
+    if xd == c["x"]:
+        return c["y"], c["z"], c["rot"]
+    return L["DELTA_Y"], L["DELTA_Z"], (L["DELTA_ROT"][L["DELTA_X"].index(xd)] if xd in L["DELTA_X"] else 0.0)
+
+
+def _darms(xd):
+    """(rb, re, l1, l2) of the delta at xd: C has longer arms (the band row + the drop to the pucks)."""
+    c = L["DELTA_C"]
+    if xd == c["x"]:
+        return L["DELTA_RB"], L["DELTA_RE"], c["l1"], c["l2"]
+    return L["DELTA_RB"], L["DELTA_RE"], L["DELTA_L1"], L["DELTA_L2"]
+
+
 def arm_angles(xd):
     """The three arm plane angles of the delta at xd (rotated by DELTA_ROT so the
     wide gap between arms and motor bodies faces the neighbouring delta)."""
-    rot = L["DELTA_ROT"][L["DELTA_X"].index(xd)] if xd in L["DELTA_X"] else 0.0
+    rot = _dbase(xd)[2]
     return tuple(rot + k * 120.0 for k in range(3))
 
 
 def delta_ik(x, y, z, xd):
     """Shoulder angles (deg, + = down) for effector centre (x,y,z) of delta
-    whose base centre is (xd, DELTA_Y, DELTA_Z). None if unreachable/limited."""
-    rb, re, l1, l2 = L["DELTA_RB"], L["DELTA_RE"], L["DELTA_L1"], L["DELTA_L2"]
-    X, Y, Z = x - xd, y - L["DELTA_Y"], z - L["DELTA_Z"]
+    whose base centre is (xd, _dbase). None if unreachable/limited."""
+    rb, re, l1, l2 = _darms(xd)
+    yd, zd, _ = _dbase(xd)
+    X, Y, Z = x - xd, y - yd, z - zd
     out = []
     for phi in arm_angles(xd):
         c, s = math.cos(math.radians(phi)), math.sin(math.radians(phi))
@@ -472,13 +601,14 @@ def delta_points(x, y, z, xd):
     ang = delta_ik(x, y, z, xd)
     if ang is None:
         raise ValueError("unreachable")
-    rb, re, l1 = L["DELTA_RB"], L["DELTA_RE"], L["DELTA_L1"]
+    rb, re, l1, _ = _darms(xd)
+    yd, zd, _ = _dbase(xd)
     pts = []
     for phi, th in zip(arm_angles(xd), ang):
         c, s = math.cos(math.radians(phi)), math.sin(math.radians(phi))
-        sh = (xd + rb * c, L["DELTA_Y"] + rb * s, L["DELTA_Z"])
+        sh = (xd + rb * c, yd + rb * s, zd)
         r_el = rb + l1 * math.cos(math.radians(th))
-        el = (xd + r_el * c, L["DELTA_Y"] + r_el * s, L["DELTA_Z"] - l1 * math.sin(math.radians(th)))
+        el = (xd + r_el * c, yd + r_el * s, zd - l1 * math.sin(math.radians(th)))
         wr = (x + re * c, y + re * s, z)
         pts.append((phi, sh, el, wr))
     return pts
@@ -533,6 +663,34 @@ def place_z():
     return L["LANE_Z"] + 3.0 + L["COOKIE"][1] + L["CUP_L"]
 
 
+def band_pick_z():
+    """Delta C effector underside when the cups touch a cookie on the band."""
+    return L["BAND"]["z"] + L["COOKIE"][1] + L["CUP_L"]
+
+
+def travel_z(xd):
+    """Home / travel height of the delta at xd: A/B over the lanes, C between the band and the bend."""
+    return L["TRAVEL_Z"] if xd != L["DELTA_C"]["x"] else band_pick_z() + 20.0
+
+
+def delta_c_poses():
+    """Delta C: every row position in the band pick window (pick + travel) and the place window on the bend."""
+    out = []
+    xc = L["DELTA_C"]["x"]
+    p0, p1 = stations()["pick"]
+    for x in (p0 + 2, (p0 + p1) / 2, p1 - 2):
+        for k in range(L["BAND"]["rows"]):
+            for z in (band_pick_z(), travel_z(xc)):
+                out.append((2, xc, (x, row_y(k), z), "pick"))
+    a, b = L["PLACE_TH"]
+    for i in range(7):
+        th = a + (b - a) * i / 6
+        x, y = bend_xy(th)
+        for z in (pick_z(), travel_z(xc)):
+            out.append((2, xc, (x, y, z), "place"))
+    return out
+
+
 def delta_poses():
     """Every pose the pickers are commanded to: the pick window at pick and
     travel height, the three pockets of every lane at place and travel height."""
@@ -546,7 +704,7 @@ def delta_poses():
             for dx in (-L["POCKET_PITCH"], 0.0, L["POCKET_PITCH"]):
                 for z in (place_z(), L["TRAVEL_Z"]):
                     out.append((i, xd, (xd + dx, y, z), "place"))
-    return out
+    return out + delta_c_poses()
 
 
 # --------------------------------------------------------------- geometry
@@ -698,125 +856,413 @@ def _loop_parts(A):
                 "(electronic line shaft); sprocket slip shows as drive-encoder vs B1 drift"))
 
 
+PHASE_RGB = {"L1": "#7a4a1d", "L2": "#1c1c1c", "L3": "#8d9399"}     # IEC 60445: brown / black / grey
+
+
+def transfer_times():
+    """(t_enter, s_place): a row enters the pick window t_enter s after its deposit; delta C picks cookie k of
+    a row at t_dep + t_enter + (k+1) takt and places it 1 s later into the puck that is then at s_place
+    (inside PLACE_TH) - the same phase every takt, because the band is geared to the chain."""
+    st = stations()
+    t_enter = (st["pick"][0] - st["dep"]) / band_v()
+    s0 = bend_s(L["PLACE_TH"][0] + 2.0)
+    t_pl = t_enter + 1.0
+    return t_enter, s0 + ((L["V"] * t_pl - s0) % L["PITCH"])
+
+
 def _pucks(A, t=0.0):
-    """Carriers on the loop at time t with the nominal steady-state content."""
+    """Carriers on the loop at time t with the nominal steady-state content: a baked base + its topping drop
+    from the transfer place point to the picker."""
     Lp = loop_len()
-    feed_s = s_front(L["MAG_X"][0])
+    load_s = transfer_times()[1]
     pick_s = s_back(L["DELTA_X"][1]) + 80
-    oven_s1 = s_front(oven_x()[1])
     d, h = L["PUCK"]
+    T = L["TOPPING"]
     for k in range(L["N"]):
         s = (k * L["PITCH"] + L["V"] * t) % Lp
         (x, y), _ = pos(s)
         A(Part(f"puck_{k:02d}", "loop", "puck", "cyl", (x, y, L["BELT_Z"]), ("z", h, d), "#1f63c4",
                joint="loop", tag="NFC", note="carrier with NFC tag (recipe + state)"))
-        loaded = (s > feed_s + 30) and (s < pick_s)
-        if loaded:
+        if load_s <= s < pick_s:
             f = k % 3
-            col = L["BAKED"][f] if s > oven_s1 else L["RAW"]
             A(Part(f"cookie_{k:02d}", "loop", "cookie", "cyl", (x, y, z_seat()),
-                   ("z", L["COOKIE"][1], L["COOKIE"][0]), col, joint="loop", note=FLAV[f]))
+                   ("z", L["COOKIE"][1], L["COOKIE"][0]), cookie_hex(), joint="loop", note=FLAV[f]))
+            A(Part(f"cookie_{k:02d}_top", "loop", "cookie", "cyl", (x, y, z_cookie_top()), ("z", T["h"], T["d"]),
+                   L["BAKED"][f], joint="loop", note=f"{FLAV[f]} topping"))
 
 
-def mag_top():
-    return z_esc() + L["ESC_BLOCK"][2] + L["MAG_CAP"] * L["COOKIE"][1] + 20
+def cookie_hex():
+    """Colour of a fully baked base (oven.py colour index at the oven exit)."""
+    _, s = OV.simulate(L, OV.bake_segments(L, bake_t()), record=1e9)
+    return OV.colour_hex(L, s["colour"], s["moisture"])
 
 
-def chute(i):
-    """(start, end) of flavour i's chutes: disc outlet (between the back legs) ->
-    30 mm above the tube tops (the chute end clears the tube; the cookie drops in). Returns [(p0, p1_A), (p0, p1_B)]."""
-    hw, hd, hh = L["HOPPER"]
-    hx, hy, hz = L["HOPPER_X"][i], L["HOPPER_Y"], L["HOPPER_Z"]
-    p0 = (hx + hw / 2, hy + hd + 10, hz - 30)             # outlet stub 10 mm behind the hopper
-    return [(p0, (L["MAG_X"][2 * i + k], y_front(), mag_top() + 30)) for k in (0, 1)]
+def band_state(t_in):
+    """(D, H, colour hex, topped) of the product t_in s after it was deposited (oven.py profile + spread)."""
+    st = stations()
+    v = band_v()
+    t_top = (st["top"] - st["dep"]) / v
+    t_oven = (st["o0"] + L["CHAMBER"]["insul"] - st["dep"]) / v
+    (d0, h0), (d1, h1) = L["DOUGH_SLUG"], L["COOKIE"]
+    if t_in <= t_oven:
+        return d0, h0, L["RAW"], t_in >= t_top
+    tb = t_in - t_oven
+    tr = band_trace()
+    i = min(int(tb), len(tr) - 1)
+    row = tr[i]
+    f = min(1.0, tb / (bake_t() / len(L["OVEN_ZONES"])))        # the slug spreads in the first zone
+    return d0 + (d1 - d0) * f, h0 + (h1 - h0) * f, OV.colour_hex(L, row[6], row[5]), True
 
 
-def _feeder(A):
-    yf = y_front()
-    z0 = z_esc()
-    bw_, bd_, bh_ = L["ESC_BLOCK"]
-    top = mag_top()
-    bore, stroke = L["ESC_CYL"]
-    for i, mx in enumerate(L["MAG_X"]):
-        f, ab = FLAV[i // 2], "AB"[i % 2]
-        A(Part(f"esc_{f}_{ab}", "feeder", "escapement", "box", (mx - bw_ / 2, yf - bd_ / 2, z0), (bw_, bd_, bh_),
-               "#e0492f", hw="escapement block POM", mech=f"gate:{L['GATE_Z'][0]}:{L['GATE_Z'][1]}",
-               note="POM block: holds the tube, the slide gate runs in a slot (z GATE_Z), D47 drop hole; "
-                    "released LEAD mm early - see check()"))
-        cyl6432(A, f"esc_cyl_{f}_{ab}", "feeder", "escapement", bore, stroke, "y", yf + bd_ / 2,
-                (mx, z0 + sum(L["GATE_Z"]) / 2), +1, tag=f"Q{2 + i}",
-                note="gate cylinder, nose-mounted on the block's back face")
-        A(Part(f"mag_{f}_{ab}", "feeder", "magazine", "cyl", (mx, yf, z0 + bh_), ("z", top - z0 - bh_, L["MAG_OD"]),
-               "#d9eef7", mech=f"tube:{L['MAG_ID']}", hw="TUBE",
-               note=f"clear TUBE (ID {L['MAG_ID']:g}): chute in at the top, gate out at the bottom; "
-                    f"{L['MAG_CAP']} {f} cookies"))
-        for c_ in range(6):
-            A(Part(f"mag_{f}_{ab}_cookie_{c_}", "feeder", "stock", "cyl",
-                   (mx, yf, z0 + bh_ + c_ * L["COOKIE"][1] + 0.5), ("z", L["COOKIE"][1] - 1, L["COOKIE"][0]), L["RAW"]))
-        A(Part(f"mag_empty_{f}_{ab}", "feeder", "sensor", "box", (mx - 7.5, yf - L["MAG_OD"] / 2 - 7.5, z0 + bh_ + 5),
-               (15.0, 7.5, 15.0), "#1b8f52", tag=f"I{2 + i}", hw="diffuse_M12",
-               note="tube-low sensor, clipped to the tube -> AMR refill request"))
-    x0, x1 = L["MAG_X"][0] - 45, L["MAG_X"][-1] + bw_ / 2 + 1       # 1 mm clear of the oven wall
-    for nm, y in (("front", yf - 90), ("back", yf + 60)):
-        A(Part(f"feeder_beam_{nm}", "feeder", "frame", "box", (x0, y, z0 - 30), (x1 - x0, 30.0, 30.0), "#d6d9da",
-               mech="profile:3030", hw="HFS8-3030"))
-        for px in (x0, x1 - 30):
-            A(Part(f"feeder_post_{nm}_{int(px)}", "feeder", "frame", "box", (px, y, 0), (30.0, 30.0, z0 - 30),
-                   "#d6d9da", mech="profile:3030", hw="HFS8-3030"))
-    hw, hd, hh = L["HOPPER"]
-    for i, (f, hx) in enumerate(zip(FLAV, L["HOPPER_X"])):
-        hy, hz = L["HOPPER_Y"], L["HOPPER_Z"]
-        hollow(A, f"hopper_{f}", "feeder", "hopper", hx, hy, hz, hw, hd, hh, 3.0, "#d9eef7", hw="PC sheet 3 mm",
-               note=f"bulk raw {f} cookies, ~{hopper_cap()} at {L['PACKING']:g} packing; OPEN TOP (hinged lid) "
-                    f"for the AMR tote; floor has the outlet onto the singulator disc")
-        A(Part(f"hopper_{f}_level", "feeder", "sensor", "box", (hx + hw / 2 - 20, hy + hd, hz + hh - 24),
-               (40.0, 20.0, 24.0), "#1b8f52", tag=f"IOL{1 + i}", hw="tof_level",
-               note=f"ToF level sensor on an angle bracket outside the back wall, looking over the rim "
-                    f"-> AMR refill request at {L['REQ_HOPPER']:.0%}"))
-        cx, cy = hx + hw / 2, hy + hd / 2
-        A(Part(f"singulator_{f}", "feeder", "hopper", "cyl", (cx, cy, hz - 20), ("z", 20.0, 180.0),
-               "#e0492f", mech="spin:singulator", hw="POM disc 180 x 20, 6 pockets",
-               note="rotary singulating disc: one cookie per pocket into the chute; camera jam check"))
-        A(Part(f"singulator_shaft_{f}", "feeder", "hopper", "cyl", (cx, cy, hz - 36), ("z", 16.0, 8.0), "#9aa3ab",
-               hw="PG14 output shaft D8", note="through the plate into the disc hub"))
-        A(Part(f"singulator_plate_{f}", "feeder", "hopper", "box", (hx + 30, hy, hz - 36), (hw - 60, 150.0, 15.0),
-               "#b9bec4", hw="Al plate 15 mm", note="motor plate between the front legs; disc runs 1 mm above it"))
-        nema(A, f"M_singulator_{f}", "feeder", "hopper", "z", hz - 36, (cx, cy), "PG14", L["SING_MOTOR"],
-             tag=f"Q{30 + i}", sign=-1, note="singulator drive (EL7047)")
-        for leg in ((hx, hy), (hx + hw - 30, hy), (hx, hy + hd - 30), (hx + hw - 30, hy + hd - 30)):
-            A(Part(f"hopper_leg_{f}_{int(leg[0])}_{int(leg[1])}", "feeder", "frame", "box", (*leg, 0),
-                   (30.0, 30.0, hz), "#d6d9da", mech="profile:3030", hw="HFS8-3030"))
-        for k, (p0, p1) in enumerate(chute(i)):
-            A(Part(f"chute_{f}_{'AB'[k]}", "feeder", "hopper", "rod", p0, (*p1, 50.0), "#d9eef7", hw="PC chute D50",
-                   note="clear chute, disc outlet -> tube top (Y diverter A/B)"))
-            A(Part(f"collar_{f}_{'AB'[k]}", "feeder", "hopper", "cyl", (p1[0], p1[1], mag_top()), ("z", 15.0, 60.0),
-                   "#d9eef7", hw="PC funnel collar on the tube top", note="the chute end sits in it"))
-        p0 = chute(i)[0][0]
-        A(Part(f"chute_stub_{f}", "feeder", "hopper", "box", (p0[0] - 30, hy + hd - 20, p0[2]), (60.0, 30.0, hz - p0[2]),
-               "#d9eef7", hw="PC outlet stub", note="disc outlet under the hopper floor; the Y chute hangs in it"))
-    # upstream of the first tube, where a 2020 stand clears the feeder post's deck bracket and the guide
-    A(Part("feeder_empty_check", "feeder", "sensor", "box", (236.0, yf - 58, L["BELT_Z"] + 5),
-           (15.0, 7.5, 15.0), "#1b8f52", tag="I1", hw="diffuse_M12",
-           note="light barrier: puck already full (recirculating) -> do NOT load it"))
-    A(Part("nfc_writer", "feeder", "sensor", "box", (L["NFC_WRITE_X"] - 20, yf - 32 - 6 - 40, L["BELT_Z"] - 30),
-           (40.0, 34.0, 25.0), "#2f6fd0", tag="NFC-W", hw="nfc_head",
-           note="writes the flavour the sequence assigned + batch into the puck tag (I1 confirms the load)"))
+_TRACE = {}
+
+
+def band_trace():
+    """Per-second product history from the oven inlet to the band end (oven.profile)."""
+    k = OV._key(L)
+    if k not in _TRACE:
+        _TRACE[k] = OV.profile(L, bake_t(), cool_t(), record=1.0, t_gap=band_gaps()[0], t_nose=band_gaps()[1])[0]
+    return _TRACE[k]
+
+
+def _band_product(A, t=0.0):
+    """Every row on the band at time t: slugs, topped slugs, baking / cooling cookies up to the pick window
+    (delta C empties a row in 6 takts inside it)."""
+    st = stations()
+    v, sp = band_v(), L["BAND"]["spacing"]
+    zb = L["BAND"]["z"]
+    T = L["TOPPING"]
+    period = sp / v
+    n_rows = int((st["pick"][1] - st["dep"]) // sp) + 1
+    for j in range(n_rows):
+        t_in = (t % period) + j * period                     # row j was deposited t_in s ago
+        r = int(round((t - t_in) / period))                  # deposit index: the row's name for its whole life
+        x = st["dep"] + v * t_in
+        if x > st["pick"][1]:
+            continue
+        d, h, col, topped = band_state(t_in)
+        picked = 0
+        if x >= st["pick"][0]:                               # delta C takes one cookie per takt, row order
+            picked = min(L["BAND"]["rows"], int((x - st["pick"][0]) / (v * takt())))
+        for k in range(picked, L["BAND"]["rows"]):
+            y = row_y(k)
+            nm = f"band_r{r + 100:03d}_{k}"
+            A(Part(nm, "oven", "cookie", "cyl", (g1(x), y, zb), ("z", round(h, 2), round(d, 2)), col, joint="band",
+                   note=f"{FLAV[row_flavour(k)]}, {t_in:.0f} s on the band"))
+            if topped:
+                A(Part(nm + "_top", "oven", "cookie", "cyl", (g1(x), y, zb + round(h, 2)), ("z", T["h"], T["d"]),
+                       L["BAKED"][row_flavour(k)], joint="band", note="topping drop"))
+
+
+def raw_strip():
+    """(x0, x1, rim z) of the AMR pour strip: over the dough hopper and the three topping hoppers."""
+    hl, hh = L["DEP_HOPPER"]
+    xs = top_hopper_x()
+    td, th = L["TOP_HOPPER"]
+    return dep_hopper_x0(), xs[-1] + td / 2 + 10, min(dep_z()["hopper"] + hh, top_z() + th)
+
+
+def dep_hopper_x0():
+    """The dough hopper reaches 60 mm past the die downstream, the rest upstream (clear of the topping pistons)."""
+    return stations()["dep"] + 60.0 - L["DEP_HOPPER"][0]
+
+
+def dep_z():
+    zb = L["BAND"]["z"]
+    die = zb + L["DOUGH_SLUG"][1] + L["DEP_DROP"]
+    roll = L["DEP_ROLL"]
+    return dict(die=die, housing=(die + 15.0, die + 15.0 + roll + 70.0), roll=die + 15.0 + roll / 2 + 2.0,
+                hopper=die + 15.0 + roll + 70.0)
+
+
+def top_hopper_x():
+    o0 = stations()["o0"]
+    td = L["TOP_HOPPER"][0]
+    return [o0 + 40 + td / 2 + k * (td + 10) for k in range(len(FLAV))]
+
+
+def top_z():
+    """Underside of the topping hoppers (on their rack plate)."""
+    return dep_z()["hopper"] + 50.0
+
+
+def _depositor(A):
+    """M2: plain-dough wire-cut depositor (6 dies across the band) + thumbprint topping depositor (3 flavours,
+    each feeding 2 rows). Both hang on brackets on the band's in-feed side plates."""
+    st = stations()
+    cy = chamber_y()
+    dz = dep_z()
+    dep, top = st["dep"], st["top"]
+    zb = L["BAND"]["z"]
+    roll = L["DEP_ROLL"]
+    hw_ = roll + 2.0 + 10.0                                    # housing half length in x (rolls + wall)
+    yi0, yi1 = cy["i0"], cy["i1"]
+    SS = "#c9ced2"
+    A(Part("dep_die", "depositor", "depositor", "box", (dep - hw_, yi0, dz["die"]), (2 * hw_, yi1 - yi0, 15.0), SS,
+           hw="die plate, 6 orifices D38 (stainless)",
+           note="the dough is pressed through 6 orifices; the wire cuts a slug per row at the die face"))
+    A(Part("dep_wire", "depositor", "depositor", "box", (dep - 40.0, band_y()[0], dz["die"] - 2.0),
+           (80.0, band_w(), 2.0), "#5b6168", joint="wire_x", hw="wire-cut frame (cam-driven by the roll drive)",
+           note=f"cuts a {L['DOUGH_SLUG'][1]:g} mm slug per row; the slug falls {L['DEP_DROP']:g} mm onto the band"))
+    z0, z1 = dz["housing"]
+    hollow(A, "dep_housing", "depositor", "depositor", dep - hw_, yi0, z0, 2 * hw_, yi1 - yi0, z1 - z0, 10.0, SS,
+           bottom=False, hw="roll housing (stainless)", note="two counter-rotating feed rolls over the die")
+    for k, sx in enumerate((-1, 1)):
+        A(Part(f"dep_roll_{k}", "depositor", "depositor", "cyl", (dep + sx * (roll / 2 + 1.0), yi0 + 10.0, dz["roll"]),
+               ("y", yi1 - yi0 - 20.0, roll), "#9aa3ab", mech="spin:roll", hw="fluted feed roll D60 (stainless)"))
+    nema(A, "M_dep_rolls", "depositor", "depositor", "y", yi1, (dep, dz["roll"]), "PG27", "17HS19-2004D-E1000",
+         tag="Q41", sign=1, note="feed rolls + wire cam: one slug per row, geared to the band (EL7047)")
+    hl, hh = L["DEP_HOPPER"]
+    y0 = L["DEP_HOPPER_Y0"]
+    hx0 = dep_hopper_x0()
+    hollow(A, "dep_hopper", "depositor", "hopper", hx0, y0, dz["hopper"], hl, yi1 - y0, hh, 3.0, SS,
+           hw="dough hopper 3 mm stainless",
+           note=f"plain dough, {L['DOUGH_KG']:g} kg = {dough_autonomy() / 60:.0f} min; the AMR tips a tub "
+                f"through the pour strip; throat into the roll housing")
+    gz = dz["roll"] + roll / 2 + H.iso13857_distance(L["DEP_GRID"], "square") + 10.0
+    A(Part("dep_hopper_grid", "depositor", "hopper", "box", (hx0 + 3.0, y0 + 3.0, g1(gz)), (hl - 6.0, yi1 - y0 - 6.0, 5.0),
+           "#9aa3ab", hw=f"safety grid {L['DEP_GRID']:g} mm square mesh (stainless, welded in)",
+           note="the dough passes, a hand does not reach the feed rolls (ISO 13857 Table 4)"))
+    A(Part("dep_hopper_level", "depositor", "sensor", "box", (hx0 + hl / 2 - 20.0, yi1, dz["hopper"] + hh - 24.0),
+           (40.0, 20.0, 24.0), "#1b8f52", tag="IOL1", hw="tof_level",
+           note=f"dough level -> AMR refill at {L['REQ_HOPPER']:.0%}"))
+    for nm, xc, zt_ in (("dep", dep, dz["die"]), ):
+        for side, yy in (("f", yi0 - 8.0), ("b", yi1)):
+            for k, dx in enumerate((-hw_, hw_ - 30.0)):
+                A(Part(f"dep_bracket_{side}{k}", "depositor", "depositor", "box", (xc + dx, yy, zb - 5.0),
+                       (30.0, 8.0, zt_ - zb + 5.0 + 15.0), "#9aa3ab", hw="Al bracket 8 mm",
+                       note="carries the die / housing on the band side plate"))
+    # topping: one manifold across the band, a dosing piston per flavour, 6 nozzles (rows k, k+3 = flavour k)
+    zm = zb + L["DOUGH_SLUG"][1] + 10.0
+    A(Part("top_manifold", "depositor", "topping", "box", (top - 20.0, yi0, zm), (40.0, yi1 - yi0, 30.0), SS,
+           hw="topping manifold, 6 nozzles (stainless)",
+           note="each nozzle presses the thumbprint well and leaves one drop; rows k and k+3 get flavour k"))
+    for side, yy in (("f", yi0 - 8.0), ("b", yi1)):
+        A(Part(f"top_bracket_{side}", "depositor", "topping", "box", (top - 20.0, yy, zb - 5.0), (40.0, 8.0, zm - zb + 5.0 + 30.0),
+               "#9aa3ab", hw="Al bracket 8 mm", note="carries the manifold on the band side plate"))
+    bore, stroke = L["TOP_CYL"]
+    for f in range(len(FLAV)):
+        y = (row_y(f) + row_y(f + 3)) / 2
+        cyl6432(A, f"top_cyl_{FLAV[f]}", "depositor", "topping", bore, stroke, "z", zm + 30.0, (top, y), +1,
+                tag=f"Q{2 + f}", note=f"{FLAV[f]} dosing piston: one stroke = 2 drops of {L['TOPPING']['m'] * 1000:g} g")
+    # topping hoppers on a rack in front of the oven inlet, under the pour strip
+    td, th = L["TOP_HOPPER"]
+    xs = top_hopper_x()
+    zr = top_z()
+    yh = L["DEP_HOPPER_Y0"] + 6.0 + td / 2
+    xr0, xr1 = xs[0] - td / 2 - 10, xs[-1] + td / 2 + 10
+    A(Part("top_rack", "depositor", "topping", "box", (xr0, yh - td / 2 - 6, zr - 10), (xr1 - xr0, td + 12, 10.0),
+           "#9aa3ab", hw="Al plate 10 mm", note="topping hopper rack"))
+    for k, px in enumerate((xr0, xr1 - 30.0)):
+        A(Part(f"top_rack_post_{k}", "depositor", "topping", "box", (px, yh - 48.0, 0.0), (30.0, 30.0, zr - 10),
+               "#d6d9da", mech="profile:3030", hw="HFS8-3030"))
+    for f, xh in enumerate(xs):
+        A(Part(f"top_hopper_{FLAV[f]}", "depositor", "topping", "cyl", (xh, yh, zr), ("z", th, td), L["BAKED"][f],
+               hw="topping hopper (heated jacket for chocolate)",
+               note=f"{FLAV[f]} topping, {L['TOP_KG']:g} kg = {topping_autonomy() / 60:.0f} min; AMR refill"))
+        A(Part(f"top_level_{FLAV[f]}", "depositor", "sensor", "box", (xh - 10.0, yh + td / 2, zr + th - 24.0),
+               (20.0, 20.0, 24.0), "#1b8f52", tag=f"IOL{5 + f}", hw="tof_level", note="topping level"))
+        xm = top - 14.0 + 14.0 * f
+        yf_ = yh - 10.0 + 12.0 * f                             # staggered so the runs never cross
+        zl_ = chamber_z()["roof"][1] + 20.0                     # over the oven roof, under the rack
+        pts = [(xh, yf_, zr - 10.0), (xh, yf_, zl_), (xm, yf_, zl_), (xm, yi0 + 12.0, zm + 30.0)]
+        for j in range(3):
+            A(Part(f"top_hose_{FLAV[f]}_{'abc'[j]}", "depositor", "topping", "rod", pts[j], (*pts[j + 1], 10.0),
+                   "#d9eef7", hw="food hose D10", note="hopper outlet -> over the oven roof -> manifold top" if j == 0 else ""))
+
+
+def _oven(A):
+    """M3: the band unit - mesh band on two drums, insulated 3-zone chamber (tubular elements top + bottom,
+    impingement fan, duplex thermocouple per zone), impingement cooling hood, crumb pan; oven.py sizes it."""
+    st = stations()
+    cz, cy = chamber_z(), chamber_y()
+    ins = L["CHAMBER"]["insul"]
+    B = L["BAND"]
+    yb0, yb1 = band_y()
+    o0, o1 = st["o0"], st["o1"]
+    x0, xe = st["x0"], st["e"]
+    r = B["drum"] / 2
+    t = H.BAND_MESH["t"]
+    SKIN, SS = "#c2c7cc", "#c9ced2"
+    pan = (x0, xe + r + 10.0)                                    # the pan reaches past the nose: misses land in it
+    # ---- band, drums, shafts, bearings, drive
+    A(Part("band_carry", "oven", "band", "box", (x0, yb0, cz["under"]), (xe - x0, band_w(), t), "#8b9196",
+           mech="belt:band", hw="BAND_MESH", note=f"{band_v():.2f} mm/s = one row of {B['rows']} per {B['rows']} takts"))
+    A(Part("band_return", "oven", "band", "box", (x0, yb0, cz["ret"][0]), (xe - x0, band_w(), t), "#8b9196",
+           mech="belt:band", hw="BAND_MESH", note="returns outside the chamber, on the crumb pan"))
+    for nm, xd in (("feed", x0), ("drive", xe)):
+        A(Part(f"drum_{nm}", "oven", "band", "cyl", (xd, yb0 - 10.0, cz["drum"]), ("y", band_w() + 20.0, B["drum"]),
+               "#9aa3ab", mech="spin:band", hw=f"band drum D{B['drum']:g} (stainless, crowned)",
+               note="tension drum (screw take-up)" if nm == "feed" else "drive drum"))
+        ys0, ys1 = cy["i0"] - 8.0 - 25.0, cy["i1"] + 8.0 + 25.0
+        A(Part(f"drum_{nm}_shaft", "oven", "band", "cyl", (xd, ys0, cz["drum"]), ("y", ys1 - ys0, 20.0), "#9aa3ab",
+               hw="shaft D20"))
+        for side, yy in (("f", ys0), ("b", cy["i1"] + 8.0)):
+            A(Part(f"drum_{nm}_bearing_{side}", "oven", "band", "box", (xd - 25.0, yy, cz["drum"] - 25.0), (50.0, 25.0, 50.0),
+                   "#5b6168", hw="flanged bearing unit UCF204 class", note="on the side plate"))
+    nema(A, "M_band", "oven", "band", "z", cz["drum"] - 25.0, (xe, cy["i1"] + 8.0 + 14.5), "PG27", "17HS19-2004D-E1000",
+         tag="Q40", sign=-1, note="band drive under the back bearing, GT3 belt to the drum shaft; geared to the master "
+                                  "axis (EL7047, closed loop)")
+    # ---- side plates (in-feed / out-feed), slider beds, legs
+    pz0 = cz["drum"] - 25.0
+    for sec, a, b in (("in", x0 - r - 10.0, o0), ("out", o1, xe + r + 10.0)):
+        for side, yy in (("f", cy["i0"] - 8.0), ("b", cy["i1"])):
+            A(Part(f"band_plate_{sec}_{side}", "oven", "frame", "box", (a, yy, pz0), (b - a, 8.0, cz["under"] - pz0),
+                   "#b9bec4", hw="Al plate 8 mm", note="band side plate: bearings outside, slider bed inside"))
+    A(Part("band_bed_in", "oven", "frame", "box", (x0 + r + 2.0, cy["i0"], cz["skid"][0]),
+           (o0 - x0 - r - 2.0, cy["i1"] - cy["i0"], 6.0), SS, hw="slider bed 6 mm (stainless)"))
+    A(Part("band_bed_out", "oven", "frame", "box", (o1, cy["i0"], cz["skid"][0]),
+           (xe - r - 2.0 - o1, cy["i1"] - cy["i0"], 6.0), SS, hw="perforated slider bed 6 mm (stainless)",
+           note="the cooling air passes through it"))
+    legs = [("in", x0 + r + 10.0), ("in", o0 - 50.0), ("out", o1 + 10.0), ("out", xe - r - 50.0)]
+    for k, (sec, lx) in enumerate(legs):
+        for side, yy in (("f", cy["i0"] - 40.0), ("b", cy["i1"])):
+            A(Part(f"band_leg_{k}{side}", "oven", "frame", "box", (lx, yy, 0.0), (40.0, 40.0, pz0), "#d6d9da",
+                   mech="profile:4040", hw="HFS8-4040"))
+    # ---- crumb / return pan + hangers, end lip (a missed cookie falls off the nose into it)
+    A(Part("band_pan", "oven", "pan", "box", (pan[0], cy["i0"], cz["pan"][0]), (pan[1] - pan[0], cy["i1"] - cy["i0"], 7.0),
+           SS, hw="crumb pan 7 mm (stainless, U-folded)",
+           note="carries the return run; collects crumbs and any cookie delta C missed (emptied each shift)"))
+    A(Part("band_pan_lip", "oven", "pan", "box", (pan[1] - 3.0, cy["i0"], cz["pan"][1]), (3.0, cy["i1"] - cy["i0"], 25.0),
+           SS, hw="crumb pan 7 mm (stainless, U-folded)"))
+    hx = [x0 + r + 70.0, (x0 + o0) / 2 + 40.0, o0 + 120.0, (o0 + o1) / 2, o1 - 120.0, o1 + 80.0, xe - r - 120.0]
+    for k, x in enumerate(hx):
+        top_ = cz["floor"][0] if o0 < x < o1 else pz0
+        for side, (ya, yb_) in (("f", (cy["i0"] - 8.0, cy["i0"])), ("b", (cy["i1"], cy["i1"] + 8.0))):
+            A(Part(f"pan_hanger_{k}{side}", "oven", "pan", "box", (g1(x), ya, cz["pan"][0]), (20.0, yb_ - ya, top_ - cz["pan"][0]),
+                   "#9aa3ab", hw="hanger 8 mm (stainless)"))
+    # ---- chamber: one welded box of 50 mm panels (stainless skins, mineral wool), band mouths in the ends
+    PN = "insulated oven panel 50 mm (stainless skins, mineral wool)"
+    A(Part("oven_panel_floor", "oven", "chamber", "box", (o0, cy["o0"], cz["floor"][0]), (o1 - o0, cy["o1"] - cy["o0"], ins),
+           SKIN, hw=PN))
+    A(Part("oven_panel_roof", "oven", "chamber", "box", (o0, cy["o0"], cz["roof"][0]), (o1 - o0, cy["o1"] - cy["o0"], ins),
+           SKIN, hw=PN))
+    hgt = cz["roof"][0] - cz["floor"][1]
+    for side, yy in (("front", cy["o0"]), ("back", cy["i1"])):
+        A(Part(f"oven_panel_{side}", "oven", "chamber", "box", (o0, yy, cz["floor"][1]), (o1 - o0, ins, hgt), SKIN, hw=PN))
+    for end, xx in (("in", o0), ("out", o1 - ins)):
+        A(Part(f"oven_panel_{end}_lo", "oven", "chamber", "box", (xx, cy["i0"], cz["floor"][1]),
+               (ins, cy["i1"] - cy["i0"], cz["mouth"][0] - cz["floor"][1]), SKIN, hw=PN))
+        A(Part(f"oven_panel_{end}_hi", "oven", "chamber", "box", (xx, cy["i0"], cz["mouth"][1]),
+               (ins, cy["i1"] - cy["i0"], cz["roof"][0] - cz["mouth"][1]), SKIN, hw=PN,
+               note=f"band mouth {L['CHAMBER']['mouth_h']:g} mm high below it"))
+    for k, lx in enumerate((o0 + 30.0, (o0 + o1) / 2 - 20.0, o1 - 70.0)):
+        for side, yy in (("f", cy["o0"]), ("b", cy["o1"] - 40.0)):
+            A(Part(f"oven_leg_{k}{side}", "oven", "chamber", "box", (g1(lx), yy, 0.0), (40.0, 40.0, cz["floor"][0]),
+                   "#d6d9da", mech="profile:4040", hw="HFS8-4040"))
+    # skids: the carry run slides on 2 stainless bars on posts between the bottom elements
+    xi0, xi1 = o0 + ins, o1 - ins
+    sy = (yb0 + 40.0, yb1 - 46.0)
+    for k, yy in enumerate(sy):
+        A(Part(f"oven_skid_{k}", "oven", "chamber", "box", (xi0, yy, cz["skid"][0]), (xi1 - xi0, 6.0, 6.0), SS,
+               hw="skid bar 6 x 6 (stainless)"))
+    bot = [x for k in range(len(L["OVEN_ZONES"])) for _, x in element_x(k, "bot")]
+    zl = zone_len()
+    posts = [xi0 + 10.0] + [st["zones"][k] for k in range(1, len(L["OVEN_ZONES"]))] + [xi1 - 16.0]
+    for i, px in enumerate(posts):
+        if min(abs(px + 3 - b) for b in bot) < 12.0:
+            raise ValueError(f"skid post at {px} meets a bottom element")
+        for k, yy in enumerate(sy):
+            A(Part(f"oven_skidpost_{i}{k}", "oven", "chamber", "box", (g1(px), yy, cz["floor"][1]),
+                   (6.0, 6.0, cz["skid"][0] - cz["floor"][1]), SS, hw="skid post 6 x 6 (stainless)"))
+    # ---- per zone: elements (phase-coloured terminal covers), impingement fan, duplex thermocouple
+    plan = oven_power()[2]
+    phase_of = {tag: ph for ph, items in plan.items() for tag, _ in items}
+    for k, Z in enumerate(L["OVEN_ZONES"]):
+        zx0 = st["zones"][k]
+        for face, zz in (("top", cz["el_top"]), ("bot", cz["el_bot"])):
+            for e, x in element_x(k, face):
+                ph = phase_of[e["tag"]]
+                A(Part(f"oven_heater_{e['tag']}", "oven", f"zone{k + 1}", "cyl", (x, cy["i0"], zz), ("y", cy["i1"] - cy["i0"], 8.5),
+                       "#c0562f", tag=e["tag"], hw="tubular",
+                       note=f"{e['P']:.0f} W 230 V on {ph}, {e['load_Wcm2']:.1f} W/cm2 - {e['cat']['model']}"))
+                for side, yy in (("f", cy["o0"] - 14.0), ("b", cy["o1"])):
+                    A(Part(f"oven_term_{e['tag']}_{side}", "oven", f"zone{k + 1}", "box", (x - 10.0, yy, zz - 10.0),
+                           (20.0, 14.0, 20.0), PHASE_RGB[ph], hw="element terminal cover",
+                           note=f"{ph} ({'brown' if ph == 'L1' else 'black' if ph == 'L2' else 'grey'}) / N"))
+        xm = g1(zx0 + zl / 2)
+        yc = B["yc"]
+        A(Part(f"oven_fan_{k + 1}_imp", "oven", f"zone{k + 1}", "cyl", (xm, yc, cz["roof"][0] - 25.0), ("z", 20.0, 90.0),
+               "#5b6168", mech="spin:fan", hw="D90 radial impeller", note="impingement: pushes zone air down onto the band"))
+        A(Part(f"oven_fan_{k + 1}_shaft", "oven", f"zone{k + 1}", "cyl", (xm, yc, cz["roof"][0] - 5.0), ("z", 5.0, 8.0),
+               "#9aa3ab", hw="fan shaft D8 (through the roof)"))
+        A(Part(f"oven_fan_{k + 1}_motor", "oven", f"zone{k + 1}", "box", (xm - 30.0, yc - 30.0, cz["roof"][1]),
+               (60.0, 60.0, 70.0), "#2b2b2f", tag=f"QF{k + 1}", hw="OVEN_FAN", note="230 V on the zone feed"))
+        tops = [x for _, x in element_x(k, "top")]
+        xt = g1((tops[0] + tops[1]) / 2) if len(tops) > 1 else g1(zx0 + zl / 4)
+        yt = cy["i0"] + 25.0
+        A(Part(f"oven_tc_{k + 1}", "oven", f"zone{k + 1}", "cyl", (xt, yt, cz["band"] + 30.0),
+               ("z", cz["roof"][0] - cz["band"] - 30.0, 6.0), "#b9bec4", tag=f"TC{k + 1}", hw="tc_K",
+               note="duplex type K: element 1 -> PID (EL3314), element 2 -> the zone's STB (SF4)"))
+        A(Part(f"oven_tc_{k + 1}_head", "oven", f"zone{k + 1}", "box", (xt - 10.0, yt - 10.0, cz["roof"][1]), (20.0, 20.0, 25.0),
+               "#b9bec4", hw="thermocouple head + gland"))
+    # vapour exhaust over zone 1 (most of the water leaves there) - hose to the hall extraction
+    xs = g1(st["zones"][0] + zl * 0.75)
+    ys = cy["o1"] - 45.0
+    A(Part("oven_exhaust", "oven", "chamber", "cyl", (xs, ys, cz["roof"][1]), ("z", 180.0, 60.0), SS,
+           hw="exhaust stack D60 + damper", note="vapour out; damper sets the extraction (oven.py X_EXHAUST)"))
+    A(Part("oven_exhaust_fan", "oven", "chamber", "box", (xs - 40.0, ys - 40.0, cz["roof"][1] + 180.0), (80.0, 80.0, 60.0),
+           "#2b2b2f", tag="QX1", hw="exhaust_fan", note="24 V EC duct fan; hose to the hall extraction through the roof"))
+    A(Part("IR1_pyrometer", "oven", "sensor", "box", (o1, B["yc"] - 15.0, cz["mouth"][1] + 5.0), (15.0, 30.0, 15.0),
+           "#1b8f52", tag="IR1", hw="ir_pyrometer",
+           note="product surface temperature at the oven exit: closes the bake loop on the cookie, not the air"))
+    # ---- impingement cooling: hood with fans over the band, plenum with fans under it
+    c0, c1 = st["c0"], st["c1"]
+    for side, yy in (("front", cy["i0"] - 8.0), ("back", cy["i1"])):
+        A(Part(f"cool_hood_wall_{side}", "oven", "cooler", "box", (c0, yy, cz["under"]), (c1 - c0, 8.0, 95.0), "#3a3f44",
+               hw="sheet-steel hood 8 mm frame"))
+    zh = cz["under"] + 95.0
+    A(Part("cool_hood_wall_top", "oven", "cooler", "box", (c0, cy["i0"] - 8.0, zh), (c1 - c0, cy["i1"] - cy["i0"] + 16.0, 3.0),
+           "#3a3f44", hw="sheet-steel hood 3 mm"))
+    nf = max(1, int((c1 - c0) // 130))
+    for i in range(nf):
+        x = g1(c0 + (i + 0.5) * (c1 - c0) / nf)
+        A(Part(f"cool_fan_{i + 1}", "oven", "cooler", "box", (x - 60.0, B["yc"] - 60.0, zh + 3.0), (120.0, 120.0, 25.0),
+               "#2b2b2f", tag=f"QC{i + 1}", hw="COOL_FAN", note="blows room air down through the mesh"))
+    zp0 = cz["skid"][0] - 59.0
+    hollow(A, "cool_plenum", "oven", "cooler", c0, cy["i0"], zp0, c1 - c0, cy["i1"] - cy["i0"], 59.0, 3.0, "#3a3f44",
+           hw="sheet-steel plenum 3 mm", note="takes the air through the mesh; fans in its floor blow it down")
+    for i in range(nf):
+        x = g1(c0 + (i + 0.5) * (c1 - c0) / nf)
+        A(Part(f"cool_exfan_{i + 1}", "oven", "cooler", "box", (x - 60.0, B["yc"] - 60.0, zp0 - 25.0), (120.0, 120.0, 25.0),
+               "#2b2b2f", tag=f"QC{nf + i + 1}", hw="COOL_FAN"))
+
+
+def _transfer(A):
+    """M4: delta C on its own portal over the band end + the right bend: picks every cookie of a row off the
+    band inside the pick window and places it into a passing puck (tracking both); NFC write, I1, I9."""
+    c = L["DELTA_C"]
+    xc, yc, zc = c["x"], c["y"], c["z"]
+    rr = H.NEMA17["flange"] / 2 * math.sqrt(2) + 0.1
+    zb_top = zc + math.ceil(rr) + 12
+    zt = L["GUARD_TOP"] - 20.0 - 40.0              # beam under the roof rails: the hanger is long enough for brackets
+    yf, yb_ = guard()["yF2"] + 25.0, yc + 240.0
+    for k, py in enumerate((yf, yb_ - 40.0)):
+        A(Part(f"tportal_post_{k}", "transfer", "portal", "box", (xc - 20.0, py, 0.0), (40.0, 40.0, zt), "#d6d9da",
+               mech="profile:4040", hw="HFS8-4040"))
+    A(Part("tportal_beam", "transfer", "portal", "box", (xc - 20.0, yf, zt), (40.0, yb_ - yf, 40.0), "#d6d9da",
+           mech="profile:4040", hw="HFS8-4040"))
+    A(Part("delta_hanger_C", "transfer", "portal", "box", (xc - 20.0, yc - 20.0, zb_top), (40.0, 40.0, zt - zb_top),
+           "#d6d9da", mech="profile:4040", hw="HFS8-4040",
+           note="hanger: corner brackets to the beam, base plate screwed into its end tap"))
+    _delta(A, "delta_C", xc, module="transfer")
+    for nm, th, tag, hw, note in (("I1_full_check", L["TRANSFER_TH"][0], "I1", "diffuse_M12",
+                                   "puck already full (recirculating) -> delta C does NOT place into it"),
+                                  ("nfc_writer", L["TRANSFER_TH"][1], "NFC-W", "nfc_head",
+                                   "writes flavour (band row), batch, bake log (IR1, zone temperatures) into the tag"),
+                                  ("I9_landing_check", L["TRANSFER_TH"][2], "I9", "diffuse_M12",
+                                   "landing check after the place: is the cookie seated in the nest? (EL1252)")):
+        x, y = bend_xy(th, L["R"] + 55.0)
+        sz = (40.0, 34.0, 25.0) if hw == "nfc_head" else (15.0, 15.0, 15.0)
+        z = L["BELT_Z"] - 40.0 if hw == "nfc_head" else L["BELT_Z"] + 5.0
+        A(Part(nm, "transfer", "sensor", "box", (g1(x - sz[0] / 2), g1(y - sz[1] / 2), z), sz, "#1b8f52" if hw != "nfc_head"
+               else "#2f6fd0", tag=tag, hw=hw, note=note))
 
 
 def _pa1(A):
-    """Upgrade PA-1 sensors that need a place in the machine (the rest - reeds on every cylinder,
-    analogue vacuum, stamp pressure - live inside an existing part's envelope; see plc_io)."""
+    """Upgrade PA-1 sensors that need a place of their own (IR1, I9 and the NFC writer live in _oven/_transfer)."""
     if not L["PA1"]:
         return
-    yf = y_front()
-    A(Part("I9_drop_check", "feeder", "sensor", "box", (L["DROP_CHECK_X"], yf - 58, L["BELT_Z"]),
-           (15.0, 7.5, 15.0), "#1b8f52", tag="I9", hw="diffuse_M12",
-           note="landing check after the last tube: did the cookie land in the nest? (timestamped, EL1252) - "
-                "the label that lets the drop lead be learned"))
-    zr = z_cookie_top() + L["TUN_CLEAR"]
-    A(Part("IR1_pyrometer", "tunnel", "sensor", "box", (L["PYRO_X"], yf - 15, zr), (15.0, 30.0, 15.0), "#1b8f52",
-           tag="IR1", hw="ir_pyrometer",
-           note="product surface temperature leaving the oven: closes the bake loop on the cookie, not the air"))
     x, y, z = L["PACK_CAM"]
     A(Part("CAM4_pack", "pick", "vision", "cyl", (x, y, z), ("z", 40.0, 30.0), "#2b2b2f", tag="CAM4",
            hw="GigE global-shutter camera",
@@ -867,7 +1313,8 @@ def _guard(A):
     for x, y in sorted(set(pts)):
         post(x, y)
     # ---- top rails (on the posts) + internal roof rails
-    rx0, rx1, ry = L["HOPPER_X"][0], L["HOPPER_X"][-1] + L["HOPPER"][0], L["RAW_Y"]
+    rx0, rx1, hz_top = raw_strip()
+    ry = L["RAW_Y"]
     X1, X2 = L["ROOF_X"]
     rail("F1a", xL, yF1, rx0 - xL, w)
     rail("F1b", rx1, yF1, xS + w - rx1, w)
@@ -891,10 +1338,9 @@ def _guard(A):
     # ---- wall panels (outside the frame, 2 mm above the deck, up to the rail tops)
     zp, hp = 2.0, L["GUARD_TOP"] - 2.0
     yo1, yo2, ybo, xlo, xro = g["yF1o"], g["yF2o"], g["yBo"], g["xLo"], g["xRo"]
-    hz_top = L["HOPPER_Z"] + L["HOPPER"][2]
     panel("F1a", (xlo, yo1, zp), (rx0 - xlo, t, hp))
     panel("F1b", (rx0, yo1, zp), (rx1 - rx0, t, hz_top - zp),
-          note="in front of the hoppers, up to their rim: above it the raw pour strip is open")
+          note="in front of the dough + topping hoppers, up to the lowest rim: above it the pour strip is open")
     panel("F1c", (rx1, yo1, zp), (xS + w - rx1, t, hp))
     panel("step", (xS + w, yo1, zp), (t, yo2 + t - yo1, hp))
     edges = [xS + w + t]
@@ -936,14 +1382,14 @@ def _guard(A):
                 panel("roof_0_0c", (rx1, y0, zr), (b - rx1, ys[1] - y0, t))
             else:
                 panel(f"roof_{r}_{c}", (a, y0, zr), (b - a, ys[r + 1] - y0, t))
-    # ---- hopper lids: the pour strip in front of the raw rail is the only way into a hopper
-    hw_, hd_, hh_ = L["HOPPER"]
-    for f, hx in zip(FLAV, L["HOPPER_X"]):
-        hy = L["HOPPER_Y"]
-        A(Part(f"hopper_{f}_wall_top", "feeder", "hopper", "box", (hx, ry, L["HOPPER_Z"] + hh_),
-               (hw_, hy + hd_ - ry, 3.0), "#d9eef7", hw="PC sheet 3 mm",
-               note="fixed lid (bonded): the AMR pours through the strip in front of the raw rail; the ToF "
-                    "level sensor looks through a window in it"))
+    # ---- dough hopper lid: the pour strip in front of the raw rail is the only way into it (the topping
+    # hoppers lie wholly under the strip; their own lids are hinged, interlocked by nothing - food-contact)
+    hl, hh = L["DEP_HOPPER"]
+    zh = dep_z()["hopper"] + hh
+    A(Part("dep_hopper_wall_top", "depositor", "hopper", "box", (dep_hopper_x0(), ry, zh), (hl, chamber_y()["i1"] - ry, 3.0),
+           "#c9ced2", hw="dough hopper 3 mm stainless",
+           note="fixed lid (welded): the AMR tips the tub through the strip in front of the raw rail; the ToF "
+                "level sensor looks through a window in it"))
     # ---- doors: bought leaf on 2 hinges at the hinge post, guard-locking switch on the lock post
     gs = H.SAFE["guard_lock"]["size"]
     for tag, wall, x0, x1 in L["DOORS"]:
@@ -1116,101 +1562,6 @@ def transfer_buffer():
     return int(belt // L["BOX"][0])
 
 
-def _tunnel(A, name, x0, x1, n_zone, zone_kind):
-    yf = y_front()
-    h2, wt, rt = L["TUN_HALF"], L["TUN_WALL"], L["TUN_ROOF"]
-    zr = z_cookie_top() + L["TUN_CLEAR"]
-    for side, y0 in (("in", yf - h2), ("out", yf + h2 - wt)):
-        A(Part(f"{name}_wall_{side}", "tunnel", name, "box", (x0, y0, 0), (x1 - x0, wt, zr), "#cf3a2f",
-               hw="insulated panel 12 mm (threaded inserts)", note="insulated wall"))
-    A(Part(f"{name}_roof", "tunnel", name, "box", (x0, yf - h2, zr), (x1 - x0, 2 * h2, rt), "#2b2b2f",
-           hw="insulated panel 15 mm (threaded inserts)"))
-    for end, xe in (("in", x0), ("out", x1 - 3)):
-        hem = z_cookie_top() + L["CURTAIN_GAP"]
-        A(Part(f"{name}_curtain_{end}", "tunnel", name, "box", (xe, yf - h2 + wt, hem), (3.0, 2 * h2 - 2 * wt, zr - hem),
-               "#6b6f76", hw="silicone-glass curtain", note="fabric curtain; hem CURTAIN_GAP above the cookie"))
-    for k in range(n_zone):
-        xz = x0 + (k + 0.5) * (x1 - x0) / n_zone
-        if zone_kind == "heater":
-            A(Part(f"{name}_heater_{k}", "tunnel", name, "cyl", (xz, yf - h2 + wt, zr - 12), ("y", 2 * h2 - 2 * wt, 8.0),
-                   "#ffd27a", tag=f"Q{8 + k}", hw="heater_bar",
-                   note="heater zone (IR bar via SSR), closed-loop with its thermocouple"))
-            A(Part(f"{name}_tc_{k}", "tunnel", name, "cyl", (xz + 30, yf + 40, zr - 20), ("z", 20.0, 4.0), "#b9bec4",
-                   tag=f"TC{1 + k}", hw="tc_K", note="thermocouple (zone temperature -> PID / learned bake model)"))
-        else:
-            A(Part(f"{name}_fan_{k}", "tunnel", name, "cyl", (xz, yf, zr + rt), ("z", 25.0, 80.0), "#474b52",
-                   tag=f"Q{11 + k}", mech="spin:fan", hw="fan_80", note="cooling fan"))
-
-
-def stamp_frame():
-    """z levels of the flying stamp, bottom up, all derived from the catalogue."""
-    bore, stroke = L["STAMP_CYL"]
-    zs = z_cookie_top() + L["STAMP_CLEAR"]            # die underside, retracted
-    z_rod = zs + 10
-    z_cyl = z_rod + L["ROD_OUT"]
-    z_car = z_cyl + H.cyl_length(bore, stroke)
-    rail = H.MGN[L["STAMP_RAIL"]]
-    z_blk = z_car + 10
-    z_plate = z_blk + rail["H"]                        # rail mounting face = cross plate underside
-    return dict(zs=zs, rod=z_rod, cyl=z_cyl, car=z_car, blk=z_blk, plate=z_plate)
-
-
-def _stamp(A):
-    yf = y_front()
-    x0 = L["STAMP_X0"]
-    z = stamp_frame()
-    rail = H.MGN[L["STAMP_RAIL"]]
-    xa, xb = x0 - 20, x0 + L["STAMP_STROKE"] + L["CARR_L"] + 45
-    zp = z["plate"]
-    for px in (xa - 30, xb):
-        for py in (yf - 90, yf + 60):
-            A(Part(f"stamp_post_{int(px)}_{int(py)}", "stamp", "frame", "box", (px, py, 0), (30.0, 30.0, zp - 30),
-                   "#d6d9da", mech="profile:3030", hw="HFS8-3030"))
-    for py in (yf - 90, yf + 60):
-        A(Part(f"stamp_beam_{int(py)}", "stamp", "frame", "box", (xa - 30, py, zp - 30), (xb - xa + 60, 30.0, 30.0),
-               "#d6d9da", mech="profile:3030", hw="HFS8-3030"))
-    A(Part("stamp_plate", "stamp", "axis", "box", (xa - 30, yf - 90, zp), (xb - xa + 60, 180.0, 8.0),
-           "#b9bec4", hw="Al plate 8 mm", note="cross plate: the rail hangs under it"))
-    yr = yf + L["STAMP_RAIL_DY"]                            # rail line: its block screws clear the cylinder
-    A(Part("stamp_rail", "stamp", "axis", "box", (xa, yr - rail["rail"][0] / 2, zp - rail["rail"][1]),
-           (xb - 40 - xa, rail["rail"][0], rail["rail"][1]), "#9aa3ab", hw=L["STAMP_RAIL"] + " rail",
-           note="miniature guideway, mounted upside down under the plate"))
-    A(Part("stamp_block", "stamp", "carriage", "box", (x0 + L["CARR_L"] / 2 - rail["L"] / 2, yr - rail["W"] / 2, z["blk"]),
-           (rail["L"], rail["W"], rail["H"] - 3.0), "#3b3e44", joint="stamp_x", hw=L["STAMP_RAIL"] + " block"))
-    ys = yf + 30                                           # spindle line beside the rail
-    zsp = z["car"] - 8
-    for k, bx in enumerate((xa, xb - 40)):
-        A(Part(f"stamp_bearing_{k}", "stamp", "axis", "box", (bx, ys - 12, zsp - 12), (15.0, 24.0, zp - zsp + 12),
-               "#8b9196", hw="608-2RS in pillow block" if k else "2x 608-2RS fixed block",
-               note="spindle support hung from the plate (fixed at the motor end, supported at the other)"))
-    A(Part("stamp_spindle", "stamp", "axis", "cyl", (xa, ys, zsp), ("x", xb - 25 - xa, H.LEADSCREW["Tr8x4"]["d"]),
-           "#cf3a2f", mech="thread:stamp_x", hw=L["STAMP_SCREW"], note="Tr8x4 lead screw"))
-    A(Part("stamp_coupling", "stamp", "axis", "cyl", (xb - 25, ys, zsp), ("x", 25.0, 20.0), "#9aa3ab",
-           hw="flexible coupling 5/8 D20"))
-    A(Part("stamp_motor_bracket", "stamp", "axis", "box", (xb, ys - 25, zsp - 24), (5.0, 50.0, zp - 5 - zsp + 24),
-           "#9aa3ab", hw="NEMA17 L bracket 5 mm"))
-    A(Part("stamp_motor_bracket_flange", "stamp", "axis", "box", (xb, ys - 25, zp - 5), (40.0, 50.0, 5.0),
-           "#9aa3ab", hw="NEMA17 L bracket 5 mm", note="flange of the L bracket, screwed to the plate"))
-    nema(A, "M_stamp_axis", "stamp", "axis", "x", xb + 5, (ys, zsp), None, L["STAMP_MOTOR"], tag="Q14", sign=1,
-         note="carriage slaved to the master axis while stamping (EL7047, closed loop)")
-    A(Part("stamp_carriage", "stamp", "carriage", "box", (x0, yf - 45, z["car"]), (L["CARR_L"], 95.0, 10.0),
-           "#2b2b2f", joint="stamp_x", hw="Al plate 10 mm"))
-    nut = H.LEADSCREW["Tr8x4"]["nut"]
-    A(Part("stamp_nut", "stamp", "carriage", "box", (x0 + 15, ys - 16, zsp - 12), (30.0, 32.0, z["car"] - zsp + 12),
-           "#e0a02a", joint="stamp_x", hw="Tr8x4 brass flange nut in a block",
-           note=f"flange D{nut['flange_d']:g} on the carriage underside"))
-    bore, stroke = L["STAMP_CYL"]
-    cyl6432(A, "stamp_cylinder", "stamp", "carriage", bore, stroke, "z", z["car"], (x0 + L["CARR_L"] / 2, yf), -1,
-            tag="Q16", joint="stamp_x", note="stamp cylinder, rear flange on the carriage")
-    A(Part("stamp_rod", "stamp", "tool", "cyl", (x0 + L["CARR_L"] / 2, yf, z["rod"]), ("z", L["ROD_OUT"], H.CYL[bore]["rod"]),
-           "#b9bec4", joint="stamp_z"))
-    A(Part("stamp_die", "stamp", "tool", "cyl", (x0 + L["CARR_L"] / 2, yf, z["zs"]), ("z", 10.0, L["STAMP_D"]), "#e0a02a",
-           joint="stamp_z", hw="heated flavour die", note="flavour die, heated"))
-    A(Part("stamp_sync_sensor", "stamp", "sensor", "box", (x0 - 75, yf - 55, L["BELT_Z"] + 5), (15.0, 7.5, 15.0),
-           "#1b8f52", tag="I8", hw="diffuse_M12",
-           note="puck-edge sensor: latches the master-axis position to phase the carriage"))
-
-
 def _qc(A):
     yb = y_back()
     x0, x1 = L["QC_X"]
@@ -1282,45 +1633,47 @@ def _qc(A):
            "#1b8f52", tag="IOL4", hw="tof_level", note="drawer fill level"))
 
 
-def _delta(A, name, xd, pose=None, static=True, moving=True):
-    yd, zd = L["DELTA_Y"], L["DELTA_Z"]
-    ex, ey, ez = pose or (xd, yd, L["TRAVEL_Z"])
+def _delta(A, name, xd, pose=None, static=True, moving=True, module="pick"):
+    yd, zd, _ = _dbase(xd)
+    ex, ey, ez = pose or (xd, yd, travel_z(xd))
     motor, gear = L["DELTA_MOTOR"], L["DELTA_GEAR"]
     ln = H.STEPPER[motor]["body"] + H.STEPPER[motor]["enc_len"] + H.GEARBOX[gear]["length"]
     rr = H.NEMA17["flange"] / 2 * math.sqrt(2) + 0.1                     # square body -> round envelope
     zb = zd + math.ceil(rr)
     if static:
-        A(Part(f"{name}_base", "pick", name, "cyl", (xd, yd, zb), ("z", 12.0, 2 * (L["DELTA_RB"] + 60)), "#2b2b2f",
+        A(Part(f"{name}_base", module, name, "cyl", (xd, yd, zb), ("z", 12.0, 2 * (L["DELTA_RB"] + 60)), "#2b2b2f",
                hw="Al base plate 12 mm"))
     for phi, sh, el, wr in delta_points(ex, ey, ez, xd):
         c, s = math.cos(math.radians(phi)), math.sin(math.radians(phi))
         tx, ty = -s, c                                                    # motor axis = tangent
         g = L["MOTOR_GAP"]
         if static:
-            A(Part(f"{name}_motor_{int(phi)}", "pick", name, "rod",
+            A(Part(f"{name}_motor_{int(phi)}", module, name, "rod",
                    (sh[0] - g * tx, sh[1] - g * ty, zd), (sh[0] - (g + ln) * tx, sh[1] - (g + ln) * ty, zd, 2 * rr),
                    "#e0492f", tag=f"{name}.M{int(phi)}", hw=f"{motor}+{gear}",
                    note="closed-loop NEMA 17 + precision planetary (backlash budget), hung under the base"))
-            A(Part(f"{name}_shaft_{int(phi)}", "pick", name, "rod",
+            A(Part(f"{name}_shaft_{int(phi)}", module, name, "rod",
                    (sh[0] - g * tx, sh[1] - g * ty, zd), (sh[0] + 8 * tx, sh[1] + 8 * ty, zd,
                                                           H.GEARBOX[gear]["shaft"][0]), "#9aa3ab"))
         if moving:
-            A(Part(f"{name}_upper_{int(phi)}", "pick", name, "rod", sh, (*el, 12.0), "#d6d9da", joint=name,
+            A(Part(f"{name}_upper_{int(phi)}", module, name, "rod", sh, (*el, 12.0), "#d6d9da", joint=name,
                    hw="CFK tube 12 + clamp hub"))
-            A(Part(f"{name}_pin_{int(phi)}", "pick", name, "rod", (el[0] - 18 * tx, el[1] - 18 * ty, el[2]),
+            A(Part(f"{name}_pin_{int(phi)}", module, name, "rod", (el[0] - 18 * tx, el[1] - 18 * ty, el[2]),
                    (el[0] + 18 * tx, el[1] + 18 * ty, el[2], 8.0), "#9aa3ab", joint=name,
                    hw="elbow cross pin D8, ball studs"))
             for k in (-1, 1):
                 o = 18 * k
-                A(Part(f"{name}_fore_{int(phi)}_{'ab'[k > 0]}", "pick", name, "rod",
+                A(Part(f"{name}_fore_{int(phi)}_{'ab'[k > 0]}", module, name, "rod",
                        (el[0] + o * tx, el[1] + o * ty, el[2]), (wr[0] + o * tx, wr[1] + o * ty, wr[2], 5.0),
                        "#2b2b2f", joint=name, hw="CFK rod 5 + ball joints", note="parallelogram"))
     if moving:
-        A(Part(f"{name}_effector", "pick", name, "cyl", (ex, ey, ez), ("z", 10.0, 2 * L["DELTA_RE"] + 16), "#e0492f",
+        A(Part(f"{name}_effector", module, name, "cyl", (ex, ey, ez), ("z", 10.0, 2 * L["DELTA_RE"] + 16), "#e0492f",
                joint=name, hw="Al effector"))
-        A(Part(f"{name}_cup", "pick", name, "cyl", (ex, ey, ez - L["CUP_L"]), ("z", L["CUP_L"], 24.0), "#26282b",
-               joint=name, tag=f"{name}.VAC", hw="bellows cup D24 on spring stem",
-               note="vacuum cup: ejector valve (DO) + vacuum switch (DI)"))
+        for k, sx in enumerate((-1, 1)):                  # twin cups straddle the topping drop in the centre
+            A(Part(f"{name}_cup_{'ab'[k]}", module, name, "cyl", (ex + sx * L["CUP_OFF"], ey, ez - L["CUP_L"]),
+                   ("z", L["CUP_L"], L["CUP_D"]), "#26282b", joint=name, tag=f"{name}.VAC" if k == 0 else "",
+                   hw=f"bellows cup D{L['CUP_D']:g} on spring stem",
+                   note="twin vacuum cups on one ejector: ejector valve (DO) + vacuum sensor"))
 
 
 def portal():
@@ -1602,9 +1955,10 @@ def _control(A):
 
 def _ports(A):
     """Docking faces for the AMR fleet (the robots themselves stay on the floor)."""
-    A(Part("port_raw", "ports", "port", "box", (L["HOPPER_X"][0], 0.0, 0.0),
-           (L["HOPPER_X"][-1] + L["HOPPER"][0] - L["HOPPER_X"][0], 14.0, 40.0), "#1f4e8c", hw="docking plate Al 14 mm",
-           note="front edge: raw-tote docking face (tipping tote refills a hopper from the front)"))
+    rx0, rx1, _ = raw_strip()
+    A(Part("port_raw", "ports", "port", "box", (rx0, 0.0, 0.0), (rx1 - rx0, 14.0, 40.0), "#1f4e8c",
+           hw="docking plate Al 14 mm",
+           note="front edge: dough tub / topping refill docking face (the AMR tips through the pour strip)"))
     A(Part("port_out", "ports", "port", "box", (L["TABLE"][0] - 14, L["LANE_Y"][0] - 60, 0.0),
            (14.0, L["LANE_Y"][-1] - L["LANE_Y"][0] + 120, 40.0), "#1f4e8c", hw="docking plate Al 14 mm",
            note="right edge: full cassette out, empty cassette in"))
@@ -1618,9 +1972,10 @@ def _ports(A):
 
 MODULES = {
     "M1_loop": "Main loop - side-flexing flat-top chain, 48 NFC pucks, intermediate drive, master encoder",
-    "M2_feeder": "Feeder - dual magazines per flavour, lead-compensated gravity drop, NFC write",
-    "M3_tunnel": "Tunnel oven (3 heater zones) + cooling tunnel (2 fans)",
-    "M4_stamp": "Flying stamp - MGN12H carriage on a Tr8x4 screw slaved to the master axis",
+    "M2_depositor": "Depositor - plain-dough wire-cut (6 rows) + thumbprint topping (3 flavours, 2 rows each)",
+    "M3_oven": "Band oven - stainless mesh band, 3 zones (tubular elements top + bottom, impingement fans, duplex "
+               "TC + STB), impingement cooling, 400 V 3-phase (oven.py)",
+    "M4_transfer": "Transfer - delta C picks each cookie off the band end into a passing puck on the right bend",
     "M5_qc": "Vision QC hood + colour sensor + on-the-fly reject",
     "M6_pick": "Pick cell - two tracking delta robots (N+1) on a portal",
     "M7_pack": "Box lanes (3 flavours) + bottom-up stackers into pack cassettes (AMR exchange through the airlock)",
@@ -1629,7 +1984,7 @@ MODULES = {
     "M10_safety": "Safety - perimeter guard + roof, 3 doors with guard locking, AMR airlocks (boxes: trapdoor "
                   "chamber, cassettes: inner + outer door), E-stops (TwinSAFE, SAFETY_CONCEPT.md)",
 }
-_MOD_OF = {"loop": "M1_loop", "feeder": "M2_feeder", "tunnel": "M3_tunnel", "stamp": "M4_stamp",
+_MOD_OF = {"loop": "M1_loop", "depositor": "M2_depositor", "oven": "M3_oven", "transfer": "M4_transfer",
            "qc": "M5_qc", "pick": "M6_pick", "pack": "M7_pack", "control": "M8_control", "ports": "M9_ports",
            "safety": "M10_safety"}
 
@@ -1637,8 +1992,7 @@ _MOD_OF = {"loop": "M1_loop", "feeder": "M2_feeder", "tunnel": "M3_tunnel", "sta
 def _actuator_parts():
     out = []
     A = out.append
-    _feeder(A)
-    _stamp(A)
+    _depositor(A)
     _qc(A)
     _lanes(A)
     return out
@@ -1665,7 +2019,7 @@ def _zone_parts():
 def n_valves():
     """Solenoid valves = pneumatic actuators (one valve per cylinder group) + vacuum ejectors."""
     cyl = {p.tag for p in _actuator_parts() if p.hw.startswith("ISO6432") and p.tag}
-    n = len(cyl) + len(L["DELTA_X"])
+    n = len(cyl) + len(L["DELTA_X"]) + 1                 # + delta C's ejector
     if L.get("SAFE1") and L.get("AIRLOCK"):            # airlock door drives + trapdoor actuators
         n += sum(1 for p in _zone_parts() if p.hw in ("airlock_door", "trapdoor unit"))
     return n
@@ -1677,12 +2031,10 @@ def build(t=0.0, with_product=True):
     _loop_parts(A)
     if with_product:
         _pucks(A, t)
-    _feeder(A)
-    o0, o1 = oven_x()
-    _tunnel(A, "oven", o0, o1, L["HEATERS"], "heater")
-    c0, c1 = cool_x()
-    _tunnel(A, "cool", c0, c1, L["FANS"], "fan")
-    _stamp(A)
+        _band_product(A, t)
+    _depositor(A)
+    _oven(A)
+    _transfer(A)
     _qc(A)
     _pick(A)
     _lanes(A)
@@ -1730,21 +2082,49 @@ def timing():
     err = L["N"] * L["PITCH"] - loop_len()
     row("loop closes", f"N*P - (2S + 2piR) = {err:+.2f} mm", f"|..| <= take-up {L['TAKEUP']:g}",
         abs(err) <= L["TAKEUP"], "S on the 0.1 mm grid; the drive unit's take-up absorbs the rest")
-    tf = drop_time()
-    lead = L["V"] * tf
-    resid = L["V"] * L["VALVE_JITTER"]
-    clr = (L["NEST"][0] - L["COOKIE"][0]) / 2
-    row("feeder drop", f"fall {tf * 1000:.0f} ms -> belt moves {lead:.2f} mm, released {lead:.2f} mm early; "
-        f"residual {resid:.2f} mm", f"nest radial clearance {clr:.2f} mm", resid <= clr,
-        "without the lead the cookie would land %.2f mm off (> clearance)" % lead)
-    row("tunnel oven", f"{oven_len():.0f} mm at {L['V']:g} mm/s", f"bake {L['BAKE_S']:g} s", True,
-        "no door, no slider: bake time = length / speed")
-    row("cooling tunnel", f"{cool_len():.0f} mm", f"cool {L['COOL_S']:g} s", True, "")
-    track, dist, cyc = stamp_cycle()
-    row("flying stamp cycle", f"{cyc:.2f} s", f"<= takt {T:.2f} s", cyc <= T,
-        f"tracks {track:.2f} s = {dist:.0f} mm, returns at {L['RETURN_V']:g}x")
-    row("flying stamp stroke", f"needs {dist + 20:.0f} mm", f"has {L['STAMP_STROKE']:g} mm",
-        dist + 20 <= L["STAMP_STROKE"], "tracking distance + 20 mm accel/decel margin")
+    B = L["BAND"]
+    row("flavour rows on the band", f"{B['rows']} rows, {len(FLAV)} flavours", "rows % flavours == 0, MIX 1:1:1",
+        B["rows"] % len(FLAV) == 0 and len(set(L["MIX"])) == 1,
+        "row k carries flavour k mod 3: delta C picks a row in order -> W R B W R B on the loop")
+    v = band_v()
+    rows.append(("band speed", f"{v:.3f} mm/s", f"one row of {B['rows']} per {B['rows'] * T:.0f} s", True,
+                 f"{B['spacing']:g} mm row pitch; electronically geared to the master axis"))
+    tb, tc = bake_t(), cool_t()
+    _, sb = OV.simulate(L, OV.bake_segments(L, tb), record=1e9)
+    Q = L["BAKE_Q"]
+    row("bake (oven.py, 1-D + evaporation)", f"{tb:.0f} s: core >= {Q['core_min']:g} C for {sb['core_hold']:.0f} s, "
+        f"water {sb['moisture']:.1%}, colour {sb['colour']:.2f}",
+        f"hold >= {Q['core_hold']:g} s, water <= {Q['w_end']:.0%}, colour {Q['colour'][0]:g}..{Q['colour'][1]:g}",
+        OV.baked_ok(L, sb), "the shortest residence that bakes it; the band length follows from it")
+    st = stations()
+    rows.append(("oven length", f"{len(L['OVEN_ZONES'])} zones x {zone_len():.0f} mm",
+                 f"= {v:.3f} mm/s x {tb:.0f} s", True, "zones " + " / ".join(f"{z['T']:g}" for z in L["OVEN_ZONES"]) + " C"))
+    _, sc = OV.profile(L, tb, tc, record=1e9, t_gap=band_gaps()[0], t_nose=band_gaps()[1])
+    row("band cooling", f"hood {cool_len():.0f} mm = {tc:.0f} s -> max {sc['T_max']:.1f} C at the pick window",
+        f"<= T_TRANSFER {L['T_TRANSFER']:g} C", sc["T_max"] <= L["T_TRANSFER"],
+        f"impingement hood {L['COOLING']['band']['h_top']:g}/{L['COOLING']['band']['h_bot']:g} W/m2K")
+    win = L["PICK_W"] / v
+    row("row emptied in the pick window", f"{win:.1f} s", f">= {B['rows']} takts = {B['rows'] * T:.0f} s",
+        win >= B["rows"] * T, "delta C takes one cookie per takt; a row never reaches the nose")
+    cap_c = 1 / L["T_PICK"]
+    row("transfer capacity, delta C", f"{cap_c:.2f} /s", f">= demand {1 / T:.2f} /s", cap_c >= 1 / T,
+        "single transfer: a miss falls into the crumb pan (counted loss) - the band cannot stop with the oven hot")
+    a0, a1 = L["PLACE_TH"]
+    arc = L["R"] * math.radians(a1 - a0)
+    row("place window on the bend", f"{arc:.0f} mm = {arc / L['V']:.1f} s", f">= reach+grip {L['T_GRAB']:g} s",
+        arc / L["V"] >= L["T_GRAB"], "delta C tracks the puck along the arc (IK at 7 points)")
+    t_loop = (s_back(L["DELTA_X"][1]) - bend_s(L["TRANSFER_TH"][1])) / L["V"]
+    _, sp = OV.profile(L, tb, tc, [("pick window", L["PICK_W"] / v, "loop"), ("loop", t_loop, "loop")], record=1e9,
+                       t_gap=band_gaps()[0], t_nose=band_gaps()[1])
+    row("cookie at the picker", f"max {sp['T_max']:.1f} C after {t_loop:.0f} s on the loop", f"<= T_PACK {L['T_PACK']:g} C",
+        sp["T_max"] <= L["T_PACK"], "a warm cookie sealed in film sweats (condensate in the pack)")
+    cyy = chamber_y()
+    g = guard()
+    x0p, x1p, y0p, _, _ = portal()
+    row("band unit fits", f"y {cyy['o0']:.0f}..{cyy['o1']:.0f}, x {st['x0'] - L['BAND']['drum'] / 2:.0f}.."
+        f"{st['e'] + L['BAND']['drum'] / 2 + 24:.0f}", f"guard y >= {g['yF2'] + 20:.0f}, portal y0 {y0p:.0f}, x <= curve",
+        cyy["o0"] >= g["yF2"] + 20 and cyy["o1"] < y0p and st["x0"] - L["BAND"]["drum"] / 2 > g["xL"] + 20,
+        "raised over the loop's front run: the chain stays out of the heat")
     d_ai = L["CAM_X"] - L["KICK_X"]
     row("QC verdict before the kicker", f"{d_ai / L['V']:.1f} s of travel", f">= AI latency {L['AI_LATENCY']:g} s",
         d_ai / L["V"] >= L["AI_LATENCY"] + L["KICK_T"], "camera -> kicker distance / v")
@@ -1781,21 +2161,21 @@ def timing():
     row("film autonomy", f"{t_film:.1f} h per lane", ">= 8 h shift", t_film >= 8.0,
         f"{L['REELS']} reels x {packs_per_reel:.0f} packs, auto-splice; reload at shift change")
     rf = rate_flavour()
-    row("singulator keeps up", f"{1 / L['SINGULATE_S']:.2f} cookies/s", f">= flavour rate {rf:.3f}/s",
-        1 / L["SINGULATE_S"] >= rf, "hopper disc refills the tube buffer faster than the belt drains it")
-    worst_ang = 90.0
-    for i in range(3):
-        for p0, p1 in chute(i):
-            run = math.hypot(p1[0] - p0[0], p1[1] - p0[1])
-            worst_ang = min(worst_ang, math.degrees(math.atan2(p0[2] - p1[2], run)))
-    row("chutes run downhill", f"steepest-worst {worst_ang:.1f} deg", f">= {L['CHUTE_SLOPE']:g} deg",
-        worst_ang >= L["CHUTE_SLOPE"], "v3 chutes rose 5 mm from the disc to the tube - found in the precise phase")
-    a_hop = hopper_cap() / rf
+    a_dough, a_top = dough_autonomy(), topping_autonomy()
+    vol = L["DEP_HOPPER"][0] * (chamber_y()["i1"] - L["DEP_HOPPER_Y0"]) * L["DEP_HOPPER"][1] * 1e-9
+    row("dough fits its hopper", f"{L['DOUGH_KG']:g} kg = {L['DOUGH_KG'] / L['DOUGH_RHO'] * 1000:.1f} l",
+        f"<= 80 % of {vol * 1000:.1f} l", L["DOUGH_KG"] / L["DOUGH_RHO"] <= 0.8 * vol, "")
+    td, th = L["TOP_HOPPER"]
+    tv = math.pi * (td / 2) ** 2 * th * 1e-9
+    row("topping fits its hopper", f"{L['TOP_KG']:g} kg = {L['TOP_KG'] / L['TOP_RHO'] * 1000:.2f} l",
+        f"<= 80 % of {tv * 1000:.2f} l", L["TOP_KG"] / L["TOP_RHO"] <= 0.8 * tv, "")
     a_cas = cass_cap() * L["PACK"] / rf
     a_box = L["BOXMAG_CAP"] * L["PACK"] / rf
     a_rej = reject_cap() / (1 / T * 0.05)
-    rows.append(("STOCK raw hopper", f"{hopper_cap()} cookies", f"{a_hop / 60:.0f} min per flavour", True,
-                 f"+ {2 * L['MAG_CAP']} in the A/B tubes"))
+    rows.append(("STOCK dough hopper", f"{L['DOUGH_KG']:g} kg", f"{a_dough / 60:.0f} min", True,
+                 f"{L['DOUGH_M'] * 1000:g} g per cookie, one plain dough"))
+    rows.append(("STOCK topping hoppers", f"3 x {L['TOP_KG']:g} kg", f"{a_top / 60:.0f} min each", True,
+                 f"{L['TOPPING']['m'] * 1000:g} g per drop"))
     if L.get("AIRLOCK"):
         sw = cass_swap_t()
         rows.append(("STOCK finished cassette", f"{cass_cap()} packs = {cass_cap() * L['PACK']} cookies",
@@ -1812,10 +2192,11 @@ def timing():
     # AMR: a task's DEADLINE is the autonomy left when it is requested; the worst
     # case response of ONE robot is every other port task queued ahead of it.
     dl = {"cassette swap": a_cas,                          # other cassette fills meanwhile
-          "raw refill": L["REQ_HOPPER"] * a_hop,
+          "dough refill": L["REQ_HOPPER"] * a_dough,
+          "topping refill": L["REQ_HOPPER"] * a_top,
           "box refill": L["REQ_BOXMAG"] * a_box,
           "reject drawer": (1 - L["REQ_REJECT"]) * a_rej}
-    n_tasks = 3 + 3 + 3 + 1
+    n_tasks = 1 + 3 + 3 + 3 + 1                       # dough, 3 toppings, 3 cassettes, 3 box mags, reject
     worst = n_tasks * (L["AMR_TRIP"] + L["AMR_HANDLE"])
     if L.get("AIRLOCK"):
         # no standby cassette any more: the exchange is timed by the lift counter, a late AMR blocks
@@ -1832,8 +2213,9 @@ def timing():
             fails.append("AMR call for the cassette exchange shorter than the trip")
     for k, d_ in dl.items():
         row(f"AMR deadline: {k}", f"{d_ / 60:.1f} min", f">= worst case ONE robot {worst / 60:.1f} min",
-            d_ >= worst, "all 10 port tasks queued ahead - so one AMR suffices and the 2nd is N+1")
-    per_h = (3 * 3600 / a_cas) + 3 * rf * 3600 / L["RAW_TOTE"] + 3 * 3600 / ((1 - L["REQ_BOXMAG"]) * a_box) + 0.2
+            d_ >= worst, f"all {n_tasks} port tasks queued ahead - so one AMR suffices and the 2nd is N+1")
+    per_h = (3 * 3600 / a_cas) + 3600 / ((1 - L["REQ_HOPPER"]) * a_dough) + 3 * 3600 / ((1 - L["REQ_HOPPER"]) * a_top) \
+        + 3 * 3600 / ((1 - L["REQ_BOXMAG"]) * a_box) + 0.2
     util = per_h * (L["AMR_TRIP"] + L["AMR_HANDLE"]) / 3600
     if L.get("AIRLOCK"):                               # the robot waits at the port through the exchange
         # the robot's handling time IS the exchange; extra = waiting for full + exchange beyond handling
@@ -1875,21 +2257,28 @@ def sizing():
     avail = H.stepper_torque("17HS19-2004D-E1000", n_mot)
     row("Q1 motor torque at speed", f"{t_mot:.3f} Nm @ {n_mot:.0f} rpm", f"<= {avail:.3f} Nm (50 % derate)",
         t_mot <= avail, "17HS19 closed loop on EL7047")
-    # --- stamp axis: Tr8x4 on MGN12H
-    ls = H.LEADSCREW[L["STAMP_SCREW"]]
-    v_ret = L["RETURN_V"] * L["V"]
-    n_s = v_ret / ls["lead"] * 60
-    span = (L["STAMP_X0"] + L["STAMP_STROKE"] + L["CARR_L"] + 45 - 40) - (L["STAMP_X0"] - 20 + 15)
-    n_c = H.WHIP_F["fixed-supported"] * ls["root"] / span ** 2 * 1e7
-    row("stamp screw critical speed", f"{n_s:.0f} rpm", f"<= {H.WHIP_MARGIN:.0%} of {n_c:.0f} rpm (L {span:.0f})",
-        n_s <= H.WHIP_MARGIN * n_c, "Tr8x4 fixed-supported")
-    a = v_ret / 1000 / L["T_ACC"]
-    F = L["STAMP_M"] * a
-    t_load = F * ls["lead"] / 1000 / (2 * math.pi * ls["eff"])
-    t_rot = H.ROTOR_J[L["STAMP_MOTOR"]] * (n_s * 2 * math.pi / 60) / L["T_ACC"]
-    avail = H.stepper_torque(L["STAMP_MOTOR"], n_s)
-    row("Q14 stamp motor torque", f"{t_load + t_rot:.3f} Nm @ {n_s:.0f} rpm", f"<= {avail:.3f} Nm",
-        t_load + t_rot <= avail, f"carriage {L['STAMP_M']:g} kg to {v_ret:.0f} mm/s in {L['T_ACC']:g} s + rotor inertia")
+    # --- Q40 band drive: slider-bed / skid friction of the carry run + product, pan friction of the return,
+    # pulled by the drive drum through a PG27 (0.5 rpm at the drum)
+    B = L["BAND"]
+    run = (stations()["e"] - stations()["x0"]) / 1000
+    m_carry = B["m_area"] * band_w() / 1000 * run + run * 1000 / B["spacing"] * B["rows"] * L["DOUGH_M"]
+    m_ret = B["m_area"] * band_w() / 1000 * run
+    F = H.BAND_MESH["mu_skid"] * (m_carry + m_ret) * G
+    r_d = B["drum"] / 2000
+    gb = H.GEARBOX["PG27"]
+    n_drum = band_v() / (math.pi * B["drum"]) * 60
+    t_out = F * r_d * 1.5                                  # x1.5: take-up tension difference + bearings
+    row("Q40 band drive gearbox PG27", f"{t_out:.2f} Nm", f"<= rated {gb['T_rated']:g} Nm", t_out <= gb["T_rated"],
+        f"{m_carry + m_ret:.1f} kg of mesh + dough, mu {H.BAND_MESH['mu_skid']:g}; drum {n_drum:.2f} rpm")
+    t_mot = t_out / gb["ratio"] / gb["eff"]
+    avail = H.stepper_torque("17HS19-2004D-E1000", n_drum * gb["ratio"])
+    row("Q40 band motor", f"{t_mot:.3f} Nm @ {n_drum * gb['ratio']:.1f} rpm", f"<= {avail:.3f} Nm", t_mot <= avail,
+        "closed loop, geared to the master axis")
+    t_mot = L["DEP_T"] / gb["ratio"] / gb["eff"]
+    n_r = 60 / (B["rows"] * takt()) * 2                    # ~2 roll turns per row [assumed]
+    avail = H.stepper_torque("17HS19-2004D-E1000", n_r * gb["ratio"])
+    row("Q41 depositor roll motor", f"{t_mot:.3f} Nm @ {n_r * gb['ratio']:.0f} rpm", f"<= {avail:.3f} Nm", t_mot <= avail,
+        f"rolls {L['DEP_T']:g} Nm [assumed] via PG27")
     # --- delta pickers: torque and placement error from the Jacobian at every pose
     gear = H.GEARBOX[L["DELTA_GEAR"]]
     worst_t, worst_err, worst_rpm = 0.0, 0.0, 0.0
@@ -1904,7 +2293,7 @@ def sizing():
         for k in range(3):                                   # arm k
             col = [J[r][k] / 1000 for r in range(3)]          # m/rad
             tq = Fm * math.sqrt(sum(c * c for c in col)) + \
-                L["DELTA_ARM_M"] * G * L["DELTA_L1"] / 2000 * abs(math.cos(math.radians(ang[k])))
+                L["DELTA_ARM_M"] * G * _darms(xd)[2] / 2000 * abs(math.cos(math.radians(ang[k])))
             worst_t = max(worst_t, tq)
             w = L["DELTA_VMAX"] / math.sqrt(sum(c * c for c in col))       # rad/s if all speed on this arm
             worst_rpm = max(worst_rpm, w * 60 / (2 * math.pi) * gear["ratio"])
@@ -1919,13 +2308,7 @@ def sizing():
     row("delta placement error (backlash + steps)", f"{worst_err:.3f} mm", f"<= DELTA_REP {L['DELTA_REP']:g} mm",
         worst_err <= L["DELTA_REP"], f"{H.BACKLASH_ARCMIN[L['DELTA_GEAR']]:g}' backlash: a PG5 (60') would give "
                                      f"{worst_err * math.radians(1.0 + H.STEP_ACC_DEG / 5.18) / e:.1f} mm")
-    # --- singulator and shuttle
-    gb = H.GEARBOX["PG14"]
-    n_d = 60 / (6 * L["SINGULATE_S"])
-    t_m = L["SING_T"] / gb["ratio"] / gb["eff"]
-    avail = H.stepper_torque(L["SING_MOTOR"], n_d * gb["ratio"])
-    row("singulator motor", f"{t_m:.3f} Nm @ {n_d * gb['ratio']:.0f} rpm", f"<= {avail:.3f} Nm", t_m <= avail,
-        f"disc {L['SING_T']:g} Nm [assumed] via PG14")
+    # --- shuttle
     lock = L.get("AIRLOCK")
     ms = (1 if lock else 2) * (L["CASS_M"] + cass_cap() * L["PACK_M"])
     d = L["CASS_X"][1] - L["CASS_X"][0]
@@ -1944,15 +2327,15 @@ def sizing():
     bh = L["BOX"][2]
     flange_area = L["BOX"][0] * L["BOX"][1] - (L["BOX"][0] - 2 * L["FLANGE"]) * (L["BOX"][1] - 2 * L["FLANGE"])
     cyls = [
-        ("escapement gate", L["ESC_CYL"], L["ESC_F"], L["MAG_ID"] + 3, "retract", None),
-        ("stamp", L["STAMP_CYL"], L["STAMP_F"], L["STAMP_CLEAR"], "extend", None),
+        ("topping dosing", L["TOP_CYL"], L["TOP_F"], 2 * L["TOPPING"]["m"] / L["TOP_RHO"] * 1e9 /
+         (math.pi * L["TOP_CYL"][0] ** 2 / 4), "extend", None),
         ("kicker", L["KICK_CYL"], 5.0, L["KICK_STROKE"], "extend", L["KICK_STROKE"] / L["KICK_T"]),
         ("stacker lift", L["STACK_CYL"], cass_cap() * L["PACK_M"] * G + 4 * L["PAWL_F"], L["PAWL"] + bh, "extend", None),
         ("sealer", L["SEAL_CYL"], L["SEAL_P"] * flange_area, L["SEAL_GAP"], "extend", None),
         ("tray forks", L["FORK_CYL"], 2.0, 6.0, "extend", None),
     ]
     air = 0.0
-    per_h = {"escapement gate": 3600 / takt(), "stamp": 3600 / takt(), "kicker": 0.05 * 3600 / takt(),
+    per_h = {"topping dosing": 3 * rate_flavour() * 3600 / 2, "kicker": 0.05 * 3600 / takt(),
              "stacker lift": 3600 / takt() / L["PACK"], "sealer": 3600 / takt() / L["PACK"],
              "tray forks": 2 * 3600 / takt() / L["PACK"]}
     for name, (bore, stroke), need, s_need, way, v in cyls:
@@ -1963,10 +2346,64 @@ def sizing():
             ok, f"ISO 6432 at {H.P_SUPPLY * 10:g} bar ({way})")
         vol = math.pi * bore ** 2 / 4 * stroke * 2 / 1e6          # litres per double stroke
         air += vol * (H.P_SUPPLY * 10 + 1) * per_h[name] / 60     # Nl/min
-    air += len(L["DELTA_X"]) * H.EJECTOR["q"] * L["T_GRAB"] / L["T_PICK"]
+    air += (len(L["DELTA_X"]) + 1) * H.EJECTOR["q"] * L["T_GRAB"] / L["T_PICK"]
     air *= 1.1
     row("air consumption", f"{air:.1f} Nl/min (+10 % leakage)", f"<= {H.AIR_DUTY:.0%} of FAD {H.AIR['fad']:g}",
         air <= H.AIR_DUTY * H.AIR["fad"], "the v3 on-table 66 mm toy compressor is gone; ejectors dominate")
+    return rows, fails
+
+
+def oven_proofs():
+    """The band oven's heat and power, every number from oven.py: zone loads vs installed elements, sheath
+    load, warm-up, outer skin, the loop under the oven, the 400 V 3N~ supply per phase, RCD leakage, SSRs."""
+    rows, fails = [], []
+
+    def row(name, value, limit, ok, note):
+        rows.append((name, value, limit, ok, note))
+        if not ok:
+            fails.append(f"OVEN {name}: {value} vs {limit} - {note}")
+
+    loads, els, plan, warm = oven_power()
+    cz, cy = chamber_z(), chamber_y()
+    for z in loads:
+        inst = sum(e["P"] for e in els if e["zone"] == z["zone"])
+        n_t = sum(1 for e in els if e["zone"] == z["zone"] and e["face"] == "top")
+        n_b = sum(1 for e in els if e["zone"] == z["zone"] and e["face"] == "bot")
+        row(f"{z['zone']} {z['T']:g} C load / installed", f"{z['total']:.0f} W / {inst:.0f} W ({z['total'] / inst:.0%})",
+            f"<= {L['HEADROOM']:.0%}", z["total"] <= L["HEADROOM"] * inst,
+            f"product {z['product']:.0f}, band {z['band']:.0f}, walls {z['walls']:.0f}, mouth {z['mouth']:.0f}, "
+            f"exhaust {z['exhaust']:.0f} W; {n_t} top + {n_b} bottom elements")
+    worst = max(els, key=lambda e: e["load_Wcm2"])
+    row("element sheath load (worst)", f"{worst['load_Wcm2']:.2f} W/cm2 ({worst['tag']})", f"<= {H.TUBULAR_WCM2:g} W/cm2",
+        worst["load_Wcm2"] <= H.TUBULAR_WCM2, "Incoloy sheath in forced air")
+    tw = max(t for _, t, _ in warm)
+    row("warm-up from cold (all elements on)", f"{tw / 60:.1f} min (" + ", ".join(f"{z} {t / 60:.0f}" for z, t, _ in warm) + ")",
+        f"<= {L['WARMUP_MAX'] / 60:.0f} min", tw <= L["WARMUP_MAX"], "lumped chamber: skins, band, elements, half the wool")
+    skin = max(z["skin"] for z in loads)
+    row("outer skin (hottest zone)", f"{skin:.1f} C", f"<= {L['SKIN_MAX']:g} C", skin <= L["SKIN_MAX"],
+        f"{L['CHAMBER']['insul']:g} mm mineral wool; burn threshold for 10 s on bare metal (EN ISO 13732-1) [typ]")
+    lim = min(H.TEMP_LIMIT["POM chain"], H.TEMP_LIMIT["UHMW-PE track"], H.TEMP_LIMIT["NFC tag"])
+    row("loop under the oven", f"floor skin {skin:.1f} C, return band on the pan", f"<= {lim:g} C (POM / UHMW / NFC)",
+        skin <= lim, "the chain, its track and the tags never enter the heat")
+    S = H.SUPPLY
+    amps = {ph: sum(w for _, w in items) / S["U"] for ph, items in plan.items()}
+    imax = max(amps.values())
+    row("400 V 3N~ supply, worst phase", "  ".join(f"{p} {a:.1f} A" for p, a in amps.items()),
+        f"<= {S['load_max']:.0%} of {S['I']:g} A", imax <= S["load_max"] * S["I"],
+        f"{sum(e['P'] for e in els) / 1000:.2f} kW elements + fans; CEE 16 A, 30 mA RCD type A")
+    unb = (imax - min(amps.values())) / imax
+    row("phase balance", f"{unb:.0%} spread", "<= 25 %", unb <= 0.25, "largest-first onto the least loaded phase")
+    leak = len(els) * H.LEAK_mA["tubular"] + 4 * H.LEAK_mA["psu"]
+    row("protective-conductor current", f"{leak:.1f} mA", f"<= 30 % of {S['rcd_mA']:g} mA RCD",
+        leak <= 0.3 * S["rcd_mA"], f"{len(els)} elements + 4 PSUs, hot and dry [typ]")
+    ssr = H.SSR_AC25
+    ie = max(e["P"] for e in els) / S["U"]
+    tc = 40.0 + ssr["R_th"] * ssr["U_drop"] * ie
+    row("element SSR (worst)", f"{ie:.2f} A, case {tc:.0f} C", f"<= {ssr['I']:g} A, case <= 80 C", ie <= ssr["I"] and tc <= 80,
+        "one SSR per element on its DIN heatsink, cabinet air 40 C")
+    tot = sum(z["total"] for z in loads)
+    rows.append(("energy per cookie", f"{tot * takt() / 3600:.2f} Wh", f"steady {tot / 1000:.2f} kW at {3600 / takt():.0f}/h",
+                 True, "product " + f"{sum(z['product'] for z in loads) / tot:.0%}" + " of it; the rest heats band, walls, air"))
     return rows, fails
 
 
@@ -1976,7 +2413,7 @@ def reach():
     for i, xd, (x, y, z), kind in delta_poses():
         n += 1
         if delta_ik(x, y, z, xd) is None:
-            fails.append(f"REACH delta_{'AB'[i]}: {kind} ({x:.0f},{y:.0f},{z:.0f})")
+            fails.append(f"REACH delta_{'ABC'[i]}: {kind} ({x:.0f},{y:.0f},{z:.0f})")
     return fails, n
 
 
@@ -2056,6 +2493,24 @@ def allowed(a, b):
                       ("stamp_rail", "stamp_block", "MGN block on its rail")):
         if {a.name, b.name} & {u} and any(n.startswith(v) for n in (a.name, b.name)) and u != v:
             return why
+    if a.name.startswith("top_hose_") and b.name.startswith("top_hose_") and a.name[:-2] == b.name[:-2]:
+        return "one hose (straight runs joined by a bend)"
+    for u, v in ((a, b), (b, a)):
+        if u.name.startswith("top_hose_") and v.name == "top_rack":
+            return "through-hole: hose through the rack plate into the hopper outlet"
+        if u.name.startswith("top_hose_") and v.name == "top_manifold":
+            return "hose in its manifold port (barb)"
+        if u.name.startswith("top_hose_") and v.name.startswith("top_hopper_") and u.name.split("_")[2] == v.name.split("_")[2]:
+            return "hose on its hopper outlet"
+    for u, v in ((a, b), (b, a)):
+        if u.name.startswith("drum_") and u.name.endswith("_shaft"):
+            d = u.name.split("_")[1]
+            if v.name == f"drum_{d}":
+                return "drum keyed on its shaft"
+            if v.name.startswith(f"drum_{d}_bearing"):
+                return "shaft in its bearing unit"
+            if v.name.startswith("band_plate_"):
+                return "through-hole: drum shaft through the side plate (cut in CAD)"
     if ("shuttle_rail" in a.name and "shuttle_block" in b.name) or ("shuttle_rail" in b.name and "shuttle_block" in a.name):
         if a.name.split("_")[2] == b.name.split("_")[2]:
             return "MGN block on its rail"
@@ -2097,9 +2552,8 @@ def interference(parts=None):
 
 
 def moving_clearance():
-    """Moving envelopes vs everything: kicker paddle over its stroke, stamp
-    carriage + tool over the stroke and down to contact, escapement gates
-    (inside their blocks by construction), deltas at every commanded pose."""
+    """Moving envelopes vs everything: kicker paddle over its stroke, the depositor's cutting wire over its
+    stroke, all three deltas at every commanded pose."""
     import geom
     allp = build(with_product=False)
     fails = []
@@ -2112,27 +2566,26 @@ def moving_clearance():
             if b.name == "kick_cylinder":
                 continue
             fails.append(f"KICK sweep hits {b.name}")
-    mov = [p for p in allp if p.joint in ("stamp_x", "stamp_z")]
-    for q in mov:
-        a = q.aabb()
-        down = L["STAMP_CLEAR"] if q.joint == "stamp_z" else 0.0
-        sw = Part(q.name + "_sweep", q.module, q.group, "box", (a[0], a[1], a[2] - down),
-                  (a[3] - a[0] + L["STAMP_STROKE"], a[4] - a[1], a[5] - a[2] + down))
-        for b in stat:
-            if b.joint in ("stamp_x", "stamp_z") or b.group in ("chain", "frame", "guide"):
-                continue
-            if b.name in ("stamp_rail", "stamp_spindle") and q.name in ("stamp_block", "stamp_nut"):
-                continue
-            if geom.interfere(sw, b):
-                fails.append(f"STAMP sweep {q.name} hits {b.name}")
+    wire = next(p for p in allp if p.name == "dep_wire")
+    a_ = wire.aabb()
+    stroke = L["DOUGH_SLUG"][0] + 10.0
+    sw = Part("wire_sweep", wire.module, wire.group, "box", (a_[0] - stroke / 2, a_[1], a_[2]),
+              (a_[3] - a_[0] + stroke, a_[4] - a_[1], a_[5] - a_[2]))
+    for b in stat:
+        if b.name in ("dep_wire", "dep_die") or b.group in ("chain", "frame", "guide", "band", "pan"):
+            continue
+        if geom.interfere(sw, b):
+            fails.append(f"WIRE sweep hits {b.name}")
     # deltas at every commanded pose: arms vs every static solid except their own base/motors' joints
     static = [p for p in allp if not (p.group.startswith("delta_") and p.joint)]
     n = 0
     for i, xd, pose, kind in delta_poses():
         arms = []
-        _delta(arms.append, f"delta_{'AB'[i]}", xd, pose, static=False)
+        if delta_ik(*pose, xd) is None:
+            continue                                     # reach() reports it
+        _delta(arms.append, f"delta_{'ABC'[i]}", xd, pose, static=False)
         for p in arms:
-            p.module = "M6_pick"
+            p.module = "M6_pick" if i < 2 else "M4_transfer"
         for p in arms:
             for b in static:
                 if not _ovl(p.aabb(), b.aabb()):
@@ -2141,7 +2594,7 @@ def moving_clearance():
                     continue
                 if kind == "pick" and b.group == "chain":
                     continue
-                if p.name.endswith("_cup") and b.group in ("tray", "stock"):
+                if "_cup_" in p.name and b.group in ("tray", "stock"):
                     continue                 # the cup is IN the pocket when placing (it carries the cookie)
                 n += 1
                 if geom.interfere(p, b):
@@ -2176,14 +2629,44 @@ def grid():
 
 
 def contact():
-    """The die lands exactly on the cookie top; the cup on the cookie top."""
+    """The slug is cut at the die and lands on the band; the cups touch the cookie top on the loop and on the
+    band; the topping nozzles clear the slug."""
     fails = []
-    die = next(p for p in build(with_product=False) if p.name == "stamp_die")
-    if abs(die.p[2] - L["STAMP_CLEAR"] - z_cookie_top()) > 1e-6:
-        fails.append("CONTACT stamp die does not land on the cookie top")
+    dz = dep_z()
+    if abs(dz["die"] - L["DEP_DROP"] - L["DOUGH_SLUG"][1] - L["BAND"]["z"]) > 1e-6:
+        fails.append("CONTACT the die is not DEP_DROP above the slug on the band")
     if abs(pick_z() - L["CUP_L"] - z_cookie_top()) > 1e-6:
         fails.append("CONTACT delta cup tip != cookie top at the pick height")
+    if abs(band_pick_z() - L["CUP_L"] - L["BAND"]["z"] - L["COOKIE"][1]) > 1e-6:
+        fails.append("CONTACT delta C cup tip != cookie top on the band")
+    if L["CUP_OFF"] - L["CUP_D"] / 2 < L["TOPPING"]["d"] / 2 or L["CUP_OFF"] + L["CUP_D"] / 2 > L["COOKIE"][0] / 2:
+        fails.append("CONTACT twin cups do not land between the topping drop and the cookie rim")
     return fails
+
+
+def band_clearance(step=5.0):
+    """Sweep every row's product (slug -> baked cookie + drop) along the band from the die to the pick window
+    against every static part: die, wire, topping manifold, mouths, thermocouples, hood, pyrometer."""
+    parts = [p for p in build(with_product=False) if p.group not in ("band", "pan") and p.kind != "arc"]
+    boxes = [(p, p.aabb()) for p in parts]
+    st = stations()
+    v = band_v()
+    zb = L["BAND"]["z"]
+    fails, n = [], 0
+    x = st["dep"]
+    while x <= st["pick"][1]:
+        d, h, _, topped = band_state((x - st["dep"]) / v)
+        z1 = zb + h + (L["TOPPING"]["h"] if topped else 0.0)
+        for k in range(L["BAND"]["rows"]):
+            y = row_y(k)
+            for p, b in boxes:
+                if b[2] < z1 - 0.05 and b[5] > zb + 0.05 and _circle_box(x, y, d / 2, b):
+                    if p.name == "dep_wire" and x <= st["dep"] + 1:
+                        continue                          # the slug is cut free at the wire
+                    fails.append(f"BAND product hits {p.name} at x={x:.0f} row {k}")
+            n += 1
+        x += step
+    return sorted(set(fails)), n
 
 
 def check(verbose=True):
@@ -2192,24 +2675,27 @@ def check(verbose=True):
     rf, n_reach = reach()
     pf, n_sweep = product_clearance()
     lf, n_lane = lane_clearance()
+    bf, n_band = band_clearance()
     inf, n_int, used = interference()
     mf, n_mov = moving_clearance()
     gf = grid()
-    fails = fails + sfails + rf + pf + lf + inf + mf + gf + contact()
+    orows, ofails = oven_proofs()
+    fails = fails + sfails + ofails + rf + pf + lf + bf + inf + mf + gf + contact()
     if verbose:
         print(f"STF-2 continuous line: {len(build())} parts, loop {loop_len():.1f} mm, "
               f"S = {straight():.1f} mm, takt {takt():.2f} s")
-        for name, v, lim, ok, note in rows + srows:
+        for name, v, lim, ok, note in rows + srows + orows:
             print(f"  [{'ok' if ok else 'FAIL'}] {name:36s} {v:45s} {lim:38s} {note}")
         print(f"  delta reach radius at pick height: {delta_reach_radius():.1f} mm; "
               f"{n_reach} pick/place points solved by IK")
         print(f"  product envelope swept along the loop: {n_sweep} stations of 5 mm; "
-              f"packs swept along the lanes: {n_lane} stations")
+              f"packs swept along the lanes: {n_lane} stations; band product: {n_band} row stations")
         print(f"  interference: {n_int} touching/overlapping candidate pairs, allowed by declaration: "
               + ", ".join(f"{v} x {k}" for k, v in used.items()))
-        print(f"  moving envelopes: kicker, stamp, deltas at {len(delta_poses())} poses ({n_mov} exact pair tests)")
+        print(f"  moving envelopes: kicker, cutting wire, deltas A/B/C at {len(delta_poses())} poses ({n_mov} exact pair tests)")
         print("\n".join(fails) if fails else
-              "ALL CHECKS PASS (timing, sizing, reach, product + lane sweep, interference, motion, grid, contact)")
+              "ALL CHECKS PASS (timing, sizing, oven heat + power, reach, product + lane + band sweep, interference, "
+              "motion, grid, contact)")
     return fails
 
 
