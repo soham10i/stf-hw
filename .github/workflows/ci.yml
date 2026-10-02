@@ -39,3 +39,20 @@ jobs:
       - run: npm run build
       - run: npm run build:pages
       - run: npm audit --omit=dev --audit-level=high
+
+  # the live twin's container (render.yaml, service stf-live): it builds, and it serves
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t stf-live .
+      - name: Smoke test
+        run: |
+          docker run -d --name stf -p 10000:10000 stf-live
+          for i in $(seq 1 30); do curl -fs http://localhost:10000/health && break; sleep 1; done
+          curl -fs http://localhost:10000/health
+          curl -fs -o /dev/null http://localhost:10000/stf/
+          curl -fs -o /dev/null http://localhost:10000/layout
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+                  -H 'Host: stf-live.onrender.com' -d '{"op":"home"}' http://localhost:10000/command)" = 403
+          docker logs stf

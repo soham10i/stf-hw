@@ -11,6 +11,8 @@ Endpoints:
     POST /command       queue an order  {"op": "retrieve", "slot": "B2"}
                         (operator only, see security.py)
     WS   /ws            live world frames at ~30 Hz
+    GET  /stf/...       the built web app, when STF_WEB_DIST points at it (one-service deploy,
+                        see docs/DEPLOY.md); / redirects there
 
 The kernel runs on one asyncio task started at app startup; every request and
 socket reads from that single authoritative simulation.
@@ -23,9 +25,10 @@ import os
 from contextlib import asynccontextmanager
 from typing import Literal
 
-from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from stf_layout import get_layout
@@ -65,6 +68,37 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "X-STF-Token"],
 )
+
+
+# The headers `vite preview` sends (web/vite.config.ts), for when this process serves the app.
+SECURITY_HEADERS = {
+    "Content-Security-Policy": "; ".join([
+        "default-src 'self'",
+        "script-src 'self' 'wasm-unsafe-eval'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com",
+        "img-src 'self' data: blob:",
+        "connect-src 'self' blob: data: ws: wss:",
+        "worker-src 'self' blob:",
+        "base-uri 'self'",
+        "form-action 'none'",
+        "object-src 'none'",
+        "frame-ancestors 'none'",
+    ]),
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "X-Frame-Options": "DENY",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), usb=(), serial=()",
+    "Cross-Origin-Opener-Policy": "same-origin",
+}
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    for k, v in SECURITY_HEADERS.items():
+        response.headers.setdefault(k, v)
+    return response
 
 
 class CommandRequest(BaseModel):
@@ -149,3 +183,15 @@ async def ws(websocket: WebSocket) -> None:
     finally:
         runtime.remove_client(websocket)
         ws_clients.remove()
+
+
+# One-service deploy: the built web app (npm run build, base /stf/) served by this process,
+# so the page, the REST calls and the WebSocket share one origin. Mounted last: the API
+# routes above take precedence.
+_WEB = os.environ.get("STF_WEB_DIST")
+if _WEB and os.path.isdir(_WEB):
+    @app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
+    async def root() -> RedirectResponse:
+        return RedirectResponse("/stf/")
+
+    app.mount("/stf", StaticFiles(directory=_WEB, html=True), name="web")

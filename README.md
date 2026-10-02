@@ -59,6 +59,12 @@ files in `web/public`. `npm run build:pages` builds it without the API (`VITE_LI
 GitHub Pages will. Every push to `main` publishes it (`.github/workflows/pages.yml`); CI runs the tests,
 lint, type check and dependency audits on every push (`ci.yml`).
 
+### Deploy it (free)
+
+`render.yaml` deploys both on [Render](https://render.com) with **New → Blueprint**: the public demo as a
+static site, and the live twin (API + app in one container, `Dockerfile`) as a free web service. Step by
+step, the free-tier limits and the alternatives: [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
 ## Regenerate the data
 
 From `stf-cad/hbw`, with the project's venv (`../../.venv/bin/python`):

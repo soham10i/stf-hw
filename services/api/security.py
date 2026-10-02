@@ -43,7 +43,9 @@ class Settings:
         hosts, ports = ("localhost", "127.0.0.1"), (5173, 4173)
         default = ",".join(f"http://{h}:{p}" for p in ports for h in hosts)
         raw = os.environ.get("STF_ALLOWED_ORIGINS", default)
-        origins = tuple(o.strip() for o in raw.split(",") if o.strip())
+        # on Render the service's own public address is an allowed origin (it serves the app)
+        own = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/")
+        origins = tuple(dict.fromkeys(o.strip() for o in [*raw.split(","), own] if o.strip()))
         token = os.environ.get("STF_API_TOKEN") or None
         return Settings(origins, token, int(os.environ.get("STF_MAX_WS_CLIENTS", "32")))
 
