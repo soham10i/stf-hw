@@ -117,7 +117,7 @@ function Row({ n, depth, q, vals, sel, onSel }: { n: N; depth: number; q: string
   const kids = n.children ?? [];
   if (!kids.length) return <div className="ua-leaf">{head}</div>;
   return (
-    <details className="ua-node" open={!!q || depth < 1} onToggle={(e) => e.stopPropagation()}>
+    <details className="ua-node" open={(!!q && !n.signal) || depth < 1} onToggle={(e) => e.stopPropagation()}>
       <summary>{head}</summary>
       <div className="ua-kids">{kids.map((c) => <Row key={c.id} n={c} depth={depth + 1} q={q} vals={vals} sel={sel} onSel={onSel} />)}</div>
     </details>
@@ -182,7 +182,7 @@ export function OpcuaPanel() {
         The address space as the server exported it. Run it with <code>make opcua</code> (Python, asyncua) and connect a client
         such as UaExpert: one endpoint on 127.0.0.1:4840, Sign & Encrypt with Basic256Sha256, a trusted client certificate and
         the operator password; every variable is read-only. The cell's ProductInstanceUri is its Asset Administration Shell's asset id.
-        <a href={`${BASE}opcua/opcua.json`} download>JSON</a>
+        {" "}<a href={`${BASE}opcua/opcua.json`} download>JSON</a>
       </p>
     </div>
   );
