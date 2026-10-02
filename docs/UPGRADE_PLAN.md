@@ -31,6 +31,7 @@ maintainability), not industrial size. The twin stays at its 2× structural scal
 | 11 | OT security to IEC 62443 | **built**: dashboard, "OT security" |
 | 12 | Defence in depth | **built**: dashboard "Defence in depth" |
 | 13 | Software-in-the-loop PLC | **built**: twin panel "PLC program (live)" |
+| 15 | Vision inspection, trained on rendered images | **built**: twin panel "Vision inspection" |
 
 **The app shows one machine: Upgrade 12**, which contains every level. Each upgrade is a side panel of that view, not
 a view of its own (2026-10-01). The intermediate variants still build and are re-proven by `validate.py`; they
@@ -752,6 +753,53 @@ and the colour readings of the belt and of raw dough are assumed. Only the Upgra
 
 **Tools** (not in the repository): MatIEC built from source (`STF_MATIEC`), and clang, wasm-ld and the WASI sysroot
 (Homebrew `llvm lld wasi-libc wasi-runtimes`). The compiled `plc.wasm` is committed, so the twin and CI need neither.
+
+## Upgrade 15: vision inspection, trained on rendered images (BUILT)
+
+**Why.** The colour sensor (A4) tells the flavour but not whether a cookie is cracked, chipped, burnt or underbaked.
+A camera and a small network can, but there is no camera and no cookie to photograph. Training on images rendered
+from the model, and testing honestly how far that carries, is the core method of physical AI: learn in simulation,
+deploy in the world.
+
+**As built** (`stf-cad/hbw/vision/`, `web/src/vision/`):
+- **Renderer** (`render.py`). A top-down camera upstream of the colour sensor: 64 x 64 px over 80 mm. The cookie's size,
+  the flavour and dough colours, the twin's bake blend and the belt rubber come from the model. Five conditions: ok,
+  underbaked, burnt, cracked, chipped. Everything a real image varies in is randomised: position, rotation, size, light
+  level and colour, shading, belt texture, noise, focus.
+- **Network** (`train.py`). Four 3x3 convolutions (16-32-64-64), batch norm in training, folded into the weights for
+  deployment, global average pooling and two heads: flavour and condition. 65k parameters. A grey reference target
+  sits in a corner of the field of view, as inspection stations mount one, and the network divides the image by its
+  reading.
+- **Decision.** A cookie passes only if the condition head says ok with p >= 0.5. If the head is unsure (max p < 0.6),
+  the cookie goes to a person. Escapes (defects passed) and false rejects are counted separately.
+- **Deployed** as ONNX for an edge controller (checked with ONNX's reference evaluator: 6e-6) and as weights for the
+  browser, whose forward pass matches PyTorch to 3e-5 on the published test images (checked under Node). The twin's
+  panel classifies 48 test images live (about 40 ms each).
+
+**Results.** Each network is tested once on 3,000 unseen images like its training data, and on 3,000 drawn under
+conditions it never saw: darker and brighter light, a warmer lamp, a worn belt, more noise and motion blur.
+
+| Under unseen conditions | Narrow randomisation | Wide randomisation | Wide + grey reference (deployed) |
+|---|---|---|---|
+| Condition right | 28 % | 64 % | 67 % |
+| Good cookies rejected | 91 % | 53 % | 30 % |
+| Defects passed | 3.0 % | 3.4 % | 1.7 % |
+| Flavour right | 77 % | 92 % | 93 % |
+
+On images like its training data the deployed network gets 98.8 % of conditions and 98.6 % of flavours right, with
+0.4 % escapes and 0.7 % false rejects.
+
+**What this shows.**
+- Narrow randomisation memorises: under a new lamp it rejects almost every good cookie.
+- Wider randomisation doubles the robustness, and the reference target, an engineering fix rather than more data,
+  halves the false rejects again.
+- Even so, 30 % false rejects under unseen conditions is not deployable. The remaining errors are chips seen against a
+  worn, lighter belt, and cracks under blur. On a real line the next step is a few hundred real images to fine-tune
+  on, and a controlled lighting enclosure. This is the honest limit of training on rendered images alone.
+
+**Limits.** The renderer's faults, lighting and belt are ASSUMED. The numbers show the method and the deployment path,
+not the accuracy on a real camera. The panel does not yet feed the PLC: a reject path into the program (a reject bay
+and a new job in MAIN, re-proved by Upgrade 13's software-in-the-loop) is the follow-up.
 
 ---
 

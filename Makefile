@@ -2,7 +2,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil audit clean
+.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision audit clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -71,6 +71,9 @@ pages: ## Build the standalone site as GitHub Pages serves it (no API), on local
 
 sil: ## Upgrade 13: compile the PLC program (MatIEC -> WebAssembly) and prove it against the plant
 	cd stf-cad/hbw && STF_VARIANT=up12 PYTHONPATH=. ../../$(PY) -m sil.run
+
+vision: ## Upgrade 15: render the training images, train the inspection CNN, export it (ONNX + browser)
+	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m vision.train
 
 audit: ## Dependency vulnerability scan (Python and npm)
 	$(PY) -m pip_audit

@@ -16,6 +16,7 @@ import { ThroughputPanel } from "../panels/ThroughputPanel";
 import { NetSecurityPanel } from "../panels/NetSecurityPanel";
 import { HardeningPanel } from "../panels/HardeningPanel";
 import { PlcPanel } from "../panels/PlcPanel";
+import { VisionPanel } from "../panels/VisionPanel";
 import { GeometryPanel } from "../panels/GeometryPanel";
 
 // ---------------------------------------------------------------- views
@@ -65,6 +66,7 @@ export const PANELS: Panel[] = [
   { id: "hmi", label: "PLC program & HMI", icon: "monitor", available: (c) => !!c.doc.control,
     render: (c) => <HmiPanel c={c.doc.control!} /> },
   { id: "plc", label: "PLC program (live)", icon: "play", available: () => true, render: () => <PlcPanel /> },
+  { id: "vision", label: "Vision inspection", icon: "eye", available: () => true, render: () => <VisionPanel /> },
   { id: "vc", label: "Commissioning", icon: "cpu", available: (c) => !!c.doc.vc, render: (c) => <VcPanel vc={c.doc.vc!} /> },
   { id: "health", label: "Health", icon: "heart", available: (c) => !!c.doc.health, render: (c) => <HealthPanel doc={c.doc} /> },
   { id: "ai", label: "AI maintenance", icon: "brain", available: () => true, render: () => <AiPanel /> },

@@ -234,3 +234,26 @@
 .plc-find { font-size: 12px; }
 .plc-find summary { cursor: pointer; color: var(--accent); }
 .plc-find p { margin: 6px 0 0; line-height: 1.5; color: var(--muted); } .plc-find p b { color: var(--text); font-family: var(--mono); font-size: 11.5px; }
+
+/* ------------------------------------------------------------- U15 vision panel (panels/VisionPanel.tsx) */
+.vis-steps { display: grid; gap: 4px; padding: 10px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; }
+.vis-steps div { display: grid; grid-template-columns: 1fr 64px 64px 52px; gap: 6px; align-items: baseline; }
+.vis-steps div.hd b { font-size: 10.5px; font-weight: 500; color: var(--faint); }
+.vis-steps b { font: 500 12px var(--mono); text-align: right; }
+.vis-steps div:last-child span, .vis-steps div:last-child b { color: var(--ok); font-weight: 600; }
+.vis-grid { display: grid; grid-template-columns: repeat(auto-fill, 46px); gap: 5px; justify-content: start; }
+.vis-grid button { border: 0; padding: 0; border-radius: 6px; cursor: pointer; background-repeat: no-repeat;
+  outline: 2px solid var(--border); outline-offset: 1px; image-rendering: pixelated; }
+.vis-grid button.pass { outline-color: var(--ok); } .vis-grid button.reject { outline-color: var(--bad); }
+.vis-grid button.check { outline-color: var(--warn); }
+.vis-grid button.wrong { box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 5px var(--bad); }
+.vis-grid button.sel { outline-width: 3px; outline-color: var(--accent); }
+.vis-k { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin: 0 4px 0 8px; vertical-align: -1px; }
+.vis-k.pass { background: var(--ok); } .vis-k.reject { background: var(--bad); } .vis-k.check { background: var(--warn); }
+.vis-k.wrong { background: #fff; box-shadow: inset 0 0 0 2px var(--bad); }
+.vis-detail { display: grid; grid-template-columns: 112px 1fr; gap: 12px; padding: 10px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); }
+.vis-big { border-radius: 8px; background-repeat: no-repeat; image-rendering: pixelated; }
+.vis-detail p { margin: 0 0 6px; font-size: 12.5px; } .vis-detail p b { color: var(--muted); font-weight: 500; margin-right: 4px; }
+.vis-detail .np-row { grid-template-columns: 74px 1fr 40px; font-size: 11.5px; }
+.vis-v { font-weight: 600; text-transform: uppercase; font-size: 11.5px; } .vis-v.pass { color: var(--ok); } .vis-v.reject { color: var(--bad); } .vis-v.check { color: var(--warn); }
+.vis-fl { color: var(--muted); margin-top: 6px !important; }
