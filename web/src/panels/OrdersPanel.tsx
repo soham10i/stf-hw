@@ -1,19 +1,22 @@
-// Orders: the customer's view of the cell. Pick a flavour and a quantity (1-12), place the
-// order, and the 3D twin bakes exactly that: one cycle per cookie, each sorted into its
-// flavour's Lagerstelle; the VGR returns finished cookies to the warehouse. With nothing
-// ordered the cell idles. The order queue and the material state live in twinOrders
-// (scene/HbwCad), which the 3D loop works through.
+// Orders: the customer's view of the cell. The cell holds exactly 12 cookies, one per slot,
+// raw or baked. Pick a flavour and a quantity, place the order, and the 3D twin bakes exactly
+// that: one cycle per cookie, each brought back into the slot it came from. When an order is
+// completed its cookies are all in the rack. "Deliver" hands the baked cookies over and
+// refills their moulds with fresh dough, so the count stays 12.
 //
 // With the live API (scene !== null) the physics kernel's manual commands are under
 // "Manual crane commands"; it still models the original 3x3 rack.
 
 import { useEffect, useState } from "react";
-import { twinOrders } from "../scene/HbwCad";
+import { twinOrders, type OrderLine } from "../scene/HbwCad";
 import { sendCommand } from "../socket";
 import type { SceneDescriptor } from "../types";
 import { useCadDoc } from "../shared/model";
 
-const BINS: Record<string, string> = { blau: "blue", rot: "red", weiss: "white" };
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const clock = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+/** The step text without the "VGR:" prefix and the oven's side note. */
+const plain = (s: string) => cap(s.split("   ·   ")[0].replace(/^VGR: /, "Robot arm: ").replace(/—/g, "–"));
 
 export function OrdersPanel({ scene, slots }: { scene: SceneDescriptor | null; slots?: string[] }) {
   const { doc } = useCadDoc();
@@ -21,107 +24,158 @@ export function OrdersPanel({ scene, slots }: { scene: SceneDescriptor | null; s
   const names = Object.keys(flavours);
   const [flavour, setFlavour] = useState("chocolate");
   const [qty, setQty] = useState(3);
-  const [msg, setMsg] = useState<string | null>(null);
-  // the queue and the cell move in the 3D loop; sample them twice a second
+  const [msg, setMsg] = useState<{ text: string; tone: "ok" | "bad" } | null>(null);
+  // the queue and the cell move in the 3D loop; sample them a few times a second
   const [, tick] = useState(0);
-  useEffect(() => { const id = window.setInterval(() => tick((x) => x + 1), 500); return () => window.clearInterval(id); }, []);
+  useEffect(() => { const id = window.setInterval(() => tick((x) => x + 1), 400); return () => window.clearInterval(id); }, []);
 
   const rack = twinOrders.rack, raw = twinOrders.rawColour, cyc = twinOrders.cycle;
   const all = slots ?? Object.keys(rack);
-  const state = (q: string) => (!(q in rack) ? "none" : rack[q] === null ? "empty" : rack[q] === raw ? "raw" : "baked");
-  const count = (k: string) => all.filter((q) => state(q) === k).length;
-  const colour = (f: string) => flavours[f]?.colour ?? raw;
-  const binFlavour = (bin: string) => names.find((f) => flavours[f].bin === bin) ?? "";
-  const queue = twinOrders.queue;
-  const open = queue.filter((o) => o.done < o.qty);
-  const left = Math.max(0, cyc.total - cyc.t);
   const busy = !twinOrders.idle;
+  const colour = (f: string) => flavours[f]?.colour ?? raw;
+  const flavourOf = (c: string | null | undefined) => names.find((f) => flavours[f].colour.toLowerCase() === c?.toLowerCase());
+  const queue = twinOrders.queue;
+  const free = twinOrders.free();
+  const current = queue.find((o) => o.started > o.done);
+
+  // the twelve cookies, by state
+  const inOven = busy ? cyc.from : null;
+  const counts = { raw: 0, oven: inOven ? 1 : 0 } as Record<string, number>;
+  for (const q of all) {
+    if (q === inOven) continue;
+    const f = flavourOf(rack[q]);
+    const k = f ?? "raw";
+    counts[k] = (counts[k] ?? 0) + 1;
+  }
+  const baked = names.reduce((n, f) => n + (counts[f] ?? 0), 0);
+  const total = all.length;
 
   const place = () => {
+    if (qty > free) {
+      setMsg({ tone: "bad", text: free
+        ? `Only ${free} raw cookie${free === 1 ? "" : "s"} left. Lower the quantity, or deliver the baked cookies to refill the rack.`
+        : "No raw dough left. Deliver the baked cookies to refill the rack." });
+      return;
+    }
+    const wasIdle = twinOrders.idle && !queue.some((o) => o.done < o.qty);
     twinOrders.place(flavour, qty);
-    setMsg(`Order placed: ${qty} × ${flavour}. ${open.length ? "It joins the queue." : "The cell starts now."}`);
+    setMsg({ tone: "ok", text: `Order placed: ${qty} × ${flavour}. ${wasIdle ? "The cell starts now." : "It is queued after the current order."}` });
+  };
+  const deliver = () => {
+    twinOrders.restock = true;
+    setMsg({ tone: "ok", text: `${baked} baked cookie${baked === 1 ? "" : "s"} delivered; their moulds are refilled with fresh dough.` });
   };
   const manual = async (op: string, slot: string | null) => {
-    try { await sendCommand(op, slot); setMsg(`queued ${op}${slot ? " " + slot : ""} on the physics kernel`); }
-    catch (e) { setMsg((e as Error).message); }
+    try { await sendCommand(op, slot); setMsg({ tone: "ok", text: `Queued ${op}${slot ? " " + slot : ""} on the physics kernel.` }); }
+    catch (e) { setMsg({ tone: "bad", text: (e as Error).message }); }
   };
 
   return (
-    <div className="panel orders">
-      <h2>Place an order</h2>
-      <div className="ord-form">
+    <div className="panel orders ord">
+      {/* ---------------------------------------------------------------- stock */}
+      <section className="ord-card">
+        <div className="ord-head"><h3>Cookies in the cell</h3><span className="ord-total">{total} cookies, always</span></div>
+        <div className="ord-stockbar" aria-hidden>
+          {names.map((f) => counts[f] ? <i key={f} style={{ flex: counts[f], background: colour(f) }} /> : null)}
+          {counts.oven ? <i className="oven" style={{ flex: 1 }} /> : null}
+          {counts.raw ? <i style={{ flex: counts.raw, background: raw }} /> : null}
+        </div>
+        <ul className="ord-stock">
+          <li><i style={{ background: raw }} /><span>Raw dough</span><b>{counts.raw}</b></li>
+          {names.map((f) => <li key={f}><i style={{ background: colour(f) }} /><span>{cap(f)}, baked</span><b>{counts[f] ?? 0}</b></li>)}
+          <li><i className="oven" /><span>In the oven line</span><b>{counts.oven}</b></li>
+        </ul>
+      </section>
+
+      {/* ---------------------------------------------------------------- new order */}
+      <section className="ord-card">
+        <div className="ord-head"><h3>New order</h3><span className={`ord-avail ${free ? "" : "none"}`}>{free} raw available</span></div>
+        <div className="ord-label">Flavour</div>
         <div className="ord-flavours" role="radiogroup" aria-label="Flavour">
           {names.map((f) => (
             <button key={f} role="radio" aria-checked={f === flavour} className={`slot ${f === flavour ? "active" : ""}`}
               onClick={() => setFlavour(f)}>
-              <i className="slot-dot raw" style={{ background: colour(f) }} />{f}
+              <i className="slot-dot" style={{ background: colour(f) }} />{f}
             </button>
           ))}
         </div>
+        <div className="ord-label">Quantity</div>
         <div className="ord-qty">
-          <span>Quantity</span>
           <button className="slot" onClick={() => setQty(Math.max(1, qty - 1))} aria-label="Fewer">−</button>
           <input type="number" min={1} max={12} value={qty} aria-label="Quantity"
             onChange={(e) => setQty(Math.max(1, Math.min(12, Number(e.target.value) || 1)))} />
           <button className="slot" onClick={() => setQty(Math.min(12, qty + 1))} aria-label="More">+</button>
-          <em>1–12</em>
+          <em>1 to 12 cookies</em>
         </div>
-        <button className="op cycle" onClick={place}>Place order: {qty} × {flavour}</button>
-      </div>
-      {msg && <p className="msg">{msg}</p>}
+        <button className="op cycle ord-place" onClick={place} disabled={!free}>
+          Place order · {qty} × {cap(flavour)}
+        </button>
+        {msg && <p className={`ord-msg ${msg.tone}`} role="status">{msg.text}</p>}
+        {baked > 0 && (
+          <button className="op store ord-deliver" onClick={deliver} disabled={busy}
+            title={busy ? "Wait until the cell is idle" : undefined}>
+            Deliver {baked} baked cookie{baked === 1 ? "" : "s"} and refill with dough
+          </button>
+        )}
+      </section>
 
-      <h3>Orders</h3>
-      <div className="ord-queue">
-        {queue.length === 0 && <p className="muted small">No orders yet.</p>}
-        {[...queue].reverse().slice(0, 6).map((o) => {
-          const st = o.done >= o.qty ? "done" : o.started > o.done || (o.started > 0 && busy) ? "baking" : "queued";
-          return (
-            <div key={o.id} className={`ord-line ${st}`}>
-              <i className="slot-dot raw" style={{ background: colour(o.flavour) }} />
-              <b>{o.qty} × {o.flavour}{o.demo ? " (demo)" : ""}</b>
-              <span>{st === "done" ? "done" : st === "baking" ? `baking ${o.done + 1} of ${o.qty}` : "queued"}</span>
-              <em><i style={{ width: `${(100 * o.done) / o.qty}%`, background: colour(o.flavour) }} /></em>
+      {/* ---------------------------------------------------------------- now */}
+      <section className="ord-card">
+        <div className="ord-head"><h3>Now</h3>{busy ? <span className="ord-pill run">Running</span> : <span className="ord-pill">Idle</span>}</div>
+        {busy && current ? (
+          <div className="ord-now">
+            <div className="ord-now-head">
+              <i className="slot-dot" style={{ background: colour(cyc.flavour) }} />
+              <b>{cap(cyc.flavour)} cookie {current.done + 1} of {current.qty}</b>
+              <span>from slot {cyc.from}</span>
             </div>
-          );
-        })}
-      </div>
-
-      <div className="rack-next">
-        {busy ? (
-          <>
-            <div>Baking <b>{cyc.flavour}</b> (dough from <b>{cyc.from}</b>) · cycle ends in {Math.floor(left / 60)}:{String(Math.floor(left % 60)).padStart(2, "0")}, then slot <b>{cyc.to}</b> is filled</div>
-            <i><em style={{ width: `${Math.min(100, (cyc.t / Math.max(1, cyc.total)) * 100)}%` }} /></i>
-            <p>{cyc.collect
-              ? `The VGR also brings the oldest finished cookie (${binFlavour(cyc.collect)}, ${BINS[cyc.collect]} bay) back to the warehouse.`
-              : "No finished cookie is waiting: an empty mould goes back to the warehouse."}</p>
-          </>
-        ) : <div><b>Idle</b> · every order is done. Place an order to start the cell.</div>}
-      </div>
-
-      <h3>Sorting bays</h3>
-      <div className="ord-bays">
-        {Object.entries(twinOrders.bays).map(([bin, list]) => (
-          <div key={bin}><span>{BINS[bin] ?? bin}</span>
-            <b>{list.length ? list.map((f, i) => <i key={i} className="slot-dot raw" style={{ background: colour(f) }} title={f} />) : <em>empty</em>}</b>
+            <div className="ord-bar"><i style={{ width: `${Math.min(100, (cyc.t / Math.max(1, cyc.total)) * 100)}%`, background: colour(cyc.flavour) }} /></div>
+            <div className="ord-now-foot"><span>{plain(twinOrders.step)}</span><b>{clock(Math.max(0, cyc.total - cyc.t))} left</b></div>
           </div>
-        ))}
-      </div>
+        ) : (
+          <p className="ord-hint">Every order is done. Place an order to start the cell.</p>
+        )}
+      </section>
 
-      <h3>Warehouse rack</h3>
-      <div className="slot-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
-        {all.map((s) => (
-          <span key={s} className="slot static">
-            <i className={`slot-dot ${state(s)}`} style={state(s) === "raw" || state(s) === "baked" ? { background: rack[s]! } : undefined} />
-            {s}
-          </span>
-        ))}
-      </div>
-      <div className="rack-legend">
-        <span><i className="slot-dot raw" style={{ background: raw }} />{count("raw")} raw</span>
-        <span><i className="slot-dot baked" />{count("baked")} finished</span>
-        <span><i className="slot-dot empty" />{count("empty")} empty mould</span>
-        <span><i className="slot-dot none" />{count("none")} free</span>
-      </div>
+      {/* ---------------------------------------------------------------- orders */}
+      <section className="ord-card">
+        <div className="ord-head"><h3>Orders</h3><span className="ord-total">{queue.filter((o) => o.done >= o.qty).length} of {queue.length} completed</span></div>
+        {queue.length === 0 && <p className="ord-hint">No orders yet.</p>}
+        <ol className="ord-list">
+          {[...queue].reverse().slice(0, 8).map((o: OrderLine) => {
+            const st = o.done >= o.qty ? "done" : o.started > 0 ? "run" : "wait";
+            return (
+              <li key={o.id} className={st}>
+                <i className="slot-dot" style={{ background: colour(o.flavour) }} />
+                <div>
+                  <b>{o.qty} × {cap(o.flavour)}</b>
+                  <small>#{o.id}{o.demo ? " · demo" : ""}</small>
+                </div>
+                <span className={`ord-pill ${st}`}>{st === "done" ? "Completed" : st === "run" ? `${o.done} of ${o.qty}` : "Queued"}</span>
+                <div className="ord-bar"><i style={{ width: `${(100 * o.done) / o.qty}%`, background: colour(o.flavour) }} /></div>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+
+      {/* ---------------------------------------------------------------- rack */}
+      <section className="ord-card">
+        <div className="ord-head"><h3>Warehouse rack</h3><span className="ord-total">{baked} baked · {counts.raw} raw</span></div>
+        <div className="ord-rack">
+          {all.map((s) => {
+            const out = s === inOven, f = flavourOf(rack[s]);
+            return (
+              <div key={s} className={`ord-cell ${out ? "out" : f ? "baked" : "raw"}`}
+                title={out ? `${s}: in the oven line` : f ? `${s}: ${f}, baked` : `${s}: raw dough`}>
+                <i style={{ background: out ? "transparent" : rack[s] ?? "transparent" }} />
+                <b>{s}</b>
+                <small>{out ? "in oven" : f ?? "raw"}</small>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {scene && (
         <details className="ord-manual">

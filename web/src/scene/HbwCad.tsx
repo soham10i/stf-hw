@@ -48,23 +48,37 @@ const FROM = "B2";
 export type OrderLine = { id: number; flavour: string; qty: number; started: number; done: number; demo?: boolean };
 
 /** The orders and the material state, shared between the 3D loop and the Orders panel.
-    The loop runs one cycle per ordered cookie and idles when every line is done. */
+    The cell holds exactly 12 cookies, one in each slot's mould, raw or baked. A cycle takes one
+    raw cookie out, bakes it in the ordered flavour, sorts it, and the VGR brings it straight back
+    into the same slot; an order line is done when all its cookies are in the rack. The loop
+    idles when every line is done. */
 export const twinOrders = {
   raw: [] as string[],
+  /** set by the panel; the loop swaps the baked cookies for fresh dough while idle */
+  restock: false,
+  delivered: 0,
+  /** what the cell is doing right now, in words */
+  step: "",
   // the rack as the 3D view draws it (slot -> cookie colour, null = empty mould, absent = no mould),
   // the dough colour, and the running cycle - read by the Orders panel
   rack: {} as Record<string, string | null>, rawColour: "",
   cycle: { from: "", to: "", total: 0, t: 0, flavour: "", collect: "" as string },
   queue: [] as OrderLine[],
   idle: false,
-  /** the Lagerstellen: bin -> the flavours resting there, oldest first */
+  /** the Lagerstellen: bin -> the cookie resting there until the VGR collects it */
   bays: {} as Record<string, string[]>,
-  /** every finished cookie's bin, in the order it arrived: the VGR collects the oldest */
-  finished: [] as string[],
   seq: 0,
+  /** raw cookies not yet promised to an order (the one in the oven is still raw in the rack map) */
+  free() {
+    const promised = this.queue.reduce((n, o) => n + o.qty - o.done, 0);
+    return Math.max(0, this.raw.length - promised);
+  },
+  /** Queue an order line; false when the rack has too few raw cookies for it. */
   place(flavour: string, qty: number) {
     const n = Math.max(1, Math.min(12, Math.round(qty)));
+    if (n > this.free()) return false;
     this.queue.push({ id: ++this.seq, flavour, qty: n, started: 0, done: 0 });
+    return true;
   },
 };
 /** The cycle running now: whose cookie is being baked, and into which bin. */
@@ -624,9 +638,8 @@ export function HbwCad({ doc, onPhase, tours }: {
   });
 
   // Each cycle bakes one ordered cookie: a raw cookie leaves its slot, is baked in the order's
-  // flavour and sorted into that flavour's Lagerstelle. On the same tour the VGR collects the
-  // OLDEST finished cookie from whichever Lagerstelle holds one (or nothing, when all are empty)
-  // and the crane stores it - or the empty mould - in the free slot. No order: the cell idles.
+  // flavour and sorted into that flavour's Lagerstelle. The VGR waits for it there, carries it
+  // back to the belt and the crane stores it in the slot it came from. No order: the cell idles.
   const planCycle = useMemo(() => {
     const cache = new Map<string, ReturnType<typeof plan1>>();
     function plan1(from: string, to: string, flavour: string, collect: string | null) {
@@ -646,13 +659,19 @@ export function HbwCad({ doc, onPhase, tours }: {
         return leg;
       });
       // the bake cycle starts once the VGR is back at transit height, clear of the oven
-      const tOvenGo = legs.find((l) => l.a.ovenGo)?.start ?? Infinity;
-      // The flow must not land its cookie in a Lagerstelle the VGR has not
-      // emptied yet: two cookies cannot share one bay. If it would, it bakes longer.
-      const f0 = buildFlow(doc, flavour);
-      const taken = legs.find((l) => l.a.taken === f0.bin)?.start ?? 0;
-      const extra = Math.max(0, taken + 1.5 - (tOvenGo + f0.arrive));
-      const flow = extra > 0 ? buildFlow(doc, flavour, extra) : f0;
+      const i0 = legs.findIndex((l) => l.a.ovenGo);
+      const tOvenGo = i0 >= 0 ? legs[i0].start : Infinity;
+      const flow = buildFlow(doc, flavour);
+      // The VGR collects THIS cookie from its Lagerstelle, so it holds clear of the oven until
+      // the cookie has been baked and sorted, then fetches it (1.5 s after it lands).
+      const pick = legs.find((l) => !l.a.taken && l.b.taken === flow.bin);
+      const wait = pick && i0 >= 0 ? Math.max(0, tOvenGo + flow.arrive + 1.5 - pick.start) : 0;
+      if (wait > 0) {
+        const a = legs[i0].a;
+        const hold = { a, b: { ...a, say: "VGR: holds clear of the oven while the cookie is baked and sorted" }, dur: wait, start: tOvenGo };
+        for (const l of legs.slice(i0)) l.start += wait;
+        legs.splice(i0, 0, hold);
+      }
       const total = Math.max(legs.reduce((q, l) => q + l.dur, 0), tOvenGo + flow.total + 3);
       const baked = doc.pipeline.flavours[flavour]?.colour ?? doc.pipeline.raw_colour;
       return { from, to, legs, tOvenGo, flow, total, baked, flavour, collect,
@@ -666,10 +685,10 @@ export function HbwCad({ doc, onPhase, tours }: {
   }, [doc, tours]);
   type Cycle = ReturnType<typeof planCycle> & { line: number };
   const RAW = doc.pipeline.raw_colour;
+  // twelve slots, twelve moulds, twelve cookies of raw dough
   const freshRack = useMemo(() => () => {
     const r: Rack = {};
-    for (const q of doc.moulds.slots) r[q] = null;
-    for (const q of doc.moulds.with_cookie) r[q] = RAW;
+    for (const q of Object.keys(doc.slots)) r[q] = RAW;
     return r;
   }, [doc, RAW]);
   const rawIn = (r: Rack) => Object.keys(doc.slots).filter((q) => r[q] === RAW);
@@ -680,13 +699,11 @@ export function HbwCad({ doc, onPhase, tours }: {
     line.started++;
     return line;
   };
-  /** Plan the next cycle from the rack as it stands: a raw slot, the free slot, the oldest finished cookie. */
+  /** Plan the next cycle: the first raw cookie goes out and comes back baked into the same slot. */
   const begin = (r: Rack, line: OrderLine): { c: Cycle; r: Rack } => {
-    let raw = rawIn(r);
-    if (!raw.length) { r = freshRack(); raw = rawIn(r); }      // restock the rack
-    const to = Object.keys(doc.slots).find((q) => !(q in r))!;
-    const collect = twinOrders.finished[0] ?? null;
-    return { c: { ...planCycle(raw[0], to, line.flavour, collect), line: line.id }, r };
+    const from = rawIn(r)[0] ?? FROM;
+    const bin = doc.pipeline.flavours[line.flavour]?.bin ?? null;
+    return { c: { ...planCycle(from, from, line.flavour, bin), line: line.id }, r };
   };
   const start = useMemo(() => {
     if (!twinOrders.queue.length) {
@@ -697,7 +714,6 @@ export function HbwCad({ doc, onPhase, tours }: {
     }
     for (const c of doc.sorting.colours) twinOrders.bays[c] ??= [];
     const r0 = { ...freshRack() };
-    delete r0[doc.moulds.free_slot];
     const line = nextWork()!;
     return begin(r0, line);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -783,23 +799,24 @@ export function HbwCad({ doc, onPhase, tours }: {
   useFrame(({ clock }) => {
     const el = clock.getElapsedTime() * PLAYBACK;
     if (frozen === null && !twinOrders.idle && el - cyc.current.t0 >= cyc.current.c.total) {
-      // the cycle is complete: the collected cookie (or the empty mould) sits in `to`, and the
-      // cookie baked in this cycle rests in its Lagerstelle
+      // the cycle is complete: the cookie baked in it is back in its slot
       const done = cyc.current.c;
       const r: Rack = { ...rackRef.current };
-      delete r[done.from];
-      r[done.to] = done.collectColour;
-      if (done.collect) {
-        twinOrders.bays[done.collect].shift();
-        twinOrders.finished.shift();
-      }
-      twinOrders.bays[done.bin].push(done.flavour);
-      twinOrders.finished.push(done.bin);
+      r[done.to] = done.baked;
       const line = twinOrders.queue.find((o) => o.id === done.line);
       if (line) line.done++;
       rackRef.current = r;
       setRack(r);
       twinOrders.idle = true;                      // until there is another cookie to make
+    }
+    if (twinOrders.idle && frozen === null && twinOrders.restock) {
+      // the finished cookies are delivered and their moulds refilled with fresh dough
+      const r: Rack = { ...rackRef.current };
+      for (const q of Object.keys(r)) if (r[q] !== RAW) { r[q] = RAW; twinOrders.delivered++; }
+      twinOrders.restock = false;
+      rackRef.current = r;
+      setRack(r);
+      twinOrders.raw = rawIn(r);
     }
     if (twinOrders.idle && frozen === null) {
       const line = nextWork();
@@ -851,7 +868,8 @@ export function HbwCad({ doc, onPhase, tours }: {
     ovenHot.s = f.s;
     ovenHot.mode = f.mode;
     // once the cycle is done, its cookie is part of the Lagerstelle's stock (SortingModule draws it)
-    ovenHot.visible = !twinOrders.idle && (tc >= tOvenGo || leg.a.ovenIn);
+    // ...until the VGR lifts it out of its Lagerstelle
+    ovenHot.visible = !twinOrders.idle && (tc >= tOvenGo || leg.a.ovenIn) && !leg.a.taken;
     ovenHot.pos = flow.pos(f.s, f.mode);
     ovenHot.belts = flow.belts(f.s.ly);
     ovenHot.colour = new THREE.Color(RAW).lerp(new THREE.Color(C.baked), f.s.baked).getStyle();
@@ -886,7 +904,7 @@ export function HbwCad({ doc, onPhase, tours }: {
         && yc + md / 2 > bm.y0 && yc - md / 2 < bm.y1
         && bm.z > zb && bm.z < zb + load;
     }
-    if (phase.current !== say) { phase.current = say; onPhase?.(say); }
+    if (phase.current !== say) { phase.current = say; twinOrders.step = say; onPhase?.(say); }
     // priority -1: this timeline writes the shared "hot" state BEFORE the parts
     // that read it (cookie colours) run their own frame callbacks - otherwise a
     // cookie shows the previous cycle's colour for one frame
