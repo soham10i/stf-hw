@@ -2,7 +2,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas opcua opcua-check audit clean
+.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas opcua opcua-check uns uns-check audit clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -83,6 +83,12 @@ opcua: ## Upgrade 14: the cell as an OPC UA server on 127.0.0.1:4840 (needs [opc
 
 opcua-check: ## Upgrade 14: prove the OPC UA server (mapping, types, Machinery, NodeSet, security, live, mutants)
 	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m opcua.check
+
+uns: ## Upgrade 14: Mosquitto (TLS) + Sparkplug B edge node + primary host writing the Unified Namespace (needs [uns], mosquitto)
+	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m uns.run --speed 1
+
+uns-check: ## Upgrade 14: prove Sparkplug B (50 spec requirements on the wire), the UNS, death/rebirth, security, mutants
+	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m uns.check
 
 audit: ## Dependency vulnerability scan (Python and npm)
 	$(PY) -m pip_audit

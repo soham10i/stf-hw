@@ -405,3 +405,36 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .ord-cell.out { border-style: dashed; }
 .ord-cell.out i { box-shadow: inset 0 0 0 2px var(--warn); }
 .ord-manual summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+
+/* ------------------------------------------------------------- U14 Sparkplug / UNS panel (panels/UnsPanel.tsx) */
+.uns-flow { display: flex; align-items: stretch; gap: 4px; flex-wrap: wrap; }
+.uns-flow span { flex: 1 1 90px; display: grid; gap: 1px; padding: 7px 9px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); }
+.uns-flow b { font-size: 12px; font-weight: 600; }
+.uns-flow small { font-size: 10.5px; color: var(--muted); }
+.uns-flow i { align-self: center; font-style: normal; color: var(--faint); }
+.uns-dev { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 6px 10px; margin-top: 6px; }
+.uns-dev summary { cursor: pointer; display: flex; gap: 8px; align-items: baseline; font-size: 12.5px; }
+.uns-dev summary em { font-style: normal; color: var(--faint); font-size: 11px; }
+.uns-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11.5px; }
+.uns-table th { text-align: left; color: var(--faint); font-weight: 500; padding: 2px 4px; }
+.uns-table td { padding: 2px 4px; border-top: 1px solid var(--border-soft); }
+.uns-table td:first-child, .uns-table td:last-child { font-family: var(--mono); color: var(--muted); white-space: nowrap; }
+.uns-msg pre { margin: 6px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--inset); border: 1px solid var(--border);
+  font: 11px/1.45 var(--mono); color: var(--muted); max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+.uns-tck { display: grid; gap: 4px; max-height: 460px; overflow: auto; }
+.uns-tck > div { display: grid; grid-template-columns: 16px 1fr auto; gap: 8px; align-items: start; padding: 6px 8px;
+  border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); font-size: 11.5px; }
+.uns-tck i { font-style: normal; font-weight: 700; color: var(--ok); }
+.uns-tck .bad i { color: var(--bad); }
+.uns-tck code { display: block; font: 10.5px var(--mono); color: var(--accent); overflow-wrap: anywhere; }
+.uns-tck span { color: var(--muted); line-height: 1.45; }
+.uns-tck em { font-style: normal; font: 10.5px var(--mono); color: var(--faint); }
+.uns-time { display: grid; gap: 3px; }
+.uns-time > div { display: grid; grid-template-columns: 56px 1fr; gap: 8px; font-size: 12px; padding: 4px 8px; border-left: 2px solid var(--accent-weak); }
+.uns-time b { font: 600 11.5px var(--mono); color: var(--accent); }
+.uns-mut { display: grid; gap: 4px; margin-top: 8px; }
+.uns-mut > div { display: grid; grid-template-columns: 38px 1fr auto; gap: 8px; font-size: 12px; padding: 5px 8px; border-radius: 8px; background: var(--surface); }
+.uns-mut b { font: 600 11px var(--mono); }
+.uns-mut em { font-style: normal; font-size: 11px; font-weight: 600; }
+.uns-mut em.ok { color: var(--ok); }
+.uns-mut em.bad { color: var(--bad); }

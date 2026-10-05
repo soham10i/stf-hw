@@ -757,13 +757,14 @@ and the colour readings of the belt and of raw dough are assumed. Only the Upgra
 
 ---
 
-## Upgrade 14: Industry 4.0 standards (steps 1 and 2 of 3 BUILT: the Asset Administration Shells, OPC UA)
+## Upgrade 14: Industry 4.0 standards (BUILT: the Asset Administration Shells, OPC UA, Sparkplug B and a Unified Namespace)
 
 **Why.** The model already holds what an asset's digital identity needs: part data, documents, 3D files, the bill of
 material, energy and the AI models. The Asset Administration Shell (IEC 63278) is the standard container for it, and
 the one the EU's Digital Product Passport and data spaces such as Catena-X build on. Step 2 is OPC UA (IEC 62541), the
-running machine's information model and a server for it. Step 3, still to come, is MQTT Sparkplug B (a Unified
-Namespace).
+running machine's information model and a server for it. Step 3 is MQTT Sparkplug B and a Unified Namespace: the
+event-driven, publish-subscribe side, where every system (SCADA, MES, dashboards, AI agents) reads one shared,
+current picture of the plant instead of polling each machine.
 
 ### Step 1: the Asset Administration Shells
 
@@ -860,6 +861,81 @@ a random password, and real clients connect to it:
 **Limits.** One simulated cell, one server, on localhost; no PubSub, no alarms and conditions, no historical access.
 Running it needs Python and Node.js: `STF_OPCUA_USER=operator STF_OPCUA_PASSWORD=... make opcua`, then connect a
 client such as UaExpert and copy its certificate into `stf-cad/hbw/.cache/opcua/pki/trusted`.
+
+### Step 3: MQTT Sparkplug B and a Unified Namespace
+
+**As built** (`stf-cad/hbw/uns/`, Eclipse Mosquitto, paho-mqtt, the official Sparkplug B schema from Eclipse Tahu):
+- **The namespace is generated** from the compiled PLC program's I/O image, like the OPC UA address space
+  (`uns/namespace.py`):
+  - the cell is the Sparkplug edge node `spBv1.0/STF/…/Cell-U12`, with its identity (the ProductInstanceUri is the AAS
+    asset id), the order, the safety relay and two commands, Rebirth and Restart Order;
+  - each module (HBW, VGR, Oven, Sorting) is a device carrying its inputs, outputs, encoders and unit sequencers;
+  - 130 metrics, each with an alias except 'Node Control/Rebirth', which the specification forbids to alias.
+- **The edge node** (`uns/edge.py`) publishes the live data of Upgrade 13's `plc.wasm`:
+  - every CONNECT carries an NDEATH will with the next bdSeq;
+  - it waits for the primary host's STATE before its birth, and ends its session when that host goes offline;
+  - births carry every metric with its current value, and data carries only what changed, by alias, with the
+    0–255 sequence number.
+- **The primary host application** (`uns/host.py`) knows the cell only from its births:
+  - it asks for a Rebirth on a sequence gap;
+  - on an NDEATH matching the current bdSeq it marks the node offline and every metric stale.
+- **The Unified Namespace.** The host writes it: every metric as retained JSON under the ISA-95 path
+  `stf-hw/virtual-site/bakery/line-1/cell-u12/<module>/<signal>`, with value, quality, timestamp, unit and its
+  Sparkplug source, plus a `_status` topic. A client that subscribes late gets the whole current state at once.
+- **Secure by default** (`docs/SECURITY.md`, S15):
+  - TLS 1.3 only, with the cell's own CA;
+  - one account per role with a random password;
+  - an access list per role: the edge writes only its own topics, the host is the only writer of the UNS, the
+    viewer only reads it.
+- **In the twin**: the **MQTT Sparkplug · UNS** panel browses the UNS topic tree with live values (from the PLC in
+  the browser), the Sparkplug namespace, decoded samples of each message type, the requirement verdicts, the
+  death-and-rebirth timeline and the security results.
+
+**Proofs** (`python3 -m uns.check`, `make uns-check`, about two minutes). A real broker is started with fresh
+passwords; the edge node runs as its own process so it can be killed:
+1. **Mapping.** Every PLC signal is exactly one metric, every unit sequencer six; aliases and UNS topics are unique.
+2. **Specification.** An independent monitor (`uns/audit.py`, MQTT 5, Retain-As-Published) judges every message of
+   the run against the 50 Sparkplug 3.0 requirements it touches, cited by their `tck-id`. All 50 hold over about
+   7,000 messages, with 27 wraps of the sequence number. They cover:
+   - topics, QoS and retain;
+   - seq and bdSeq;
+   - births before data, aliases, report by exception;
+   - the host's STATE, Rebirth, and ending the session when the host goes offline.
+3. **Host wait.** The edge, started two seconds before the host, publishes nothing until the host's STATE is online.
+4. **Live.** The host starts the order with an NCMD and watches it complete: 386.47 s and 103 jobs, equal to
+   Upgrade 13.
+5. **Rebirth.** A Rebirth request gets a full birth with the same bdSeq.
+6. **UNS.** A late subscriber gets 127 retained topics, each equal to the host's value.
+7. **Death.** The host goes offline: the edge ends its session with an NDEATH and is born again (bdSeq + 1) when the
+   host returns. The edge is killed with SIGKILL: the broker publishes its will, the host marks 130 metrics stale,
+   and the UNS status says offline. The restarted edge is born with bdSeq + 1.
+8. **Security.** Refused:
+   - an anonymous client, a wrong password, a plain-text connection, and a server not signed by the cell's CA;
+   - six writes the access list forbids, each never delivered (for example, the viewer commanding the cell, or the
+     edge impersonating another edge node);
+   - the viewer reading the Sparkplug namespace.
+9. **Mutants.** Five edge nodes and two brokers, each breaking one rule, are each caught:
+   - names in DDATA;
+   - a skipped seq;
+   - a bdSeq that is not the will's;
+   - a birth without the host;
+   - a repeated value;
+   - anonymous access;
+   - an access list that lets the edge command itself.
+
+**Found.**
+- The first run caught the edge ending its session 3.2 s late when the host went offline. It handled the STATE on the
+  MQTT network thread and then waited there for the NDEATH's acknowledgement, which that same thread had to send.
+- It also caught the host re-announcing itself online in reply to its own clean-shutdown STATE, so the edge was born
+  to a host that was gone. Both are fixed.
+
+**Limits.**
+- One broker on localhost, MQTT 3.1.1 for the edge and the host.
+- No Sparkplug templates, historical data or store-and-forward.
+- The UNS carries the cell's data only.
+
+Run the whole stack with `make uns` (needs `brew install mosquitto` or `apt install mosquitto`); read the UNS with
+any MQTT client as `stf-viewer`.
 
 ---
 

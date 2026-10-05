@@ -24,6 +24,12 @@ aas = [
 opcua = [
     "asyncua>=2.0.1",
 ]
+# the cell on MQTT Sparkplug B and a Unified Namespace (stf-cad/hbw/uns, Upgrade 14); also needs mosquitto
+uns = [
+    "paho-mqtt>=2.1",
+    "protobuf>=7.35",
+    "cryptography>=42",
+]
 dev = [
     "pytest>=8.3",
     "pytest-cov>=5.0",

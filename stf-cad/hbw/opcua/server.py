@@ -21,7 +21,6 @@ import hmac
 import json
 import logging
 import os
-import re
 import socket
 from pathlib import Path
 
@@ -32,16 +31,15 @@ from asyncua.crypto.truststore import TrustStore
 from asyncua.crypto.validator import CertificateValidator, CertificateValidatorOptions
 from asyncua.server.user_managers import UserManager
 from cryptography.x509.oid import ExtendedKeyUsageOID
+from sil.stream import PHASES, STREAM, state_names
+from sil.stream import bundle as bundle_stream
 
 from opcua import model as M
 
 HERE = Path(__file__).resolve().parent
 PKI = HERE.parent / ".cache" / "opcua" / "pki"
-STREAM = HERE.parent / ".cache" / "sil" / "sil-stream.mjs"
-WEB = HERE.parents[2] / "web"
 ENDPOINT = os.environ.get("STF_OPCUA_ENDPOINT", "opc.tcp://127.0.0.1:4840/stf/")
 APP_URI = "urn:stf-hw:opcua:server"
-PHASES = {0: "homing", 1: "running", 2: "complete"}
 log = logging.getLogger("stf.opcua")
 
 
@@ -56,21 +54,6 @@ class OperatorUsers(UserManager):
             return None
         ok = hmac.compare_digest(username, self.user) & hmac.compare_digest(str(password), self.password)
         return User(role=UserRole.User) if ok else None
-
-
-def state_names():
-    """state code -> its comment, per unit, from the compiled program's source."""
-    out, fb = {}, None
-    for line in open(os.path.join(M.PUBLIC, "sil", "stf_plc.st")).read().splitlines():
-        f = re.match(r"^FUNCTION_BLOCK FB_(\w+)", line)
-        if f:
-            fb = f.group(1).lower()
-            out[fb] = {}
-            continue
-        s = re.match(r"^ {2}(\d+): \(\* (.*?) \*\)", line)
-        if s and fb:
-            out[fb][int(s.group(1))] = s.group(2)
-    return out
 
 
 async def pki(hostname="localhost"):
@@ -104,12 +87,6 @@ async def make_server(user, password, endpoint=ENDPOINT):
     await M.load_companions(server)
     model = await M.build(server)
     return server, model
-
-
-def bundle_stream():
-    import subprocess
-    subprocess.run(["npx", "esbuild", "scripts/sil-stream.ts", "--bundle", "--platform=node", "--format=esm",
-                    f"--outfile={STREAM}", "--log-level=warning"], cwd=WEB, check=True)
 
 
 class Feed:

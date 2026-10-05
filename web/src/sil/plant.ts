@@ -12,7 +12,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type PlantParams = any;
-export type IoEntry = { name: string; bit?: number; word?: number };
+export type IoEntry = { name: string; bit?: number; word?: number; addr?: string };
 export type IoMap = { ix: IoEntry[]; qx: IoEntry[]; iw: IoEntry[]; id: IoEntry[]; mw: IoEntry[] };
 
 export type Mould = { id: number; cookie: number };            // cookie 0 = empty
