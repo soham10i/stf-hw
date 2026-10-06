@@ -1,5 +1,20 @@
 {
  "fingerprints": {
+  "base": "711384cae7050657",
+  "up1": "3a557419cd2f4a15",
+  "up2": "b4d644ba341b40a9",
+  "up3": "2971fec0a424fbdd",
+  "up4": "eddb8092a85f09d2",
+  "up10": "06e82bb098ca27ac",
+  "up5": "91a5151430b1369e",
+  "up6": "6aa7bba7c3157f14",
+  "up7": "3472ba2584d4ad82",
+  "up11": "f83568a8d7290ee1",
+  "up12": "bb0fe5697678867a"
+ },
+ "month_json": "f2ea4c5120bed073",
+ "note": "base..up7 recorded when each upgrade shipped; up10/up11 at their first export (2026-09-30). 2026-10-06: every variant re-recorded after the wiring fix (wiring.py: no cable through a belt's mould lane or a carrier's path, checked on every cable). Every variant passed its own proof gates; only the exported wiring changed. The earlier fingerprints are kept under previous_fingerprints.",
+ "previous_fingerprints": {
   "base": "824c457c8189eb7b",
   "up1": "000b366fd15909cd",
   "up2": "3ec82a7265d44c9a",
@@ -11,7 +26,5 @@
   "up10": "9b8e41238bbb3f40",
   "up11": "4c776f070fa29158",
   "up12": "c2be57a44db3b6b6"
- },
- "month_json": "f2ea4c5120bed073",
- "note": "base..up7 recorded when each upgrade shipped; up10/up11 at their first export (2026-09-30)"
+ }
 }

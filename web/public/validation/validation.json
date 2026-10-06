@@ -3,100 +3,100 @@
   "base": {
    "variant": "base",
    "ok": true,
-   "fingerprint": "824c457c8189eb7b",
-   "s": 97,
+   "fingerprint": "711384cae7050657",
+   "s": 90,
    "tail": [],
-   "baseline": "824c457c8189eb7b",
+   "baseline": "711384cae7050657",
    "match": true
   },
   "up1": {
    "variant": "up1",
    "ok": true,
-   "fingerprint": "000b366fd15909cd",
-   "s": 364,
+   "fingerprint": "3a557419cd2f4a15",
+   "s": 349,
    "tail": [],
-   "baseline": "000b366fd15909cd",
+   "baseline": "3a557419cd2f4a15",
    "match": true
   },
   "up2": {
    "variant": "up2",
    "ok": true,
-   "fingerprint": "3ec82a7265d44c9a",
-   "s": 369,
+   "fingerprint": "b4d644ba341b40a9",
+   "s": 353,
    "tail": [],
-   "baseline": "3ec82a7265d44c9a",
+   "baseline": "b4d644ba341b40a9",
    "match": true
   },
   "up3": {
    "variant": "up3",
    "ok": true,
-   "fingerprint": "a5970f960fb01ec4",
-   "s": 476,
+   "fingerprint": "2971fec0a424fbdd",
+   "s": 451,
    "tail": [],
-   "baseline": "a5970f960fb01ec4",
+   "baseline": "2971fec0a424fbdd",
    "match": true
   },
   "up4": {
    "variant": "up4",
    "ok": true,
-   "fingerprint": "97134e9092eda466",
-   "s": 828,
+   "fingerprint": "eddb8092a85f09d2",
+   "s": 944,
    "tail": [],
-   "baseline": "97134e9092eda466",
+   "baseline": "eddb8092a85f09d2",
    "match": true
   },
   "up10": {
    "variant": "up10",
    "ok": true,
-   "fingerprint": "9b8e41238bbb3f40",
-   "s": 1049,
+   "fingerprint": "06e82bb098ca27ac",
+   "s": 1225,
    "tail": [],
-   "baseline": "9b8e41238bbb3f40",
+   "baseline": "06e82bb098ca27ac",
    "match": true
   },
   "up5": {
    "variant": "up5",
    "ok": true,
-   "fingerprint": "8adfd516e55343a4",
-   "s": 1206,
+   "fingerprint": "91a5151430b1369e",
+   "s": 1373,
    "tail": [],
-   "baseline": "8adfd516e55343a4",
-   "match": true
-  },
-  "up7": {
-   "variant": "up7",
-   "ok": true,
-   "fingerprint": "c9509a5d41227fd1",
-   "s": 1209,
-   "tail": [],
-   "baseline": "c9509a5d41227fd1",
+   "baseline": "91a5151430b1369e",
    "match": true
   },
   "up6": {
    "variant": "up6",
    "ok": true,
-   "fingerprint": "66b9654eaab6a0af",
-   "s": 1212,
+   "fingerprint": "6aa7bba7c3157f14",
+   "s": 1375,
    "tail": [],
-   "baseline": "66b9654eaab6a0af",
+   "baseline": "6aa7bba7c3157f14",
    "match": true
   },
-  "up11": {
-   "variant": "up11",
+  "up7": {
+   "variant": "up7",
    "ok": true,
-   "fingerprint": "4c776f070fa29158",
-   "s": 892,
+   "fingerprint": "3472ba2584d4ad82",
+   "s": 1395,
    "tail": [],
-   "baseline": "4c776f070fa29158",
+   "baseline": "3472ba2584d4ad82",
    "match": true
   },
   "up12": {
    "variant": "up12",
    "ok": true,
-   "fingerprint": "c2be57a44db3b6b6",
-   "s": 900,
+   "fingerprint": "bb0fe5697678867a",
+   "s": 1081,
    "tail": [],
-   "baseline": "c2be57a44db3b6b6",
+   "baseline": "bb0fe5697678867a",
+   "match": true
+  },
+  "up11": {
+   "variant": "up11",
+   "ok": true,
+   "fingerprint": "f83568a8d7290ee1",
+   "s": 1090,
+   "tail": [],
+   "baseline": "f83568a8d7290ee1",
    "match": true
   }
  },
@@ -113,14 +113,14 @@
     "sorting.Q2"
    ],
    "denied_pairs": 20,
-   "s": 38
+   "s": 35
   },
   "throughput": {
    "fails": [],
    "before": 644.5,
    "after": 425.7,
    "states": 1787,
-   "s": 71
+   "s": 41
   },
   "mc": {
    "fails": [],
@@ -140,7 +140,7 @@
     "false_trips": 0,
     "worst_watchdog_use": 0.794
    },
-   "s": 50
+   "s": 44
   },
   "mutants": {
    "fails": [],
@@ -209,7 +209,7 @@
      "how": "SUNSPEC MinRsvPct is writable by the EMS"
     }
    ],
-   "s": 84
+   "s": 173
   },
   "ml": {
    "fails": [],
@@ -217,7 +217,7 @@
    "pytorch_vs_stored": 0.000488,
    "onnx_vs_pytorch": 0.0,
    "json_vs_pytorch": 3.2e-05,
-   "s": 49
+   "s": 76
   },
   "data": {
    "fails": [],
@@ -228,6 +228,6 @@
   }
  },
  "fails": [],
- "minutes": 21.9,
- "date": "2026-10-01 15:10"
+ "minutes": 24.8,
+ "date": "2026-10-06 10:30"
 }

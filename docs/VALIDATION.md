@@ -1,22 +1,22 @@
 # Validation of Upgrades 1-11
 
-Run 2026-10-01 15:10 by `stf-cad/hbw/validate.py` in 21.9 min. **All checks pass.**
+Run 2026-10-06 10:30 by `stf-cad/hbw/validate.py` in 24.8 min. **All checks pass.**
 
 ## A. Regression: every variant re-exported through its own proof gates
 
 | Variant | Proof gates | Fingerprint | Baseline |
 |---|---|---|---|
-| base | pass | `824c457c8189eb7b` | same |
-| up1 | pass | `000b366fd15909cd` | same |
-| up2 | pass | `3ec82a7265d44c9a` | same |
-| up3 | pass | `a5970f960fb01ec4` | same |
-| up4 | pass | `97134e9092eda466` | same |
-| up5 | pass | `8adfd516e55343a4` | same |
-| up6 | pass | `66b9654eaab6a0af` | same |
-| up7 | pass | `c9509a5d41227fd1` | same |
-| up10 | pass | `9b8e41238bbb3f40` | same |
-| up11 | pass | `4c776f070fa29158` | same |
-| up12 | pass | `c2be57a44db3b6b6` | same |
+| base | pass | `711384cae7050657` | same |
+| up1 | pass | `3a557419cd2f4a15` | same |
+| up2 | pass | `b4d644ba341b40a9` | same |
+| up3 | pass | `2971fec0a424fbdd` | same |
+| up4 | pass | `eddb8092a85f09d2` | same |
+| up5 | pass | `91a5151430b1369e` | same |
+| up6 | pass | `6aa7bba7c3157f14` | same |
+| up7 | pass | `3472ba2584d4ad82` | same |
+| up10 | pass | `06e82bb098ca27ac` | same |
+| up11 | pass | `f83568a8d7290ee1` | same |
+| up12 | pass | `bb0fe5697678867a` | same |
 
 ## B. Proofs without an export of their own
 
