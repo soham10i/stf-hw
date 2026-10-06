@@ -1,0 +1,168 @@
+# STF-2 digital twin - roadmap
+
+Ten phases. Each one follows the repository's rules: it is generated from the model, it ships only when its proof passes,
+and it reuses what `main` already built for cell 1. Effort is for one person who knows this code. "Gate" is the
+script that must exit 0.
+
+| Phase | Builds | Gate | Effort | Needs |
+|---|---|---|---|---|
+| DT-1 | Scene export: OpenUSD, USDZ, GLB | `twin/scene_check.py` | 3-4 d | - |
+| DT-2 | Kinematic playback in the web twin and Blender | `twin/playback_check.py` | 2-3 d | DT-1 |
+| DT-3 | Live plant service (real-time stepping, WebSocket) | `twin/plant_check.py` | 6-8 d | DT-2 |
+| DT-4 | PLC in the loop (SIL): ST → IEC → MatIEC, safety module | `twin/sil_check.py` | 8-10 d | DT-3 |
+| DT-5 | OPC UA server + Sparkplug B / UNS | `twin/opcua_check.py`, `twin/uns_check.py` | 3-4 d | DT-4 |
+| DT-6 | Contact physics for the handling steps (MuJoCo) | `twin/contact_check.py` | 4-5 d | DT-3 |
+| DT-7 | Renders, synthetic QC images, vision model | `twin/vision_check.py` | 4-6 d | DT-1 |
+| DT-8 | Operations: dashboard, KPIs, bake log, fault injection | `twin/ops_check.py` | 5-7 d | DT-4, DT-5 |
+| DT-9 | Optional: the same USD stage in Omniverse / Isaac Sim (cloud) | manual review | 2-3 d | DT-1, a cloud RTX instance |
+| DT-10 | Hardware in the loop: the real Beckhoff PLC replaces the SIL | `twin/hil_check.py` | when hardware arrives | DT-4, hardware |
+
+Critical path: DT-1 → DT-2 → DT-3 → DT-4 → DT-8, about 6-7 weeks. DT-6 and DT-7 run in parallel with DT-4.
+
+---
+
+## DT-1 Scene export
+
+**Builds.** `twin/export_scene.py`, run with `freecadcmd`:
+- tessellates every solid of `STF2_Precise.FCStd`, with linear deflection 0.1 mm for moving parts and 0.3 mm for the frame;
+- writes `stf2.usda` with one layer per module, the prim path `/STF2/<module>/<group>/<part>`, and the `stf:*` attributes from `line_model.build()`;
+- makes screws, brackets, pucks and cookies instanceable prototypes;
+- adds `UsdPreviewSurface` materials from the part colours;
+- then writes `stf2.usdz` and `stf2.glb` (plus a primitives-only `stf2_lod1.glb`) and `scene_index.json`.
+
+**Gate - `scene_check.py`:**
+- every one of the 5,996 solids is in the stage exactly once, and nothing extra (no old `M2_feeder` / `M3_tunnel` / `M4_stamp`);
+- each prim's bounding box equals its B-rep bounding box within the tessellation deflection;
+- every part with a tag in `io_list.csv` carries that tag;
+- the stage opens in `usd-core`, the GLB validates (glTF validator), and the USDZ passes `usdchecker`;
+- triangle budget: the viewer LOD ≤ 3 M triangles.
+
+## DT-2 Kinematic playback
+
+**Builds.**
+- The web twin (`web/`, React + three.js) loads `stf2.glb` and plays `motion/timeline.json`, with the same rules as `motion_player.py`: rigid placement × CAD placement, re-shaped rods and cookies, element glow, power and temperatures.
+- A Blender script does the same with keyframes, for renders.
+
+**Gate - `playback_check.py`:**
+- a headless three.js run (Node + `three`) applies all 401 frames;
+- every node's world matrix equals the FreeCAD player's placement within 0.05 mm;
+- this is the same proof as `validate_motion.py` (PLAYER == MODEL), now for the web player.
+
+## DT-3 Live plant service
+
+**Builds.** `twin/plant/`, a Python package that is stepped at 10 ms of virtual time:
+- axes (`SIM_MC`), cylinders, ejectors;
+- the kinematic motion (§3.1 of [SIM_MODELS.md](SIM_MODELS.md));
+- the oven (`oven_ctrl.Plant` / `Mismatch`, phase currents, STB);
+- product entities, stocks, the AMR, and the sensors.
+
+Around it:
+- **FastAPI** with `/ws/frames` (format in [DATA_CONTRACT.md §3.2](DATA_CONTRACT.md));
+- **REST**: `/state`, `/scenario`, `/fault`, `/run`.
+- In DT-3 it is driven by a **scripted controller**: a Python port of the PLC's intent, just enough to run the nominal cycle. DT-4 replaces it with the real program.
+
+**Gate - `plant_check.py`:**
+- **Replay:** fed the recorded axis trajectories of the reference run, the plant reproduces `timeline.json` frame by frame within 0.05 mm, including element bits, power and temperatures.
+- **Oven:** the plant's oven, driven like `oven_ctrl.run`, reproduces S1-S5 within 0.1 K.
+- **Flow:** one nominal hour gives `sim_results.json["nominal_1h"]` within ±1 %.
+- **Determinism:** two runs with the same seed are identical.
+
+## DT-4 PLC in the loop (SIL)
+
+**Builds.**
+- `plc_io.py --target iec` generates a portable IEC 61131-3 project from the same sources: located I/O, `SIM_MC` instead of Tc2_MC2, no pragmas, retained memory for `VAR PERSISTENT`.
+- `twin/sil/` compiles it with MatIEC → C → native (`ctypes`) and → WebAssembly (`clang`, `wasm-ld`), reusing `stf-cad/hbw/sil` from `main`.
+- The safety module implements SF1-SF6 from `safety/safety_functions.csv` and runs before the standard task.
+
+**Gate - `sil_check.py`:**
+1. The program compiles with no warnings.
+2. A diff check proves the IEC FB bodies equal the TwinCAT ones, apart from the mapped constructs.
+3. One hour of nominal production runs with **the PLC deciding**, and gives the DT-3 flow result.
+4. Faults F1-F7 and F11-F12 of the [fault catalogue](SIM_MODELS.md#6-fault-catalogue) give their expected responses, measured on the plant: alarm times, which element is named, depositor hold, STB trip time, SS1 timing, unlock delay.
+5. The learned `W0` / `a1` survive a restart (retained memory).
+6. The WebAssembly build runs the same 10-minute scenario with an identical I/O trace.
+7. **It can fail.** Mutants of the program are each rejected by a gate, for example:
+   - band gear ratio off by one row;
+   - the heater-break threshold doubled;
+   - SF2 unlock without the standstill wait.
+
+**Expect findings.** On `main`, cell 1's generated program was first rejected by MatIEC with 910 errors. Writing it
+properly and running it exposed ten real problems, one of them a design flaw (Upgrade 13, F8). The STF-2 program has
+never been compiled either, so DT-4 budgets time for the same. Every finding is fixed in the generator
+(`plc_io.py`), never in the output.
+
+## DT-5 OPC UA and Sparkplug B / UNS
+
+**Builds.**
+- `twin/opcua/`: the line on the Machinery companion specification, one MachineryItem per module, values in engineering units, methods `StartProduction` / `StopProduction` / `ResetAlarms` / `InjectFault`. Sign & Encrypt only, as on `main`.
+- `twin/uns/`: a Sparkplug B edge node (one device per module) to Mosquitto (TLS, per-role ACL), and the ISA-95 namespace `stf/<site>/bakery/line2/<module>/<tag>`.
+
+**Gate:**
+- `opcua_check.py` browses the server, checks the address space against the companion NodeSets, reads every tag live and checks security, as `opcua/check.py` on `main` does.
+- `uns_check.py` judges every message of a 10-minute run against the Sparkplug 3.0 requirements, reusing `uns/check.py` (50 requirements).
+
+## DT-6 Contact physics
+
+**Builds.**
+- `twin/contact/`: MJCF scenes generated from the primitive parts: delta C cups and band end, puck nest, kicker and bin, cassette.
+- Each scene runs sweeps over band speed, vacuum time, friction and drop height. A Genesis/Metal variant handles the large packing sweep.
+
+**Gate - `contact_check.py`:**
+- each scene's static geometry equals the model's primitives;
+- the grip, seat and landing rates come with confidence intervals;
+- the line simulation re-run with those rates still meets its claims, or a finding is written.
+
+## DT-7 Renders and vision
+
+**Builds.**
+- `twin/render/`: Blender (`bpy`) imports the USD stage and places the QC camera with its intrinsics from the model (CAM positions in `line_model`).
+- It renders cookies from `oven.profile` colours with surface variation, under-bake, over-bake, broken and missing-topping classes.
+- Labels in COCO format.
+- A small CNN is trained with PyTorch (MPS) and exported to ONNX (CoreML execution provider), following Upgrade 15 on `main`.
+
+**Gate - `vision_check.py`:**
+- accuracy on held-out renders;
+- a confusion-matrix threshold per class;
+- inference ≤ `AI_LATENCY` 0.5 s on the M4.
+
+The check states plainly that this is accuracy on **renders**, not on real cookies.
+
+## DT-8 Operations
+
+**Builds.** Dashboard tabs in the web twin:
+- **Line:** takt, buffers, AMR, stock.
+- **Oven:** zones, duty, phase currents, learned values, the element map with broken elements.
+- **Quality:** the per-cookie bake log, rejects.
+- **Alarms.**
+- **KPIs:** OEE as availability × performance × quality, energy per cookie.
+- **Fault injection:** the catalogue, one click each.
+
+Records go to DuckDB (or InfluxDB) and SQLite, each tagged with the model's git commit.
+
+**Gate - `ops_check.py`:**
+- every fault in the catalogue, injected through the API, shows the expected alarm and KPI effect on the dashboard's data endpoints;
+- the bake log of every cookie is complete (deposit → pack);
+- the OEE of the nominal hour equals the value computed from `sim_results.json`.
+
+## DT-9 Optional: Omniverse / Isaac Sim
+
+- Rent an RTX instance (cloud GPU).
+- Open `stf2.usda` in USD Composer / Isaac Sim and use the Kit app streaming client in the Mac's browser.
+- Use it for RTX path-traced reviews, Replicator data at scale, or PhysX/Newton comparisons against the MuJoCo results.
+- Nothing in DT-1 … DT-8 depends on it.
+
+## DT-10 Hardware in the loop
+
+When the Beckhoff hardware exists:
+- the TwinCAT project (generated `plc/*.st` + the TwinSAFE project) runs on the IPC;
+- the twin's plant replaces the field through ADS (`pyads`) or OPC UA for the I/O image, or EtherCAT simulation on the IPC side;
+- the same gates as DT-4 run against the real controller.
+
+Then the field devices are connected one module at a time, and each one is compared with its twin.
+
+## Acceptance
+
+The twin is accepted when, on the M4 Mac, `twin/run_all_checks.sh` passes:
+- DT-1 to DT-8 gates;
+- the existing model chain (`line_model`, `oven_ctrl`, `joints`, `plc_io`, `safety`, `line_sim`, `motion`, `validate_motion`);
+- a one-hour SIL run at ≥ 20× real time with no gate failing and memory below 8 GB for the live set.
