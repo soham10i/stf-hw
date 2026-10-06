@@ -40,7 +40,7 @@ def main():
     lam, s, W = H.EWMA, H.SOFT, H.WINDOW
     lag = (1 - lam) / lam
     rows, fails = [], []
-    for c, sim in zip(H.components(), H.run()):
+    for c, sim in zip(H.components(), H.run(), strict=True):
         r_f, sig = params(c)
         L, p = c["life"], c["p"]
         sig_z = sig * math.sqrt(lam / (2 - lam))                 # steady-state EWMA spread
@@ -58,19 +58,21 @@ def main():
         rows.append(row)
         # the simulation may warn earlier (the trend warning) but never later than the soft limit
         if sim["warn"] is None or sim["warn"] > n_soft * 1.01:
-            fails.append(f"{c['id']}: warned at {sim['warn']}, the soft limit predicts {n_soft:.0f}")
+            fails.append(f"{c['id']}: warned at {sim['warn']}, soft limit predicts {n_soft:.0f}")
         if sim["fail"] is not None and abs(sim["fail"] - L) > 1:
             fails.append(f"{c['id']}: failed at {sim['fail']}, the wear law predicts {L}")
         if min(row["soft_margin_sigma"], row["trend_margin_sigma"]) < 6:
             fails.append(f"{c['id']}: a healthy machine is within 6 sigma of a warning")
-    out = {"rules": {"lambda": lam, "soft": s, "window": W, "rul_warn_shifts": H.RUL_WARN_SHIFTS,
+    out = {"rules": {"lambda": lam, "soft": s, "window": W,
+                     "rul_warn_shifts": H.RUL_WARN_SHIFTS,
                      "ewma_lag": round(lag, 1), "healthy_cycles": H.HEALTHY_CYCLES},
            "components": rows, "fails": fails}
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(out, open(OUT, "w"), indent=1)
     for r in rows:
-        print(f"  {r['id']:8s} p {r['p']:<4} soft at {r['n_soft_theory']:>7} (sim warns {r['warn_sim']}, {r['warn_by']})"
-              f"  false-alarm margin {r['soft_margin_sigma']} / {r['trend_margin_sigma']} sigma")
+        print(f"  {r['id']:8s} p {r['p']:<4} soft at {r['n_soft_theory']:>7} "
+              f"(sim warns {r['warn_sim']}, {r['warn_by']})  "
+              f"false-alarm margin {r['soft_margin_sigma']} / {r['trend_margin_sigma']} sigma")
     print("\n".join(fails) if fails else "THEORY OK (closed form agrees with the simulation)")
     return fails
 
