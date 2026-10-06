@@ -7,7 +7,7 @@ script that must exit 0.
 | Phase | Builds | Gate | Effort | Needs |
 |---|---|---|---|---|
 | DT-1 | Scene export: OpenUSD, USDZ, GLB | `twin/scene_check.py` | **built** (2026-10-06) | - |
-| DT-2 | Kinematic playback in the web twin and Blender | `twin/playback_check.py` | 2-3 d | DT-1 |
+| DT-2 | Kinematic playback in the web twin and Blender | `twin/playback_check.py` | **built** (2026-10-06) | DT-1 |
 | DT-3 | Live plant service (real-time stepping, WebSocket) | `twin/plant_check.py` | 6-8 d | DT-2 |
 | DT-4 | PLC in the loop (SIL): ST → IEC → MatIEC, safety module | `twin/sil_check.py` | 8-10 d | DT-3 |
 | DT-5 | OPC UA server + Sparkplug B / UNS | `twin/opcua_check.py`, `twin/uns_check.py` | 3-4 d | DT-4 |
@@ -67,16 +67,44 @@ A low-detail `stf2_lod1.glb` is not needed: the full scene is 1.1 M triangles ag
 
 It also renders previews to `out/preview/` (the line in 7 s, a module alone in a few seconds).
 
-## DT-2 Kinematic playback
+## DT-2 Kinematic playback (BUILT)
 
-**Builds.**
-- The web twin (`web/`, React + three.js) loads `stf2.glb` and plays `motion/timeline.json`, with the same rules as `motion_player.py`: rigid placement × CAD placement, re-shaped rods and cookies, element glow, power and temperatures.
-- A Blender script does the same with keyframes, for renders.
+**As built.** `twin/playback.sh` (~25 s). How to view it: [VIEWING.md](VIEWING.md).
 
-**Gate - `playback_check.py`:**
-- a headless three.js run (Node + `three`) applies all 401 frames;
-- every node's world matrix equals the FreeCAD player's placement within 0.05 mm;
-- this is the same proof as `validate_motion.py` (PLAYER == MODEL), now for the web player.
+- **The rules, three times:**
+  - `twin/playback.py` (Python reference);
+  - `twin/web/player.js` (three.js math, no DOM: run by the browser *and* by Node);
+  - `twin/blender_anim.py` (Blender keyframes).
+  All implement `motion_player.py`'s rules:
+  - rigid part = M(t, q) × T(offset);
+  - followers ride on their body;
+  - a reshaped track is drawn as its frame's cylinder, with the CAD mesh hidden;
+  - spawned cookies are cylinders;
+  - oven elements glow.
+- **Browser:** `twin/web/index.html` + `viewer.js`:
+  - the GLB, played at 1×, with scrubbing and 0.25-4× speed;
+  - the oven readout (kW, phase currents, duty, TC per zone);
+  - module and guard toggles;
+  - click a part for its name, module, tag and hardware.
+- **Blender:** `twin/out/stf2_anim.blend` holds 295 rigid parts, 36 followers, 232 cylinders and 9 glowing elements, keyed at 10 fps over 401 frames. It is written with Blender 5's slotted actions in bulk (~10 s).
+- **Reference:** `twin/playback_ref.py` drives the FreeCAD player itself headless and records the exact B-rep box and the visibility of every object it moves: 563 objects × 41 frames.
+
+**Gate - `playback_check.py`** (all pass):
+
+| Player | Part-frames | Worst box difference | Visibility |
+|---|---|---|---|
+| P1 Python (on the DT-1 meshes) | 19,907 | 0.097 mm | 0 mismatches |
+| P2 browser (`player.js` on the GLB, under Node) | 19,907 | 0.097 mm | 0 mismatches |
+| P3 Blender (the keyed scene, evaluated per frame) | 19,907 | 0.097 mm | 0 mismatches |
+
+Tolerance: 0.2 mm (tessellation) for CAD meshes, 0.05 mm for the rebuilt cylinders.
+
+**It can fail:**
+- a swapped quaternion order in `player.js` fails P2 (2.5 m off, pucks named);
+- screws detached from their bodies in `playback.py` fail P1 (the screws named as missing).
+
+**Not in DT-2:** live motion (DT-3) and the dashboard in the `main` React app (DT-8). The viewer is a standalone page
+so that the proof and the view share one file.
 
 ## DT-3 Live plant service
 

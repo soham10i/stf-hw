@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STF-2 Twin</title>
+<style>
+  :root { --bg: #e9ecef; --panel: rgba(255,255,255,.92); --ink: #1b2330; --mute: #5b6573; --line: #d3d8de; --accent: #b03a2e; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #15191f; --panel: rgba(28,33,41,.92); --ink: #e6e9ee; --mute: #9aa4b2; --line: #333b47; --accent: #ff7a4d; } }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow: hidden; }
+  #view { position: fixed; inset: 0; }
+  .panel { position: fixed; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; backdrop-filter: blur(6px); }
+  #bar { left: 16px; right: 16px; bottom: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  #bar input[type=range]#t { flex: 1 1 240px; }
+  button { font: inherit; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  #time { font-variant-numeric: tabular-nums; min-width: 70px; }
+  #oven { top: 16px; right: 16px; width: 300px; }
+  #oven h3, #side h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--mute); }
+  .zone span { white-space: nowrap; text-align: right; }
+  .zone { display: grid; grid-template-columns: 26px 1fr 40px 62px; gap: 6px; align-items: center; font-variant-numeric: tabular-nums; }
+  .duty { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .duty > i { display: block; height: 100%; background: var(--accent); }
+  #side { top: 16px; left: 16px; width: 230px; max-height: calc(100% - 120px); overflow: auto; }
+  label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  #pick { margin-top: 8px; color: var(--mute); word-break: break-word; }
+  #pick b { color: var(--ink); }
+  #load { position: fixed; inset: 0; display: grid; place-items: center; font-size: 15px; color: var(--mute); }
+  .muted { color: var(--mute); }
+  @media (max-width: 720px) { #side { display: none; } #oven { left: 16px; right: 16px; width: auto; top: 16px; } }
+</style>
+<script type="importmap">
+  { "imports": { "three": "../node_modules/three/build/three.module.js",
+                 "three/addons/": "../node_modules/three/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="view"></div>
+<div id="load">Loading the line…</div>
+<div id="side" class="panel" hidden>
+  <h3>Show</h3>
+  <label><input type="checkbox" id="guards"> guards and enclosure (M10)</label>
+  <div id="mods" style="margin-top:6px"></div>
+  <h3 style="margin-top:10px">Part</h3>
+  <div id="pick">Click a part.</div>
+</div>
+<div id="oven" class="panel" hidden>
+  <h3>Oven (from the timeline)</h3>
+  <div id="power" class="muted"></div>
+  <div id="zones" style="margin-top:6px; display:grid; gap:4px"></div>
+</div>
+<div id="bar" class="panel" hidden>
+  <button id="play">Pause</button>
+  <span id="time">t = 0.0 s</span>
+  <input id="t" type="range" min="0" max="400" value="0">
+  <label class="muted">speed <select id="speed"><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>4</option></select>×</label>
+  <span id="phase" class="muted"></span>
+</div>
+<script type="module" src="viewer.js"></script>
+</body>
+</html>

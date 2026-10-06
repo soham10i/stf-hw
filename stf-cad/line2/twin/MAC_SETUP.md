@@ -98,6 +98,9 @@ source .venv-twin/bin/activate && cd stf-cad/line2
 twin/export_scene.sh                           # DT-1 (built): twin/out/stf2.usda, .usdz, .glb + the gate (~40 s)
 ./check_all.sh                                 # every proof of the line + the DT-1 gate (~4 min; --full adds CAD + motion)
 blender -b -P twin/blender_load.py -- --render $PWD/twin/out/preview/line.png   # preview (EEVEE, ~10 s)
+twin/playback.sh                               # DT-2 (built): Blender animation + the playback gate (~25 s)
+open -a Blender twin/out/stf2_anim.blend       # press Space - see VIEWING.md
+python3 -m http.server 8300 --bind 127.0.0.1   # then http://localhost:8300/twin/web/ (the browser twin)
 python3 -m twin.sil.build                      # DT-4: plc/*.st -> IEC -> MatIEC -> libplc + plc.wasm
 python3 -m twin.plant.serve --plc sil --speed 1 # DT-3/4: plant + PLC on :8200, WebSocket /ws/frames
 python3 -m twin.opcua.server &                 # DT-5: opc.tcp://localhost:4840/stf2

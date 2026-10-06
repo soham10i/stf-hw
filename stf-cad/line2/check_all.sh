@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Every proof of STF-2, in dependency order; stops at the first failure.   Run from stf-cad/line2.
-#   ./check_all.sh          model, control, joints, PLC, safety, line sim, BOM, drawings, twin scene (~8 min)
+#   ./check_all.sh          model, control, joints, PLC, safety, line sim, BOM, drawings, twin scene + playback (~10 min)
 #   ./check_all.sh --full   + precise CAD build, motion sweep, player validation (+ ~40 min)
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -23,6 +23,7 @@ if [ "${1:-}" = "--full" ]; then
 fi
 if [ -x ../../.venv-twin/bin/python ]; then
   step twin_scene twin/export_scene.sh
+  step twin_play  twin/playback.sh
 else
   echo "twin_scene     skipped (no .venv-twin: see twin/MAC_SETUP.md section 4)"
 fi
