@@ -271,3 +271,76 @@ details > summary { cursor: pointer; }
 .vq-chart circle.ok { fill: var(--ok); } .vq-chart circle.bad { fill: var(--warn); } .vq-chart circle.an { fill: var(--bad); }
 .db-muted.small { font-size: 12px; line-height: 1.5; }
 .vq-cm td.vq-zero { color: var(--faint); }
+
+/* --------------------------------------------------------------- health (Health.tsx) */
+.hl-span2 { grid-column: span 2; }
+.hl-cap { margin: 8px 0 0; font-size: 12px; color: var(--faint); }
+.hl-bars { display: flex; flex-direction: column; gap: 3px; }
+.hl-bar {
+  display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 28px 54px; align-items: center; gap: 8px;
+  padding: 5px 6px; border: 0; border-radius: 7px; background: none; color: var(--text); font: 12.5px var(--font); cursor: pointer; text-align: left;
+}
+.hl-bar:hover { background: var(--surface-2); }
+.hl-bar.on { background: var(--accent-weak); }
+.hl-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hl-track { height: 7px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.hl-track i { display: block; height: 100%; border-radius: 4px; transition: width .25s; }
+.hl-bar b { font: 600 12.5px var(--mono); text-align: right; }
+.hl-bar em { font: normal 11.5px var(--mono); color: var(--muted); text-align: right; }
+.hl-bar em.warn { color: var(--warn); } .hl-bar em.fail { color: var(--bad); }
+.hl-zone.ok { fill: var(--ok); opacity: .06; } .hl-zone.warn { fill: var(--warn); opacity: .08; } .hl-zone.fail { fill: var(--bad); opacity: .09; }
+.hl-now { stroke: var(--text); stroke-width: 1.2; stroke-dasharray: 3 3; opacity: .7; }
+.hl-now-t { fill: var(--text); }
+.hl-mark.warn { stroke: var(--warn); stroke-width: 1.2; } .hl-warn-t { fill: var(--warn); }
+.hl-line { cursor: pointer; } .hl-line:hover { opacity: .9; stroke-width: 2; }
+.hl-dot { stroke: var(--surface); stroke-width: 2; }
+.hl-leg { cursor: pointer; } .hl-leg.on { color: var(--text); font-weight: 600; }
+.hl-pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); }
+.hl-pill.ok { color: var(--ok); } .hl-pill.warn { color: var(--warn); } .hl-pill.fail { color: var(--bad); }
+.hl-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.hl-facts div { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+.hl-facts b { display: block; font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hl-facts b.mono { font: 600 11px var(--mono); }
+.hl-facts span { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.hl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.hl-list li { padding: 8px 10px; border-radius: 8px; background: var(--surface-2); cursor: help; }
+.hl-list b { display: block; font-size: 12.5px; font-weight: 600; }
+.hl-list span { font-size: 12px; color: var(--muted); }
+
+/* --------------------------------------------------------------- docs: degradation */
+.dg { display: flex; flex-direction: column; gap: 16px; }
+.dg-lede { margin: 0; font-size: 15px; color: var(--muted); }
+.dg-ctl { display: flex; flex-direction: column; gap: 10px; margin-bottom: 6px; }
+.dg-ctl .db-chips { margin: 0; }
+.dg-knobs { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); }
+.dg-knobs label { display: flex; align-items: center; gap: 6px; }
+.dg-knobs input[type=range] { width: 110px; }
+.dg-sw { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.dg-x { margin-left: auto; color: var(--faint); }
+.dg-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(220px, .8fr); gap: 14px; margin-top: 4px; }
+.dg-mini h4, .dg-read h4 { margin: 0 0 4px; font-size: 12.5px; font-weight: 600; }
+.dg-cone { fill: var(--accent); opacity: .08; }
+.dg-read { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.dg-read > div { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border-soft); }
+.dg-read span { color: var(--muted); } .dg-read b { font: 600 13px var(--mono); }
+.dg-read .ok b { color: var(--ok); } .dg-read .bad b { color: var(--bad); }
+.dg-read .dg-eq { justify-content: flex-start; font-size: 12px; overflow-x: auto; }
+.dg-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
+.dg-step p { margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.dg-b, .dg-read .dg-b { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--surface-2); color: var(--text); font: 700 10.5px var(--font); font-style: normal; margin-right: 6px; vertical-align: 1px; }
+.dg-b[style] { color: var(--bg); }
+.db-card h3 .dg-b { min-width: 22px; height: 22px; border-radius: 11px; font-size: 11.5px; margin-right: 0; }
+.dg-refs { margin-left: auto; font: 500 11.5px var(--font); }
+.dg-refs a { color: var(--accent); text-decoration: none; margin-left: 4px; }
+.dg-tex { display: block; overflow-x: auto; overflow-y: hidden; padding: 4px 0; font-size: 14px; color: var(--text); }
+.dg-tex .katex-display { margin: 6px 0; }
+.dg-live-v { margin-top: 8px; padding: 6px 10px; border-radius: 8px; background: var(--surface-2); font-size: 12px; color: var(--muted); }
+.dg-ref { margin: 0; padding-left: 22px; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+.dg-ref li { margin-bottom: 5px; } .dg-ref li:target { color: var(--text); background: var(--accent-weak); border-radius: 4px; }
+@media (max-width: 1100px) {
+  .hl-span2 { grid-column: 1 / -1; }
+  .dg-row { grid-template-columns: 1fr; }
+  .hl-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.dg-ref a { color: var(--accent); text-decoration: none; font-family: var(--mono); font-size: 11.5px; }
+@media (max-width: 760px) { .dg-ctl .db-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; } .dg-ctl .db-chips button { flex: none; } .hl-facts { grid-template-columns: 1fr 1fr; } }

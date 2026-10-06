@@ -13,6 +13,7 @@ page, and an **i** beside each card title that says what the card shows.
 - **Maintain**: [Health](#health) · [Maintenance](#maintenance) · [AI maintenance](#ai-maintenance)
 - **Analyse**: [Month](#month) · [Throughput](#throughput) · [Energy & grid](#energy-grid) · [OT security](#ot-security) · [Defence in depth](#defence-in-depth)
 - **Engineer**: [Engineering](#engineering) · [Validation](#validation) · [Data](#data)
+- **Docs**: [Hardware degradation](#hardware-degradation)
 
 ---
 
@@ -116,21 +117,22 @@ Every alarm the PLC can raise, and how the machine reacted when each fault was i
 
 ### Health
 
-How worn each part is at the chosen machine age, and how the twin detects wear before a part fails.
+How worn each part is at the chosen machine age, and which part needs attention first.
 
 **How to read it**
 
-1. Move the machine-age slider: health falls as parts wear. Green is healthy, amber is warned, red is failing.
-2. Switch PM off to see the same machine without preventive maintenance.
-3. Click a part for its wear curve, its failure limit and when it was warned.
+1. Drag the machine-age slider: health falls as parts wear. Green healthy, amber warned, red failed.
+2. Switch PM off to see the machine run to failure.
+3. Click a part (bar, line or legend) to see its signal.
 
 | Section | What it shows |
 |---|---|
-| Component health | The health index of each wearing part at the chosen age. |
-| (the selected part) | Its wear curve, the soft limit and trend warnings, and its remaining life. |
-| Detect-only failure modes | Faults that can only be detected when they happen (not predicted), and the alarm that catches each. |
+| Health index now | Every part's health, worst first, with shifts left until failure. |
+| Health over machine age | Each part's health across the machine's life; the dashed line is now. |
+| (the selected part) | Its smoothed signal against the soft limit and the failure limit, and when it was warned. |
+| Not predictable | Faults with no gradual sign, and the check that covers each. |
 
-*Data:* The condition-monitoring model of Upgrade 6: a wear law per part, a noisy measurement, smoothing and two warnings.
+*Data:* The condition-monitoring model of Upgrade 6. The theory is under Docs → Hardware degradation.
 
 ### Maintenance
 
@@ -340,6 +342,29 @@ Where the dashboard's data would come from on a real machine: the MQTT topics an
 
 ---
 
+## Docs
+
+### Hardware degradation
+
+The theory behind the Health page: how wear is modelled, measured, smoothed and turned into warnings, running live.
+
+**How to read it**
+
+1. Pick a part: its own wear law runs on the chart, one life in about 30 seconds.
+2. The numbered circles on the chart match the numbered equations below.
+3. Switch to 'healthy' to see that no warning comes; raise the noise to see why smoothing matters.
+
+| Section | What it shows |
+|---|---|
+| Live | Measured signal, true wear, smoothed signal, the trend and both limits, cycle by cycle. |
+| Steps 1-10 | Each modelling step as an equation, with its source and its value for the chosen part. |
+| Every part: closed form vs simulation | The equations predict when each part warns; the simulation agrees. |
+| References | The standards, papers and books each step comes from. |
+
+*Data:* health.py (Upgrade 6) and health_theory.py; the same model ported to the browser.
+
+---
+
 ## Terms
 
 | Term | Meaning |
@@ -349,6 +374,7 @@ Where the dashboard's data would come from on a real machine: the MQTT topics an
 | Shift | 8 hours of production. Machine age and remaining life are counted in shifts. |
 | Health index (HI) | 100 = as new, 0 = it fails now. Computed from how far a part's measured behaviour has drifted toward its failure limit. |
 | RUL | Remaining useful life: how many shifts (or orders) a part has left before it fails. |
+| EWMA | Exponentially weighted moving average: each new reading moves the smoothed value a small step (2 %) towards it, so noise averages out but a real trend shows. |
 | PM | Preventive maintenance: renewing a part when it warns, before it fails. The PM switch shows the machine with and without it. |
 | Watchdog | A time limit on each PLC step. A step that takes too long raises an alarm - the first sign of a stuck switch or a stalled motor. |
 | Policy | The rule the PLC uses to decide which cookie or mould to move next. Different policies give different order times. |

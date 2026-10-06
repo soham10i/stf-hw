@@ -9,6 +9,7 @@ const GROUPS: [string, string[]][] = [
   ["Maintain", ["health", "maintenance", "ai"]],
   ["Analyse", ["month", "throughput", "energy", "security", "hardening"]],
   ["Engineer", ["engineering", "validation", "data"]],
+  ["Docs", ["docs-degradation"]],
 ];
 const out: string[] = [
   "# Operations dashboard: user guide",

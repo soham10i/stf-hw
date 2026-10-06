@@ -2,12 +2,11 @@
 // It reads the newest upgrade export (up7, else up6) - the PLC's run (U4), the
 // commissioning results (U5), the condition-monitoring model (U6) and the
 // lifecycle checks (U7). Nothing here is typed in.
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { useCadDoc, type CadDoc, type HealthComp } from "../shared/model";
+import { createContext, lazy, Suspense, useContext, useEffect, useMemo, useState } from "react";
+import { useCadDoc, type CadDoc } from "../shared/model";
 import { JOB_COL, JOB_SAY, fmtT, makespan, unitsAt } from "../shared/hmi";
-import { STATUS_TXT, compAt, maxShifts } from "../shared/health";
-import { HealthGrid } from "../shared/HealthGrid";
-import { Curve } from "../shared/Curve";
+import { compAt, maxShifts } from "../shared/health";
+import { HealthPage } from "./Health";
 import { MonthPage } from "./Month";
 import { AiPage } from "./Ai";
 import { GridPage } from "./Grid";
@@ -19,6 +18,9 @@ import { Icon, ThemeToggle } from "../shared/icons";
 import { useTheme } from "../shared/theme";
 import { GUIDE, TERMS, cardHelp } from "./guide";
 
+// the docs pages carry KaTeX: loaded when opened
+const DegradationPage = lazy(() => import("./Degradation").then((m) => ({ default: m.DegradationPage })));
+
 const BASE = import.meta.env.BASE_URL;
 const PAGES = [
   ["overview", "Overview", "home", "Operate"], ["production", "Production", "factory", "Operate"],
@@ -29,6 +31,7 @@ const PAGES = [
   ["energy", "Energy & grid", "bolt", "Analyse"], ["security", "OT security", "shield", "Analyse"],
   ["hardening", "Defence in depth", "layers", "Analyse"],
   ["engineering", "Engineering", "cog", "Engineer"], ["validation", "Validation", "check", "Engineer"], ["data", "Data", "database", "Engineer"],
+  ["docs-degradation", "Hardware degradation", "activity", "Docs"],
 ] as const;
 const CLOCK_PAGES = ["overview", "production", "quality"];
 const AGE_PAGES = ["overview", "health", "maintenance"];
@@ -187,33 +190,6 @@ function Production({ doc, t }: { doc: CadDoc; t: number }) {
             <td className="num">{p.deadlock ? <span className="db-bad">deadlock</span> : `${p.makespan} s`}</td></tr>)}
         </tbody></table>
         <p className="db-note">Commissioned against the twin: {vc.performance.makespan} s (model {vc.performance.model} s).</p>
-      </Card>
-    </div>
-  );
-}
-
-function Health({ doc, age, pm }: { doc: CadDoc; age: number; pm: boolean }) {
-  const h = doc.health!;
-  const [sel, setSel] = useState<HealthComp>(h.components[0]);
-  const s = compAt(sel, age, pm);
-  return (
-    <div className="db-grid">
-      <Card title="Component health" wide><HealthGrid cs={h.components} shifts={age} maintained={pm} />
-        <div className="db-chips">{h.components.map((c) => <button key={c.id} className={c.id === sel.id ? "on" : ""} onClick={() => setSel(c)}>{c.name}</button>)}</div>
-      </Card>
-      <Card title={sel.name}>
-        <Curve c={sel} />
-        <table className="db-table"><tbody>
-          <tr><td>signal</td><td>{sel.metric}</td></tr>
-          <tr><td>sources</td><td className="mono">{sel.source.join(" ")}</td></tr>
-          <tr><td>state</td><td className={s.status}>{STATUS_TXT[s.status]} · HI {Math.round(s.hi)}</td></tr>
-          <tr><td>fails at</td><td>r = {sel.r_fail} (warn at {sel.soft})</td></tr>
-          <tr><td>warned</td><td>{sel.lead_shifts} shifts before failure ({sel.warn_by})</td></tr>
-          <tr><td>false warnings</td><td>{sel.false_warnings} in {sel.healthy_cycles.toLocaleString()} healthy cycles</td></tr>
-        </tbody></table>
-      </Card>
-      <Card title="Detect-only failure modes">
-        <table className="db-table"><tbody>{h.detect_only.map((d) => <tr key={d.mode}><td>{d.mode}<div className="db-muted">{d.why}</div></td><td>{d.cover}</td></tr>)}</tbody></table>
       </Card>
     </div>
   );
@@ -470,7 +446,8 @@ export function Dashboard() {
           {page === "validation" && <ValidationPage />}
           {page === "overview" && <Overview doc={doc} t={t} age={age} pm={pm} go={setPage} />}
           {page === "production" && <Production doc={doc} t={t} />}
-          {page === "health" && <Health doc={doc} age={age} pm={pm} />}
+          {page === "health" && <HealthPage h={doc.health!} age={age} pm={pm} go={(p) => setPage(p as Page)} />}
+          {page === "docs-degradation" && <Suspense fallback={<div className="db-err">loading…</div>}><DegradationPage h={doc.health!} /></Suspense>}
           {page === "maintenance" && <Maintenance doc={doc} age={age} pm={pm} />}
           {page === "quality" && <Quality doc={doc} t={t} />}
           {page === "alarms" && <Alarms doc={doc} />}
