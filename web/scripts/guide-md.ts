@@ -5,7 +5,7 @@ import { writeFileSync } from "node:fs";
 import { GUIDE, TERMS } from "../src/dashboard/guide";
 
 const GROUPS: [string, string[]][] = [
-  ["Operate", ["overview", "production", "quality", "alarms"]],
+  ["Operate", ["overview", "production", "quality", "vision", "alarms"]],
   ["Maintain", ["health", "maintenance", "ai"]],
   ["Analyse", ["month", "throughput", "energy", "security", "hardening"]],
   ["Engineer", ["engineering", "validation", "data"]],

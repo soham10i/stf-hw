@@ -14,6 +14,7 @@ import { GridPage } from "./Grid";
 import { ThroughputPage } from "./Throughput";
 import { SecurityPage } from "./Security";
 import { HardeningPage, ValidationPage } from "./Assurance";
+import { VisionPage } from "./Vision";
 import { Icon, ThemeToggle } from "../shared/icons";
 import { useTheme } from "../shared/theme";
 import { GUIDE, TERMS, cardHelp } from "./guide";
@@ -21,7 +22,7 @@ import { GUIDE, TERMS, cardHelp } from "./guide";
 const BASE = import.meta.env.BASE_URL;
 const PAGES = [
   ["overview", "Overview", "home", "Operate"], ["production", "Production", "factory", "Operate"],
-  ["quality", "Quality & trace", "check", "Operate"], ["alarms", "Alarms", "bell", "Operate"],
+  ["quality", "Quality & trace", "check", "Operate"], ["vision", "Vision QC", "eye", "Operate"], ["alarms", "Alarms", "bell", "Operate"],
   ["health", "Health", "heart", "Maintain"], ["maintenance", "Maintenance", "wrench", "Maintain"],
   ["ai", "AI maintenance", "brain", "Maintain"],
   ["month", "Month", "calendar", "Analyse"], ["throughput", "Throughput", "gauge", "Analyse"],
@@ -460,6 +461,7 @@ export function Dashboard() {
         <PageCtx.Provider value={page}>
         <div className="db-page" key={page}>
           {page === "month" && <MonthPage />}
+          {page === "vision" && <VisionPage />}
           {page === "ai" && <AiPage />}
           {page === "energy" && <GridPage />}
           {page === "throughput" && <ThroughputPage />}

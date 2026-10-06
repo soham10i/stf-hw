@@ -2,7 +2,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas opcua opcua-check uns uns-check mechanisms guide audit clean
+.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas opcua opcua-check uns uns-check mechanisms guide vision-live audit clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -74,6 +74,14 @@ sil: ## Upgrade 13: compile the PLC program (MatIEC -> WebAssembly) and prove it
 
 vision: ## Upgrade 15: render the training images, train the inspection CNN, export it (ONNX + browser)
 	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m vision.train
+
+vision-live: ## Upgrade 15 step 2: camera mount (checked), autoencoder, renderer port and parity checks for the live feed
+	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m vision.mount && PYTHONPATH=. ../../$(PY) -m vision.params \
+		&& PYTHONPATH=. ../../$(PY) -m vision.autoencoder
+	cd web && npx esbuild scripts/ae-parity.ts --bundle --platform=node --format=esm --outfile=../.cache/ae-parity.mjs --log-level=warning \
+		&& node ../.cache/ae-parity.mjs public/vision
+	cd web && npx esbuild scripts/vision-live-check.ts --bundle --platform=node --format=esm --outfile=../.cache/vision-live-check.mjs --log-level=warning \
+		&& node ../.cache/vision-live-check.mjs public/vision 1500
 
 aas: ## Upgrade 14: generate and verify the Asset Administration Shells (needs the [aas] extra)
 	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m aas.build

@@ -939,7 +939,7 @@ any MQTT client as `stf-viewer`.
 
 ---
 
-## Upgrade 15: vision inspection, trained on rendered images (BUILT)
+## Upgrade 15: vision inspection, trained on rendered images (BUILT, with a live feed and an autoencoder)
 
 **Why.** The colour sensor (A4) tells the flavour but not whether a cookie is cracked, chipped, burnt or underbaked.
 A camera and a small network can, but there is no camera and no cookie to photograph. Training on images rendered
@@ -985,6 +985,66 @@ On images like its training data the deployed network gets 98.8 % of conditions 
 **Limits.** The renderer's faults, lighting and belt are ASSUMED. The numbers show the method and the deployment path,
 not the accuracy on a real camera. The panel does not yet feed the PLC: a reject path into the program (a reject bay
 and a new job in MAIN, re-proved by Upgrade 13's software-in-the-loop) is the follow-up.
+
+
+### Step 2: the camera in the cell, a live feed, and an autoencoder
+
+**Why.** Step 1's network was only ever tested on a fixed sheet of images, and its weak point is light it has not seen
+(30 % false rejects). A deployed inspection needs a place for the camera, a way to watch the model work on every
+cookie, and a signal that tells when the line has drifted away from the training conditions, without labels.
+
+**As built:**
+- **The camera's place** (`vision/mount.py`). The camera and its ring light hang from the colour hood's roof,
+  40 mm before the colour sensor: inside the hood the light is controlled, which is exactly where the network is
+  weak. The script checks the mount against the Upgrade 12 export's own parts:
+  - no overlap, and 27 mm above the cookie's path;
+  - 5 mm from the colour sensor;
+  - 50 lines of sight to the inspected area, all clear;
+  - an 81° lens for the 80 mm field, and 0.04 px of motion blur at the belt's 50 mm/s;
+  - triggered by I2, the cookie arriving under the lens 1.05 s later.
+
+  Three wrong mounts are each caught. The twin draws the camera, its field of view and the strobe as each cookie
+  passes.
+- **The renderer in the browser** (`web/src/vision/render.ts`, parameters from `render.py` via `vision/params.py`).
+  Checked where it matters: the CNN scores its images as it scored Python's.
+
+  | Images | Condition right (browser / Python) | False rejects (browser / Python) |
+  |---|---|---|
+  | Like training | 99.3 % / 98.8 % | 0.0 % / 0.7 % |
+  | Unseen conditions | 66.5 % / 67.3 % | 30.7 % / 29.8 % |
+
+- **An autoencoder that knows only good cookies** (`vision/autoencoder.py`, `web/src/vision/ae.ts`). It is trained
+  on 12,000 images of good cookies, with no defect labels. Two signals come from it:
+  - **Anomaly:** the worst 6 x 6 px patch of the reconstruction error. On held-out images it catches 58 % of defects
+    at 1 % false alarms (AUROC 0.91), none of them seen in training. Under unseen conditions it raises 12 % false
+    alarms, against the CNN's 30 % false rejects.
+  - **Drift:** the mean error of good cookies, which rises 3.5 x under unseen conditions. This is a label-free alarm
+    that the line has changed.
+
+  The browser's copy matches PyTorch to within 5 x 10⁻⁷.
+- **The live feed** (dashboard **Vision QC**, `web/src/vision/live.ts`). Every cookie the line makes is photographed,
+  classified by the CNN, scored by the autoencoder and compared with the truth the simulation knows. The page shows:
+  - the camera image and the error map;
+  - the decision, and whether it was right;
+  - a strip of recent cookies;
+  - escapes and false rejects over the last 50 cookies;
+  - a confusion matrix;
+  - the drift chart.
+
+  Scenarios move the conditions: ageing ring light, a warmer lamp, a worn belt, everything unseen. With the 3D twin
+  open, the feed photographs the twin's own cookies as they pass its camera. Under "everything unseen" the live feed
+  reproduces the offline test (68 % right, 30 % false rejects), and the drift alarm reaches x2 before an operator
+  could see it in the numbers.
+
+**Found.** Averaging the reconstruction error over the image catches only 26 % of defects: the belt's random texture
+dominates the average. Scoring the worst local patch instead more than doubles that, still without labels.
+
+**Limits and the next step.**
+- Every image is rendered, so this shows the method, not the accuracy on a real camera. The camera itself is an
+  assumed part.
+- The drift alarm is the trigger for adaptation. The step after it - collecting the flagged images, labelling a few
+  and fine-tuning the CNN, or adapting it without labels (self-training on confident frames, re-estimating its
+  normalisation) - is not built yet.
 
 ---
 

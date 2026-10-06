@@ -85,6 +85,7 @@ export function VisionPanel() {
     <div className="np vis">
       <div className="np-head">
         <div><b>Vision inspection</b><span>a CNN trained only on rendered images, running in your browser</span></div>
+        <a className="ui-btn" href={`${BASE}dashboard.html?p=vision`} target="_blank" rel="noopener noreferrer">Live feed</a>
       </div>
       <div className="np-stats">
         <Stat label="Defects passed (escapes)" value={pct(sh.escape_rate)} sub={`unseen conditions · ${pct(ind.escape_rate)} like training`}

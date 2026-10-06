@@ -353,6 +353,14 @@ export const hbwHot = {
 };
 /** The Lagerstelle whose cookie the VGR has collected. */
 export const sortHot = { taken: null as string | null };
+/** The inspection camera (Upgrade 15, vision/mount.py): each cookie it photographs. Listeners
+    (the Vision panel) get the cookie's flavour; `lit` drives the ring light's strobe. */
+export const visionHot = {
+  captures: 0, lit: 0,
+  listeners: new Set<(c: { n: number; flavour: string; t: number }) => void>(),
+};
+let visionChannel: BroadcastChannel | null = null;
+type CameraDoc = { parts: CadPart[]; lens: [number, number, number]; optics: { roi_mm: number } };
 /** The colour each Lagerstelle's cookie is drawn in. */
 const bayHot: Record<string, { colour: string }> = { weiss: { colour: "#FBF8F1" }, rot: { colour: "#F4A6BF" }, blau: { colour: "#5C3A1E" } };
 /** The oven + sorting flow: every joint of both stations, and the ONE cookie
@@ -1353,7 +1361,29 @@ function SortingModule({ doc }: { doc: CadDoc }) {
     return m;
   }, [doc, cols]);
   const tex = useBeltTexture();
-  useFrame(() => {
+  const { data: cam } = useJson<CameraDoc>("vision/camera.json");
+  const ring = useRef<THREE.MeshStandardMaterial>(null);
+  const near = useRef(false);
+  // the lens in the factory frame (sorting -> factory: x' = -y + tx, y' = x + ty)
+  const lensF = useMemo(() => cam && [-cam.lens[1] + doc.factory.sort_placement.translate[0],
+    cam.lens[0] + doc.factory.sort_placement.translate[1]], [cam, doc]);
+  useFrame((_, dt) => {
+    // a capture: the travelling cookie crosses the lens's axis on the sorting belt
+    if (lensF) {
+      const [x, y] = ovenHot.pos;
+      const under = ovenHot.visible && Math.hypot(x - lensF[0], y - lensF[1]) < 6;
+      if (under && !near.current) {
+        visionHot.captures++;
+        visionHot.lit = 1;
+        const c = { n: visionHot.captures, flavour: twinOrders.cycle.flavour, t: performance.now() };
+        visionHot.listeners.forEach((f) => f(c));
+        // an open dashboard shows this cookie in its live inspection feed
+        try { visionChannel ??= new BroadcastChannel("stf-vision"); visionChannel.postMessage({ flavour: c.flavour, n: c.n }); } catch { /* no BroadcastChannel */ }
+      }
+      near.current = under;
+      visionHot.lit = Math.max(0, visionHot.lit - dt * 4);
+      if (ring.current) ring.current.emissiveIntensity = 0.15 + 3 * visionHot.lit;
+    }
     const s = ovenHot.s;
     // the sorting belt starts when the cookie reaches it (I2) and stops after it
     // has been ejected; before that it stands still
@@ -1372,9 +1402,26 @@ function SortingModule({ doc }: { doc: CadDoc }) {
     }
   });
   const P = (p: CadPart) => <Solid key={p.n} part={p} drive={drive} pitch={4} tex={tex} />;
+  const belt = doc.sorting.parts.find((p) => p.n === "belt_web");
+  const beltTop = belt ? belt.p[2] + (belt.s[2] as number) : 45;
   return (
     <group>
       {byFrame.world.map(P)}
+      {cam && (
+        <group>
+          {cam.parts.filter((p) => p.n !== "cam_ring_light").map(P)}
+          {/* the ring light, lit while the camera exposes */}
+          <mesh position={v(cam.lens[0], cam.lens[1], cam.lens[2] + 3)}>
+            <cylinderGeometry args={[20 * MM, 20 * MM, 6 * MM, 32]} />
+            <meshStandardMaterial ref={ring} color="#e8eef7" emissive="#cfe4ff" emissiveIntensity={0.15} />
+          </mesh>
+          {/* what the camera sees: from the lens down to the inspected area on the belt */}
+          <mesh position={v(cam.lens[0], cam.lens[1], (cam.lens[2] + beltTop) / 2)} rotation={[0, Math.PI / 4, 0]}>
+            <cylinderGeometry args={[4 * MM, (cam.optics.roi_mm / Math.SQRT2) * MM, (cam.lens[2] - beltTop) * MM, 4, 1, true]} />
+            <meshBasicMaterial color="#7cc3f5" transparent opacity={0.12} side={THREE.DoubleSide} depthWrite={false} />
+          </mesh>
+        </group>
+      )}
       {cols.map((c) => {
         const body = doc.sorting.parts.find((p) => p.n === `wp_${c}_body`);
         if (!body) return null;

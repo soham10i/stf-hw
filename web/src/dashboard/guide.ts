@@ -39,6 +39,10 @@ export const TERMS: Record<string, string> = {
   "Ride-through": "Energy kept in the battery so the cell can finish its work through a mains outage.",
   "Demand response": "Using less grid power when the grid operator asks, in exchange for a lower price.",
   "mV (colour sensor)": "The colour sensor gives a voltage in millivolts that depends on how bright the cookie is - it is a brightness reading, not a colour.",
+  "Autoencoder": "A network trained to rebuild images of good cookies only. What it rebuilds badly is unusual - it needs no defect labels.",
+  "Drift": "The line's conditions moving away from what the models were trained on (light, lamp colour, belt wear). The autoencoder's error rises before the classifier's answers go wrong.",
+  "Escape": "A defective cookie the inspection passed as good - the costly mistake.",
+  "False reject": "A good cookie the inspection threw out - wasted product.",
   "Simulated": "Every number on this dashboard comes from the twin's models, not from a real machine. Values the models only assume are marked 'assumed'.",
 };
 
@@ -90,6 +94,26 @@ export const GUIDE: Record<string, PageGuide> = {
     ],
     source: "The traceability design of Upgrade 4: RFID read points on the HBW belt and the sorting line's colour sensor.",
     terms: ["mV (colour sensor)"],
+  },
+  vision: {
+    title: "Vision QC",
+    what: "The inspection camera's live feed: every cookie photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.",
+    read: [
+      "Watch the live camera: the image, the CNN's answer and decision, and the autoencoder's error map (hot = not as a good cookie looks).",
+      "The KPIs and the confusion matrix say how right the CNN is over the last 50 cookies; escapes are defects it let through.",
+      "Change the conditions (ageing light, a warmer lamp, a worn belt) and watch the drift chart rise before the CNN's answers go wrong.",
+      "With the 3D twin open in another tab, the feed photographs the twin's own cookies.",
+    ],
+    sections: [
+      ["Live camera", "The latest cookie: camera image, autoencoder error map, truth, the CNN's answer and the line's decision, and a strip of recent cookies."],
+      ["The line", "Run or pause, the conditions, the defect rate the simulation injects and the line's speed."],
+      ["Confusion (last 50)", "Truth against the CNN's answer for each condition: everything off the diagonal is a mistake."],
+      ["Drift", "The autoencoder's error on normal-looking cookies against its training baseline; above ×2 the line no longer looks like training."],
+      ["The camera", "Where it is mounted in the colour hood, its lens and trigger, and the mount's checks against the model."],
+      ["The models, tested offline", "The CNN and the autoencoder on held-out images like training and on unseen conditions."],
+    ],
+    source: "Upgrade 15: the camera mount (vision/mount.py), the CNN (vision/train.py) and the autoencoder (vision/autoencoder.py), run in the browser on images drawn by the renderer port.",
+    terms: ["Simulated", "Drift", "Autoencoder", "Escape", "False reject"],
   },
   alarms: {
     title: "Alarms",
