@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useJson } from "../shared/data";
 import { Icon } from "../shared/icons";
 import { useSil } from "./PlcPanel";
-import { Empty, Stat } from "./kit";
+import { Empty, Stat, Note } from "./kit";
 
 const BASE = import.meta.env.BASE_URL;
 const PHASES = ["homing", "running", "complete"];
@@ -179,9 +179,9 @@ export function UnsPanel() {
           <input className="ui-select ua-q" placeholder="Filter topics (e.g. crane, inputs, phase)" value={q}
             onChange={(e) => setQ(e.target.value.trim().toLowerCase())} aria-label="Filter topics" />
           <div className="ua-tree"><TopicRow t={tree} depth={0} vals={vals} q={q} /></div>
-          <p className="np-foot">ISA-95 levels: enterprise / site / area / line / cell / module / signal. Every topic is retained, so a
+          <Note title="Why a Unified Namespace">ISA-95 levels: enterprise / site / area / line / cell / module / signal. Every topic is retained, so a
             dashboard, an MES or an AI agent that subscribes late gets the whole state at once; in the proof run a late subscriber
-            received {r.uns.topics} of {r.uns.metrics} topics, each equal to the host's value.</p>
+            received {r.uns.topics} of {r.uns.metrics} topics, each equal to the host's value.</Note>
         </>
       )}
 
@@ -200,8 +200,8 @@ export function UnsPanel() {
               </table>
             </details>
           ))}
-          <p className="np-foot">Births carry every metric with name, alias and datatype; data carries only what changed, by alias.
-            'Node Control/Rebirth' has no alias, as the specification requires.</p>
+          <Note title="Births and data">Births carry every metric with name, alias and datatype; data carries only what changed, by alias.
+            'Node Control/Rebirth' has no alias, as the specification requires.</Note>
         </div>
       )}
 
@@ -231,17 +231,17 @@ export function UnsPanel() {
               <i>{k.ok ? "✓" : "✗"}</i><div><code>{k.id}</code><span>{k.text}</span></div><em>×{k.checked}</em>
             </div>
           ))}
-          <p className="np-foot">Each line is a testable requirement of Eclipse Sparkplug 3.0 (ids starting stf- are this project's),
-            judged by an independent monitor on every message of the proof run.</p>
+          <Note title="What each line is">Each line is a testable requirement of Eclipse Sparkplug 3.0 (ids starting stf- are this project's),
+            judged by an independent monitor on every message of the proof run.</Note>
         </div>
       )}
 
       {tab === "Death & rebirth" && (
         <div className="uns-time">
           {r.timeline.map(([t, what], i) => <div key={i}><b>{t.toFixed(1)} s</b><span>{what}</span></div>)}
-          <p className="np-foot">The edge started first and waited for the primary host. When the host went offline the edge ended its
+          <Note title="What happened">The edge started first and waited for the primary host. When the host went offline the edge ended its
             session; when the edge was killed the broker published its will and the host marked all {metrics} metrics stale. Each new
-            session raised bdSeq by one.</p>
+            session raised bdSeq by one.</Note>
         </div>
       )}
 

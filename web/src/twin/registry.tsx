@@ -36,11 +36,15 @@ export const CONTROLLER_VIEW: View = {
   about: "The 24 V adapter PCB and the PLC interface, pin by pin.",
 };
 
-export function componentViews(components: Record<string, { name: string; ft: string }> | undefined): View[] {
-  return Object.entries(components ?? {}).map(([id, c]) => ({
-    id, label: `${c.name} (${c.ft})`, kind: "component" as const, group: "Components",
-    about: `${c.name}: sourced dimensions, materials, how it works`,
-  }));
+export function componentViews(components: Record<string, { name: string; ft: string; kind?: string; upgrade?: string }> | undefined): View[] {
+  return Object.entries(components ?? {}).map(([id, c]) => {
+    const mech = c.kind === "mechanism";
+    return {
+      id, label: mech ? `${c.name} (${c.upgrade})` : `${c.name} (${c.ft})`, kind: "component" as const,
+      group: mech ? "Mechanisms" : "Components",
+      about: mech ? `${c.name}: how it works, its numbers from the model, where it is used` : `${c.name}: sourced dimensions, materials, how it works`,
+    };
+  });
 }
 
 // --------------------------------------------------------------- panels

@@ -1,3 +1,4 @@
+import { Note, Title } from "./kit";
 import { useEffect, useMemo, useState } from "react";
 import type { ControlDoc } from "../shared/model";
 import { JOB_COL, fmtT, makespan, unitsAt } from "../shared/hmi";
@@ -26,7 +27,8 @@ export function HmiPanel({ c }: { c: ControlDoc }) {
   const pol = c.policies;
   return (
     <section className="panel upgrade hmi">
-      <h2>Upgrade 4 · HMI</h2>
+      <Title up="Upgrade 4" lead="The operator's screen: play the PLC's run of the 12-cookie order, see units, alarms and each cookie's trace.">
+        PLC program & HMI</Title>
       <div className="hmi-clock">
         <button onClick={() => { if (t >= T) setT(0); setPlay((p) => !p); }}>{play ? "❚❚" : "▶"}</button>
         <input type="range" min={0} max={T} step={0.5} value={t} onChange={(e) => { setPlay(false); setT(+e.target.value); }} />
@@ -106,7 +108,7 @@ export function HmiPanel({ c }: { c: ControlDoc }) {
           ))}
         </tbody>
       </table>
-      <p className="muted small">Jog: mode MANUAL, guard closed, hold-to-run; each axis only while its model's interlock allows it.</p>
+      <Note title="Jog rules">Jog: mode MANUAL, guard closed, hold-to-run; each axis only while its model's interlock allows it.</Note>
 
       <h3>Dispatch policy (measured)</h3>
       <table className="kv up-table">
@@ -120,8 +122,8 @@ export function HmiPanel({ c }: { c: ControlDoc }) {
           ))}
         </tbody>
       </table>
-      <p className="muted small">Every policy is explored over every completion order, i.e. every possible
-        timing. The Gantt and the bake-time study are on blueprint sheet U4-02.</p>
+      <Note title="How the policies were compared">Every policy is explored over every completion order, i.e. every possible
+        timing. The Gantt and the bake-time study are on blueprint sheet U4-02.</Note>
     </section>
   );
 }

@@ -212,3 +212,25 @@ details > summary { cursor: pointer; }
   .db-kpi { padding: 12px; } .db-kpi b { font-size: 21px; }
   .db-nav { overflow-x: auto; flex-wrap: nowrap; }
 }
+
+/* ------------------------------------------------------------- the page guide (guide.ts) */
+.db-guide-btn.on { background: var(--accent-weak); color: var(--accent); border-color: var(--accent-weak); }
+.db-guide { margin: 0 0 16px; padding: 14px 16px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border-soft); }
+.db-guide-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.db-guide-h b { font-size: 13px; color: var(--accent); }
+.db-guide-what { margin: 6px 0 12px; font-size: 14px; line-height: 1.5; color: var(--text); }
+.db-guide-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 18px; }
+@media (max-width: 760px) { .db-guide-cols { grid-template-columns: 1fr; } }
+.db-guide h4 { margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); }
+.db-guide ol { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.db-guide dl { margin: 0; display: grid; gap: 5px; }
+.db-guide dl > div { display: grid; grid-template-columns: minmax(110px, 38%) 1fr; gap: 10px; font-size: 12.5px; line-height: 1.45; }
+.db-guide dt { font-weight: 600; color: var(--text); }
+.db-guide dd { margin: 0; color: var(--muted); }
+.db-guide-terms { margin-top: 12px; }
+.db-guide-terms summary { cursor: pointer; font-size: 12px; color: var(--accent); }
+.db-guide-terms dl { margin-top: 8px; }
+.db-guide-src { margin: 10px 0 0; font-size: 11.5px; color: var(--faint); }
+.db-help { display: inline-grid; place-items: center; width: 15px; height: 15px; margin-left: 6px; border-radius: 50%; font: 600 10px var(--mono);
+  font-style: normal; color: var(--muted); border: 1px solid var(--border); cursor: help; vertical-align: 1px; text-transform: none; }
+.db-help:hover { color: var(--accent); border-color: var(--accent); }

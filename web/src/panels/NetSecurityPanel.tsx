@@ -1,7 +1,7 @@
 // Upgrade 11: IEC 62443 zones and conduits, and attacks replayed on the twin (security.py).
 import { useState } from "react";
 import { useJson } from "../shared/data";
-import { Empty, Head, Stat } from "./kit";
+import { Empty, Head, Stat, Note } from "./kit";
 
 export const ZONE_COL: Record<string, string> = { Z0: "#ef4444", Z1: "#3b82f6", Z2: "#8b5cf6", Z3: "#f59e0b", Z4: "#14b8a6", Z5: "#94a3b8" };
 type Sec = {
@@ -39,8 +39,8 @@ export function NetSecurityPanel() {
           <button key={m} className={m === mode ? "on" : ""} onClick={() => setMode(m)}>{m === "without" ? "None" : m === "detect_only" ? "Detect" : "U11"}</button>))}
       </div>
       <div className={`np-out ${mode === "with" ? "ok" : mode === "without" ? "bad" : "warn"}`}>{a[mode]}</div>
-      <p className="np-foot">In 3D: blue boxes are cell control (Z1) - the four I/O nodes and the PLC; red boxes are the hardwired E-stops and
-        reset (Z0), which have no network interface.</p>
+      <Note title="What the boxes in 3D are">In 3D: blue boxes are cell control (Z1) - the four I/O nodes and the PLC; red boxes are the hardwired E-stops and
+        reset (Z0), which have no network interface.</Note>
     </div>
   );
 }

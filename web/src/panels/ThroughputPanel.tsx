@@ -1,6 +1,6 @@
 // Upgrade 10: the same machine, a faster program (throughput.py).
 import { useJson } from "../shared/data";
-import { Empty, Head, Stat } from "./kit";
+import { Empty, Head, Stat, Note } from "./kit";
 
 type Tp = {
   ablation: { name: string; vc_s: number; per_hour: number; cycle_s: number; busy: Record<string, number> }[];
@@ -31,8 +31,8 @@ export function ThroughputPanel() {
         ))}
       </div>
       <h4 className="np-h">In the 3D view</h4>
-      <p className="np-foot">The arm now flies the blended path: it crosses at the lowest height the collision sweep proves clear and swings
-        while it climbs. Belt → oven tour {d.tours.before.belt_to_oven} s → {d.tours.after.belt_to_oven} s.</p>
+      <Note title="How it got faster">The arm now flies the blended path: it crosses at the lowest height the collision sweep proves clear and swings
+        while it climbs. Belt → oven tour {d.tours.before.belt_to_oven} s → {d.tours.after.belt_to_oven} s.</Note>
     </div>
   );
 }

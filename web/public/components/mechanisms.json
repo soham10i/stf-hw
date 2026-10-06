@@ -1,0 +1,852 @@
+{
+ "components": {
+  "drag_chain": {
+   "kind": "mechanism",
+   "ft": "U3",
+   "upgrade": "Upgrade 3",
+   "name": "Drag chain (cable carrier)",
+   "name_de": "Energiekette",
+   "datasheet": "chains.py - the model's drag-chain proof",
+   "material": "glass-fibre polyamide links (assumed)",
+   "facts": [
+    {
+     "label": "What it does",
+     "value": "carries the moving axes' cables so they bend on a fixed radius instead of chafing",
+     "source": "model"
+    },
+    {
+     "label": "Where",
+     "value": "HBW lift: hangs beside the mast, fixed under the top plate, moving end on the carriage's right leg",
+     "source": "model"
+    },
+    {
+     "label": "Length",
+     "value": "440 mm, 29 links of 15.17 mm",
+     "source": "model"
+    },
+    {
+     "label": "Bend radius",
+     "value": "20 mm; the cables need at least 10.5 mm (7.5 x 1.4 mm conductor)",
+     "source": "model"
+    },
+    {
+     "label": "Link size",
+     "value": "12 mm high, 25 mm wide, 1.5 mm wall",
+     "source": "assumed"
+    },
+    {
+     "label": "Stroke",
+     "value": "lift 80-360 mm; the loop moves half as far as the carriage",
+     "source": "model"
+    },
+    {
+     "label": "Carries",
+     "value": "6 conductors (M4_fork_motor, I5_ref_ausleger_front, I6_ref_ausleger_back); fill 5% of the inner section, limit 60 %",
+     "source": "model"
+    },
+    {
+     "label": "Proved",
+     "value": "chains.py: length fits the whole stroke, the loop never bottoms out, bend radius, fill, span; every moving device on a chain path",
+     "source": "model"
+    }
+   ],
+   "dims": [
+    {
+     "key": "L",
+     "label": "chain length",
+     "value": 440.0,
+     "source": "model",
+     "note": "chains.HBW['lift']['Lc']"
+    },
+    {
+     "key": "R",
+     "label": "bend radius",
+     "value": 20.0,
+     "source": "model",
+     "note": ""
+    },
+    {
+     "key": "h",
+     "label": "link height",
+     "value": 12.0,
+     "source": "assumed",
+     "note": "a small plastic chain"
+    },
+    {
+     "key": "w",
+     "label": "link width",
+     "value": 25.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "p",
+     "label": "link pitch",
+     "value": 15.172,
+     "source": "model",
+     "note": "length / links"
+    },
+    {
+     "key": "wall",
+     "label": "link wall",
+     "value": 1.5,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "stroke",
+     "label": "lift stroke",
+     "value": 280.0,
+     "source": "model",
+     "note": ""
+    }
+   ],
+   "parts": [
+    {
+     "name": "link_00",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_01",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_02",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_03",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_04",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_05",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_06",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_07",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_08",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_09",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_10",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_11",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_12",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_13",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_14",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_15",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_16",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_17",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_18",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_19",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_20",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_21",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_22",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_23",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_24",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_25",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_26",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_27",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "link_28",
+     "material": "pa",
+     "colour": "#2b2d31",
+     "inside_envelope": true
+    },
+    {
+     "name": "bracket_fixed",
+     "material": "abs",
+     "colour": "#e0312a",
+     "inside_envelope": true
+    },
+    {
+     "name": "bracket_moving",
+     "material": "abs",
+     "colour": "#e0312a",
+     "inside_envelope": true
+    }
+   ],
+   "verification": [
+    {
+     "check": "link height",
+     "datasheet_mm": 12.0,
+     "model_mm": 12.0,
+     "ok": true,
+     "source": "assumed"
+    },
+    {
+     "check": "link width",
+     "datasheet_mm": 25.0,
+     "model_mm": 25.0,
+     "ok": true,
+     "source": "assumed"
+    },
+    {
+     "check": "links x pitch = chain length",
+     "datasheet_mm": 440.0,
+     "model_mm": 440.0,
+     "ok": true,
+     "source": "model"
+    },
+    {
+     "check": "chain ends at the moving bracket (x)",
+     "datasheet_mm": 40.0,
+     "model_mm": 40.0,
+     "ok": true,
+     "source": "model"
+    },
+    {
+     "check": "chain ends at the moving bracket (z)",
+     "datasheet_mm": 250.0,
+     "model_mm": 250.0,
+     "ok": true,
+     "source": "model"
+    },
+    {
+     "check": "loop clears the floor at the lowest lift",
+     "datasheet_mm": 60.0,
+     "model_mm": 71.416,
+     "ok": true,
+     "source": "model"
+    }
+   ],
+   "overall_mm": [
+    55.0,
+    31.0,
+    334.598
+   ],
+   "bbox_mm": [
+    -7.5,
+    -15.5,
+    141.402,
+    47.5,
+    15.5,
+    476.0
+   ],
+   "mesh": {
+    "triangles": 31112,
+    "chordal_tolerance_mm": 0.01
+   },
+   "files": {
+    "glb": "drag_chain.glb",
+    "step": "drag_chain.step",
+    "fcstd": "stf-cad/hbw/.cache/mechanisms/drag_chain.FCStd"
+   },
+   "used_in": [
+    {
+     "module": "HBW",
+     "part": "chain_travel_env",
+     "io": "14 conductors",
+     "terminal": "world -> travel",
+     "function": "travel: 335 mm chain, R 20, stroke 120-665 mm"
+    },
+    {
+     "module": "HBW",
+     "part": "chain_lift_env",
+     "io": "6 conductors",
+     "terminal": "travel -> lift",
+     "function": "lift: 440 mm chain, R 20, stroke 80-360 mm"
+    },
+    {
+     "module": "VGR",
+     "part": "chain_plunge_env",
+     "io": "10 conductors",
+     "terminal": "swivel -> plunge",
+     "function": "plunge: 560 mm chain, R 20, stroke 84-540 mm"
+    },
+    {
+     "module": "VGR",
+     "part": "chain_reach_env",
+     "io": "8 conductors",
+     "terminal": "plunge -> reach",
+     "function": "reach: 447 mm chain, R 12, stroke 0-400 mm"
+    }
+   ],
+   "motion": [
+    {
+     "part": "link",
+     "type": "chain",
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "links": 29,
+     "pitch": 15.172,
+     "R": 20.0,
+     "length": 440.0,
+     "zF": 462.0,
+     "zM0": 110.0,
+     "travel": 280.0,
+     "u0": 0.5,
+     "dps": 30,
+     "moving": "bracket_moving"
+    }
+   ],
+   "operate": "lift up and down",
+   "xray": false,
+   "generator": "mechanisms_cad.py"
+  },
+  "lift_screw": {
+   "kind": "mechanism",
+   "ft": "HBW",
+   "upgrade": "base machine",
+   "name": "Lift spindle drive",
+   "name_de": "Hubspindel mit Mutter",
+   "datasheet": "hbw_model.py - lift_spindle, M3_coupler, lift carriage",
+   "material": "steel spindle, POM nut (assumed)",
+   "facts": [
+    {
+     "label": "What it does",
+     "value": "turns the lift motor's rotation into the carriage's up-and-down travel",
+     "source": "model"
+    },
+    {
+     "label": "Spindle",
+     "value": "D 12 mm, 4 mm pitch: one turn lifts the carriage 4 mm",
+     "source": "model"
+    },
+    {
+     "label": "Encoder scale",
+     "value": "75 pulses per output turn / 4 mm = 18.75 pulses per mm",
+     "source": "model"
+    },
+    {
+     "label": "Speed",
+     "value": "214 rpm at the motor's max-power point x 4 mm = 14.27 mm/s",
+     "source": "model"
+    },
+    {
+     "label": "Motor",
+     "value": "Encodermotor 144643 upright on the mast head, shaft down into the coupling",
+     "source": "model"
+    },
+    {
+     "label": "Nut",
+     "value": "rides in the lift carriage's left leg (fit checked as a thread, 0.05 mm)",
+     "source": "model"
+    },
+    {
+     "label": "Also used",
+     "value": "the travel axis (horizontal spindle) and the Ausleger use the same 4 mm pitch",
+     "source": "model"
+    },
+    {
+     "label": "Thread form, nut size",
+     "value": "not in the model - drawn as a trapezoid thread and a 22 mm hex",
+     "source": "assumed"
+    }
+   ],
+   "dims": [
+    {
+     "key": "d",
+     "label": "spindle diameter",
+     "value": 12.0,
+     "source": "model",
+     "note": "LIFT_SPINDLE_D"
+    },
+    {
+     "key": "P",
+     "label": "pitch",
+     "value": 4.0,
+     "source": "model",
+     "note": "PITCH_MM"
+    },
+    {
+     "key": "cpl_d",
+     "label": "coupling diameter",
+     "value": 16.0,
+     "source": "model",
+     "note": "M3_coupler"
+    },
+    {
+     "key": "cpl_h",
+     "label": "coupling length",
+     "value": 14.0,
+     "source": "model",
+     "note": ""
+    },
+    {
+     "key": "len",
+     "label": "length shown",
+     "value": 160.0,
+     "source": "assumed",
+     "note": "a stretch of the spindle"
+    },
+    {
+     "key": "depth",
+     "label": "thread depth",
+     "value": 0.9,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "nut",
+     "label": "nut across flats",
+     "value": 22.0,
+     "source": "assumed",
+     "note": ""
+    }
+   ],
+   "parts": [
+    {
+     "name": "spindle",
+     "material": "steel",
+     "colour": "#b9bec4",
+     "inside_envelope": true
+    },
+    {
+     "name": "nut",
+     "material": "pom",
+     "colour": "#e9e6dc",
+     "inside_envelope": true
+    },
+    {
+     "name": "coupling",
+     "material": "steel",
+     "colour": "#b9bec4",
+     "inside_envelope": true
+    },
+    {
+     "name": "motor_shaft",
+     "material": "steel",
+     "colour": "#b9bec4",
+     "inside_envelope": false
+    },
+    {
+     "name": "bearing_block",
+     "material": "abs",
+     "colour": "#2a2b2e",
+     "inside_envelope": true
+    }
+   ],
+   "verification": [
+    {
+     "check": "spindle diameter",
+     "datasheet_mm": 12.0,
+     "model_mm": 12.006,
+     "ok": true,
+     "source": "model"
+    },
+    {
+     "check": "coupling diameter",
+     "datasheet_mm": 16.0,
+     "model_mm": 16.0,
+     "ok": true,
+     "source": "model"
+    },
+    {
+     "check": "coupling length",
+     "datasheet_mm": 14.0,
+     "model_mm": 14.0,
+     "ok": true,
+     "source": "model"
+    }
+   ],
+   "overall_mm": [
+    30.009,
+    30.0,
+    189.504
+   ],
+   "bbox_mm": [
+    -15.005,
+    -15.0,
+    -8.003,
+    15.005,
+    15.0,
+    181.501
+   ],
+   "mesh": {
+    "triangles": 32240,
+    "chordal_tolerance_mm": 0.01
+   },
+   "files": {
+    "glb": "lift_screw.glb",
+    "step": "lift_screw.step",
+    "fcstd": "stf-cad/hbw/.cache/mechanisms/lift_screw.FCStd"
+   },
+   "used_in": [
+    {
+     "module": "HBW",
+     "part": "travel_spindle",
+     "io": "",
+     "terminal": "thread:travel",
+     "function": "threaded spindle, 4 mm pitch -> 18.75 pulses/mm"
+    },
+    {
+     "module": "HBW",
+     "part": "lift_spindle",
+     "io": "",
+     "terminal": "thread:lift",
+     "function": "vertical spindle, 4 mm pitch, offset onto the left tube column so it is not in the load's path"
+    },
+    {
+     "module": "HBW",
+     "part": "ausleger_spindle",
+     "io": "",
+     "terminal": "thread:fork",
+     "function": "4 mm pitch; the 60 mm between the motor and stage 1 is exposed thread, and it never rises above the fork table plane"
+    }
+   ],
+   "motion": [
+    {
+     "part": "nut",
+     "type": "screw",
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "pitch": 4.0,
+     "travel": 80.0,
+     "dps": 45,
+     "turns": [
+      "spindle",
+      "coupling",
+      "motor_shaft"
+     ]
+    }
+   ],
+   "operate": "drive the motor",
+   "xray": false,
+   "generator": "mechanisms_cad.py"
+  },
+  "rfid_head": {
+   "kind": "mechanism",
+   "ft": "U4",
+   "upgrade": "Upgrade 4",
+   "name": "RFID read/write head",
+   "name_de": "RFID-Schreib-/Lesekopf",
+   "datasheet": "hbw_model.py - rfid_rp1/rp2_head; control.py",
+   "material": "ABS housing (assumed)",
+   "facts": [
+    {
+     "label": "What it does",
+     "value": "reads the tag in each mould's base, so the PLC knows which mould (and cookie) is on the belt",
+     "source": "model"
+    },
+    {
+     "label": "Standard",
+     "value": "13.56 MHz, ISO 15693 tags, IO-Link to the PLC",
+     "source": "model"
+    },
+    {
+     "label": "Where",
+     "value": "two read points under the conveyor belt, between its two strips",
+     "source": "model"
+    },
+    {
+     "label": "Read distance",
+     "value": "10 mm from the head's face to the mould base",
+     "source": "model"
+    },
+    {
+     "label": "PLC signals",
+     "value": "hbw_RF1_Valid %IX3.5, hbw_RF2_Valid %IX3.6, hbw_RF2_Tag %IW0",
+     "source": "model"
+    },
+    {
+     "label": "Size",
+     "value": "36 x 40 x 24 mm",
+     "source": "assumed"
+    }
+   ],
+   "dims": [
+    {
+     "key": "L",
+     "label": "housing length",
+     "value": 36.0,
+     "source": "assumed",
+     "note": "size ASSUMED in hbw_model.py"
+    },
+    {
+     "key": "W",
+     "label": "housing width",
+     "value": 40.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "H",
+     "label": "housing height",
+     "value": 24.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "gap",
+     "label": "face to mould base",
+     "value": 10.0,
+     "source": "model",
+     "note": ""
+    }
+   ],
+   "parts": [
+    {
+     "name": "housing",
+     "material": "abs",
+     "colour": "#2a2b2e",
+     "inside_envelope": true
+    },
+    {
+     "name": "sensing_face",
+     "material": "abs",
+     "colour": "#1f63c4",
+     "inside_envelope": true
+    },
+    {
+     "name": "status_led",
+     "material": "abs",
+     "colour": "#1f8a4c",
+     "inside_envelope": true
+    },
+    {
+     "name": "connector_m8",
+     "material": "brass",
+     "colour": "#b9bec4",
+     "inside_envelope": false
+    },
+    {
+     "name": "cable",
+     "material": "pvc",
+     "colour": "#26282b",
+     "inside_envelope": false
+    },
+    {
+     "name": "mould_base",
+     "material": "abs",
+     "colour": "#8f959b",
+     "inside_envelope": false
+    },
+    {
+     "name": "tag",
+     "material": "pom",
+     "colour": "#f4f1e8",
+     "inside_envelope": false
+    }
+   ],
+   "verification": [
+    {
+     "check": "housing length",
+     "datasheet_mm": 36.0,
+     "model_mm": 36.0,
+     "ok": true,
+     "source": "assumed"
+    },
+    {
+     "check": "housing width",
+     "datasheet_mm": 40.0,
+     "model_mm": 40.0,
+     "ok": true,
+     "source": "assumed"
+    },
+    {
+     "check": "housing height",
+     "datasheet_mm": 24.0,
+     "model_mm": 24.0,
+     "ok": true,
+     "source": "assumed"
+    },
+    {
+     "check": "face to mould base",
+     "datasheet_mm": 10.0,
+     "model_mm": 10.0,
+     "ok": true,
+     "source": "model"
+    }
+   ],
+   "overall_mm": [
+    88.001,
+    64.0,
+    42.0
+   ],
+   "bbox_mm": [
+    -12.0,
+    -12.0,
+    -0.0,
+    76.001,
+    52.0,
+    42.0
+   ],
+   "mesh": {
+    "triangles": 2824,
+    "chordal_tolerance_mm": 0.01
+   },
+   "files": {
+    "glb": "rfid_head.glb",
+    "step": "rfid_head.step",
+    "fcstd": "stf-cad/hbw/.cache/mechanisms/rfid_head.FCStd"
+   },
+   "used_in": [
+    {
+     "module": "HBW",
+     "part": "rfid_rp1_head",
+     "io": "RF1",
+     "terminal": "IO-Link",
+     "function": "RP1: RFID read/write head, 13.56 MHz (ISO 15693), IO-Link; size ASSUMED 36x40x24. Reads the mould's tag through the gap "
+    },
+    {
+     "module": "HBW",
+     "part": "rfid_rp2_head",
+     "io": "RF2",
+     "terminal": "IO-Link",
+     "function": "RP2: RFID read/write head, 13.56 MHz (ISO 15693), IO-Link; size ASSUMED 36x40x24. Reads the mould's tag through the gap "
+    }
+   ],
+   "motion": [
+    {
+     "part": "mould_base",
+     "type": "reciprocate",
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "amp": 70.0,
+     "dps": 60
+    },
+    {
+     "part": "tag",
+     "type": "reciprocate",
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "amp": 70.0,
+     "dps": 60
+    }
+   ],
+   "operate": "belt runs",
+   "xray": false,
+   "generator": "mechanisms_cad.py"
+  }
+ },
+ "sources": {
+  "model": "this project's model (stf-cad/hbw), held by its proofs",
+  "assumed": "not documented - an assumption of the model"
+ }
+}

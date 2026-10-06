@@ -2,7 +2,7 @@
 // models - generated from the model by stf-cad/hbw/aas, each submodel from its IDTA template.
 import { useMemo, useState } from "react";
 import { useJson } from "../shared/data";
-import { Empty, Stat } from "./kit";
+import { Empty, Stat, Note } from "./kit";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -102,9 +102,9 @@ export function AasPanel() {
           {sm.submodelElements.map((e: El, k: number) => <Node key={k} e={e} depth={0} onAsset={goAsset} />)}
         </div>
       )}
-      <p className="np-foot">Hover a name for its semanticId; ↗ opens a part's own shell. The part shells are compiled by this project
+      <Note title="How to read it">Hover a name for its semanticId; ↗ opens a part's own shell. The part shells are compiled by this project
         from fischertechnik's public datasheets and booklet, not issued by fischertechnik. Four of the eight published templates fail the
-        metamodel's own checks; the generator cleans what an instance would inherit. <a href={`${BASE}aas/stf.aas.json`} download>JSON</a></p>
+        metamodel's own checks; the generator cleans what an instance would inherit. <a href={`${BASE}aas/stf.aas.json`} download>JSON</a></Note>
     </div>
   );
 }

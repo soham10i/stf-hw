@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { VcDoc } from "../shared/model";
+import { Note, Title } from "./kit";
 
 // Upgrade 5's commissioning report in the sidebar (vc.py): the healthy run
 // against the model, the fault matrix, positioning accuracy and OEE.
@@ -10,9 +11,10 @@ export function VcPanel({ vc }: { vc: VcDoc }) {
   const pct = (x: number) => `${Math.round(x * 1000) / 10} %`;
   return (
     <section className="panel upgrade vc">
-      <h2>Upgrade 5 · virtual commissioning</h2>
-      <p className="muted small">Upgrade 4's program against the twin: a {vc.scan_ms.crane} ms task ({vc.scan_ms.arm} ms for
-        the VGR), Modbus TCP at {vc.bus_ms} ms, the same register map as the real nodes.</p>
+      <Title up="Upgrade 5" lead="The PLC program tested against the twin before any hardware: timing, faults, accuracy.">
+        Virtual commissioning</Title>
+      <Note title="Test setup">Upgrade 4's program against the twin: a {vc.scan_ms.crane} ms task ({vc.scan_ms.arm} ms for
+        the VGR), Modbus TCP at {vc.bus_ms} ms, the same register map as the real nodes.</Note>
 
       <h3>Healthy run</h3>
       <table className="kv up-table"><tbody>
@@ -23,7 +25,7 @@ export function VcPanel({ vc }: { vc: VcDoc }) {
         <tr><td>closest step to its watchdog</td><td className="num">{pct(vc.healthy.worst_watchdog ?? 0)} of the limit</td></tr>
       </tbody></table>
 
-      <h3>Fault matrix</h3>
+      <h3>Fault matrix · click a row</h3>
       <table className="kv up-table vc-matrix">
         <tbody>
           {vc.matrix.map((r) => (
@@ -41,7 +43,7 @@ export function VcPanel({ vc }: { vc: VcDoc }) {
           ))}
         </tbody>
       </table>
-      <p className="muted small">Before Upgrade 5's sensors: {vc.before.map((b) => `${b.id} found only by ${b.detected}, ${b.after_s} s later`).join("; ")}.</p>
+      <Note title="Without Upgrade 5's sensors">Before Upgrade 5's sensors: {vc.before.map((b) => `${b.id} found only by ${b.detected}, ${b.after_s} s later`).join("; ")}.</Note>
 
       <h3>Positioning accuracy</h3>
       <table className="kv up-table"><tbody>

@@ -322,6 +322,21 @@ def _keep_clear(parts, tf):
 
 
 HAZARD_Z = (25.0, 100.0)   # workpiece + carrier-top height band, any module
+LOAD_H = 45.0              # what rides on a belt: mould base 8 + rim 12 + cookie 20 + 5 mm clearance
+
+
+def _lanes(parts, tf):
+    """Where a BELT carries the moulds: the belt's surface (its strips or web) and the space
+    above it up to a mould with its cookie. A cable may run under a belt, beside it or
+    over it on a bridge, never through this: the next mould would tear it off. 0.5 mm in
+    from the belt's edges, so a sensor clamped on a side rail stays outside."""
+    belts = [_box_f(d, tf) for d in parts if d["n"].startswith("cv_belt") or d["n"] == "belt_web"]
+    if not belts:
+        return []
+    top = max(b[5] for b in belts)
+    e = 0.5
+    return [(min(b[0] for b in belts) + e, min(b[1] for b in belts) + e, top - 4.0,
+             max(b[3] for b in belts) - e, max(b[4] for b in belts) - e, top + LOAD_H)]
 
 
 def _sweep3(parts, tf):
@@ -359,7 +374,8 @@ def _drop_cell(grid, ub, sweep, tcell):
                [(x0, y) for y in _frange(y0, y1)] + [(x1, y) for y in _frange(y0, y1)]
         for x, y in ring:
             i, j = grid.cell(x, y)
-            if not grid.free(i, j) or any(b[0] <= x <= b[3] and b[1] <= y <= b[4] for b in sweep):
+            # a cable comes down at least 5 mm clear of a lane or path, never along its edge
+            if not grid.free(i, j) or any(b[0] - 5 <= x <= b[3] + 5 and b[1] - 5 <= y <= b[4] + 5 for b in sweep):
                 continue
             d = math.hypot(i - tcell[0], j - tcell[1])
             if best is None or d < best[0]:
@@ -384,6 +400,23 @@ def _uprights(parts, tf, d, anc_z):
         b = _box_f(e, tf)
         if b[2] < 3.0 and b[5] >= anc_z - 20.0 and e["g"] != "frame":
             out.append(b)
+    if not out and own:
+        # a structure that stands on another (the tunnel's pillars on the belt's side rails):
+        # the cable is tied down its member, then beside what that member stands on
+        for e in own:
+            b = _box_f(e, tf)
+            if b[2] < anc_z and b[5] >= anc_z - 20.0 and (b[3] - b[0]) * (b[4] - b[1]) < 2500:
+                out.append(b)
+    if not out:
+        # hung from another structure (the colour sensor's arm under the hood's roof): the
+        # cable follows it to the nearest floor-standing structure that reaches that high
+        a = _box_f(d, tf)
+        ax, ay = (a[0] + a[3]) / 2, (a[1] + a[4]) / 2
+        for e in parts:
+            b = _box_f(e, tf)
+            near = math.hypot(max(b[0] - ax, 0, ax - b[3]), max(b[1] - ay, 0, ay - b[4])) < 80.0
+            if e["g"] != "frame" and e["n"] != d["n"] and b[2] < 3.0 and b[5] >= anc_z - 20.0 and near:
+                out.append(b)
     return out
 
 
@@ -618,7 +651,7 @@ def _rfid_cables(grid, cables, Z):
                        "points": [[round(v, 1) for v in p] for p in _dedupe(pts)]})
 
 
-def _u5_sensor_cables(mods, grid, cables, Z):
+def _u5_sensor_cables(mods, grid, cables, Z, lanes=None):
     """Upgrade 5: the reed, vacuum and pressure switches virtual commissioning
     asked for. Each runs from the part it is clamped on to its node's DI slice."""
     import control as C
@@ -637,12 +670,32 @@ def _u5_sensor_cables(mods, grid, cables, Z):
                 d = next(d for d in mods[m] if d["n"] == part)
                 b = _box_f(d, _tf(m))
             sx, sy = (b[0] + b[3]) / 2, (b[1] + b[4]) / 2
-            s_cell = grid.nearest_free(sx, sy, toward=grid.cell(tx, ty))
             t_cell = grid.nearest_free(tx, ty)
-            run = [(i * CELL, j * CELL) for i, j in _simplify(grid.route(s_cell, t_cell, f"u5_{m}_{sg}"))]
             z0 = min(b[5], b[2] + 8.0)
-            pts = [(sx, sy, z0), (run[0][0], run[0][1], z0), (run[0][0], run[0][1], Z + 5)]
-            pts += [(x, y, Z + 5) for x, y in run[1:]] + [(tx, ty, Z + 5), (tx, ty, sl[5])]
+            keep = (lanes or {}).get(m, [])
+
+            def via(px, py):
+                """along the part's mount at z0 to (px, py), down to the table there, then the floor route"""
+                s_cell = grid.nearest_free(px, py, toward=grid.cell(tx, ty))
+                run = [(i * CELL, j * CELL) for i, j in _simplify(grid.route(s_cell, t_cell, f"u5_{m}_{sg}"))]
+                pts = [(sx, sy, z0), (px, py, z0), (run[0][0], run[0][1], z0), (run[0][0], run[0][1], Z + 5)]
+                return pts + [(x, y, Z + 5) for x, y in run[1:]] + [(tx, ty, Z + 5), (tx, ty, sl[5])]
+            # a switch clamped above a carrier's path or a belt (the oven door cylinder's reed switch over
+            # the tray's track) steps sideways out of it at its own height before it comes down
+            pts = via(sx, sy)
+            if _crosses(pts, keep):
+                # step out past the nearest edge of each keep-out box it is over (along its own
+                # structure, at its own height), else a little to any side
+                exits = []
+                for kb in keep:
+                    if kb[0] <= sx <= kb[3] and kb[1] <= sy <= kb[4]:
+                        exits += [(kb[0] - 10.0, sy), (kb[3] + 10.0, sy), (sx, kb[1] - 10.0), (sx, kb[4] + 10.0)]
+                exits.sort(key=lambda q: math.hypot(q[0] - sx, q[1] - sy))
+                exits += [(sx + dx * off, sy + dy * off) for off in (20.0, 40.0, 60.0)
+                          for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+                alt = next((v for v in (via(px, py) for px, py in exits) if not _crosses(v, keep)), None)
+                if alt:
+                    pts = alt
             cables.append({"module": m, "part": f"{part}:{sg}", "tag": sg, "conductors": ["+24V", "DI"],
                            "points": [[round(v, 1) for v in q] for q in _dedupe(pts)]})
 
@@ -652,6 +705,7 @@ def wires(doc):
     mods = {"hbw": doc["parts"], "vgr": doc["vgr"]["parts"], "oven": doc["oven"]["parts"],
             "sorting": doc["sorting"]["parts"]}
     cables, hoses, bundles, power, boards = [], [], [], [], {}
+    lanes_all = {}                                      # module -> the boxes no cable may pass through
     import plc_model as PM
     pa = {p.name: p for p in PM.build()}
     P0 = FL.PLC_AT
@@ -687,7 +741,8 @@ def wires(doc):
         long_x = (pb[3] - pb[0]) >= (pb[4] - pb[1])
         # only the oven has cookie CARRIERS (tray, turntable); the VGR's swivel
         # ring shares the group name "turn" but carries no cookie
-        sweep = _sweep3(parts, tf) if m == "oven" else []
+        sweep = (_sweep3(parts, tf) if m == "oven" else []) + _lanes(parts, tf)
+        lanes_all[m] = sweep
         for k, d in enumerate(io):
             b = _box_f(d, tf)
             c = ((b[0] + b[3]) / 2, (b[1] + b[4]) / 2)
@@ -703,8 +758,24 @@ def wires(doc):
             scell = grid.nearest_free(c[0], c[1], toward=tcell)
             cells = grid.route(scell, tcell, m, margin=120)
             anc = _anchor(b, scell)
+            # a device beside a belt (a light barrier on its side rail) is connected on its far
+            # side: a cable down the face toward the belt would hang into the moulds' lane
+            lane = next((L for L in sweep if max(L[0] - anc[0], 0, anc[0] - L[3]) < 5
+                         and max(L[1] - anc[1], 0, anc[1] - L[4]) < 5 and anc[2] < L[5]), None)
+            if lane:
+                lx, ly = (lane[0] + lane[3]) / 2, (lane[1] + lane[4]) / 2
+                bx, by = (b[0] + b[3]) / 2, (b[1] + b[4]) / 2
+                gx = max(lane[0] - bx, 0, bx - lane[3]) > max(lane[1] - by, 0, by - lane[4])
+                far = ((b[3] + 6 if bx > lx else b[0] - 6), by) if gx else (bx, (b[4] + 6 if by > ly else b[1] - 6))
+                face = ((b[3] if bx > lx else b[0]), by) if gx else (bx, (b[4] if by > ly else b[1]))
+                scell = grid.nearest_free(far[0], far[1], toward=tcell)
+                cells = grid.route(scell, tcell, m, margin=120)
+                z_a = min(b[5], b[2] + 6.0)
+                anc = (face[0], face[1], z_a)
             run = [(i * CELL, j * CELL) for i, j in _simplify(cells)]
             pts = [anc, (run[0][0], run[0][1], anc[2]), (run[0][0], run[0][1], Z)]
+            if lane:                                    # out of the far face, down there, then to the floor route
+                pts = [anc, (far[0], far[1], anc[2]), (far[0], far[1], Z), (run[0][0], run[0][1], Z)]
             pts += [(x, y, Z) for x, y in run[1:]]
             pts += [(tx, ty, Z), (tx, ty, pb[5] - 4)]
             if _crosses(pts, sweep):
@@ -790,7 +861,7 @@ def wires(doc):
     if UP4:
         _rfid_cables(grid, cables, Z)
     if UP5:
-        _u5_sensor_cables(mods, grid, cables, Z)
+        _u5_sensor_cables(mods, grid, cables, Z, lanes_all)
     # the power supply: mains in (L, N, PE), 24 V out to the feed terminals, PE to the DIN rail
     psu = plc_pt("psu_wdr120")
     t1, t4 = plc_pt("terminal_1"), plc_pt("terminal_4")
@@ -815,6 +886,14 @@ def wires(doc):
                   "points": [[round(v, 1) for v in p] for p in
                              ((t1[0] - 20, t1[1] + 6, t1[2]), (t1[0] - 20, t1[1] + 6, t1[2] + 15),
                               (duct[0], t1[1] + 6, t1[2] + 15), (duct[0], duct[1], duct[2] + 4))]})
+    # every cable, hose and bundle of every module, the late ones (safety, chains, RFID,
+    # Upgrade 5) included: none may pass through a belt's lane or a carrier's path
+    every = [b for bs in lanes_all.values() for b in bs]
+    for c in cables + hoses + bundles:
+        hit = _crosses(c["points"], every)
+        if hit:
+            raise RuntimeError(f"{c.get('module')}: {c.get('part') or c.get('to') or 'bundle'} runs through a belt's "
+                               f"lane or a carrier's path at {hit} - reroute it")
     return {"roles": {k: {"colour": v[0], "label": v[1]} for k, v in ROLE.items()
                       if (k != "SAFE" or doc.get("safety")) and (k != "BUS" or UP3)
                       and (k != "IOL" or UP4)},

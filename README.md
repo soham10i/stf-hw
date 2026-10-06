@@ -24,7 +24,7 @@ its proofs pass.
 | `packages/` | The physics kernel (`stf_kernel`) and the layout (`stf_layout`) that the live simulation runs on. |
 | `services/api/` | The live API: `/layout`, `/orders`, `/health`, `POST /command` (operator only, see `docs/SECURITY.md`) and the `/ws` frame stream. |
 | `web/` | The 3D twin (`index.html`) and the operations dashboard (`dashboard.html`): React, three.js. |
-| `docs/` | `UPGRADE_PLAN.md` (Upgrades 1-15, as built), `VALIDATION.md`, `SECURITY.md`. |
+| `docs/` | `UPGRADE_PLAN.md` (Upgrades 1-15, as built), `DASHBOARD_GUIDE.md` (every dashboard page explained), `DEPLOY.md`, `VALIDATION.md`, `SECURITY.md`. |
 | `tests/` | Kernel, layout, golden trajectories, the API's access control. |
 
 The twin shows one machine, **Upgrade 12**, which contains every upgrade before it. Its **PLC program (live)** panel runs

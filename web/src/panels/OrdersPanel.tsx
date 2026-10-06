@@ -162,8 +162,9 @@ export function OrdersPanel({ scene, slots }: { scene: SceneDescriptor | null; s
       {/* ---------------------------------------------------------------- rack */}
       <section className="ord-card">
         <div className="ord-head"><h3>Warehouse rack</h3><span className="ord-total">{baked} baked · {counts.raw} raw</span></div>
+        {/* as the rack stands: the top shelf (row C) first, row A at the bottom */}
         <div className="ord-rack">
-          {all.map((s) => {
+          {[...all].sort((a, b) => b[0].localeCompare(a[0]) || Number(a.slice(1)) - Number(b.slice(1))).map((s) => {
             const out = s === inOven, f = flavourOf(rack[s]);
             return (
               <div key={s} className={`ord-cell ${out ? "out" : f ? "baked" : "raw"}`}

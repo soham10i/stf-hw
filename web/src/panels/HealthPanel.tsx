@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { CadDoc } from "../shared/model";
 import { HealthGrid } from "../shared/HealthGrid";
 import { maxShifts } from "../shared/health";
+import { Note, Title } from "./kit";
 
 export function HealthPanel({ doc }: { doc: CadDoc }) {
   const h = doc.health!;
@@ -10,14 +11,16 @@ export function HealthPanel({ doc }: { doc: CadDoc }) {
   const ageMax = maxShifts(h.components);
   return (
     <section className="panel">
-      <h2>Component health</h2>
+      <Title up="Upgrade 6" lead="Drag the age slider: each part's health index falls as it wears; red means change it soon.">
+        Component health</Title>
       <div className="hmi-clock">
         <span className="muted small">age</span>
         <input type="range" min={0} max={ageMax} step={1} value={age} onChange={(e) => setAge(+e.target.value)} />
         <b>{age.toFixed(0)}</b><span className="muted small">shifts</span>
       </div>
       <HealthGrid cs={h.components} shifts={age} compact />
-      <table className="kv up-table" style={{ marginTop: 8 }}>
+      <Note title="How early each part is warned">
+      <table className="kv up-table" style={{ marginTop: 0 }}>
         <thead><tr><td>component</td><td className="num">warned</td></tr></thead>
         <tbody>
           {h.components.map((c) => (
@@ -26,6 +29,7 @@ export function HealthPanel({ doc }: { doc: CadDoc }) {
           ))}
         </tbody>
       </table>
+      </Note>
     </section>
   );
 }

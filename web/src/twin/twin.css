@@ -438,3 +438,24 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .uns-mut em { font-style: normal; font-size: 11px; font-weight: 600; }
 .uns-mut em.ok { color: var(--ok); }
 .uns-mut em.bad { color: var(--bad); }
+
+/* ------------------------------------------------------------- compact panels (panels/kit.tsx: Title, Note, Proofs) */
+.side .panel h2.np-title, h2.np-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.np-up { font: 600 10.5px var(--font); letter-spacing: .02em; color: var(--accent); background: var(--accent-weak);
+  padding: 2px 7px; border-radius: 99px; text-transform: none; }
+.np-lead { margin: 2px 0 10px; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+.np-note { margin: 8px 0; border: 1px solid var(--border-soft); border-radius: 10px; background: var(--surface-2); }
+.np-note > summary { cursor: pointer; list-style: none; padding: 7px 10px; font-size: 12px; font-weight: 500; color: var(--muted);
+  display: flex; align-items: center; gap: 6px; }
+.np-note > summary::-webkit-details-marker { display: none; }
+.np-note > summary::before { content: "ⓘ"; color: var(--faint); }
+.np-proofs > summary::before { content: "✓"; color: var(--ok); }
+.np-note > summary em { margin-left: auto; font-style: normal; font-size: 11px; color: var(--faint); }
+.np-note[open] > summary { border-bottom: 1px solid var(--border-soft); }
+.np-note > div, .np-note > ul { padding: 8px 10px; margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+.np-note > ul { padding-left: 26px; display: grid; gap: 4px; }
+.np-note p { margin: 0 0 6px; }
+.np-note p:last-child { margin: 0; }
+/* a table row's second line: one line, the rest on hover */
+.up-table td > .muted.small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 185px; }
+.up-table tr:hover td > .muted.small { white-space: normal; overflow: visible; }

@@ -20,12 +20,16 @@ import { useJson } from "../shared/data";
 
 const BASE = `${import.meta.env.BASE_URL}components/`;
 
-export type Src = "datasheet" | "photo" | "ft-std" | "assumed" | "booklet";
+export type Src = "datasheet" | "photo" | "ft-std" | "assumed" | "booklet" | "model";
 /** How a sub-part moves when the component is operated (from components.py). */
 export interface Motion {
-  part: string; type: "spin" | "orbit" | "reciprocate" | "slide" | "squash";
+  part: string; type: "spin" | "orbit" | "reciprocate" | "slide" | "squash" | "chain" | "screw";
   axis: [number, number, number]; pivot?: [number, number, number]; dps?: number;
   amp?: number; travel?: number; anchor?: [number, number, number]; length?: number;
+  // chain: links ride a U path (two legs and a half circle) whose moving end goes up and down
+  links?: number; pitch?: number; R?: number; zF?: number; zM0?: number; u0?: number; moving?: string;
+  // screw: the nut travels, the parts in `turns` rotate pitch mm per turn
+  turns?: string[];
 }
 export interface Dim { key: string; label: string; value: number; source: Src; note: string }
 export interface Component {
@@ -38,6 +42,7 @@ export interface Component {
   mesh: { triangles: number; chordal_tolerance_mm: number };
   files: { glb: string; step: string; fcstd: string };
   used_in: { module: string; part: string; io: string; terminal: string; function: string }[];
+  kind?: "component" | "mechanism"; upgrade?: string; generator?: string;
   motion?: Motion[];
   operate?: string | null;
   xray?: boolean;
@@ -49,7 +54,26 @@ export interface ComponentDoc {
 
 export function useComponents(): { doc: ComponentDoc | null; err: string | null } {
   const { data, error } = useJson<ComponentDoc>("components/components.json", "components.json missing - run components.py in stf-cad/hbw");
-  return { doc: data, err: error };
+  // the mechanisms (drag chain, spindle drive, RFID head) come from mechanisms_cad.py
+  const { data: mech } = useJson<ComponentDoc>("components/mechanisms.json");
+  const doc = useMemo(() => (data ? {
+    components: { ...data.components, ...(mech?.components ?? {}) },
+    sources: { ...data.sources, ...(mech?.sources ?? {}) } as ComponentDoc["sources"],
+  } : null), [data, mech]);
+  return { doc, err: error };
+}
+
+/** The chain's path: point (x, z) in mm and tangent angle about +Y, at arc length s, lift at u (0..1). */
+function chainPose(m: Motion, s: number, u: number): [number, number, number] {
+  const R = m.R!, L = m.length!, zF = m.zF!, zm = m.zM0! + m.travel! * u;
+  const zc = (zF + zm + Math.PI * R - L) / 2, la = zF - zc;
+  let x: number, z: number, tx: number, tz: number;
+  if (s <= la) { x = 0; z = zF - s; tx = 0; tz = -1; }
+  else if (s <= la + Math.PI * R) {
+    const a = (s - la) / R;
+    x = R - R * Math.cos(a); z = zc - R * Math.sin(a); tx = Math.sin(a); tz = -Math.cos(a);
+  } else { x = 2 * R; z = zc + (s - la - Math.PI * R); tx = 0; tz = 1; }
+  return [x, z, Math.atan2(-tz, tx)];
 }
 
 // Physically based materials, chosen per sub-part from the CAD's own material tag.
@@ -93,6 +117,16 @@ function Part({
   const driven = useMemo(() => {
     const out: { m: Motion; o: THREE.Object3D }[] = [];
     for (const m of motion ?? []) {
+      if (m.type === "chain" || m.type === "screw") {
+        const names = m.type === "chain" ? null : new Set([m.part, ...(m.turns ?? [])]);
+        const seen = new Set<string>();                  // a part is a node, or a mesh when it has one primitive
+        model.traverse((o) => {
+          const p = (o.userData as { part?: string }).part;
+          if (!p || seen.has(p)) return;
+          if (m.type === "chain" ? p.startsWith(`${m.part}_`) || p === m.moving : names!.has(p)) { seen.add(p); out.push({ m, o }); }
+        });
+        continue;
+      }
       model.traverse((o) => {
         if ((o.userData as { part?: string }).part === m.part && !(o as THREE.Mesh).isMesh) out.push({ m, o });
       });
@@ -112,6 +146,29 @@ function Part({
     k.u += ((running ? 1 : 0) - k.u) * Math.min(1, dt * 10);
     for (const { m, o } of driven) {
       const ax = new THREE.Vector3(...m.axis).normalize();
+      const part = (o.userData as { part?: string }).part ?? "";
+      if (m.type === "chain") {
+        // every link is meshed at its pose for u0; move it from there to its pose now
+        const u0 = m.u0 ?? 0.5;
+        const u = Math.min(1, Math.max(0, u0 + 0.5 * Math.sin(THREE.MathUtils.degToRad((m.dps ?? 30) * k.theta))));
+        if (part === m.moving) {
+          o.position.set(0, 0, m.travel! * (u - u0) * 0.001);
+          continue;
+        }
+        const s = (Number(part.split("_").pop()) + 0.5) * m.pitch!;
+        const [x0, z0, a0] = chainPose(m, s, u0), [x1, z1, a1] = chainPose(m, s, u);
+        const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), a1 - a0);
+        o.quaternion.copy(q);
+        o.position.copy(new THREE.Vector3(x1, 0, z1).sub(new THREE.Vector3(x0, 0, z0).applyQuaternion(q)).multiplyScalar(0.001));
+        continue;
+      }
+      if (m.type === "screw") {
+        // the nut goes up and down; one turn of the spindle per pitch of travel
+        const z = (m.travel ?? 0) * (0.5 - 0.5 * Math.cos(THREE.MathUtils.degToRad((m.dps ?? 45) * k.theta)));
+        if (part === m.part) o.position.copy(ax.multiplyScalar(z * 0.001));
+        else o.quaternion.setFromAxisAngle(ax, (z / (m.pitch ?? 1)) * 2 * Math.PI);
+        continue;
+      }
       if (m.type === "spin" || m.type === "orbit") {
         const piv = new THREE.Vector3(...(m.pivot ?? [0, 0, 0])).multiplyScalar(0.001);
         const q = new THREE.Quaternion().setFromAxisAngle(ax, THREE.MathUtils.degToRad((m.dps ?? 360) * k.theta));
@@ -199,7 +256,7 @@ function DimLine({ a, b, label, off }: { a: number[]; b: number[]; label: string
 }
 
 const SRC_LABEL: Record<Src, string> = {
-  datasheet: "datasheet", photo: "photo", "ft-std": "ft std", assumed: "measure", booklet: "booklet",
+  datasheet: "datasheet", photo: "photo", "ft-std": "ft std", assumed: "measure", booklet: "booklet", model: "model",
 };
 
 export function ComponentView({ id, doc }: { id: string; doc: ComponentDoc }) {
@@ -238,7 +295,9 @@ export function ComponentView({ id, doc }: { id: string; doc: ComponentDoc }) {
     <div className="body">
       <div className="viewport comp-viewport">
         <div className="comp-toolbar">
-          <label><input type="checkbox" checked={showDims} onChange={(e) => setShowDims(e.target.checked)} /> Dimensions</label>
+          {L > 0 && W > 0 && H > 0 && (
+            <label><input type="checkbox" checked={showDims} onChange={(e) => setShowDims(e.target.checked)} /> Dimensions</label>
+          )}
           <label><input type="checkbox" checked={wire} onChange={(e) => setWire(e.target.checked)} /> Wireframe</label>
           <label><input type="checkbox" checked={spin} onChange={(e) => setSpin(e.target.checked)} /> Turntable</label>
           {c.xray && (
@@ -308,7 +367,7 @@ export function ComponentView({ id, doc }: { id: string; doc: ComponentDoc }) {
                       </mesh>
                     </group>
                   )}
-                  {showDims && (
+                  {showDims && L > 0 && W > 0 && H > 0 && (
                     // the part's own frame: mm, Z up -> same transform as the glb root
                     <group rotation={[-Math.PI / 2, 0, 0]} scale={0.001}>
                       <DimLine a={[0, 0, 0]} b={[L, 0, 0]} off={[0, -6, 0]} label={f(L)} />
@@ -332,11 +391,11 @@ export function ComponentView({ id, doc }: { id: string; doc: ComponentDoc }) {
       <aside className="sidebar">
         <section className="panel">
           <h2>
-            {c.name} <span className="tag idle">ft {c.ft}</span>
+            {c.name} <span className="tag idle">{c.kind === "mechanism" ? c.upgrade : `ft ${c.ft}`}</span>
           </h2>
           <p className="clock">{c.name_de} · {c.material}</p>
           <p className="clock">
-            Built in FreeCAD from <code>components.py</code> · {c.mesh.triangles.toLocaleString()} triangles
+            Built in FreeCAD by <code>{c.generator ?? "components_cad.py"}</code> · {c.mesh.triangles.toLocaleString()} triangles
             at {c.mesh.chordal_tolerance_mm} mm chordal tolerance · overall{" "}
             {c.overall_mm.map((v) => v.toFixed(2)).join(" × ")} mm
           </p>
@@ -405,7 +464,7 @@ export function ComponentView({ id, doc }: { id: string; doc: ComponentDoc }) {
         <section className="panel">
           <h2>Dimensions</h2>
           <div className="src-filter">
-            {(["all", "datasheet", "booklet", "photo", "ft-std", "assumed"] as const).filter((s) => s === "all" || counts[s]).map((s) => (
+            {(["all", "datasheet", "model", "booklet", "photo", "ft-std", "assumed"] as const).filter((s) => s === "all" || counts[s]).map((s) => (
               <button key={s} className={filter === s ? "on" : ""} onClick={() => setFilter(s)}>
                 {s === "all" ? `all ${c.dims.length}` : `${SRC_LABEL[s]} ${counts[s] ?? 0}`}
               </button>
@@ -423,8 +482,9 @@ export function ComponentView({ id, doc }: { id: string; doc: ComponentDoc }) {
             </tbody>
           </table>
           <p className="clock">
-            Only “datasheet” values are authoritative. “measure” = not documented anywhere: confirm
-            with calipers, change <code>components.py</code>, rebuild.
+            {c.kind === "mechanism"
+              ? <>“model” values are the ones the factory's proofs run on; “measure” = an assumption of the model, to confirm on the real part.</>
+              : <>Only “datasheet” values are authoritative. “measure” = not documented anywhere: confirm with calipers, change <code>components.py</code>, rebuild.</>}
           </p>
         </section>
 

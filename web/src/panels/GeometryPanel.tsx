@@ -1,4 +1,5 @@
 import type { CadDoc } from "../shared/model";
+import { Note, Title } from "./kit";
 
 // Side panel: what the 3D geometry is made of and where it came from (hbw_export.py),
 // and the cookies the pipeline conserves.
@@ -10,11 +11,12 @@ export function GeometryPanel({ doc }: { doc: CadDoc }) {
   const io = doc.parts.filter((p) => p.tag);
   return (
     <section className="panel">
-      <h2>Generated geometry</h2>
-      <p className="muted">
+      <Title lead="What the 3D machine is made of, generated from one parameter table and exported only after its proofs pass.">
+        Generated geometry</Title>
+      <Note title="Where it comes from">
         Emitted from <code>stf-cad/hbw/hbw_model.py</code>, the same table that builds
         <code> STF_HBW.FCStd</code>. Exported only after the clearance proof passes.
-      </p>
+      </Note>
       <table className="kv">
         <tbody>
           {Object.entries(groups).map(([g, n]) => (
@@ -87,10 +89,10 @@ function PipelinePanel({ doc }: { doc: CadDoc }) {
           ))}
         </tbody>
       </table>
-      <p className="muted">
+      <Note title="Why these three flavours">
         The Farbsensor measures reflected brightness, not colour, so the three flavours are
         chosen to separate on exactly that. {pl.transfers.length} transfers per full cycle.
-      </p>
+      </Note>
       <h3>Safety</h3>
       <ul className="safety">
         {(pl.safety as string[]).map((t, i) => (

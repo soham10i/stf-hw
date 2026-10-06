@@ -1,4 +1,5 @@
 import type { ChainsDoc, Io3Doc } from "../shared/model";
+import { Note, Proofs, Title } from "./kit";
 
 // Upgrade 3's remote I/O, drag chains and cabinet, straight from io_nodes.py,
 // chains.py and plc_model.py.
@@ -6,9 +7,10 @@ export function IoPanel({ io, ch }: { io: Io3Doc; ch: ChainsDoc }) {
   const types = ["DI", "DO", "AI", "CNT", ...(Object.values(io.nodes).some((n) => n.slices.some((s) => s.type === "IOL")) ? ["IOL"] : [])];
   return (
     <section className="panel upgrade io3">
-      <h2>Upgrade 3 · I/O, chains, cabinet</h2>
+      <Title up="Upgrade 3" lead="Each module has its own I/O node; moving cables ride in drag chains; one tidy cabinet.">
+        Remote I/O, chains, cabinet</Title>
 
-      <h3>Remote I/O nodes (Modbus TCP)</h3>
+      <h3>I/O nodes (Modbus TCP) · channels used</h3>
       <table className="kv up-table">
         <thead><tr><td>module</td>{types.map((t) => <td key={t} className="num">{t}</td>)}</tr></thead>
         <tbody>
@@ -25,12 +27,12 @@ export function IoPanel({ io, ch }: { io: Io3Doc; ch: ChainsDoc }) {
           ))}
         </tbody>
       </table>
-      <p className="muted small">
+      <Note title="What changed">
         Each module's ST3 now lands on a node beside its PCB. Only an Ethernet line and a fused 24 V feed run
         to the cabinet (the 34-way bundles are gone). Every signal is on exactly one channel, with at least{" "}
         {Math.round(io.spare_min * 100)} % of each type spare. The VGR's own plate lies wholly under its arm's
         sweep, so its node stands in the free corner.
-      </p>
+      </Note>
 
       <h3>Drag chains</h3>
       <table className="kv up-table">
@@ -46,8 +48,8 @@ export function IoPanel({ io, ch }: { io: Io3Doc; ch: ChainsDoc }) {
           ))}
         </tbody>
       </table>
-      <p className="muted small">{ch.swivel}. Rules: {ch.rules.bend}, fill ≤ {Math.round(ch.rules.fill_max * 100)} %,
-        unsupported span ≤ {ch.rules.self_support_mm} mm. {ch.sizes}.</p>
+      <Note title="Chain rules and the swivel">{ch.swivel}. Rules: {ch.rules.bend}, fill ≤ {Math.round(ch.rules.fill_max * 100)} %,
+        unsupported span ≤ {ch.rules.self_support_mm} mm. {ch.sizes}. Open “Drag chain” under Mechanisms in the view list for the chain in 3D.</Note>
 
       <h3>Cabinet (EN 60204-1)</h3>
       <table className="kv up-table">
@@ -61,14 +63,13 @@ export function IoPanel({ io, ch }: { io: Io3Doc; ch: ChainsDoc }) {
         </tbody>
       </table>
 
-      <h3>Proofs that gate this export</h3>
-      <ul className="up-proofs">
-        <li>allocation: every Belegungsplan signal on exactly one channel, ≥ 20 % spare per type</li>
-        <li>placement: every node clear of every part, every swept hazard zone and the VGR sweep</li>
-        <li>chains: length fits the stroke, bend radius, fill, self-supporting span, and every moving device on a chain path</li>
-        <li>each chain's envelope, at every pose, is in the module proofs, check_cross and both VGR tours</li>
-        <li>cabinet: rail ≥ 20 % free; the wiring router and the cookie-path gate cover all the new cables</li>
-      </ul>
+      <Proofs items={[
+        "allocation: every Belegungsplan signal on exactly one channel, ≥ 20 % spare per type",
+        "placement: every node clear of every part, every swept hazard zone and the VGR sweep",
+        "chains: length fits the stroke, bend radius, fill, self-supporting span, and every moving device on a chain path",
+        "each chain's envelope, at every pose, is in the module proofs, check_cross and both VGR tours",
+        "cabinet: rail ≥ 20 % free; the wiring router keeps every cable out of the belts' lanes and the cookie's path",
+      ]} />
     </section>
   );
 }

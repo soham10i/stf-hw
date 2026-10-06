@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useJson } from "../shared/data";
 import { Icon } from "../shared/icons";
 import { useSil } from "./PlcPanel";
-import { Empty, Stat } from "./kit";
+import { Empty, Stat, Note } from "./kit";
 
 const BASE = import.meta.env.BASE_URL;
 const PHASES = ["homing", "running", "complete"];
@@ -178,12 +178,12 @@ export function OpcuaPanel() {
           {sel.desc && <p>{sel.desc}</p>}
         </div>
       )}
-      <p className="np-foot">
+      <Note title="Run the real server">
         The address space as the server exported it. Run it with <code>make opcua</code> (Python, asyncua) and connect a client
         such as UaExpert: one endpoint on 127.0.0.1:4840, Sign & Encrypt with Basic256Sha256, a trusted client certificate and
         the operator password; every variable is read-only. The cell's ProductInstanceUri is its Asset Administration Shell's asset id.
         {" "}<a href={`${BASE}opcua/opcua.json`} download>JSON</a>
-      </p>
+      </Note>
     </div>
   );
 }

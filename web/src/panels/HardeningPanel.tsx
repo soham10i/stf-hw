@@ -1,7 +1,7 @@
 // Upgrade 12: defence in depth - hardwired interlocks and the re-run attacks (hardening.py).
 import { useState } from "react";
 import { useJson } from "../shared/data";
-import { Empty, Head, Stat } from "./kit";
+import { Empty, Head, Stat, Note } from "./kit";
 
 type Hard = {
   interlocks: { id: string; module: string; outputs: string[]; permissive: string; contact: string; why: string;
@@ -40,7 +40,7 @@ export function HardeningPanel() {
       ))}
       <div className="np-out ok"><b>F3 · a forged demand-response event</b><br />The energy manager now stops at the ride-through reserve:
         {" "}{e.forged.reserve_wh} Wh stay for outages. Demand response {e.U12.dr_met ? "still met" : "no longer fully met"}; bill €{e.U12.total_eur} (was €{e.U9.total_eur}).</div>
-      <p className="np-foot">In 3D the interlock relays sit at the end of each I/O node's rail (teal). They protect the machine and are not safety functions.</p>
+      <Note title="Where they are in 3D">In 3D the interlock relays sit at the end of each I/O node's rail (teal). They protect the machine and are not safety functions.</Note>
     </div>
   );
 }

@@ -94,9 +94,10 @@ export default defineConfig(({ mode }) => {
       proxy: API_PROXY,
       // STF_TUNNEL_DEV=1 (launch config "web-tunnel"): the dev server behind ngrok, on request.
       // It serves the source and HMR, so it is off by default; the shared build is 4173.
-      ...(env.STF_TUNNEL_DEV === "1"
-        ? { allowedHosts: [".ngrok-free.dev", ".ngrok.app", ".ngrok.io"], hmr: { clientPort: 443 } }
-        : {}),
+      // No hmr.clientPort: the HMR socket then uses the page's own port (443 through ngrok,
+      // 5173 on localhost). A fixed 443 broke it on localhost, and Vite's client then kept
+      // reloading the page - which restarted the twin's orders.
+      ...(env.STF_TUNNEL_DEV === "1" ? { allowedHosts: [".ngrok-free.dev", ".ngrok.app", ".ngrok.io"] } : {}),
     },
   };
 });

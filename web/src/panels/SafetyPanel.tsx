@@ -1,4 +1,5 @@
 import type { SafetyDoc } from "../shared/model";
+import { Note, Proofs, Title } from "./kit";
 
 // Upgrade 2's risk assessment and safety functions, straight from safety.py.
 export function SafetyPanel({ sf, showZones, setShowZones }: {
@@ -6,12 +7,13 @@ export function SafetyPanel({ sf, showZones, setShowZones }: {
 }) {
   return (
     <section className="panel upgrade safety">
-      <h2>Upgrade 2 · machine safety</h2>
-      <label className="small" style={{ display: "flex", gap: 6, alignItems: "center", margin: "4px 0 8px" }}>
+      <Title up="Upgrade 2" lead={`${sf.hazards.length} hazards rated; ${sf.functions.length} safety functions meet the level each one needs.`}>
+        Machine safety</Title>
+      <label className="small" style={{ display: "flex", gap: 6, alignItems: "center", margin: "0 0 8px" }}>
         <input type="checkbox" checked={showZones} onChange={(e) => setShowZones(e.target.checked)} />
-        show hazard zones (swept envelopes, coloured by PLr)
+        show hazard zones in 3D (coloured by PLr)
       </label>
-      <h3>Risk assessment (ISO 12100 / 13849-1)</h3>
+      <h3>Hazards (ISO 12100 / 13849-1)</h3>
       <table className="kv up-table">
         <thead><tr><td>hazard</td><td className="num">S F P</td><td className="num">PLr</td></tr></thead>
         <tbody>
@@ -36,14 +38,13 @@ export function SafetyPanel({ sf, showZones, setShowZones }: {
           ))}
         </tbody>
       </table>
-      <h3>Proofs that gate this export</h3>
-      <ul className="up-proofs">
-        <li>reach: every hazard zone lies ≥ 20 mm inside the guard (the VGR arm sampled every 5° over its full range)</li>
-        <li>fit: no guard part touches any module</li>
-        <li>logic: {sf.logic_states.toLocaleString()} input states checked exhaustively. Motion is enabled only with every E-stop released, every door closed and locked, and a reset. A fault in any single channel blocks enable, and a door unlocks only at standstill.</li>
-        <li>air: all {sf.cylinders_vented.length} cylinders are fed only through the safe exhaust valve Y1</li>
-      </ul>
-      {sf.notes.map((n) => <p key={n} className="muted small">{n}</p>)}
+      <Proofs items={[
+        "reach: every hazard zone lies ≥ 20 mm inside the guard (the VGR arm sampled every 5° over its full range)",
+        "fit: no guard part touches any module",
+        `logic: ${sf.logic_states.toLocaleString()} input states checked exhaustively. Motion is enabled only with every E-stop released, every door closed and locked, and a reset. A fault in any single channel blocks enable, and a door unlocks only at standstill.`,
+        `air: all ${sf.cylinders_vented.length} cylinders are fed only through the safe exhaust valve Y1`,
+      ]} />
+      {sf.notes.length > 0 && <Note title="Why guard locking, not a light curtain">{sf.notes.map((n) => <p key={n}>{n}</p>)}</Note>}
     </section>
   );
 }

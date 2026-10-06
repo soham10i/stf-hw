@@ -27,3 +27,33 @@ export function Spark({ ys, color, h = 46, min, max }: { ys: number[]; color: st
 export function Empty({ text }: { text: string }) {
   return <p className="np-err">{text}</p>;
 }
+
+/** A panel's title, the upgrade it belongs to, and one line saying what it shows. */
+export function Title({ children, up, lead }: { children: React.ReactNode; up?: string; lead?: React.ReactNode }) {
+  return (
+    <>
+      <h2 className="np-title">{children}{up && <span className="np-up">{up}</span>}</h2>
+      {lead && <p className="np-lead">{lead}</p>}
+    </>
+  );
+}
+
+/** Explanation that most readers can skip: closed until asked for. */
+export function Note({ title = "About this", children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <details className="np-note">
+      <summary>{title}</summary>
+      <div>{children}</div>
+    </details>
+  );
+}
+
+/** The checks that must pass before the model is exported - closed, with their count. */
+export function Proofs({ items }: { items: React.ReactNode[] }) {
+  return (
+    <details className="np-note np-proofs">
+      <summary>Proofs that gate this export <em>{items.length}</em></summary>
+      <ul>{items.map((x, i) => <li key={i}>{x}</li>)}</ul>
+    </details>
+  );
+}

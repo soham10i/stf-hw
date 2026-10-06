@@ -713,8 +713,17 @@ export function HbwCad({ doc, onPhase, tours }: {
       }
     }
     for (const c of doc.sorting.colours) twinOrders.bays[c] ??= [];
-    const r0 = { ...freshRack() };
-    const line = nextWork()!;
+    // The rack outlives this view (switching to a component and back remounts it): keep it.
+    // A cookie that was in the oven line goes back to dough in its slot and is baked again.
+    const saved = Object.keys(twinOrders.rack).length === Object.keys(doc.slots).length ? { ...twinOrders.rack } : null;
+    for (const o of twinOrders.queue) o.started = o.done;
+    const r0 = saved ?? { ...freshRack() };
+    const line = nextWork();
+    twinOrders.idle = !line;
+    if (!line) {                                     // every order done: rest in the pose of a finished cycle
+      const from = rawIn(r0)[0] ?? FROM;
+      return { c: { ...planCycle(from, from, Object.keys(doc.pipeline.flavours)[0], null), line: -1 }, r: r0 };
+    }
     return begin(r0, line);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc, planCycle]);

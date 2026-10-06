@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadJson, useJson } from "../shared/data";
 import { decode, forward, tile, verdict, type Cnn, type Verdict } from "../vision/cnn";
-import { Empty, Stat } from "./kit";
+import { Empty, Stat, Note } from "./kit";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -136,10 +136,10 @@ export function VisionPanel() {
           </div>
         </div>
       )}
-      <p className="np-foot">Trained on {res.data.train.toLocaleString()} rendered images; the unseen set is darker and brighter light, a warmer
+      <Note title="How it was trained">Trained on {res.data.train.toLocaleString()} rendered images; the unseen set is darker and brighter light, a warmer
         lamp, a worn belt, more noise and motion blur. Same forward pass as PyTorch to {res.model.browser_max_abs_err.toExponential(0)};
         {" "}ONNX for an edge PLC: <a href={`${BASE}vision/stf_vision_cnn.onnx`} download>stf_vision_cnn.onnx</a>.
-        Rendered images only: it shows the method, not the accuracy on a real camera.</p>
+        Rendered images only: it shows the method, not the accuracy on a real camera.</Note>
     </div>
   );
 }

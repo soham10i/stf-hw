@@ -2,7 +2,7 @@
 // It reads the newest upgrade export (up7, else up6) - the PLC's run (U4), the
 // commissioning results (U5), the condition-monitoring model (U6) and the
 // lifecycle checks (U7). Nothing here is typed in.
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useCadDoc, type CadDoc, type HealthComp } from "../shared/model";
 import { JOB_COL, JOB_SAY, fmtT, makespan, unitsAt } from "../shared/hmi";
 import { STATUS_TXT, compAt, maxShifts } from "../shared/health";
@@ -16,6 +16,7 @@ import { SecurityPage } from "./Security";
 import { HardeningPage, ValidationPage } from "./Assurance";
 import { Icon, ThemeToggle } from "../shared/icons";
 import { useTheme } from "../shared/theme";
+import { GUIDE, TERMS, cardHelp } from "./guide";
 
 const BASE = import.meta.env.BASE_URL;
 const PAGES = [
@@ -41,8 +42,37 @@ function useDoc() {
 function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
   return <div className={`db-kpi ${tone ?? ""}`}><span>{label}</span><b>{value}</b>{sub && <em>{sub}</em>}</div>;
 }
+const PageCtx = createContext("overview");
 function Card({ title, children, wide, extra }: { title: string; children: React.ReactNode; wide?: boolean; extra?: React.ReactNode }) {
-  return <section className={`db-card ${wide ? "wide" : ""}`}><h3>{title}{extra}</h3>{children}</section>;
+  const help = cardHelp(useContext(PageCtx), title);
+  return (
+    <section className={`db-card ${wide ? "wide" : ""}`}>
+      <h3>{title}{help && <i className="db-help" title={help} aria-label={help}>i</i>}{extra}</h3>
+      {children}
+    </section>
+  );
+}
+
+/** The page's guide: what it is for, how to read it, its sections and the terms it uses. */
+function GuideBox({ page, onClose }: { page: string; onClose: () => void }) {
+  const g = GUIDE[page];
+  if (!g) return null;
+  const terms = g.terms.filter((k) => TERMS[k]).map((k) => [k, TERMS[k]] as const);
+  return (
+    <aside className="db-guide" aria-label="Guide to this page">
+      <div className="db-guide-h"><b>Guide · {g.title}</b><button className="ui-btn ghost" onClick={onClose}>Hide</button></div>
+      <p className="db-guide-what">{g.what}</p>
+      <div className="db-guide-cols">
+        <div><h4>How to read it</h4><ol>{g.read.map((r) => <li key={r}>{r}</li>)}</ol></div>
+        <div><h4>On this page</h4><dl>{g.sections.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></div>
+      </div>
+      {terms.length > 0 && (
+        <details className="db-guide-terms"><summary>Terms used here · {terms.length}</summary>
+          <dl>{terms.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></details>
+      )}
+      <p className="db-guide-src">Data: {g.source}</p>
+    </aside>
+  );
 }
 function HBars({ rows, max, unit, hl }: { rows: [string, number, string?][]; max: number; unit: string; hl?: string }) {
   return (
@@ -341,6 +371,9 @@ export function Dashboard() {
   const [age, setAge] = useState(0);
   const [pm, setPm] = useState(true);
   const [theme, toggleTheme] = useTheme();
+  // the guide is open on the first visit and remembered after that
+  const [guide, setGuide] = useState(() => { try { return localStorage.getItem("stf.db.guide") !== "0"; } catch { return true; } });
+  const showGuide = (v: boolean) => { setGuide(v); try { localStorage.setItem("stf.db.guide", v ? "1" : "0"); } catch { /* private mode */ } };
   const [navOpen, setNavOpen] = useState(() => window.innerWidth > 900);
   const T = doc?.control ? makespan(doc.control) : 1;
   useEffect(() => {
@@ -349,6 +382,26 @@ export function Dashboard() {
     return () => window.clearInterval(id);
   }, [play, T, doc]);
   useEffect(() => { history.replaceState(null, "", `?p=${page}`); }, [page]);
+  // the pages that build their own sections (Month, AI, Energy, Throughput, Security, Assurance)
+  // get the same i-hint on each section title as Card gives, as their data loads
+  useEffect(() => {
+    const root = document.querySelector(".db-main");
+    if (!root) return;
+    const hint = () => {
+      root.querySelectorAll<HTMLElement>(".db-card > h3").forEach((h) => {
+        if (h.querySelector(".db-help")) return;
+        const help = cardHelp(page, h.textContent ?? "");
+        if (!help) return;
+        const i = document.createElement("i");
+        i.className = "db-help"; i.title = help; i.setAttribute("aria-label", help); i.textContent = "i";
+        h.appendChild(i);
+      });
+    };
+    hint();
+    const mo = new MutationObserver(hint);
+    mo.observe(root, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, [page, doc]);
   const ageMax = useMemo(() => (doc?.health ? maxShifts(doc.health.components) : 1), [doc]);
   if (err) return <div className="db-err">{err}</div>;
   if (!doc) return <div className="db-err">loading the twin's export…</div>;
@@ -399,8 +452,12 @@ export function Dashboard() {
               <div className="ui-seg"><button className={pm ? "on" : ""} onClick={() => setPm(true)}>PM on</button><button className={!pm ? "on" : ""} onClick={() => setPm(false)}>off</button></div>
             </div>
           )}
+          <button className={`ui-btn db-guide-btn ${guide ? "on" : ""}`} onClick={() => showGuide(!guide)} aria-pressed={guide}
+            title="What this page shows and how to read it"><Icon name="info" size={15} /> Guide</button>
           <ThemeToggle theme={theme} toggle={toggleTheme} />
         </div>
+        {guide && <GuideBox page={page} onClose={() => showGuide(false)} />}
+        <PageCtx.Provider value={page}>
         <div className="db-page" key={page}>
           {page === "month" && <MonthPage />}
           {page === "ai" && <AiPage />}
@@ -418,6 +475,7 @@ export function Dashboard() {
           {page === "engineering" && <Engineering doc={doc} />}
           {page === "data" && <Data doc={doc} src={src} />}
         </div>
+        </PageCtx.Provider>
         <p className="db-foot">Simulated from the twin's models; values marked assumed are listed on the blueprint sheets. Click any note to expand it.</p>
       </main>
     </div>
