@@ -207,7 +207,7 @@ electric,Beckhoff EL1904,"4 fail-safe DI 24 V (TwinSAFE, clocked test outputs)",
 electric,Beckhoff EL2252,2 DO 24 V with distributed-clock timestamps (camera triggers),2,pcs,[cat: beckhoff][typ ebus]
 electric,Beckhoff EL2809,"16 DO 24 V DC 0.5 A, 1-wire",4,pcs,[cat: beckhoff]
 electric,Beckhoff EL2904,4 fail-safe DO 24 V DC 0.5 A (TwinSAFE),5,pcs,[cat: beckhoff][typ ebus - VERIFY]
-electric,Beckhoff EL3064,"4 ch AI 0..10 V, 12 bit",2,pcs,[cat: beckhoff]
+electric,Beckhoff EL3064,"4 ch AI 0..10 V, 12 bit",3,pcs,[cat: beckhoff]
 electric,Beckhoff EL3314,4 ch thermocouple (type K) + cold junction,2,pcs,[cat: beckhoff]
 electric,Beckhoff EL5101,"1 ch incremental encoder RS422, 5 V supply",2,pcs,[cat: beckhoff]
 electric,Beckhoff EL6224,4 port IO-Link master,4,pcs,[cat: beckhoff]
@@ -226,6 +226,7 @@ electric,SSR DC,Q37,1,pcs,[typ]
 electric,SSR DC,Q38,1,pcs,[typ]
 electric,STL,"safety temperature limiter STB (EN 14597), DIN 22.5 mm, own sensor element, manual reset, relay contact in the heater load path",6,pcs,[typ] (JUMO safetyM STB class)
 electric,contactor,"contactor 24 V DC coil with mirror contact (IEC 60947-4-1 Annex F), 3 NO",5,pcs,[typ] (Siemens 3RT2016-1BB42 class)
+electric,current transducer,"AC current transducer, split core, 0..20 A true RMS -> 0..10 V, 24 V DC fed",3,pcs,"[typ] (acc of range, t_resp to 95 %; heater-break detection on the element feed)"
 electric,main switch,"400 V 3N~ 50 Hz, CEE 16 A 5-pole plug, main switch, RCD type A 30 mA",1,pcs,[typ]
 electric,relay 6.2,Phoenix PLC-RSC 24DC/21 coupling relay 6.2 mm (230 V fan),3,pcs,[typ]
 electric,zone contactor,"oven zone contactor 3-pole AC-1 25 A, 24 V DC coil; the zone STB contact is in its coil",3,pcs,[typ]
@@ -251,7 +252,7 @@ cable,gige,8 x 0.14 mm2,4.1,m,[typ] +10 %
 cable,iol-4,4 x 0.34 mm2,15.8,m,[typ] +10 %
 cable,motor-4,4 x 0.5 mm2,28.7,m,[typ] +10 %
 cable,tc-K,2 x 0.22 mm2,7.2,m,[typ] +10 %
-cable,wire-0.75,1 x 0.75 mm2,12.3,m,[typ] +10 %
+cable,wire-0.75,1 x 0.75 mm2,15.0,m,[typ] +10 %
 pneumatic,ISO6432-10x100,"ISO 6432 cylinder, magnetic piston, cushioned",1,pcs,[ISO 6432]
 pneumatic,ISO6432-16x25,"ISO 6432 cylinder, magnetic piston, cushioned",3,pcs,[ISO 6432]
 pneumatic,ISO6432-16x30,"ISO 6432 cylinder, magnetic piston, cushioned",3,pcs,[ISO 6432]

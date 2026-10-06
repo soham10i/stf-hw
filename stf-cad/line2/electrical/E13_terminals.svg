@@ -306,35 +306,35 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="176.1" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="180.3" class="tbs" text-anchor="start" >-KF9</text>
 <text x="48.0" y="180.3" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="180.3" class="tbs" text-anchor="start" >IR1</text>
-<text x="118.0" y="180.3" class="tbs" text-anchor="start" >IR1_pyrometer</text>
-<text x="185.0" y="180.3" class="tbs" text-anchor="start" >product temperature 0..10 V</text>
-<text x="300.0" y="180.3" class="tbs" text-anchor="start" >W034</text>
-<text x="330.0" y="180.3" class="tbs" text-anchor="start" >1.1 m</text>
-<text x="360.0" y="180.3" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="180.3" class="tbs" text-anchor="start" >BC1</text>
+<text x="118.0" y="180.3" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="180.3" class="tbs" text-anchor="start" >oven element feed L1 current 0..20 A (heater bre  [implied]</text>
+<text x="300.0" y="180.3" class="tbs" text-anchor="start" >W120</text>
+<text x="330.0" y="180.3" class="tbs" text-anchor="start" >0.8 m</text>
+<text x="360.0" y="180.3" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="183.9" class="tbs" text-anchor="start" >-KF9</text>
 <text x="48.0" y="183.9" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="183.9" class="tbs" text-anchor="start" >AI1.B</text>
-<text x="118.0" y="183.9" class="tbs" text-anchor="start" >A1_colour_sensor</text>
-<text x="185.0" y="183.9" class="tbs" text-anchor="start" >colour B 0..10 V</text>
-<text x="300.0" y="183.9" class="tbs" text-anchor="start" >W052</text>
-<text x="330.0" y="183.9" class="tbs" text-anchor="start" >1.18 m</text>
-<text x="360.0" y="183.9" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="183.9" class="tbs" text-anchor="start" >BC2</text>
+<text x="118.0" y="183.9" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="183.9" class="tbs" text-anchor="start" >oven element feed L2 current 0..20 A (heater bre  [implied]</text>
+<text x="300.0" y="183.9" class="tbs" text-anchor="start" >W121</text>
+<text x="330.0" y="183.9" class="tbs" text-anchor="start" >0.8 m</text>
+<text x="360.0" y="183.9" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="187.5" class="tbs" text-anchor="start" >-KF9</text>
 <text x="48.0" y="187.5" class="tbs" text-anchor="start" >3</text>
-<text x="70.0" y="187.5" class="tbs" text-anchor="start" >AI1.G</text>
-<text x="118.0" y="187.5" class="tbs" text-anchor="start" >A1_colour_sensor</text>
-<text x="185.0" y="187.5" class="tbs" text-anchor="start" >colour G 0..10 V</text>
-<text x="300.0" y="187.5" class="tbs" text-anchor="start" >W051</text>
-<text x="330.0" y="187.5" class="tbs" text-anchor="start" >1.18 m</text>
-<text x="360.0" y="187.5" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="70.0" y="187.5" class="tbs" text-anchor="start" >BC3</text>
+<text x="118.0" y="187.5" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="187.5" class="tbs" text-anchor="start" >oven element feed L3 current 0..20 A (heater bre  [implied]</text>
+<text x="300.0" y="187.5" class="tbs" text-anchor="start" >W122</text>
+<text x="330.0" y="187.5" class="tbs" text-anchor="start" >0.8 m</text>
+<text x="360.0" y="187.5" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="191.1" class="tbs" text-anchor="start" >-KF9</text>
 <text x="48.0" y="191.1" class="tbs" text-anchor="start" >4</text>
-<text x="70.0" y="191.1" class="tbs" text-anchor="start" >AI1.R</text>
-<text x="118.0" y="191.1" class="tbs" text-anchor="start" >A1_colour_sensor</text>
-<text x="185.0" y="191.1" class="tbs" text-anchor="start" >colour R 0..10 V</text>
-<text x="300.0" y="191.1" class="tbs" text-anchor="start" >W050</text>
-<text x="330.0" y="191.1" class="tbs" text-anchor="start" >1.18 m</text>
+<text x="70.0" y="191.1" class="tbs" text-anchor="start" >IR1</text>
+<text x="118.0" y="191.1" class="tbs" text-anchor="start" >IR1_pyrometer</text>
+<text x="185.0" y="191.1" class="tbs" text-anchor="start" >product temperature 0..10 V</text>
+<text x="300.0" y="191.1" class="tbs" text-anchor="start" >W034</text>
+<text x="330.0" y="191.1" class="tbs" text-anchor="start" >1.1 m</text>
 <text x="360.0" y="191.1" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <rect x="230" y="249" width="180" height="38" fill="#fff" stroke="#1b2330" stroke-width=".35"/>
 <rect x="230" y="249" width="180" height="9" fill="#1f4e8c"/>

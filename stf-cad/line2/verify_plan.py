@@ -35,6 +35,22 @@ METHOD = {
     "TOP_F": "pressure trace on the dosing piston with the real jam / chocolate", "DEP_T": "roll motor current at a row cut",
     "BAND": "weigh 1 m of the delivered mesh band (m_area); confirm the pitch on the band",
     "T_AMB": "air thermometer inside the guard next to the oven, running",
+    "DOUGH.w0": "oven-dry 10 dough samples (wet-basis water)", "DOUGH.cp_dry": "DSC on the dried dough",
+    "DOUGH.k_wet": "line-heat probe in the raw dough", "DOUGH.k_dry": "line-heat probe in a baked cookie",
+    "DOUGH.h_contact": "TC under a slug on the band: heating curve -> h", "DOUGH.contact_frac": "print of a slug base on the mesh",
+    "DOUGH.brown_Ea": "Lab colour vs time at 3 oven temperatures (Arrhenius fit)",
+    "DOUGH.brown_t": "Lab colour vs time at 165 C: time to golden",
+    "OVEN_H.top": "copper slug under the fan in each zone (h from its heating curve)",
+    "OVEN_H.bot": "copper slug on the band, top shielded (h from its heating curve)",
+    "COOLING.band.h_top": "copper slug through the hood", "COOLING.band.h_bot": "copper slug through the hood, top shielded",
+    "COOLING.loop.h_top": "copper slug on a puck along the loop", "COOLING.loop.h_bot": "copper slug on a puck, top shielded",
+    "CHAMBER.h_out": "skin thermography + air temperature at steady state", "CHAMBER.mouth_Cd": "smoke test + vane anemometer at the mouths",
+    "CHAMBER.mouth_F": "radiometer at the mouth", "BAND.m_area": "weigh 1 m of the delivered mesh band",
+    "X_EXHAUST": "humidity of the exhaust (hygrometer) at the rated rate",
+    "ZONE_G": "zone-to-zone coupling: step one zone, read the neighbour (commissioning)",
+    "TC_TAU": "step response of the TC in the running oven (plunge test)",
+    "acc": "current transducer datasheet for the ordered part (accuracy class)",
+    "t_resp": "current transducer datasheet (response time)",
     "OVEN_ZONES": "recipe trials: IR1 product temperature + Lab colour at the oven exit",
     "OVEN_H": "heat-flux sensor / lumped copper slug through each zone (h from its heating curve)",
     "COOLING": "copper slug through the hood and along the loop (h from its cooling curve)",
@@ -77,10 +93,37 @@ def _l_items():
     return out
 
 
+# [typ] food / heat-transfer values inside line_model.L dicts (path, note)
+L_DICT = [(("DOUGH", "w0"), "dough water, wet basis"), (("DOUGH", "cp_dry"), "dry dough cp (J/kgK)"),
+          (("DOUGH", "k_wet"), "raw dough conductivity (W/mK)"), (("DOUGH", "k_dry"), "baked conductivity (W/mK)"),
+          (("DOUGH", "h_contact"), "band contact h (W/m2K)"), (("DOUGH", "contact_frac"), "base share on the mesh"),
+          (("DOUGH", "brown_Ea"), "Maillard activation energy (J/mol)"), (("DOUGH", "brown_t"), "s to golden at Tref"),
+          (("OVEN_H", "top"), "impingement h, top (W/m2K)"), (("OVEN_H", "bot"), "h through the mesh, bottom (W/m2K)"),
+          (("COOLING", "band", "h_top"), "hood h, top"), (("COOLING", "band", "h_bot"), "hood h, bottom"),
+          (("COOLING", "loop", "h_top"), "still air h on the puck, top"), (("COOLING", "loop", "h_bot"), "on the puck, bottom"),
+          (("CHAMBER", "h_out"), "skin h to the room (W/m2K)"), (("CHAMBER", "mouth_Cd"), "doorway flow coefficient"),
+          (("CHAMBER", "mouth_F"), "mouth radiation view factor"), (("BAND", "m_area"), "mesh band kg/m2")]
+
+
 def _extra_items():
     import hardware as H
+    import line_model as M
+    import oven_ctrl as OC
     import safety as S
-    out = [dict(key="F_LOW", where="hardware.F_LOW", value=H.F_LOW, note="low-energy threshold (N)",
+    out = []
+    for path, note in L_DICT:
+        d = M.L
+        for k in path[:-1]:
+            d = d[k]
+        out.append(dict(key=".".join(path), where=f"line_model.L{''.join(f'[{k!r}]' for k in path)}", value=d[path[-1]],
+                        note=note, target=("LD",) + path))
+    out.append(dict(key="X_EXHAUST", where="line_model.L", value=M.L["X_EXHAUST"], note="kg water / kg exhaust air",
+                    target=("L", "X_EXHAUST")))
+    for k, note in (("ZONE_G", "zone-to-zone exchange (W/K)"), ("TC_TAU", "TC lag (s)")):
+        out.append(dict(key=k, where="oven_ctrl.CTRL", value=OC.CTRL[k], note=note, target=("C", k)))
+    for k, note in (("acc", "current transducer accuracy (of range)"), ("t_resp", "transducer response (s)")):
+        out.append(dict(key=k, where="hardware.CT_AC", value=H.CT_AC[k], note=note, target=("HD", "CT_AC", k)))
+    out += [dict(key="F_LOW", where="hardware.F_LOW", value=H.F_LOW, note="low-energy threshold (N)",
                 target=("H", "F_LOW")),
            dict(key="T_LOGIC", where="hardware.T_LOGIC", value=H.T_LOGIC, note="TwinSAFE reaction (s)",
                 target=("H", "T_LOGIC")),
@@ -117,10 +160,18 @@ def _run(args):
     import line_model as M
     import safety as S
     import plc_io as P
+    import oven_ctrl as OC
     if target is None:
         pass                                     # the control run: nothing perturbed
     elif target[0] == "L":
         M.L[target[1]] = _scale(M.L[target[1]], factor)
+    elif target[0] == "LD":
+        d = M.L
+        for k in target[1:-1]:
+            d = d[k]
+        d[target[-1]] = d[target[-1]] * factor
+    elif target[0] == "C":
+        OC.CTRL[target[1]] = OC.CTRL[target[1]] * factor
     elif target[0] == "H":
         setattr(H, target[1], getattr(H, target[1]) * factor)
     elif target[0] == "HD":
@@ -134,6 +185,8 @@ def _run(args):
         S.HAZARDS = S.HAZARDS[:target[1]] + (tuple(h),) + S.HAZARDS[target[1] + 1:]
     try:
         f = M.check(verbose=False)
+        if not f:
+            f = OC.check(verbose=False, write=False, quick=True)[1]
         if not f:
             f = P.check(verbose=False)
         if not f:
@@ -176,7 +229,7 @@ def main():
              2: "2 - safety-relevant (feeds safety.py)", 3: "3 - the rest"}
     md = ["# STF-2 verification plan (generated by verify_plan.py)", "",
           f"{len(rows)} values the proofs rest on that are assumed or typical. Each numeric one was moved "
-          f"-{BAND:.0%} and +{BAND:.0%} and every proof (model, PLC, safety) re-run. Re-run the proofs with the "
+          f"-{BAND:.0%} and +{BAND:.0%} and every proof (model, oven control, PLC, safety) re-run. Re-run the proofs with the "
           f"measured value; the design is released when they pass with it.", ""]
     for p in (1, 2, 3):
         sub = [r for r in rows if r["priority"] == p]

@@ -167,8 +167,8 @@ def build():
         spec = {"contactor": H.SAFE["contactor"]["desc"], "STL": H.SAFE["stl"]["desc"],
                 "PTTB 2.5": H.TERMINAL_BLOCK2["model"], "zone contactor": H.ZONE_CONTACTOR["desc"],
                 "SSR AC 25 A": H.SSR_AC25["model"], "relay 6.2": H.RELAY6["model"], "MCB 3-pole": H.MCB3["model"],
-                "main switch": H.SUPPLY["desc"]}.get(t, note or t)
-        src = {"contactor": H.SAFE["contactor"]["src"], "STL": H.SAFE["stl"]["src"]}.get(
+                "main switch": H.SUPPLY["desc"], "current transducer": H.CT_AC["model"]}.get(t, note or t)
+        src = {"contactor": H.SAFE["contactor"]["src"], "STL": H.SAFE["stl"]["src"], "current transducer": H.CT_AC["src"]}.get(
             t, "[cat: meanwell]" if t.startswith("SDR") else "[typ]")
         add("electric", t, spec, q, "pcs", src)
     add("electric", "enclosure", f"sheet steel {M.L['CAB'][2]:g} x {M.L['CAB'][3]:g} x {M.L['CAB'][4]:g}, "

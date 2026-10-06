@@ -538,6 +538,9 @@ MCB3 = dict(model="3-pole MCB C16 (oven zone feed)", w=52.5, src="[typ]")
 COOL_FAN = dict(desc="120 mm 24 V DC axial fan, band cooling", I=0.25, size=120.0, holes=105.0, src="[typ]")
 SSR_AC25 = dict(model="Crydom D2425 25 A AC SSR on a DIN heatsink", w=45.0, h=100.0, d=110.0, ctl_A=0.012,
                 I=25.0, U_drop=1.6, R_th=1.1, src="[typ] (heatsink K/W for the derating check)")
+CT_AC = dict(model="AC current transducer, split core, 0..20 A true RMS -> 0..10 V, 24 V DC fed", w=22.5, h=90.0,
+             d=60.0, range=20.0, acc=0.01, t_resp=0.3, I=0.02,
+             src="[typ] (acc of range, t_resp to 95 %; heater-break detection on the element feed)")
 SUPPLY = dict(desc="400 V 3N~ 50 Hz, CEE 16 A 5-pole plug, main switch, RCD type A 30 mA", U=230.0, U_LL=400.0,
               I=16.0, load_max=0.8, rcd_mA=30.0, src="[typ] IEC 60309 / IEC 60204-1")
 TEMP_LIMIT = {"POM chain": 80.0, "UHMW-PE track": 80.0, "NFC tag": 85.0}   # C, continuous [typ]

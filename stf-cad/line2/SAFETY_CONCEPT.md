@@ -90,7 +90,13 @@ What changed against the draft above, and why:
   210 C; the STB (own thermocouple element, set 250 C) drops KH1 about 2.5 min later and the air peaks
   about 2 K over the STB setting - below the 300 C limit [assumed: glands, seals, flour-dust margin]. In no
   normal scenario (cold start, production start, depositor stop) does a TC come within 15 K of the STB,
-  so SF4 never trips by nuisance. The STB does not depend on the PLC: FB_Oven's duty observer only alarms.
+  so SF4 never trips by nuisance. The STB does not depend on the PLC.
+- **Heater break and model error (`oven_ctrl.py`, upgrade V-1)** - quality, not safety: current
+  transducers BC1-BC3 on the element feed let FB_Oven see a broken element within about 1 s and
+  name it within 10 s. Z1 rides through on its other elements. Z2/Z3 have no N-1 capacity, so the
+  PLC stops the depositor and the cookies baked outside the window are flagged by their bake log.
+  The feed-forward learns the real oven: S6 proves +-2 K with the model 20 % off.
+  None of this is a safety function; SF4 stays the STB.
 - **Hot surfaces after a stop**: the chamber stays above 150 C for minutes after the elements are off.
   Inside the guard only; residual risk -> warning label on every door + the HMI shows the zone
   temperatures; the outer skin is below the 10 s burn threshold for bare metal (EN ISO 13732-1).

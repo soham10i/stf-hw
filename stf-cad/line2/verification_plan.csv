@@ -1,15 +1,24 @@
 priority,key,where,value,sensitivity,method,note
 1,F_LOW,hardware.F_LOW,50.0,-20 %: G9 chamber boundary gap e = 222 mm > 12 mm,risk assessment decision (ISO/TS 15066 body-region limits) - not a measurement,low-energy threshold (N)
-1,CARR_L,line_model.L (line 107),60.0,+20 %: INTERFERE guide_right_curve_in x stamp_post_1632_420 (3.20 mm),measure the machined carriage,"carriage length, moving mass kg, accel time s [assumed]"
-1,BOX,line_model.L (line 129),"(160.0, 55.0, 25.0)","-20 %: TIMING pockets fit the tray: 148.5 mm of pockets vs <= 122.0 inside the flange - 3 round cookies in a rectangu / +20 %: TIMING pack guided in the cassette: -13.0 mm per side vs 0.5 .. 4 mm - open bottom inlet / open top outlet, wa",measure the thermoformed tray,sealed pack envelope: tray + film; mass kg [assumed]
-1,SEAL_P,line_model.L (line 134),0.15,"+20 %: SIZING cylinder sealer D25x30: needs 226 N, 25 mm vs <= 70% of 295 N, stroke 30 - ISO 6432 at 6 bar (extend)",seal trials with the film supplier's window,"ISO 6432, seal pressure MPa [assumed], head lift"
-1,AMR_EXCH,line_model.L (line 185),20.0,"+20 %: TIMING AMR utilisation, one robot: 70% vs < 70 % - 25.8 tasks/h",time the AMR's cassette swap in the chamber over 20 exchanges,"mm/s carrier, s per door stroke, s AMR swap [assumed]"
-1,PITCH,line_model.L (line 59),80.0,"-20 %: TIMING airlock exchange covered by the lane-end buffer: 1 pack = 29 s vs >= exchange 30 s - a robot on time co / +20 %: PRODUCT hits guard_panel_right_0 at s=1545 (1825,360)",set on the chain: measure the puck pitch over 10 pucks with a tape,puck pitch on the chain                 [assumed]
-1,NEST,line_model.L (line 75),"(48.0, 2.0)","-20 %: TIMING feeder drop: fall 101 ms -> belt moves 2.02 mm, released 2.02 mm early; residual 0.10 mm vs nest radial",measure the nest D and depth on the puck,chamfered nest D x depth               [assumed]
-1,COOKIE,line_model.L (line 76),"(45.0, 20.0)","+20 %: TIMING feeder drop: fall 105 ms -> belt moves 2.10 mm, released 2.10 mm early; residual 0.10 mm vs nest radial",weigh 20 workpieces; D x H from the ft datasheet,"workpiece D x H [ft], mass kg [assumed]"
-1,PACKING,line_model.L (line 91),0.5,-20 %: TIMING AMR deadline: raw refill: 13.1 min vs >= worst case ONE robot 15.0 min - all 10 port tasks queued ahead,"fill a hopper, count the cookies","bulk packing fraction of loose cookies  [assumed, MEASURE]"
-1,BAKE_S,line_model.L (line 98),24.0,-20 %: INTERFERE cool_roof x IR1_pyrometer (15.00 mm) / +20 %: INTERFERE cool_fan_1 x stamp_cylinder (1.50 mm),bake trials: surface temperature (IR1) vs time; set the chain speed,residence times (s)                    [assumed]
-1,COOL_S,line_model.L (line 98),12.0,+20 %: INTERFERE cool_roof x stamp_post_1405_270 (15.00 mm),cooling trials: product temperature at the tunnel exit,residence times (s)                    [assumed]
+1,T_AMB,line_model.L (line 104),25.0,+20 %: TIMING cookie at the picker: max 38.2 C after 68 s on the loop vs <= T_PACK 38 C - a warm cookie sealed in fil,"air thermometer inside the guard next to the oven, running",air inside the guard next to the oven              [assumed]
+1,BOX,line_model.L (line 145),"(160.0, 55.0, 25.0)","-20 %: TIMING pockets fit the tray: 148.5 mm of pockets vs <= 122.0 inside the flange - 3 round cookies in a rectangu / +20 %: TIMING pack guided in the cassette: -13.0 mm per side vs 0.5 .. 4 mm - open bottom inlet / open top outlet, wa",measure the thermoformed tray,sealed pack envelope: tray + film; mass kg [assumed]
+1,SEAL_P,line_model.L (line 150),0.15,"+20 %: SIZING cylinder sealer D25x30: needs 226 N, 25 mm vs <= 70% of 295 N, stroke 30 - ISO 6432 at 6 bar (extend)",seal trials with the film supplier's window,"ISO 6432, seal pressure MPa [assumed], head lift"
+1,PITCH,line_model.L (line 60),80.0,"-20 %: TIMING airlock exchange covered by the lane-end buffer: 1 pack = 29 s vs >= exchange 30 s - a robot on time co / +20 %: SIZING delta Jacobian singular at (1366.0, 232.5, 288.0)",set on the chain: measure the puck pitch over 10 pucks with a tape,puck pitch on the chain                 [assumed]
+1,DOUGH_M,line_model.L (line 85),0.0112,"-20 %: SIZING delta Jacobian singular at (1344.0, 232.5, 288.0) / +20 %: ERROR ValueError: oven.bake_time: the recipe burns before it bakes - no band length exists",weigh 20 cut slugs,"wire-cut slug D x H, kg; spreads to COOKIE in the oven [assumed]"
+1,DEP_HOPPER,line_model.L (line 92),"(190.0, 300.0)",+20 %: INTERFERE guard_post_18_400 x dep_hopper_floor (3.00 mm),measure the delivered hopper,feed roll D; dough hopper length x height        [assumed]
+1,TOP_HOPPER,line_model.L (line 96),"(80.0, 220.0)",-20 %: TIMING topping fits its hopper: 0.8 kg = 0.62 l vs <= 80 % of 0.57 l - ,measure the delivered hopper,"topping hopper D x H, kg full, kg/m3 [assumed]"
+1,DOUGH.brown_t,line_model.L['DOUGH']['brown_t'],150.0,-20 %: ERROR ValueError: oven.bake_time: the recipe burns before it bakes - no band length exists,Lab colour vs time at 165 C: time to golden,s to golden at Tref
+1,DOUGH.contact_frac,line_model.L['DOUGH']['contact_frac'],0.3,-20 %: ERROR ValueError: oven.bake_time: the recipe burns before it bakes - no band length exists,print of a slug base on the mesh,base share on the mesh
+1,DOUGH.cp_dry,line_model.L['DOUGH']['cp_dry'],1600.0,+20 %: INTERFERE band_leg_3f x tportal_post_0 (4.00 mm),DSC on the dried dough,dry dough cp (J/kgK)
+1,DOUGH.h_contact,line_model.L['DOUGH']['h_contact'],150.0,-20 %: ERROR ValueError: oven.bake_time: the recipe burns before it bakes - no band length exists,TC under a slug on the band: heating curve -> h,band contact h (W/m2K)
+1,DOUGH.k_dry,line_model.L['DOUGH']['k_dry'],0.12,-20 %: ERROR ValueError: oven.bake_time: the recipe burns before it bakes - no band length exists,line-heat probe in a baked cookie,baked conductivity (W/mK)
+1,DOUGH.k_wet,line_model.L['DOUGH']['k_wet'],0.4,-20 %: ERROR ValueError: oven.bake_time: the recipe burns before it bakes - no band length exists,line-heat probe in the raw dough,raw dough conductivity (W/mK)
+1,DOUGH.w0,line_model.L['DOUGH']['w0'],0.18,+20 %: ERROR ValueError: oven.bake_time: the recipe burns before it bakes - no band length exists,oven-dry 10 dough samples (wet-basis water),"dough water, wet basis"
+1,OVEN_H.bot,line_model.L['OVEN_H']['bot'],45.0,-20 %: ERROR ValueError: oven.bake_time: the recipe burns before it bakes - no band length exists,"copper slug on the band, top shielded (h from its heating curve)","h through the mesh, bottom (W/m2K)"
+1,OVEN_H.top,line_model.L['OVEN_H']['top'],70.0,"-20 %: DELTA delta_C_effector at place (1745, 460, 138) hits band_pan_lip / +20 %: ERROR ValueError: oven.bake_time: the recipe burns before it bakes - no band length exists",copper slug under the fan in each zone (h from its heating curve),"impingement h, top (W/m2K)"
+1,TC_TAU,oven_ctrl.CTRL,15.0,"+20 %: CONTROL S1 cold start: settled +-2 K: 18.3 min, overshoot 2.0 K vs <= 30 min, <= 2 K - empty band; set point r",step response of the TC in the running oven (plunge test),TC lag (s)
+2,acc,hardware.CT_AC,0.01,holds at +/-20 %,current transducer datasheet for the ordered part (accuracy class),current transducer accuracy (of range)
+2,t_resp,hardware.CT_AC,0.3,holds at +/-20 %,current transducer datasheet (response time),transducer response (s)
 2,OP_YEAR,hardware.OP_YEAR,220,holds at +/-20 %,production plan,production days / year
 2,PL,hardware.RELIAB['airlock_door'],e,not numeric - verify,manufacturer's certificate for the ordered part number,[typ] same switch class in the door kit
 2,PFHd,hardware.RELIAB['airlock_door'],1.2e-09,holds at +/-20 %,manufacturer's certificate,[typ] same switch class in the door kit
@@ -28,43 +37,61 @@ priority,key,where,value,sensitivity,method,note
 2,F_close,hardware.SAFE['airlock_door'],50.0,holds at +/-20 %,"force gauge at the closing edge (ISO 14120, EN 16005 method)",airlock door closing force (N)
 2,residual,hardware.SAFE['brush'],4.0,holds at +/-20 %,feeler gauge through the fitted brush strip under a 10 N push,opening left by the brush strip (mm)
 2,T_LOGIC,hardware.T_LOGIC,0.03,holds at +/-20 %,Beckhoff TwinSAFE reaction-time calculation for the configured watchdogs,TwinSAFE reaction (s)
-2,DOOR_T,line_model.L (line 185),1.5,holds at +/-20 %,time the airlock door strokes (lock OSSD timestamps),"mm/s carrier, s per door stroke, s AMR swap [assumed]"
-2,SING_T,line_model.L (line 90),0.5,holds at +/-20 %,torque wrench / motor current on the disc with a full hopper; also confirms the <= 50 N low-energy class in safety.py,"Nm on the singulator disc                [assumed, MEASURE]"
+2,DOOR_T,line_model.L (line 203),1.5,holds at +/-20 %,time the airlock door strokes (lock OSSD timestamps),"mm/s carrier, s per door stroke, s AMR swap [assumed]"
+2,AMR_EXCH,line_model.L (line 203),20.0,holds at +/-20 %,time the AMR's cassette swap in the chamber over 20 exchanges,"mm/s carrier, s per door stroke, s AMR swap [assumed]"
+2,FAN_RUNDOWN,line_model.L (line 216),2.0,holds at +/-20 %,"time the impeller coast-down after KHn drops (tacho / video), 10 stops","s, oven impeller coast-down after KHn drops [assumed, MEASURE]"
 2,t_mech,safety.HAZARDS: QC kicker D10,0.1,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
 2,t_mech,"safety.HAZARDS: airlock doors (power-operated, force-limited)",0.1,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
 2,t_mech,safety.HAZARDS: chain loop (drawing-in at bends / drive),0.02,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
 2,t_mech,safety.HAZARDS: delta A,0.1,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
 2,t_mech,safety.HAZARDS: delta B,0.1,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
-2,t_mech,safety.HAZARDS: escapement gates D10,0.1,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
-2,t_mech,safety.HAZARDS: flying stamp (screw axis + D16),0.1,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
+2,t_mech,safety.HAZARDS: delta C (transfer),0.1,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
+2,t_mech,safety.HAZARDS: depositor feed rolls + cutting wire,0.05,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
 2,t_mech,safety.HAZARDS: lane belts (in-running nips),0.02,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
+2,t_mech,safety.HAZARDS: mesh band + drums (in-running nips),0.05,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
+2,t_mech,safety.HAZARDS: oven fan impellers (inside the chamber),2.0,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
 2,t_mech,safety.HAZARDS: sealers D25 (crush + hot),0.1,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
 2,t_mech,safety.HAZARDS: shuttles + cassettes,0.05,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
-2,t_mech,safety.HAZARDS: singulator discs,0.02,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
 2,t_mech,safety.HAZARDS: stacker lifts D16,0.1,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
+2,t_mech,safety.HAZARDS: topping dosing pistons D10,0.1,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
 2,t_mech,safety.HAZARDS: trapdoor flaps,0.1,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
 2,t_mech,safety.HAZARDS: tray magazine forks D8,0.1,holds at +/-20 %,"stopping-time measurement (stop-time meter, ISO 13855 Annex) with the contactors dropped",run-down after the contactors drop (s)
-3,STAMP_CYL,line_model.L (line 106),"(16, 30)",not numeric - verify,measure on the prototype; re-run the proofs with it,"ISO 6432 bore x stroke, stamp force N [assumed], rod out"
-3,STAMP_F,line_model.L (line 106),40.0,holds at +/-20 %,force gauge under the die; recipe value,"ISO 6432 bore x stroke, stamp force N [assumed], rod out"
-3,ROD_OUT,line_model.L (line 106),20.0,holds at +/-20 %,measure on the prototype; re-run the proofs with it,"ISO 6432 bore x stroke, stamp force N [assumed], rod out"
-3,STAMP_M,line_model.L (line 107),1.5,holds at +/-20 %,weigh the carriage assembly,"carriage length, moving mass kg, accel time s [assumed]"
-3,T_ACC,line_model.L (line 107),0.05,holds at +/-20 %,NC trace of the stamp axis (TwinCAT scope),"carriage length, moving mass kg, accel time s [assumed]"
-3,AI_LATENCY,line_model.L (line 111),0.5,holds at +/-20 %,time stamp image capture -> verdict over 1000 images on the edge PC,"s, camera -> verdict budget            [assumed]"
-3,T_PICK,line_model.L (line 121),2.0,holds at +/-20 %,"delta cycle with the NC trace, 100 picks",full pick-place cycle; reach+grip part  [assumed]
-3,T_GRAB,line_model.L (line 121),0.8,holds at +/-20 %,vacuum build-up time (IO-Link vac sensor),full pick-place cycle; reach+grip part  [assumed]
-3,PICK_OK,line_model.L (line 122),0.995,holds at +/-20 %,count grips over a 1000-pick run,grip success probability                [assumed]
-3,DELTA_PAYLOAD,line_model.L (line 124),0.15,holds at +/-20 %,weigh effector + cup + cookie + half forearms,"effector+cup+cookie+half forearms kg, upper arm kg [assumed]"
-3,DELTA_ARM_M,line_model.L (line 124),0.06,holds at +/-20 %,weigh an upper arm,"effector+cup+cookie+half forearms kg, upper arm kg [assumed]"
-3,DELTA_ACC,line_model.L (line 125),5.0,holds at +/-20 %,NC trace at the 2 s cycle,"m/s2, m/s effector peaks for a 2 s cycle        [assumed]"
-3,DELTA_VMAX,line_model.L (line 125),0.5,holds at +/-20 %,NC trace at the 2 s cycle,"m/s2, m/s effector peaks for a 2 s cycle        [assumed]"
-3,PACK,line_model.L (line 129),3,not numeric - verify,measure on the prototype; re-run the proofs with it,sealed pack envelope: tray + film; mass kg [assumed]
-3,PACK_M,line_model.L (line 129),0.1,holds at +/-20 %,weigh 10 sealed packs,sealed pack envelope: tray + film; mass kg [assumed]
-3,SEAL_CYL,line_model.L (line 134),"(25, 30)",not numeric - verify,measure on the prototype; re-run the proofs with it,"ISO 6432, seal pressure MPa [assumed], head lift"
-3,SEAL_GAP,line_model.L (line 134),25.0,holds at +/-20 %,measure on the prototype; re-run the proofs with it,"ISO 6432, seal pressure MPa [assumed], head lift"
-3,SHUTTLE_V,line_model.L (line 185),100.0,holds at +/-20 %,set in the NC; confirm the carrier stroke time,"mm/s carrier, s per door stroke, s AMR swap [assumed]"
-3,TAKEUP,line_model.L (line 67),5.0,holds at +/-20 %,measure the drive unit's take-up travel on the delivered unit,chain take-up range of the drive unit   [assumed]
-3,PUCK,line_model.L (line 74),"(60.0, 12.0)",holds at +/-20 %,"measure the moulded puck (D, H) and weigh 10","puck D x H (NFC tag inside), mass kg         [assumed]"
-3,PUCK_M,line_model.L (line 74),0.06,holds at +/-20 %,measure on the prototype; re-run the proofs with it,"puck D x H (NFC tag inside), mass kg         [assumed]"
-3,COOKIE_M,line_model.L (line 76),0.03,holds at +/-20 %,measure on the prototype; re-run the proofs with it,"workpiece D x H [ft], mass kg [assumed]"
-3,ESC_F,line_model.L (line 86),5.0,holds at +/-20 %,"spring scale on the gate under a full tube (10 cookies), 10 pulls","N to pull the gate under a full tube   [assumed, MEASURE]"
-3,VALVE_JITTER,line_model.L (line 95),0.005,holds at +/-20 %,scope the valve coil vs the reed switch over 100 strokes (EL1252 timestamps),"s, release-time jitter (valve + scan)  [assumed]"
+3,X_EXHAUST,line_model.L,0.05,holds at +/-20 %,humidity of the exhaust (hygrometer) at the rated rate,kg water / kg exhaust air
+3,AI_LATENCY,line_model.L (line 127),0.5,holds at +/-20 %,time stamp image capture -> verdict over 1000 images on the edge PC,"s, camera -> verdict budget            [assumed]"
+3,T_PICK,line_model.L (line 137),2.0,holds at +/-20 %,"delta cycle with the NC trace, 100 picks",full pick-place cycle; reach+grip part  [assumed]
+3,T_GRAB,line_model.L (line 137),0.8,holds at +/-20 %,vacuum build-up time (IO-Link vac sensor),full pick-place cycle; reach+grip part  [assumed]
+3,PICK_OK,line_model.L (line 138),0.995,holds at +/-20 %,count grips over a 1000-pick run,grip success probability                [assumed]
+3,DELTA_PAYLOAD,line_model.L (line 140),0.15,holds at +/-20 %,weigh effector + cup + cookie + half forearms,"effector+cup+cookie+half forearms kg, upper arm kg [assumed]"
+3,DELTA_ARM_M,line_model.L (line 140),0.06,holds at +/-20 %,weigh an upper arm,"effector+cup+cookie+half forearms kg, upper arm kg [assumed]"
+3,DELTA_ACC,line_model.L (line 141),5.0,holds at +/-20 %,NC trace at the 2 s cycle,"m/s2, m/s effector peaks for a 2 s cycle        [assumed]"
+3,DELTA_VMAX,line_model.L (line 141),0.5,holds at +/-20 %,NC trace at the 2 s cycle,"m/s2, m/s effector peaks for a 2 s cycle        [assumed]"
+3,PACK,line_model.L (line 145),3,not numeric - verify,measure on the prototype; re-run the proofs with it,sealed pack envelope: tray + film; mass kg [assumed]
+3,PACK_M,line_model.L (line 145),0.1,holds at +/-20 %,weigh 10 sealed packs,sealed pack envelope: tray + film; mass kg [assumed]
+3,SEAL_CYL,line_model.L (line 150),"(25, 30)",not numeric - verify,measure on the prototype; re-run the proofs with it,"ISO 6432, seal pressure MPa [assumed], head lift"
+3,SEAL_GAP,line_model.L (line 150),25.0,holds at +/-20 %,measure on the prototype; re-run the proofs with it,"ISO 6432, seal pressure MPa [assumed], head lift"
+3,PACKING,line_model.L (line 166),0.5,holds at +/-20 %,"fill the reject drawer with cookies, count them",bulk packing fraction of loose cookies  [assumed]
+3,SHUTTLE_V,line_model.L (line 203),100.0,holds at +/-20 %,set in the NC; confirm the carrier stroke time,"mm/s carrier, s per door stroke, s AMR swap [assumed]"
+3,TAKEUP,line_model.L (line 68),5.0,holds at +/-20 %,measure the drive unit's take-up travel on the delivered unit,chain take-up range of the drive unit   [assumed]
+3,PUCK,line_model.L (line 75),"(60.0, 12.0)",holds at +/-20 %,"measure the moulded puck (D, H) and weigh 10","puck D x H (NFC tag inside), mass kg         [assumed]"
+3,PUCK_M,line_model.L (line 75),0.06,holds at +/-20 %,measure on the prototype; re-run the proofs with it,"puck D x H (NFC tag inside), mass kg         [assumed]"
+3,NEST,line_model.L (line 76),"(48.0, 2.0)",holds at +/-20 %,measure the nest D and depth on the puck,chamfered nest D x depth               [assumed]
+3,DOUGH_SLUG,line_model.L (line 85),"(38.0, 12.0)",holds at +/-20 %,weigh + measure 20 cut slugs at the die,"wire-cut slug D x H, kg; spreads to COOKIE in the oven [assumed]"
+3,TOPPING,line_model.L (line 90),"{'d': 14.0, 'h': 1.0, 'm': 0.0015}",not numeric - verify,weigh 20 drops; measure the dome,"drop D in its well, dome above the cookie top, kg     [assumed]"
+3,DEP_ROLL,line_model.L (line 92),50.0,holds at +/-20 %,measure on the prototype; re-run the proofs with it,feed roll D; dough hopper length x height        [assumed]
+3,DOUGH_KG,line_model.L (line 95),15.0,holds at +/-20 %,fill level vs the ToF reading,"kg dough when full (fill <= 80 %), kg/m3            [assumed]"
+3,DOUGH_RHO,line_model.L (line 95),1150.0,holds at +/-20 %,measure on the prototype; re-run the proofs with it,"kg dough when full (fill <= 80 %), kg/m3            [assumed]"
+3,TOP_KG,line_model.L (line 96),0.8,holds at +/-20 %,weigh a fill,"topping hopper D x H, kg full, kg/m3 [assumed]"
+3,TOP_RHO,line_model.L (line 96),1300.0,holds at +/-20 %,measure on the prototype; re-run the proofs with it,"topping hopper D x H, kg full, kg/m3 [assumed]"
+3,TOP_CYL,line_model.L (line 98),"(16, 25)",not numeric - verify,measure on the prototype; re-run the proofs with it,dosing piston (ISO 6432); N to push 2 drops through [assumed]
+3,TOP_F,line_model.L (line 98),20.0,holds at +/-20 %,pressure trace on the dosing piston with the real jam / chocolate,dosing piston (ISO 6432); N to push 2 drops through [assumed]
+3,DEP_T,line_model.L (line 99),2.0,holds at +/-20 %,roll motor current at a row cut,"Nm at the feed rolls to extrude a row          [assumed, MEASURE]"
+3,BAND.m_area,line_model.L['BAND']['m_area'],2.5,holds at +/-20 %,weigh 1 m of the delivered mesh band,mesh band kg/m2
+3,CHAMBER.h_out,line_model.L['CHAMBER']['h_out'],9.0,holds at +/-20 %,skin thermography + air temperature at steady state,skin h to the room (W/m2K)
+3,CHAMBER.mouth_Cd,line_model.L['CHAMBER']['mouth_Cd'],0.6,holds at +/-20 %,smoke test + vane anemometer at the mouths,doorway flow coefficient
+3,CHAMBER.mouth_F,line_model.L['CHAMBER']['mouth_F'],0.5,holds at +/-20 %,radiometer at the mouth,mouth radiation view factor
+3,COOLING.band.h_bot,line_model.L['COOLING']['band']['h_bot'],70.0,holds at +/-20 %,"copper slug through the hood, top shielded","hood h, bottom"
+3,COOLING.band.h_top,line_model.L['COOLING']['band']['h_top'],90.0,holds at +/-20 %,copper slug through the hood,"hood h, top"
+3,COOLING.loop.h_bot,line_model.L['COOLING']['loop']['h_bot'],2.0,holds at +/-20 %,"copper slug on a puck, top shielded","on the puck, bottom"
+3,COOLING.loop.h_top,line_model.L['COOLING']['loop']['h_top'],10.0,holds at +/-20 %,copper slug on a puck along the loop,"still air h on the puck, top"
+3,DOUGH.brown_Ea,line_model.L['DOUGH']['brown_Ea'],120000.0,holds at +/-20 %,Lab colour vs time at 3 oven temperatures (Arrhenius fit),Maillard activation energy (J/mol)
+3,ZONE_G,oven_ctrl.CTRL,3.0,holds at +/-20 %,"zone-to-zone coupling: step one zone, read the neighbour (commissioning)",zone-to-zone exchange (W/K)

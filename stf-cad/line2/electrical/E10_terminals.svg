@@ -81,7 +81,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="61.3" class="tbs" text-anchor="start" >TC1.STL</text>
 <text x="118.0" y="61.3" class="tbs" text-anchor="start" >oven_tc_1</text>
 <text x="185.0" y="61.3" class="tbs" text-anchor="start" >safety temperature limiter tripped (SF4, own ele</text>
-<text x="300.0" y="61.3" class="tbs" text-anchor="start" >W173</text>
+<text x="300.0" y="61.3" class="tbs" text-anchor="start" >W176</text>
 <text x="330.0" y="61.3" class="tbs" text-anchor="start" >0.8 m</text>
 <text x="360.0" y="61.3" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="64.9" class="tbs" text-anchor="start" >-KF1</text>
@@ -89,7 +89,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="64.9" class="tbs" text-anchor="start" >TC2.STL</text>
 <text x="118.0" y="64.9" class="tbs" text-anchor="start" >oven_tc_2</text>
 <text x="185.0" y="64.9" class="tbs" text-anchor="start" >safety temperature limiter tripped (SF4, own ele</text>
-<text x="300.0" y="64.9" class="tbs" text-anchor="start" >W174</text>
+<text x="300.0" y="64.9" class="tbs" text-anchor="start" >W177</text>
 <text x="330.0" y="64.9" class="tbs" text-anchor="start" >0.8 m</text>
 <text x="360.0" y="64.9" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="68.5" class="tbs" text-anchor="start" >-KF1</text>
@@ -97,7 +97,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="68.5" class="tbs" text-anchor="start" >TC3.STL</text>
 <text x="118.0" y="68.5" class="tbs" text-anchor="start" >oven_tc_3</text>
 <text x="185.0" y="68.5" class="tbs" text-anchor="start" >safety temperature limiter tripped (SF4, own ele</text>
-<text x="300.0" y="68.5" class="tbs" text-anchor="start" >W175</text>
+<text x="300.0" y="68.5" class="tbs" text-anchor="start" >W178</text>
 <text x="330.0" y="68.5" class="tbs" text-anchor="start" >0.8 m</text>
 <text x="360.0" y="68.5" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="72.1" class="tbs" text-anchor="start" >-KF1</text>

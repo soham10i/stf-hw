@@ -89,7 +89,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="64.9" class="tbs" text-anchor="start" >Q36.STL</text>
 <text x="118.0" y="64.9" class="tbs" text-anchor="start" >sealer_weiss_head</text>
 <text x="185.0" y="64.9" class="tbs" text-anchor="start" >safety temperature limiter tripped (SF4, own ele</text>
-<text x="300.0" y="64.9" class="tbs" text-anchor="start" >W176</text>
+<text x="300.0" y="64.9" class="tbs" text-anchor="start" >W179</text>
 <text x="330.0" y="64.9" class="tbs" text-anchor="start" >0.8 m</text>
 <text x="360.0" y="64.9" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="68.5" class="tbs" text-anchor="start" >-KF3</text>
@@ -97,7 +97,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="68.5" class="tbs" text-anchor="start" >Q37.STL</text>
 <text x="118.0" y="68.5" class="tbs" text-anchor="start" >sealer_rot_head</text>
 <text x="185.0" y="68.5" class="tbs" text-anchor="start" >safety temperature limiter tripped (SF4, own ele</text>
-<text x="300.0" y="68.5" class="tbs" text-anchor="start" >W177</text>
+<text x="300.0" y="68.5" class="tbs" text-anchor="start" >W180</text>
 <text x="330.0" y="68.5" class="tbs" text-anchor="start" >0.8 m</text>
 <text x="360.0" y="68.5" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="72.1" class="tbs" text-anchor="start" >-KF3</text>
@@ -105,7 +105,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="72.1" class="tbs" text-anchor="start" >Q38.STL</text>
 <text x="118.0" y="72.1" class="tbs" text-anchor="start" >sealer_blau_head</text>
 <text x="185.0" y="72.1" class="tbs" text-anchor="start" >safety temperature limiter tripped (SF4, own ele</text>
-<text x="300.0" y="72.1" class="tbs" text-anchor="start" >W178</text>
+<text x="300.0" y="72.1" class="tbs" text-anchor="start" >W181</text>
 <text x="330.0" y="72.1" class="tbs" text-anchor="start" >0.8 m</text>
 <text x="360.0" y="72.1" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
 <text x="20.0" y="75.7" class="tbs" text-anchor="start" >-KF3</text>
@@ -113,7 +113,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="75.7" class="tbs" text-anchor="start" >BOXES.DOCK1</text>
 <text x="118.0" y="75.7" class="tbs" text-anchor="start" >port_boxes</text>
 <text x="185.0" y="75.7" class="tbs" text-anchor="start" >AMR docked at boxes (1)  [implied]</text>
-<text x="300.0" y="75.7" class="tbs" text-anchor="start" >W157</text>
+<text x="300.0" y="75.7" class="tbs" text-anchor="start" >W160</text>
 <text x="330.0" y="75.7" class="tbs" text-anchor="start" >1.07 m</text>
 <text x="360.0" y="75.7" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="79.3" class="tbs" text-anchor="start" >-KF3</text>
@@ -121,7 +121,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="79.3" class="tbs" text-anchor="start" >BOXES.DOCK2</text>
 <text x="118.0" y="79.3" class="tbs" text-anchor="start" >port_boxes</text>
 <text x="185.0" y="79.3" class="tbs" text-anchor="start" >AMR docked at boxes (2)  [implied]</text>
-<text x="300.0" y="79.3" class="tbs" text-anchor="start" >W158</text>
+<text x="300.0" y="79.3" class="tbs" text-anchor="start" >W161</text>
 <text x="330.0" y="79.3" class="tbs" text-anchor="start" >1.07 m</text>
 <text x="360.0" y="79.3" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="82.9" class="tbs" text-anchor="start" >-KF3</text>
@@ -129,7 +129,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="82.9" class="tbs" text-anchor="start" >OUT.DOCK1</text>
 <text x="118.0" y="82.9" class="tbs" text-anchor="start" >port_out</text>
 <text x="185.0" y="82.9" class="tbs" text-anchor="start" >AMR docked at out (1)  [implied]</text>
-<text x="300.0" y="82.9" class="tbs" text-anchor="start" >W159</text>
+<text x="300.0" y="82.9" class="tbs" text-anchor="start" >W162</text>
 <text x="330.0" y="82.9" class="tbs" text-anchor="start" >1.47 m</text>
 <text x="360.0" y="82.9" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="86.5" class="tbs" text-anchor="start" >-KF3</text>
@@ -137,7 +137,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="70.0" y="86.5" class="tbs" text-anchor="start" >OUT.DOCK2</text>
 <text x="118.0" y="86.5" class="tbs" text-anchor="start" >port_out</text>
 <text x="185.0" y="86.5" class="tbs" text-anchor="start" >AMR docked at out (2)  [implied]</text>
-<text x="300.0" y="86.5" class="tbs" text-anchor="start" >W160</text>
+<text x="300.0" y="86.5" class="tbs" text-anchor="start" >W163</text>
 <text x="330.0" y="86.5" class="tbs" text-anchor="start" >1.47 m</text>
 <text x="360.0" y="86.5" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
 <text x="20.0" y="90.1" class="tbs" text-anchor="start" >-KF3</text>

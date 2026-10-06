@@ -19,7 +19,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <rect x="10" y="10" width="400" height="277" fill="none" stroke="#1b2330" stroke-width=".5"/>
 <text x="20.0" y="22.0" class="nh" text-anchor="start" >TERMINAL PLAN 6/10</text>
 <rect x="18.0" y="26.0" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="30.0" class="tb" text-anchor="start" >-KF17  EL5101  1 ch incremental encoder RS422, 5 V supply</text>
+<text x="20.0" y="30.0" class="tb" text-anchor="start" >-KF17  EL6224  4 port IO-Link master</text>
 <text x="20.0" y="35.5" class="tbs" text-anchor="start" >terminal</text>
 <text x="48.0" y="35.5" class="tbs" text-anchor="start" >ch</text>
 <text x="70.0" y="35.5" class="tbs" text-anchor="start" >tag</text>
@@ -30,252 +30,258 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="360.0" y="35.5" class="tbs" text-anchor="start" >cores</text>
 <text x="20.0" y="39.7" class="tbs" text-anchor="start" >-KF17</text>
 <text x="48.0" y="39.7" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="39.7" class="tbs" text-anchor="start" >B1</text>
-<text x="118.0" y="39.7" class="tbs" text-anchor="start" >B1_master_encoder</text>
-<text x="185.0" y="39.7" class="tbs" text-anchor="start" >master encoder, 1024 ppr RS422</text>
-<text x="300.0" y="39.7" class="tbs" text-anchor="start" >W002</text>
-<text x="330.0" y="39.7" class="tbs" text-anchor="start" >0.86 m</text>
-<text x="360.0" y="39.7" class="tbs" text-anchor="start" >A /A B /B Z /Z 5V 0V</text>
-<rect x="18.0" y="42.3" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="46.3" class="tb" text-anchor="start" >-KF18  EL5101  1 ch incremental encoder RS422, 5 V supply</text>
-<text x="20.0" y="51.8" class="tbs" text-anchor="start" >terminal</text>
-<text x="48.0" y="51.8" class="tbs" text-anchor="start" >ch</text>
-<text x="70.0" y="51.8" class="tbs" text-anchor="start" >tag</text>
-<text x="118.0" y="51.8" class="tbs" text-anchor="start" >part</text>
-<text x="185.0" y="51.8" class="tbs" text-anchor="start" >description</text>
-<text x="300.0" y="51.8" class="tbs" text-anchor="start" >cable</text>
-<text x="330.0" y="51.8" class="tbs" text-anchor="start" >length</text>
-<text x="360.0" y="51.8" class="tbs" text-anchor="start" >cores</text>
-<text x="20.0" y="56.0" class="tbs" text-anchor="start" >-KF18</text>
-<text x="48.0" y="56.0" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="56.0" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="56.0" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="56.0" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="56.0" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="56.0" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="56.0" class="tbs" text-anchor="start" ></text>
-<rect x="18.0" y="58.6" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="62.6" class="tb" text-anchor="start" >-KF42  EL1252  2 DI 24 V with distributed-clock timestamps (latch)</text>
-<text x="20.0" y="68.1" class="tbs" text-anchor="start" >terminal</text>
-<text x="48.0" y="68.1" class="tbs" text-anchor="start" >ch</text>
-<text x="70.0" y="68.1" class="tbs" text-anchor="start" >tag</text>
-<text x="118.0" y="68.1" class="tbs" text-anchor="start" >part</text>
-<text x="185.0" y="68.1" class="tbs" text-anchor="start" >description</text>
-<text x="300.0" y="68.1" class="tbs" text-anchor="start" >cable</text>
-<text x="330.0" y="68.1" class="tbs" text-anchor="start" >length</text>
-<text x="360.0" y="68.1" class="tbs" text-anchor="start" >cores</text>
-<text x="20.0" y="72.3" class="tbs" text-anchor="start" >-KF42</text>
-<text x="48.0" y="72.3" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="72.3" class="tbs" text-anchor="start" >I9</text>
-<text x="118.0" y="72.3" class="tbs" text-anchor="start" >I9_landing_check</text>
-<text x="185.0" y="72.3" class="tbs" text-anchor="start" >landing check after the place: is the cookie sea</text>
-<text x="300.0" y="72.3" class="tbs" text-anchor="start" >W046</text>
-<text x="330.0" y="72.3" class="tbs" text-anchor="start" >1.49 m</text>
-<text x="360.0" y="72.3" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
-<text x="20.0" y="75.9" class="tbs" text-anchor="start" >-KF42</text>
-<text x="48.0" y="75.9" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="75.9" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="75.9" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="75.9" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="75.9" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="75.9" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="75.9" class="tbs" text-anchor="start" ></text>
-<rect x="18.0" y="78.5" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="82.5" class="tb" text-anchor="start" >-KF43  EL2252  2 DO 24 V with distributed-clock timestamps (camera triggers)</text>
-<text x="20.0" y="88.0" class="tbs" text-anchor="start" >terminal</text>
-<text x="48.0" y="88.0" class="tbs" text-anchor="start" >ch</text>
-<text x="70.0" y="88.0" class="tbs" text-anchor="start" >tag</text>
-<text x="118.0" y="88.0" class="tbs" text-anchor="start" >part</text>
-<text x="185.0" y="88.0" class="tbs" text-anchor="start" >description</text>
-<text x="300.0" y="88.0" class="tbs" text-anchor="start" >cable</text>
-<text x="330.0" y="88.0" class="tbs" text-anchor="start" >length</text>
-<text x="360.0" y="88.0" class="tbs" text-anchor="start" >cores</text>
-<text x="20.0" y="92.2" class="tbs" text-anchor="start" >-KF43</text>
-<text x="48.0" y="92.2" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="92.2" class="tbs" text-anchor="start" >CAM1.TRG</text>
-<text x="118.0" y="92.2" class="tbs" text-anchor="start" >qc_camera</text>
-<text x="185.0" y="92.2" class="tbs" text-anchor="start" >camera trigger (timestamped)</text>
-<text x="300.0" y="92.2" class="tbs" text-anchor="start" >W048</text>
-<text x="330.0" y="92.2" class="tbs" text-anchor="start" >1.18 m</text>
-<text x="360.0" y="92.2" class="tbs" text-anchor="start" >BK trigger / BU 0V</text>
-<text x="20.0" y="95.8" class="tbs" text-anchor="start" >-KF43</text>
-<text x="48.0" y="95.8" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="95.8" class="tbs" text-anchor="start" >CAM2.TRG</text>
-<text x="118.0" y="95.8" class="tbs" text-anchor="start" >track_camera</text>
-<text x="185.0" y="95.8" class="tbs" text-anchor="start" >camera trigger (timestamped)</text>
-<text x="300.0" y="95.8" class="tbs" text-anchor="start" >W069</text>
-<text x="330.0" y="95.8" class="tbs" text-anchor="start" >1.13 m</text>
-<text x="360.0" y="95.8" class="tbs" text-anchor="start" >BK trigger / BU 0V</text>
-<rect x="18.0" y="98.4" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="102.4" class="tb" text-anchor="start" >-KF44  EL2252  2 DO 24 V with distributed-clock timestamps (camera triggers)</text>
-<text x="20.0" y="107.9" class="tbs" text-anchor="start" >terminal</text>
-<text x="48.0" y="107.9" class="tbs" text-anchor="start" >ch</text>
-<text x="70.0" y="107.9" class="tbs" text-anchor="start" >tag</text>
-<text x="118.0" y="107.9" class="tbs" text-anchor="start" >part</text>
-<text x="185.0" y="107.9" class="tbs" text-anchor="start" >description</text>
-<text x="300.0" y="107.9" class="tbs" text-anchor="start" >cable</text>
-<text x="330.0" y="107.9" class="tbs" text-anchor="start" >length</text>
-<text x="360.0" y="107.9" class="tbs" text-anchor="start" >cores</text>
-<text x="20.0" y="112.1" class="tbs" text-anchor="start" >-KF44</text>
-<text x="48.0" y="112.1" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="112.1" class="tbs" text-anchor="start" >CAM4.TRG</text>
-<text x="118.0" y="112.1" class="tbs" text-anchor="start" >CAM4_pack</text>
-<text x="185.0" y="112.1" class="tbs" text-anchor="start" >camera trigger (timestamped)</text>
-<text x="300.0" y="112.1" class="tbs" text-anchor="start" >W107</text>
-<text x="330.0" y="112.1" class="tbs" text-anchor="start" >1.41 m</text>
-<text x="360.0" y="112.1" class="tbs" text-anchor="start" >BK trigger / BU 0V</text>
-<text x="20.0" y="115.7" class="tbs" text-anchor="start" >-KF44</text>
-<text x="48.0" y="115.7" class="tbs" text-anchor="start" >2</text>
-<text x="70.0" y="115.7" class="tbs" text-anchor="start" >spare</text>
-<text x="118.0" y="115.7" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="115.7" class="tbs" text-anchor="start" ></text>
-<text x="300.0" y="115.7" class="tbs" text-anchor="start" ></text>
-<text x="330.0" y="115.7" class="tbs" text-anchor="start" ></text>
-<text x="360.0" y="115.7" class="tbs" text-anchor="start" ></text>
-<rect x="18.0" y="118.3" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="122.3" class="tb" text-anchor="start" >-KF19  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>
-<text x="20.0" y="127.8" class="tbs" text-anchor="start" >terminal</text>
-<text x="48.0" y="127.8" class="tbs" text-anchor="start" >ch</text>
-<text x="70.0" y="127.8" class="tbs" text-anchor="start" >tag</text>
-<text x="118.0" y="127.8" class="tbs" text-anchor="start" >part</text>
-<text x="185.0" y="127.8" class="tbs" text-anchor="start" >description</text>
-<text x="300.0" y="127.8" class="tbs" text-anchor="start" >cable</text>
-<text x="330.0" y="127.8" class="tbs" text-anchor="start" >length</text>
-<text x="360.0" y="127.8" class="tbs" text-anchor="start" >cores</text>
-<text x="20.0" y="132.0" class="tbs" text-anchor="start" >-KF19</text>
-<text x="48.0" y="132.0" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="132.0" class="tbs" text-anchor="start" >Q1</text>
-<text x="118.0" y="132.0" class="tbs" text-anchor="start" >M1_master_drive</text>
-<text x="185.0" y="132.0" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+PG27</text>
-<text x="300.0" y="132.0" class="tbs" text-anchor="start" >W001</text>
-<text x="330.0" y="132.0" class="tbs" text-anchor="start" >0.85 m</text>
-<text x="360.0" y="132.0" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
-<rect x="18.0" y="134.6" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="138.6" class="tb" text-anchor="start" >-KF20  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>
-<text x="20.0" y="144.1" class="tbs" text-anchor="start" >terminal</text>
-<text x="48.0" y="144.1" class="tbs" text-anchor="start" >ch</text>
-<text x="70.0" y="144.1" class="tbs" text-anchor="start" >tag</text>
-<text x="118.0" y="144.1" class="tbs" text-anchor="start" >part</text>
-<text x="185.0" y="144.1" class="tbs" text-anchor="start" >description</text>
-<text x="300.0" y="144.1" class="tbs" text-anchor="start" >cable</text>
-<text x="330.0" y="144.1" class="tbs" text-anchor="start" >length</text>
-<text x="360.0" y="144.1" class="tbs" text-anchor="start" >cores</text>
-<text x="20.0" y="148.3" class="tbs" text-anchor="start" >-KF20</text>
-<text x="48.0" y="148.3" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="148.3" class="tbs" text-anchor="start" >Q41</text>
-<text x="118.0" y="148.3" class="tbs" text-anchor="start" >M_dep_rolls</text>
-<text x="185.0" y="148.3" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+PG27</text>
-<text x="300.0" y="148.3" class="tbs" text-anchor="start" >W003</text>
-<text x="330.0" y="148.3" class="tbs" text-anchor="start" >1.17 m</text>
-<text x="360.0" y="148.3" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
-<rect x="18.0" y="150.9" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="154.9" class="tb" text-anchor="start" >-KF21  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>
-<text x="20.0" y="160.4" class="tbs" text-anchor="start" >terminal</text>
-<text x="48.0" y="160.4" class="tbs" text-anchor="start" >ch</text>
-<text x="70.0" y="160.4" class="tbs" text-anchor="start" >tag</text>
-<text x="118.0" y="160.4" class="tbs" text-anchor="start" >part</text>
-<text x="185.0" y="160.4" class="tbs" text-anchor="start" >description</text>
-<text x="300.0" y="160.4" class="tbs" text-anchor="start" >cable</text>
-<text x="330.0" y="160.4" class="tbs" text-anchor="start" >length</text>
-<text x="360.0" y="160.4" class="tbs" text-anchor="start" >cores</text>
-<text x="20.0" y="164.6" class="tbs" text-anchor="start" >-KF21</text>
-<text x="48.0" y="164.6" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="164.6" class="tbs" text-anchor="start" >Q40</text>
-<text x="118.0" y="164.6" class="tbs" text-anchor="start" >M_band</text>
-<text x="185.0" y="164.6" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+PG27</text>
-<text x="300.0" y="164.6" class="tbs" text-anchor="start" >W017</text>
-<text x="330.0" y="164.6" class="tbs" text-anchor="start" >1.28 m</text>
-<text x="360.0" y="164.6" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
-<rect x="18.0" y="167.2" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="171.2" class="tb" text-anchor="start" >-KF22  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>
-<text x="20.0" y="176.7" class="tbs" text-anchor="start" >terminal</text>
-<text x="48.0" y="176.7" class="tbs" text-anchor="start" >ch</text>
-<text x="70.0" y="176.7" class="tbs" text-anchor="start" >tag</text>
-<text x="118.0" y="176.7" class="tbs" text-anchor="start" >part</text>
-<text x="185.0" y="176.7" class="tbs" text-anchor="start" >description</text>
-<text x="300.0" y="176.7" class="tbs" text-anchor="start" >cable</text>
-<text x="330.0" y="176.7" class="tbs" text-anchor="start" >length</text>
-<text x="360.0" y="176.7" class="tbs" text-anchor="start" >cores</text>
-<text x="20.0" y="180.9" class="tbs" text-anchor="start" >-KF22</text>
-<text x="48.0" y="180.9" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="180.9" class="tbs" text-anchor="start" >delta_C.M180</text>
-<text x="118.0" y="180.9" class="tbs" text-anchor="start" >delta_C_motor_180</text>
-<text x="185.0" y="180.9" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+SWG17-30</text>
-<text x="300.0" y="180.9" class="tbs" text-anchor="start" >W040</text>
-<text x="330.0" y="180.9" class="tbs" text-anchor="start" >1.87 m</text>
-<text x="360.0" y="180.9" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
-<rect x="18.0" y="183.5" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="187.5" class="tb" text-anchor="start" >-KF23  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>
-<text x="20.0" y="193.0" class="tbs" text-anchor="start" >terminal</text>
-<text x="48.0" y="193.0" class="tbs" text-anchor="start" >ch</text>
-<text x="70.0" y="193.0" class="tbs" text-anchor="start" >tag</text>
-<text x="118.0" y="193.0" class="tbs" text-anchor="start" >part</text>
-<text x="185.0" y="193.0" class="tbs" text-anchor="start" >description</text>
-<text x="300.0" y="193.0" class="tbs" text-anchor="start" >cable</text>
-<text x="330.0" y="193.0" class="tbs" text-anchor="start" >length</text>
-<text x="360.0" y="193.0" class="tbs" text-anchor="start" >cores</text>
-<text x="20.0" y="197.2" class="tbs" text-anchor="start" >-KF23</text>
-<text x="48.0" y="197.2" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="197.2" class="tbs" text-anchor="start" >delta_C.M300</text>
-<text x="118.0" y="197.2" class="tbs" text-anchor="start" >delta_C_motor_300</text>
-<text x="185.0" y="197.2" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+SWG17-30</text>
-<text x="300.0" y="197.2" class="tbs" text-anchor="start" >W041</text>
-<text x="330.0" y="197.2" class="tbs" text-anchor="start" >1.92 m</text>
-<text x="360.0" y="197.2" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
-<rect x="18.0" y="199.8" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="203.8" class="tb" text-anchor="start" >-KF24  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>
-<text x="20.0" y="209.3" class="tbs" text-anchor="start" >terminal</text>
-<text x="48.0" y="209.3" class="tbs" text-anchor="start" >ch</text>
-<text x="70.0" y="209.3" class="tbs" text-anchor="start" >tag</text>
-<text x="118.0" y="209.3" class="tbs" text-anchor="start" >part</text>
-<text x="185.0" y="209.3" class="tbs" text-anchor="start" >description</text>
-<text x="300.0" y="209.3" class="tbs" text-anchor="start" >cable</text>
-<text x="330.0" y="209.3" class="tbs" text-anchor="start" >length</text>
-<text x="360.0" y="209.3" class="tbs" text-anchor="start" >cores</text>
-<text x="20.0" y="213.5" class="tbs" text-anchor="start" >-KF24</text>
-<text x="48.0" y="213.5" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="213.5" class="tbs" text-anchor="start" >delta_C.M60</text>
-<text x="118.0" y="213.5" class="tbs" text-anchor="start" >delta_C_motor_60</text>
-<text x="185.0" y="213.5" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+SWG17-30</text>
-<text x="300.0" y="213.5" class="tbs" text-anchor="start" >W039</text>
-<text x="330.0" y="213.5" class="tbs" text-anchor="start" >2.03 m</text>
-<text x="360.0" y="213.5" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
-<rect x="18.0" y="216.1" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="220.1" class="tb" text-anchor="start" >-KF25  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>
-<text x="20.0" y="225.6" class="tbs" text-anchor="start" >terminal</text>
-<text x="48.0" y="225.6" class="tbs" text-anchor="start" >ch</text>
-<text x="70.0" y="225.6" class="tbs" text-anchor="start" >tag</text>
-<text x="118.0" y="225.6" class="tbs" text-anchor="start" >part</text>
-<text x="185.0" y="225.6" class="tbs" text-anchor="start" >description</text>
-<text x="300.0" y="225.6" class="tbs" text-anchor="start" >cable</text>
-<text x="330.0" y="225.6" class="tbs" text-anchor="start" >length</text>
-<text x="360.0" y="225.6" class="tbs" text-anchor="start" >cores</text>
-<text x="20.0" y="229.8" class="tbs" text-anchor="start" >-KF25</text>
-<text x="48.0" y="229.8" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="229.8" class="tbs" text-anchor="start" >delta_A.M-15</text>
-<text x="118.0" y="229.8" class="tbs" text-anchor="start" >delta_A_motor_-15</text>
-<text x="185.0" y="229.8" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+SWG17-30</text>
-<text x="300.0" y="229.8" class="tbs" text-anchor="start" >W058</text>
-<text x="330.0" y="229.8" class="tbs" text-anchor="start" >1.31 m</text>
-<text x="360.0" y="229.8" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
-<rect x="18.0" y="232.4" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
-<text x="20.0" y="236.4" class="tb" text-anchor="start" >-KF26  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>
-<text x="20.0" y="241.9" class="tbs" text-anchor="start" >terminal</text>
-<text x="48.0" y="241.9" class="tbs" text-anchor="start" >ch</text>
-<text x="70.0" y="241.9" class="tbs" text-anchor="start" >tag</text>
-<text x="118.0" y="241.9" class="tbs" text-anchor="start" >part</text>
-<text x="185.0" y="241.9" class="tbs" text-anchor="start" >description</text>
-<text x="300.0" y="241.9" class="tbs" text-anchor="start" >cable</text>
-<text x="330.0" y="241.9" class="tbs" text-anchor="start" >length</text>
-<text x="360.0" y="241.9" class="tbs" text-anchor="start" >cores</text>
-<text x="20.0" y="246.1" class="tbs" text-anchor="start" >-KF26</text>
-<text x="48.0" y="246.1" class="tbs" text-anchor="start" >1</text>
-<text x="70.0" y="246.1" class="tbs" text-anchor="start" >delta_A.M105</text>
-<text x="118.0" y="246.1" class="tbs" text-anchor="start" >delta_A_motor_105</text>
-<text x="185.0" y="246.1" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+SWG17-30</text>
-<text x="300.0" y="246.1" class="tbs" text-anchor="start" >W059</text>
-<text x="330.0" y="246.1" class="tbs" text-anchor="start" >1.31 m</text>
-<text x="360.0" y="246.1" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
+<text x="70.0" y="39.7" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="39.7" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="39.7" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="39.7" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="39.7" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="39.7" class="tbs" text-anchor="start" ></text>
+<text x="20.0" y="43.3" class="tbs" text-anchor="start" >-KF17</text>
+<text x="48.0" y="43.3" class="tbs" text-anchor="start" >2</text>
+<text x="70.0" y="43.3" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="43.3" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="43.3" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="43.3" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="43.3" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="43.3" class="tbs" text-anchor="start" ></text>
+<text x="20.0" y="46.9" class="tbs" text-anchor="start" >-KF17</text>
+<text x="48.0" y="46.9" class="tbs" text-anchor="start" >3</text>
+<text x="70.0" y="46.9" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="46.9" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="46.9" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="46.9" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="46.9" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="46.9" class="tbs" text-anchor="start" ></text>
+<text x="20.0" y="50.5" class="tbs" text-anchor="start" >-KF17</text>
+<text x="48.0" y="50.5" class="tbs" text-anchor="start" >4</text>
+<text x="70.0" y="50.5" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="50.5" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="50.5" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="50.5" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="50.5" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="50.5" class="tbs" text-anchor="start" ></text>
+<rect x="18.0" y="53.1" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="20.0" y="57.1" class="tb" text-anchor="start" >-KF18  EL5101  1 ch incremental encoder RS422, 5 V supply</text>
+<text x="20.0" y="62.6" class="tbs" text-anchor="start" >terminal</text>
+<text x="48.0" y="62.6" class="tbs" text-anchor="start" >ch</text>
+<text x="70.0" y="62.6" class="tbs" text-anchor="start" >tag</text>
+<text x="118.0" y="62.6" class="tbs" text-anchor="start" >part</text>
+<text x="185.0" y="62.6" class="tbs" text-anchor="start" >description</text>
+<text x="300.0" y="62.6" class="tbs" text-anchor="start" >cable</text>
+<text x="330.0" y="62.6" class="tbs" text-anchor="start" >length</text>
+<text x="360.0" y="62.6" class="tbs" text-anchor="start" >cores</text>
+<text x="20.0" y="66.8" class="tbs" text-anchor="start" >-KF18</text>
+<text x="48.0" y="66.8" class="tbs" text-anchor="start" >1</text>
+<text x="70.0" y="66.8" class="tbs" text-anchor="start" >B1</text>
+<text x="118.0" y="66.8" class="tbs" text-anchor="start" >B1_master_encoder</text>
+<text x="185.0" y="66.8" class="tbs" text-anchor="start" >master encoder, 1024 ppr RS422</text>
+<text x="300.0" y="66.8" class="tbs" text-anchor="start" >W002</text>
+<text x="330.0" y="66.8" class="tbs" text-anchor="start" >0.86 m</text>
+<text x="360.0" y="66.8" class="tbs" text-anchor="start" >A /A B /B Z /Z 5V 0V</text>
+<rect x="18.0" y="69.4" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="20.0" y="73.4" class="tb" text-anchor="start" >-KF19  EL5101  1 ch incremental encoder RS422, 5 V supply</text>
+<text x="20.0" y="78.9" class="tbs" text-anchor="start" >terminal</text>
+<text x="48.0" y="78.9" class="tbs" text-anchor="start" >ch</text>
+<text x="70.0" y="78.9" class="tbs" text-anchor="start" >tag</text>
+<text x="118.0" y="78.9" class="tbs" text-anchor="start" >part</text>
+<text x="185.0" y="78.9" class="tbs" text-anchor="start" >description</text>
+<text x="300.0" y="78.9" class="tbs" text-anchor="start" >cable</text>
+<text x="330.0" y="78.9" class="tbs" text-anchor="start" >length</text>
+<text x="360.0" y="78.9" class="tbs" text-anchor="start" >cores</text>
+<text x="20.0" y="83.1" class="tbs" text-anchor="start" >-KF19</text>
+<text x="48.0" y="83.1" class="tbs" text-anchor="start" >1</text>
+<text x="70.0" y="83.1" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="83.1" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="83.1" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="83.1" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="83.1" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="83.1" class="tbs" text-anchor="start" ></text>
+<rect x="18.0" y="85.7" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="20.0" y="89.7" class="tb" text-anchor="start" >-KF43  EL1252  2 DI 24 V with distributed-clock timestamps (latch)</text>
+<text x="20.0" y="95.2" class="tbs" text-anchor="start" >terminal</text>
+<text x="48.0" y="95.2" class="tbs" text-anchor="start" >ch</text>
+<text x="70.0" y="95.2" class="tbs" text-anchor="start" >tag</text>
+<text x="118.0" y="95.2" class="tbs" text-anchor="start" >part</text>
+<text x="185.0" y="95.2" class="tbs" text-anchor="start" >description</text>
+<text x="300.0" y="95.2" class="tbs" text-anchor="start" >cable</text>
+<text x="330.0" y="95.2" class="tbs" text-anchor="start" >length</text>
+<text x="360.0" y="95.2" class="tbs" text-anchor="start" >cores</text>
+<text x="20.0" y="99.4" class="tbs" text-anchor="start" >-KF43</text>
+<text x="48.0" y="99.4" class="tbs" text-anchor="start" >1</text>
+<text x="70.0" y="99.4" class="tbs" text-anchor="start" >I9</text>
+<text x="118.0" y="99.4" class="tbs" text-anchor="start" >I9_landing_check</text>
+<text x="185.0" y="99.4" class="tbs" text-anchor="start" >landing check after the place: is the cookie sea</text>
+<text x="300.0" y="99.4" class="tbs" text-anchor="start" >W046</text>
+<text x="330.0" y="99.4" class="tbs" text-anchor="start" >1.49 m</text>
+<text x="360.0" y="99.4" class="tbs" text-anchor="start" >BN +24V / BU 0V / BK signal</text>
+<text x="20.0" y="103.0" class="tbs" text-anchor="start" >-KF43</text>
+<text x="48.0" y="103.0" class="tbs" text-anchor="start" >2</text>
+<text x="70.0" y="103.0" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="103.0" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="103.0" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="103.0" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="103.0" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="103.0" class="tbs" text-anchor="start" ></text>
+<rect x="18.0" y="105.6" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="20.0" y="109.6" class="tb" text-anchor="start" >-KF44  EL2252  2 DO 24 V with distributed-clock timestamps (camera triggers)</text>
+<text x="20.0" y="115.1" class="tbs" text-anchor="start" >terminal</text>
+<text x="48.0" y="115.1" class="tbs" text-anchor="start" >ch</text>
+<text x="70.0" y="115.1" class="tbs" text-anchor="start" >tag</text>
+<text x="118.0" y="115.1" class="tbs" text-anchor="start" >part</text>
+<text x="185.0" y="115.1" class="tbs" text-anchor="start" >description</text>
+<text x="300.0" y="115.1" class="tbs" text-anchor="start" >cable</text>
+<text x="330.0" y="115.1" class="tbs" text-anchor="start" >length</text>
+<text x="360.0" y="115.1" class="tbs" text-anchor="start" >cores</text>
+<text x="20.0" y="119.3" class="tbs" text-anchor="start" >-KF44</text>
+<text x="48.0" y="119.3" class="tbs" text-anchor="start" >1</text>
+<text x="70.0" y="119.3" class="tbs" text-anchor="start" >CAM1.TRG</text>
+<text x="118.0" y="119.3" class="tbs" text-anchor="start" >qc_camera</text>
+<text x="185.0" y="119.3" class="tbs" text-anchor="start" >camera trigger (timestamped)</text>
+<text x="300.0" y="119.3" class="tbs" text-anchor="start" >W048</text>
+<text x="330.0" y="119.3" class="tbs" text-anchor="start" >1.18 m</text>
+<text x="360.0" y="119.3" class="tbs" text-anchor="start" >BK trigger / BU 0V</text>
+<text x="20.0" y="122.9" class="tbs" text-anchor="start" >-KF44</text>
+<text x="48.0" y="122.9" class="tbs" text-anchor="start" >2</text>
+<text x="70.0" y="122.9" class="tbs" text-anchor="start" >CAM2.TRG</text>
+<text x="118.0" y="122.9" class="tbs" text-anchor="start" >track_camera</text>
+<text x="185.0" y="122.9" class="tbs" text-anchor="start" >camera trigger (timestamped)</text>
+<text x="300.0" y="122.9" class="tbs" text-anchor="start" >W069</text>
+<text x="330.0" y="122.9" class="tbs" text-anchor="start" >1.13 m</text>
+<text x="360.0" y="122.9" class="tbs" text-anchor="start" >BK trigger / BU 0V</text>
+<rect x="18.0" y="125.5" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="20.0" y="129.5" class="tb" text-anchor="start" >-KF45  EL2252  2 DO 24 V with distributed-clock timestamps (camera triggers)</text>
+<text x="20.0" y="135.0" class="tbs" text-anchor="start" >terminal</text>
+<text x="48.0" y="135.0" class="tbs" text-anchor="start" >ch</text>
+<text x="70.0" y="135.0" class="tbs" text-anchor="start" >tag</text>
+<text x="118.0" y="135.0" class="tbs" text-anchor="start" >part</text>
+<text x="185.0" y="135.0" class="tbs" text-anchor="start" >description</text>
+<text x="300.0" y="135.0" class="tbs" text-anchor="start" >cable</text>
+<text x="330.0" y="135.0" class="tbs" text-anchor="start" >length</text>
+<text x="360.0" y="135.0" class="tbs" text-anchor="start" >cores</text>
+<text x="20.0" y="139.2" class="tbs" text-anchor="start" >-KF45</text>
+<text x="48.0" y="139.2" class="tbs" text-anchor="start" >1</text>
+<text x="70.0" y="139.2" class="tbs" text-anchor="start" >CAM4.TRG</text>
+<text x="118.0" y="139.2" class="tbs" text-anchor="start" >CAM4_pack</text>
+<text x="185.0" y="139.2" class="tbs" text-anchor="start" >camera trigger (timestamped)</text>
+<text x="300.0" y="139.2" class="tbs" text-anchor="start" >W107</text>
+<text x="330.0" y="139.2" class="tbs" text-anchor="start" >1.41 m</text>
+<text x="360.0" y="139.2" class="tbs" text-anchor="start" >BK trigger / BU 0V</text>
+<text x="20.0" y="142.8" class="tbs" text-anchor="start" >-KF45</text>
+<text x="48.0" y="142.8" class="tbs" text-anchor="start" >2</text>
+<text x="70.0" y="142.8" class="tbs" text-anchor="start" >spare</text>
+<text x="118.0" y="142.8" class="tbs" text-anchor="start" ></text>
+<text x="185.0" y="142.8" class="tbs" text-anchor="start" ></text>
+<text x="300.0" y="142.8" class="tbs" text-anchor="start" ></text>
+<text x="330.0" y="142.8" class="tbs" text-anchor="start" ></text>
+<text x="360.0" y="142.8" class="tbs" text-anchor="start" ></text>
+<rect x="18.0" y="145.4" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="20.0" y="149.4" class="tb" text-anchor="start" >-KF20  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>
+<text x="20.0" y="154.9" class="tbs" text-anchor="start" >terminal</text>
+<text x="48.0" y="154.9" class="tbs" text-anchor="start" >ch</text>
+<text x="70.0" y="154.9" class="tbs" text-anchor="start" >tag</text>
+<text x="118.0" y="154.9" class="tbs" text-anchor="start" >part</text>
+<text x="185.0" y="154.9" class="tbs" text-anchor="start" >description</text>
+<text x="300.0" y="154.9" class="tbs" text-anchor="start" >cable</text>
+<text x="330.0" y="154.9" class="tbs" text-anchor="start" >length</text>
+<text x="360.0" y="154.9" class="tbs" text-anchor="start" >cores</text>
+<text x="20.0" y="159.1" class="tbs" text-anchor="start" >-KF20</text>
+<text x="48.0" y="159.1" class="tbs" text-anchor="start" >1</text>
+<text x="70.0" y="159.1" class="tbs" text-anchor="start" >Q1</text>
+<text x="118.0" y="159.1" class="tbs" text-anchor="start" >M1_master_drive</text>
+<text x="185.0" y="159.1" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+PG27</text>
+<text x="300.0" y="159.1" class="tbs" text-anchor="start" >W001</text>
+<text x="330.0" y="159.1" class="tbs" text-anchor="start" >0.85 m</text>
+<text x="360.0" y="159.1" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
+<rect x="18.0" y="161.7" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="20.0" y="165.7" class="tb" text-anchor="start" >-KF21  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>
+<text x="20.0" y="171.2" class="tbs" text-anchor="start" >terminal</text>
+<text x="48.0" y="171.2" class="tbs" text-anchor="start" >ch</text>
+<text x="70.0" y="171.2" class="tbs" text-anchor="start" >tag</text>
+<text x="118.0" y="171.2" class="tbs" text-anchor="start" >part</text>
+<text x="185.0" y="171.2" class="tbs" text-anchor="start" >description</text>
+<text x="300.0" y="171.2" class="tbs" text-anchor="start" >cable</text>
+<text x="330.0" y="171.2" class="tbs" text-anchor="start" >length</text>
+<text x="360.0" y="171.2" class="tbs" text-anchor="start" >cores</text>
+<text x="20.0" y="175.4" class="tbs" text-anchor="start" >-KF21</text>
+<text x="48.0" y="175.4" class="tbs" text-anchor="start" >1</text>
+<text x="70.0" y="175.4" class="tbs" text-anchor="start" >Q41</text>
+<text x="118.0" y="175.4" class="tbs" text-anchor="start" >M_dep_rolls</text>
+<text x="185.0" y="175.4" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+PG27</text>
+<text x="300.0" y="175.4" class="tbs" text-anchor="start" >W003</text>
+<text x="330.0" y="175.4" class="tbs" text-anchor="start" >1.17 m</text>
+<text x="360.0" y="175.4" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
+<rect x="18.0" y="178.0" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="20.0" y="182.0" class="tb" text-anchor="start" >-KF22  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>
+<text x="20.0" y="187.5" class="tbs" text-anchor="start" >terminal</text>
+<text x="48.0" y="187.5" class="tbs" text-anchor="start" >ch</text>
+<text x="70.0" y="187.5" class="tbs" text-anchor="start" >tag</text>
+<text x="118.0" y="187.5" class="tbs" text-anchor="start" >part</text>
+<text x="185.0" y="187.5" class="tbs" text-anchor="start" >description</text>
+<text x="300.0" y="187.5" class="tbs" text-anchor="start" >cable</text>
+<text x="330.0" y="187.5" class="tbs" text-anchor="start" >length</text>
+<text x="360.0" y="187.5" class="tbs" text-anchor="start" >cores</text>
+<text x="20.0" y="191.7" class="tbs" text-anchor="start" >-KF22</text>
+<text x="48.0" y="191.7" class="tbs" text-anchor="start" >1</text>
+<text x="70.0" y="191.7" class="tbs" text-anchor="start" >Q40</text>
+<text x="118.0" y="191.7" class="tbs" text-anchor="start" >M_band</text>
+<text x="185.0" y="191.7" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+PG27</text>
+<text x="300.0" y="191.7" class="tbs" text-anchor="start" >W017</text>
+<text x="330.0" y="191.7" class="tbs" text-anchor="start" >1.28 m</text>
+<text x="360.0" y="191.7" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
+<rect x="18.0" y="194.3" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="20.0" y="198.3" class="tb" text-anchor="start" >-KF23  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>
+<text x="20.0" y="203.8" class="tbs" text-anchor="start" >terminal</text>
+<text x="48.0" y="203.8" class="tbs" text-anchor="start" >ch</text>
+<text x="70.0" y="203.8" class="tbs" text-anchor="start" >tag</text>
+<text x="118.0" y="203.8" class="tbs" text-anchor="start" >part</text>
+<text x="185.0" y="203.8" class="tbs" text-anchor="start" >description</text>
+<text x="300.0" y="203.8" class="tbs" text-anchor="start" >cable</text>
+<text x="330.0" y="203.8" class="tbs" text-anchor="start" >length</text>
+<text x="360.0" y="203.8" class="tbs" text-anchor="start" >cores</text>
+<text x="20.0" y="208.0" class="tbs" text-anchor="start" >-KF23</text>
+<text x="48.0" y="208.0" class="tbs" text-anchor="start" >1</text>
+<text x="70.0" y="208.0" class="tbs" text-anchor="start" >delta_C.M180</text>
+<text x="118.0" y="208.0" class="tbs" text-anchor="start" >delta_C_motor_180</text>
+<text x="185.0" y="208.0" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+SWG17-30</text>
+<text x="300.0" y="208.0" class="tbs" text-anchor="start" >W040</text>
+<text x="330.0" y="208.0" class="tbs" text-anchor="start" >1.87 m</text>
+<text x="360.0" y="208.0" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
+<rect x="18.0" y="210.6" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="20.0" y="214.6" class="tb" text-anchor="start" >-KF24  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>
+<text x="20.0" y="220.1" class="tbs" text-anchor="start" >terminal</text>
+<text x="48.0" y="220.1" class="tbs" text-anchor="start" >ch</text>
+<text x="70.0" y="220.1" class="tbs" text-anchor="start" >tag</text>
+<text x="118.0" y="220.1" class="tbs" text-anchor="start" >part</text>
+<text x="185.0" y="220.1" class="tbs" text-anchor="start" >description</text>
+<text x="300.0" y="220.1" class="tbs" text-anchor="start" >cable</text>
+<text x="330.0" y="220.1" class="tbs" text-anchor="start" >length</text>
+<text x="360.0" y="220.1" class="tbs" text-anchor="start" >cores</text>
+<text x="20.0" y="224.3" class="tbs" text-anchor="start" >-KF24</text>
+<text x="48.0" y="224.3" class="tbs" text-anchor="start" >1</text>
+<text x="70.0" y="224.3" class="tbs" text-anchor="start" >delta_C.M300</text>
+<text x="118.0" y="224.3" class="tbs" text-anchor="start" >delta_C_motor_300</text>
+<text x="185.0" y="224.3" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+SWG17-30</text>
+<text x="300.0" y="224.3" class="tbs" text-anchor="start" >W041</text>
+<text x="330.0" y="224.3" class="tbs" text-anchor="start" >1.92 m</text>
+<text x="360.0" y="224.3" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
+<rect x="18.0" y="226.9" width="384.0" height="5.5" fill="#f3f5f8" stroke="#1b2330" stroke-width="0.15"/>
+<text x="20.0" y="230.9" class="tb" text-anchor="start" >-KF25  EL7047  1 ch stepper 48 V DC 5 A + incremental encoder input</text>
+<text x="20.0" y="236.4" class="tbs" text-anchor="start" >terminal</text>
+<text x="48.0" y="236.4" class="tbs" text-anchor="start" >ch</text>
+<text x="70.0" y="236.4" class="tbs" text-anchor="start" >tag</text>
+<text x="118.0" y="236.4" class="tbs" text-anchor="start" >part</text>
+<text x="185.0" y="236.4" class="tbs" text-anchor="start" >description</text>
+<text x="300.0" y="236.4" class="tbs" text-anchor="start" >cable</text>
+<text x="330.0" y="236.4" class="tbs" text-anchor="start" >length</text>
+<text x="360.0" y="236.4" class="tbs" text-anchor="start" >cores</text>
+<text x="20.0" y="240.6" class="tbs" text-anchor="start" >-KF25</text>
+<text x="48.0" y="240.6" class="tbs" text-anchor="start" >1</text>
+<text x="70.0" y="240.6" class="tbs" text-anchor="start" >delta_C.M60</text>
+<text x="118.0" y="240.6" class="tbs" text-anchor="start" >delta_C_motor_60</text>
+<text x="185.0" y="240.6" class="tbs" text-anchor="start" >stepper 17HS19-2004D-E1000+SWG17-30</text>
+<text x="300.0" y="240.6" class="tbs" text-anchor="start" >W039</text>
+<text x="330.0" y="240.6" class="tbs" text-anchor="start" >2.03 m</text>
+<text x="360.0" y="240.6" class="tbs" text-anchor="start" >A1 A2 B1 B2</text>
 <rect x="230" y="249" width="180" height="38" fill="#fff" stroke="#1b2330" stroke-width=".35"/>
 <rect x="230" y="249" width="180" height="9" fill="#1f4e8c"/>
 <text x="233" y="255.3" class="tbh" style="fill:#fff">STF-2 CONTINUOUS COOKIE LINE</text>

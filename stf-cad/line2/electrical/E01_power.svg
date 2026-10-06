@@ -78,7 +78,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="300.0" y="100.0" class="nh" text-anchor="start" >BUDGETS (plc_io.power, &lt;= 80 % of every rating)</text>
 <text x="300.0" y="106.0" class="tbs" text-anchor="start" >OK  DO channel current (worst): 0.40 A  &lt;= EL2809 0.5 A</text>
 <text x="300.0" y="111.2" class="tbs" text-anchor="start" >OK  safe output current (worst): 0.35 A (S20.UNL)  &lt;= EL2904 0.5 A</text>
-<text x="300.0" y="116.4" class="tbs" text-anchor="start" >OK  24 V logic supply: 9.47 A  &lt;= 80% of SDR-480-24 20 A</text>
+<text x="300.0" y="116.4" class="tbs" text-anchor="start" >OK  24 V logic supply: 9.53 A  &lt;= 80% of SDR-480-24 20 A</text>
 <text x="300.0" y="121.6" class="tbs" text-anchor="start" >OK  24 V heater supply: 7.50 A  &lt;= 80% of SDR-480-24 20 A</text>
 <text x="300.0" y="126.8" class="tbs" text-anchor="start" >OK  48 V motor supply: 5.04 A (242 W)  &lt;= 80% of SDR-480P-48 10 A</text>
 <text x="300.0" y="132.0" class="tbs" text-anchor="start" >OK  stepper phase current: 2 A  &lt;= EL7047 5 A</text>
