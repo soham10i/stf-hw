@@ -186,17 +186,17 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="20.0" y="235.0" class="tbs" text-anchor="start" >SI</text>
 <text x="30.0" y="235.0" class="tbs" text-anchor="start" >K1K2.EDM</text>
 <text x="50.0" y="235.0" class="tbs" text-anchor="start" >-KF52 ch4</text>
-<text x="76.0" y="235.0" class="tbs" text-anchor="start" >contactor</text>
+<text x="76.0" y="235.0" class="tbs" text-anchor="start" >contactor [impl.]</text>
 <text x="118.0" y="235.0" class="tbs" text-anchor="start" >EDM: K1 + K2 mirror contacts in series (weld</text>
 <text x="20.0" y="237.7" class="tbs" text-anchor="start" >SI</text>
 <text x="30.0" y="237.7" class="tbs" text-anchor="start" >K3K4.EDM</text>
 <text x="50.0" y="237.7" class="tbs" text-anchor="start" >-KF53 ch1</text>
-<text x="76.0" y="237.7" class="tbs" text-anchor="start" >contactor</text>
+<text x="76.0" y="237.7" class="tbs" text-anchor="start" >contactor [impl.]</text>
 <text x="118.0" y="237.7" class="tbs" text-anchor="start" >EDM: K3 + K4 mirror contacts (welded contact</text>
 <text x="20.0" y="240.5" class="tbs" text-anchor="start" >SI</text>
 <text x="30.0" y="240.5" class="tbs" text-anchor="start" >K5.EDM</text>
 <text x="50.0" y="240.5" class="tbs" text-anchor="start" >-KF53 ch2</text>
-<text x="76.0" y="240.5" class="tbs" text-anchor="start" >contactor</text>
+<text x="76.0" y="240.5" class="tbs" text-anchor="start" >contactor [impl.]</text>
 <text x="118.0" y="240.5" class="tbs" text-anchor="start" >EDM: K5 mirror contact (welded contact detec</text>
 <text x="20.0" y="243.2" class="tbs" text-anchor="start" >SI</text>
 <text x="30.0" y="243.2" class="tbs" text-anchor="start" >Q19.FB</text>
@@ -246,27 +246,27 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="215.0" y="177.2" class="tbs" text-anchor="start" >SO</text>
 <text x="225.0" y="177.2" class="tbs" text-anchor="start" >K1</text>
 <text x="245.0" y="177.2" class="tbs" text-anchor="start" >-KF57 ch3</text>
-<text x="271.0" y="177.2" class="tbs" text-anchor="start" >contactor</text>
+<text x="271.0" y="177.2" class="tbs" text-anchor="start" >contactor [impl.]</text>
 <text x="313.0" y="177.2" class="tbs" text-anchor="start" >contactor coil: 48 V motor supply, channel 1</text>
 <text x="215.0" y="180.0" class="tbs" text-anchor="start" >SO</text>
 <text x="225.0" y="180.0" class="tbs" text-anchor="start" >K2</text>
 <text x="245.0" y="180.0" class="tbs" text-anchor="start" >-KF57 ch4</text>
-<text x="271.0" y="180.0" class="tbs" text-anchor="start" >contactor</text>
+<text x="271.0" y="180.0" class="tbs" text-anchor="start" >contactor [impl.]</text>
 <text x="313.0" y="180.0" class="tbs" text-anchor="start" >contactor coil: 48 V motor supply, channel 2</text>
 <text x="215.0" y="182.7" class="tbs" text-anchor="start" >SO</text>
 <text x="225.0" y="182.7" class="tbs" text-anchor="start" >K3</text>
 <text x="245.0" y="182.7" class="tbs" text-anchor="start" >-KF58 ch1</text>
-<text x="271.0" y="182.7" class="tbs" text-anchor="start" >contactor</text>
+<text x="271.0" y="182.7" class="tbs" text-anchor="start" >contactor [impl.]</text>
 <text x="313.0" y="182.7" class="tbs" text-anchor="start" >contactor coil: 400 V oven feed + 24 V heate</text>
 <text x="215.0" y="185.5" class="tbs" text-anchor="start" >SO</text>
 <text x="225.0" y="185.5" class="tbs" text-anchor="start" >K4</text>
 <text x="245.0" y="185.5" class="tbs" text-anchor="start" >-KF58 ch2</text>
-<text x="271.0" y="185.5" class="tbs" text-anchor="start" >contactor</text>
+<text x="271.0" y="185.5" class="tbs" text-anchor="start" >contactor [impl.]</text>
 <text x="313.0" y="185.5" class="tbs" text-anchor="start" >contactor coil: 400 V oven feed + 24 V heate</text>
 <text x="215.0" y="188.2" class="tbs" text-anchor="start" >SO</text>
 <text x="225.0" y="188.2" class="tbs" text-anchor="start" >K5</text>
 <text x="245.0" y="188.2" class="tbs" text-anchor="start" >-KF58 ch3</text>
-<text x="271.0" y="188.2" class="tbs" text-anchor="start" >contactor</text>
+<text x="271.0" y="188.2" class="tbs" text-anchor="start" >contactor [impl.]</text>
 <text x="313.0" y="188.2" class="tbs" text-anchor="start" >contactor coil: 48 V branch of the out-port </text>
 <text x="215.0" y="191.0" class="tbs" text-anchor="start" >SO</text>
 <text x="225.0" y="191.0" class="tbs" text-anchor="start" >Q19</text>
@@ -285,7 +285,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="233" y="269" class="tbs">TwinSAFE functions + safe I/O, from safety.py</text>
 <text x="233" y="275" class="tbs">SCALE</text><text x="233" y="278" class="tb">none</text>
 <text x="293" y="275" class="tbs">SHEET</text><text x="293" y="278" class="tb">4 / 14</text>
-<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-10-02</text>
+<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-10-06</text>
 <text x="233" y="281" class="tbs">UNITS</text><text x="233" y="284" class="tb">mm, deg</text>
 <text x="293" y="281" class="tbs">PROJECTION</text><text x="293" y="284" class="tb">third angle</text>
 <text x="353" y="281" class="tbs">SOURCE</text><text x="353" y="284" class="tb">line_model.py (generated - do not edit)</text>

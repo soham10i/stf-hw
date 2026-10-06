@@ -13,7 +13,7 @@ Every file and every signal the twin reads or writes: where it comes from, its s
 | Time | Seconds. The twin runs on **virtual time**: the PLC scan (10 ms) is the tick and wall-clock pacing is a viewer option. Timestamps on the bus are virtual-time ms since the run's start, plus a run id. |
 | Temperature | °C. Power in W, current in A (RMS), duty 0…1. |
 | Identity | A **part name** (`line_model.build()`, e.g. `dep_hopper_floor`) is unique. A **tag** (e.g. `Q41`, `TC1`, `E1T1`, `BC2`) is the plant tag shared by the I/O list, the PLC variable, the wiring and the 3D part. One tag may span several parts (a valve's two pistons). The **module** is one of `M1_loop … M10_safety`. |
-| Assumptions | A value marked `[assumed]` or `[typ]` in the model stays marked in every export (USD attribute `stf:assumed = true`), so the twin can show what has not been measured yet. |
+| Assumptions | A value marked `[assumed]` or `[typ]` in the model stays marked where it is used: the live twin and the dashboard flag every value that rests on one (`VERIFICATION_PLAN.md` lists them). |
 
 ## 2. Inputs the twin consumes (all generated, all in `stf-cad/line2`)
 
@@ -135,14 +135,21 @@ The discrete-event model of stock (dough, topping, trays, film), the AMR service
 
 ## 3. Outputs the twin produces
 
-### 3.1 Scene (DT-1) - `twin/out/`
+### 3.1 Scene (DT-1, built) - `twin/out/` (generated, not committed; `twin/export_scene.sh`)
 
 | File | Content |
 |---|---|
-| `stf2.usda` (root) + `layers/M*.usda` | prims `/STF2/<module>/<group>/<part>`; attributes `stf:name`, `stf:tag`, `stf:hw`, `stf:module`, `stf:assumed`, `stf:moving`; `UsdPreviewSurface` material from the part colour; instanceable prototypes for screws, brackets, pucks, cookies |
-| `stf2.usdz` | the same, packaged for Apple Quick Look / Reality Composer Pro |
-| `stf2.glb` (+ `stf2_lod1.glb`) | for three.js: node name = part name, `extras` = the `stf:*` attributes; LOD1 = primitives only |
-| `scene_index.json` | part name → {module, group, tag, moving, mesh id, triangles} |
+| `stf2.usda` (root) | defaultPrim `/STF2` (kind assembly), `metersPerUnit = 0.001`, `upAxis = Z`. Sublayers: `layers/M1_loop.usda` … `layers/M10_safety.usda`, then `layers/protos.usdc`. `customLayerData` records the source FCStd, the counts and the deflection. |
+| `layers/protos.usdc` | `class /Prototypes/P<k>` (Xform) with child `geo` (UsdGeom.Mesh: points in mm relative to the prototype's corner, vertex normals, triangles), plus `/Looks/M_nnn` (UsdPreviewSurface: diffuseColor, roughness 0.5, opacity) |
+| `layers/M*.usda` | `/STF2/<module>/<group>/<part>`: an Xform that references `/Prototypes/P<k>` and is instanceable when the prototype is shared. Ops: `xformOp:transform:anim` (moving parts only, identity; the twin writes the timeline's Placement(t, q) here) then `xformOp:translate:offset`. Binds `/Looks/…`. Attributes: `stf:name`, `stf:module`, `stf:group`, `stf:hw`, `stf:tag`, `stf:note`, `stf:moving`, `stf:fastener`. |
+| `stf2.usdz` | the flattened stage, packaged; opens in Quick Look / Reality Composer Pro |
+| `stf2.glb` | glTF 2.0: root node `STF2` with scale 0.001 and a −90° rotation about x (Z-up mm → Y-up m); a node per module, then a node per part (name = part name, translation = offset in mm, `extras` = stf:*); one mesh per (prototype, colour), shared |
+| `scene_index.json` | part name → prim path, GLB node index, module, group, tag, moving, prototype, triangles |
+| `cache/index.json`, `cache/meshes.npz` | the FreeCAD tessellation: per solid the exact B-rep box and volume, the mesh volume and closedness (what the gate compares) |
+| `preview/*.png` | Blender EEVEE previews (`blender_load.py --render`) |
+
+`[assumed]` values are not attached to individual prims. A part's size usually depends on several parameters, so
+the per-value list stays in `VERIFICATION_PLAN.md`. The dashboard (DT-8) shows it by parameter, not by part.
 
 ### 3.2 Live state bus (DT-3) - WebSocket `/ws/frames`
 

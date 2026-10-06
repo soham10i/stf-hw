@@ -32,7 +32,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="48.0" y="39.7" class="tbs" text-anchor="start" >1</text>
 <text x="70.0" y="39.7" class="tbs" text-anchor="start" >K3</text>
 <text x="118.0" y="39.7" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="39.7" class="tbs" text-anchor="start" >contactor coil: 400 V oven feed + 24 V heater PS</text>
+<text x="185.0" y="39.7" class="tbs" text-anchor="start" >contactor coil: 400 V oven feed + 24 V heater PS  [implied]</text>
 <text x="300.0" y="39.7" class="tbs" text-anchor="start" >W168</text>
 <text x="330.0" y="39.7" class="tbs" text-anchor="start" >0.8 m</text>
 <text x="360.0" y="39.7" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
@@ -40,7 +40,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="48.0" y="43.3" class="tbs" text-anchor="start" >2</text>
 <text x="70.0" y="43.3" class="tbs" text-anchor="start" >K4</text>
 <text x="118.0" y="43.3" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="43.3" class="tbs" text-anchor="start" >contactor coil: 400 V oven feed + 24 V heater PS</text>
+<text x="185.0" y="43.3" class="tbs" text-anchor="start" >contactor coil: 400 V oven feed + 24 V heater PS  [implied]</text>
 <text x="300.0" y="43.3" class="tbs" text-anchor="start" >W169</text>
 <text x="330.0" y="43.3" class="tbs" text-anchor="start" >0.8 m</text>
 <text x="360.0" y="43.3" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
@@ -48,7 +48,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="48.0" y="46.9" class="tbs" text-anchor="start" >3</text>
 <text x="70.0" y="46.9" class="tbs" text-anchor="start" >K5</text>
 <text x="118.0" y="46.9" class="tbs" text-anchor="start" ></text>
-<text x="185.0" y="46.9" class="tbs" text-anchor="start" >contactor coil: 48 V branch of the out-port zone</text>
+<text x="185.0" y="46.9" class="tbs" text-anchor="start" >contactor coil: 48 V branch of the out-port zone  [implied]</text>
 <text x="300.0" y="46.9" class="tbs" text-anchor="start" >W170</text>
 <text x="330.0" y="46.9" class="tbs" text-anchor="start" >0.8 m</text>
 <text x="360.0" y="46.9" class="tbs" text-anchor="start" >cabinet wiring H07V-K 0.75</text>
@@ -151,7 +151,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="233" y="269" class="tbs">every channel -&gt; tag -&gt; cable</text>
 <text x="233" y="275" class="tbs">SCALE</text><text x="233" y="278" class="tb">none</text>
 <text x="293" y="275" class="tbs">SHEET</text><text x="293" y="278" class="tb">14 / 14</text>
-<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-10-02</text>
+<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-10-06</text>
 <text x="233" y="281" class="tbs">UNITS</text><text x="233" y="284" class="tb">mm, deg</text>
 <text x="293" y="281" class="tbs">PROJECTION</text><text x="293" y="284" class="tb">third angle</text>
 <text x="353" y="281" class="tbs">SOURCE</text><text x="353" y="284" class="tb">line_model.py (generated - do not edit)</text>

@@ -6,7 +6,7 @@ script that must exit 0.
 
 | Phase | Builds | Gate | Effort | Needs |
 |---|---|---|---|---|
-| DT-1 | Scene export: OpenUSD, USDZ, GLB | `twin/scene_check.py` | 3-4 d | - |
+| DT-1 | Scene export: OpenUSD, USDZ, GLB | `twin/scene_check.py` | **built** (2026-10-06) | - |
 | DT-2 | Kinematic playback in the web twin and Blender | `twin/playback_check.py` | 2-3 d | DT-1 |
 | DT-3 | Live plant service (real-time stepping, WebSocket) | `twin/plant_check.py` | 6-8 d | DT-2 |
 | DT-4 | PLC in the loop (SIL): ST → IEC → MatIEC, safety module | `twin/sil_check.py` | 8-10 d | DT-3 |
@@ -21,21 +21,51 @@ Critical path: DT-1 → DT-2 → DT-3 → DT-4 → DT-8, about 6-7 weeks. DT-6 a
 
 ---
 
-## DT-1 Scene export
+## DT-1 Scene export (BUILT)
 
-**Builds.** `twin/export_scene.py`, run with `freecadcmd`:
-- tessellates every solid of `STF2_Precise.FCStd`, with linear deflection 0.1 mm for moving parts and 0.3 mm for the frame;
-- writes `stf2.usda` with one layer per module, the prim path `/STF2/<module>/<group>/<part>`, and the `stf:*` attributes from `line_model.build()`;
-- makes screws, brackets, pucks and cookies instanceable prototypes;
-- adds `UsdPreviewSurface` materials from the part colours;
-- then writes `stf2.usdz` and `stf2.glb` (plus a primitives-only `stf2_lod1.glb`) and `scene_index.json`.
+**As built.** `twin/export_scene.sh` runs three steps (about 40 s in all):
 
-**Gate - `scene_check.py`:**
-- every one of the 5,996 solids is in the stage exactly once, and nothing extra (no old `M2_feeder` / `M3_tunnel` / `M4_stamp`);
-- each prim's bounding box equals its B-rep bounding box within the tessellation deflection;
-- every part with a tag in `io_list.csv` carries that tag;
-- the stage opens in `usd-core`, the GLB validates (glTF validator), and the USDZ passes `usdchecker`;
-- triangle budget: the viewer LOD ≤ 3 M triangles.
+1. `export_mesh.py` (FreeCAD):
+   - meshes every B-rep **face** of the 5,996 solids, with LinearDeflection 0.2 mm and AngularDeflection 20°;
+   - normals are averaged only inside a face, so edges stay sharp;
+   - solids whose meshes are equal up to a translation share one prototype: **958 prototypes, 1,112,524 triangles drawn, 286,128 stored**;
+   - it writes `out/cache/` (meshes.npz + index.json), recording the exact B-rep box (`optimalBoundingBox`) and the volume of every solid.
+2. `build_scene.py` (OpenUSD 26.08) writes:
+   - `out/stf2.usda`: mm, Z-up, one sublayer per module.
+   - `out/layers/protos.usdc`: `class /Prototypes/P<k>/geo` meshes and `/Looks` with UsdPreviewSurface.
+   - `out/layers/M*.usda`: `/STF2/<module>/<group>/<part>`, which references its prototype, is instanceable when the prototype is shared, and carries `xformOp:transform:anim` (identity) first on the 490 moving parts plus `stf:*` attributes.
+   - `out/stf2.usdz` (8.1 MB), `out/stf2.glb` (10.7 MB, Y-up m, extras = stf:*) and `out/scene_index.json`.
+3. `scene_check.py`: the gate below.
+
+A low-detail `stf2_lod1.glb` is not needed: the full scene is 1.1 M triangles against the 3 M budget.
+
+**Gate - `scene_check.py`** (all pass):
+
+| Proof | Result |
+|---|---|
+| S1 complete | 5,996 prims = the 5,996 solids listed in the FCStd's own `Document.xml` (independent of the export); only the 10 modules |
+| S2 geometry | worst box difference 0.099 mm (≤ 0.2 mm deflection); every mesh encloses its B-rep volume within 1.32 % (≤ 2 %), all closed |
+| S3 identity | 152 of 152 drawn signals sit on their part; the part's tag is the signal's tag or its stem |
+| S4 motion | 490 moving prims animatable, no static one; the other 73 timeline tracks are cookies the timeline spawns |
+| S5 composition | 0 composition errors, 5,996 materials bound |
+| S6 validators | all 28 OpenUSD 26.08 validators: 0 errors and 0 warnings, on the stage and on the USDZ |
+| S7 GLB | Khronos glTF validator: 0 errors, 0 warnings; every node's box = the USD box (0.0000 mm) |
+| S8 budget | 1,112,524 triangles ≤ 3,000,000 |
+
+**It can fail:**
+- a part moved by 1 mm fails S2 and names the part;
+- a part dropped from the cache, with its counts adjusted to hide it, fails S1 and names the part.
+
+**Findings made by building it:**
+- **F1 (generator).** The contactors K1-K5 and their EDM inputs were flagged "in CAD" in `io_list.csv`, but the cabinet's DIN contents are not drawn. `plc_io.py` now marks them implied: 29 implied points instead of 21.
+- **F2 (my error, caught by the render).** `#rrggbb/70` means 70 % **transparent** in `fcstd_colour`. The first export used it as 70 % opaque, and the guards rendered nearly solid. The opacity is now 0.30.
+- **F3 (regression from V-1).** `bom.py` still read `plc_io.ELEM`, which V-1 had replaced. It is fixed, and `check_all.sh` now runs every proof in order so such a break cannot be committed again.
+
+**Blender.** `twin/blender_load.py` imports the stage. It works around two Blender 5.2 importer behaviours:
+- it turns off `merge_parent_xform`, which would rename every part `geo`;
+- it copies `inputs:opacity` from the stage, because the importer leaves Alpha at 1 even for a minimal valid file.
+
+It also renders previews to `out/preview/` (the line in 7 s, a module alone in a few seconds).
 
 ## DT-2 Kinematic playback
 

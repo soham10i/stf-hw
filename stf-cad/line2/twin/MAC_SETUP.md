@@ -51,7 +51,7 @@ Each script refuses to write its outputs if one of its proofs fails.
 cd ~/workspace/stf-hw-stf2
 python3.13 -m venv .venv-twin && source .venv-twin/bin/activate
 pip install --upgrade pip
-pip install numpy pyyaml "pydantic>=2" usd-core trimesh pygltflib mujoco \
+pip install numpy pyyaml "pydantic>=2" usd-core mujoco \
             fastapi "uvicorn[standard]" websockets "asyncua>=2.0" "paho-mqtt>=2.1" protobuf \
             duckdb influxdb-client fmpy torch torchvision onnx onnxruntime pytest ruff
 python -c "from pxr import Usd; import mujoco, torch; print(Usd.GetVersion(), mujoco.__version__, torch.backends.mps.is_available())"
@@ -61,6 +61,9 @@ The last line should print the USD version, the MuJoCo version and `True` (Metal
 `usd-core` and `mujoco` ship native arm64 wheels, so nothing compiles.
 
 FreeCAD steps (DT-1 export) run in FreeCAD's own Python (`freecadcmd`). They write files; the venv reads them.
+
+For DT-1 only `numpy` and `usd-core` are needed. The GLB is written directly, without trimesh or pygltflib, and the
+glTF validator comes from npm (`cd stf-cad/line2/twin && npm install`).
 
 ## 5. MatIEC (the IEC 61131-3 compiler for the SIL PLC)
 
@@ -92,7 +95,9 @@ Without InfluxDB the twin records to DuckDB and SQLite files, like the `stf-fact
 
 ```bash
 source .venv-twin/bin/activate && cd stf-cad/line2
-$FC twin/export_scene.py                       # DT-1: twin/out/stf2.usda, .usdz, .glb, scene_index.json
+twin/export_scene.sh                           # DT-1 (built): twin/out/stf2.usda, .usdz, .glb + the gate (~40 s)
+./check_all.sh                                 # every proof of the line + the DT-1 gate (~4 min; --full adds CAD + motion)
+blender -b -P twin/blender_load.py -- --render $PWD/twin/out/preview/line.png   # preview (EEVEE, ~10 s)
 python3 -m twin.sil.build                      # DT-4: plc/*.st -> IEC -> MatIEC -> libplc + plc.wasm
 python3 -m twin.plant.serve --plc sil --speed 1 # DT-3/4: plant + PLC on :8200, WebSocket /ws/frames
 python3 -m twin.opcua.server &                 # DT-5: opc.tcp://localhost:4840/stf2

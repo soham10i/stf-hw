@@ -13,7 +13,7 @@ All of it runs on one **MacBook with an Apple M4 and 24 GB of unified memory, wi
 | [TECH_STACK.md](TECH_STACK.md) | Every tool and library, why it was chosen, what replaces NVIDIA Omniverse on a Mac, the memory budget |
 | [DATA_CONTRACT.md](DATA_CONTRACT.md) | Every file and signal the twin consumes or produces: paths, schemas, units, frames, names |
 | [SIM_MODELS.md](SIM_MODELS.md) | The plant models (motion, process, oven thermal, product flow, safety), the PLC in the loop, the fault scenarios |
-| [ROADMAP.md](ROADMAP.md) | Ten phases DT-1 … DT-10, each with what is built and the proof that gates it |
+| [ROADMAP.md](ROADMAP.md) | Ten phases DT-1 … DT-10, each with what is built and the proof that gates it. **DT-1 (scene export) is built.** |
 | [MAC_SETUP.md](MAC_SETUP.md) | Step-by-step install and run on the M4 Mac |
 
 ## The rule that does not change

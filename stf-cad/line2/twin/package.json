@@ -1,0 +1,8 @@
+{
+  "name": "stf2-twin-tools",
+  "private": true,
+  "description": "Node tools for the STF-2 twin gates (DT-1: Khronos glTF validator)",
+  "devDependencies": {
+    "gltf-validator": "2.0.0-dev.3.10"
+  }
+}

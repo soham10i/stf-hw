@@ -71,3 +71,8 @@ temp/
 
 # stf-cad working backups
 *.py.bak
+
+# STF-2 twin: generated scene (twin/export_scene.sh rebuilds it) and node tools
+stf-cad/line2/twin/out/
+stf-cad/line2/twin/node_modules/
+.venv-twin/

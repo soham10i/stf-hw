@@ -324,7 +324,7 @@ text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
 <text x="407" y="392" class="tbs">learning feed-forward + PI per zone, heater break, 6 scenarios, STB - oven_ctrl.py</text>
 <text x="407" y="398" class="tbs">SCALE</text><text x="407" y="401" class="tb">charts (not to scale)</text>
 <text x="467" y="398" class="tbs">SHEET</text><text x="467" y="401" class="tb">M3-C / -</text>
-<text x="527" y="398" class="tbs">DATE</text><text x="527" y="401" class="tb">2026-10-02</text>
+<text x="527" y="398" class="tbs">DATE</text><text x="527" y="401" class="tb">2026-10-06</text>
 <text x="407" y="404" class="tbs">UNITS</text><text x="407" y="407" class="tb">mm, deg</text>
 <text x="467" y="404" class="tbs">PROJECTION</text><text x="467" y="407" class="tb">third angle</text>
 <text x="527" y="404" class="tbs">SOURCE</text><text x="527" y="407" class="tb">line_model.py (generated - do not edit)</text>

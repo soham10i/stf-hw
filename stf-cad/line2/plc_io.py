@@ -309,12 +309,13 @@ def _safety_io(parts, by, ios, add):
                S["drawer_switch"]["I"] / 2, cad=False, pos=_centre(bin_), extra=dict(sf="SF6")))
     for tag, what, sf in contactors():
         add(IO(tag, "SO", "", "M8_control", f"contactor coil: {what}", "contactor", S["contactor"]["coil_A"],
-               cad=True, pos=cab, extra=dict(sf=sf, cabinet=True)))
+               cad=False, pos=cab, extra=dict(sf=sf, cabinet=True)))       # DIN device: the cabinet's
+                                                                                  # contents are not drawn
     edms = [("K1K2.EDM", "K1 + K2 mirror contacts in series"), ("K3K4.EDM", "K3 + K4 mirror contacts")] + \
         [(f"{tag}.EDM", f"{tag} mirror contact") for tag, _, _ in contactors()[4:]]
     for edm, what in edms:
         add(IO(edm, "SI", "", "M8_control", f"EDM: {what} (welded contact detection)", "contactor", 0.005,
-               cad=True, pos=cab, extra=dict(sf="SF1 SF2 SF6", cabinet=True)))
+               cad=False, pos=cab, extra=dict(sf="SF1 SF2 SF6", cabinet=True)))
     isl = by["valve_island"]
     for tag, port in zone_valves():
         add(IO(tag, "SO", isl.name, isl.module, f"safe exhaust of the {port}-port pressure zone (SF6)",

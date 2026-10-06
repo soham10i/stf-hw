@@ -12,7 +12,7 @@ Target machine:
 | Source of truth | `line_model.py` + proofs (Python 3.13) | yes | exists, proven | - |
 | CAD | FreeCAD 1.1 (headless `freecadcmd`) | yes | exists: 5,996 solids, STEP, B-rep checks | CAD connectors |
 | Scene format | **OpenUSD** (`usd-core` wheel, `pxr` API) | yes (arm64 wheels) | Omniverse's native format: the stage moves to Omniverse unchanged; layers, variants, instancing | USD stage / Nucleus |
-| Web scene | glTF 2.0 / GLB (via `trimesh`) | yes | three.js loads it directly; small, streamable | Kit streaming viewer |
+| Web scene | glTF 2.0 / GLB (written directly; Khronos glTF validator from npm) | yes | three.js loads it directly; small, streamable | Kit streaming viewer |
 | Apple scene | USDZ (Reality Composer Pro / Quick Look) | yes | AR on iPad / Vision Pro, Finder preview | - |
 | Live 3D view | React 18 + three.js + react-three-fiber (existing `web/`) | yes (browser, Metal via WebGL2/WebGPU) | already the twin's viewer on `main` | Omniverse viewport |
 | Photoreal render | **Blender 5.2** (Cycles on Metal, EEVEE) + `bpy` scripts | yes | GPU path tracing on Apple Silicon, Python-driven, imports USD | RTX renderer |
@@ -56,7 +56,7 @@ run on ARM Windows. The engineering IDE might install under x64 emulation, but i
 
 - **One stage, three viewers.** A `.usd` stage feeds Blender (USD import), Apple tools (`.usdz`) and, later, Omniverse/Isaac Sim, unchanged. The web twin gets a `.glb` exported from the same tessellation.
 - **Structure that matches the model.** Layers per module (`M1_loop.usda` … `M10_safety.usda`) under one root, `/STF2/<module>/<group>/<part>`.
-  - Custom attributes per prim: `stf:tag` (Q41, TC1, …), `stf:hw`, `stf:module`, `stf:assumed`.
+  - Custom attributes per prim: `stf:name`, `stf:tag` (Q41, TC1, …), `stf:hw`, `stf:module`, `stf:group`, `stf:moving`.
   - The I/O list, the PLC tags and the 3D parts therefore share one key.
 - **Instancing.** Screws, brackets, pucks and cookies are USD instanceable prototypes, so 1,000 screws cost one mesh.
 - **Units and axes.** `metersPerUnit = 0.001` (the model is in mm) and `upAxis = Z` (the model's frame), so no transforms are guessed.
@@ -106,7 +106,7 @@ One virtual environment for the twin (`uv` or `python -m venv`). The FreeCAD ste
 
 ```
 numpy  pyyaml  pydantic>=2          # model, config
-usd-core  trimesh  pygltflib        # scene export (USD, GLB)
+usd-core                             # scene export (USD; the GLB is written with numpy)
 mujoco                               # contact physics
 fastapi  uvicorn[standard]  websockets
 asyncua>=2.0                         # OPC UA (as on main)

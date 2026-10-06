@@ -129,7 +129,7 @@ def build():
             spec = f"{H.GUIDE_BAR['desc']}, L = {max(p.aabb()[3] - p.aabb()[0], p.aabb()[4] - p.aabb()[1]):.0f} mm"
         src = _src(p.hw)
         if p.hw == "tubular":                    # band oven element: the catalogue item oven.py chose
-            e = plc_io.ELEM[p.tag]
+            e = plc_io._oven_tables()[0][p.tag]
             spec, src = e["cat"]["model"], e["cat"]["src"]
         if p.hw in ("OVEN_FAN", "COOL_FAN", "BAND_MESH"):
             spec, src = getattr(H, p.hw)["desc"], getattr(H, p.hw)["src"]

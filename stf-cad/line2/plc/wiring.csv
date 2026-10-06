@@ -164,14 +164,14 @@ W162,OUT.DOCK1,port_out,M9_ports,DI,AMR docked at out (1),-KF3 ch13,M12-3,BN +24
 W163,OUT.DOCK2,port_out,M9_ports,DI,AMR docked at out (2),-KF3 ch14,M12-3,BN +24V / BU 0V / BK signal,0.34,1.47,False
 W164,S34.A,reject_bin_wall_front,M5_qc,SI,"reject drawer in place, OSSD A",-KF52 ch2,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.96,False
 W165,S34.B,reject_bin_wall_front,M5_qc,SI,"reject drawer in place, OSSD B",-KF52 ch3,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.96,False
-W166,K1,,M8_control,SO,"contactor coil: 48 V motor supply, channel 1 (all EL7047)",-KF57 ch3,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W167,K2,,M8_control,SO,"contactor coil: 48 V motor supply, channel 2 (in series with K1)",-KF57 ch4,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W168,K3,,M8_control,SO,"contactor coil: 400 V oven feed + 24 V heater PSU, channel 1 (3-pole)",-KF58 ch1,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W169,K4,,M8_control,SO,"contactor coil: 400 V oven feed + 24 V heater PSU, channel 2 (in series with K3)",-KF58 ch2,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W170,K5,,M8_control,SO,"contactor coil: 48 V branch of the out-port zone (Q27, Q28, Q29)",-KF58 ch3,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W171,K1K2.EDM,,M8_control,SI,EDM: K1 + K2 mirror contacts in series (welded contact detection),-KF52 ch4,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W172,K3K4.EDM,,M8_control,SI,EDM: K3 + K4 mirror contacts (welded contact detection),-KF53 ch1,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
-W173,K5.EDM,,M8_control,SI,EDM: K5 mirror contact (welded contact detection),-KF53 ch2,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
+W166,K1,,M8_control,SO,"contactor coil: 48 V motor supply, channel 1 (all EL7047)",-KF57 ch3,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,False
+W167,K2,,M8_control,SO,"contactor coil: 48 V motor supply, channel 2 (in series with K1)",-KF57 ch4,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,False
+W168,K3,,M8_control,SO,"contactor coil: 400 V oven feed + 24 V heater PSU, channel 1 (3-pole)",-KF58 ch1,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,False
+W169,K4,,M8_control,SO,"contactor coil: 400 V oven feed + 24 V heater PSU, channel 2 (in series with K3)",-KF58 ch2,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,False
+W170,K5,,M8_control,SO,"contactor coil: 48 V branch of the out-port zone (Q27, Q28, Q29)",-KF58 ch3,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,False
+W171,K1K2.EDM,,M8_control,SI,EDM: K1 + K2 mirror contacts in series (welded contact detection),-KF52 ch4,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,False
+W172,K3K4.EDM,,M8_control,SI,EDM: K3 + K4 mirror contacts (welded contact detection),-KF53 ch1,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,False
+W173,K5.EDM,,M8_control,SI,EDM: K5 mirror contact (welded contact detection),-KF53 ch2,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,False
 W174,Y1,valve_island,M8_control,SO,safe exhaust of the boxes-port pressure zone (SF6),-KF59 ch1,M12-3,safe output / 0V,0.34,0.83,True
 W175,Y1.FB,valve_island,M8_control,SI,boxes zone valve position switch (exhausted),-KF53 ch4,M12-5,test pulse out / safe input (2-ch devices: 2 x),0.34,0.83,True
 W176,TC1.STL,oven_tc_1,M3_oven,DI,"safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its contact is in the coil of zone contactor KH1)",-KF1 ch7,wire-0.75,cabinet wiring H07V-K 0.75,0.75,0.8,True
