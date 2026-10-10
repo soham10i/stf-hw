@@ -12,7 +12,8 @@ twin player draws:
   P3 Blender  the keyframed scene of twin/blender_anim.py, evaluated at those frames (skipped if Blender is absent)
 Tolerance: the tessellation deflection (0.2 mm) for CAD meshes; 0.05 mm for the cylinders the players rebuild (a
 96-gon). Visibility must match at every sampled frame. A part the player hides (a reshaped track's CAD mesh) must not
-be drawn.
+be drawn. Colours (cookies browning, oven elements glowing) of P2 and P3 must equal timeline.json's own values (the
+FreeCAD player sets colours only with its GUI, so the timeline is the reference there).
 """
 import json
 import os
@@ -86,7 +87,7 @@ def compare(label, ref, got, row):
             if g is None:
                 missing.append(n)
                 continue
-            b, vis, kind = g
+            b, vis, kind = g[:3]
             if bool(r[6]) != bool(vis):
                 vis_bad.append((k, n))
             if not r[6]:
@@ -102,6 +103,38 @@ def compare(label, ref, got, row):
     row(f"{label} visibility", f"{len(vis_bad)} mismatches", "0", not vis_bad, str(vis_bad[:4]))
 
 
+def expected_colours(tl, frames):
+    """{frame: {part: '#rrggbb'}} straight from timeline.json: a reshaped track's col, a spawned cookie's colour,
+    an oven element's on / off by its SSR bit - independent of every player."""
+    out = {}
+    for k in frames:
+        rows = {}
+        for n, tr in tl.track.items():
+            v = tr[k]
+            if isinstance(v, dict) and v.get("col"):
+                rows[n] = v["col"].lower()
+            elif n in tl.spawn:
+                rows[n] = tl.spawn[n]["colour"].lower()
+        for n, g in tl.glow.items():
+            rows[n] = (g["on"] if g["bits"][k] == "1" else g["off"]).lower()
+        out[k] = rows
+    return out
+
+
+def compare_colours(label, exp, got, row):
+    bad, n = [], 0
+    for k, rows in exp.items():
+        for name, c in rows.items():
+            g = got.get(k, {}).get(name)
+            if g is None or len(g) < 4:
+                bad.append((k, name, "missing"))
+                continue
+            n += 1
+            if g[3] != c:
+                bad.append((k, name, g[3], c))
+    row(f"{label} colours", f"{n} coloured part-frames, {len(bad)} wrong", "0", not bad, str(bad[:3]))
+
+
 def check(verbose=True):
     rows, fails = [], []
 
@@ -115,14 +148,17 @@ def check(verbose=True):
     tl = PB.Timeline()
     row("reference", f"FreeCAD player: {ref['objects']} moved objects x {len(frames)} frames", "every mover", ref["objects"] > 0)
     compare("P1 Python", ref, python_boxes(tl, frames), row)
+    colours = expected_colours(tl, frames)
 
     js = os.path.join(HERE, "web", "check_player.mjs")
     if os.path.exists(js):
         r = subprocess.run(["node", js, ",".join(map(str, frames))], capture_output=True, text=True, cwd=HERE)
         try:
             data = json.loads(r.stdout)
-            got = {int(k): {n: (np.array(v[:6]), bool(v[6]), v[7]) for n, v in objs.items()} for k, objs in data.items()}
+            got = {int(k): {n: (np.array(v[:6]), bool(v[6]), v[7], v[8] if len(v) > 8 else "") for n, v in objs.items()}
+                   for k, objs in data.items()}
             compare("P2 browser (player.js)", ref, got, row)
+            compare_colours("P2 browser (player.js)", colours, got, row)
         except json.JSONDecodeError:
             row("P2 browser (player.js)", "did not run", "runs", False, (r.stderr or r.stdout)[:300])
     else:
@@ -131,8 +167,10 @@ def check(verbose=True):
     bj = os.path.join(OUT, "blender_boxes.json")
     if os.path.exists(bj):
         data = json.load(open(bj))
-        got = {int(k): {n: (np.array(v[:6]), bool(v[6]), v[7]) for n, v in objs.items()} for k, objs in data.items()}
+        got = {int(k): {n: (np.array(v[:6]), bool(v[6]), v[7], v[8] if len(v) > 8 else "") for n, v in objs.items()}
+               for k, objs in data.items()}
         compare("P3 Blender", ref, got, row)
+        compare_colours("P3 Blender", colours, got, row)
     else:
         row("P3 Blender", "no out/blender_boxes.json", "blender_anim.py --check", False)
 

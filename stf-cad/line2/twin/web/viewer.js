@@ -116,6 +116,7 @@ function panel(k) {
 }
 
 let k = 0, t = 0, playing = true, last = performance.now();
+if (new URLSearchParams(location.search).has("selftest")) { playing = false; selftest(); }
 $("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "Pause" : "Play"; };
 $("t").max = tl.n - 1;
 $("t").oninput = (e) => { k = +e.target.value; t = k * tl.dt; apply(k); };
@@ -149,6 +150,44 @@ camera.position.copy(c).add(new THREE.Vector3(-0.55, 0.55, 0.75).multiplyScalar(
 controls.target.copy(c);
 controls.update();
 
+// ?selftest: what viewer.js wrote into the scene graph = what player.js says, at every second of the timeline
+// (matrices of every moving node incl. followers, visibility, drawn cylinders, element colours). Result in the
+// page title and window.stfSelftest - the browser-side half of the DT-2 proof (player.js itself is proven in Node).
+function selftest() {
+  const res = { frames: 0, nodes: 0, cylinders: 0, colours: 0, worst: 0, bad: [] };
+  const close = (a, b) => a.elements.reduce((w, v, i) => Math.max(w, Math.abs(v - b.elements[i])), 0);
+  for (let kk = 0; kk < tl.n; kk += 10) {
+    apply(kk);
+    const f = tl.frame(kk);
+    res.frames++;
+    for (const [name, o] of Object.entries(nodes)) {
+      if (!o.userData["stf:moving"] || cyl[name]) continue;
+      let mm = null, vis = true;
+      if (f[name] && f[name].kind === "rigid") { mm = f[name].m; vis = f[name].vis; }
+      else if (!f[name]) mm = tl.followerMatrix(name, f);
+      if (!mm) continue;
+      const d = close(o.matrix, mm.clone().multiply(offset[name]));
+      res.worst = Math.max(res.worst, d); res.nodes++;
+      if (d > 1e-6 || o.visible !== vis) res.bad.push([kk, name, d, o.visible, vis]);
+    }
+    for (const [name, m] of Object.entries(cyl)) {
+      const d = close(m.matrix, tl.cylinderOf(name, f)); res.cylinders++;
+      const want = (f[name].col || (tl.spawn[name] && tl.spawn[name].colour) || "").toLowerCase();
+      if (d > 1e-6 || m.visible !== f[name].vis || (f[name].col && "#" + m.material.color.getHexString() !== want))
+        res.bad.push([kk, name, d, "#" + m.material.color.getHexString(), want]);
+      if (nodes[name] && nodes[name].visible) res.bad.push([kk, name, "CAD mesh drawn"]);
+    }
+    for (const [name, mat] of Object.entries(glow)) {
+      res.colours++;
+      if ("#" + mat.color.getHexString() !== f[name].col.toLowerCase()) res.bad.push([kk, name, mat.color.getHexString()]);
+    }
+  }
+  res.ok = res.bad.length === 0;
+  window.stfSelftest = res;
+  document.title = `STF-2 Twin selftest ${res.ok ? "PASS" : "FAIL"}`;
+  console.log("selftest", JSON.stringify(res));
+  apply(0);
+}
 $("load").remove();
 ["side", "oven", "bar"].forEach((id) => { $(id).hidden = false; });
 apply(0);

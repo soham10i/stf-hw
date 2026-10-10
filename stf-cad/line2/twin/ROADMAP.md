@@ -97,7 +97,14 @@ It also renders previews to `out/preview/` (the line in 7 s, a module alone in a
 | P2 browser (`player.js` on the GLB, under Node) | 19,907 | 0.097 mm | 0 mismatches |
 | P3 Blender (the keyed scene, evaluated per frame) | 19,907 | 0.097 mm | 0 mismatches |
 
-Tolerance: 0.2 mm (tessellation) for CAD meshes, 0.05 mm for the rebuilt cylinders.
+Tolerance: 0.2 mm (tessellation) for CAD meshes, 0.05 mm for the rebuilt cylinders. **Colours** (re-validated
+2026-10-11): the browser and Blender each draw 9,594 coloured part-frames (cookies browning, the 9 elements glowing),
+all equal to `timeline.json`'s own values.
+
+**The viewer itself** (`viewer.js`, not only `player.js`): open `twin/web/?selftest`. The page scrubs every second
+and checks what `viewer.js` wrote into the three.js scene graph against `player.js`. Result: 41 frames, 13,571
+node-frames, 9,512 cylinder-frames and 369 element colours, all exact (worst 0), title "selftest PASS". The mutant
+"offset not applied" fails all 13,571 node-frames.
 
 **It can fail:**
 - a swapped quaternion order in `player.js` fails P2 (2.5 m off, pucks named);

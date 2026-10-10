@@ -216,13 +216,14 @@ def boxes(tl, by, mesh_of, made, frames):
     dg = bpy.context.evaluated_depsgraph_get()
     out = {}
     cache = {}
+    cyl_mesh = bpy.data.meshes.get("stf_unit_cylinder")
     for k in frames:
         sc.frame_set(k + 1)
         dg.update()
         rows = {}
         targets = [(n, made[n], "cyl") for n in made] + \
                   [(n, mesh_of[n], "mesh") for n in by if n not in made and mesh_of.get(n) is not None
-                   and (n in tl.track or tl.body_of(n) is not None)]
+                   and (n in tl.track or tl.body_of(n) is not None or n in tl.glow)]
         for n, o, kind in targets:
             if o.name not in cache:
                 v = np.empty(len(o.data.vertices) * 3)
@@ -230,7 +231,10 @@ def boxes(tl, by, mesh_of, made, frames):
                 cache[o.name] = v.reshape(-1, 3)
             m = np.array(o.evaluated_get(dg).matrix_world)
             p = cache[o.name] @ m[:3, :3].T + m[:3, 3]
-            rows[n] = [*(p.min(0) / MM), *(p.max(0) / MM), 0 if o.hide_render else 1, kind]
+            col = ""
+            if o.data is cyl_mesh or n in tl.glow:                     # objects whose colour the timeline drives
+                col = "#" + "".join(f"{round(c * 255):02x}" for c in o.color[:3])
+            rows[n] = [*(p.min(0) / MM), *(p.max(0) / MM), 0 if o.hide_render else 1, kind, col]
         out[k] = rows
     return out
 

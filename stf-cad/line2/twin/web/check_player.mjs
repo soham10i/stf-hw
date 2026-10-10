@@ -1,5 +1,5 @@
 // DT-2 gate helper (P2): player.js applied to the GLB under Node - what the browser would draw, as boxes (mm).
-// node web/check_player.mjs 0,10,20,...  ->  JSON {frame: {part: [xmin, ymin, zmin, xmax, ymax, zmax, visible, kind]}}
+// node web/check_player.mjs 0,10,20,...  ->  JSON {frame: {part: [xmin, ymin, zmin, xmax, ymax, zmax, visible, kind, colour]}}
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -44,7 +44,8 @@ for (const k of process.argv[2].split(",").map(Number)) {
   const rows = {};
   for (const name of Object.keys(f)) {           // every drawn cylinder (reshaped tracks, spawned cookies)
     const cm = tl.cylinderOf(name, f);
-    if (cm) rows[name] = [...box(cm, unitCyl), f[name].vis ? 1 : 0, "cyl"];
+    if (cm) rows[name] = [...box(cm, unitCyl), f[name].vis ? 1 : 0, "cyl",
+                           (f[name].col || (tl.spawn[name] && tl.spawn[name].colour) || "").toLowerCase()];
   }
   for (const n of parts) {
     if (rows[n.name]) continue;                   // its CAD mesh is hidden: the cylinder is what is drawn
@@ -52,7 +53,8 @@ for (const k of process.argv[2].split(",").map(Number)) {
     if (f[n.name] && f[n.name].kind === "rigid") { m = f[n.name].m; vis = f[n.name].vis; }
     else if (!f[n.name] && n.extras["stf:moving"]) m = tl.followerMatrix(n.name, f);
     if (!m) continue;
-    rows[n.name] = [...box(m.clone().multiply(offsetMatrix(n.translation)), positions(n.mesh)), vis ? 1 : 0, "mesh"];
+    rows[n.name] = [...box(m.clone().multiply(offsetMatrix(n.translation)), positions(n.mesh)), vis ? 1 : 0, "mesh",
+                    (f[n.name] && f[n.name].col || "").toLowerCase()];
   }
   out[k] = rows;
 }
