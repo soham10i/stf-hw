@@ -1,0 +1,235 @@
+// Analysis charts for the dashboard: axes with titles and units, "nice" ticks, a crosshair that
+// reads every series at the pointer, a legend that hides and shows series, and labelled limit
+// lines, bands and events. Plot is the x-y chart; Heat is a rows x time heat map.
+import { useEffect, useMemo, useRef, useState } from "react";
+
+/** The element's width in CSS pixels, so a chart draws at true size (text never scales). */
+export function useWidth<T extends HTMLElement>(fallback = 900) {
+  const ref = useRef<T>(null);
+  const [w, setW] = useState(fallback);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => { const v = Math.round(e.contentRect.width); if (v > 0) setW(v); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, w] as const;
+}
+
+export type Series = {
+  name: string; x: number[]; y: (number | null)[]; color: string;
+  kind?: "line" | "area" | "step" | "dots"; dash?: boolean; width?: number; fmt?: (v: number) => string;
+};
+export type Band = { y0: number; y1: number; color: string; label?: string };
+export type HLine = { y: number; color: string; label: string };
+export type VMark = { x: number; color: string; label: string };
+
+/** 1-2-5 ticks covering [a, b]. */
+export function niceTicks(a: number, b: number, n = 5) {
+  if (!(b > a)) return [a];
+  const raw = (b - a) / n, mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? raw;
+  const out: number[] = [];
+  for (let v = Math.ceil(a / step - 1e-9) * step; v <= b + step * 1e-9; v += step) out.push(+v.toPrecision(12));
+  return out;
+}
+export const fmtNum = (v: number) => {
+  const a = Math.abs(v);
+  if (a >= 1e6) return `${+(v / 1e6).toFixed(1)}M`;
+  if (a >= 1e4) return `${+(v / 1e3).toFixed(0)}k`;
+  if (a >= 1e3) return `${+(v / 1e3).toFixed(1)}k`;
+  if (a >= 100) return v.toFixed(0);
+  if (a >= 10) return +v.toFixed(1) + "";
+  return +v.toFixed(2) + "";
+};
+
+/** index of the x nearest to v (x sorted ascending) */
+function nearest(x: number[], v: number) {
+  let lo = 0, hi = x.length - 1;
+  if (hi < 0) return -1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (x[m] < v) lo = m; else hi = m; }
+  return Math.abs(x[lo] - v) <= Math.abs(x[hi] - v) ? lo : hi;
+}
+
+export function Plot({ series, xTitle, yTitle, xFmt = fmtNum, yFmt = fmtNum, xMin, xMax, yMin, yMax, bands = [], hlines = [], vmarks = [],
+  now, h = 240, legend = true, tipTitle, tipExtra, xTicks }: {
+  series: Series[]; xTitle: string; yTitle: string; xFmt?: (v: number) => string; yFmt?: (v: number) => string;
+  xMin?: number; xMax?: number; yMin?: number; yMax?: number; bands?: Band[]; hlines?: HLine[]; vmarks?: VMark[];
+  now?: { x: number; label?: string }; h?: number; legend?: boolean; tipTitle?: (x: number) => string;
+  /** more lines for the read-out at x */
+  tipExtra?: (x: number) => [string, string][];
+  /** fixed x ticks (otherwise 1-2-5 ticks) */
+  xTicks?: number[];
+}) {
+  const [off, setOff] = useState<Set<string>>(new Set());
+  const [hx, setHx] = useState<number | null>(null);
+  const [box, W] = useWidth<HTMLDivElement>();
+  const L = 58, R = 16, T = 14, B = 42;
+  const vis = series.filter((s) => !off.has(s.name));
+  const dom = useMemo(() => {
+    const xs = series.flatMap((s) => s.x), ys = vis.flatMap((s) => s.y.filter((v): v is number => v !== null && isFinite(v)));
+    const x0 = xMin ?? Math.min(...xs), x1 = xMax ?? Math.max(...xs);
+    let y0 = yMin ?? Math.min(...ys, ...hlines.map((l) => l.y)), y1 = yMax ?? Math.max(...ys, ...hlines.map((l) => l.y));
+    if (!isFinite(y0) || !isFinite(y1)) { y0 = 0; y1 = 1; }
+    const pad = (y1 - y0) * 0.06 || 1;
+    if (yMin === undefined) y0 -= pad;
+    if (yMax === undefined) y1 += pad;
+    return { x0, x1: x1 > x0 ? x1 : x0 + 1, y0, y1 };
+  }, [series, vis, xMin, xMax, yMin, yMax, hlines]);
+  const X = (x: number) => L + ((x - dom.x0) / (dom.x1 - dom.x0)) * (W - L - R);
+  const Y = (y: number) => T + (1 - (Math.min(Math.max(y, dom.y0), dom.y1) - dom.y0) / (dom.y1 - dom.y0)) * (h - T - B);
+  const path = (s: Series) => {
+    let d = "", pen = false, py = 0;
+    const step = Math.max(1, Math.floor(s.x.length / 1200));
+    for (let i = 0; i < s.x.length; i += step) {
+      const y = s.y[i];
+      if (y === null || !isFinite(y)) { pen = false; continue; }
+      if (s.kind === "step" && pen) d += `L${X(s.x[i]).toFixed(1)},${py.toFixed(1)}`;
+      py = Y(y);
+      d += `${pen ? "L" : "M"}${X(s.x[i]).toFixed(1)},${py.toFixed(1)}`;
+      pen = true;
+    }
+    return d;
+  };
+  const xt = xTicks ?? niceTicks(dom.x0, dom.x1, W < 560 ? 3 : 6), yt = niceTicks(dom.y0, dom.y1, 4);
+  const move = (e: React.MouseEvent) => {
+    const r = box.current!.getBoundingClientRect();
+    const vx = ((e.clientX - r.left) / r.width) * W;
+    if (vx < L || vx > W - R) { setHx(null); return; }
+    setHx(dom.x0 + ((vx - L) / (W - L - R)) * (dom.x1 - dom.x0));
+  };
+  const read = hx === null ? [] : vis.map((s) => { const i = nearest(s.x, hx); return { s, i, x: s.x[i], y: i >= 0 ? s.y[i] : null }; })
+    .filter((r) => r.y !== null && isFinite(r.y as number));
+  const tipLeft = hx === null ? 0 : (X(hx) / W) * 100;
+  return (
+    <div className="pl">
+      <div className="pl-box" ref={box} onMouseMove={move} onMouseLeave={() => setHx(null)}>
+        <svg viewBox={`0 0 ${W} ${h}`}>
+          {bands.map((b, i) => <g key={i}><rect x={L} width={W - L - R} y={Y(Math.min(b.y1, dom.y1))} height={Math.max(0, Y(Math.max(b.y0, dom.y0)) - Y(Math.min(b.y1, dom.y1)))} fill={b.color} opacity={0.09} />
+            {b.label && <text x={L + 6} y={Y(Math.min(b.y1, dom.y1)) + 12} className="pl-band" style={{ fill: b.color }}>{b.label}</text>}</g>)}
+          {yt.map((v) => <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} className="pl-grid" /><text x={L - 7} y={Y(v) + 3.5} textAnchor="end" className="pl-tick">{yFmt(v)}</text></g>)}
+          {xt.map((v) => <g key={v}><line x1={X(v)} x2={X(v)} y1={h - B} y2={h - B + 4} className="pl-axis" /><text x={X(v)} y={h - B + 16} textAnchor="middle" className="pl-tick">{xFmt(v)}</text></g>)}
+          <line x1={L} x2={W - R} y1={h - B} y2={h - B} className="pl-axis" />
+          <text x={(L + W - R) / 2} y={h - 6} textAnchor="middle" className="pl-title">{xTitle}</text>
+          <text transform={`translate(13 ${(T + h - B) / 2}) rotate(-90)`} textAnchor="middle" className="pl-title">{yTitle}</text>
+          {hlines.filter((l) => l.y >= dom.y0 && l.y <= dom.y1).map((l) => <g key={l.label}>
+            <line x1={L} x2={W - R} y1={Y(l.y)} y2={Y(l.y)} stroke={l.color} strokeDasharray="6 4" strokeWidth={1.3} />
+            <text x={W - R - 4} y={Y(l.y) - 5} textAnchor="end" className="pl-lab" style={{ fill: l.color }}>{l.label} · {yFmt(l.y)}</text></g>)}
+          {vis.map((s) => s.kind === "dots"
+            ? <g key={s.name}>{s.x.map((x, i) => s.y[i] !== null && <circle key={i} cx={X(x)} cy={Y(s.y[i]!)} r={1.8} fill={s.color} opacity={0.6} />)}</g>
+            : <g key={s.name}>
+                {s.kind === "area" && <path d={`${path(s)}L${X(s.x[s.x.length - 1])},${Y(Math.max(dom.y0, 0))}L${X(s.x[0])},${Y(Math.max(dom.y0, 0))}Z`} fill={s.color} opacity={0.12} />}
+                <path d={path(s)} fill="none" stroke={s.color} strokeWidth={s.width ?? 2} strokeDasharray={s.dash ? "5 4" : undefined} strokeLinejoin="round" />
+              </g>)}
+          {vmarks.map((m, i) => <g key={i}><line x1={X(m.x)} x2={X(m.x)} y1={T} y2={h - B} stroke={m.color} strokeWidth={1.4} />
+            <text x={X(m.x) + (X(m.x) > W * 0.75 ? -5 : 5)} y={h - B - 8 - (i % 2) * 14} textAnchor={X(m.x) > W * 0.75 ? "end" : "start"} className="pl-lab" style={{ fill: m.color }}>{m.label}</text></g>)}
+          {now && <g><line x1={X(now.x)} x2={X(now.x)} y1={T} y2={h - B} className="pl-now" />
+            <text x={X(now.x) + 4} y={T + 11} className="pl-lab pl-now-t">{now.label ?? "now"}</text></g>}
+          {hx !== null && <g><line x1={X(hx)} x2={X(hx)} y1={T} y2={h - B} className="pl-cross" />
+            {read.map((r) => <circle key={r.s.name} cx={X(r.x)} cy={Y(r.y!)} r={4} fill={r.s.color} className="pl-dot" />)}</g>}
+        </svg>
+        {hx !== null && read.length > 0 && (
+          <div className="pl-tip" style={{ left: `${tipLeft}%`, transform: `translateX(${tipLeft > 60 ? "calc(-100% - 12px)" : "12px"})` }}>
+            <b>{tipTitle ? tipTitle(read[0].x) : `${xTitle.split(" (")[0]}: ${xFmt(read[0].x)}`}</b>
+            {read.map((r) => <div key={r.s.name}><i style={{ background: r.s.color }} />{r.s.name}<em>{(r.s.fmt ?? yFmt)(r.y!)}</em></div>)}
+            {tipExtra?.(read[0].x).map(([k, v]) => <div key={k}><i />{k}<em>{v}</em></div>)}
+          </div>
+        )}
+      </div>
+      {legend && series.length > 1 && (
+        <div className="pl-legend">{series.map((s) => (
+          <button key={s.name} className={off.has(s.name) ? "off" : ""} title="Show / hide"
+            onClick={() => setOff((o) => { const n = new Set(o); if (n.has(s.name)) n.delete(s.name); else n.add(s.name); return n; })}>
+            <i style={{ background: s.color, opacity: s.dash ? 0.6 : 1 }} />{s.name}</button>))}</div>
+      )}
+    </div>
+  );
+}
+
+/** Health colour: red (0) -> amber (50) -> green (100). */
+export function hiColor(v: number) {
+  const t = Math.max(0, Math.min(1, v / 100));
+  const c = t < 0.5 ? [224 + (224 - 224) * t * 2, 80 + (160 - 80) * t * 2, 58 + (42 - 58) * t * 2]
+    : [224 + (34 - 224) * (t - 0.5) * 2, 160 + (176 - 160) * (t - 0.5) * 2, 42 + (125 - 42) * (t - 0.5) * 2];
+  return `rgb(${c.map((x) => Math.round(x)).join(",")})`;
+}
+
+/** Rows x time heat map: one row per item, colour = value (0..100), with a "now" line. */
+export function Heat({ rows, x0, x1, xTitle, xFmt = fmtNum, now, cell, sel, pick, tip }: {
+  rows: { id: string; label: string; v: number[] }[]; x0: number; x1: number; xTitle: string; xFmt?: (v: number) => string;
+  now?: number; cell?: (v: number) => string; sel?: string; pick?: (id: string) => void; tip: (row: string, x: number, v: number) => string;
+}) {
+  const [hov, setHov] = useState<{ r: number; c: number } | null>(null);
+  const [box, W] = useWidth<HTMLDivElement>();
+  const L = W < 560 ? 112 : 160, R = 16, T = 6, RH = 20, B = 40, n = rows[0]?.v.length ?? 1;
+  const h = T + rows.length * RH + B;
+  const cw = (W - L - R) / n;
+  const X = (x: number) => L + ((x - x0) / (x1 - x0)) * (W - L - R);
+  const color = cell ?? hiColor;
+  return (
+    <div className="pl">
+      <div className="pl-box" ref={box} onMouseLeave={() => setHov(null)}>
+        <svg viewBox={`0 0 ${W} ${h}`}>
+          {rows.map((r, i) => (
+            <g key={r.id} onClick={() => pick?.(r.id)} style={{ cursor: pick ? "pointer" : undefined }}>
+              <text x={L - 8} y={T + i * RH + RH / 2 + 4} textAnchor="end" className={`pl-row ${sel === r.id ? "on" : ""}`}>{r.label}</text>
+              {r.v.map((v, k) => <rect key={k} x={L + k * cw} y={T + i * RH + 1} width={cw + 0.4} height={RH - 2} fill={color(v)}
+                onMouseEnter={() => setHov({ r: i, c: k })} />)}
+              {sel === r.id && <rect x={L - 1} y={T + i * RH} width={W - L - R + 2} height={RH} className="pl-heat-sel" />}
+            </g>))}
+          {niceTicks(x0, x1, 6).map((v) => <g key={v}><line x1={X(v)} x2={X(v)} y1={T + rows.length * RH} y2={T + rows.length * RH + 4} className="pl-axis" />
+            <text x={X(v)} y={T + rows.length * RH + 16} textAnchor="middle" className="pl-tick">{xFmt(v)}</text></g>)}
+          <text x={(L + W - R) / 2} y={h - 6} textAnchor="middle" className="pl-title">{xTitle}</text>
+          {now !== undefined && <line x1={X(now)} x2={X(now)} y1={T - 2} y2={T + rows.length * RH + 2} className="pl-now heat" />}
+        </svg>
+        {hov && (() => {
+          const r = rows[hov.r], x = x0 + ((hov.c + 0.5) / n) * (x1 - x0), left = ((L + (hov.c + 0.5) * cw) / W) * 100;
+          return <div className="pl-tip" style={{ left: `${left}%`, top: (T + hov.r * RH) / h * 100 + "%", transform: `translateX(${left > 60 ? "calc(-100% - 12px)" : "12px"})` }}>
+            <b>{r.label}</b><div>{tip(r.id, x, r.v[hov.c])}</div></div>;
+        })()}
+      </div>
+    </div>
+  );
+}
+
+/** Categorical bars with a y axis that need not start at 0 (`yMin`), reference lines and a
+    read-out per bar. */
+export function Bars({ bars, xTitle, yTitle, yMin, yMax, hlines = [], h = 220, yFmt = fmtNum, xLabelEvery = 1 }: {
+  bars: { key: string; label: string; v: number; color: string; tip: [string, string][] }[];
+  xTitle: string; yTitle: string; yMin?: number; yMax?: number; hlines?: HLine[]; h?: number; yFmt?: (v: number) => string; xLabelEvery?: number;
+}) {
+  const [box, W] = useWidth<HTMLDivElement>();
+  const [hov, setHov] = useState<number | null>(null);
+  const L = 58, R = 16, T = 14, B = 42;
+  const vs = bars.map((b) => b.v);
+  const y0 = yMin ?? 0, y1 = yMax ?? Math.max(...vs, ...hlines.map((l) => l.y)) * 1.04;
+  const Y = (v: number) => T + (1 - (Math.min(Math.max(v, y0), y1) - y0) / (y1 - y0)) * (h - T - B);
+  const bw = (W - L - R) / bars.length;
+  const every = W < 560 ? Math.max(xLabelEvery, 5) : xLabelEvery;
+  return (
+    <div className="pl">
+      <div className="pl-box" ref={box} onMouseLeave={() => setHov(null)}>
+        <svg viewBox={`0 0 ${W} ${h}`}>
+          {niceTicks(y0, y1, 4).map((v) => <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} className="pl-grid" />
+            <text x={L - 7} y={Y(v) + 3.5} textAnchor="end" className="pl-tick">{yFmt(v)}</text></g>)}
+          {bars.map((b, i) => <g key={b.key} onMouseEnter={() => setHov(i)}>
+            <rect x={L + i * bw} y={T} width={bw} height={h - T - B} fill="transparent" />
+            <rect x={L + i * bw + bw * 0.15} y={Y(b.v)} width={bw * 0.7} height={Math.max(1, Y(y0) - Y(b.v))} rx={2} fill={b.color} opacity={hov === null || hov === i ? 0.9 : 0.45} />
+            {i % every === 0 && <text x={L + i * bw + bw / 2} y={h - B + 15} textAnchor="middle" className="pl-tick">{b.label}</text>}
+          </g>)}
+          <line x1={L} x2={W - R} y1={h - B} y2={h - B} className="pl-axis" />
+          {hlines.map((l) => <g key={l.label}><line x1={L} x2={W - R} y1={Y(l.y)} y2={Y(l.y)} stroke={l.color} strokeDasharray="6 4" strokeWidth={1.3} />
+            <text x={W - R - 4} y={Y(l.y) - 5} textAnchor="end" className="pl-lab" style={{ fill: l.color }}>{l.label} · {yFmt(l.y)}</text></g>)}
+          <text x={(L + W - R) / 2} y={h - 6} textAnchor="middle" className="pl-title">{xTitle}</text>
+          <text transform={`translate(13 ${(T + h - B) / 2}) rotate(-90)`} textAnchor="middle" className="pl-title">{yTitle}</text>
+        </svg>
+        {hov !== null && (() => {
+          const b = bars[hov], left = ((L + (hov + 0.5) * bw) / W) * 100;
+          return <div className="pl-tip" style={{ left: `${left}%`, transform: `translateX(${left > 60 ? "calc(-100% - 12px)" : "12px"})` }}>
+            <b>{b.tip[0][1]}</b>{b.tip.slice(1).map(([k, v]) => <div key={k}><i />{k}<em>{v}</em></div>)}</div>;
+        })()}
+      </div>
+    </div>
+  );
+}

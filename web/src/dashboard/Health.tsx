@@ -4,104 +4,100 @@
 import { useMemo, useState } from "react";
 import type { HealthDoc } from "../shared/model";
 import { compAt, maxShifts, STATUS_TXT, type CompNow } from "../shared/health";
+import { Heat, niceTicks, Plot, useWidth } from "./Plot";
 
 export const PART_COL = ["#4f8fd6", "#e0a02a", "#22b07d", "#c06bd6", "#e0503a", "#3fb8c9", "#8f9d3a", "#d66b9a", "#7a7fe0", "#b07a4a"];
 const STAT_COL = { ok: "var(--ok)", warn: "var(--warn)", fail: "var(--bad)" };
+const short = (s: string) => s.replace(/ \(.*\)$/, "");
 const sh = (x: number) => (x >= 100 ? x.toFixed(0) : x.toFixed(1));
 
 function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
   return <div className={`db-kpi ${tone ?? ""}`}><span>{label}</span><b>{value}</b>{sub && <em>{sub}</em>}</div>;
 }
 
-/** Health index of every part now, worst first. */
-function HiBars({ st, sel, pick }: { st: CompNow[]; sel: string; pick: (id: string) => void }) {
-  const rows = [...st].sort((a, b) => a.hi - b.hi);
+/** Each part's remaining life from now: healthy until its warning (green), warned until it
+    fails (amber). Sorted by what needs attention first. */
+function Runway({ st, sel, pick, horizon }: { st: CompNow[]; sel: string; pick: (id: string) => void; horizon: number }) {
+  const rows = st.map((s) => {
+    const warnIn = s.status === "ok" && s.c.warn !== null ? (s.c.warn - s.n) / s.c.per_shift : 0;
+    return { s, warnIn, failIn: s.status === "fail" ? 0 : s.rulShifts ?? Infinity };
+  }).sort((a, b) => a.warnIn - b.warnIn || a.failIn - b.failIn);
+  const [box, W] = useWidth<HTMLDivElement>();
+  const L = W < 560 ? 160 : 200, R = W < 560 ? 12 : 170, T = 4, RH = 26, B = 40, h = T + rows.length * RH + B;
+  const X = (x: number) => L + (Math.min(x, horizon) / horizon) * (W - L - R);
   return (
-    <div className="hl-bars">
-      {rows.map((s) => (
-        <button key={s.c.id} className={`hl-bar ${s.c.id === sel ? "on" : ""}`} onClick={() => pick(s.c.id)} title={s.c.metric}>
-          <span className="hl-name">{s.c.name.replace(/ \(.*\)$/, "")}</span>
-          <span className="hl-track"><i style={{ width: `${Math.max(1, s.hi)}%`, background: STAT_COL[s.status] }} /></span>
-          <b>{Math.round(s.hi)}</b>
-          <em className={s.status}>{s.status === "fail" ? "failed" : s.rulShifts === null ? "–" : `${sh(s.rulShifts)} sh`}</em>
-        </button>
-      ))}
+    <div className="pl"><div className="pl-box" ref={box}><svg viewBox={`0 0 ${W} ${h}`}>
+      {niceTicks(0, horizon, W < 560 ? 3 : 6).map((v) => <g key={v}><line x1={X(v)} x2={X(v)} y1={T} y2={T + rows.length * RH} className="pl-grid" />
+        <text x={X(v)} y={T + rows.length * RH + 15} textAnchor="middle" className="pl-tick">{v}</text></g>)}
+      <text x={(L + W - R) / 2} y={h - 6} textAnchor="middle" className="pl-title">shifts from now (8 h each)</text>
+      {rows.map(({ s, warnIn, failIn }, i) => {
+        const y = T + i * RH, on = s.c.id === sel, over = failIn > horizon;
+        return (
+          <g key={s.c.id} onClick={() => pick(s.c.id)} style={{ cursor: "pointer" }}>
+            <rect x={0} y={y} width={W} height={RH} className={`rw-hit ${on ? "on" : ""}`} />
+            <text x={10} y={y + RH / 2 + 4} className={`pl-row ${on ? "on" : ""}`}>{short(s.c.name)}</text>
+            {W >= 560 && <text x={L - 10} y={y + RH / 2 + 4} textAnchor="end" className="rw-hi" style={{ fill: STAT_COL[s.status] }}>HI {Math.round(s.hi)}</text>}
+            {s.status === "fail" ? <text x={L + 6} y={y + RH / 2 + 4} className="pl-lab" style={{ fill: "var(--bad)" }}>FAILED: replace now</text> : <>
+              {warnIn > 0 && <rect x={X(0)} y={y + 6} width={Math.max(1, X(warnIn) - X(0))} height={RH - 12} rx={3} className="rw-ok" />}
+              {warnIn < horizon && <rect x={X(warnIn)} y={y + 6} width={Math.max(2, X(failIn) - X(warnIn))} height={RH - 12} rx={3} className="rw-warn" />}
+              {!over && <path d={`M${X(failIn)},${y + 4}l0,${RH - 8}`} className="rw-fail" />}
+              {over && <text x={X(horizon) + 3} y={y + RH / 2 + 4} className="rw-arrow">›</text>}
+            </>}
+            {R > 100 && <text x={W - R + 14} y={y + RH / 2 + 4} className="rw-say">
+              {s.status === "fail" ? "" : s.status === "warn" ? `warned · fails in ${sh(failIn)}` : `warns ${sh(warnIn)} · fails ${sh(failIn)}`}
+            </text>}
+            <title>{`${s.c.name}: ${s.status === "fail" ? "failed" : s.status === "warn" ? `warned, fails in ${sh(failIn)} shifts` : `warns in ${sh(warnIn)} shifts, fails in ${sh(failIn)}`}`}</title>
+          </g>
+        );
+      })}
+    </svg></div>
+    <div className="pl-legend static"><span><i className="rw-ok" />healthy until its warning</span><span><i className="rw-warn" />warned: the window to service it</span>
+      <span><i className="rw-fail" />failure</span><span>› beyond the chart</span></div>
     </div>
   );
 }
 
-/** Health index over machine age for every part; the selected one drawn bold. */
-function HiOverAge({ h, age, ageMax, pm, sel, pick }: { h: HealthDoc; age: number; ageMax: number; pm: boolean; sel: string; pick: (id: string) => void }) {
-  const W = 900, H = 210, L = 34, R = 12, T = 10, B = 24, N = 260;
-  const X = (a: number) => L + (a / ageMax) * (W - L - R);
-  const Y = (hi: number) => T + (1 - hi / 100) * (H - T - B);
-  const paths = useMemo(() => h.components.map((c) => {
-    let d = "";
-    for (let i = 0; i <= N; i++) { const a = (i / N) * ageMax; d += `${i ? "L" : "M"}${X(a).toFixed(1)},${Y(compAt(c, a, pm).hi).toFixed(1)}`; }
-    return d;
-  }), [h, ageMax, pm]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const ticks = Array.from({ length: 6 }, (_, i) => (i / 5) * ageMax);
-  return (
-    <div className="mo-chart">
-      <svg viewBox={`0 0 ${W} ${H}`}>
-        <rect x={L} y={Y(100)} width={W - L - R} height={Y(50) - Y(100)} className="hl-zone ok" />
-        <rect x={L} y={Y(50)} width={W - L - R} height={Y(0) - Y(50)} className="hl-zone warn" />
-        {[0, 50, 100].map((v) => <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} className="mo-grid" />
-          <text x={L - 5} y={Y(v) + 3} textAnchor="end" className="mo-ax">{v}</text></g>)}
-        {ticks.map((a) => <text key={a} x={X(a)} y={H - 7} textAnchor="middle" className="mo-ax">{a.toFixed(0)} sh</text>)}
-        {h.components.map((c, i) => c.id !== sel && (
-          <path key={c.id} d={paths[i]} fill="none" stroke={PART_COL[i]} strokeWidth={1} opacity={0.16} className="hl-line" onClick={() => pick(c.id)}><title>{c.name}</title></path>
-        ))}
-        {h.components.map((c, i) => c.id === sel && <path key={c.id} d={paths[i]} fill="none" stroke={PART_COL[i]} strokeWidth={2.6} />)}
-        <line x1={X(age)} x2={X(age)} y1={T} y2={H - B} className="hl-now" />
-        <text x={X(age) + 4} y={T + 9} className="mo-ax hl-now-t">now</text>
-      </svg>
-      <div className="mo-legend">{h.components.map((c, i) => (
-        <span key={c.id} className={`hl-leg ${c.id === sel ? "on" : ""}`} onClick={() => pick(c.id)}><i style={{ background: PART_COL[i] }} />{c.name.replace(/ \(.*\)$/, "")}</span>
-      ))}</div>
-    </div>
-  );
-}
-
-/** The selected part's smoothed signal over its life: healthy, warned and failed zones. */
+/** The selected part's signal over its life, with its limits, warning and the machine's "now". */
 function Signal({ s, col }: { s: CompNow; col: string }) {
-  const c = s.c, W = 600, H = 230, L = 40, R = 12, T = 12, B = 24;
-  const nmax = c.curve[c.curve.length - 1][0] || 1, top = c.r_fail * 1.06;
-  const X = (n: number) => L + (n / nmax) * (W - L - R);
-  const Y = (r: number) => T + (1 - (r - 1) / (top - 1)) * (H - T - B);
-  const past = c.curve.filter((p) => p[0] <= s.n), last = past[past.length - 1];
-  const future = c.curve.filter((p) => p[0] >= (last?.[0] ?? 0));
-  const d = (pts: typeof c.curve) => pts.map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)},${Y(Math.min(p[1], top)).toFixed(1)}`).join("");
+  const c = s.c, ps = c.per_shift;
+  const xs = c.curve.map((p) => p[0] / ps);
+  const last = c.curve.filter((p) => p[0] <= s.n).length - 1;
+  const at = (x: number) => { let k = 0; while (k < c.curve.length - 1 && c.curve[k + 1][0] / ps <= x) k++; return c.curve[k]; };
   return (
-    <div className="mo-chart">
-      <svg viewBox={`0 0 ${W} ${H}`}>
-        <rect x={L} y={Y(c.soft)} width={W - L - R} height={Y(1) - Y(c.soft)} className="hl-zone ok" />
-        <rect x={L} y={Y(c.r_fail)} width={W - L - R} height={Y(c.soft) - Y(c.r_fail)} className="hl-zone warn" />
-        <rect x={L} y={Y(top)} width={W - L - R} height={Y(c.r_fail) - Y(top)} className="hl-zone fail" />
-        <text x={W - R - 4} y={Y(c.soft) - 4} textAnchor="end" className="mo-ax">soft limit {c.soft}</text>
-        <text x={W - R - 4} y={Y(c.r_fail) - 4} textAnchor="end" className="mo-ax">fails {c.r_fail}</text>
-        <text x={L - 5} y={Y(1) + 3} textAnchor="end" className="mo-ax">1.0</text>
-        <text x={L - 5} y={Y(c.r_fail) + 3} textAnchor="end" className="mo-ax">{c.r_fail.toFixed(1)}</text>
-        {c.warn !== null && <g><line x1={X(c.warn)} x2={X(c.warn)} y1={T} y2={H - B} className="hl-mark warn" />
-          <text x={X(c.warn) - 4} y={H - B - 6} textAnchor="end" className="mo-ax hl-warn-t">warned</text></g>}
-        <path d={d(future)} fill="none" stroke={col} strokeWidth={1.6} strokeDasharray="4 4" opacity={0.45} />
-        <path d={d(past)} fill="none" stroke={col} strokeWidth={2.4} />
-        {last && <circle cx={X(last[0])} cy={Y(Math.min(last[1], top))} r={5} fill={col} className="hl-dot" />}
-        <text x={L} y={H - 7} className="mo-ax">0</text>
-        <text x={W - R} y={H - 7} textAnchor="end" className="mo-ax">{nmax.toLocaleString()} uses</text>
-      </svg>
-    </div>
+    <Plot h={270} xTitle="part age (shifts since new or renewed)" yTitle="signal r = measured ÷ healthy"
+      xFmt={(v) => `${Math.round(v)}`} yFmt={(v) => v.toFixed(2)} yMin={0.9} yMax={c.r_fail * 1.08}
+      series={[
+        { name: "smoothed signal (EWMA)", x: xs, y: c.curve.map((p, i) => (i <= last ? p[1] : null)), color: col, width: 2.6 },
+        { name: "expected from here", x: xs, y: c.curve.map((p, i) => (i >= last ? p[1] : null)), color: col, dash: true, width: 1.6 },
+      ]}
+      bands={[{ y0: 0.9, y1: c.soft, color: "var(--ok)", label: "healthy" }, { y0: c.soft, y1: c.r_fail, color: "var(--warn)", label: "warned" },
+              { y0: c.r_fail, y1: c.r_fail * 1.08, color: "var(--bad)", label: "failed" }]}
+      hlines={[{ y: c.soft, color: "var(--warn)", label: "soft limit" }, { y: c.r_fail, color: "var(--bad)", label: "failure limit" }]}
+      vmarks={[...(c.warn !== null ? [{ x: c.warn / ps, color: "var(--warn)", label: `warning · ${c.lead_shifts} sh before failure` }] : []),
+               ...(c.fail !== null ? [{ x: c.fail / ps, color: "var(--bad)", label: "failure" }] : [])]}
+      now={{ x: s.n / ps, label: "now" }}
+      tipTitle={(x) => `${x.toFixed(1)} shifts old`}
+      tipExtra={(x) => {
+        const p = at(x);
+        return [["health index", `${Math.round(p[2])}`],
+                ["to failure", c.fail === null ? "–" : `${sh(Math.max(0, c.fail / ps - x))} sh`],
+                ["trend estimate", p[3] === null ? "–" : `${sh(p[3] / ps)} sh`]];
+      }}
+    />
   );
 }
 
 export function HealthPage({ h, age, pm, go }: { h: HealthDoc; age: number; pm: boolean; go: (p: string) => void }) {
   const [sel, setSel] = useState(h.components[0].id);
+  const [horizon, setHorizon] = useState(90);
   const ageMax = useMemo(() => maxShifts(h.components), [h]);
   const st = h.components.map((c) => compAt(c, age, pm));
   const i = h.components.findIndex((c) => c.id === sel), s = st[i];
   const n = { ok: st.filter((x) => x.status === "ok").length, warn: st.filter((x) => x.status === "warn").length, fail: st.filter((x) => x.status === "fail").length };
   const fleet = st.reduce((a, x) => a + x.hi, 0) / st.length;
   const alive = st.filter((x) => x.status !== "fail" && x.rulShifts !== null).sort((a, b) => a.rulShifts! - b.rulShifts!);
+  const heat = useMemo(() => h.components.map((c) => ({ id: c.id, label: short(c.name),
+    v: Array.from({ length: 150 }, (_, k) => compAt(c, ((k + 0.5) / 150) * ageMax, pm).hi) })), [h, ageMax, pm]);
   const nextWarn = st.filter((x) => x.status === "ok" && x.c.warn !== null)
     .map((x) => ({ x, in: (x.c.warn! - x.n) / x.c.per_shift })).sort((a, b) => a.in - b.in)[0];
   return (
@@ -113,28 +109,10 @@ export function HealthPage({ h, age, pm, go }: { h: HealthDoc; age: number; pm: 
         <Kpi label="first failure" value={alive[0] ? `${sh(alive[0].rulShifts!)} sh` : "–"} sub={alive[0] ? alive[0].c.name : "none"} tone={alive[0] && alive[0].rulShifts! < 3 ? "warn" : undefined} />
       </div>
 
-      <section className="db-card">
-        <h3>Health index now</h3>
-        <HiBars st={st} sel={sel} pick={setSel} />
-        <p className="hl-cap">Worst first · shifts until failure on the right · click a part</p>
-      </section>
-
       <section className="db-card hl-span2">
-        <h3>Health over machine age</h3>
-        <HiOverAge h={h} age={age} ageMax={ageMax} pm={pm} sel={sel} pick={setSel} />
-        <p className="hl-cap">{pm ? "PM on: each part is renewed when it warns, so health saw-tooths and never reaches 0." : "PM off: parts run to failure."}</p>
-      </section>
-
-      <section className="db-card hl-span2">
-        <h3>{s.c.name}<span className={`hl-pill ${s.status}`}>{STATUS_TXT[s.status]}</span>
-          <button className="db-link" onClick={() => go("docs-degradation")}>how it's computed →</button></h3>
-        <Signal s={s} col={PART_COL[i]} />
-        <div className="hl-facts">
-          <div><b>{s.c.lead_shifts ?? "–"} sh</b><span>warning before failure</span></div>
-          <div><b>{s.c.false_warnings} / {(s.c.healthy_cycles / 1000).toFixed(0)}k</b><span>false warnings, healthy run</span></div>
-          <div><b>{Math.round(s.n).toLocaleString()}</b><span>uses this life{s.serviced ? ` · renewed ×${s.serviced}` : ""}</span></div>
-          <div><b className="mono">{s.c.source.join(" ")}</b><span>{s.c.metric}</span></div>
-        </div>
+        <h3>Remaining life runway
+          <div className="ui-seg db-mini-seg">{[30, 90, 450].map((v) => <button key={v} className={horizon === v ? "on" : ""} onClick={() => setHorizon(v)}>{v === 450 ? "all" : `${v} sh`}</button>)}</div></h3>
+        <Runway st={st} sel={sel} pick={setSel} horizon={horizon} />
       </section>
 
       <section className="db-card">
@@ -143,6 +121,29 @@ export function HealthPage({ h, age, pm, go }: { h: HealthDoc; age: number; pm: 
           <li key={d.mode} title={d.why}><b>{d.mode}</b><span>{d.cover}</span></li>
         ))}</ul>
         <p className="hl-cap">No gradual precursor: caught when it happens (watchdog) or by a routine check.</p>
+      </section>
+
+      <section className="db-card wide">
+        <h3>Health map · every part over the machine's life</h3>
+        <Heat rows={heat} x0={0} x1={ageMax} xTitle="machine age (shifts)" now={age} sel={sel} pick={setSel}
+          tip={(_, x, v) => `${Math.round(x)} shifts: health ${Math.round(v)}${v <= 0 ? " — failed" : v < 50 ? " — warned" : ""}`} />
+        <div className="pl-scale">health 0 <i /> 100 · {pm ? "PM on: each part is renewed when it warns (the stripes)" : "PM off: parts run to failure (red)"} · white line = now</div>
+      </section>
+
+      <section className="db-card hl-span2">
+        <h3>{s.c.name}<span className={`hl-pill ${s.status}`}>{STATUS_TXT[s.status]}</span>
+          <button className="db-link" onClick={() => go("docs-degradation")}>how it's computed →</button></h3>
+        <Signal s={s} col={PART_COL[i]} />
+      </section>
+
+      <section className="db-card">
+        <h3>About this part</h3>
+        <div className="hl-facts col">
+          <div><b>{s.c.lead_shifts ?? "–"} shifts</b><span>warning comes before failure</span></div>
+          <div><b>{s.c.false_warnings} in {(s.c.healthy_cycles / 1000).toFixed(0)}k uses</b><span>false warnings on a healthy part</span></div>
+          <div><b>{Math.round(s.n).toLocaleString()} uses</b><span>this life{s.serviced ? ` · renewed ×${s.serviced}` : ""}</span></div>
+          <div><b className="wrap">{s.c.metric}</b><span className="mono">{s.c.source.join(" ")}</span></div>
+        </div>
       </section>
     </div>
   );

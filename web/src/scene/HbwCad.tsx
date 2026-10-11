@@ -45,7 +45,7 @@ const FROM = "B2";
 
 /** One line of an order: a quantity of one flavour. `started` cycles have taken a raw cookie for
     it, `done` cookies of it have been baked and sorted into their Lagerstelle. */
-export type OrderLine = { id: number; flavour: string; qty: number; started: number; done: number; demo?: boolean };
+export type OrderLine = { id: number; flavour: string; qty: number; started: number; done: number };
 
 /** The orders and the material state, shared between the 3D loop and the Orders panel.
     The cell holds exactly 12 cookies, one in each slot's mould, raw or baked. A cycle takes one
@@ -714,12 +714,7 @@ export function HbwCad({ doc, onPhase, tours }: {
     return { c: { ...planCycle(from, from, line.flavour, bin), line: line.id }, r };
   };
   const start = useMemo(() => {
-    if (!twinOrders.queue.length) {
-      // what a visitor sees first: one cookie of each flavour, then the cell waits for an order
-      for (const f of Object.keys(doc.pipeline.flavours)) {
-        twinOrders.queue.push({ id: ++twinOrders.seq, flavour: f, qty: 1, started: 0, done: 0, demo: true });
-      }
-    }
+    // no order is placed for the visitor: the cell rests until one is placed in the Orders panel
     for (const c of doc.sorting.colours) twinOrders.bays[c] ??= [];
     // The rack outlives this view (switching to a component and back remounts it): keep it.
     // A cookie that was in the oven line goes back to dough in its slot and is baked again.
@@ -891,6 +886,7 @@ export function HbwCad({ doc, onPhase, tours }: {
     ovenHot.belts = flow.belts(f.s.ly);
     ovenHot.colour = new THREE.Color(RAW).lerp(new THREE.Color(C.baked), f.s.baked).getStyle();
     if (f.say) say = `${say}   ·   ${f.say}`;
+    if (twinOrders.idle && frozen === null) say = "Waiting for an order";
 
     if (gTravel.current) gTravel.current.position.x = d.travel * MM;
     if (gLift.current) gLift.current.position.y = d.lift * MM;

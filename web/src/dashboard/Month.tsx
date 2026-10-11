@@ -1,6 +1,7 @@
 // One simulated month of production (stf-cad/hbw/month.py): production,
 // sensor time series, component wear, maintenance, FSM and events. The page
 // reads web/public/month/month.json; the CSVs beside it hold the same data.
+import { Bars, Plot, fmtNum } from "./Plot";
 import { useMemo, useState } from "react";
 import { useJson } from "../shared/data";
 
@@ -48,49 +49,24 @@ const THEMED: Record<string, string> = { "#e6f0ff": "var(--ink)", "#f2efe6": "va
   "#7cc3f5": "var(--sky)", "#3a4a5c": "var(--grid-strong)", "#fff": "var(--text)" };
 export const tc = (c: string) => THEMED[c.toLowerCase()] ?? c;
 type Line = { name: string; x: number[]; y: (number | null)[]; color: string; dash?: boolean; width?: number };
-export function Chart({ lines, h = 180, yLabel, hlines = [], marks = [], xMax, yMin, yMax, days = true }: {
-  lines: Line[]; h?: number; yLabel?: string; hlines?: { y: number; color: string; label: string }[];
+/** The month's time-series chart: x in hours, read as days of the month - or, with
+    days=false, in the unit `xLabel` names. Drawn by Plot (axes, hover read-out, legend). */
+export function Chart({ lines, h = 180, yLabel, xLabel, hlines = [], marks = [], xMax, yMin, yMax, days = true }: {
+  lines: Line[]; h?: number; yLabel?: string; xLabel?: string; hlines?: { y: number; color: string; label: string }[];
   marks?: { x: number; color: string; label: string }[]; xMax?: number; yMin?: number; yMax?: number; days?: boolean;
 }) {
-  const W = 900, L = 48, R = 10, T = 10, B = 22;
-  const xs = lines.flatMap((l) => l.x);
-  const ys = lines.flatMap((l) => l.y.filter((v): v is number => v !== null)).concat(hlines.map((l) => l.y));
-  const x1 = xMax ?? Math.max(...xs, 1);
-  const y0 = yMin ?? Math.min(...ys), y1 = yMax ?? Math.max(...ys);
-  const pad = (y1 - y0) * 0.06 || 1;
-  const Y0 = y0 - (yMin === undefined ? pad : 0), Y1 = y1 + (yMax === undefined ? pad : 0);
-  const X = (x: number) => L + (x / x1) * (W - L - R);
-  const Yp = (y: number) => T + (1 - (y - Y0) / (Y1 - Y0)) * (h - T - B);
-  const path = (l: Line) => {
-    const step = Math.max(1, Math.floor(l.x.length / 900));
-    let d = "", pen = false;
-    for (let i = 0; i < l.x.length; i += step) {
-      const y = l.y[i];
-      if (y === null || y === undefined) { pen = false; continue; }
-      d += `${pen ? "L" : "M"}${X(l.x[i]).toFixed(1)},${Yp(y).toFixed(1)}`;
-      pen = true;
-    }
-    return d;
-  };
-  const ticks = days ? Array.from({ length: Math.floor(x1 / 24 / 5) + 1 }, (_, i) => i * 5 * 24) : [0, x1 / 2, x1];
+  const x1 = xMax ?? Math.max(...lines.flatMap((l) => l.x), 1);
+  const dayTicks = days ? Array.from({ length: Math.floor(x1 / 24 / 5) + 1 }, (_, i) => i * 5 * 24) : undefined;
+  // many marks of one kind (maintenance, failures) are labelled once
+  const seen = new Set<string>();
+  const vm = marks.map((m) => { const first = !seen.has(m.label); seen.add(m.label); return { x: m.x, color: tc(m.color), label: first ? m.label : "" }; });
   return (
-    <div className="mo-chart">
-      <svg viewBox={`0 0 ${W} ${h}`}>
-        {[0, 0.5, 1].map((f) => {
-          const y = Y0 + f * (Y1 - Y0);
-          return <g key={f}><line x1={L} x2={W - R} y1={Yp(y)} y2={Yp(y)} className="mo-grid" />
-            <text x={L - 4} y={Yp(y) + 3} textAnchor="end" className="mo-ax">{Math.abs(y) >= 100 ? y.toFixed(0) : y.toFixed(2)}</text></g>;
-        })}
-        {ticks.map((x) => <text key={x} x={X(x)} y={h - 6} textAnchor="middle" className="mo-ax">{days ? `day ${Math.round(x / 24) + 1}` : x.toFixed(0)}</text>)}
-        {hlines.map((l) => <g key={l.label}><line x1={L} x2={W - R} y1={Yp(l.y)} y2={Yp(l.y)} style={{ stroke: tc(l.color) }} strokeDasharray="5 4" />
-          <text x={W - R - 2} y={Yp(l.y) - 3} textAnchor="end" className="mo-ax" style={{ fill: tc(l.color) }}>{l.label}</text></g>)}
-        {marks.map((mk, i) => <g key={i}><line x1={X(mk.x)} x2={X(mk.x)} y1={T} y2={h - B} style={{ stroke: tc(mk.color) }} strokeWidth={1.2} opacity={0.8} />
-          <text x={X(mk.x) + 3} y={T + 10 + (i % 3) * 11} className="mo-ax" style={{ fill: tc(mk.color) }}>{mk.label}</text></g>)}
-        {lines.map((l) => <path key={l.name} d={path(l)} fill="none" style={{ stroke: tc(l.color) }} strokeWidth={(l.width ?? 1.3) * 1.15} strokeLinejoin="round" strokeDasharray={l.dash ? "4 3" : undefined} />)}
-        {yLabel && <text x={4} y={T + 2} className="mo-ax">{yLabel}</text>}
-      </svg>
-      <div className="mo-legend">{lines.map((l) => <span key={l.name}><i style={{ background: tc(l.color) }} />{l.name}</span>)}</div>
-    </div>
+    <Plot h={h + 40} xMin={0} xMax={x1} yMin={yMin} yMax={yMax} xTicks={dayTicks}
+      xTitle={days ? "day of the month" : xLabel ?? ""} yTitle={yLabel ?? ""}
+      xFmt={days ? (v) => `${Math.floor(v / 24) + 1}` : fmtNum}
+      tipTitle={days ? (v) => `day ${Math.floor(v / 24) + 1}, ${String(Math.floor(v % 24)).padStart(2, "0")}:00` : undefined}
+      series={lines.map((l) => ({ name: l.name, x: l.x, y: l.y, color: tc(l.color), dash: l.dash, width: (l.width ?? 1.3) * 1.2 }))}
+      hlines={hlines.filter((l) => l.label).map((l) => ({ ...l, color: tc(l.color) }))} vmarks={vm} />
   );
 }
 
@@ -107,7 +83,8 @@ const pct = (x: number) => `${(x * 100).toFixed(1)} %`;
 // ---------------------------------------------------------------- views
 function Summary({ m }: { m: MonthDoc }) {
   const k = m.kpi, c = m.kpi_cf;
-  const maxGood = Math.max(...m.daily.map((d) => d.good));
+  const minGood = Math.min(...m.daily.map((d) => d.good));
+  const meanGood = m.daily.reduce((a, d) => a + d.good, 0) / m.daily.length;
   const hmax = Math.max(...m.heat.flat());
   return (
     <>
@@ -127,18 +104,21 @@ function Summary({ m }: { m: MonthDoc }) {
         <section className="db-card wide"><h3>Insights from the month's data</h3>
           <div className="mo-insights">{m.insights.map((i) => <div key={i.title}><b>{i.title}</b><p>{i.text}</p></div>)}</div>
         </section>
-        <section className="db-card wide"><h3>Good cookies per day, and OEE</h3>
-          <div className="mo-days">
-            {m.daily.map((d) => (
-              <div key={d.day} title={`${d.date}: ${d.good} good, ${d.orders} orders, OEE ${pct(d.oee)}, ${d.faults} faults, ${d.maint} maintenance`}>
-                <i style={{ height: `${(d.good / maxGood) * 100}%` }} className={d.failures ? "fail" : d.maint ? "maint" : ""} />
-                <em style={{ bottom: `${d.oee * 100}%` }} />
-                <span>{d.day}</span>
-              </div>
-            ))}
-          </div>
-          <p className="db-note">Bars: good cookies (amber = a day with planned maintenance, all of it in the night gap). Dots: OEE.
-            {" "}{m.meta.batch}; {m.meta.shifts.join(" and ")}, {m.meta.days} days.</p>
+        <section className="db-card wide"><h3>Good cookies per day</h3>
+          <Bars xTitle="day of the month" yTitle="good cookies" yMin={Math.floor(minGood * 0.9 / 10) * 10}
+            hlines={[{ y: meanGood, color: "var(--accent)", label: "average" }]}
+            bars={m.daily.map((d) => ({ key: `${d.day}`, label: `${d.day}`, v: d.good,
+              color: d.failures ? "var(--bad)" : d.maint ? "var(--warn)" : "var(--ok)",
+              tip: [["", `day ${d.day} · ${d.date}`], ["good cookies", `${d.good}`], ["vs average", `${d.good - meanGood >= 0 ? "+" : ""}${Math.round(d.good - meanGood)}`],
+                    ["orders", `${d.orders}`], ["OEE", pct(d.oee)], ["faults", `${d.faults}`], ["maintenance", d.maint ? `${d.maint}` : "–"]] }))} />
+          <div className="pl-legend static"><span><i style={{ background: "var(--ok)" }} />normal day</span><span><i style={{ background: "var(--warn)" }} />planned maintenance that night</span>
+            <span><i style={{ background: "var(--bad)" }} />a failure</span></div>
+        </section>
+        <section className="db-card wide"><h3>OEE per day</h3>
+          <Plot h={200} xTitle="day of the month" yTitle="OEE (%)" xMin={1} xMax={m.daily.length} yFmt={(v) => `${Math.round(v)}`}
+            series={[{ name: "OEE", x: m.daily.map((d) => d.day), y: m.daily.map((d) => d.oee * 100), color: "var(--accent)", width: 2.4, fmt: (v) => `${v.toFixed(1)} %` }]}
+            hlines={[{ y: k.oee * 100, color: "var(--muted)", label: "month" }]}
+            tipTitle={(x) => `day ${Math.round(x)}`} legend={false} />
         </section>
         <section className="db-card"><h3>Where the time went</h3>
           <div className="db-bars">{m.pareto.map((p) => <div key={p.cause}><span>{p.cause}</span><i style={{ width: `${(p.hours / m.pareto[0].hours) * 100}%` }} /><b>{p.hours} h</b></div>)}</div>

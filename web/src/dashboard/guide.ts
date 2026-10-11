@@ -138,13 +138,14 @@ export const GUIDE: Record<string, PageGuide> = {
     read: [
       "Drag the machine-age slider: health falls as parts wear. Green healthy, amber warned, red failed.",
       "Switch PM off to see the machine run to failure.",
-      "Click a part (bar, line or legend) to see its signal.",
+      "Click a part (runway row or map row) to see its signal; hover any chart to read values.",
     ],
     sections: [
-      ["Health index now", "Every part's health, worst first, with shifts left until failure."],
-      ["Health over machine age", "Each part's health across the machine's life; the dashed line is now."],
-      ["(the selected part)", "Its smoothed signal against the soft limit and the failure limit, and when it was warned."],
+      ["Remaining life runway", "For each part, from now: green until it warns, amber from the warning until it fails. The amber length is your window to service it. Switch the horizon to zoom."],
       ["Not predictable", "Faults with no gradual sign, and the check that covers each."],
+      ["Health map", "Every part (rows) over the machine's whole life (across), coloured by health. With PM on, each stripe is a renewal; the white line is now. Hover for the value."],
+      ["(the selected part)", "Its smoothed signal against the soft and failure limits. Hover to read the health index, the true time to failure and the trend's estimate."],
+      ["About this part", "Warning lead time, false warnings, uses so far and the sensor it is measured with."],
     ],
     source: "The condition-monitoring model of Upgrade 6. The theory is under Docs → Hardware degradation.",
     terms: ["Health index (HI)", "RUL", "Shift", "PM", "EWMA"],
@@ -214,7 +215,8 @@ export const GUIDE: Record<string, PageGuide> = {
     ],
     sections: [
       ["Insights from the month's data", "The findings: what cost the most, what maintenance saved, where the trends are."],
-      ["Good cookies per day, and OEE", "Daily output; amber days had planned maintenance."],
+      ["Good cookies per day", "Daily output against the month's average; amber = planned maintenance that night, red = a failure. The axis starts near the lowest day so differences show."],
+      ["OEE per day", "Daily OEE against the month's figure; hover for the value."],
       ["Where the time went", "Planned time split into producing, faults, maintenance and idle."],
       ["Orders started per hour", "When in the day orders arrived (day × hour)."],
       ["The counterfactual month", "The same month without preventive maintenance: what failed and what it cost."],

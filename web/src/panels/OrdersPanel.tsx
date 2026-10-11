@@ -133,7 +133,7 @@ export function OrdersPanel({ scene, slots }: { scene: SceneDescriptor | null; s
             <div className="ord-now-foot"><span>{plain(twinOrders.step)}</span><b>{clock(Math.max(0, cyc.total - cyc.t))} left</b></div>
           </div>
         ) : (
-          <p className="ord-hint">Every order is done. Place an order to start the cell.</p>
+          <p className="ord-hint">{queue.length ? "Every order is done." : "The cell is waiting."} Place an order above to start it.</p>
         )}
       </section>
 
@@ -149,7 +149,7 @@ export function OrdersPanel({ scene, slots }: { scene: SceneDescriptor | null; s
                 <i className="slot-dot" style={{ background: colour(o.flavour) }} />
                 <div>
                   <b>{o.qty} × {cap(o.flavour)}</b>
-                  <small>#{o.id}{o.demo ? " · demo" : ""}</small>
+                  <small>#{o.id}</small>
                 </div>
                 <span className={`ord-pill ${st}`}>{st === "done" ? "Completed" : st === "run" ? `${o.done} of ${o.qty}` : "Queued"}</span>
                 <div className="ord-bar"><i style={{ width: `${(100 * o.done) / o.qty}%`, background: colour(o.flavour) }} /></div>

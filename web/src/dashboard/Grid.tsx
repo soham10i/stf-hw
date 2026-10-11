@@ -63,17 +63,17 @@ export function GridPage() {
         <section className="db-card wide"><h3>Power flows on day
           <input type="range" min={1} max={g.meta.days} value={day} onChange={(e) => setDay(+e.target.value)} style={{ width: 240 }} /> {day}
           <span className="db-muted">({g.weather[day - 1].kind}{sl(S.dr).some(Boolean) ? " · demand-response event" : ""})</span></h3>
-          <Chart days={false} yLabel="W" xMax={24}
+          <Chart days={false} xLabel="hour of the day" yLabel="power (W)" xMax={24}
             lines={[{ name: "cell load", x: hx, y: sl(S.load), color: "#e6f0ff", width: 1.6 }, { name: "PV", x: hx, y: sl(S.pv), color: "#f2c230" },
                     { name: "grid (+ import, − export)", x: hx, y: sl(S.grid), color: "#4f8fd6", width: 1.6 },
                     { name: "battery (+ charge)", x: hx, y: sl(S.batt), color: "#22c55e" },
                     { name: "grid only (no PV, no battery)", x: hx, y: sl(S.grid_only), color: "#e0503a", dash: true }]}
             hlines={[{ y: g.meta.assets.peak_cap_w, color: "#e0a02a", label: "peak cap" }, { y: 0, color: "#3a4a5c", label: "" }]}
             marks={hx.filter((_, i) => sl(S.dr)[i] && !sl(S.dr)[i - 1]).map((x) => ({ x, color: "#b07ad6", label: "DR event" }))} />
-          <Chart h={110} days={false} yMin={0} yMax={1} yLabel="battery SoC" xMax={24}
+          <Chart h={110} days={false} xLabel="hour of the day" yMin={0} yMax={1} yLabel="battery SoC" xMax={24}
             lines={[{ name: "state of charge", x: hx, y: sl(S.soc), color: "#22c55e", width: 1.6 }]}
             hlines={[{ y: g.meta.assets.reserve, color: "#e0503a", label: "ride-through reserve" }]} />
-          <Chart h={100} days={false} yLabel="€/kWh" xMax={24} lines={[{ name: "price", x: hx, y: sl(S.price), color: "#e0a02a" }]} />
+          <Chart h={100} days={false} xLabel="hour of the day" yLabel="€/kWh" xMax={24} lines={[{ name: "price", x: hx, y: sl(S.price), color: "#e0a02a" }]} />
           <p className="db-note">The energy manager plans each day at midnight with a dynamic programme over the battery's charge (20 Wh steps)
             against the forecast; in real time it trims charging to hold the peak cap and covers any forecast miss inside a
             demand-response window. It never discharges into the {Math.round(g.meta.assets.reserve * 100)} % reserve kept for outages.</p>
@@ -111,7 +111,7 @@ export function GridPage() {
             Capacitor life at this month's rate: <b>{cab.life_years} years</b> with the work orders, <b>{cab.life_years_cf} years</b> without.</p>
         </section>
         <section className="db-card"><h3>PV soiling</h3>
-          <Chart h={130} days={false} yMin={0.8} yMax={1.02} yLabel="performance ratio" xMax={g.meta.days}
+          <Chart h={130} days={false} xLabel="day of the month" yMin={0.8} yMax={1.02} yLabel="performance ratio" xMax={g.meta.days}
             lines={[{ name: "PV performance ratio (vs the irradiance sensor)", x: g.health.pv.performance_ratio.map((_, i) => i + 1), y: g.health.pv.performance_ratio, color: "#f2c230", width: 1.6 }]}
             marks={g.pv_cleaning.filter((c) => c.what.startsWith("planned")).map((c) => ({ x: c.day, color: "#22c55e", label: "cleaned" }))} />
           {g.pv_cleaning.map((c) => <p key={c.what} className="db-note">day {c.day}: {c.what}</p>)}

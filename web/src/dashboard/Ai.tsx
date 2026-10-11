@@ -147,7 +147,7 @@ export function AiPage() {
           <div className="mo-dl" style={{ marginTop: 8 }}><a href={`${BASE}ml/stf_pm_tcn.onnx`} download>stf_pm_tcn.onnx</a><a href={`${BASE}ml/weights.json`} download>weights.json</a><a href={`${BASE}ml/results.json`} download>results.json</a></div>
         </section>
         <section className="db-card"><h3>Training loss</h3>
-          <Chart h={150} days={false} lines={stages.map((s) => {
+          <Chart h={150} days={false} xLabel="epoch" yLabel="loss" lines={stages.map((s) => {
             const L = R.log.filter((l) => l.stage === s);
             return { name: s, x: L.map((_, i) => i + 1), y: L.map((l) => l.loss), color: SC[s] ?? "#9fd0ff" };
           })} />
@@ -181,7 +181,7 @@ export function AiPage() {
             const xs = row.pred.map((_, i) => i * R.showcase.stride);
             return (
               <div key={row.comp}>
-                <Chart h={120} days={false} yMin={0} yMax={W.rul_cap} xMax={xs[xs.length - 1]}
+                <Chart h={120} days={false} xLabel="orders" yLabel="remaining life (orders)" yMin={0} yMax={W.rul_cap} xMax={xs[xs.length - 1]}
                   lines={[{ name: `${NICE[row.comp]}: true remaining life`, x: xs, y: row.true, color: "#9fd0ff", width: 1.2 },
                           { name: "predicted", x: xs, y: row.pred, color: "#22c55e", width: 1.4 }]}
                   marks={[...row.fails.map((f) => ({ x: f, color: "#e0503a", label: "failure" })),

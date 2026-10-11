@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { HealthDoc, LifecycleDoc } from "../shared/model";
 import { compAt } from "../shared/health";
 import { PART_COL } from "./Health";
+import { Bars } from "./Plot";
 
 const H = 90;                      // shifts ahead on the schedule (30 days of three shifts)
 const KIND = {
@@ -57,7 +58,7 @@ function Timeline({ rows, pm, sel, pick }: { rows: Row[]; pm: boolean; sel: stri
       <div className="mt-scroll"><svg viewBox={`0 0 ${W} ${Hh}`}>
         {Array.from({ length: H / 15 + 1 }, (_, i) => i * 15).map((t) => (
           <g key={t}><line x1={X(t)} x2={X(t)} y1={T - 4} y2={Hh - 6} className="mo-grid" />
-            <text x={X(t)} y={10} textAnchor="middle" className="mo-ax">{t === 0 ? "now" : `day ${t / 3}`}</text></g>))}
+            <text x={X(t)} y={10} textAnchor="middle" className="pl-tick">{t === 0 ? "now" : `day ${t / 3}`}</text></g>))}
         {rows.map((r, i) => {
           const y = T + i * RH + RH / 2;
           return (
@@ -85,22 +86,19 @@ function Timeline({ rows, pm, sel, pick }: { rows: Row[]; pm: boolean; sel: stri
   );
 }
 
-/** Services per day over the schedule. */
-function Workload({ rows }: { rows: Row[] }) {
-  const days = H / 3, W = 900, Hh = 110, L = 30, R = 14, T = 8, B = 20;
-  const n = Array.from({ length: days }, () => 0);
-  rows.filter((r) => r.kind !== "visit").forEach((r) => [...r.events, ...(r.fail !== null ? [r.fail] : [])].forEach((t) => { const d = Math.min(days - 1, Math.floor(t / 3)); n[d]++; }));
-  const max = Math.max(2, ...n), bw = (W - L - R) / days;
+/** Services (or, with PM off, breakdowns) per day over the schedule, by part. */
+function Workload({ rows, pm }: { rows: Row[]; pm: boolean }) {
+  const days = H / 3;
+  const per = Array.from({ length: days }, () => [] as string[]);
+  rows.filter((r) => r.kind !== "visit").forEach((r) => [...r.events, ...(r.fail !== null ? [r.fail] : [])]
+    .forEach((t) => per[Math.min(days - 1, Math.floor(t / 3))].push(r.name)));
+  const mean = per.reduce((a, d) => a + d.length, 0) / days;
   return (
-    <div className="mo-chart">
-      <svg viewBox={`0 0 ${W} ${Hh}`}>
-        {[0, max].map((v) => <g key={v}><line x1={L} x2={W - R} y1={T + (1 - v / max) * (Hh - T - B)} y2={T + (1 - v / max) * (Hh - T - B)} className="mo-grid" />
-          <text x={L - 5} y={T + (1 - v / max) * (Hh - T - B) + 3} textAnchor="end" className="mo-ax">{v}</text></g>)}
-        {n.map((v, d) => v > 0 && <rect key={d} x={L + d * bw + 2} y={T + (1 - v / max) * (Hh - T - B)} width={bw - 4} height={(v / max) * (Hh - T - B)}
-          rx={3} className={v >= 3 ? "mt-bar hi" : "mt-bar"}><title>day {d + 1}: {v} service{v > 1 ? "s" : ""}</title></rect>)}
-        {[0, 5, 10, 15, 20, 25].map((d) => <text key={d} x={L + d * bw + bw / 2} y={Hh - 5} textAnchor="middle" className="mo-ax">day {d + 1}</text>)}
-      </svg>
-    </div>
+    <Bars xTitle="day from now" yTitle={pm ? "services" : "breakdowns"} yMin={0} yMax={Math.max(3, ...per.map((d) => d.length)) + 0.5} yFmt={(v) => `${v}`}
+      hlines={[{ y: mean, color: "var(--muted)", label: "average" }]} xLabelEvery={2}
+      bars={per.map((d, i) => ({ key: `${i}`, label: `${i + 1}`, v: d.length,
+        color: !pm ? "var(--bad)" : d.length >= 3 ? "var(--warn)" : "var(--accent)",
+        tip: [["", `day ${i + 1}`], [pm ? "services" : "breakdowns", `${d.length}`], ...d.map((n, k) => [`${k + 1}.`, n] as [string, string])] }))} />
   );
 }
 
@@ -155,7 +153,7 @@ export function MaintenancePage({ h, lc, age, pm }: { h: HealthDoc; lc?: Lifecyc
 
       <section className="db-card hl-span2">
         <h3>{pm ? "Workload · services per day" : "Breakdowns per day"}</h3>
-        <Workload rows={rows} />
+        <Workload rows={rows} pm={pm} />
         <p className="hl-cap">{pm ? "Days with three or more services are highlighted: candidates to spread out." : "Every bar is an unplanned stop. Switch PM on to turn them into planned services."}</p>
       </section>
 

@@ -73,7 +73,7 @@ const MARK_COL: Record<string, string> = { dots: "var(--faint)", truth: "var(--t
 const N = ({ n, c }: { n: number; c?: string }) => <span className="dg-b" style={c ? { background: c } : undefined}>{n}</span>;
 
 function SignalLive({ sim, ref0 }: { sim: DegradeSim; ref0: [number, number][] | null }) {
-  const l = sim.law, W = 900, H = 260, L = 44, R = 12, T = 10, B = 24;
+  const l = sim.law, W = 900, H = 280, L = 58, R = 12, T = 10, B = 42;
   const sig = l.sigma * sim.o.noise;
   const [y0, y1] = sim.o.degrade ? [1 - 3 * sig, l.r_fail * 1.08] : [1 - 4.5 * sig, 1 + 4.5 * sig];
   const X = (n: number) => L + (n / sim.nMax) * (W - L - R);
@@ -89,7 +89,9 @@ function SignalLive({ sim, ref0 }: { sim: DegradeSim; ref0: [number, number][] |
       <svg viewBox={`0 0 ${W} ${H}`}>
         {(sim.o.degrade ? [1, sim.soft, l.r_fail] : [y0, 1, y1]).filter((v) => v >= y0 && v <= y1).map((v) => (
           <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} className="mo-grid" /><text x={L - 5} y={Y(v) + 3} textAnchor="end" className="mo-ax">{v.toFixed(sim.o.degrade ? 2 : 3)}</text></g>))}
-        {ticks.map((n) => <text key={n} x={X(n)} y={H - 7} textAnchor="middle" className="mo-ax">{k(n)}</text>)}
+        {ticks.map((n) => <text key={n} x={X(n)} y={H - B + 15} textAnchor="middle" className="pl-tick">{k(n)}</text>)}
+        <text x={(L + W - R) / 2} y={H - 6} textAnchor="middle" className="pl-title">uses of the part (cycles)</text>
+        <text transform={`translate(13 ${(T + H - B) / 2}) rotate(-90)`} textAnchor="middle" className="pl-title">signal r = measured ÷ healthy</text>
         {sim.soft <= y1 && <><line x1={L} x2={W - R} y1={Y(sim.soft)} y2={Y(sim.soft)} stroke={MARK_COL.soft} strokeDasharray="6 4" />
           <text x={W - R - 2} y={Y(sim.soft) - 4} textAnchor="end" className="mo-ax" style={{ fill: MARK_COL.soft }}>soft limit (7)</text></>}
         {l.r_fail <= y1 && <><line x1={L} x2={W - R} y1={Y(l.r_fail)} y2={Y(l.r_fail)} stroke={MARK_COL.fail} strokeDasharray="6 4" />
@@ -118,7 +120,7 @@ function SignalLive({ sim, ref0 }: { sim: DegradeSim; ref0: [number, number][] |
 }
 
 function Mini({ sim, kind }: { sim: DegradeSim; kind: "hi" | "rul" }) {
-  const l = sim.law, W = 440, H = 150, L = 34, R = 8, T = 10, B = 20, S = sim.samples;
+  const l = sim.law, W = 440, H = 170, L = 50, R = 8, T = 10, B = 36, S = sim.samples;
   const xs = sim.nMax / l.per_shift;
   const X = (n: number) => L + (n / l.per_shift / xs) * (W - L - R);
   const top = kind === "hi" ? 100 : (l.life / l.per_shift) * 1.25;
@@ -132,7 +134,9 @@ function Mini({ sim, kind }: { sim: DegradeSim; kind: "hi" | "rul" }) {
     <div className="mo-chart">
       <svg viewBox={`0 0 ${W} ${H}`}>
         {[0, top / 2, top].map((v) => <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} className="mo-grid" /><text x={L - 4} y={Y(v) + 3} textAnchor="end" className="mo-ax">{Math.round(v)}</text></g>)}
-        <text x={L} y={H - 5} className="mo-ax">0</text><text x={W - R} y={H - 5} textAnchor="end" className="mo-ax">{xs.toFixed(0)} shifts</text>
+        <text x={L} y={H - B + 14} className="pl-tick">0</text><text x={W - R} y={H - B + 14} textAnchor="end" className="pl-tick">{xs.toFixed(0)}</text>
+        <text x={(L + W - R) / 2} y={H - 5} textAnchor="middle" className="pl-title">part age (shifts)</text>
+        <text transform={`translate(12 ${(T + H - B) / 2}) rotate(-90)`} textAnchor="middle" className="pl-title">{kind === "hi" ? "health index" : "RUL (shifts)"}</text>
         {kind === "hi" && <rect x={L} y={Y(50)} width={W - L - R} height={Y(0) - Y(50)} className="hl-zone warn" />}
         {cone && <path d={cone} className="dg-cone" />}
         {cone && <line x1={X(0)} y1={Y(Tf / l.per_shift)} x2={X(Tf)} y2={Y(0)} stroke="var(--text)" strokeDasharray="2 3" opacity={0.6} />}
