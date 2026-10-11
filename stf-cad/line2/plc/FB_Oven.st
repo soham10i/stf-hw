@@ -17,7 +17,7 @@
 // Steady load at 900 cookies/h: Z1 1516 W, Z2 563 W, Z3 562 W.
 // The recipe holds +-2 K (oven.py bake window); bReady = every zone inside it for 60 s.
 FUNCTION_BLOCK FB_Oven
-VAR_INPUT  bRunEnable : BOOL; aContent : ARRAY[0..2] OF LREAL;     // 0..1 zone filled (from FB_Band) END_VAR
+VAR_INPUT  bRunEnable : BOOL; aContent : T_ZoneArray; END_VAR   // aContent: 0..1 zone filled (FB_Band)
 VAR_OUTPUT bReady : BOOL; aTemp : ARRAY[0..2] OF LREAL; aDuty : ARRAY[0..2] OF LREAL;
            aElementAlarm : ARRAY[0..2] OF BOOL; aBroken : ARRAY[0..8] OF BOOL; bHold : BOOL;
            fPower_W : LREAL; END_VAR
@@ -28,17 +28,18 @@ END_VAR
 VAR
     aSet  : ARRAY[0..2] OF LREAL := [210.0, 200.0, 185.0];      // degC (oven.py recipe)
     aKc   : ARRAY[0..2] OF LREAL := [0.0225, 0.0650, 0.0673];  // 1/K
-    aTi   : ARRAY[0..2] OF LREAL := [150, 152, 148];  // s
-    aP    : ARRAY[0..2] OF LREAL := [2500, 850, 850];        // W installed
-    aC    : ARRAY[0..2] OF LREAL := [2109, 2109, 2109];        // J/K
-    aLoadEmpty, aLoadFull : ARRAY[0..2] OF LREAL := [538, 23, 264], [1516, 563, 562];
+    aTi   : ARRAY[0..2] OF LREAL := [150.0, 152.0, 148.0];  // s
+    aP    : ARRAY[0..2] OF LREAL := [2500.0, 850.0, 850.0];        // W installed
+    aC    : ARRAY[0..2] OF LREAL := [2109.0, 2109.0, 2109.0];        // J/K
+    aLoadEmpty : ARRAY[0..2] OF LREAL := [538.0, 23.0, 264.0];   // W, empty band
+    aLoadFull  : ARRAY[0..2] OF LREAL := [1516.0, 563.0, 562.0];   // W, full band
     aSp, aI, aLost, aCalm : ARRAY[0..2] OF LREAL;   // aSp := aTemp at power-up (the ramp starts where the zone is)
     fRamp : LREAL := 0.1667;    // K/s
     // elements, flattened in slice order: zone, slice i of n, phase 0..2 = L1..L3, W
     aElZone  : ARRAY[0..8] OF INT := [0, 0, 0, 0, 0, 1, 1, 2, 2];
-    aElSlice : ARRAY[0..8] OF LREAL := [0.0 / 5.0, 1.0 / 5.0, 2.0 / 5.0, 3.0 / 5.0, 4.0 / 5.0, 0.0 / 2.0, 1.0 / 2.0, 0.0 / 2.0, 1.0 / 2.0];
+    aElSlice : ARRAY[0..8] OF LREAL := [0.0, 0.2, 0.4, 0.6, 0.8, 0.0, 0.5, 0.0, 0.5];   // i / n
     aElPh    : ARRAY[0..8] OF INT := [0, 1, 2, 0, 1, 2, 1, 0, 2];
-    aElW     : ARRAY[0..8] OF LREAL := [500, 500, 500, 500, 500, 500, 350, 500, 350];
+    aElW     : ARRAY[0..8] OF LREAL := [500.0, 500.0, 500.0, 500.0, 500.0, 500.0, 350.0, 500.0, 350.0];
     aOn, aCand : ARRAY[0..8] OF BOOL;
     aFanA : ARRAY[0..2] OF LREAL := [0.000, 0.304, 0.152];   // A, fans on the feed
     aThrA : ARRAY[0..2] OF LREAL := [1.087, 0.761, 0.761];   // A, half the smallest element
@@ -46,16 +47,22 @@ VAR
     aPhAlarm, aShortOn : ARRAY[0..2] OF BOOL;
     aOnT : ARRAY[0..8] OF LREAL;  aRecent, aTry, aOnLast : ARRAY[0..8] OF BOOL;
     aSince, aAlarmT, aProbeT, aProbeMax : ARRAY[0..2] OF LREAL;
+    aNamedT : ARRAY[0..2] OF LREAL := [-1.0E9, -1.0E9, -1.0E9];   // s: when the phase last named an element
     aProbe : ARRAY[0..2] OF INT := [-1, -1, -1];
-    fNow_s, fPhase, dW, fProd : LREAL;     // fNow_s: task time in s (TwinCAT system time)
-    tStable : TON; k, i, j, n, m : INT; e, uff, u : LREAL; bRamp, bAnyAlarm, bSame, bSettled : BOOL;
+    fNow_s, fPhase, dW, fProd : LREAL;     // fNow_s: task time in s, advanced every 10 ms cycle
+    tStable : TON; k, i, j, n, m : INT; e, uff, u : LREAL; bRamp, bAnyAlarm, bSame, bSettled, bInit : BOOL;
 END_VAR
+fNow_s := fNow_s + 0.01;                   // the task clock (10 ms cycle): PWM phase + heater-break timing
 aTemp[0] := INT_TO_LREAL(GVL_IO.tcTC1) / 10.0;
 aTemp[1] := INT_TO_LREAL(GVL_IO.tcTC2) / 10.0;
 aTemp[2] := INT_TO_LREAL(GVL_IO.tcTC3) / 10.0;
 aMeas[0] := INT_TO_LREAL(GVL_IO.aiBC1) / 32767.0 * 20.0;   // A, L1
 aMeas[1] := INT_TO_LREAL(GVL_IO.aiBC2) / 32767.0 * 20.0;   // A, L2
 aMeas[2] := INT_TO_LREAL(GVL_IO.aiBC3) / 32767.0 * 20.0;   // A, L3
+IF NOT bInit THEN                          // power-up: the set-point ramp starts where each zone IS (a hot
+    FOR k := 0 TO 2 DO aSp[k] := aTemp[k]; END_FOR;   // oven restarts at its set point, a cold one ramps)
+    bInit := TRUE;
+END_IF;
 bAnyAlarm := aPhAlarm[0] OR aPhAlarm[1] OR aPhAlarm[2] OR aElementAlarm[0] OR aElementAlarm[1] OR aElementAlarm[2];   // learning frozen until repaired
 FOR k := 0 TO 2 DO
     aSp[k] := MIN(aSet[k], aSp[k] + fRamp * 0.01);  bRamp := aSp[k] < aSet[k];        // 10 ms task
@@ -63,30 +70,30 @@ FOR k := 0 TO 2 DO
     fProd := aContent[k] * (aLoadFull[k] - aLoadEmpty[k]);
     uff := (aLoadEmpty[k] + aW0[k] + aA1[k] * fProd + SEL(bRamp, 0.0, aC[k] * fRamp)) / (aP[k] - aLost[k]);
     u := uff + aKc[k] * aP[k] / (aP[k] - aLost[k]) * (e + aI[k] / aTi[k]);
-    IF (u > 0.0 AND u < 1.0) OR (u >= 1.0 AND e < 0.0) OR (u <= 0.0 AND e > 0.0) THEN aI[k] := aI[k] + e * 0.01; END_IF
+    IF (u > 0.0 AND u < 1.0) OR (u >= 1.0 AND e < 0.0) OR (u <= 0.0 AND e > 0.0) THEN aI[k] := aI[k] + e * 0.01; END_IF;
     aDuty[k] := LIMIT(0.0, u, 1.0);
     // learning feed-forward
-    IF ABS(e) < 0.5 AND NOT bRamp THEN aCalm[k] := aCalm[k] + 0.01; ELSE aCalm[k] := 0.0; END_IF
-    IF aCalm[k] > 120 AND NOT bAnyAlarm AND (aContent[k] < 0.05 OR aContent[k] > 0.95) THEN
-        dW := (aDuty[k] - uff) * aP[k] * 0.01 / 600;
+    IF ABS(e) < 0.5 AND NOT bRamp THEN aCalm[k] := aCalm[k] + 0.01; ELSE aCalm[k] := 0.0; END_IF;
+    IF aCalm[k] > 120.0 AND NOT bAnyAlarm AND (aContent[k] < 0.05 OR aContent[k] > 0.95) THEN
+        dW := (aDuty[k] - uff) * aP[k] * 0.01 / 600.0;
         IF aContent[k] < 0.05 THEN
             aW0[k] := aW0[k] + dW;
         ELSIF fProd > 1.0 THEN
             u := LIMIT(0.5, aA1[k] + dW / fProd, 1.6);
             dW := (u - aA1[k]) * fProd;  aA1[k] := u;
-        END_IF
+        END_IF;
         aI[k] := aI[k] - dW / aP[k] / aKc[k] * aTi[k];
-    END_IF
-END_FOR
+    END_IF;
+END_FOR;
 // time-proportioning, 2 s period: element i of n in a zone conducts in its own slice of the period (phase
 // [i/n, i/n + duty)) - the zone gets its duty, the phases see the load spread instead of all at once
 fPhase := LMOD(fNow_s / 2.0, 1.0);
-FOR j := 0 TO 2 DO aExp[j] := SEL(bRunEnable, 0.0, aFanA[j]); END_FOR
+FOR j := 0 TO 2 DO aExp[j] := SEL(bRunEnable, 0.0, aFanA[j]); END_FOR;
 FOR i := 0 TO 8 DO
     aOn[i] := F_InSlice(fPhase, aElSlice[i], aDuty[aElZone[i]]) AND bRunEnable AND NOT aBroken[i]
               AND aProbe[aElPh[i]] <> i;                       // a probed candidate is held off
-    IF aOn[i] THEN aExp[aElPh[i]] := aExp[aElPh[i]] + aElW[i] / 230; END_IF
-END_FOR
+    IF aOn[i] THEN aExp[aElPh[i]] := aExp[aElPh[i]] + aElW[i] / 230.0; END_IF;
+END_FOR;
 GVL_IO.qE1T1 := aOn[0];   // Z1
 GVL_IO.qE1T2 := aOn[1];   // Z1
 GVL_IO.qE1T3 := aOn[2];   // Z1
@@ -101,68 +108,70 @@ GVL_IO.qQF2 := bRunEnable;   // Z2 circulation fan
 GVL_IO.qQF3 := bRunEnable;   // Z3 circulation fan
 // heater break: expected vs measured phase current (oven_ctrl._HeaterBreak, line for line)
 FOR i := 0 TO 8 DO
-    IF aOn[i] THEN aOnT[i] := fNow_s; END_IF
+    IF aOn[i] THEN aOnT[i] := fNow_s; END_IF;
     aRecent[i] := fNow_s - aOnT[i] <= 0.3;      // the reading lags: on at some time in t_resp
-END_FOR
+END_FOR;
 FOR j := 0 TO 2 DO
     bSame := TRUE;                                            // same elements on as last cycle?
-    FOR i := 0 TO 8 DO IF aElPh[i] = j AND aOn[i] <> aOnLast[i] THEN bSame := FALSE; END_IF END_FOR
-    IF NOT bSame THEN aSince[j] := fNow_s; END_IF
+    FOR i := 0 TO 8 DO IF aElPh[i] = j AND aOn[i] <> aOnLast[i] THEN bSame := FALSE; END_IF; END_FOR;
+    IF NOT bSame THEN aSince[j] := fNow_s; END_IF;
     bSettled := ABS(aExp[j] - aExpLag[j]) < 0.1 * aThrA[j];
     aExpLag[j] := aExpLag[j] + (aExp[j] - aExpLag[j]) * 0.01 / 0.100;
     IF aProbe[j] >= 0 THEN                                     // active probe: candidate aProbe[j] held off
-        IF fNow_s - aProbeT[j] >= 0.3 THEN aProbeMax[j] := MAX(aProbeMax[j], aExpLag[j] - aMeas[j]); END_IF
+        IF fNow_s - aProbeT[j] >= 0.3 THEN aProbeMax[j] := MAX(aProbeMax[j], aExpLag[j] - aMeas[j]); END_IF;
         IF fNow_s - aProbeT[j] >= 2.3 THEN     // a full period: its slice came
             IF aProbeMax[j] < 0.5 * aThrA[j] THEN                  // the short vanished: it is the one
-                FOR i := 0 TO 8 DO aCand[i] := aCand[i] AND (aElPh[i] <> j OR i = aProbe[j]); END_FOR
+                FOR i := 0 TO 8 DO aCand[i] := aCand[i] AND (aElPh[i] <> j OR i = aProbe[j]); END_FOR;
             ELSE
                 aCand[aProbe[j]] := FALSE;
-            END_IF
+            END_IF;
             aProbe[j] := -1;
-        END_IF
-    ELSIF aExpLag[j] - aMeas[j] > aThrA[j] THEN
+        END_IF;
+    ELSIF aExpLag[j] - aMeas[j] > aThrA[j] AND fNow_s - aNamedT[j] >= 1.0 THEN   // not while the lagged reading settles after a naming
         aShort[j] := aShort[j] + 0.01;
         FOR i := 0 TO 8 DO
-            IF aElPh[i] = j THEN aTry[i] := SEL(aShortOn[j], aRecent[i], aTry[i] AND aRecent[i]); END_IF
-        END_FOR
+            IF aElPh[i] = j THEN aTry[i] := SEL(aShortOn[j], aRecent[i], aTry[i] AND aRecent[i]) AND NOT aBroken[i]; END_IF;
+        END_FOR;
         aShortOn[j] := TRUE;
         IF aShort[j] >= 0.2 THEN
             IF NOT aPhAlarm[j] THEN
                 aPhAlarm[j] := TRUE;  aAlarmT[j] := fNow_s;
-                FOR i := 0 TO 8 DO IF aElPh[i] = j THEN aCand[i] := aTry[i]; END_IF END_FOR
+                FOR i := 0 TO 8 DO IF aElPh[i] = j THEN aCand[i] := aTry[i]; END_IF; END_FOR;
             ELSE
-                FOR i := 0 TO 8 DO IF aElPh[i] = j THEN aCand[i] := aCand[i] AND aTry[i]; END_IF END_FOR
-            END_IF
-        END_IF
+                FOR i := 0 TO 8 DO IF aElPh[i] = j THEN aCand[i] := aCand[i] AND aTry[i]; END_IF; END_FOR;
+            END_IF;
+        END_IF;
     ELSE
         IF bSettled AND fNow_s - aSince[j] >= 0.3 AND aExpLag[j] - aMeas[j] < 0.2 * aThrA[j] AND aPhAlarm[j] THEN
             FOR i := 0 TO 8 DO
-                IF aElPh[i] = j AND aOn[i] THEN aCand[i] := FALSE; END_IF     // conducted, phase read right: not it
-            END_FOR
-        END_IF
-        IF aShort[j] < 0.2 THEN aShortOn[j] := FALSE; END_IF
+                IF aElPh[i] = j AND aOn[i] THEN aCand[i] := FALSE; END_IF;     // conducted, phase read right: not it
+            END_FOR;
+        END_IF;
+        IF aShort[j] < 0.2 THEN aShortOn[j] := FALSE; END_IF;
         aShort[j] := 0.0;
-    END_IF
+    END_IF;
     IF aPhAlarm[j] THEN
         n := 0;  m := -1;
-        FOR i := 0 TO 8 DO IF aElPh[i] = j AND aCand[i] THEN n := n + 1; IF m < 0 THEN m := i; END_IF END_IF END_FOR
+        FOR i := 0 TO 8 DO IF aElPh[i] = j AND aCand[i] THEN n := n + 1; IF m < 0 THEN m := i; END_IF; END_IF; END_FOR;
         IF n = 0 THEN                                          // contradiction: start the diagnosis again
             aPhAlarm[j] := FALSE;  aShortOn[j] := FALSE;  aProbe[j] := -1;
         ELSIF n = 1 THEN                                       // named
-            aBroken[m] := TRUE;  aLost[aElZone[m]] := aLost[aElZone[m]] + aElW[m];  aCand[m] := FALSE;
+            IF NOT aBroken[m] THEN aLost[aElZone[m]] := aLost[aElZone[m]] + aElW[m]; END_IF;   // once per element (idempotent)
+            aNamedT[j] := fNow_s;
+            aBroken[m] := TRUE;  aCand[m] := FALSE;
             aElementAlarm[aElZone[m]] := TRUE;  aPhAlarm[j] := FALSE;  aShortOn[j] := FALSE;  aProbe[j] := -1;
-        ELSIF aProbe[j] < 0 AND fNow_s - aAlarmT[j] >= 4 THEN
+        ELSIF aProbe[j] < 0 AND fNow_s - aAlarmT[j] >= 4.0 THEN
             aProbe[j] := m;  aProbeT[j] := fNow_s;  aProbeMax[j] := -1.0E9;   // the slices cannot tell: probe
-        END_IF
-    END_IF
-END_FOR
-FOR i := 0 TO 8 DO aOnLast[i] := aOn[i]; END_FOR
+        END_IF;
+    END_IF;
+END_FOR;
+FOR i := 0 TO 8 DO aOnLast[i] := aOn[i]; END_FOR;
 // a zone whose remaining elements cannot carry the full band at 95% duty: hold the depositor
 bHold := FALSE;
 FOR k := 0 TO 2 DO
-    IF (aP[k] - aLost[k]) * 0.95 < aLoadFull[k] + aW0[k] + (aA1[k] - 1.0) * (aLoadFull[k] - aLoadEmpty[k]) THEN bHold := TRUE; END_IF
-END_FOR
+    IF (aP[k] - aLost[k]) * 0.95 < aLoadFull[k] + aW0[k] + (aA1[k] - 1.0) * (aLoadFull[k] - aLoadEmpty[k]) THEN bHold := TRUE; END_IF;
+END_FOR;
 fPower_W := 0.0;
-FOR k := 0 TO 2 DO fPower_W := fPower_W + aDuty[k] * (aP[k] - aLost[k]); END_FOR
-tStable(IN := ABS(aTemp[0] - aSet[0]) < 2 AND ABS(aTemp[1] - aSet[1]) < 2 AND ABS(aTemp[2] - aSet[2]) < 2, PT := T#60S);
+FOR k := 0 TO 2 DO fPower_W := fPower_W + aDuty[k] * (aP[k] - aLost[k]); END_FOR;
+tStable(IN := ABS(aTemp[0] - aSet[0]) < 2.0 AND ABS(aTemp[1] - aSet[1]) < 2.0 AND ABS(aTemp[2] - aSet[2]) < 2.0, PT := T#60S);
 bReady := tStable.Q AND NOT bHold;

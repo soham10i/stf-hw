@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Every proof of STF-2, in dependency order; stops at the first failure.   Run from stf-cad/line2.
-#   ./check_all.sh          model, control, joints, PLC, safety, line sim, BOM, drawings, twin scene, playback, live plant + flow (~13 min)
+#   ./check_all.sh          model, control, joints, PLC, safety, line sim, BOM, drawings, twin scene, playback, live plant, flow, PLC in the loop (~18 min)
 #   ./check_all.sh --full   + precise CAD build, motion sweep, player validation (+ ~40 min)
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -26,6 +26,11 @@ if [ -x ../../.venv-twin/bin/python ]; then
   step twin_play  twin/playback.sh
   step twin_plant ../../.venv-twin/bin/python -W ignore twin/plant_check.py
   step twin_flow  ../../.venv-twin/bin/python -W ignore twin/flow_check.py
+  if [ -x "${STF_MATIEC:-$HOME/workspace/stf-hw/.cache/matiec}/iec2c" ]; then
+    step twin_sil  ../../.venv-twin/bin/python -W ignore twin/sil_check.py
+  else
+    echo "twin_sil       skipped (no MatIEC: see twin/MAC_SETUP.md section 5)"
+  fi
 else
   echo "twin_scene     skipped (no .venv-twin: see twin/MAC_SETUP.md section 4)"
 fi

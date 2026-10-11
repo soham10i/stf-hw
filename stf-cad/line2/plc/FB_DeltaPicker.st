@@ -6,5 +6,5 @@
 FUNCTION_BLOCK FB_DeltaPicker
 VAR_INPUT fMasterPos : LREAL; bUpstream : BOOL; bPartnerMissed : BOOL; END_VAR
 VAR_OUTPUT bMissed : BOOL; END_VAR
-VAR eState : (WAIT, TRACK, GRIP, LIFT, PLACE, RELEASE, HOME); END_VAR
+VAR eState : E_PickState; END_VAR
 // GRIP: vacuum valve ON, wait for the vacuum switch (.OK); no OK within 0.8 s -> bMissed (the cookie recirculates)

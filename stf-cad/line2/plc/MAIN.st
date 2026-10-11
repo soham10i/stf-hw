@@ -12,9 +12,9 @@ VAR
     fbSafety  : FB_SafetyIf;      // S-1: standard side of the TwinSAFE project (requests + status only)
 END_VAR
 fbSafety();                      // first: every station below runs only while fbSafety.bRunEnable
-fbMaster(axDrive := GVL_IO.axQ1, nEncoder := GVL_IO.encB1);
+fbMaster(axDrive := GVL_IO.axQ1, axMaster := GVL_IO.axMasterEnc, nEncoder := GVL_IO.encB1);
 fbOven(bRunEnable := fbSafety.bRunEnable, aContent := fbBand.aZoneContent);   // last cycle's content
-fbBand(axBand := GVL_IO.axQ40, axRolls := GVL_IO.axQ41, axMaster := fbMaster.axMaster,
+fbBand(axBand := GVL_IO.axQ40, axRolls := GVL_IO.axQ41, axMaster := GVL_IO.axMasterEnc,
        bOvenReady := fbOven.bReady);
 fbTransfer(fMasterPos := fbMaster.fPos, fBandPos := fbBand.fPos, bPuckFull := GVL_IO.iI1);
 fbQC(fMasterPos := fbMaster.fPos);

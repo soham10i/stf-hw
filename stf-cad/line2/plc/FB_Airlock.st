@@ -13,4 +13,4 @@
 //   AMR sets stacks in the chamber; S30 close + lock -> Y1 on -> trapdoor over each low magazine drops its stack.
 FUNCTION_BLOCK FB_Airlock
 VAR_INPUT nLaneFull : INT; bAmrDocked : BOOL; END_VAR
-VAR eOut : (IDLE, CARRY_OUT, INNER_CLOSE, OUTER_OPEN, SWAP, OUTER_CLOSE, INNER_OPEN, CARRY_IN); END_VAR
+VAR eOut : E_AirlockOut; END_VAR

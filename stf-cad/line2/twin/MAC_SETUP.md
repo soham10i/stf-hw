@@ -103,6 +103,8 @@ open -a Blender twin/out/stf2_anim.blend       # press Space - see VIEWING.md
 python3 -m http.server 8300 --bind 127.0.0.1   # then http://localhost:8300/twin/web/ (the browser twin)
 ../../.venv-twin/bin/python -m twin.plant.serve   # DT-3a (built): live plant, http://127.0.0.1:8200/twin/web/?live
 ../../.venv-twin/bin/python -W ignore twin/plant_check.py   # DT-3a gate (~2 min)
+../../.venv-twin/bin/python -m twin.sil.build              # DT-4a: plc/*.st -> IEC -> MatIEC -> libstf2plc.dylib
+../../.venv-twin/bin/python -W ignore twin/sil_check.py    # DT-4a gate: the compiled PLC against the plant (~1 min)
 python3 -m twin.sil.build                      # DT-4: plc/*.st -> IEC -> MatIEC -> libplc + plc.wasm
 python3 -m twin.plant.serve --plc sil --speed 1 # DT-3/4: plant + PLC on :8200, WebSocket /ws/frames
 python3 -m twin.opcua.server &                 # DT-5: opc.tcp://localhost:4840/stf2

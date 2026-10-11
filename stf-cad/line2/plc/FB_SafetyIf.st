@@ -19,3 +19,5 @@ VAR
     aUnlockReq   : ARRAY[0..2] OF BOOL;   // from the HMI
     aMuteReq     : ARRAY[0..1] OF BOOL;   // from FB_AmrPorts when an AMR is due
 END_VAR
+bRunEnable := GVL_IO.xSafeRunPermit;      // the EL6910 says: no stop demand, doors locked, resets done
+bStopDemand := NOT GVL_IO.xSafeRunPermit;

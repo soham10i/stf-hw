@@ -10,7 +10,9 @@ script that must exit 0.
 | DT-2 | Kinematic playback in the web twin and Blender | `twin/playback_check.py` | **built** (2026-10-06) | DT-1 |
 | DT-3a | Live plant core (machine time, events, oven, WebSocket, live viewer) | `twin/plant_check.py` | **built** (2026-10-11) | DT-2 |
 | DT-3b | Product flow (line_sim's engine), stocks + AMR, bake logs, the oven under its closed loop | `twin/flow_check.py` | **built** (2026-10-11) | DT-3a |
-| DT-4 | PLC in the loop (SIL): ST → IEC → MatIEC, safety module | `twin/sil_check.py` | 8-10 d | DT-3 |
+| DT-4a | PLC in the loop: the generated program compiled (MatIEC) and run against the plant - oven + drives | `twin/sil_check.py` | **built** (2026-10-12) | DT-3b |
+| DT-4b | The station logic (the 9 stubs) + the 181-signal sensor image; PLC-run flow = line_sim | `twin/sil_flow_check.py` | 5-7 d | DT-4a |
+| DT-4c | Safety module SF1-SF6 (TwinSAFE side), faults F6/F7/F12, WebAssembly build, learning on a mismatched oven | `twin/sil_safety_check.py` | 3-4 d | DT-4b |
 | DT-5 | OPC UA server + Sparkplug B / UNS | `twin/opcua_check.py`, `twin/uns_check.py` | 3-4 d | DT-4 |
 | DT-6 | Contact physics for the handling steps (MuJoCo) | `twin/contact_check.py` | 4-5 d | DT-3 |
 | DT-7 | Renders, synthetic QC images, vision model | `twin/vision_check.py` | 4-6 d | DT-1 |
@@ -18,7 +20,7 @@ script that must exit 0.
 | DT-9 | Optional: the same USD stage in Omniverse / Isaac Sim (cloud) | manual review | 2-3 d | DT-1, a cloud RTX instance |
 | DT-10 | Hardware in the loop: the real Beckhoff PLC replaces the SIL | `twin/hil_check.py` | when hardware arrives | DT-4, hardware |
 
-Critical path: DT-1 → DT-2 → DT-3a → DT-3b → DT-4 (+ the sensor image) → DT-8, about 6-7 weeks. DT-6 and DT-7 run in parallel with DT-4.
+Critical path: DT-1 → DT-2 → DT-3a → DT-3b → DT-4a → DT-4b → DT-4c → DT-8, about 6-7 weeks. DT-6 and DT-7 run in parallel with DT-4.
 
 ---
 
@@ -222,29 +224,91 @@ and no cookie is flagged.
 
 In DT-3b the decisions are line_sim's. That is the proven model, but not yet the PLC program.
 
-## DT-4 PLC in the loop (SIL)
+## DT-4a PLC in the loop: the oven and the drives (BUILT)
 
-**Builds.**
-- `plc_io.py --target iec` generates a portable IEC 61131-3 project from the same sources: located I/O, `SIM_MC` instead of Tc2_MC2, no pragmas, retained memory for `VAR PERSISTENT`.
-- `twin/sil/` compiles it with MatIEC → C → native (`ctypes`) and → WebAssembly (`clang`, `wasm-ld`), reusing `stf-cad/hbw/sil` from `main`.
-- The safety module implements SF1-SF6 from `safety/safety_functions.csv` and runs before the standard task.
+**What was there.** The generated TwinCAT program had never been compiled. Most of it is a skeleton:
 
-**Gate - `sil_check.py`:**
-1. The program compiles with no warnings.
-2. A diff check proves the IEC FB bodies equal the TwinCAT ones, apart from the mapped constructs.
-3. One hour of nominal production runs with **the PLC deciding**, and gives the DT-3 flow result.
-4. Faults F1-F7 and F11-F12 of the [fault catalogue](SIM_MODELS.md#6-fault-catalogue) give their expected responses, measured on the plant: alarm times, which element is named, depositor hold, STB trip time, SS1 timing, unlock delay.
-5. The learned `W0` / `a1` survive a restart (retained memory).
-6. The WebAssembly build runs the same 10-minute scenario with an identical I/O trace.
-7. **It can fail.** Mutants of the program are each rejected by a gate, for example:
-   - band gear ratio off by one row;
-   - the heater-break threshold doubled;
-   - SF2 unlock without the standstill wait.
+| Has logic | Stubs (declarations + a comment, no statements) |
+|---|---|
+| FB_Oven, FB_Band, FB_MasterAxis, FB_SafetyIf, F_InSlice, MAIN | FB_Transfer, FB_QC, FB_DeltaPicker, FB_Lane, FB_AmrPorts, FB_Airlock, FB_SafeEnvelope, FB_DataTag, FB_CameraTrigger |
 
-**Expect findings.** On `main`, cell 1's generated program was first rejected by MatIEC with 910 errors. Writing it
-properly and running it exposed ten real problems, one of them a design flaw (Upgrade 13, F8). The STF-2 program has
-never been compiled either, so DT-4 budgets time for the same. Every finding is fixed in the generator
-(`plc_io.py`), never in the output.
+DT-4a therefore proves the part that exists (the oven and the drives) and DT-4b writes the stations.
+
+**As built:**
+- `twin/sil/port.py` turns `plc/*.st` into one IEC 61131-3 project through 13 listed rules (R1-R13). The rules cover:
+  - pragmas, `GVL_IO.` qualifiers and the `VAR_EXTERNAL` declarations IEC needs;
+  - located I/O and `RETAIN`;
+  - `LMOD`;
+  - `//` comments and missing `END_*` keywords;
+  - the configuration and task (10 ms);
+  - FB arrays (an IEC 3rd-edition feature);
+  - stubs, which are made explicit and listed;
+  - **SIM_MC**: `AXIS_REF` and the Tc2_MC2 blocks with PLCopen semantics (rising-edge Execute; MC_GearIn does *not* decouple on a falling Execute).
+- `twin/sil/build.py` runs MatIEC (`iec2c`, 0 errors, 0 warnings) then clang, giving a native library. Its `glue.c` gives every located variable storage and a name table; `mon.c` provides read-only monitors of the program's internals (what an HMI reads over ADS) and the RETAIN memory for a power cycle.
+- `twin/sil/runtime.py` drives the program from Python, scan by scan, with `power_cycle()`.
+- `twin/sil/plant.py` is the plant the PLC sees at its own 10 ms scan:
+  - a simulated NC for the commanded axes;
+  - the band and the rows really cut, while the rolls actually turn;
+  - the oven zones integrated every 10 ms from the SSR outputs that are on;
+  - the thermocouple lag, giving `tcTCn`;
+  - the phase currents through the transducer model (lag and accuracy), giving `aiBCn`.
+
+**Findings.** The generated program had 14 defects, all fixed in the generator (`plc_io.py`), never in its output:
+
+| # | Found by | Finding |
+|---|---|---|
+| 1 | review | `fNow_s` (the task clock) was never advanced: the PWM phase stayed 0, so no time-proportioning, and no heater-break timing |
+| 2 | review | `aSp` (the set-point ramp) never initialised: a PLC restart on a hot oven ramps from 0 °C (a 112 K dip, mutant M2) |
+| 3 | review | `AXIS_REF` passed as `VAR_INPUT`: the MC blocks moved a *copy*; the real axes never moved. Now `VAR_IN_OUT` |
+| 4 | review | `FB_SafetyIf` had no body: `bRunEnable` always FALSE, so the oven never heated. Now from the EL6910 status `xSafeRunPermit` |
+| 5 | review | `FB_Band.aZoneContent` was never computed: the oven's feed-forward (14.5 K → 0.7 K in O-2) was dead. Now FB_Band tracks every row it cuts |
+| 6 | compiler | two names with two initialisers in one declaration; expressions as array initialisers |
+| 7 | **run** | `MC_GearIn(Execute := bOvenReady)` cannot stop the depositor (PLCopen: a falling Execute does not decouple). A Z2/Z3 heater break would keep feeding dough. Now MC_GearOut + MC_Halt (mutant M3) |
+| 8 | compiler | `ST_PuckEvent` refers to `E_Station` / `E_Outcome`, never generated (left out of the SIL, listed) |
+| 9 | compiler | inline enumerations in VAR blocks (`eState : (WAIT, ...)`) → named types |
+| 10 | compiler | `// ... END_VAR`: FB_Oven's `VAR_INPUT` was closed inside a comment, so the program could never have compiled |
+| 11 | **run** | **a heater break shut its whole zone off.** Naming re-ran while the lagged current settled, adding the element's power to `aLost` again (6,000 W lost of 850 W), so the duty was 0 forever. Now idempotent, and a named element is no candidate (mutant M4) |
+| 12 | **run** | a power cycle lost FB_Band's row memory: the feed-forward saw an empty band under a full one (a 12.4 K dip). Now `VAR RETAIN` (mutant M5) |
+| 13 | **run** | after a naming, the settling current named a second, innocent element on the same phase. Now a 1 s hold-off |
+| 14 | **run** | FB_Band counted rows from its *command* (`bOvenReady`) rather than the rolls' measured motion: the row cut while the rolls brake was missed (a 3.7 K dip). Now from `axRolls.NcToPlc.ActVelo` (mutant M6) |
+
+Also strict IEC typing: real literals (`20.0`, not `20`), `END_IF;` and a named `T_ZoneArray`. TwinCAT accepts all of
+them, and the generated TwinCAT files now use them.
+
+**Gate - `sil_check.py`** (all pass, ~1 min on 10 cores):
+
+| Proof | Result |
+|---|---|
+| C1 compiles | 712 lines → MatIEC 0 errors, 0 warnings → native library; 133 located variables; the 9 stubs listed |
+| C2 port only | the 15 ported POUs = the generated ones token for token, apart from R1-R13 |
+| C3 PWM | each of the 9 elements conducts its zone's duty (within one scan in 200), in staggered slices |
+| C4 cold start | within ±2 K after 18.5 min (oven_ctrl S1: 18.3 min); overshoot 1.05 K (S1: 1.64 K); ready at 19.5 min |
+| C5 production start | ready at 61 s; FB_Band's content = the band's true content at 1,500 / 1,500 s; worst zone 0.62 K |
+| C6 heater break × 9 | each element named correctly and only it, after 1-8 s; Z1 rides through (≤ 0.6 K); Z2 / Z3 hold: the depositor stops, no row is cut after the hold, the zone is back in the window once the band empties; FB_Band = the band throughout |
+| C7 no nuisance | 1 h of production, transducer error against the proof: no phase alarm, nothing named |
+| C8 hot restart | power cycle on a running oven: rows + learned feed-forward kept (RETAIN), worst zone 0.42 K |
+| C9 determinism | 300 s of outputs + TCs identical |
+| mutants | M1-M6 (findings 1, 2, 7, 11 + 13, 12, 14 put back) each rejected |
+
+## DT-4b The stations (to build)
+
+- Write the station logic the 9 stubs only describe, generated in `plc_io.py`:
+  - delta C transfer;
+  - QC + kicker;
+  - the delta pickers;
+  - the lanes (index, seal, stack);
+  - the AMR ports and airlocks;
+  - the data tag.
+- Extend the plant to the full 181-signal sensor image (`SIM_MODELS.md` §3.4).
+- The plant obeys the PLC's outputs instead of line_sim's decisions.
+- **Proof:** the PLC-run line reproduces `sim_results.json["nominal_1h"]`, with the random outcomes (defects, grips, QC errors) drawn from one table shared by line_sim and the plant.
+
+## DT-4c Safety and the rest (to build)
+
+- SF1-SF6 as a separate module (the TwinSAFE side) feeding `xSafeRunPermit` and the stop categories;
+- faults F6 / F7 / F12;
+- the WebAssembly build, for the browser;
+- learning (W0 / a1) on a mismatched oven in the loop, and PERSISTENT across a program download.
 
 ## DT-5 OPC UA and Sparkplug B / UNS
 

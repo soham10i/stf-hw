@@ -27,6 +27,7 @@ import csv
 import json
 import math
 import os
+import re
 import sys
 from collections import OrderedDict, defaultdict
 from dataclasses import dataclass, field
@@ -664,6 +665,12 @@ def _var(io):
             "SO": f"so{t}"}[io.kind]
 
 
+def _r(x):
+    """A REAL literal: IEC 61131-3 types strictly, so '20' is not a LREAL - '20.0' is."""
+    t = f"{x:.10g}"
+    return t if any(c in t for c in ".eE") else t + ".0"
+
+
 def twincat(ios):
     """Structured Text skeletons (IEC 61131-3), one file per POU."""
     files = {}
@@ -681,6 +688,9 @@ def twincat(ios):
             ("AT %Q*" if io.kind in ("DO", "DOTS") else "")
         lines.append(f"    {_var(io):24s} {at:7s}: {typ[io.kind]};   // {io.slot:14s} {io.part:28s} {io.desc}"
                      + ("  [implied, not in CAD]" if not io.cad else ""))
+    lines.append(f"    {'axMasterEnc':24s} {'':7s}: AXIS_REF;   // NC encoder axis on B1: the virtual master (gearing, cams)")
+    lines.append(f"    {'xSafeRunPermit':24s} {'AT %I*':7s}: BOOL;   // EL6910 standard process data: no stop demand, "
+                 "doors locked, resets done")
     lines.append("END_VAR")
     files["GVL_IO.st"] = "\n".join(lines) + "\n"
     v = {io.tag: _var(io) for io in ios}
@@ -699,9 +709,9 @@ VAR
     fbSafety  : FB_SafetyIf;      // S-1: standard side of the TwinSAFE project (requests + status only)
 END_VAR
 fbSafety();                      // first: every station below runs only while fbSafety.bRunEnable
-fbMaster(axDrive := GVL_IO.{v['Q1']}, nEncoder := GVL_IO.{v['B1']});
+fbMaster(axDrive := GVL_IO.{v['Q1']}, axMaster := GVL_IO.axMasterEnc, nEncoder := GVL_IO.{v['B1']});
 fbOven(bRunEnable := fbSafety.bRunEnable, aContent := fbBand.aZoneContent);   // last cycle's content
-fbBand(axBand := GVL_IO.{v['Q40']}, axRolls := GVL_IO.{v['Q41']}, axMaster := fbMaster.axMaster,
+fbBand(axBand := GVL_IO.{v['Q40']}, axRolls := GVL_IO.{v['Q41']}, axMaster := GVL_IO.axMasterEnc,
        bOvenReady := fbOven.bReady);
 fbTransfer(fMasterPos := fbMaster.fPos, fBandPos := fbBand.fPos, bPuckFull := GVL_IO.{v['I1']});
 fbQC(fMasterPos := fbMaster.fPos);
@@ -714,12 +724,14 @@ fbPorts();
 // The master position is the MEASURING-WHEEL encoder B1 (EL5101), not the drive's own encoder,
 // so sprocket slip shows as a drift between the two (health signal).
 FUNCTION_BLOCK FB_MasterAxis
-VAR_INPUT
+VAR_IN_OUT                        // axes BY REFERENCE: MC blocks on a copy would never move the real axis
     axDrive  : AXIS_REF;          // Q1 on EL7047 (closed loop)
+    axMaster : AXIS_REF;          // NC encoder axis on B1 (virtual master for gearing / cams)
+END_VAR
+VAR_INPUT
     nEncoder : UDINT;             // B1 counts
 END_VAR
 VAR_OUTPUT
-    axMaster : AXIS_REF;          // NC encoder axis on B1 (virtual master for gearing / cams)
     fPos     : LREAL;             // mm along the loop, modulo N*P
     fDrift   : LREAL;             // drive encoder - B1, mm (slip monitor)
 END_VAR
@@ -727,7 +739,7 @@ VAR
     fbPower : MC_Power; fbVel : MC_MoveVelocity;
 END_VAR
 fbPower(Axis := axDrive, Enable := TRUE, Enable_Positive := TRUE, Enable_Negative := FALSE);
-fbVel(Axis := axDrive, Execute := fbPower.Status, Velocity := {L['V']:.1f}, Acceleration := 20, Deceleration := 20,
+fbVel(Axis := axDrive, Execute := fbPower.Status, Velocity := {L['V']:.1f}, Acceleration := 20.0, Deceleration := 20.0,
       Direction := MC_Positive_Direction);
 fPos := LMOD(axMaster.NcToPlc.ActPos, {L['N'] * L['PITCH']:.1f});
 fDrift := axDrive.NcToPlc.ActPos - axMaster.NcToPlc.ActPos;
@@ -774,7 +786,7 @@ fDrift := axDrive.NcToPlc.ActPos - axMaster.NcToPlc.ActPos;
 // Steady load at {3600 / takt:.0f} cookies/h: """ + ", ".join(f"{z['zone']} {z['total']:.0f} W" for z in loads) + f""".
 // The recipe holds +-{L['BAKE_MARGIN']:g} K (oven.py bake window); bReady = every zone inside it for 60 s.
 FUNCTION_BLOCK FB_Oven
-VAR_INPUT  bRunEnable : BOOL; aContent : ARRAY[0..{zn - 1}] OF LREAL;     // 0..1 zone filled (from FB_Band) END_VAR
+VAR_INPUT  bRunEnable : BOOL; aContent : T_ZoneArray; END_VAR   // aContent: 0..1 zone filled (FB_Band)
 VAR_OUTPUT bReady : BOOL; aTemp : ARRAY[0..{zn - 1}] OF LREAL; aDuty : ARRAY[0..{zn - 1}] OF LREAL;
            aElementAlarm : ARRAY[0..{zn - 1}] OF BOOL; aBroken : ARRAY[0..{ne - 1}] OF BOOL; bHold : BOOL;
            fPower_W : LREAL; END_VAR
@@ -785,17 +797,18 @@ END_VAR
 VAR
     aSet  : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{t:.1f}" for t in pl_.Ts)}];      // degC (oven.py recipe)
     aKc   : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{g['Kc']:.4f}" for g in gains)}];  // 1/K
-    aTi   : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{g['Ti']:.0f}" for g in gains)}];  // s
-    aP    : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{p:.0f}" for p in pl_.P)}];        // W installed
-    aC    : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{c:.0f}" for c in pl_.C)}];        // J/K
-    aLoadEmpty, aLoadFull : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{pl_.load(k, pl_.Ts[k], 0.0):.0f}" for k in range(zn))}], [{', '.join(f"{pl_.load(k, pl_.Ts[k], 1.0):.0f}" for k in range(zn))}];
+    aTi   : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{_r(round(g['Ti']))}" for g in gains)}];  // s
+    aP    : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{_r(round(p))}" for p in pl_.P)}];        // W installed
+    aC    : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{_r(round(c))}" for c in pl_.C)}];        // J/K
+    aLoadEmpty : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{_r(round(pl_.load(k, pl_.Ts[k], 0.0)))}" for k in range(zn))}];   // W, empty band
+    aLoadFull  : ARRAY[0..{zn - 1}] OF LREAL := [{', '.join(f"{_r(round(pl_.load(k, pl_.Ts[k], 1.0)))}" for k in range(zn))}];   // W, full band
     aSp, aI, aLost, aCalm : ARRAY[0..{zn - 1}] OF LREAL;   // aSp := aTemp at power-up (the ramp starts where the zone is)
     fRamp : LREAL := {C_['RAMP'] / 60:.4f};    // K/s
     // elements, flattened in slice order: zone, slice i of n, phase 0..2 = L1..L3, W
     aElZone  : ARRAY[0..{ne - 1}] OF INT := [{', '.join(str(k) for k, i, e in flat)}];
-    aElSlice : ARRAY[0..{ne - 1}] OF LREAL := [{', '.join(f"{i}.0 / {len(zs[k][2])}.0" for k, i, e in flat)}];
+    aElSlice : ARRAY[0..{ne - 1}] OF LREAL := [{', '.join(repr(round(i / len(zs[k][2]), 12)) for k, i, e in flat)}];   // i / n
     aElPh    : ARRAY[0..{ne - 1}] OF INT := [{', '.join(str(phs.index(e.extra['phase'])) for k, i, e in flat)}];
-    aElW     : ARRAY[0..{ne - 1}] OF LREAL := [{', '.join(f"{e.extra['mains_W']:.0f}" for k, i, e in flat)}];
+    aElW     : ARRAY[0..{ne - 1}] OF LREAL := [{', '.join(f"{_r(round(e.extra['mains_W']))}" for k, i, e in flat)}];
     aOn, aCand : ARRAY[0..{ne - 1}] OF BOOL;
     aFanA : ARRAY[0..2] OF LREAL := [{', '.join(f"{fan_A[ph]:.3f}" for ph in phs)}];   // A, fans on the feed
     aThrA : ARRAY[0..2] OF LREAL := [{', '.join(f"{thr[ph]:.3f}" for ph in phs)}];   // A, half the smallest element
@@ -803,14 +816,20 @@ VAR
     aPhAlarm, aShortOn : ARRAY[0..2] OF BOOL;
     aOnT : ARRAY[0..{ne - 1}] OF LREAL;  aRecent, aTry, aOnLast : ARRAY[0..{ne - 1}] OF BOOL;
     aSince, aAlarmT, aProbeT, aProbeMax : ARRAY[0..2] OF LREAL;
+    aNamedT : ARRAY[0..2] OF LREAL := [-1.0E9, -1.0E9, -1.0E9];   // s: when the phase last named an element
     aProbe : ARRAY[0..2] OF INT := [-1, -1, -1];
-    fNow_s, fPhase, dW, fProd : LREAL;     // fNow_s: task time in s (TwinCAT system time)
-    tStable : TON; k, i, j, n, m : INT; e, uff, u : LREAL; bRamp, bAnyAlarm, bSame, bSettled : BOOL;
+    fNow_s, fPhase, dW, fProd : LREAL;     // fNow_s: task time in s, advanced every 10 ms cycle
+    tStable : TON; k, i, j, n, m : INT; e, uff, u : LREAL; bRamp, bAnyAlarm, bSame, bSettled, bInit : BOOL;
 END_VAR
+fNow_s := fNow_s + 0.01;                   // the task clock (10 ms cycle): PWM phase + heater-break timing
 """ + "".join(f"aTemp[{k}] := INT_TO_LREAL(GVL_IO.{v[tc.tag]}) / 10.0;\n" for k, (z, tc, els, fan) in enumerate(zs)) + \
 "".join(f"aMeas[{j}] := INT_TO_LREAL(GVL_IO.{v[io.tag]}) / 32767.0 * {CT['range']:.1f};   // A, {io.extra['feed_phase']}\n"
         for j, io in enumerate(cts)) + \
-f"""bAnyAlarm := {' OR '.join([f'aPhAlarm[{j}]' for j in range(len(phs))] + [f'aElementAlarm[{k}]' for k in range(zn)])};   // learning frozen until repaired
+f"""IF NOT bInit THEN                          // power-up: the set-point ramp starts where each zone IS (a hot
+    FOR k := 0 TO {zn - 1} DO aSp[k] := aTemp[k]; END_FOR   // oven restarts at its set point, a cold one ramps)
+    bInit := TRUE;
+END_IF
+bAnyAlarm := {' OR '.join([f'aPhAlarm[{j}]' for j in range(len(phs))] + [f'aElementAlarm[{k}]' for k in range(zn)])};   // learning frozen until repaired
 FOR k := 0 TO {zn - 1} DO
     aSp[k] := MIN(aSet[k], aSp[k] + fRamp * 0.01);  bRamp := aSp[k] < aSet[k];        // 10 ms task
     e := aSp[k] - aTemp[k];
@@ -820,13 +839,13 @@ FOR k := 0 TO {zn - 1} DO
     IF (u > 0.0 AND u < 1.0) OR (u >= 1.0 AND e < 0.0) OR (u <= 0.0 AND e > 0.0) THEN aI[k] := aI[k] + e * 0.01; END_IF
     aDuty[k] := LIMIT(0.0, u, 1.0);
     // learning feed-forward
-    IF ABS(e) < {C_['LEARN_BAND']:g} AND NOT bRamp THEN aCalm[k] := aCalm[k] + 0.01; ELSE aCalm[k] := 0.0; END_IF
-    IF aCalm[k] > {C_['LEARN_HOLD']:g} AND NOT bAnyAlarm AND (aContent[k] < 0.05 OR aContent[k] > 0.95) THEN
-        dW := (aDuty[k] - uff) * aP[k] * 0.01 / {C_['LEARN_TAU']:g};
+    IF ABS(e) < {_r(C_['LEARN_BAND'])} AND NOT bRamp THEN aCalm[k] := aCalm[k] + 0.01; ELSE aCalm[k] := 0.0; END_IF
+    IF aCalm[k] > {_r(C_['LEARN_HOLD'])} AND NOT bAnyAlarm AND (aContent[k] < 0.05 OR aContent[k] > 0.95) THEN
+        dW := (aDuty[k] - uff) * aP[k] * 0.01 / {_r(C_['LEARN_TAU'])};
         IF aContent[k] < 0.05 THEN
             aW0[k] := aW0[k] + dW;
         ELSIF fProd > 1.0 THEN
-            u := LIMIT({C_['A1_MIN']:g}, aA1[k] + dW / fProd, {C_['A1_MAX']:g});
+            u := LIMIT({_r(C_['A1_MIN'])}, aA1[k] + dW / fProd, {_r(C_['A1_MAX'])});
             dW := (u - aA1[k]) * fProd;  aA1[k] := u;
         END_IF
         aI[k] := aI[k] - dW / aP[k] / aKc[k] * aTi[k];
@@ -839,14 +858,14 @@ FOR j := 0 TO 2 DO aExp[j] := SEL(bRunEnable, 0.0, aFanA[j]); END_FOR
 FOR i := 0 TO {ne - 1} DO
     aOn[i] := F_InSlice(fPhase, aElSlice[i], aDuty[aElZone[i]]) AND bRunEnable AND NOT aBroken[i]
               AND aProbe[aElPh[i]] <> i;                       // a probed candidate is held off
-    IF aOn[i] THEN aExp[aElPh[i]] := aExp[aElPh[i]] + aElW[i] / {U:g}; END_IF
+    IF aOn[i] THEN aExp[aElPh[i]] := aExp[aElPh[i]] + aElW[i] / {_r(U)}; END_IF
 END_FOR
 """ + "".join(f"GVL_IO.{v[e.tag]} := aOn[{n}];   // {zs[k][0]}\n" for n, (k, i, e) in enumerate(flat)) + \
 "".join(f"GVL_IO.{v[fan.tag]} := bRunEnable;   // {z} circulation fan\n" for z, tc, els, fan in zs if fan) + \
 f"""// heater break: expected vs measured phase current (oven_ctrl._HeaterBreak, line for line)
 FOR i := 0 TO {ne - 1} DO
     IF aOn[i] THEN aOnT[i] := fNow_s; END_IF
-    aRecent[i] := fNow_s - aOnT[i] <= {CT['t_resp']:g};      // the reading lags: on at some time in t_resp
+    aRecent[i] := fNow_s - aOnT[i] <= {_r(CT['t_resp'])};      // the reading lags: on at some time in t_resp
 END_FOR
 FOR j := 0 TO 2 DO
     bSame := TRUE;                                            // same elements on as last cycle?
@@ -855,8 +874,8 @@ FOR j := 0 TO 2 DO
     bSettled := ABS(aExp[j] - aExpLag[j]) < 0.1 * aThrA[j];
     aExpLag[j] := aExpLag[j] + (aExp[j] - aExpLag[j]) * 0.01 / {CT['t_resp'] / 3:.3f};
     IF aProbe[j] >= 0 THEN                                     // active probe: candidate aProbe[j] held off
-        IF fNow_s - aProbeT[j] >= {CT['t_resp']:g} THEN aProbeMax[j] := MAX(aProbeMax[j], aExpLag[j] - aMeas[j]); END_IF
-        IF fNow_s - aProbeT[j] >= {C_['PWM'] + CT['t_resp']:g} THEN     // a full period: its slice came
+        IF fNow_s - aProbeT[j] >= {_r(CT['t_resp'])} THEN aProbeMax[j] := MAX(aProbeMax[j], aExpLag[j] - aMeas[j]); END_IF
+        IF fNow_s - aProbeT[j] >= {_r(C_['PWM'] + CT['t_resp'])} THEN     // a full period: its slice came
             IF aProbeMax[j] < 0.5 * aThrA[j] THEN                  // the short vanished: it is the one
                 FOR i := 0 TO {ne - 1} DO aCand[i] := aCand[i] AND (aElPh[i] <> j OR i = aProbe[j]); END_FOR
             ELSE
@@ -864,13 +883,13 @@ FOR j := 0 TO 2 DO
             END_IF
             aProbe[j] := -1;
         END_IF
-    ELSIF aExpLag[j] - aMeas[j] > aThrA[j] THEN
+    ELSIF aExpLag[j] - aMeas[j] > aThrA[j] AND fNow_s - aNamedT[j] >= {_r(round(3 * CT['t_resp'] + 0.1, 3))} THEN   // not while the lagged reading settles after a naming
         aShort[j] := aShort[j] + 0.01;
         FOR i := 0 TO {ne - 1} DO
-            IF aElPh[i] = j THEN aTry[i] := SEL(aShortOn[j], aRecent[i], aTry[i] AND aRecent[i]); END_IF
+            IF aElPh[i] = j THEN aTry[i] := SEL(aShortOn[j], aRecent[i], aTry[i] AND aRecent[i]) AND NOT aBroken[i]; END_IF
         END_FOR
         aShortOn[j] := TRUE;
-        IF aShort[j] >= {C_['HB_HOLD']:g} THEN
+        IF aShort[j] >= {_r(C_['HB_HOLD'])} THEN
             IF NOT aPhAlarm[j] THEN
                 aPhAlarm[j] := TRUE;  aAlarmT[j] := fNow_s;
                 FOR i := 0 TO {ne - 1} DO IF aElPh[i] = j THEN aCand[i] := aTry[i]; END_IF END_FOR
@@ -879,12 +898,12 @@ FOR j := 0 TO 2 DO
             END_IF
         END_IF
     ELSE
-        IF bSettled AND fNow_s - aSince[j] >= {CT['t_resp']:g} AND aExpLag[j] - aMeas[j] < 0.2 * aThrA[j] AND aPhAlarm[j] THEN
+        IF bSettled AND fNow_s - aSince[j] >= {_r(CT['t_resp'])} AND aExpLag[j] - aMeas[j] < 0.2 * aThrA[j] AND aPhAlarm[j] THEN
             FOR i := 0 TO {ne - 1} DO
                 IF aElPh[i] = j AND aOn[i] THEN aCand[i] := FALSE; END_IF     // conducted, phase read right: not it
             END_FOR
         END_IF
-        IF aShort[j] < {C_['HB_HOLD']:g} THEN aShortOn[j] := FALSE; END_IF
+        IF aShort[j] < {_r(C_['HB_HOLD'])} THEN aShortOn[j] := FALSE; END_IF
         aShort[j] := 0.0;
     END_IF
     IF aPhAlarm[j] THEN
@@ -893,9 +912,11 @@ FOR j := 0 TO 2 DO
         IF n = 0 THEN                                          // contradiction: start the diagnosis again
             aPhAlarm[j] := FALSE;  aShortOn[j] := FALSE;  aProbe[j] := -1;
         ELSIF n = 1 THEN                                       // named
-            aBroken[m] := TRUE;  aLost[aElZone[m]] := aLost[aElZone[m]] + aElW[m];  aCand[m] := FALSE;
+            IF NOT aBroken[m] THEN aLost[aElZone[m]] := aLost[aElZone[m]] + aElW[m]; END_IF   // once per element (idempotent)
+            aNamedT[j] := fNow_s;
+            aBroken[m] := TRUE;  aCand[m] := FALSE;
             aElementAlarm[aElZone[m]] := TRUE;  aPhAlarm[j] := FALSE;  aShortOn[j] := FALSE;  aProbe[j] := -1;
-        ELSIF aProbe[j] < 0 AND fNow_s - aAlarmT[j] >= {C_['HB_PROBE_AFTER']:g} THEN
+        ELSIF aProbe[j] < 0 AND fNow_s - aAlarmT[j] >= {_r(C_['HB_PROBE_AFTER'])} THEN
             aProbe[j] := m;  aProbeT[j] := fNow_s;  aProbeMax[j] := -1.0E9;   // the slices cannot tell: probe
         END_IF
     END_IF
@@ -904,11 +925,11 @@ FOR i := 0 TO {ne - 1} DO aOnLast[i] := aOn[i]; END_FOR
 // a zone whose remaining elements cannot carry the full band at {C_['U_MAX']:.0%} duty: hold the depositor
 bHold := FALSE;
 FOR k := 0 TO {zn - 1} DO
-    IF (aP[k] - aLost[k]) * {C_['U_MAX']:g} < aLoadFull[k] + aW0[k] + (aA1[k] - 1.0) * (aLoadFull[k] - aLoadEmpty[k]) THEN bHold := TRUE; END_IF
+    IF (aP[k] - aLost[k]) * {_r(C_['U_MAX'])} < aLoadFull[k] + aW0[k] + (aA1[k] - 1.0) * (aLoadFull[k] - aLoadEmpty[k]) THEN bHold := TRUE; END_IF
 END_FOR
 fPower_W := 0.0;
 FOR k := 0 TO {zn - 1} DO fPower_W := fPower_W + aDuty[k] * (aP[k] - aLost[k]); END_FOR
-tStable(IN := """ + " AND ".join(f"ABS(aTemp[{k}] - aSet[{k}]) < {L['BAKE_MARGIN']:g}" for k in range(zn)) + """, PT := T#60S);
+tStable(IN := """ + " AND ".join(f"ABS(aTemp[{k}] - aSet[{k}]) < {_r(L['BAKE_MARGIN'])}" for k in range(zn)) + """, PT := T#60S);
 bReady := tStable.Q AND NOT bHold;
 """
     files["F_InSlice.st"] = """// F_InSlice - TRUE while fPhase (0..1 of the PWM period) lies in [fStart, fStart + fDuty), wrapping at 1
@@ -916,18 +937,56 @@ FUNCTION F_InSlice : BOOL
 VAR_INPUT fPhase, fStart, fDuty : LREAL; END_VAR
 F_InSlice := LMOD(fPhase - fStart + 1.0, 1.0) < fDuty;
 """
+    st_ = M.stations()
+    zone_off = [z - st_["dep"] for z in st_["zones"]]
+    pitch = M.band_v() * L["BAND"]["rows"] * takt
+    rows_full = M.zone_len() / pitch
     files["FB_Band.st"] = f"""// FB_Band - the mesh band ({M.band_v():.3f} mm/s) and the depositor rolls are GEARED to the master axis:
 // one row of {L['BAND']['rows']} per {L['BAND']['rows']} pucks ({L['BAND']['rows'] * takt:.0f} s). The wire is cammed from the rolls.
 // Topping: rows k and k+3 get flavour k (Q2/Q3/Q4), {st['top'] - st['dep']:.0f} mm after the die.
 // A cold oven (bOvenReady FALSE) stops the depositor, never the band: what is in the oven bakes out.
+// aZoneContent (the oven's feed-forward): every row the depositor cuts (the rolls' measured motion) is remembered at
+// the band position of its cut; a zone's content = the rows between its walls / the {rows_full:.2f} rows a full zone holds.
 FUNCTION_BLOCK FB_Band
-VAR_INPUT axBand : AXIS_REF; axRolls : AXIS_REF; axMaster : AXIS_REF; bOvenReady : BOOL; END_VAR
-VAR_OUTPUT fPos : LREAL; aZoneContent : ARRAY[0..{len(L['OVEN_ZONES']) - 1}] OF LREAL; END_VAR   // 0..1 per zone, from the rows cut
-VAR fbGearBand, fbGearRolls : MC_GearIn; END_VAR
-fbGearBand(Master := axMaster, Slave := axBand, Execute := TRUE, RatioNumerator := {M.band_v() * 1000:.0f},
-           RatioDenominator := {L['V'] * 1000:.0f});
-fbGearRolls(Master := axMaster, Slave := axRolls, Execute := bOvenReady, RatioNumerator := 1, RatioDenominator := 1);
+VAR_IN_OUT axBand : AXIS_REF; axRolls : AXIS_REF; axMaster : AXIS_REF; END_VAR   // by reference (MC blocks)
+VAR_INPUT bOvenReady : BOOL; END_VAR
+VAR_OUTPUT fPos : LREAL; aZoneContent : T_ZoneArray; END_VAR   // 0..1 per zone, from the rows cut
+VAR RETAIN                                 // the rows on the band survive a power cycle (they are still there)
+    aCut : ARRAY[0..31] OF LREAL;          // band position of each row cut (ring), -1 = empty
+    nCut : INT; fLastCut : LREAL; bFirst : BOOL := TRUE;
+END_VAR
+VAR fbGearBand, fbGearRolls : MC_GearIn; fbGearOutRolls : MC_GearOut; fbHaltRolls : MC_Halt;
+    k, i : INT; d : LREAL;
+    aZoneOff : ARRAY[0..{len(L['OVEN_ZONES']) - 1}] OF LREAL := [{', '.join(f"{x:.1f}" for x in zone_off)}];   // die -> zone start, mm of band
+END_VAR
+fbGearBand(Master := axMaster, Slave := axBand, Execute := TRUE, RatioNumerator := {_r(round(M.band_v() * 1000))},
+           RatioDenominator := {round(L['V'] * 1000)});        // Tc2_MC2: numerator LREAL, denominator UINT
+fbGearRolls(Master := axMaster, Slave := axRolls, Execute := bOvenReady, RatioNumerator := 1.0, RatioDenominator := 1);
+// a FALLING Execute does not decouple a geared slave (PLCopen): oven not ready -> decouple the rolls, then brake them
+fbGearOutRolls(Slave := axRolls, Execute := NOT bOvenReady);
+fbHaltRolls(Axis := axRolls, Execute := NOT bOvenReady AND fbGearOutRolls.Done, Deceleration := {_r(L['V'] / 0.5)});
 fPos := axBand.NcToPlc.ActPos;
+IF bFirst THEN
+    FOR i := 0 TO 31 DO aCut[i] := -1.0; END_FOR
+    fLastCut := fPos;  bFirst := FALSE;
+END_IF
+IF fPos - fLastCut >= {pitch:.4f} THEN                  // one row pitch of band: the wire cuts a row if the rolls run
+    fLastCut := fLastCut + {pitch:.4f};
+    // a row exists if the rolls REALLY turned (their actual velocity), not if they were told to: a halt brakes
+    IF ABS(axRolls.NcToPlc.ActVelo) > 0.0 THEN aCut[nCut] := fLastCut;  nCut := (nCut + 1) MOD 32; END_IF
+END_IF
+FOR k := 0 TO {len(L['OVEN_ZONES']) - 1} DO
+    aZoneContent[k] := 0.0;
+    FOR i := 0 TO 31 DO
+        IF aCut[i] >= 0.0 THEN
+            d := fPos - aCut[i];
+            IF d >= aZoneOff[k] AND d < aZoneOff[k] + {M.zone_len():.1f} THEN
+                aZoneContent[k] := aZoneContent[k] + {1 / rows_full:.6f};
+            END_IF
+        END_IF
+    END_FOR
+    aZoneContent[k] := MIN(aZoneContent[k], 1.0);
+END_FOR
 """
     files["FB_Transfer.st"] = f"""// FB_Transfer - delta C takes the cookies of the row in the pick window ({L['PICK_W']:g} mm = {L['PICK_W'] / M.band_v():.0f} s,
 // >= {L['BAND']['rows']} takts) in row order (W R B W R B) and places each into the next empty puck on the bend
@@ -952,7 +1011,7 @@ VAR fKickPos : LREAL := {M.s_back(L['KICK_X']):.1f}; aReject : ARRAY[0..{L['N'] 
 FUNCTION_BLOCK FB_DeltaPicker
 VAR_INPUT fMasterPos : LREAL; bUpstream : BOOL; bPartnerMissed : BOOL; END_VAR
 VAR_OUTPUT bMissed : BOOL; END_VAR
-VAR eState : (WAIT, TRACK, GRIP, LIFT, PLACE, RELEASE, HOME); END_VAR
+VAR eState : E_PickState; END_VAR
 // GRIP: vacuum valve ON, wait for the vacuum switch (.OK); no OK within {L['T_GRAB']:g} s -> bMissed (the cookie recirculates)
 """
     files["FB_Lane.st"] = f"""// FB_Lane - index one tray pitch when a tray is full; seal in the index pause ({L['SEAL_T']:g} s <= {L['T_INDEX']:g} s);
@@ -962,9 +1021,13 @@ FUNCTION_BLOCK FB_Lane
 VAR_INPUT nLane : INT; END_VAR
 VAR nPacks : INT; END_VAR
 """
-    files["DUT_PhysicalAI.st"] = """// timestamped I/O and the record every learned model is trained on
+    files["DUT_PhysicalAI.st"] = f"""// timestamped I/O and the record every learned model is trained on
 TYPE ST_TsInput : STRUCT bNewEdge : BOOL; nTimestamp : ULINT; END_STRUCT END_TYPE     // EL1252 (DC ns)
 TYPE ST_TsOutput : STRUCT bArm : BOOL; nFireAt : ULINT; END_STRUCT END_TYPE          // EL2252 (DC ns)
+// station states: named types (an enumeration declared inline in a VAR block is not portable)
+TYPE T_ZoneArray : ARRAY[0..{len(L['OVEN_ZONES']) - 1}] OF LREAL; END_TYPE   // per oven zone (one named type: FB_Band -> FB_Oven)
+TYPE E_PickState : (WAIT, TRACK, GRIP, LIFT, PLACE, RELEASE, HOME); END_TYPE
+TYPE E_AirlockOut : (IDLE, CARRY_OUT, INNER_CLOSE, OUTER_OPEN, SWAP, OUTER_CLOSE, INNER_OPEN, CARRY_IN); END_TYPE
 TYPE ST_PuckEvent : STRUCT
     nPuck : UINT; sNfc : STRING(16); nDcTime : ULINT; fMasterPos : LREAL;
     eStation : E_Station; aSignals : ARRAY[0..15] OF REAL; nImageId : UDINT; eOutcome : E_Outcome;
@@ -1016,6 +1079,8 @@ VAR
     aUnlockReq   : ARRAY[0..{len(L['DOORS']) - 1}] OF BOOL;   // from the HMI
     aMuteReq     : ARRAY[0..{len(L['PORT_OPEN']) - 1}] OF BOOL;   // from FB_AmrPorts when an AMR is due
 END_VAR
+bRunEnable := GVL_IO.xSafeRunPermit;      // the EL6910 says: no stop demand, doors locked, resets done
+bStopDemand := NOT GVL_IO.xSafeRunPermit;
 """
     if L.get("AIRLOCK"):
         files["FB_Airlock.st"] = f"""// FB_Airlock - standard-side sequence of the two AMR airlocks. It only REQUESTS; the TwinSAFE
@@ -1033,7 +1098,7 @@ END_VAR
 //   AMR sets stacks in the chamber; S30 close + lock -> Y1 on -> trapdoor over each low magazine drops its stack.
 FUNCTION_BLOCK FB_Airlock
 VAR_INPUT nLaneFull : INT; bAmrDocked : BOOL; END_VAR
-VAR eOut : (IDLE, CARRY_OUT, INNER_CLOSE, OUTER_OPEN, SWAP, OUTER_CLOSE, INNER_OPEN, CARRY_IN); END_VAR
+VAR eOut : E_AirlockOut; END_VAR
 """
     files["FB_AmrPorts.st"] = """// FB_AmrPorts - every buffer raises a task with a DEADLINE (its autonomy left):
 // hopper level (IO-Link ToF), cassette full (lift counter), tray magazine, reject drawer level.
@@ -1102,6 +1167,8 @@ def check(verbose=True, write=False):
             json.dump(dict(cab=L["CAB"], dims=dims, rows=lay,
                            rails=[[dict(type=t, name=n, note=no) for t, n, no in r] for r in rails]), fh, indent=1)
         for fn, txt in twincat(IOS).items():
+            # every END_IF / END_FOR / ... / END_STRUCT closes its statement with ';' (IEC 61131-3; TwinCAT takes it too)
+            txt = re.sub(r"\b(END_IF|END_FOR|END_WHILE|END_REPEAT|END_CASE|END_STRUCT)\b(?!\s*;)", r"\1;", txt)
             with open(os.path.join(OUT, fn), "w") as fh:
                 fh.write(txt)
         print("wrote", OUT)

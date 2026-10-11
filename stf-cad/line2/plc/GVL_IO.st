@@ -179,4 +179,6 @@ VAR_GLOBAL
     iQ36_STL                 AT %I* : BOOL;   // -KF3 ch8       sealer_weiss_head            safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)
     iQ37_STL                 AT %I* : BOOL;   // -KF3 ch9       sealer_rot_head              safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)
     iQ38_STL                 AT %I* : BOOL;   // -KF3 ch10      sealer_blau_head             safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)
+    axMasterEnc                     : AXIS_REF;   // NC encoder axis on B1: the virtual master (gearing, cams)
+    xSafeRunPermit           AT %I* : BOOL;   // EL6910 standard process data: no stop demand, doors locked, resets done
 END_VAR
