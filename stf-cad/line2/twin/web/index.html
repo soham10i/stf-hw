@@ -22,6 +22,7 @@
   .duty { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
   .duty > i { display: block; height: 100%; background: var(--accent); }
   #side { top: 16px; left: 16px; width: 230px; max-height: calc(100% - 120px); overflow: auto; }
+  [hidden] { display: none !important; }
   label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
   #pick { margin-top: 8px; color: var(--mute); word-break: break-word; }
   #pick b { color: var(--ink); }
@@ -54,6 +55,16 @@
   <span id="time">t = 0.0 s</span>
   <input id="t" type="range" min="0" max="400" value="0">
   <label class="muted">speed <select id="speed"><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>4</option></select>×</label>
+  <span id="ctl" hidden>
+    <button data-cmd='{"body":{"name":"master","on":false}}'>Stop master</button>
+    <button data-cmd='{"body":{"name":"master","on":true}}'>Start master</button>
+    <button data-cmd='{"body":{"name":"kick"}}'>Kick</button>
+    <button data-cmd='{"body":{"name":"seal","lane":"weiss"}}'>Seal weiss</button>
+    <button data-cmd='{"body":{"name":"seal","lane":"rot"}}'>Seal rot</button>
+    <button data-cmd='{"body":{"name":"seal","lane":"blau"}}'>Seal blau</button>
+    <button data-cmd='{"body":{"name":"exchange"}}'>Airlock exchange</button>
+    <label class="muted">sim <select id="simspeed"><option>0</option><option>0.5</option><option selected>1</option><option>2</option><option>5</option></select>×</label>
+  </span>
   <span id="phase" class="muted"></span>
 </div>
 <script type="module" src="viewer.js"></script>

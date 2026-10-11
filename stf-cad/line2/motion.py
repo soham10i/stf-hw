@@ -59,13 +59,13 @@ def pulse(t, t0, up, hold, down):
     return ramp(t, t0, up) - ramp(t, t0 + up + hold, down)
 
 
-def exchange():
-    """Phases of the airlock exchange: (name, start, duration)."""
+def exchange(t0=EXCH_T0):
+    """Phases of the airlock exchange starting at t0: (name, start, duration)."""
     mv = (L["CASS_X"][1] - L["CASS_X"][0]) / L["SHUTTLE_V"]
     d = L["DOOR_T"]
     seq = [("carrier out", mv), ("inner door shut", d), ("outer door open", d), ("AMR swap", L["AMR_EXCH"]),
            ("outer door shut", d), ("inner door open", d), ("carrier back", mv)]
-    out, t = [], EXCH_T0
+    out, t = [], t0
     for n, dur in seq:
         out.append((n, t, dur))
         t += dur
@@ -242,12 +242,27 @@ def cyl(p, start, axis, length):
 
 
 # ------------------------------------------------------------------ one frame
-def frame(t, base):
-    """{part name: Part at time t} for every moving part, + {name: visible}."""
+def reference_events():
+    """The event schedule of the 40 s reference run (what timeline.json shows)."""
+    return dict(kicks=list(KICKS), seals={f: [SEALS[f]] for f in FLAV}, lifts={f: [LIFTS[f]] for f in FLAV},
+                exchange=EXCH_T0)
+
+
+def frame(t, base, ev=None, rows=None, tau=None):
+    """{part name: Part at time t} for every moving part, + {name: visible}.
+    t     plant time (s): the event-driven actuators (kicker, sealers, stackers, airlock exchange)
+    tau   machine time (s) = master axis position / V: everything geared to the master - chain + pucks, band rows,
+          cutting wire, deltas A / B / C. Default t (the reference run: the master never stops).
+    ev    event start times {kicks: [t], seals: {f: [t]}, lifts: {f: [t]}, exchange: t0 or None}; default the
+          reference schedule (KICKS, SEALS, LIFTS, EXCH_T0)
+    rows  callable(name) -> (Part, visible) for the band rows; default band_pose(name, tau)
+    The live plant (twin/plant) drives exactly this function; the defaults give timeline.json."""
+    tau = t if tau is None else tau
+    ev = reference_events() if ev is None else ev
     now, vis = {}, {}
     # chain: pucks + their cookies (a cookie exists on every puck; shown while the puck is loaded)
     loop = []
-    M._pucks(loop.append, t)
+    M._pucks(loop.append, tau)
     shown = {p.name for p in loop}
     for k in range(L["N"]):
         pk = next(p for p in loop if p.name == f"puck_{k:02d}")
@@ -262,26 +277,26 @@ def frame(t, base):
         vis[tp.name] = tp.name in shown
     # band: every row of the window [0, T_END] - re-shaped per frame (the slug spreads, the colour browns)
     for n in BAND_NAMES:
-        now[n], vis[n] = band_pose(n, t)
+        now[n], vis[n] = band_pose(n, tau) if rows is None else rows(n)
     # cutting wire
-    now["dep_wire"] = shifted(base["dep_wire"], (wire_dx(t), 0, 0))
+    now["dep_wire"] = shifted(base["dep_wire"], (wire_dx(tau), 0, 0))
     # kicker
-    ky = -L["KICK_STROKE"] * sum(pulse(t, t0, L["KICK_T"], 0.1, L["KICK_T"]) for t0 in KICKS)
+    ky = -L["KICK_STROKE"] * sum(pulse(t, t0, L["KICK_T"], 0.1, L["KICK_T"]) for t0 in ev["kicks"])
     now["kick_paddle"] = shifted(base["kick_paddle"], (0, ky, 0))
     r = base["kick_rod"]
     now["kick_rod"] = cyl(r, (r.p[0], r.p[1] + ky, r.p[2]), "y", r.s[1] - ky)
     # sealers + stackers
     for f in FLAV:
-        sd = -L["SEAL_GAP"] * pulse(t, SEALS[f], 0.25, L["SEAL_T"], 0.25)
+        sd = -L["SEAL_GAP"] * sum(pulse(t, t0, 0.25, L["SEAL_T"], 0.25) for t0 in ev["seals"][f])
         now[f"sealer_{f}_head"] = shifted(base[f"sealer_{f}_head"], (0, 0, sd))
         r = base[f"sealer_{f}_rod"]
         now[r.name] = cyl(r, (r.p[0], r.p[1], r.p[2] + sd), "z", r.s[1] - sd)
-        lz = (L["PAWL"] + L["BOX"][2]) * pulse(t, LIFTS[f], 0.4, 0.2, 0.4)
+        lz = (L["PAWL"] + L["BOX"][2]) * sum(pulse(t, t0, 0.4, 0.2, 0.4) for t0 in ev["lifts"][f])
         now[f"stacker_plate_{f}"] = shifted(base[f"stacker_plate_{f}"], (0, 0, lz))
         r = base[f"stacker_rod_{f}"]
         now[r.name] = cyl(r, r.p, "z", r.s[1] + lz)
     # airlock exchange (lane EXCH_LANE): carrier + cassette, inner / outer door leaves
-    ph = {n: (t0, d) for n, t0, d in exchange()}
+    ph = {n: (t0, d) for n, t0, d in exchange(1e9 if ev["exchange"] is None else ev["exchange"])}
     stroke = L["CASS_X"][1] - L["CASS_X"][0]
     cx = stroke * (ramp(t, *ph["carrier out"]) - ramp(t, *ph["carrier back"]))
     for p in base.values():
@@ -295,7 +310,7 @@ def frame(t, base):
     now["aldoor_out"] = shifted(base["aldoor_out"], (0, outer, 0))
     # delta C: band -> puck
     bad = []
-    pose, carrying, _ = delta_c_pose(t)
+    pose, carrying, _ = delta_c_pose(tau)
     arms = []
     try:
         M._delta(arms.append, "delta_C", L["DELTA_C"]["x"], pose, static=False, module="transfer")
@@ -308,15 +323,15 @@ def frame(t, base):
         now[held.name] = held
         vis[held.name] = carrying
     except ValueError:
-        bad.append(f"delta_C cannot reach {tuple(round(v) for v in pose)} at t={t:.1f}")
+        bad.append(f"delta_C cannot reach {tuple(round(v) for v in pose)} at tau={tau:.1f}")
     # deltas
     for i, xd in enumerate(L["DELTA_X"]):
-        pose, carrying = delta_pose(i, t)
+        pose, carrying = delta_pose(i, tau)
         arms = []
         try:
             M._delta(arms.append, f"delta_{'AB'[i]}", xd, pose, static=False)
         except ValueError:
-            bad.append(f"delta_{'AB'[i]} cannot reach {tuple(round(v) for v in pose)} at t={t:.1f}")
+            bad.append(f"delta_{'AB'[i]} cannot reach {tuple(round(v) for v in pose)} at tau={tau:.1f}")
             continue
         for p in arms:
             p.module = "M6_pick"

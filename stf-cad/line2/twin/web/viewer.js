@@ -67,8 +67,16 @@ for (const n of Object.keys(tl.glow)) {
   o.traverse((c) => { if (c.isMesh) { c.material = c.material.clone(); glow[n] = c.material; } });
 }
 
-function apply(k) {
-  const f = tl.frame(k);
+function infoAt(k) {                                       // the readouts of recorded frame k
+  const bits = {};
+  for (const [n, g] of Object.entries(tl.glow)) bits[n] = g.bits[k] === "1" ? 1 : 0;
+  const ex = (tlJson.phases?.exchange || []).find(([, t0, d]) => k * tl.dt >= t0 && k * tl.dt < t0 + d);
+  return { k, t: k * tl.dt, power: tlJson.power?.[k], temps: tlJson.temps?.[k], bits, phase: ex ? `airlock: ${ex[0]}` : "" };
+}
+
+function apply(k) { applyFrame(tl.frame(k), infoAt(k)); }
+
+function applyFrame(f, info) {
   for (const [name, m] of Object.entries(cyl)) {
     const cm = tl.cylinderOf(name, f);
     m.matrix.copy(cm);
@@ -88,35 +96,67 @@ function apply(k) {
   for (const [name, mat] of Object.entries(glow)) {
     const c = f[name].col;
     mat.color.set(c);
-    mat.emissive = new THREE.Color(tl.glow[name].bits[k] === "1" ? c : "#000000");
+    mat.emissive = new THREE.Color(info.bits[name] ? c : "#000000");
     mat.emissiveIntensity = 0.6;
   }
-  panel(k);
+  panel(info);
 }
 
 // ----------------------------------------------------------------- UI
 const zonesEl = $("zones");
 const zoneT = (tlJson.zones || []).map((z) => z.T);
-function panel(k) {
-  $("time").textContent = `t = ${(k * tl.dt).toFixed(1)} s`;
-  $("t").value = k;
-  const p = tlJson.power?.[k];
+function panel(info) {
+  $("time").textContent = info.live ? `t = ${info.t.toFixed(1)} s · τ = ${info.tau.toFixed(1)} s` : `t = ${info.t.toFixed(1)} s`;
+  if (info.k !== undefined) $("t").value = info.k;
+  const p = info.power;
   if (p) {
-    const on = Object.values(tl.glow).filter((g) => g.bits[k] === "1").length;
+    const on = Object.values(info.bits).filter((b) => b).length;
     $("power").textContent = `${(p[0] / 1000).toFixed(2)} kW · ${on}/${Object.keys(tl.glow).length} elements on · ` +
       `L1 ${p[1].toFixed(1)} A  L2 ${p[2].toFixed(1)} A  L3 ${p[3].toFixed(1)} A`;
   }
-  const y = tlJson.temps?.[k] || [];
+  const y = info.temps || [];
   zonesEl.innerHTML = Object.entries(tlJson.duty || {}).sort().map(([z, d], i) =>
     `<div class="zone"><b>${z}</b><span class="duty"><i style="width:${(d * 100).toFixed(0)}%"></i></span>` +
     `<span>${(d * 100).toFixed(0)} %</span><span>${y[i] !== undefined ? y[i].toFixed(1) : "–"} °C</span></div>`).join("") +
     (zoneT.length ? `<div class="muted">duty · TC reading · set points ${zoneT.join(" / ")} °C</div>` : "");
-  const ex = (tlJson.phases?.exchange || []).find(([, t0, d]) => k * tl.dt >= t0 && k * tl.dt < t0 + d);
-  $("phase").textContent = ex ? `airlock: ${ex[0]}` : "";
+  $("phase").textContent = info.phase || "";
 }
 
 let k = 0, t = 0, playing = true, last = performance.now();
-if (new URLSearchParams(location.search).has("selftest")) { playing = false; selftest(); }
+const LIVE = new URLSearchParams(location.search).has("live");
+if (LIVE) startLive();
+
+// ?live: frames from the live plant (twin/plant/serve.py) over a WebSocket instead of the recorded timeline.
+// The rows have timeline.json's format, so the SAME player rules (tl.fromRows) and applyFrame draw them.
+function startLive() {
+  playing = false;
+  for (const el of [$("t"), $("play"), $("speed").parentElement]) el.style.display = "none";
+  document.querySelector("#oven h3").textContent = "Oven (live plant)";
+  $("ctl").hidden = false;
+  const rows = {};
+  const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/frames`);
+  ws.onmessage = (ev) => {
+    const m = JSON.parse(ev.data);
+    if (m.type !== "frame") return;
+    Object.assign(rows, m.track);                           // the server sends changed rows only
+    const f = tl.fromRows(rows, m.glow);
+    applyFrame(f, { live: true, t: m.t, tau: m.tau, power: m.power, temps: m.temps, bits: m.glow,
+                    phase: `${m.master.enabled ? "master running" : "master STOPPED"} · ${(m.master.vel).toFixed(1)} mm/s` +
+                           (m.bad.length ? ` · ${m.bad.length} unreachable` : "") });
+    window.stfLive = { t: m.t, tau: m.tau, frames: (window.stfLive?.frames || 0) + 1, rows: Object.keys(rows).length };
+  };
+  ws.onclose = () => { $("phase").textContent = "live plant disconnected"; };
+  const post = (path, body) => fetch(path, { method: "POST", headers: { "Content-Type": "application/json" },
+                                             body: JSON.stringify(body) }).then((r) => r.json());
+  $("ctl").onclick = (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    const cmd = JSON.parse(b.dataset.cmd);
+    post(cmd.path || "/command", cmd.body).then((r) => { if (r.ok === false) $("phase").textContent = r.message; });
+  };
+  $("simspeed").onchange = (e) => post("/sim", { speed: +e.target.value });
+}
+if (!LIVE && new URLSearchParams(location.search).has("selftest")) { playing = false; selftest(); }
 $("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "Pause" : "Play"; };
 $("t").max = tl.n - 1;
 $("t").oninput = (e) => { k = +e.target.value; t = k * tl.dt; apply(k); };
@@ -190,7 +230,7 @@ function selftest() {
 }
 $("load").remove();
 ["side", "oven", "bar"].forEach((id) => { $(id).hidden = false; });
-apply(0);
+if (!LIVE) apply(0);
 renderer.setAnimationLoop((now) => {
   const dtw = Math.min((now - last) / 1000, 0.1);
   last = now;

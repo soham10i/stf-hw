@@ -49,6 +49,19 @@ open http://localhost:8300/twin/web/
 - **Left panel:** the guards start hidden (tick to show), plus one checkbox per module. Click any part to see its name, module, group, tag and hardware.
 - **Right panel:** oven power, elements on, L1/L2/L3 current, duty and TC reading per zone. In DT-2 these come from the timeline; in DT-3 they come from the live plant.
 
+### The live plant (DT-3a)
+
+```bash
+cd ~/workspace/stf-hw-stf2/stf-cad/line2
+../../.venv-twin/bin/python -m twin.plant.serve          # http://127.0.0.1:8200/twin/web/?live
+```
+
+- The line now runs **without end**. It comes from the live plant (`twin/plant`) rather than the 40 s recording.
+- The bottom bar shows plant time t and machine time τ. τ stops when the master stops; the oven and the airlock keep running on t.
+- **Buttons:** *Stop / Start master*, *Kick*, *Seal* weiss / rot / blau (the stacker lifts 2 s later), *Airlock exchange* (refused while one is running), and *sim* speed (0 pauses, 5× runs fast).
+- **REST:** the same commands work from a terminal, e.g.
+  `curl -X POST localhost:8200/command -H 'Content-Type: application/json' -d '{"name":"kick"}'`, and `GET /state` reports the plant.
+
 ### How the web simulation works
 
 1. **Scene.** `twin/out/stf2.glb` (from DT-1) is one glTF file. Each part is a node with its CAD name, and `extras`

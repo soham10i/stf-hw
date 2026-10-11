@@ -151,21 +151,25 @@ The discrete-event model of stock (dough, topping, trays, film), the AMR service
 `[assumed]` values are not attached to individual prims. A part's size usually depends on several parameters, so
 the per-value list stays in `VERIFICATION_PLAN.md`. The dashboard (DT-8) shows it by parameter, not by part.
 
-### 3.2 Live state bus (DT-3) - WebSocket `/ws/frames`
+### 3.2 Live state bus (DT-3a, built) - WebSocket `/ws/frames` of `twin/plant/serve.py`
 
-One message per published frame (default 20 Hz of virtual time; the plant itself steps at 10 ms):
+The first message is `{"type": "hello", "format": "timeline-rows", "tick": 0.01, "glow": {element: {on, off}},
+"zones": [...], "spawn": [...]}`. Then one message per published frame (every 0.1 s of wall time; virtual time
+advances by wall time × sim speed, in 10 ms ticks):
 
 ```jsonc
-{ "run": "2026-10-06T10:00:00Z#7", "t": 1234.56,                 // virtual s
-  "xf":   { "<part>": [tx,ty,tz,qx,qy,qz,qw] },                   // only parts that moved since the last frame
-  "shape":{ "<part>": { "len": 18.2 } , "<cookie>": { "col": "#b98a4f", "d": 44.1 } },
-  "vis":  { "<part>": 0 },
-  "io":   { "qE1T1": 1, "tcTC1": 2101, "aiBC1": 9830 },           // changed I/O only, PLC units
-  "oven": { "T": [210.0, 200.1, 185.0], "duty": [0.61, 0.58, 0.63], "W": 2650, "A": [4.3, 3.9, 4.1] },
-  "kpi":  { "good": 412, "reject": 3, "band_lost": 0 } }
+{ "type": "frame", "t": 1234.56, "tau": 1230.31,          // plant time, machine time (= master position / V), s
+  "track": { "<part>": [tx, ty, tz, qx, qy, qz, qw, vis],  // timeline.json's own rows - only CHANGED ones after
+             "band_r083_2": {"c": [x, y, z], "ax": "z", "len": 8.0, "dia": 45.0, "col": "#c48e4b", "vis": 1} },
+  "glow":  { "oven_heater_E1T1": 1, ... },                // SSR state of every element
+  "power": [W, A_L1, A_L2, A_L3], "temps": [TC1, TC2, TC3],
+  "master": { "pos": mm, "vel": mm/s, "enabled": true, "rate": 1.0 },
+  "bad": [] }                                              // unreachable delta poses (none: proven)
 ```
 
-The format matches the timeline's track rows, so the existing FreeCAD player can replay a recorded live run.
+The rows are exactly `timeline.json`'s, so the same player (`player.js` `fromRows`, `playback.py`) draws a recorded
+or a live frame, and a recorded live run replays in the FreeCAD player. The I/O image (`io`) and KPIs (`kpi`) join the
+message in DT-3b / DT-4.
 
 ### 3.3 OPC UA (DT-5) - `opc.tcp://localhost:4840/stf2`
 

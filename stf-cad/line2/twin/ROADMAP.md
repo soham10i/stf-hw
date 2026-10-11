@@ -8,7 +8,8 @@ script that must exit 0.
 |---|---|---|---|---|
 | DT-1 | Scene export: OpenUSD, USDZ, GLB | `twin/scene_check.py` | **built** (2026-10-06) | - |
 | DT-2 | Kinematic playback in the web twin and Blender | `twin/playback_check.py` | **built** (2026-10-06) | DT-1 |
-| DT-3 | Live plant service (real-time stepping, WebSocket) | `twin/plant_check.py` | 6-8 d | DT-2 |
+| DT-3a | Live plant core (machine time, events, oven, WebSocket, live viewer) | `twin/plant_check.py` | **built** (2026-10-11) | DT-2 |
+| DT-3b | Product flow, stocks + AMR, synthesized sensors, a reacting controller, oven PI | `twin/flow_check.py` | 4-5 d | DT-3a |
 | DT-4 | PLC in the loop (SIL): ST → IEC → MatIEC, safety module | `twin/sil_check.py` | 8-10 d | DT-3 |
 | DT-5 | OPC UA server + Sparkplug B / UNS | `twin/opcua_check.py`, `twin/uns_check.py` | 3-4 d | DT-4 |
 | DT-6 | Contact physics for the handling steps (MuJoCo) | `twin/contact_check.py` | 4-5 d | DT-3 |
@@ -17,7 +18,7 @@ script that must exit 0.
 | DT-9 | Optional: the same USD stage in Omniverse / Isaac Sim (cloud) | manual review | 2-3 d | DT-1, a cloud RTX instance |
 | DT-10 | Hardware in the loop: the real Beckhoff PLC replaces the SIL | `twin/hil_check.py` | when hardware arrives | DT-4, hardware |
 
-Critical path: DT-1 → DT-2 → DT-3 → DT-4 → DT-8, about 6-7 weeks. DT-6 and DT-7 run in parallel with DT-4.
+Critical path: DT-1 → DT-2 → DT-3a → DT-3b → DT-4 → DT-8, about 6-7 weeks. DT-6 and DT-7 run in parallel with DT-4.
 
 ---
 
@@ -113,24 +114,63 @@ node-frames, 9,512 cylinder-frames and 369 element colours, all exact (worst 0),
 **Not in DT-2:** live motion (DT-3) and the dashboard in the `main` React app (DT-8). The viewer is a standalone page
 so that the proof and the view share one file.
 
-## DT-3 Live plant service
+## DT-3a Live plant core (BUILT)
 
-**Builds.** `twin/plant/`, a Python package that is stepped at 10 ms of virtual time:
-- axes (`SIM_MC`), cylinders, ejectors;
-- the kinematic motion (§3.1 of [SIM_MODELS.md](SIM_MODELS.md));
-- the oven (`oven_ctrl.Plant` / `Mismatch`, phase currents, STB);
-- product entities, stocks, the AMR, and the sensors.
+**As built.**
+- `motion.frame()` is now parametric:
+  - `t` = plant time, which drives the event actuators;
+  - `tau` = machine time = master position / V, which drives everything geared to the master;
+  - `ev` = event start times;
+  - `rows` = a band-row mapping.
 
-Around it:
-- **FastAPI** with `/ws/frames` (format in [DATA_CONTRACT.md §3.2](DATA_CONTRACT.md));
-- **REST**: `/state`, `/scenario`, `/fault`, `/run`.
-- In DT-3 it is driven by a **scripted controller**: a Python port of the PLC's intent, just enough to run the nominal cycle. DT-4 replaces it with the real program.
+  With the defaults it regenerated `timeline.json` **byte-identical**, and the collision sweep report is identical too.
+- `twin/plant/core.py` steps 10 ms ticks of virtual time:
+  - the master axis integrates τ: closed form at constant speed, so the nominal run has τ = t exactly; a 0.5 s ramp `[assumed]` to stop and to start;
+  - commands: `kick`, `seal(lane)` (the stacker lifts 2 s later), `exchange`, `master(on)`, `speed(factor)`;
+  - the 27 scene band-row names are a pool: a row lives at most 606.5 s, the pool spans 648 s, so a slot always shows its one live row;
+  - the oven: the zone model in `reference` mode, integrated exactly as `motion.py` does;
+  - frames in `timeline.json`'s own row format.
+- **The model is frozen in the plant process.** The pure functions of `L` that recomputed a bake simulation or an IK bisection on every call are memoised there: a frame went from 650 ms to 17 ms.
+- `twin/plant/serve.py` (FastAPI): `POST /command`, `/sim` (wall pacing), `/step` (manual mode), `GET /state`, and the WebSocket `/ws/frames`. The first frame is complete; after it, only the rows that changed are sent. It also serves the viewer, and binds 127.0.0.1 only.
+- **Viewer** `twin/web/?live`: the same player rules (`player.js` `fromRows`) draw the live frames. It shows t and τ, and has buttons for stop/start master, kick, seal per lane, airlock exchange and sim speed.
 
-**Gate - `plant_check.py`:**
-- **Replay:** fed the recorded axis trajectories of the reference run, the plant reproduces `timeline.json` frame by frame within 0.05 mm, including element bits, power and temperatures.
-- **Oven:** the plant's oven, driven like `oven_ctrl.run`, reproduces S1-S5 within 0.1 K.
-- **Flow:** one nominal hour gives `sim_results.json["nominal_1h"]` within ±1 %.
-- **Determinism:** two runs with the same seed are identical.
+**Gate - `plant_check.py`** (all pass, ~2 min):
+
+| Proof | Result |
+|---|---|
+| L1 replay | the reference schedule gives `timeline.json` exactly: the visibility of all 527 tracks over 401 frames, 180,255 drawn rows, the SSR bits, power and phase currents, the zone temperatures - 0 differ |
+| L2 determinism | one command script, every frame of 100 s: identical SHA-256 twice; one kick 10 ms later changes it |
+| L3 endurance | 2 h, 982 commands (kick / 20 s, a seal / 12 s, exchange / 300 s), a frame every 10 s: no unreachable pose, all finite, ≤ 26 live rows, rows one band pitch apart |
+| L4 event phases | the controller may fire an event at any phase. The swept envelopes of the 30 event parts vs the 497 geared parts over a full 24 s cycle: no pair can meet, so the reference collision sweep holds at every phase |
+| L5 stop / resume | ramp-down 0.25 s of travel, then τ frozen and the geared rows frozen while the oven runs on; resume with no step > one tick, back at rate 1 |
+| L6 speed | stepping ~800× real time, frame 17 ms (best of 3 batches) |
+| L7 service | REST + WebSocket in manual mode: 16 frames (first 527 rows, then 2-502 changed) rebuild exactly the rows of an independent plant given the same commands |
+
+**It can fail:**
+- a pool of 26 fails L1 (row visibility) and L3 (rows out of order);
+- a master that ignores the stop fails L5 (geared rows moved).
+
+**Not in DT-3a** (→ DT-3b, the rest of this phase's original plan):
+- product entities, so cookies that really exist rather than "loaded by position";
+- stocks and the AMR;
+- synthesized sensors;
+- a controller that reacts to them;
+- the oven under PI control with equivalence to `oven_ctrl` S1-S5;
+- the flow proof against `sim_results.json`.
+
+## DT-3b Product flow, sensors, a reacting controller
+
+**Builds.** In `twin/plant/`:
+- cookie entities from deposit to pack, with a NFC bake log each;
+- stocks and AMR tasks (the `line_sim.py` rules);
+- synthesized sensors (`SIM_MODELS.md` §3.4);
+- a scripted controller that reacts to them: kick on a QC reject, seal when a tray is full, exchange when a cassette is full;
+- the oven in PI mode through a stepper shared with `oven_ctrl.run`.
+
+**Gate - `flow_check.py`:**
+- one nominal hour gives `sim_results.json["nominal_1h"]` within ±1 %;
+- the oven in PI mode reproduces S1-S5 within 0.1 K;
+- every cookie's bake log is complete.
 
 ## DT-4 PLC in the loop (SIL)
 

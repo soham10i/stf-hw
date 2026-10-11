@@ -48,18 +48,25 @@ export class Timeline {
     return b && this.track[b] ? b : null;
   }
 
-  // {name: {kind: 'rigid' | 'cyl', m: Matrix4, vis, col}} for frame k
+  // {name: {kind: 'rigid' | 'cyl', m: Matrix4, vis, col}} for frame k of the recorded timeline
   frame(k) {
     k = Math.max(0, Math.min(this.n - 1, Math.floor(k)));
+    const rows = {}, bits = {};
+    for (const [n, tr] of Object.entries(this.track)) rows[n] = tr[k];
+    for (const [n, g] of Object.entries(this.glow)) bits[n] = g.bits[k] === "1" ? 1 : 0;
+    return this.fromRows(rows, bits);
+  }
+
+  // the same from rows in timeline.json's format - a recorded frame or a LIVE frame of the plant (DT-3)
+  fromRows(rows, bits) {
     const out = {};
-    for (const [n, tr] of Object.entries(this.track)) {
-      const v = tr[k];
+    for (const [n, v] of Object.entries(rows)) {
       if (Array.isArray(v)) out[n] = { kind: "rigid", m: rigidMatrix(v), vis: !!v[7], col: null };
       else out[n] = { kind: "cyl", m: cylinderMatrix(v.c, v.ax, v.dia, v.len), vis: v.vis === undefined ? true : !!v.vis, col: v.col || null };
     }
     for (const [n, g] of Object.entries(this.glow)) {
       const f = out[n] || { kind: "rigid", m: new Matrix4(), vis: true };
-      out[n] = { ...f, col: g.bits[k] === "1" ? g.on : g.off };
+      out[n] = { ...f, col: bits[n] ? g.on : g.off };
     }
     return out;
   }
