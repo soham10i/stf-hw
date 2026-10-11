@@ -3,6 +3,7 @@
 // faster program is still deadlock-free, collision-free and recoverable.
 import { JOB_COL, JOB_SAY } from "../shared/hmi";
 import { useJson } from "../shared/data";
+import { Dumbbell, HBar, Plot } from "./Plot";
 
 const COL: Record<string, string> = { ...JOB_COL, present: "#f0c05a", place_oven: "#c7851c", store_retrieve: "#1f78c8" };
 const SAY: Record<string, string> = { ...JOB_SAY, belt_to_oven: "VGR: pick from the belt (U10: the pick half only)",
@@ -67,7 +68,6 @@ export function ThroughputPage() {
   if (!d) return <div className="db-err">loading the throughput study…</div>;
   const b = d.ablation[0], a = d.ablation[d.ablation.length - 1];
   const tMax = Math.max(b.vc_s, a.vc_s);
-  const maxVc = Math.max(...d.ablation.map((x) => x.vc_s));
   const jobs = Array.from(new Set([...d.gantt.before, ...d.gantt.after].map((x) => x.job)));
   const cpMax = Math.max(...(["before", "after"] as const).map((k) => Object.values(d.critical_path[k].by_job).reduce((s, v) => s + v, 0)));
   const bott = (x: Abl) => Object.entries(x.busy).sort((p, q) => q[1] - p[1])[0];
@@ -96,43 +96,43 @@ export function ThroughputPage() {
         <section className="db-card wide"><h3>Where the time went: the critical path, by job</h3>
           <Stack by={d.critical_path.before.by_job} scale={cpMax} label="before" />
           <Stack by={d.critical_path.after.by_job} scale={cpMax} label="after" />
+          <div className="db-legend">{Array.from(new Set([...Object.keys(d.critical_path.before.by_job), ...Object.keys(d.critical_path.after.by_job)])).map((j) =>
+            <span key={j} title={SAY[j]}><i style={{ background: COL[j] ?? "#888" }} />{j.replace(/_/g, " ")}</span>)}</div>
           <p className="db-note">Walked back from the last job: every job was started by the completion that freed it (the dispatcher only acts
             on completions). Before, the path circles the mould loop - crane, belt, the whole VGR tour to the oven, belt back, crane.</p>
         </section>
-        <section className="db-card wide"><h3>Ablation: each measure switched off alone, same process, same plant model</h3>
-          <table className="db-table"><thead><tr><td>program</td><td className="num">nominal</td><td className="num">commissioned</td><td /><td className="num">cycle</td>
-            <td className="num">per hour</td><td className="num">busiest</td></tr></thead>
-            <tbody>{d.ablation.map((x) => (
-              <tr key={x.name} className={x.name === "Upgrade 10" ? "on" : ""}><td>{x.name}</td><td className="num">{x.model_s} s</td>
-                <td className="num">{x.vc_s} s</td>
-                <td style={{ width: "30%" }}><div className="db-prog"><i style={{ width: `${(x.vc_s / maxVc) * 100}%`, background: x.name.startsWith("before") ? "#6c7884" : "#4f8fd6" }} /></div></td>
-                <td className="num">{x.cycle_s} s</td><td className="num">{x.per_hour}</td><td className="num">{bott(x)[0]}</td></tr>))}</tbody></table>
-          <table className="db-table" style={{ marginTop: 10 }}><thead><tr><td>measure</td><td className="num">saves alone</td><td className="num">worth in the full set</td></tr></thead>
-            <tbody>{d.measures.map((m) => <tr key={m.id}><td><b>{m.id}</b> - {m.say}</td><td className="num">{m.alone_s} s</td><td className="num">{m.marginal_s} s</td></tr>)}</tbody></table>
-          <p className="db-note">"Worth in the full set" is the time added back when only that measure is removed. The two columns differ because
-            the measures interact: a shorter VGR tour matters most once the tour is off the mould loop.</p>
+        <section className="db-card hl-span2"><h3>Ablation: the order time with each measure switched off</h3>
+          <HBar xTitle="12-cookie order, commissioned (s)" fmt={(v) => `${Math.round(v)}`} x0={Math.floor(a.vc_s * 0.8 / 50) * 50}
+            refs={[{ v: b.vc_s, label: "before", color: "var(--muted)" }, { v: a.vc_s, label: "Upgrade 10", color: "var(--ok)" }]}
+            rows={[...d.ablation].sort((p, q) => q.vc_s - p.vc_s).map((x) => ({ label: x.name, v: x.vc_s, on: x.name === "Upgrade 10",
+              color: x.name.startsWith("before") ? "#6c7884" : x.name === "Upgrade 10" ? "var(--ok)" : "#4f8fd6",
+              tip: `${x.name}: ${x.vc_s} s commissioned (${x.model_s} s nominal) · cycle ${x.cycle_s} s · ${x.per_hour}/h · busiest ${bott(x)[0]}` }))} />
+          <p className="hl-cap">Axis starts at {Math.floor(a.vc_s * 0.8 / 50) * 50} s so the differences show. Hover a bar for cycle time and the busiest unit.</p>
+        </section>
+        <section className="db-card"><h3>What each measure is worth</h3>
+          <Dumbbell xTitle="seconds saved" max={Math.max(...d.measures.map((m) => Math.max(m.alone_s, m.marginal_s))) * 1.1} fmt={(v) => `${Math.round(v)} s`}
+            a={{ name: "alone", color: "#9fd0ff" }} b={{ name: "in the full set", color: "var(--ok)" }}
+            rows={d.measures.map((m) => ({ label: m.id, a: m.alone_s, b: m.marginal_s, note: m.say }))} />
+          <ul className="tp-meas">{d.measures.map((m) => <li key={m.id}><b>{m.id}</b>{m.say}</li>)}</ul>
         </section>
         <section className="db-card"><h3>The VGR's tours</h3>
-          <table className="db-table"><thead><tr><td>tour</td><td className="num">before</td><td className="num">after</td></tr></thead>
-            <tbody>{Object.keys(d.tours.before).map((k) => <tr key={k}><td>{k.replace(/_/g, " ")}</td><td className="num">{d.tours.before[k]} s</td>
-              <td className="num">{d.tours.after[k]} s</td></tr>)}</tbody></table>
-          <p className="db-note">Crossings fly {d.meta.margin_mm} mm above the lowest height the SAT sweep proves clear, and swing while they climb,
-            instead of rising to the 500 mm transit plane. A waypoint with nothing to move costs a {d.meta.t_zero_s * 1000} ms position check, not the
-            {" "}{d.meta.t_min_s} s minimum move.</p>
+          <Dumbbell xTitle="tour time (s)" max={Math.max(...Object.values(d.tours.before)) * 1.1} fmt={(v) => `${v.toFixed(0)} s`}
+            a={{ name: "after", color: "var(--ok)" }} b={{ name: "before", color: "#6c7884" }}
+            rows={Object.keys(d.tours.before).map((k) => ({ label: k.replace(/_/g, " "), a: d.tours.after[k], b: d.tours.before[k] }))} />
+          <p className="hl-cap">Crossings fly {d.meta.margin_mm} mm above the proven-clear height and swing while they climb, instead of rising to the 500 mm transit plane.</p>
         </section>
         <section className="db-card"><h3>With a real bake</h3>
-          <table className="db-table"><thead><tr><td>bake</td><td className="num">before</td><td className="num">after</td><td className="num">gain</td></tr></thead>
-            <tbody>{d.study.map((r) => <tr key={r.bake_s}><td>{r.bake_s} s{r.bake_s === d.meta.bake_demo_s ? " (demo)" : ""}</td><td className="num">{r.before} s</td>
-              <td className="num">{r.after} s</td><td className="num">{Math.round(r.gain * 100)} %</td></tr>)}</tbody></table>
-          <p className="db-note">Nominal schedule. The longer the bake, the more the oven limits the order, and the less the loop matters.</p>
+          <Plot h={230} xTitle="bake time (s)" yTitle="order time (s)" yMin={0}
+            series={[{ name: "before", x: d.study.map((r) => r.bake_s), y: d.study.map((r) => r.before), color: "#6c7884", width: 2.2 },
+                     { name: "Upgrade 10", x: d.study.map((r) => r.bake_s), y: d.study.map((r) => r.after), color: "#22c55e", width: 2.4 }]}
+            vmarks={[{ x: d.meta.bake_demo_s, color: "var(--muted)", label: "demo bake" }]}
+            tipExtra={(x) => { const r = d.study.find((q) => q.bake_s === x); return r ? [["gain", `${Math.round(r.gain * 100)} %`]] : []; }} />
+          <p className="hl-cap">The longer the bake, the more the oven limits the order and the less the faster loop matters.</p>
         </section>
-        <section className="db-card"><h3>OEE, same shift definition</h3>
-          <table className="db-table"><thead><tr><td /><td className="num">before</td><td className="num">after</td></tr></thead>
-            <tbody>{(["availability", "performance", "quality", "oee"] as const).map((k) => (
-              <tr key={k}><td>{k}</td><td className="num">{Math.round(d.oee.before[k] * 100)} %</td><td className="num">{Math.round(d.oee.after[k] * 100)} %</td></tr>))}
-              <tr><td>bottleneck</td><td className="num">{d.oee.before.bottleneck}</td><td className="num">{d.oee.after.bottleneck}</td></tr></tbody></table>
-          <p className="db-note">A shift = the order with every fault of the matrix once. Performance = the busiest unit's time / the order time:
-            it rises because the idle waiting went, not because anything runs faster.</p>
+        <section className="db-card"><h3>OEE, before and after</h3>
+          <Dumbbell xTitle="share of the shift" a={{ name: "before", color: "#6c7884" }} b={{ name: "Upgrade 10", color: "var(--ok)" }}
+            rows={(["availability", "performance", "quality", "oee"] as const).map((k) => ({ label: k === "oee" ? "OEE" : k, a: d.oee.before[k], b: d.oee.after[k] }))} />
+          <p className="hl-cap">Bottleneck: {d.oee.before.bottleneck} → {d.oee.after.bottleneck}. Performance rises because idle waiting went, not because anything runs faster.</p>
         </section>
         <section className="db-card wide"><h3>Proofs the faster program still passes</h3>
           <table className="db-table"><thead><tr><td>fault</td><td>expected</td><td>observed</td><td className="num">detected after</td><td className="num">time lost</td><td /></tr></thead>

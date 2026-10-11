@@ -3,6 +3,7 @@
 // attacks replayed against the twin with and without the countermeasures.
 import { useState } from "react";
 import { useJson } from "../shared/data";
+import { Dumbbell, Stacked } from "./Plot";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -105,9 +106,9 @@ export function SecurityPage() {
           </div>
           <div className={`sec-out ${mode === "with" ? "ok" : mode === "without" ? "bad" : "warn"}`}>{a[mode]}</div>
           <p className="db-note"><b>Residual:</b> {a.residual}</p>
-          {a.coverage && <table className="db-table" style={{ marginTop: 8 }}><thead><tr><td>steps</td><td className="num">supervised</td><td className="num">an instant lie caught</td><td>too short to tell</td></tr></thead>
-            <tbody>{a.coverage.by_class.map((c) => <tr key={c.class}><td>{c.class}</td><td className="num">{c.steps}</td><td className="num">{c.detected}</td>
-              <td className="db-muted">{c.blind.join(", ") || "-"}</td></tr>)}</tbody></table>}
+          {a.coverage && <><h4 className="sec-h4">Which moving steps catch an instant lie</h4>
+            <Stacked parts={[{ name: "caught", color: "var(--ok)" }, { name: "too short to tell", color: "var(--warn)" }]}
+              rows={a.coverage.by_class.map((c) => ({ label: `${c.class} (${c.steps})`, v: [c.detected, c.steps - c.detected] }))} /></>}
           {a.coverage && <p className="db-note">A lie counts as caught when it arrives sooner than {Math.round(a.coverage.fast_factor * 100)} % of the
             plant model's time for that step. {a.coverage.zero_legs} legs that move nothing are left out.</p>}
         </section>
@@ -127,11 +128,11 @@ export function SecurityPage() {
           <p className="db-note">The reserve (MinRsvPct) and grid charging are set on the inverter and cannot be written over the network; the revert
             timer makes a silent EMS fall back to the inverter's own mode.</p>
         </section>
-        <section className="db-card"><h3>Security levels: capability vs target 2</h3>
-          <table className="db-table"><thead><tr><td>component</td><td>requirement</td><td className="num">SL-C</td><td>countermeasure</td></tr></thead>
-            <tbody>{d.sl.filter((r) => r.gap).map((r, i) => (
-              <tr key={i}><td>{r.component}</td><td>{r.fr}</td><td className="num warn">{r.sl_c}</td><td className="db-muted">{r.countermeasure}</td></tr>))}</tbody></table>
-          <p className="db-note">Only the gaps are listed; the PLC meets SL 2 on every requirement. Component capabilities are assumed by product class.</p>
+        <section className="db-card hl-span2"><h3>Security levels: where components fall short of target 2</h3>
+          <Dumbbell xTitle="security level (IEC 62443-3-3)" max={4} fmt={(v) => `SL ${v}`}
+            a={{ name: "capability (SL-C)", color: "var(--bad)" }} b={{ name: "target (SL-T)", color: "var(--ok)" }}
+            rows={d.sl.filter((r) => r.gap).map((r) => ({ label: `${r.component.replace(/ \(.*\)$/, "")} · ${r.fr.split(" ")[0]}`, a: r.sl_c, b: r.sl_t, note: `${r.fr} → ${r.countermeasure}` }))} />
+          <p className="hl-cap">Each gap is closed by a countermeasure outside the component (hover a row). The PLC meets SL 2 everywhere. Capabilities are assumed by product class.</p>
         </section>
         <section className="db-card"><h3>Safety stays off the network</h3>
           <table className="db-table"><tbody>{d.safety.functions.map((f) => <tr key={f.id}><td className="mono">{f.id}</td><td>{f.name}</td><td className="db-muted">{f.devices}</td><td className="num">PL{f.PLr}</td></tr>)}</tbody></table>

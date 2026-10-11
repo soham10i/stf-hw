@@ -2,6 +2,7 @@
 // demand response, power quality and the health of the power assets.
 import { useState } from "react";
 import { Chart } from "./Month";
+import { HBar, Plot } from "./Plot";
 import { useJson } from "../shared/data";
 
 const BASE = import.meta.env.BASE_URL;
@@ -29,6 +30,9 @@ type GridDoc = {
                outage_cost_avoided_s: number; note: string };
 };
 
+type Sc = GridDoc["scenarios"][string];
+const NAME: Record<string, string> = { grid: "grid only", pv: "PV only", "pv+battery": "PV + battery + EMS" };
+
 export function GridPage() {
   const { data: g, error: err } = useJson<GridDoc>("grid/grid.json", "No grid data. Run: STF_VARIANT=up7 python3 grid.py");
   const [day, setDay] = useState(8);
@@ -44,7 +48,6 @@ export function GridPage() {
     const a = (arr: number[]) => arr.slice(d * per, (d + 1) * per).reduce((s, v) => s + Math.max(0, v), 0) * g.meta.step_h / 1000;
     return { load: a(S.load), pv: a(S.pv), imp: a(S.grid) };
   });
-  const maxE = Math.max(...dailyE.map((e) => Math.max(e.load, e.pv)));
   const cab = g.health.cabinet;
   return (
     <>
@@ -79,27 +82,32 @@ export function GridPage() {
             demand-response window. It never discharges into the {Math.round(g.meta.assets.reserve * 100)} % reserve kept for outages.</p>
         </section>
         <section className="db-card wide"><h3>Three ways to power the cell, this month</h3>
-          <table className="db-table"><thead><tr><td /><td className="num">import</td><td className="num">export</td><td className="num">cost</td>
-            <td className="num">peak</td><td className="num">CO₂</td><td className="num">self-sufficiency</td><td className="num">DR events met</td></tr></thead>
-            <tbody>{Object.entries(sc).map(([k, v]) => (
-              <tr key={k} className={k === "pv+battery" ? "on" : ""}><td>{k === "grid" ? "grid only" : k === "pv" ? "PV only" : "PV + battery + EMS"}</td>
-                <td className="num">{v.import_kwh} kWh</td><td className="num">{v.export_kwh} kWh</td><td className="num">€{v.total_eur}</td>
-                <td className="num">{v.peak_w} W</td><td className="num">{v.co2_kg} kg</td><td className="num">{Math.round(v.self_sufficiency * 100)} %</td>
-                <td className={`num ${v.dr_met ? "ok" : "fail"}`}>{v.dr_met ? "yes" : "no"}</td></tr>
-            ))}</tbody></table>
-          <div className="mo-days" style={{ height: 110, marginTop: 10 }}>{dailyE.map((e, d) => (
-            <div key={d} title={`day ${d + 1}: load ${e.load.toFixed(2)} kWh, PV ${e.pv.toFixed(2)} kWh, import ${e.imp.toFixed(2)} kWh`}>
-              <i style={{ height: `${(e.pv / maxE) * 100}%`, background: "#f2c230" }} /><span>{d + 1}</span></div>
-          ))}</div>
-          <p className="db-note">Bars: PV energy per day ({g.weather.filter((w) => w.kind === "rain" || w.kind === "overcast").length} dull days). {g.meta.tariff}.</p>
+          <div className="gr-four">{([["cost (€)", (v: Sc) => v.total_eur, (x: number) => `€${x.toFixed(2)}`],
+                                      ["CO₂ (kg)", (v: Sc) => v.co2_kg, (x: number) => `${x.toFixed(1)}`],
+                                      ["peak import (W)", (v: Sc) => v.peak_w, (x: number) => `${Math.round(x)}`],
+                                      ["self-sufficiency (%)", (v: Sc) => v.self_sufficiency * 100, (x: number) => `${Math.round(x)}`]] as const).map(([t, get, fmt]) => (
+            <div key={t}><h4>{t}</h4>
+              <HBar xTitle="" fmt={fmt} rows={Object.entries(sc).map(([k, v]) => ({ label: NAME[k] ?? k, v: get(v), on: k === "pv+battery",
+                color: k === "pv+battery" ? "var(--ok)" : k === "pv" ? "#f2c230" : "#6c7884" }))}
+                refs={t.startsWith("peak") ? [{ v: g.meta.assets.peak_cap_w, label: "cap", color: "var(--warn)" }] : []} /></div>))}
+          </div>
+          <p className="hl-cap">Demand-response events met: {Object.entries(sc).map(([k, v]) => `${NAME[k] ?? k} ${v.dr_met ? "yes" : "no"}`).join(" · ")}. {g.meta.tariff}.</p>
         </section>
-        <section className="db-card wide"><h3>Power quality: every mains event, with and without the inverter</h3>
+        <section className="db-card wide"><h3>Energy per day</h3>
+          <Plot h={220} xTitle="day of the month" yTitle="energy (kWh)" xMin={1} xMax={g.meta.days} yMin={0} yFmt={(v) => v.toFixed(1)}
+            series={[{ name: "PV generated", x: dailyE.map((_, d) => d + 1), y: dailyE.map((e) => e.pv), color: "#f2c230", kind: "area", width: 1.8, fmt: (v) => `${v.toFixed(2)} kWh` },
+                     { name: "cell load", x: dailyE.map((_, d) => d + 1), y: dailyE.map((e) => e.load), color: "#9fd0ff", width: 2, fmt: (v) => `${v.toFixed(2)} kWh` },
+                     { name: "grid import", x: dailyE.map((_, d) => d + 1), y: dailyE.map((e) => e.imp), color: "#4f8fd6", dash: true, width: 1.6, fmt: (v) => `${v.toFixed(2)} kWh` }]}
+            tipTitle={(x) => `day ${Math.round(x)} · ${g.weather[Math.round(x) - 1]?.kind ?? ""}`} />
+          <p className="hl-cap">{g.weather.filter((w) => w.kind === "rain" || w.kind === "overcast").length} dull days: import rises where PV falls.</p>
+        </section>
+        <section className="db-card wide"><h3>Power quality: every mains event, with and without the inverter <span className="db-muted">hover a result for why</span></h3>
           <table className="db-table"><thead><tr><td>when</td><td>event</td><td>with the inverter (UPS mode)</td><td>grid only</td></tr></thead>
             <tbody>{pq.map((p, i) => (
               <tr key={i}><td className="mono">day {p.day} {String(Math.floor(p.h)).padStart(2, "0")}:{String(Math.round((p.h % 1) * 60)).padStart(2, "0")}</td>
                 <td>{p.kind === "outage" ? `outage, ${Math.round(p.dur_s / 60)} min` : `sag to ${Math.round((p.depth ?? 0) * 100)} %, ${p.dur_s * 1000} ms`}</td>
-                <td className={p.with_ups.survives ? "ok" : "fail"}>{p.with_ups.survives ? "✓ " : "✗ "}{p.with_ups.why}</td>
-                <td className={p.grid_only.survives ? "ok" : "fail"}>{p.grid_only.survives ? "✓ " : "✗ "}{p.grid_only.why}{p.grid_only.lost_s ? ` (−${p.grid_only.lost_s} s)` : ""}</td></tr>
+                <td><span className={`gr-pill ${p.with_ups.survives ? "ok" : "fail"}`} title={p.with_ups.why}>{p.with_ups.survives ? "✓ rides through" : "✗ stops"}</span></td>
+                <td><span className={`gr-pill ${p.grid_only.survives ? "ok" : "fail"}`} title={p.grid_only.why}>{p.grid_only.survives ? "✓ rides through" : `✗ stops${p.grid_only.lost_s ? ` · −${p.grid_only.lost_s} s` : ""}`}</span></td></tr>
             ))}</tbody></table>
         </section>
         <section className="db-card wide"><h3>Power-asset health: the PSU's capacitors and the cabinet air filter</h3>
@@ -126,13 +134,11 @@ export function GridPage() {
           </tbody></table>
         </section>
         <section className="db-card"><h3>Economics, honestly</h3>
-          <table className="db-table"><tbody>
-            {Object.entries(g.economics.capex_eur).map(([k, v]) => <tr key={k}><td>{k}</td><td className="num">€{v}</td></tr>)}
-            <tr><td><b>total</b></td><td className="num"><b>€{g.economics.capex_total}</b></td></tr>
-            <tr><td>energy + demand saving</td><td className="num">€{g.economics.saving_eur_month} / month</td></tr>
-            <tr><td>payback on energy alone</td><td className="num">{g.economics.payback_years} years</td></tr>
-            <tr><td>production lost to mains events without it</td><td className="num">{Math.round(g.economics.outage_cost_avoided_s / 60)} min</td></tr>
-          </tbody></table>
+          <HBar xTitle="capital cost (€)" fmt={(v) => `€${Math.round(v)}`} rows={Object.entries(g.economics.capex_eur).sort((x, y) => y[1] - x[1]).map(([k, v]) => ({ label: k, v, color: "#4f8fd6" }))} />
+          <div className="hl-facts col">
+            <div><b>€{g.economics.capex_total} total · {g.economics.payback_years} years payback</b><span>on €{g.economics.saving_eur_month} a month of energy and demand savings</span></div>
+            <div><b>{Math.round(g.economics.outage_cost_avoided_s / 60)} min of production</b><span>lost to mains events without it</span></div>
+          </div>
           <p className="db-note">{g.economics.note}.</p>
         </section>
         <section className="db-card wide"><h3>Standards the design follows</h3>

@@ -323,17 +323,17 @@ export function Stacked({ rows, parts, unit = "" }: {
 }
 
 /** Two values per row on one 0..1 scale, joined by a line: the gap is the story. */
-export function Dumbbell({ rows, a, b, xTitle, fmt = (v: number) => `${Math.round(v * 100)} %` }: {
+export function Dumbbell({ rows, a, b, xTitle, fmt = (v: number) => `${Math.round(v * 100)} %`, max = 1 }: {
   rows: { label: string; a: number; b: number; note?: string }[]; a: { name: string; color: string }; b: { name: string; color: string };
-  xTitle: string; fmt?: (v: number) => string;
+  xTitle: string; fmt?: (v: number) => string; /** the axis runs 0..max */ max?: number;
 }) {
   const [box, W] = useWidth<HTMLDivElement>();
-  const L = W < 560 ? 120 : 150, R = 16, T = 6, RH = 24, B = 38, h = T + rows.length * RH + B;
-  const X = (v: number) => L + v * (W - L - R);
+  const L = Math.min(W < 560 ? 120 : 220, Math.max(...rows.map((r) => r.label.length)) * 6.6 + 14), R = 20, T = 6, RH = 24, B = 38, h = T + rows.length * RH + B;
+  const X = (v: number) => L + (v / max) * (W - L - R);
   return (
     <div className="pl">
       <div className="pl-box" ref={box}><svg viewBox={`0 0 ${W} ${h}`}>
-        {[0, 0.25, 0.5, 0.75, 1].map((v) => <g key={v}><line x1={X(v)} x2={X(v)} y1={T} y2={T + rows.length * RH} className="pl-grid" />
+        {(max === 1 ? [0, 0.25, 0.5, 0.75, 1] : niceTicks(0, max, W < 560 ? 3 : 5)).map((v) => <g key={v}><line x1={X(v)} x2={X(v)} y1={T} y2={T + rows.length * RH} className="pl-grid" />
           <text x={X(v)} y={T + rows.length * RH + 14} textAnchor="middle" className="pl-tick">{fmt(v)}</text></g>)}
         <text x={(L + W - R) / 2} y={h - 6} textAnchor="middle" className="pl-title">{xTitle}</text>
         {rows.map((r, i) => {
@@ -349,5 +349,33 @@ export function Dumbbell({ rows, a, b, xTitle, fmt = (v: number) => `${Math.roun
       </svg></div>
       <div className="pl-legend static"><span><i style={{ background: a.color, borderRadius: 4 }} />{a.name}</span><span><i style={{ background: b.color, borderRadius: 4 }} />{b.name}</span></div>
     </div>
+  );
+}
+
+/** Horizontal bars on a value axis, with reference lines (e.g. before / after). */
+export function HBar({ rows, xTitle, refs = [], fmt = fmtNum, x0 = 0, x1 }: {
+  rows: { label: string; v: number; color: string; on?: boolean; tip?: string }[]; xTitle: string;
+  refs?: { v: number; label: string; color: string }[]; fmt?: (v: number) => string; x0?: number; x1?: number;
+}) {
+  const [box, W] = useWidth<HTMLDivElement>();
+  const L = Math.min(W < 560 ? 130 : 230, Math.max(...rows.map((r) => r.label.length)) * 6.6 + 14), R = 64, T = 18, RH = 24, B = 38;
+  const h = T + rows.length * RH + B, top = x1 ?? Math.max(...rows.map((r) => r.v), ...refs.map((r) => r.v)) * 1.05;
+  const X = (v: number) => L + ((v - x0) / (top - x0)) * (W - L - R);
+  return (
+    <div className="pl"><div className="pl-box" ref={box}><svg viewBox={`0 0 ${W} ${h}`}>
+      {niceTicks(x0, top, W < 560 ? 3 : 5).map((v) => <g key={v}><line x1={X(v)} x2={X(v)} y1={T} y2={T + rows.length * RH} className="pl-grid" />
+        <text x={X(v)} y={T + rows.length * RH + 14} textAnchor="middle" className="pl-tick">{fmt(v)}</text></g>)}
+      <text x={(L + W - R) / 2} y={h - 6} textAnchor="middle" className="pl-title">{xTitle}</text>
+      {rows.map((r, i) => {
+        const y = T + i * RH;
+        return <g key={r.label}><title>{r.tip ?? `${r.label}: ${fmt(r.v)}`}</title>
+          {r.on && <rect x={0} y={y} width={W} height={RH} className="rw-hit on" />}
+          <text x={L - 10} y={y + RH / 2 + 4} textAnchor="end" className={`pl-row ${r.on ? "on" : ""}`}>{r.label}</text>
+          <rect x={X(x0)} y={y + 5} width={Math.max(1, X(r.v) - X(x0))} height={RH - 10} rx={3} fill={r.color} opacity={0.85} />
+          <text x={X(r.v) + 6} y={y + RH / 2 + 4} className="hb-v">{fmt(r.v)}</text></g>;
+      })}
+      {refs.map((r, i) => <g key={r.label}><line x1={X(r.v)} x2={X(r.v)} y1={T - 4} y2={T + rows.length * RH} stroke={r.color} strokeDasharray="5 3" strokeWidth={1.4} />
+        <text x={X(r.v)} y={T - 6 - (i % 2) * 0} textAnchor={i % 2 ? "start" : "end"} dx={i % 2 ? 4 : -4} className="pl-lab" style={{ fill: r.color }}>{r.label}</text></g>)}
+    </svg></div></div>
   );
 }
