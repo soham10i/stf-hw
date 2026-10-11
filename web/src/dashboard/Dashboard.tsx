@@ -7,6 +7,7 @@ import { useCadDoc, type CadDoc } from "../shared/model";
 import { JOB_COL, JOB_SAY, fmtT, makespan, unitsAt } from "../shared/hmi";
 import { compAt, maxShifts } from "../shared/health";
 import { HealthPage } from "./Health";
+import { MaintenancePage } from "./Maintenance";
 import { MonthPage } from "./Month";
 import { AiPage } from "./Ai";
 import { GridPage } from "./Grid";
@@ -115,42 +116,58 @@ function Overview({ doc, t, age, pm, go }: { doc: CadDoc; t: number; age: number
   const prod = c.trace.filter((r) => r.kind === "production");
   const done = prod.filter((r) => (r.t.sorted ?? Infinity) <= t).length;
   const st = h.components.map((x) => compAt(x, age, pm));
-  const n = { ok: st.filter((s) => s.status === "ok").length, warn: st.filter((s) => s.status === "warn").length, fail: st.filter((s) => s.status === "fail").length };
+  const fleet = st.reduce((a, x) => a + x.hi, 0) / st.length;
+  const warned = st.filter((s) => s.status !== "ok").length;
   const worst = st.reduce((a, b) => (b.hi < a.hi ? b : a));
   const next = [...st].sort((a, b) => (a.rulShifts ?? 1e9) - (b.rulShifts ?? 1e9)).slice(0, 5);
   const now = unitsAt(c, t);
+  const oee = [["Availability", p.availability], ["Performance", p.performance], ["Quality", p.quality]] as const;
+  const loss = [...oee].sort((x, y) => x[1] - y[1])[0];
+  const jobs = Array.from(new Set((c.policies[c.policy].bars ?? []).map((b) => b.job)));
   return (
     <>
       <div className="db-kpis">
-        <Kpi label="order progress" value={`${done}/${prod.length}`} sub={`${fmtT(t)} of ${fmtT(makespan(c))}`} />
+        <div className="db-kpi"><span>order progress</span><b>{done}/{prod.length}</b>
+          <div className="db-prog ov-prog"><i style={{ width: `${(done / prod.length) * 100}%` }} /></div><em>{fmtT(t)} of {fmtT(makespan(c))}</em></div>
         <Kpi label="throughput" value={`${((prod.length / p.makespan) * 3600).toFixed(1)}`} sub="cookies per hour" />
-        <Kpi label="OEE" value={`${Math.round(p.oee * 100)} %`} sub={`A ${Math.round(p.availability * 100)} · P ${Math.round(p.performance * 100)} · Q ${Math.round(p.quality * 100)}`} />
+        <Kpi label="OEE" value={`${Math.round(p.oee * 100)} %`} sub={`biggest loss: ${loss[0].toLowerCase()}`} />
         <Kpi label="running units" value={`${now.filter((u) => u.state === "RUN").length}/${now.length}`} sub={`bottleneck: ${p.bottleneck}`} />
-        <Kpi label="component health" value={`${n.ok} ok`} sub={`${n.warn} service due · ${n.fail} failed`} tone={n.fail ? "fail" : n.warn ? "warn" : "ok"} />
-        <Kpi label="worst component" value={`${Math.round(worst.hi)}`} sub={worst.c.name} tone={worst.status} />
+        <Kpi label="fleet health" value={`${Math.round(fleet)}`} sub={warned ? `${warned} part${warned > 1 ? "s" : ""} need service` : `worst: ${worst.c.name.replace(/ \(.*\)$/, "")}`}
+          tone={st.some((s) => s.status === "fail") ? "fail" : warned ? "warn" : "ok"} />
       </div>
       <div className="db-grid">
         <Card title="Production timeline" wide extra={<button className="db-link" onClick={() => go("production")}>details →</button>}>
           <Gantt doc={doc} t={t} />
+          <div className="db-legend">{jobs.map((j) => <span key={j} title={JOB_SAY[j]}><i style={{ background: JOB_COL[j] }} />{j.replace(/_/g, " ")}</span>)}</div>
         </Card>
         <Card title="Units now">
-          <table className="db-table"><tbody>
-            {now.map((u) => <tr key={u.unit}><td><span className={`hmi-led ${u.state.toLowerCase()}`} />{u.unit}</td>
-              <td>{u.job ? <span style={{ color: JOB_COL[u.job] }}>{u.job}</span> : <span className="db-muted">ready</span>}</td></tr>)}
-          </tbody></table>
+          <div className="ov-units">{now.map((u) => (
+            <div key={u.unit} className={`ov-unit ${u.state.toLowerCase()}`} title={u.job ? JOB_SAY[u.job] : "ready"}>
+              <span className={`hmi-led ${u.state.toLowerCase()}`} /><b>{u.unit}</b>
+              <em style={u.job ? { color: JOB_COL[u.job] } : undefined}>{u.job ? u.job.replace(/_/g, " ") : "ready"}</em>
+            </div>))}</div>
+        </Card>
+        <Card title="OEE breakdown">
+          <div className="ov-oee">
+            {oee.map(([k, v]) => <div key={k} className={k === loss[0] ? "loss" : ""}><span>{k}</span><i><b style={{ width: `${v * 100}%` }} /></i><em>{Math.round(v * 100)} %</em></div>)}
+            <div className="tot"><span>OEE = A × P × Q</span><i><b style={{ width: `${p.oee * 100}%` }} /></i><em>{Math.round(p.oee * 100)} %</em></div>
+          </div>
         </Card>
         <Card title="Next maintenance" extra={<button className="db-link" onClick={() => go("maintenance")}>planner →</button>}>
-          <table className="db-table"><tbody>
-            {next.map((s) => <tr key={s.c.id} className={s.status}><td>{s.c.name}</td>
-              <td className="num">{s.status === "fail" ? "failed" : `${(s.rulShifts ?? 0).toFixed(1)} sh left`}</td></tr>)}
-          </tbody></table>
+          <div className="hl-bars">{next.map((s) => (
+            <button key={s.c.id} className="hl-bar" onClick={() => go("health")} title={s.c.name}>
+              <span className="hl-name">{s.c.name.replace(/ \(.*\)$/, "")}</span>
+              <span className="hl-track"><i style={{ width: `${Math.max(1, s.hi)}%`, background: s.status === "ok" ? "var(--ok)" : s.status === "warn" ? "var(--warn)" : "var(--bad)" }} /></span>
+              <b>{Math.round(s.hi)}</b><em className={s.status}>{s.status === "fail" ? "failed" : `${(s.rulShifts ?? 0).toFixed(0)} sh`}</em>
+            </button>))}</div>
         </Card>
-        <Card title="Downtime by cause (U5 fault matrix)" extra={<button className="db-link" onClick={() => go("alarms")}>alarms →</button>}>
+        <section className="db-card hl-span2">
+          <h3>Downtime by fault<button className="db-link" onClick={() => go("alarms")}>alarms →</button></h3>
           <HBars rows={[...vc.matrix].sort((a, b) => b.lost_s - a.lost_s).map((r) => [`${r.id} ${r.fault}`, r.lost_s, "#e0503a"])}
             max={Math.max(...vc.matrix.map((r) => r.lost_s))} unit="s" />
-        </Card>
+        </section>
         <Card title="Unit utilisation">
-          <HBars rows={Object.entries(p.busy).map(([u, b]) => [u, (b / p.makespan) * 100])} max={100} unit="%" hl={p.bottleneck} />
+          <HBars rows={Object.entries(p.busy).sort((a, b) => b[1] - a[1]).map(([u, b]) => [u, (b / p.makespan) * 100])} max={100} unit="%" hl={p.bottleneck} />
         </Card>
       </div>
     </>
@@ -191,39 +208,6 @@ function Production({ doc, t }: { doc: CadDoc; t: number }) {
         </tbody></table>
         <p className="db-note">Commissioned against the twin: {vc.performance.makespan} s (model {vc.performance.model} s).</p>
       </Card>
-    </div>
-  );
-}
-
-function Maintenance({ doc, age, pm }: { doc: CadDoc; age: number; pm: boolean }) {
-  const h = doc.health!, lc = doc.lifecycle;
-  const rows = h.components.map((x) => {
-    const s = compAt(x, age, pm);
-    const due = (x.pm_interval - s.n) / x.per_shift;
-    return { x, s, due: s.status !== "ok" ? 0 : Math.max(0, Math.min(due, s.rulShifts ?? Infinity)),
-             why: s.status === "fail" ? "FAILED - replace" : s.status === "warn" ? `predictive: ${x.warn_by}` : due <= 0 ? "preventive interval reached" : "preventive interval" };
-  }).sort((a, b) => a.due - b.due);
-  const door = Object.fromEntries((lc?.access ?? []).map((a) => [a.part, a.door]));
-  return (
-    <div className="db-grid">
-      <Card title="Work orders" wide>
-        <table className="db-table">
-          <thead><tr><td>component</td><td>why</td><td>door</td><td>services so far</td><td className="num">due</td></tr></thead>
-          <tbody>{rows.map(({ x, s, due, why }) => (
-            <tr key={x.id} className={s.status}><td>{x.name}</td><td>{why}</td><td>{door[x.part] ?? "–"}</td><td>{s.serviced}</td>
-              <td className="num">{s.status === "ok" ? `in ${due.toFixed(1)} shifts` : "now"}</td></tr>
-          ))}</tbody>
-        </table>
-      </Card>
-      {lc && (
-        <Card title="Spare parts (U7)" wide>
-          <table className="db-table">
-            <thead><tr><td>item</td><td>in the cell</td><td>per year</td><td>stock</td></tr></thead>
-            <tbody>{lc.spares.map((s) => <tr key={s.item} className={s.wear ? "on" : ""}><td>{s.item}<div className="db-muted">{s.what}</div></td>
-              <td className="num">{s.qty}</td><td className="num">{s.per_year ?? "–"}</td><td className="num">{s.stock}</td></tr>)}</tbody>
-          </table>
-        </Card>
-      )}
     </div>
   );
 }
@@ -448,7 +432,7 @@ export function Dashboard() {
           {page === "production" && <Production doc={doc} t={t} />}
           {page === "health" && <HealthPage h={doc.health!} age={age} pm={pm} go={(p) => setPage(p as Page)} />}
           {page === "docs-degradation" && <Suspense fallback={<div className="db-err">loading…</div>}><DegradationPage h={doc.health!} /></Suspense>}
-          {page === "maintenance" && <Maintenance doc={doc} age={age} pm={pm} />}
+          {page === "maintenance" && <MaintenancePage h={doc.health!} lc={doc.lifecycle} age={age} pm={pm} />}
           {page === "quality" && <Quality doc={doc} t={t} />}
           {page === "alarms" && <Alarms doc={doc} />}
           {page === "engineering" && <Engineering doc={doc} />}

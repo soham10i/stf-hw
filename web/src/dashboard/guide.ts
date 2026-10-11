@@ -50,23 +50,25 @@ export const TERMS: Record<string, string> = {
 export const GUIDE: Record<string, PageGuide> = {
   overview: {
     title: "Overview",
-    what: "The cell at a glance: where the current order is, what each unit is doing, what costs time and what needs maintenance next.",
+    what: "The cell at a glance: order progress, what each unit is doing, where efficiency is lost and what needs service next.",
     read: [
-      "The time slider at the top plays the 12-cookie order; every card follows it.",
-      "The machine-age slider ages the parts; the PM switch shows them with and without preventive maintenance.",
-      "The links on the cards (details →, planner →, alarms →) open the page behind each one.",
+      "The time slider plays the order; every card follows it.",
+      "The machine-age slider and PM switch age the parts.",
+      "The links on the cards open the page behind each one.",
     ],
     sections: [
-      ["Key figures", "Order progress, cookies per hour, OEE, running units, component health and the worst part, for the time and age you have chosen."],
-      ["Production timeline", "A Gantt chart of the order: each unit's jobs along the time axis, with the current time marked."],
-      ["Units now", "The step every unit's state machine is in at the chosen time."],
-      ["Next maintenance", "The parts closest to their warning at the chosen machine age, and how many shifts they have left."],
-      ["Downtime by cause (U5 fault matrix)", "How much time each fault from the commissioning tests costs when it happens once."],
-      ["Unit utilisation", "The share of the order each unit is busy: the highest bar is the bottleneck."],
+      ["Key figures", "Order progress, cookies per hour, OEE, running units and fleet health."],
+      ["Production timeline", "Each unit's jobs along the order; the line is now. Hover a legend entry for what a job does."],
+      ["Units now", "Each unit's state and job at the chosen time; green border = running."],
+      ["OEE breakdown", "Availability × performance × quality; the biggest loss is highlighted."],
+      ["Next maintenance", "The five parts closest to failure: health index and shifts left."],
+      ["Downtime by fault", "Time lost to each commissioning fault when it happens once."],
+      ["Unit utilisation", "Share of the order each unit is busy; the bottleneck is highlighted."],
     ],
     source: "The PLC program's run of the order (Upgrade 4), commissioning (Upgrade 5) and the wear model (Upgrade 6).",
     terms: ["OEE", "Order time (makespan)", "Shift", "Health index (HI)", "PM", "Gantt chart", "Simulated"],
   },
+
   production: {
     title: "Production",
     what: "The order in detail: every job of every unit, how far each flavour is, and why the PLC uses the dispatch policy it does.",
@@ -166,18 +168,22 @@ export const GUIDE: Record<string, PageGuide> = {
   },
   maintenance: {
     title: "Maintenance",
-    what: "The work orders the health warnings create, and the spare parts to keep in stock.",
+    what: "When each part is next serviced and why, how the work spreads over the days, and the spares to stock.",
     read: [
-      "A work order appears when a part warns; it is done at the next shift change, or at once if the part will not last that long.",
-      "The spare-parts table says how many of each part to stock and why.",
+      "Each row of the schedule is a part; each diamond a service. Colour says why: preventive, warned or failed.",
+      "Switch PM off: the diamonds become breakdowns (×), the stops PM prevents.",
+      "Click a row for its interval and service door.",
     ],
     sections: [
-      ["Work orders", "Each order: the part, why it was raised, when it is due and what it costs in time."],
-      ["Spare parts (U7)", "Stock per part from its life and lead time, so a warned part can always be replaced."],
+      ["Service schedule · next 30 days", "Every service ahead, part by part, plus the routine PM visit."],
+      ["Workload · services per day", "How many services fall on each day; busy days are highlighted."],
+      ["Work orders", "The next six jobs, soonest first."],
+      ["Spare parts (U7)", "Wear parts used per year against stock, and the one-off breakdown spares."],
     ],
     source: "Upgrade 6 (warnings) and Upgrade 7 (lifecycle and spares).",
     terms: ["PM", "Shift", "RUL"],
   },
+
   ai: {
     title: "AI maintenance",
     what: "A neural network that predicts each part's remaining life from its sensor history, tested on machines it never saw, and running here in your browser.",

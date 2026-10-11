@@ -344,3 +344,50 @@ details > summary { cursor: pointer; }
 }
 .dg-ref a { color: var(--accent); text-decoration: none; font-family: var(--mono); font-size: 11.5px; }
 @media (max-width: 760px) { .dg-ctl .db-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; } .dg-ctl .db-chips button { flex: none; } .hl-facts { grid-template-columns: 1fr 1fr; } }
+
+/* --------------------------------------------------------------- maintenance (Maintenance.tsx) */
+.mt-row { cursor: pointer; }
+.mt-hit { fill: transparent; } .mt-row:hover .mt-hit, .mt-row.on .mt-hit { fill: var(--surface-2); }
+.mt-name { fill: var(--text); font: 12px var(--font); }
+.mt-lane { stroke: var(--border-soft); }
+.mt-x { stroke: var(--bad); stroke-width: 2; }
+.mt-dia { width: 9px !important; height: 9px !important; transform: rotate(45deg); vertical-align: 0 !important; border-radius: 1px !important; }
+.mt-xl { color: var(--bad); margin-right: 6px; }
+.mt-sel { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+.mt-sel i { width: 9px; height: 9px; border-radius: 50%; } .mt-sel b { color: var(--text); }
+.mt-bar { fill: var(--accent); opacity: .75; } .mt-bar.hi { fill: var(--warn); opacity: .9; }
+.mt-wo { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.mt-wo li { display: grid; grid-template-columns: 9px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; background: var(--surface-2); }
+.mt-wo i { width: 9px; height: 9px; transform: rotate(45deg); border-radius: 1px; }
+.mt-wo span { font-size: 12.5px; min-width: 0; } .mt-wo em { display: block; font-style: normal; font-size: 11.5px; color: var(--muted); }
+.mt-wo b { font: 600 12px var(--mono); } .mt-wo b.warn { color: var(--warn); } .mt-wo b.fail { color: var(--bad); }
+.mt-spares { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px; }
+.mt-spares h4 { margin: 0 0 8px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.mt-sp { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 56px 52px; align-items: center; gap: 8px; padding: 4px 0; font-size: 12.5px; }
+.mt-sp span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mt-sp .hl-track i { background: var(--accent); }
+.mt-sp b { font: 600 12px var(--mono); text-align: right; } .mt-sp em { font-style: normal; font-size: 11.5px; color: var(--muted); text-align: right; }
+.mt-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.mt-chips span { display: inline-flex; align-items: baseline; gap: 6px; padding: 5px 10px; border-radius: 99px; background: var(--surface-2); font-size: 12px; cursor: help; }
+.mt-chips b { font: 700 12px var(--mono); color: var(--accent); } .mt-chips em { font-style: normal; color: var(--faint); font-size: 11px; }
+@media (max-width: 1100px) { .mt-spares { grid-template-columns: 1fr; } }
+
+/* --------------------------------------------------------------- overview */
+.ov-prog { margin: 6px 0 4px; height: 5px; }
+.ov-units { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.ov-unit { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 8px; align-items: center;
+  padding: 7px 9px; border-radius: 8px; background: var(--surface-2); border: 1px solid transparent; }
+.ov-unit.run { border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+.ov-unit .hmi-led { grid-row: 1 / 3; }
+.ov-unit b { font-size: 12.5px; font-weight: 600; }
+.ov-unit em { font-style: normal; font-size: 11.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ov-oee { display: flex; flex-direction: column; gap: 10px; }
+.ov-oee > div { display: grid; grid-template-columns: 110px minmax(0, 1fr) 44px; align-items: center; gap: 10px; font-size: 12.5px; }
+.ov-oee span { color: var(--muted); }
+.ov-oee i { height: 10px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+.ov-oee i b { display: block; height: 100%; border-radius: 5px; background: var(--accent); }
+.ov-oee .loss i b { background: var(--warn); } .ov-oee .loss span { color: var(--warn); }
+.ov-oee .tot { padding-top: 10px; border-top: 1px solid var(--border-soft); }
+.ov-oee .tot span { color: var(--text); font-weight: 600; } .ov-oee .tot i { height: 14px; } .ov-oee .tot i b { background: var(--ok); }
+.ov-oee em { font: 600 12.5px var(--mono); font-style: normal; text-align: right; }
+.mt-scroll { overflow-x: auto; } .mt-scroll svg { min-width: 680px; }

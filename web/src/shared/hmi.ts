@@ -3,16 +3,18 @@
 import type { ControlDoc, GanttBar } from "../shared/model";
 
 export const JOB_COL: Record<string, string> = {
-  retrieve: "#4f8fd6", fetch_empty: "#7fb0e6", store: "#2d5f99",
+  retrieve: "#4f8fd6", fetch_empty: "#7fb0e6", store: "#2d5f99", store_retrieve: "#3b78c2",
   belt_fwd: "#9aa7b4", belt_back: "#6c7884",
   belt_to_oven: "#e0a02a", belt_to_buf: "#c9b458", buf_to_oven: "#d18a3a", bay_to_belt: "#b07ad6",
+  present: "#e8c25a", place_oven: "#d68a2a",
   bake: "#e0503a", to_tt: "#e07a5a", saw_eject: "#c05050",
   ovenbelt: "#3ea55a", sort: "#2f9e8f",
 };
 
 export const JOB_SAY: Record<string, string> = {
   retrieve: "crane: cookie mould rack → belt", fetch_empty: "crane: empty mould rack → belt",
-  store: "crane: mould belt → rack", belt_fwd: "belt out (RP1, RP2)", belt_back: "belt back (RP2, RP1)",
+  store: "crane: mould belt → rack", store_retrieve: "crane: store the returning mould, fetch the next",
+  present: "oven: tray out for the next cookie", place_oven: "VGR: cookie → presented tray", belt_fwd: "belt out (RP1, RP2)", belt_back: "belt back (RP2, RP1)",
   belt_to_oven: "VGR: belt → Ofenschieber", belt_to_buf: "VGR: belt → buffer", buf_to_oven: "VGR: buffer → Ofenschieber",
   bay_to_belt: "VGR: bay → empty mould", bake: "oven: in, bake, out", to_tt: "Sauger: slider → Drehtisch",
   saw_eject: "Drehtisch: saw, eject", ovenbelt: "oven belt → sorting", sort: "sort: A4 check, eject",
