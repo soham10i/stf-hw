@@ -9,7 +9,7 @@ script that must exit 0.
 | DT-1 | Scene export: OpenUSD, USDZ, GLB | `twin/scene_check.py` | **built** (2026-10-06) | - |
 | DT-2 | Kinematic playback in the web twin and Blender | `twin/playback_check.py` | **built** (2026-10-06) | DT-1 |
 | DT-3a | Live plant core (machine time, events, oven, WebSocket, live viewer) | `twin/plant_check.py` | **built** (2026-10-11) | DT-2 |
-| DT-3b | Product flow, stocks + AMR, synthesized sensors, a reacting controller, oven PI | `twin/flow_check.py` | 4-5 d | DT-3a |
+| DT-3b | Product flow (line_sim's engine), stocks + AMR, bake logs, the oven under its closed loop | `twin/flow_check.py` | **built** (2026-10-11) | DT-3a |
 | DT-4 | PLC in the loop (SIL): ST → IEC → MatIEC, safety module | `twin/sil_check.py` | 8-10 d | DT-3 |
 | DT-5 | OPC UA server + Sparkplug B / UNS | `twin/opcua_check.py`, `twin/uns_check.py` | 3-4 d | DT-4 |
 | DT-6 | Contact physics for the handling steps (MuJoCo) | `twin/contact_check.py` | 4-5 d | DT-3 |
@@ -18,7 +18,7 @@ script that must exit 0.
 | DT-9 | Optional: the same USD stage in Omniverse / Isaac Sim (cloud) | manual review | 2-3 d | DT-1, a cloud RTX instance |
 | DT-10 | Hardware in the loop: the real Beckhoff PLC replaces the SIL | `twin/hil_check.py` | when hardware arrives | DT-4, hardware |
 
-Critical path: DT-1 → DT-2 → DT-3a → DT-3b → DT-4 → DT-8, about 6-7 weeks. DT-6 and DT-7 run in parallel with DT-4.
+Critical path: DT-1 → DT-2 → DT-3a → DT-3b → DT-4 (+ the sensor image) → DT-8, about 6-7 weeks. DT-6 and DT-7 run in parallel with DT-4.
 
 ---
 
@@ -158,19 +158,64 @@ so that the proof and the view share one file.
 - the oven under PI control with equivalence to `oven_ctrl` S1-S5;
 - the flow proof against `sim_results.json`.
 
-## DT-3b Product flow, sensors, a reacting controller
+## DT-3b Product flow and the oven's closed loop (BUILT)
 
-**Builds.** In `twin/plant/`:
-- cookie entities from deposit to pack, with a NFC bake log each;
-- stocks and AMR tasks (the `line_sim.py` rules);
-- synthesized sensors (`SIM_MODELS.md` §3.4);
-- a scripted controller that reacts to them: kick on a QC reject, seal when a tray is full, exchange when a cassette is full;
-- the oven in PI mode through a stepper shared with `oven_ctrl.run`.
+**The decision: one flow model, not two.** The twin runs `line_sim.py`'s own event engine. It does not use a second flow
+model that would only agree statistically: with a 3 % defect rate, "38 rejects" cannot be matched within ±1 % by
+different random draws.
 
-**Gate - `flow_check.py`:**
-- one nominal hour gives `sim_results.json["nominal_1h"]` within ±1 %;
-- the oven in PI mode reproduces S1-S5 within 0.1 K;
-- every cookie's bake log is complete.
+- `line_sim.run()` became `flow()`, a generator that *reports* every event: deposit, load, QC, kick, pick, pack,
+  exchange, AMR, losses. Cookies get an ID at deposit. `run()` drains it, and `sim_results.json` regenerates
+  **byte-identical** for all 11 scenarios.
+- `oven_ctrl.run()` became `ZoneLoop`, FB_Oven's closed loop one step at a time. `run()` drives it, and the control
+  proofs and `oven/control.json` regenerate **byte-identical**.
+- `twin/plant/flow.py` runs the engine 10 s ahead into a time-ordered queue and releases events at machine time. It
+  keeps the product state: pucks, band, rows, stock, drawer, packs, cassettes, AMRs, and the **bake log** of every
+  cookie.
+- The plant turns flow decisions into motion:
+  - a kick is a kicker stroke;
+  - a full tray (pack) is a seal of its lane;
+  - a weiss cassette exchange is the airlock sequence.
+
+  What is drawn follows the flow: cookies on pucks, with their flavour's topping colour (frame `paint`); cookies on the
+  band, by row, moving until the flow takes them; toppings only on topped cookies.
+- The **oven** runs `ZoneLoop` on the band content the flow really deposited. Each cookie's bake log gets the
+  worst |TC − set point| of each zone during its stay; outside ±2 K, it is flagged.
+- **Two findings in DT-3a, fixed here:**
+  - the band-row pool held only the names the 40 s recording showed, so some (row, column) slots of an endless band
+    could not be drawn. The pool is now complete (27 × 6, base + topping), and the viewer creates the extra cylinders
+    from the WebSocket hello;
+  - `band_pose` stopped a cookie at its *scheduled* pick time. With a flow, the cookie moves until the flow takes it.
+
+  Both are new optional arguments, and `timeline.json` is still byte-identical.
+- The server runs the flow by default: `--scenario` for any line_sim scenario, `--hours` (24), `--no-flow` for the
+  DT-3a plant. The viewer gains a product-flow panel.
+
+**Gate - `flow_check.py`** (all pass, ~1 min):
+
+| Proof | Result |
+|---|---|
+| F1 engine | `line_sim.flow()` gives all 11 scenarios of `sim_results.json` exactly |
+| F2 oven loop | `ZoneLoop` stepped as the plant steps it = the stored S3 trace (241 samples, 0 differ) |
+| F3 one hour | the plant's KPIs = `nominal_1h` exactly (894 loaded, 281 / 284 / 279 packed, 38 rejected, 15 band losses), and its released events agree |
+| F4 genealogy | 1,056 bake logs: 844 packed (deposit < load < qc pass < pick), 38 rejected (qc reject), 706 with a 3-zone history, 0 incomplete |
+| F5 coupling | 38 / 38 kicks, 279 / 279 seals, 3 / 3 weiss exchanges at the flow's own time (within one tick) |
+| F6 drawn = flow | 360 frames: 17,280 puck checks (presence + flavour colour), 54,007 band cookies placed at the depositor + v_band (τ − row period) position, an independent formula; 0 wrong |
+| F7 oven + flow | both deltas down 10 min with the agent policy: 150 cookies throttled, zone content 0 → 1 → 0; worst TC 0.52 K off its set point; 0 flagged |
+| F8 determinism | 10 min, a frame every second: identical SHA-256 |
+
+F9 (service): the server with the flow, in manual mode, sends WebSocket frames (rows, paint, flow summary, duty) that
+rebuild an independent plant carrying the same flow exactly: 40 frames over 10 min, 0 differ.
+
+**It can fail:**
+- the pool's row lookup off by one row fails F6 (2,520 wrong, named);
+- a pack that does not seal its lane fails F5 (0 / 279 seals).
+
+**Moved to DT-4.** These belong with the PLC that consumes them:
+- the synthesized sensor image (`SIM_MODELS.md` §3.4, the 181 signals);
+- a controller that reacts to it.
+
+In DT-3b the decisions are line_sim's. That is the proven model, but not yet the PLC program.
 
 ## DT-4 PLC in the loop (SIL)
 

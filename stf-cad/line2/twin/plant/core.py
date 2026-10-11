@@ -34,6 +34,10 @@ TICK = 0.01                                                # s, the PLC task
 FRAME_DT = Mo.DT                                           # s, one frame = one timeline frame (0.1 s)
 MASTER_RAMP = 0.5                                          # s, master 0 <-> V (MC_MoveVelocity / MC_Stop) [assumed]
 POOL = 27                                                  # band-row names in the scene
+ROW0 = 75                                                  # the first pool slot (band_r075): rows 75 .. 101
+# the complete pool: every column of every slot, base + topping. The reference window (BAND_NAMES) shows only those
+# it needs; an endless band needs all of them.
+FULL_NAMES = [f"band_r{ROW0 + i:03d}_{c}{sfx}" for i in range(POOL) for c in range(6) for sfx in ("", "_top")]
 
 
 # The plant freezes the model: L does not change during a run, so these pure functions of L are memoised in this
@@ -89,7 +93,10 @@ class MasterAxis:
 
 
 class Plant:
-    def __init__(self, oven_mode="reference", events=None):
+    def __init__(self, oven_mode="reference", events=None, flow=None):
+        """flow: a twin.plant.flow.Flow (DT-3b) - the product flow decides what exists and fires kick / seal /
+        exchange; oven_mode 'pi' (default with a flow): FB_Oven's closed loop (oven_ctrl.ZoneLoop) on the band
+        content the flow really put there; 'reference': the steady duty of timeline.json."""
         self.base = {p.name: p for p in M.build()}
         f0, _, _ = Mo.frame(0.0, self.base)
         self.moving = set(f0)
@@ -100,7 +107,15 @@ class Plant:
                 self.ref[n] = p
                 self.spawn.append(n)
         self.reshape = {"kick_rod"} | {f"sealer_{f}_rod" for f in Mo.FLAV} | {f"stacker_rod_{f}" for f in Mo.FLAV} | \
-            {n for n in Mo.BAND_NAMES if not n.endswith("_top")}
+            {n for n in FULL_NAMES if not n.endswith("_top")}
+        # pool names the reference window never shows: their base pose (the viewer creates them from the hello)
+        self.extra = []
+        for n in FULL_NAMES:
+            if n not in self.ref:
+                q, _ = Mo.band_pose(n, 0.0)
+                self.ref[n] = q
+                self.extra.append(dict(name=n, kind="cyl", p=list(q.p), s=list(q.s), colour=q.colour,
+                                       reshaped=not n.endswith("_top")))
         self.period = L["BAND"]["rows"] * M.takt()
         self.t_enter = M.transfer_times()[0]
         self.t = 0.0
@@ -110,8 +125,14 @@ class Plant:
         if events is not None:                             # e.g. motion.reference_events()
             self.ev = json.loads(json.dumps(events))
         self.log = []                                      # (t, command, args) - what the controller asked for
-        self.oven_mode = oven_mode
+        self.flow = flow
+        self.oven_mode = oven_mode if flow is None or oven_mode != "reference" else "pi"
+        self.trace = []                                    # (t, [TC per zone]) of the last ~12 min: the bake logs
         self._oven_init()
+        if self.oven_mode == "pi":
+            self._pi_init()
+        if flow is not None:
+            flow.release(0.0)
 
     # ------------------------------------------------------------ commands (what the PLC / operator can ask)
     def command(self, name, **kw):
@@ -177,6 +198,34 @@ class Plant:
                 self.Tz[k] += (Pk - self.pl.load(k, self.Tz[k], 1.0)) * sub / self.pl.C[k]
                 self.yz[k] += (self.Tz[k] - self.yz[k]) * sub / self.tc_tau
 
+    # ------------------------------------------------------------ DT-3b: the oven under FB_Oven's closed loop
+    def _pi_init(self):
+        import oven_ctrl as OC
+        self.OC = OC
+        self.gains = OC.tune(self.pl)
+        self.zl = OC.ZoneLoop(self.pl, self.gains)
+        st = M.stations()
+        self.z0, self.zlen = st["zones"], M.zone_len()
+        self.dep_x, self.vb = st["dep"], M.band_v()
+        self.rows_full = self.zlen / (self.vb * self.period)   # rows a full zone holds
+        full = [1.0] * self.pl.n
+        for _ in range(int(600 / self.OC.CTRL["DT"])):      # run-in on a full band: the PLC has been running
+            self.zl.step(full)
+        self.zl.t = 0.0
+        self.duties = {f"Z{k + 1}": u for k, u in enumerate(self.zl.u)}
+        self.temps = [round(v, 2) for v in self.zl.y]
+
+    def content(self, tau):
+        """Band content per zone (0..1) from the rows the flow REALLY deposited and that still carry cookies."""
+        f = [0.0] * self.pl.n
+        cols = L["BAND"]["rows"]
+        for r, present in self.flow.row_present().items():
+            x = self.dep_x + self.vb * (tau - r * self.period)
+            for k, z in enumerate(self.z0):
+                if z <= x < z + self.zlen:
+                    f[k] += len(present) / cols / self.rows_full
+        return [min(v, 1.0) for v in f]
+
     # ------------------------------------------------------------ time
     def step(self, n=1):
         for _ in range(n):
@@ -184,9 +233,42 @@ class Plant:
             self.ticks += 1
             self.t = round(self.ticks * TICK, 6)
             self.master.step(t0, self.t)
-            if self.ticks % round(FRAME_DT / TICK) == 0:  # an oven block starts on the 0.1 s grid
+            if self.flow is not None:
+                for et, kind, d in self.flow.release(self.master.tau):
+                    if kind == "kick":
+                        self.command("kick")
+                    elif kind == "pack":
+                        self.command("seal", lane=d["lane"])
+                    elif kind == "exchange" and d["lane"] == Mo.EXCH_LANE:
+                        self.command("exchange")
+                    elif kind == "load":
+                        self._bake_log(d["id"])
+            if self.oven_mode == "pi":
+                if self.ticks % round(self.OC.CTRL["DT"] / TICK) == 0:
+                    self.zl.step(self.content(self.master.tau) if self.flow is not None else [1.0] * self.pl.n)
+                    self.duties = {f"Z{k + 1}": u for k, u in enumerate(self.zl.u)}
+                    self.temps = [round(v, 2) for v in self.zl.y]
+                    self.trace.append((self.t, self.master.tau, list(self.zl.y)))
+                    if len(self.trace) > 1500:
+                        del self.trace[:500]
+            elif self.ticks % round(FRAME_DT / TICK) == 0:  # an oven block starts on the 0.1 s grid
                 self._oven_block(self.t)
                 self.temps = [round(v, 2) for v in self.yz]
+
+    def _bake_log(self, cid):
+        """The cookie's zone history into its bake log (the NFC tag): the largest |TC - set point| of each zone
+        while the cookie was in it, and whether that leaves the bake window (+-BAKE_MARGIN) - a flagged cookie."""
+        e = self.flow.log[cid]
+        if self.oven_mode != "pi" or e.get("pre"):
+            return
+        dev = []
+        for k, z in enumerate(self.z0):
+            a = e["deposit"] + (z - self.dep_x) / self.vb       # machine time it enters / leaves zone k
+            b = a + self.zlen / self.vb
+            seen = [abs(y[k] - self.pl.Ts[k]) for t, tau, y in self.trace if a <= tau <= b]
+            dev.append(round(max(seen), 2) if seen else None)
+        e["zone_dev"] = dev
+        e["flagged"] = any(d is not None and d > L["BAKE_MARGIN"] for d in dev)
 
     # ------------------------------------------------------------ band-row pool
     def _rows(self, tau):
@@ -196,15 +278,59 @@ class Plant:
             m = math.floor((tau - r_slot * self.period) / (POOL * self.period))
             r = r_slot + POOL * m
             shift = (r - r_slot) * self.period                  # row r at tau looks like row r_slot at tau - shift
-            return Mo.band_pose(name, tau - shift)
+            # with a flow the cookie leaves the band when the flow says (it may wait for a grip retry): no schedule
+            return Mo.band_pose(name, tau - shift, math.inf if self.flow is not None else None)
         return rows
+
+    def row_of(self, name, tau):
+        """The band row a pool slot shows at tau (as _rows)."""
+        r_slot = int(name[len("band_r"):].split("_")[0]) - 100
+        return r_slot + POOL * math.floor((tau - r_slot * self.period) / (POOL * self.period))
+
+    def _flow_view(self, track, tau):
+        """The flow decides what is drawn: cookies on pucks (with their flavour's topping), cookies on the band (and
+        their topping only if they got one). Overrides the visibility in the rows; returns (paint, flow summary)."""
+        fl = self.flow
+        idx = fl._band_index()
+        paint = {}
+        for k in range(L["N"]):
+            vis, flav = fl.puck_cookie(k)
+            for n in (f"cookie_{k:02d}", f"cookie_{k:02d}_top"):
+                if n in track:
+                    track[n][7] = 1 if vis else 0
+            if vis:
+                paint[f"cookie_{k:02d}_top"] = L["BAKED"][Mo.FLAV.index(flav)]
+        for n, r_ in list(track.items()):
+            if not n.startswith("band_r"):
+                continue
+            row = self.row_of(n, tau)
+            col = int(n.split("_")[2])
+            on = topped = False
+            if fl.rows.get(row) == "deposited":
+                for cid, (r, c, f, tp) in idx.get(row, {}).items():
+                    if c == col:
+                        on, topped = True, tp
+            vis = on and (topped if n.endswith("_top") else True)
+            if isinstance(r_, dict):
+                r_["vis"] = 1 if vis else 0
+            else:
+                r_[7] = 1 if vis else 0
+        k = fl.counts
+        summary = dict(loaded=k.get("load", 0), rejected=k.get("kick", 0), band_lost=k.get("band_lost", 0),
+                       packed=sum(1 for e in fl.log.values() if e.get("end") == "packed"),
+                       packs=dict(fl.packs), cassettes_out=dict(fl.cassettes_out), drawer=fl.drawer,
+                       dough_kg=round(fl.dough, 3), topping_kg={f: round(v, 3) for f, v in fl.topping.items()},
+                       amr={i: (None if a["busy_until"] is None else round(a["busy_until"], 1)) for i, a in fl.amr.items()},
+                       on_pucks=len(fl.pucks), on_band=len(fl.band),
+                       flagged=sum(1 for e in fl.log.values() if e.get("flagged")))
+        return paint, summary
 
     # ------------------------------------------------------------ frame
     def frame(self):
         """The current frame: {track: {name: row}, glow: {name: 0/1}, power: [W, A1, A2, A3], temps: [..],
         t, tau, master: {...}, bad: [unreachable poses]} - rows in timeline.json's format."""
         t, tau = self.t, self.master.tau
-        now, vis, bad = Mo.frame(t, self.base, self.ev, self._rows(tau), tau)
+        now, vis, bad = Mo.frame(t, self.base, self.ev, self._rows(tau), tau, FULL_NAMES)
         track = {}
         for n, p in now.items():
             if n in self.reshape:
@@ -216,12 +342,17 @@ class Plant:
             else:
                 q, tr = Mo.rigid(self.ref[n], p)
                 track[n] = [round(v, 3) for v in tr] + [round(v, 6) for v in q] + [1 if vis.get(n, True) else 0]
+        duty = self.duties if self.oven_mode == "pi" else self.duty
         glow = {}
         for e, i in zip(self.els, self.ix):
-            glow[f"oven_heater_{e['tag']}"] = 1 if Mo.element_on(e, i, t, self.duty) else 0
-        W, amps = Mo.power_at(t, self.duty)
+            glow[f"oven_heater_{e['tag']}"] = 1 if Mo.element_on(e, i, t, duty) else 0
+        W, amps = Mo.power_at(t, duty)
+        paint, flow = {}, None
+        if self.flow is not None:
+            paint, flow = self._flow_view(track, tau)
         return dict(t=t, tau=round(tau, 6), track=track, glow=glow,
                     power=[round(W), round(amps["L1"], 2), round(amps["L2"], 2), round(amps["L3"], 2)],
-                    temps=list(self.temps), bad=bad,
+                    temps=list(self.temps), bad=bad, paint=paint, flow=flow,
+                    duty=[round(duty[f"Z{k + 1}"], 4) for k in range(self.pl.n)],
                     master=dict(pos=round(self.master.pos, 4), vel=round(self.master.vel, 4),
                                 enabled=self.master.enabled, rate=self.master.cmd))

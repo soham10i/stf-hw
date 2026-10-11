@@ -248,7 +248,7 @@ def reference_events():
                 exchange=EXCH_T0)
 
 
-def frame(t, base, ev=None, rows=None, tau=None):
+def frame(t, base, ev=None, rows=None, tau=None, band_names=None):
     """{part name: Part at time t} for every moving part, + {name: visible}.
     t     plant time (s): the event-driven actuators (kicker, sealers, stackers, airlock exchange)
     tau   machine time (s) = master axis position / V: everything geared to the master - chain + pucks, band rows,
@@ -256,6 +256,7 @@ def frame(t, base, ev=None, rows=None, tau=None):
     ev    event start times {kicks: [t], seals: {f: [t]}, lifts: {f: [t]}, exchange: t0 or None}; default the
           reference schedule (KICKS, SEALS, LIFTS, EXCH_T0)
     rows  callable(name) -> (Part, visible) for the band rows; default band_pose(name, tau)
+    band_names  the band-row names to pose; default BAND_NAMES (those the reference window shows)
     The live plant (twin/plant) drives exactly this function; the defaults give timeline.json."""
     tau = t if tau is None else tau
     ev = reference_events() if ev is None else ev
@@ -276,7 +277,7 @@ def frame(t, base, ev=None, rows=None, tau=None):
         now[tp.name] = tp
         vis[tp.name] = tp.name in shown
     # band: every row of the window [0, T_END] - re-shaped per frame (the slug spreads, the colour browns)
-    for n in BAND_NAMES:
+    for n in (BAND_NAMES if band_names is None else band_names):
         now[n], vis[n] = band_pose(n, tau) if rows is None else rows(n)
     # cutting wire
     now["dep_wire"] = shifted(base["dep_wire"], (wire_dx(tau), 0, 0))
@@ -430,10 +431,11 @@ def sweep(times, base, moving_names):
     return hits, bad, pairs
 
 
-def band_pose(n, t):
+def band_pose(n, t, t_gone=None):
     """(Part, visible) of band product n ('band_r<r+100>_<k>[_top]') at time t, in closed form: the row was
     deposited at r * period; before that it waits (hidden) at the die, after the pick it rests (hidden)
-    where delta C took it."""
+    where delta C took it. t_gone: when the cookie leaves the band - default the schedule (column k picked at
+    t_enter + (k + 1) T); the live twin passes infinity and lets the product flow decide its visibility."""
     top = n.endswith("_top")
     r, k = n[len("band_r"):].split("_")[:2]
     r, k = int(r) - 100, int(k)
@@ -443,7 +445,7 @@ def band_pose(n, t):
     period = L["BAND"]["rows"] * T
     t_enter = M.transfer_times()[0]
     t_in = t - r * period
-    t_gone = t_enter + (k + 1) * T                      # delta C has it
+    t_gone = t_enter + (k + 1) * T if t_gone is None else t_gone   # delta C has it
     vis = 0.0 <= t_in < t_gone
     ti = min(max(t_in, 0.0), t_gone)
     d, h, col, topped = M.band_state(ti)

@@ -57,6 +57,17 @@ cd ~/workspace/stf-hw-stf2/stf-cad/line2
 ```
 
 - The line now runs **without end**. It comes from the live plant (`twin/plant`) rather than the 40 s recording.
+- **The product is real (DT-3b):** line_sim's flow decides every cookie:
+  - which puck it lands on (with its flavour's topping);
+  - when QC rejects it and the kicker fires;
+  - which delta packs it;
+  - when a tray is sealed;
+  - when the weiss cassette goes out through the airlock.
+
+  The *Product flow* panel shows the counts, the stock, the reject drawer and the AMRs. The oven runs FB_Oven's
+  closed loop on the band the flow really filled.
+- **Options:** `--scenario both_deltas_down_10min_AGENT` (or any line_sim scenario) runs its disturbances; `--no-flow`
+  gives the DT-3a plant.
 - The bottom bar shows plant time t and machine time τ. τ stops when the master stops; the oven and the airlock keep running on t.
 - **Buttons:** *Stop / Start master*, *Kick*, *Seal* weiss / rot / blau (the stacker lifts 2 s later), *Airlock exchange* (refused while one is running), and *sim* speed (0 pauses, 5× runs fast).
 - **REST:** the same commands work from a terminal, e.g.

@@ -282,39 +282,43 @@ class _HeaterBreak:
         return out
 
 
-def run(pl, gains, t_end, content, T0=None, fail=None, stuck=None, ff=True, record=10.0, ramp=False, true=None,
-        adapt=None, I0=None, learn=True):
-    """Closed loop. content(t) -> [f per zone]; fail = (zone, W lost, t0); stuck = (zone, t0).
-    pl is what the PLC knows (feed-forward, observer); true is the oven the physics runs (default: the model).
-    adapt: the learned feed-forward state (adapt0), updated in place - the PLC keeps it in PERSISTENT memory.
-    I0: the integrators to start from (hist["I"] of a previous run: the PLC runs on); learn=False freezes adapt.
-    Returns dict(t, T, y, u, trip_t, alarm_t)."""
-    G, dt = CTRL["ZONE_G"], CTRL["DT"]
-    n = pl.n
-    tp = true or pl
-    tc_tau = getattr(tp, "tc_tau", CTRL["TC_TAU"])
-    ad = adapt if adapt is not None else adapt0(n)
-    calm = [0.0] * n                                      # s the zone has been inside +-LEARN_BAND
-    T = list(T0 or pl.Ts)
-    y = list(T)
-    I = list(I0) if I0 else [0.0] * n
-    stb_open = [False] * n
-    trip_t, alarm_t, alarm_tag = [None] * n, [None] * n, [None] * n
-    hb = _HeaterBreak(pl, tp, fail, +1.0 if fail else -1.0)
-    lost = [0.0] * n                                      # W of named broken elements per zone
-    hist = dict(t=[], T=[], y=[], u=[])
-    t, nxt = 0.0, 0.0
-    while t <= t_end + 1e-9:
-        f = content(t)
+class ZoneLoop:
+    """The closed loop of FB_Oven + the zone physics, ONE step (CTRL['DT']) at a time. run() drives it over a scenario;
+    the live twin (twin/plant) drives it with the band content of the real product flow. Arguments as run()."""
+
+    def __init__(self, pl, gains, T0=None, fail=None, stuck=None, ff=True, ramp=False, true=None, adapt=None, I0=None,
+                 learn=True):
+        self.pl, self.gains, self.T0, self.fail, self.stuck = pl, gains, T0, fail, stuck
+        self.ff, self.ramp, self.learn = ff, ramp, learn
+        self.n = n = pl.n
+        self.tp = true or pl
+        self.tc_tau = getattr(self.tp, "tc_tau", CTRL["TC_TAU"])
+        self.ad = adapt if adapt is not None else adapt0(n)
+        self.calm = [0.0] * n                             # s the zone has been inside +-LEARN_BAND
+        self.T = list(T0 or pl.Ts)
+        self.y = list(self.T)
+        self.I = list(I0) if I0 else [0.0] * n
+        self.stb_open = [False] * n
+        self.trip_t, self.alarm_t, self.alarm_tag = [None] * n, [None] * n, [None] * n
+        self.hb = _HeaterBreak(pl, self.tp, fail, +1.0 if fail else -1.0)
+        self.lost = [0.0] * n                             # W of named broken elements per zone
+        self.u = [0.0] * n
+        self.t = 0.0
+
+    def step(self, f):
+        """One step at self.t with band content f (per zone, 0..1); then self.t += DT."""
+        pl, gains, ad, n = self.pl, self.gains, self.ad, self.n
+        G, dt = CTRL["ZONE_G"], CTRL["DT"]
+        T, y, I, t = self.T, self.y, self.I, self.t
         u_all = []
         for k in range(n):
             g = gains[k]
-            sp = min(pl.Ts[k], (T0 or pl.Ts)[k] + CTRL["RAMP"] / 60.0 * t) if ramp else pl.Ts[k]
+            sp = min(pl.Ts[k], (self.T0 or pl.Ts)[k] + CTRL["RAMP"] / 60.0 * t) if self.ramp else pl.Ts[k]
             ramping = sp < pl.Ts[k]
             e = sp - y[k]
-            Pk = pl.P[k] - lost[k]
+            Pk = pl.P[k] - self.lost[k]
             u_ss = ff_load(pl, ad, k, sp, f[k]) / Pk
-            u_ff = (u_ss + (pl.C[k] * CTRL["RAMP"] / 60.0 / Pk if ramping else 0.0)) if ff else 0.0
+            u_ff = (u_ss + (pl.C[k] * CTRL["RAMP"] / 60.0 / Pk if ramping else 0.0)) if self.ff else 0.0
             u = u_ff + g["Kc"] * pl.P[k] / Pk * (e + I[k] / g["Ti"])
             if 0.0 < u < 1.0 or (u >= 1.0 and e < 0) or (u <= 0.0 and e > 0):
                 I[k] += e * dt                                    # conditional integration (anti-windup)
@@ -322,8 +326,9 @@ def run(pl, gains, t_end, content, T0=None, fail=None, stuck=None, ff=True, reco
             # LEARNING feed-forward: while the zone sits calm at its set point on an empty or a full band, the
             # PI share of the duty is the model error -> moved slowly into W0 (empty) or a1 (full); the
             # integrator gives back what the feed-forward takes over, so the duty does not jump
-            calm[k] = calm[k] + dt if abs(e) < CTRL["LEARN_BAND"] and not ramping else 0.0
-            if learn and ff and calm[k] > CTRL["LEARN_HOLD"] and not any(alarm_t) and (f[k] < 0.05 or f[k] > 0.95):
+            self.calm[k] = self.calm[k] + dt if abs(e) < CTRL["LEARN_BAND"] and not ramping else 0.0
+            if self.learn and self.ff and self.calm[k] > CTRL["LEARN_HOLD"] and not any(self.alarm_t) and \
+                    (f[k] < 0.05 or f[k] > 0.95):
                 dW = (u - u_ff) * pl.P[k] * dt / CTRL["LEARN_TAU"]
                 if f[k] < 0.05:
                     ad["W0"][k] += dW
@@ -333,37 +338,55 @@ def run(pl, gains, t_end, content, T0=None, fail=None, stuck=None, ff=True, reco
                     dW = (a - ad["a1"][k]) * prod
                     ad["a1"][k] = a
                 I[k] -= dW / pl.P[k] / g["Kc"] * g["Ti"]
-            if stuck and stuck[0] == k and t >= stuck[1]:
+            if self.stuck and self.stuck[0] == k and t >= self.stuck[1]:
                 u = 1.0
-            if stb_open[k]:
+            if self.stb_open[k]:
                 u = 0.0
             u_all.append(u)
-        for k, tag in hb.sample(t, u_all, stb_open, dt):           # heater-break: measured vs expected phase current
-            if alarm_t[k] is None:
-                alarm_t[k], alarm_tag[k] = t, tag
-        for tag in hb.ident:                                      # named: the PLC takes it out of its zone model
-            k = hb.zone_of[tag]
-            lost[k] = sum(e["P"] for e in pl.zel[k] if e["tag"] in hb.ident)
+        for k, tag in self.hb.sample(t, u_all, self.stb_open, dt):  # heater-break: measured vs expected phase current
+            if self.alarm_t[k] is None:
+                self.alarm_t[k], self.alarm_tag[k] = t, tag
+        for tag in self.hb.ident:                                 # named: the PLC takes it out of its zone model
+            k = self.hb.zone_of[tag]
+            self.lost[k] = sum(e["P"] for e in pl.zel[k] if e["tag"] in self.hb.ident)
+        tp, fail = self.tp, self.fail
         Tn = list(T)
         for k in range(n):
             P = tp.P[k] - (fail[1] * tp.P[k] / pl.P[k] if fail and fail[0] == k and t >= fail[2] else 0.0)
             nb = [j for j in (k - 1, k + 1) if 0 <= j < n]
             q = u_all[k] * P - tp.load(k, T[k], f[k]) + sum(G * (T[j] - T[k]) for j in nb)
             Tn[k] = T[k] + q * dt / tp.C[k]
-        T = Tn
+        self.T = T = Tn
         for k in range(n):
-            y[k] += (T[k] - y[k]) * dt / tc_tau
-            if y[k] >= CTRL["STB_T"] and not stb_open[k]:      # the STB's own element: same lag
-                stb_open[k] = True
-                trip_t[k] = t
+            y[k] += (T[k] - y[k]) * dt / self.tc_tau
+            if y[k] >= CTRL["STB_T"] and not self.stb_open[k]:   # the STB's own element: same lag
+                self.stb_open[k] = True
+                self.trip_t[k] = t
+        self.u = u_all
+        self.t = t + dt
+
+
+def run(pl, gains, t_end, content, T0=None, fail=None, stuck=None, ff=True, record=10.0, ramp=False, true=None,
+        adapt=None, I0=None, learn=True):
+    """Closed loop. content(t) -> [f per zone]; fail = (zone, W lost, t0); stuck = (zone, t0).
+    pl is what the PLC knows (feed-forward, observer); true is the oven the physics runs (default: the model).
+    adapt: the learned feed-forward state (adapt0), updated in place - the PLC keeps it in PERSISTENT memory.
+    I0: the integrators to start from (hist["I"] of a previous run: the PLC runs on); learn=False freezes adapt.
+    Returns dict(t, T, y, u, trip_t, alarm_t)."""
+    lp = ZoneLoop(pl, gains, T0, fail, stuck, ff, ramp, true, adapt, I0, learn)
+    hist = dict(t=[], T=[], y=[], u=[])
+    nxt = 0.0
+    while lp.t <= t_end + 1e-9:
+        t = lp.t
+        lp.step(content(t))
         if t >= nxt - 1e-9:
             hist["t"].append(round(t, 2))
-            hist["T"].append([round(v, 2) for v in T])
-            hist["y"].append([round(v, 2) for v in y])
-            hist["u"].append([round(v, 3) for v in u_all])
+            hist["T"].append([round(v, 2) for v in lp.T])
+            hist["y"].append([round(v, 2) for v in lp.y])
+            hist["u"].append([round(v, 3) for v in lp.u])
             nxt += record
-        t += dt
-    hist.update(I=list(I), trip_t=trip_t, alarm_t=alarm_t, alarm_tag=alarm_tag, ident=dict(hb.ident), adapt=dict(W0=list(ad["W0"]), a1=list(ad["a1"])))
+    hist.update(I=list(lp.I), trip_t=lp.trip_t, alarm_t=lp.alarm_t, alarm_tag=lp.alarm_tag, ident=dict(lp.hb.ident),
+                adapt=dict(W0=list(lp.ad["W0"]), a1=list(lp.ad["a1"])))
     return hist
 
 

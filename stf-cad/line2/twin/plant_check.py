@@ -256,7 +256,7 @@ def check(verbose=True):
     # L7 service -----------------------------------------------------------------------------------------------
     from fastapi.testclient import TestClient
     from twin.plant.serve import Service, create_app
-    svc = Service(manual=True)
+    svc = Service(manual=True, flow=False)                # the DT-3a plant (flow_check F9 tests the flow service)
     app = create_app(svc)
     ref = Plant()
     plan = [(0, "kick", {}), (3, "seal", {"lane": "weiss"}), (6, "master", {"on": False}), (9, "master", {"on": True}),

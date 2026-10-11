@@ -74,6 +74,24 @@ RATES = dict(p_defect=0.03, recall=0.98, false_reject=0.01, kick_ok=0.999)
 
 
 def run(name="nominal_1h", seed=7, **kw):
+    """The scenario's KPIs (sim_results.json): flow() run to its horizon."""
+    g = flow(name, seed, **kw)
+    while True:
+        try:
+            next(g)
+        except StopIteration as e:
+            return e.value
+
+
+def flow(name="nominal_1h", seed=7, **kw):
+    """The flow as a GENERATOR: yields (t, kind, data) for every event as it is processed (t = machine time, the
+    master never stops in this model) and returns the KPIs. The live twin (twin/plant/flow.py) advances it in step
+    with its machine time; run() drains it. Reporting only: no yield changes the logic (sim_results.json is
+    byte-identical with and without the reports). Cookies get an id at deposit (their genealogy / bake log).
+    kinds: deposit, starved, throttled, band_lost, grip_fail, load, recirc, qc, kick, kick_fail, kick_blocked, pick,
+    pick_fail, missed, pack, exchange, cassette_out, amr_go, amr_done"""
+    out = []
+    cid = [0]
     sc = {**SCENARIOS.get(name, {}), **kw}
     horizon = sc.get("horizon", H1)
     rnd = random.Random(seed)
@@ -145,10 +163,12 @@ def run(name="nominal_1h", seed=7, **kw):
             amr_free[i] = done
             amr_busy_s[i] += dur
             heapq.heappush(pending_done, (done, batch, i))
+            out.append((t, "amr_go", dict(robot=i, batch=[list(b) for b in batch], done=done)))
 
     def complete(t):
         while pending_done and pending_done[0][0] <= t:
             done, batch, i = heapq.heappop(pending_done)
+            out.append((done, "amr_done", dict(robot=i, batch=[list(b) for b in batch])))
             for kind, f in batch:
                 if kind == "cassette" and lock:
                     staged[f] = (done, i)               # robot at the port with an empty, held there
@@ -173,11 +193,13 @@ def run(name="nominal_1h", seed=7, **kw):
                 exch_end[f] = None
                 called[f] = False
                 k["cassettes_out"][f] += 1
+                out.append((t, "cassette_out", dict(lane=f)))
             if active[f] >= ccap and exch_end[f] is None and staged[f] is not None:
                 t0, i = staged[f]
                 start = max(t0, t)
                 end = start + swap_t
                 exch_end[f] = end
+                out.append((t, "exchange", dict(lane=f, start=start, end=end, robot=i)))
                 amr_busy_s[i] += end - t0
                 amr_free[i] = end
                 staged[f] = None
@@ -189,6 +211,7 @@ def run(name="nominal_1h", seed=7, **kw):
             active[f] = 0
             standby_full[f] = True
             k["cassettes_out"][f] += 1
+            out.append((t, "cassette_out", dict(lane=f)))
             lane_block[f] = max(lane_block[f], t + L["SWAP_T"])
             request("cassette", f, t + ccap * L["PACK"] / rf)
 
@@ -220,6 +243,9 @@ def run(name="nominal_1h", seed=7, **kw):
                 n += 1
 
     while ev:
+        for e in out:                                        # report what the previous event did
+            yield e
+        out.clear()
         t, _, pk, sname = heapq.heappop(ev)
         complete(t)
         for f in F:
@@ -231,13 +257,16 @@ def run(name="nominal_1h", seed=7, **kw):
             if not pre:
                 if policy == "agent" and not (up(0, t, t + 0.01) or up(1, t, t + 0.01)):
                     k["throttled"] += rows                   # agent: no dough into an oven nobody can unload
+                    out.append((t, "throttled", dict(row=pk)))
                     continue
                 if dough["lvl"] < rows * L["DOUGH_M"]:
                     k["starved_raw"] += rows
+                    out.append((t, "starved", dict(row=pk)))
                     continue
                 dough["lvl"] -= rows * L["DOUGH_M"]
                 if dough["lvl"] <= L["REQ_HOPPER"] * L["DOUGH_KG"]:
                     request("raw", "dough", t + dough["lvl"] / M.dough_rate())
+            cookies = []
             for j in range(rows):
                 f = F[M.row_flavour(j)]
                 topped = pre or top[f] >= L["TOPPING"]["m"]
@@ -246,25 +275,36 @@ def run(name="nominal_1h", seed=7, **kw):
                     if top[f] <= L["REQ_HOPPER"] * L["TOP_KG"]:
                         request("raw", f, t + top[f] / (L["TOPPING"]["m"] * rf))
                 ta = t_dep + t_travel + j * M.takt() * 0       # the whole row enters the window together
-                band.append([ta, ta + t_window, f, topped])
+                cid[0] += 1
+                band.append([ta, ta + t_window, f, topped, cid[0], pk, j])
+                cookies.append(dict(id=cid[0], col=j, flav=f, topped=topped))
+            out.append((t, "deposit", dict(row=pk, pre=pre, cookies=cookies, dough=dough["lvl"],
+                                           topping=dict(top))))
             continue
         c = puck[pk]
         if sname == "transfer":
             while band and band[0][1] <= t:                  # reached the nose: into the crumb pan
-                band.pop(0)
+                lost = band.pop(0)
                 k["band_lost"] += 1
+                out.append((t, "band_lost", dict(id=lost[4], row=lost[5], col=lost[6])))
             if c is not None:
                 k["recirc"] += 1
+                out.append((t, "recirc", dict(pk=pk, id=c["id"])))
                 continue
             if not band or band[0][0] > t:
                 k["empty_slots"] += 1
                 continue
             if rnd.random() > L["PICK_OK"]:
+                out.append((t, "grip_fail", dict(pk=pk, id=band[0][4])))
                 continue                                     # the grip failed: it stays on the band, next puck
-            _, _, f, topped = band.pop(0)
+            b_ = band.pop(0)
+            f, topped = b_[2], b_[3]
             k["untopped"] += not topped
-            puck[pk] = dict(flav=f, oven=1, defect=rnd.random() < RATES["p_defect"] or not topped, qc=None)
+            puck[pk] = dict(flav=f, oven=1, defect=rnd.random() < RATES["p_defect"] or not topped, qc=None,
+                            id=b_[4])
             k["loaded"] += 1
+            out.append((t, "load", dict(pk=pk, id=b_[4], row=b_[5], col=b_[6], flav=f, topped=topped,
+                                        defect=puck[pk]["defect"])))
         elif c is None:
             continue
         elif sname == "qc":
@@ -275,16 +315,21 @@ def run(name="nominal_1h", seed=7, **kw):
                 c["qc"] = "reject" if rnd.random() < RATES["false_reject"] else "pass"
                 if c["qc"] == "reject":
                     k["false_rejects"] += 1
+            out.append((t, "qc", dict(pk=pk, id=c["id"], verdict=c["qc"], bad=bad)))
         elif sname == "kick":
             if c["qc"] == "reject":
                 if rej["lvl"] >= reject_cap:
                     k["reject_overflow"] += 1
+                    out.append((t, "kick_blocked", dict(pk=pk, id=c["id"])))
                     continue
                 if rnd.random() < RATES["kick_ok"]:
                     k["rejected"] += 1
                     k["burnt"] += c["oven"] > 1
                     puck[pk] = None
                     rej["lvl"] += 1
+                    out.append((t, "kick", dict(pk=pk, id=c["id"], drawer=rej["lvl"])))
+                else:
+                    out.append((t, "kick_fail", dict(pk=pk, id=c["id"])))
                     if rej["lvl"] >= L["REQ_REJECT"] * reject_cap:
                         request("reject", "-", t + (reject_cap - rej["lvl"]) / (0.05 / T))
         elif sname in ("d0_in", "d1_in"):
@@ -299,9 +344,11 @@ def run(name="nominal_1h", seed=7, **kw):
             if start + L["T_GRAB"] <= t_out and up(d, start, start + L["T_PICK"]) and can_pack:
                 busy[d] = start + L["T_PICK"]
                 if rnd.random() > L["PICK_OK"]:
+                    out.append((start, "pick_fail", dict(pk=pk, id=c["id"], d=d)))
                     continue
                 puck[pk] = None
                 k["picks"][d] += 1
+                out.append((start, "pick", dict(pk=pk, id=c["id"], d=d, lane=f)))
                 k["packed"][f] += 1
                 if t >= ss_from:
                     ss_packed += 1
@@ -310,6 +357,7 @@ def run(name="nominal_1h", seed=7, **kw):
                 if box_fill[(f, d)] >= L["PACK"]:
                     box_fill[(f, d)] = 0
                     boxes[f] -= 1
+                    out.append((busy[d], "pack", dict(lane=f, d=d, active=active[f] + 1, boxes=boxes[f])))
                     if boxes[f] <= L["REQ_BOXMAG"] * L["BOXMAG_CAP"]:
                         request("boxes", f, t + boxes[f] * L["PACK"] / rf)
                     lane_block[f] = busy[d] + L["T_INDEX"]
@@ -320,8 +368,12 @@ def run(name="nominal_1h", seed=7, **kw):
                     swap_if_possible(f, t)
             elif d == 1:
                 k["missed_pick_windows"] += 1
+                out.append((t, "missed", dict(pk=pk, id=c["id"])))
                 if not can_pack:
                     k["blocked_boxes" if boxes[f] <= 0 else "blocked_cassette"] += 1
+    for e in out:
+        yield e
+    out.clear()
     theo = (horizon - ss_from) / T
     k.update(scenario=name, hours=horizon / 3600, stops=0,
              steady_state_per_h=round(ss_packed * 3600 / (horizon - ss_from), 1),

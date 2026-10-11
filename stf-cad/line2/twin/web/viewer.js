@@ -49,15 +49,17 @@ for (const [n, o] of Object.entries(nodes)) {
 // drawn cylinders: reshaped tracks (band cookies, rods) and spawned cookies - a unit cylinder, base 0, axis +z
 const unit = new THREE.CylinderGeometry(0.5, 0.5, 1, 96).rotateX(Math.PI / 2).translate(0, 0, 0.5);
 const cyl = {};
-const f0 = tl.frame(0);
-for (const name of Object.keys(f0)) {
-  if (!tl.reshaped.has(name) && !tl.spawn[name]) continue;
-  const col = tl.spawn[name] ? tl.spawn[name].colour : (f0[name].col || "#c68f4c");
+function addCylinder(name, col) {
   const m = new THREE.Mesh(unit, new THREE.MeshStandardMaterial({ color: col, roughness: 0.7 }));
   m.matrixAutoUpdate = false;
   root.add(m);
   cyl[name] = m;
   if (nodes[name]) nodes[name].visible = false;              // its CAD mesh is replaced, as in the FreeCAD player
+}
+const f0 = tl.frame(0);
+for (const name of Object.keys(f0)) {
+  if (!tl.reshaped.has(name) && !tl.spawn[name]) continue;
+  addCylinder(name, tl.spawn[name] ? tl.spawn[name].colour : (f0[name].col || "#c68f4c"));
 }
 // oven elements glow with their SSR
 const glow = {};
@@ -76,8 +78,20 @@ function infoAt(k) {                                       // the readouts of re
 
 function apply(k) { applyFrame(tl.frame(k), infoAt(k)); }
 
+const painted = {};
+function paint(name, col) {                                // a rigid part recoloured by the live plant (flavour)
+  const o = nodes[name] || cyl[name];
+  if (!o) return;
+  o.traverse((c) => {
+    if (!c.isMesh) return;
+    if (!painted[c.uuid]) { c.material = c.material.clone(); painted[c.uuid] = true; }
+    c.material.color.set(col);
+  });
+}
+
 function applyFrame(f, info) {
   for (const [name, m] of Object.entries(cyl)) {
+    if (!f[name]) continue;
     const cm = tl.cylinderOf(name, f);
     m.matrix.copy(cm);
     m.visible = f[name].vis;
@@ -99,6 +113,7 @@ function applyFrame(f, info) {
     mat.emissive = new THREE.Color(info.bits[name] ? c : "#000000");
     mat.emissiveIntensity = 0.6;
   }
+  for (const [name, col] of Object.entries(info.paint || {})) paint(name, col);
   panel(info);
 }
 
@@ -115,7 +130,8 @@ function panel(info) {
       `L1 ${p[1].toFixed(1)} A  L2 ${p[2].toFixed(1)} A  L3 ${p[3].toFixed(1)} A`;
   }
   const y = info.temps || [];
-  zonesEl.innerHTML = Object.entries(tlJson.duty || {}).sort().map(([z, d], i) =>
+  const duty = info.duty ? Object.fromEntries(info.duty.map((d, i) => [`Z${i + 1}`, d])) : (tlJson.duty || {});
+  zonesEl.innerHTML = Object.entries(duty).sort().map(([z, d], i) =>
     `<div class="zone"><b>${z}</b><span class="duty"><i style="width:${(d * 100).toFixed(0)}%"></i></span>` +
     `<span>${(d * 100).toFixed(0)} %</span><span>${y[i] !== undefined ? y[i].toFixed(1) : "–"} °C</span></div>`).join("") +
     (zoneT.length ? `<div class="muted">duty · TC reading · set points ${zoneT.join(" / ")} °C</div>` : "");
@@ -137,10 +153,17 @@ function startLive() {
   const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/frames`);
   ws.onmessage = (ev) => {
     const m = JSON.parse(ev.data);
+    if (m.type === "hello") {                               // the complete band pool: cylinders the timeline lacks
+      tl.addExtra(m.extra);
+      for (const s of m.extra || []) if (!cyl[s.name]) addCylinder(s.name, s.colour);
+      return;
+    }
     if (m.type !== "frame") return;
     Object.assign(rows, m.track);                           // the server sends changed rows only
     const f = tl.fromRows(rows, m.glow);
-    applyFrame(f, { live: true, t: m.t, tau: m.tau, power: m.power, temps: m.temps, bits: m.glow,
+    if (m.flow) flowPanel(m.flow);
+    applyFrame(f, { live: true, t: m.t, tau: m.tau, power: m.power, temps: m.temps, bits: m.glow, paint: m.paint,
+                    duty: m.duty,
                     phase: `${m.master.enabled ? "master running" : "master STOPPED"} · ${(m.master.vel).toFixed(1)} mm/s` +
                            (m.bad.length ? ` · ${m.bad.length} unreachable` : "") });
     window.stfLive = { t: m.t, tau: m.tau, frames: (window.stfLive?.frames || 0) + 1, rows: Object.keys(rows).length };
@@ -155,6 +178,19 @@ function startLive() {
     post(cmd.path || "/command", cmd.body).then((r) => { if (r.ok === false) $("phase").textContent = r.message; });
   };
   $("simspeed").onchange = (e) => post("/sim", { speed: +e.target.value });
+}
+
+function flowPanel(fl) {                                   // DT-3b: the product flow the live plant carries
+  $("flow").hidden = false;
+  const lanes = Object.entries(fl.packs).map(([l, n]) => `${l} ${n}`).join(" · ");
+  const amr = Object.entries(fl.amr).map(([i, b]) => `AMR ${i}: ${b === null ? "free" : "busy"}`).join(" · ");
+  $("flowbody").innerHTML =
+    `<div><b>${fl.packed}</b> packed · <b>${fl.rejected}</b> rejected · ${fl.band_lost} lost on the band · ` +
+    `${fl.flagged} flagged by the bake log</div>` +
+    `<div class="muted">on the band ${fl.on_band} · on pucks ${fl.on_pucks} · loaded ${fl.loaded}</div>` +
+    `<div>packs: ${lanes} · cassettes out ${Object.values(fl.cassettes_out).reduce((a, b) => a + b, 0)}</div>` +
+    `<div class="muted">dough ${fl.dough_kg.toFixed(2)} kg · topping ${Object.entries(fl.topping_kg).map(([l, v]) =>
+      `${l} ${v.toFixed(2)}`).join(" / ")} kg · reject drawer ${fl.drawer}</div><div class="muted">${amr}</div>`;
 }
 if (!LIVE && new URLSearchParams(location.search).has("selftest")) { playing = false; selftest(); }
 $("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "Pause" : "Play"; };

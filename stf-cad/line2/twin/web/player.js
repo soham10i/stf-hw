@@ -42,6 +42,15 @@ export class Timeline {
     for (const [n, s] of Object.entries(this.spawn)) this.spawnBase[n] = cylinderMatrix(s.p, s.s[0], s.s[2], s.s[1]);
   }
 
+  // DT-3b: cylinders the live plant draws that the recorded timeline never shows (the complete band-row pool)
+  addExtra(list) {
+    for (const s of list || []) {
+      this.spawn[s.name] = s;
+      this.spawnBase[s.name] = cylinderMatrix(s.p, s.s[0], s.s[2], s.s[1]);
+      if (s.reshaped) this.reshaped.add(s.name);
+    }
+  }
+
   bodyOf(name) {   // a follower's moving body: screws by their F####_ prefix, brackets by label
     const key = name.startsWith("F") && /^\d{4}$/.test(name.slice(1, 5)) ? name.slice(0, 6) : name;
     const b = this.follow[key];

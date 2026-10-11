@@ -164,8 +164,17 @@ advances by wall time × sim speed, in 10 ms ticks):
   "glow":  { "oven_heater_E1T1": 1, ... },                // SSR state of every element
   "power": [W, A_L1, A_L2, A_L3], "temps": [TC1, TC2, TC3],
   "master": { "pos": mm, "vel": mm/s, "enabled": true, "rate": 1.0 },
-  "bad": [] }                                              // unreachable delta poses (none: proven)
+  "bad": [],                                               // unreachable delta poses (none: proven)
+  // DT-3b (with the product flow):
+  "duty":  [0.62, 0.68, 0.55],                             // FB_Oven's duty per zone (closed loop)
+  "paint": { "cookie_07_top": "#c8233c" },                 // a rigid part recoloured: the topping of that puck's cookie
+  "flow":  { "packed": 844, "rejected": 38, "band_lost": 15, "flagged": 0, "loaded": 894, "on_band": 147,
+             "on_pucks": 12, "packs": {"weiss": 93, ...}, "cassettes_out": {...}, "drawer": 38,
+             "dough_kg": 14.9, "topping_kg": {...}, "amr": {"0": 3623.1, "1": null} } }
 ```
+
+The hello also carries `extra`: the band-pool names the recording never shows, each with its base cylinder
+(`name, kind, p, s, colour, reshaped`). The viewer creates them before the first frame.
 
 The rows are exactly `timeline.json`'s, so the same player (`player.js` `fromRows`, `playback.py`) draws a recorded
 or a live frame, and a recorded live run replays in the FreeCAD player. The I/O image (`io`) and KPIs (`kpi`) join the

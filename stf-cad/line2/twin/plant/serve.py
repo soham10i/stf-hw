@@ -9,6 +9,8 @@ Pacing    the plant runs on VIRTUAL time (twin.plant.core); this service advance
           (the gate uses it: a run is then a pure function of the commands).
 WebSocket /ws/frames: {"type": "hello", glow colours, format} then {"type": "frame", t, tau, track: CHANGED rows only
           (first frame: all), glow, power, temps, master}. Rows are timeline.json's format (DATA_CONTRACT.md 3.2).
+Flow      by default the plant carries line_sim's product flow (DT-3b) for --hours (24) of the --scenario; frames then
+          also carry "paint" (topping colour per puck) and "flow" (counts, stock, AMRs). --no-flow: the DT-3a plant.
 REST      GET /state; POST /command {"name": kick | seal | exchange | master | speed, ...args};
           POST /sim {"speed": x} (wall pacing, 0 = pause); POST /step {"ticks": n} (manual mode).
 Security  binds 127.0.0.1 only and has no authentication: commands change the twin, never hardware (there is
@@ -29,13 +31,17 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 LINE2 = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, LINE2)
 from twin.plant.core import TICK, Plant                   # noqa: E402
+from twin.plant.flow import Flow                           # noqa: E402
 
 PUBLISH = 0.1                                              # s of wall time between published frames
 
 
 class Service:
-    def __init__(self, speed=1.0, manual=False, events=None):
-        self.plant = Plant(events=events)
+    def __init__(self, speed=1.0, manual=False, events=None, flow=True, scenario="nominal_1h", seed=7, hours=24.0):
+        """flow: the product flow of line_sim (DT-3b) decides what exists and fires kick / seal / exchange, and the
+        oven runs FB_Oven's closed loop; False: the DT-3a plant (positional product, steady oven)."""
+        fl = Flow(scenario, seed, horizon=hours * 3600.0) if flow else None
+        self.plant = Plant(events=events, flow=fl)
         self.speed, self.manual = speed, manual
         self.clients = set()
         self.frame = self.plant.frame()
@@ -66,7 +72,8 @@ class Service:
         rows = {n: r for n, r in f["track"].items() if last.get(n) != r}
         last.update(rows)
         return dict(type="frame", t=f["t"], tau=f["tau"], track=rows, glow=f["glow"], power=f["power"],
-                    temps=f["temps"], master=f["master"], bad=f["bad"])
+                    temps=f["temps"], master=f["master"], bad=f["bad"], paint=f["paint"], flow=f["flow"],
+                    duty=f["duty"])
 
     async def run(self):
         """Wall-clock pacing (not used in manual mode)."""
@@ -136,7 +143,8 @@ def create_app(service, autorun=False):
         await ws.accept()
         client = _Client((ws, {}))
         await ws.send_text(json.dumps(dict(type="hello", format="timeline-rows", tick=TICK, glow=service.glow_colours,
-                                           zones=service.zones, spawn=[dict(name=n) for n in service.plant.spawn])))
+                                           zones=service.zones, spawn=[dict(name=n) for n in service.plant.spawn],
+                                           extra=service.plant.extra)))
         await ws.send_text(json.dumps(service.message(client[1])))
         service.clients.add(client)
         try:
@@ -154,9 +162,12 @@ def main():
     ap.add_argument("--port", type=int, default=8200)
     ap.add_argument("--speed", type=float, default=1.0)
     ap.add_argument("--manual", action="store_true")
+    ap.add_argument("--no-flow", action="store_true", help="the DT-3a plant: positional product, steady oven")
+    ap.add_argument("--scenario", default="nominal_1h", help="a line_sim scenario (its disturbances, its policy)")
+    ap.add_argument("--hours", type=float, default=24.0, help="flow horizon (the line runs until then)")
     a = ap.parse_args()
     import uvicorn
-    service = Service(speed=a.speed, manual=a.manual)
+    service = Service(speed=a.speed, manual=a.manual, flow=not a.no_flow, scenario=a.scenario, hours=a.hours)
     app = create_app(service, autorun=not a.manual)
     print(f"STF-2 live plant on http://127.0.0.1:{a.port}/twin/web/?live  (speed {a.speed}x"
           f"{', manual' if a.manual else ''})", flush=True)
