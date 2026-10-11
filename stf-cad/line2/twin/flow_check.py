@@ -19,6 +19,8 @@ DT-3b gate: the live plant carries the REAL product flow and the REAL oven contr
   F8 determinism   two 10 min runs: identical frame streams (SHA-256)
   F9 service       the server with the flow (manual mode): WebSocket rows, paint, flow summary and duty rebuild exactly
                    an independent plant carrying the same flow
+  F10 scenarios    all 11 line_sim scenarios (1 h pickers, 8 h AMR shifts) run IN THE PLANT give sim_results.json
+                   exactly; the oven, sampled over every whole run, never leaves the bake window; no cookie flagged
 """
 import hashlib
 import json
@@ -215,11 +217,29 @@ def check(verbose=True):
         f"from an independent plant; hello lists {len(hello['extra'])} extra pool cylinders", "0", not mism,
         str(mism[:3]))
 
+    # F10 ------------------------------------------------------------------------------------------------------
+    same, worst10, flagged10, n10 = [], 0.0, 0, 0
+    for name in LS.SCENARIOS:
+        hz = LS.SCENARIOS[name].get("horizon", LS.H1)
+        q = Plant(flow=Flow(name))
+        for _ in range(round(hz / 10.0)):                  # the whole run, the oven sampled every 10 s
+            q.step(1000)
+            worst10 = max(worst10, max(abs(y - s_) for y, s_ in zip(q.zl.y, q.pl.Ts)))
+        q.flow.release(hz + 60.0)
+        n10 += len(q.flow.log)
+        flagged10 += sum(1 for e in q.flow.log.values() if e.get("flagged"))
+        if json.loads(json.dumps(q.flow.kpi)) == ref[name]:
+            same.append(name)
+    row("F10 every scenario in the plant", f"{len(same)} of {len(LS.SCENARIOS)} = sim_results (incl. 8 h shifts, "
+        f"{n10:,} cookies); oven worst {worst10:.2f} K over every run; {flagged10} flagged",
+        f"all; <= {L['BAKE_MARGIN']:g} K; 0", len(same) == len(LS.SCENARIOS) and worst10 <= L["BAKE_MARGIN"] and
+        flagged10 == 0, ", ".join(sorted(set(LS.SCENARIOS) - set(same))))
+
     if verbose:
         for name, val, lim, ok, note in rows:
             print(f"  [{'ok' if ok else 'FAIL'}] {name:30s} {val:96s} {lim:22s} {note}")
         print("\n".join(fails) if fails else "ALL FLOW PROOFS PASS (engine, oven loop, one hour, genealogy, coupling, "
-                                             "drawn = flow, oven + flow, determinism, service)")
+                                             "drawn = flow, oven + flow, determinism, service, every scenario)")
     return rows, fails
 
 

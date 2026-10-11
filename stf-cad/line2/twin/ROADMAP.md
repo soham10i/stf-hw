@@ -207,6 +207,11 @@ different random draws.
 F9 (service): the server with the flow, in manual mode, sends WebSocket frames (rows, paint, flow summary, duty) that
 rebuild an independent plant carrying the same flow exactly: 40 frames over 10 min, 0 differ.
 
+F10 (every scenario, re-validated 2026-10-11): all 11 line_sim scenarios, including the 8 h AMR shifts (43,152
+cookies), run **inside the plant** and give `sim_results.json` exactly. The oven, sampled over every whole run, is
+never more than 0.58 K off. That worst case is the band running empty when the dough is starved (`shift_no_AMR`),
+and no cookie is flagged.
+
 **It can fail:**
 - the pool's row lookup off by one row fails F6 (2,520 wrong, named);
 - a pack that does not seal its lane fails F5 (0 / 279 seals).
