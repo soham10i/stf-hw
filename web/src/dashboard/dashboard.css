@@ -439,3 +439,24 @@ details > summary { cursor: pointer; }
 .db-mini-seg { margin-left: auto; } .db-mini-seg button { padding: 3px 9px; font-size: 11.5px; }
 .hl-facts.col { grid-template-columns: 1fr; margin: 0; }
 .hl-facts b.wrap { white-space: normal; font-size: 13px; }
+.sc-better { fill: var(--ok); opacity: .06; } .sc-better-t { fill: var(--ok); font: 600 11px var(--font); opacity: .8; }
+.sc-lab { fill: var(--text); font: 600 12px var(--font); }
+.db-gap { stroke: var(--muted); stroke-width: 3; opacity: .45; }
+.st { display: flex; flex-direction: column; gap: 6px; }
+.st-row { display: grid; grid-template-columns: minmax(120px, 30%) 1fr; gap: 10px; align-items: center; padding: 3px 4px; border-radius: 6px; }
+.st-row.on { background: var(--accent-weak); }
+.st-name { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-bar { display: flex; height: 22px; border-radius: 5px; overflow: hidden; background: var(--surface-2); }
+.st-bar i { display: grid; place-items: center; font: 600 11.5px var(--mono); font-style: normal; color: #10131a; }
+.ai-verdict { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.ai-verdict li { padding: 10px 12px; border-radius: 8px; background: var(--surface-2); font-size: 13px; line-height: 1.5; color: var(--muted); }
+.ai-verdict b { color: var(--text); }
+.ai-how { margin-top: 10px; font-size: 12.5px; } .ai-how summary { cursor: pointer; color: var(--accent); }
+.ai-slider { width: 140px; margin-left: auto; }
+.mo-wear { display: grid; grid-template-columns: 110px 1fr 44px; gap: 10px; align-items: center; font-size: 12.5px; margin-bottom: 8px; }
+.mo-wear span { color: var(--muted); } .mo-wear i { height: 9px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+.mo-wear i b { display: block; height: 100%; background: var(--warn); border-radius: 5px; } .mo-wear em { font: 600 12px var(--mono); font-style: normal; text-align: right; }
+.mo-ev { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.mo-ev li { padding: 7px 10px; border-radius: 8px; background: var(--surface-2); border-left: 3px solid var(--border); color: var(--muted); }
+.mo-ev li b { color: var(--text); margin-right: 8px; font-family: var(--mono); font-size: 12px; }
+.mo-ev li.warning { border-left-color: var(--warn); } .mo-ev li.maintenance { border-left-color: var(--ok); } .mo-ev li.dist { border-left-color: #b07ad6; }

@@ -3,13 +3,14 @@
 // itself running here in the browser on the month's data.
 import { useEffect, useMemo, useState } from "react";
 import { Chart } from "./Month";
+import { Dumbbell, Plot, Scatter, Stacked } from "./Plot";
 import { type Weights, buildWindow, forward, predictAt } from "./ml";
 import { useJson } from "../shared/data";
 
 const BASE = import.meta.env.BASE_URL;
 
 type Result = { name: string; failures: number; warned_1shift: number; warned_1shift_pct: number; missed: number; late: number;
-                lead_median_orders: number | null; false: number; false_per_1000: number; rul_mae_orders?: number;
+                lead_median_orders: number | null; false: number; false_per_1000: number; rul_mae_orders?: number; wasted_life_median_shifts?: number | null;
                 macro_f1?: number; f1_healthy_degrading_critical?: number[] };
 type Res = {
   method: string;
@@ -25,7 +26,7 @@ type Res = {
   limits: string;
   tuned?: { method: string; chosen: Record<string, number>; hybrid_note: string;
             table: (Result & { wasted_life_median_shifts: number | null })[];
-            sweep_validation: Record<string, { threshold: number; warned_1shift: number; failures: number; false_per_1000: number }[]> };
+            sweep_validation: Record<string, { threshold: number; warned_1shift: number; warned_1shift_pct: number; failures: number; false_per_1000: number; wasted_life_median_shifts: number }[]> };
 };
 type MonthIn = { t: number[]; x: number[][]; torch_rul: number[][]; rule_warnings: { t: number; comp: string }[]; maintenance: { t: number; comp: string }[] };
 
@@ -34,7 +35,9 @@ function useAi() {
   const W = useJson<Weights>("ml/weights.json", hint), R = useJson<Res>("ml/results.json", hint);
   const M = useJson<MonthIn>("ml/month_inputs.json", hint);
   const err = W.error ?? R.error ?? M.error;
-  return { d: W.data && R.data && M.data ? { W: W.data, R: R.data, M: M.data } : null, err };
+  // one object per loaded set: the month's computation below restarts whenever it changes
+  const d = useMemo(() => (W.data && R.data && M.data ? { W: W.data, R: R.data, M: M.data } : null), [W.data, R.data, M.data]);
+  return { d, err };
 }
 
 const NICE: Record<string, string> = { cup: "VGR cup seal", door: "oven door cyl.", lower: "Sauger cylinder", pusher: "Auswerfer cyl.",
@@ -44,6 +47,7 @@ export function AiPage() {
   const { d, err } = useAi();
   const [comp, setComp] = useState(7);
   const [t, setT] = useState(0);
+  const [show, setShow] = useState(0);
   const [full, setFull] = useState<{ c: number; rul: number[]; err: number; done: number } | null>(null);
   const live = useMemo(() => (d ? predictAt(d.W, d.M.x, t) : null), [d, t]);
   // the whole month for one component, every 4th order, computed here in small chunks
@@ -79,117 +83,105 @@ export function AiPage() {
                  ...M.maintenance.filter((w) => w.comp === k).map((w) => ({ x: w.t, color: "#22c55e", label: "renewed" }))];
   const stages = Array.from(new Set(R.log.map((l) => l.stage)));
   const SC: Record<string, string> = { pretrain: "#9fd0ff", "fine-tune": "#86efac", "mean teacher": "#22c55e", "supervised-only": "#e0a02a", oracle: "#b07ad6" };
+  const tuned = R.tuned?.table ?? R.results;
+  const short = (n: string) => n.startsWith("U6") ? "U6 rules" : n.startsWith("hybrid") ? "hybrid" : n.startsWith("semi") ? "network (semi-supervised)"
+    : n.startsWith("supervised") ? "network (supervised only)" : n.startsWith("oracle") ? "network (all labelled)" : n;
+  const PC: Record<string, string> = { "U6 rules": "#e0a02a", hybrid: "#22c55e", "network (semi-supervised)": "#4f8fd6", "network (supervised only)": "#9fd0ff", "network (all labelled)": "#b07ad6" };
+  const hybrid = R.tuned?.table.find((r) => r.name.startsWith("hybrid"));
+  const row = R.showcase.rows[Math.min(show, R.showcase.rows.length - 1)];
+  const sx = row.pred.map((_, i) => i * R.showcase.stride);
+  const mae = row.pred.reduce((a, p, i) => a + (row.true[i] === null ? 0 : Math.abs(p - (row.true[i] as number))), 0) / Math.max(1, row.true.filter((v) => v !== null).length);
+  const sweep = R.tuned?.sweep_validation;
   return (
     <>
       <div className="db-kpis">
-        <div className="db-kpi"><span>model</span><b>{(R.model.params / 1000).toFixed(1)}k</b><em>parameters · causal TCN</em></div>
-        <div className="db-kpi"><span>training data</span><b>{R.data.machines}</b><em>machines · {R.data.labelled} labelled · {R.data.failures} failures</em></div>
-        <div className="db-kpi"><span>warned ≥ 1 shift</span><b>{semi.warned_1shift_pct} %</b><em>unseen machines (rules {rule.warned_1shift_pct} %)</em></div>
-        <div className="db-kpi"><span>false alarms</span><b>{semi.false_per_1000}</b><em>per 1000 orders (rules {rule.false_per_1000})</em></div>
-        <div className="db-kpi"><span>ONNX (RevPi)</span><b>{(R.model.onnx_bytes / 1024).toFixed(0)} kB</b><em>max error vs PyTorch {R.model.onnx_max_abs_err.toExponential(1)}</em></div>
-        <div className={`db-kpi ${full && full.err < 0.05 ? "ok" : ""}`}><span>browser vs PyTorch</span>
-          <b>{full ? full.err.toFixed(4) : "…"}</b><em>max |Δ| remaining life, orders ({full ? Math.round(full.done * 100) : 0} % checked)</em></div>
+        <div className="db-kpi ok"><span>warned in time · rules</span><b>{rule.warned_1shift}/{rule.failures}</b><em>but ~{rule.wasted_life_median_shifts ?? "15"} shifts of life thrown away</em></div>
+        <div className="db-kpi warn"><span>warned in time · network</span><b>{semi.warned_1shift}/{semi.failures}</b><em>unseen machines · {semi.missed} missed</em></div>
+        {hybrid && <div className="db-kpi"><span>hybrid (rules flag, network dates)</span><b>{hybrid.missed} missed</b><em>{hybrid.late} late · saves {(rule.wasted_life_median_shifts! - hybrid.wasted_life_median_shifts!).toFixed(1)} shifts of life</em></div>}
+        <div className={`db-kpi ${full && full.err < 0.05 ? "ok" : ""}`}><span>browser = PyTorch</span><b>{full ? full.err.toFixed(4) : "…"}</b><em>max difference, orders ({full ? Math.round(full.done * 100) : 0} % checked)</em></div>
       </div>
       <div className="db-grid">
-        <section className="db-card wide"><h3>Scored on {R.data.test} machines the model never saw ({semi.failures} failures)</h3>
-          <table className="db-table">
-            <thead><tr><td>method</td><td className="num">warned ≥ 1 shift</td><td className="num">missed</td><td className="num">late</td>
-              <td className="num">median lead</td><td className="num">false / 1000</td><td className="num">life MAE</td><td className="num">class F1</td></tr></thead>
-            <tbody>{R.results.map((r) => (
-              <tr key={r.name} className={r.name.startsWith("semi") ? "on" : ""}><td>{r.name}</td>
-                <td className="num">{r.warned_1shift}/{r.failures} ({r.warned_1shift_pct} %)</td><td className="num">{r.missed}</td><td className="num">{r.late}</td>
-                <td className="num">{r.lead_median_orders ?? "–"} orders</td><td className="num">{r.false_per_1000}</td>
-                <td className="num">{r.rul_mae_orders ?? "–"}</td><td className="num">{r.macro_f1 ?? "–"}</td></tr>
-            ))}</tbody>
-          </table>
-          <p className="db-note">Alarm: predicted life under {R.alarm.rul_below_orders} orders for {R.alarm.for_orders} orders in a row; a warning
-            counts if it comes ≥ {R.alarm.lead_needed_orders} orders (one shift) before the failure. {R.limits}.</p>
+        <section className="db-card hl-span2"><h3>What happened to each of the {rule.failures} failures</h3>
+          <Stacked parts={[{ name: "warned ≥ 1 shift ahead", color: "var(--ok)" }, { name: "warned late", color: "var(--warn)" }, { name: "missed", color: "var(--bad)" }]}
+            rows={tuned.map((r) => ({ label: short(r.name), v: [r.warned_1shift, r.late, r.missed], on: r.name.startsWith("hybrid") }))} />
+          <p className="hl-cap">{R.data.test} machines the model never saw · a warning counts if it comes ≥ {R.alarm.lead_needed_orders} orders (one shift) before the failure.</p>
+        </section>
+        <section className="db-card"><h3>Verdict</h3>
+          <ul className="ai-verdict">
+            <li><b>Rules</b> catch every failure, but renew parts ~15 shifts early.</li>
+            <li><b>Network</b> times the work well (~3 shifts early) but misses a quarter on unseen machines.</li>
+            <li><b>Use</b> the network as an advisory date beside the rules (shadow mode) until it has real run-to-failure data.</li>
+          </ul>
         </section>
         {R.tuned && (
-          <section className="db-card wide"><h3>The decision, tuned properly: warned in time vs part life thrown away</h3>
-            <table className="db-table">
-              <thead><tr><td>policy</td><td className="num">warned ≥ 1 shift</td><td className="num">missed</td><td className="num">late</td>
-                <td className="num">median lead</td><td className="num">life thrown away</td><td className="num">false / 1000</td></tr></thead>
-              <tbody>{R.tuned.table.map((r) => (
-                <tr key={r.name} className={r.name.startsWith("hybrid") ? "on" : ""}><td>{r.name}</td>
-                  <td className="num">{r.warned_1shift}/{r.failures}</td><td className={`num ${r.missed ? "fail" : ""}`}>{r.missed}</td>
-                  <td className={`num ${r.late ? "warn" : ""}`}>{r.late}</td><td className="num">{r.lead_median_orders} orders</td>
-                  <td className="num">{r.wasted_life_median_shifts ?? "–"} shifts</td><td className="num">{r.false_per_1000}</td></tr>
-              ))}</tbody>
-            </table>
-            <p className="db-note">{R.tuned.method}. Chosen: {Object.entries(R.tuned.chosen).map(([k, v]) => `${k} ${v} orders`).join(", ")}.
-              The hybrid is {R.tuned.hybrid_note}.</p>
-            <p className="db-note"><b>Verdict on this data:</b> the U6 rules know each part's true limit and warn every failure, but
-              about 15 shifts early, so they renew parts with plenty of life left. The network alone times the work far better
-              (about 3 shifts early) but misses a quarter of the failures on unseen machines: its threshold, tuned on 8 labelled
-              machines, did not carry over. The hybrid misses none and saves about 3 shifts of life per renewal, but warns 5 failures
-              late, which the rules never did. So the network goes in as an <b>advisory</b> remaining-life estimate beside the rules
-              (shadow mode), until it has been trained on real run-to-failure data. Semi-supervised training still earns its place:
-              the same 8 labelled machines give a better remaining-life estimate with the unlabelled ones than without.</p>
+          <section className="db-card hl-span2"><h3>The trade-off: catching failures vs throwing life away</h3>
+            <Scatter better="top-left" xTitle="part life thrown away per renewal (shifts, median)" yTitle="failures warned in time (%)" yMin={0} yMax={105}
+              yFmt={(v) => `${Math.round(v)}`} xFmt={(v) => `${v}`}
+              pts={R.tuned.table.map((r) => ({ label: short(r.name), x: r.wasted_life_median_shifts ?? 0, y: (100 * r.warned_1shift) / r.failures, color: PC[short(r.name)] ?? "#9fd0ff",
+                tip: [["warned in time", `${r.warned_1shift}/${r.failures}`], ["late", `${r.late}`], ["missed", `${r.missed}`], ["life thrown away", `${r.wasted_life_median_shifts} shifts`], ["false alarms", `${r.false_per_1000} / 1000 orders`]] }))} />
           </section>
         )}
-        <section className="db-card"><h3>Per component (semi-supervised vs rules)</h3>
-          <table className="db-table"><thead><tr><td>component</td><td className="num">failures</td><td className="num">ML ok</td><td className="num">rules ok</td></tr></thead>
-            <tbody>{Object.entries(R.per_component).map(([c, v]) => (
-              <tr key={c}><td>{NICE[c] ?? c}</td><td className="num">{v.failures}</td><td className="num">{v.ml_ok}</td><td className="num">{v.rule_ok}</td></tr>
-            ))}</tbody></table>
-        </section>
-        <section className="db-card"><h3>How it was trained</h3>
-          <p className="db-note" style={{ marginTop: 0 }}>{R.method}.</p>
-          <table className="db-table"><tbody>
-            <tr><td>network</td><td>{R.model.type}</td></tr>
-            <tr><td>looks at</td><td>{R.model.window_orders} orders of {R.model.inputs.slice(0, 4).join(", ")} + which component</td></tr>
-            <tr><td>predicts</td><td>{R.model.heads}</td></tr>
-            <tr><td>unlabelled windows</td><td className="num">{R.data.unlabelled_windows.toLocaleString()}</td></tr>
-            <tr><td>labelled windows</td><td className="num">{R.data.labelled_windows.toLocaleString()} ({R.data.failures_labelled} failures)</td></tr>
-            <tr><td>trained in</td><td className="num">{R.train_s} s on {R.model.device}</td></tr>
-          </tbody></table>
-          <div className="mo-dl" style={{ marginTop: 8 }}><a href={`${BASE}ml/stf_pm_tcn.onnx`} download>stf_pm_tcn.onnx</a><a href={`${BASE}ml/weights.json`} download>weights.json</a><a href={`${BASE}ml/results.json`} download>results.json</a></div>
+        {sweep && (
+          <section className="db-card"><h3>Choosing the network's alarm threshold</h3>
+            <Plot h={230} xTitle="alarm when predicted life < (orders)" yTitle="warned in time (%)" yMin={0} yMax={105} yFmt={(v) => `${Math.round(v)}`}
+              series={Object.entries(sweep).map(([k, v]) => ({ name: k === "semi" ? "semi-supervised" : "supervised only", x: v.map((p) => p.threshold), y: v.map((p) => p.warned_1shift_pct),
+                color: k === "semi" ? "#4f8fd6" : "#9fd0ff", width: 2.4, fmt: (y: number) => `${y.toFixed(0)} %` }))}
+              vmarks={[{ x: R.tuned!.chosen.semi, color: "var(--ok)", label: "chosen" }]}
+              tipExtra={(x) => { const p = sweep.semi?.find((q) => q.threshold === x); return p ? [["life thrown away", `${p.wasted_life_median_shifts} sh`], ["false / 1000", `${p.false_per_1000}`]] : []; }} />
+            <p className="hl-cap">Tuned on the {R.data.labelled} labelled machines: higher = earlier, safer, more life wasted.</p>
+          </section>
+        )}
+        <section className="db-card hl-span2"><h3>Per part: failures warned in time</h3>
+          <Dumbbell xTitle="failures warned ≥ 1 shift ahead" a={{ name: "network", color: "#4f8fd6" }} b={{ name: "U6 rules", color: "#e0a02a" }}
+            rows={Object.entries(R.per_component).sort((x, y) => x[1].ml_ok / x[1].failures - y[1].ml_ok / y[1].failures)
+              .map(([c, v]) => ({ label: NICE[c] ?? c, a: v.ml_ok / v.failures, b: v.rule_ok / v.failures, note: `${v.failures} failures` }))} />
+          <p className="hl-cap">The network is weakest on rare failures (cup seal, pusher, RFID: too few examples to learn from).</p>
         </section>
         <section className="db-card"><h3>Training loss</h3>
-          <Chart h={150} days={false} xLabel="epoch" yLabel="loss" lines={stages.map((s) => {
-            const L = R.log.filter((l) => l.stage === s);
-            return { name: s, x: L.map((_, i) => i + 1), y: L.map((l) => l.loss), color: SC[s] ?? "#9fd0ff" };
+          <Chart h={170} days={false} xLabel="epoch" yLabel="loss" lines={stages.map((st) => {
+            const L = R.log.filter((l) => l.stage === st);
+            return { name: st, x: L.map((_, i) => i + 1), y: L.map((l) => l.loss), color: SC[st] ?? "#9fd0ff" };
           })} />
+          <details className="ai-how"><summary>Model and data</summary>
+            <table className="db-table"><tbody>
+              <tr><td>network</td><td>{R.model.type} · {(R.model.params / 1000).toFixed(1)}k parameters</td></tr>
+              <tr><td>input</td><td>last {R.model.window_orders} orders of {R.model.inputs.slice(0, 4).join(", ")}</td></tr>
+              <tr><td>data</td><td>{R.data.machines} machines, {R.data.labelled} labelled, {R.data.failures} failures</td></tr>
+              <tr><td>on the RevPi</td><td>ONNX {(R.model.onnx_bytes / 1024).toFixed(0)} kB, error {R.model.onnx_max_abs_err.toExponential(1)}</td></tr>
+            </tbody></table>
+            <div className="mo-dl"><a href={`${BASE}ml/stf_pm_tcn.onnx`} download>stf_pm_tcn.onnx</a><a href={`${BASE}ml/weights.json`} download>weights.json</a><a href={`${BASE}ml/results.json`} download>results.json</a></div>
+          </details>
         </section>
-        <section className="db-card wide"><h3>Running here, in the browser, on the month (Upgrade 7 with maintenance)</h3>
+        <section className="db-card wide"><h3>An unseen machine (#{R.showcase.machine}): predicted vs true remaining life</h3>
+          <div className="db-chips">{R.showcase.rows.map((r, i) => <button key={r.comp} className={i === show ? "on" : ""} onClick={() => setShow(i)}>{NICE[r.comp] ?? r.comp}</button>)}</div>
+          <Plot h={250} xTitle="orders on this machine" yTitle="remaining life (orders)" yMin={0} yMax={W.rul_cap}
+            series={[{ name: "true remaining life", x: sx, y: row.true, color: "var(--text)", dash: true, width: 1.6 },
+                     { name: "network's prediction", x: sx, y: row.pred, color: "#4f8fd6", width: 2.2 }]}
+            hlines={[{ y: W.alarm_rul, color: "var(--bad)", label: "alarm threshold" }]}
+            vmarks={[...row.fails.map((f) => ({ x: f, color: "var(--bad)", label: "failure" })),
+                     ...(row.alarms.length ? [{ x: row.alarms[0], color: "#4f8fd6", label: "first network alarm" }] : []),
+                     ...row.rules.slice(0, 2).map((r) => ({ x: r, color: "var(--warn)", label: "rule warning" }))]}
+            tipExtra={(x) => { const i = Math.round(x / R.showcase.stride); const tr = row.true[i]; return tr === null || tr === undefined ? [] : [["error", `${(row.pred[i] - tr).toFixed(0)} orders`]]; }} />
+          <p className="hl-cap">Mean error on this part: {mae.toFixed(0)} orders. The prediction is capped at {W.rul_cap} orders: far from failure it only says "plenty".</p>
+        </section>
+        <section className="db-card hl-span2"><h3>Running here, on the simulated month</h3>
           <div className="db-chips">{W.components.map((c, i) => <button key={c} className={i === comp ? "on" : ""} onClick={() => setComp(i)}>{NICE[c] ?? c}</button>)}</div>
-          {full && full.c === comp && (
+          {full && full.c === comp ? (
             <Chart yMin={0} yMax={W.rul_cap} yLabel="predicted life (orders)" xMax={M.t[M.t.length - 1]}
-              lines={[{ name: `${NICE[k] ?? k}: predicted remaining life (this browser)`, x: tArr, y: full.rul, color: "#22c55e", width: 1.6 }]}
+              lines={[{ name: "predicted remaining life (this browser)", x: tArr, y: full.rul, color: "#22c55e", width: 1.6 }]}
               hlines={[{ y: W.alarm_rul, color: "#e0503a", label: "alarm threshold" }]} marks={marks} />
-          )}
-          <p className="db-note">The month's own work orders renew parts at the U6 warning, so no part reaches its failure here: the
-            prediction dips, then resets at each renewal. Computed every 4th order in the page; every value is compared with
-            PyTorch's (top right).</p>
+          ) : <p className="db-muted">computing in the page…</p>}
+          <p className="hl-cap">Parts are renewed at the rule warning, so the prediction dips, then resets.</p>
         </section>
-        <section className="db-card wide"><h3>At order
-          <input type="range" min={0} max={M.x.length - 1} value={t} onChange={(e) => setT(+e.target.value)} style={{ width: 300 }} />
-          {t} · day {(M.t[t] / 24 + 1).toFixed(1)}</h3>
-          <div className="ai-live">{live && live.map((p, i) => (
-            <div key={i} className={p.rul < W.alarm_rul ? "alarm" : p.p[2] > 0.5 ? "warn" : ""}>
-              <b>{NICE[W.components[i]] ?? W.components[i]}</b>
-              <span>{p.rul.toFixed(0)} orders</span>
-              <div className="ai-prob">{p.p.map((v, j) => <i key={j} style={{ width: `${v * 100}%` }} className={["h", "d", "c"][j]} />)}</div>
-            </div>
-          ))}</div>
-          <p className="db-note">Each tile: predicted remaining life and the class probabilities (green healthy, amber degrading, red critical)
-            for the window ending at this order.</p>
-        </section>
-        <section className="db-card wide"><h3>An unseen test machine (#{R.showcase.machine}): truth vs prediction</h3>
-          {R.showcase.rows.slice(0, 4).map((row) => {
-            const xs = row.pred.map((_, i) => i * R.showcase.stride);
-            return (
-              <div key={row.comp}>
-                <Chart h={120} days={false} xLabel="orders" yLabel="remaining life (orders)" yMin={0} yMax={W.rul_cap} xMax={xs[xs.length - 1]}
-                  lines={[{ name: `${NICE[row.comp]}: true remaining life`, x: xs, y: row.true, color: "#9fd0ff", width: 1.2 },
-                          { name: "predicted", x: xs, y: row.pred, color: "#22c55e", width: 1.4 }]}
-                  marks={[...row.fails.map((f) => ({ x: f, color: "#e0503a", label: "failure" })),
-                          ...(row.alarms.length ? [{ x: row.alarms[0], color: "#22c55e", label: "first ML alarm" }] : []),
-                          ...row.rules.slice(0, 3).map((r) => ({ x: r, color: "#e0a02a", label: "U6 rule" }))]} />
-              </div>
-            );
-          })}
+        <section className="db-card"><h3>At order <input type="range" min={0} max={M.x.length - 1} value={t} onChange={(e) => setT(+e.target.value)} className="ai-slider" />
+          <span className="mono">day {(M.t[t] / 24 + 1).toFixed(1)}</span></h3>
+          <div className="hl-bars">{live && live.map((p, i) => ({ p, i })).sort((x, y) => x.p.rul - y.p.rul).map(({ p, i }) => (
+            <div key={i} className="hl-bar" title={`healthy ${Math.round(p.p[0] * 100)} % · degrading ${Math.round(p.p[1] * 100)} % · critical ${Math.round(p.p[2] * 100)} %`}>
+              <span className="hl-name">{NICE[W.components[i]] ?? W.components[i]}</span>
+              <span className="hl-track"><i style={{ width: `${(p.rul / W.rul_cap) * 100}%`, background: p.rul < W.alarm_rul ? "var(--bad)" : p.p[2] > 0.5 ? "var(--warn)" : "var(--ok)" }} /></span>
+              <b>{p.rul.toFixed(0)}</b><em>orders</em>
+            </div>))}</div>
+          <p className="hl-cap">Predicted remaining life per part, shortest first; red = below the alarm threshold.</p>
         </section>
       </div>
     </>

@@ -122,8 +122,19 @@ export function Plot({ series, xTitle, yTitle, xFmt = fmtNum, yFmt = fmtNum, xMi
                 {s.kind === "area" && <path d={`${path(s)}L${X(s.x[s.x.length - 1])},${Y(Math.max(dom.y0, 0))}L${X(s.x[0])},${Y(Math.max(dom.y0, 0))}Z`} fill={s.color} opacity={0.12} />}
                 <path d={path(s)} fill="none" stroke={s.color} strokeWidth={s.width ?? 2} strokeDasharray={s.dash ? "5 4" : undefined} strokeLinejoin="round" />
               </g>)}
-          {vmarks.map((m, i) => <g key={i}><line x1={X(m.x)} x2={X(m.x)} y1={T} y2={h - B} stroke={m.color} strokeWidth={1.4} />
-            <text x={X(m.x) + (X(m.x) > W * 0.75 ? -5 : 5)} y={h - B - 8 - (i % 2) * 14} textAnchor={X(m.x) > W * 0.75 ? "end" : "start"} className="pl-lab" style={{ fill: m.color }}>{m.label}</text></g>)}
+          {(() => {
+            // each event label takes the lowest row where it does not overlap another label
+            const rows: [number, number][][] = [];
+            return vmarks.map((m, i) => {
+              const right = X(m.x) > W * 0.75, w = m.label.length * 6.4;
+              const x0 = right ? X(m.x) - 5 - w : X(m.x) + 5;
+              let r = 0;
+              while (m.label && (rows[r] ?? []).some(([a, b]) => x0 < b + 6 && a < x0 + w + 6)) r++;
+              (rows[r] ??= []).push([x0, x0 + w]);
+              return <g key={i}><line x1={X(m.x)} x2={X(m.x)} y1={T} y2={h - B} stroke={m.color} strokeWidth={1.4} />
+                {m.label && <text x={right ? X(m.x) - 5 : X(m.x) + 5} y={h - B - 8 - r * 14} textAnchor={right ? "end" : "start"} className="pl-lab" style={{ fill: m.color }}>{m.label}</text>}</g>;
+            });
+          })()}
           {now && <g><line x1={X(now.x)} x2={X(now.x)} y1={T} y2={h - B} className="pl-now" />
             <text x={X(now.x) + 4} y={T + 11} className="pl-lab pl-now-t">{now.label ?? "now"}</text></g>}
           {hx !== null && <g><line x1={X(hx)} x2={X(hx)} y1={T} y2={h - B} className="pl-cross" />
@@ -156,9 +167,10 @@ export function hiColor(v: number) {
 }
 
 /** Rows x time heat map: one row per item, colour = value (0..100), with a "now" line. */
-export function Heat({ rows, x0, x1, xTitle, xFmt = fmtNum, now, cell, sel, pick, tip }: {
+export function Heat({ rows, x0, x1, xTitle, xFmt = fmtNum, now, cell, sel, pick, tip, xTicks }: {
   rows: { id: string; label: string; v: number[] }[]; x0: number; x1: number; xTitle: string; xFmt?: (v: number) => string;
   now?: number; cell?: (v: number) => string; sel?: string; pick?: (id: string) => void; tip: (row: string, x: number, v: number) => string;
+  xTicks?: number[];
 }) {
   const [hov, setHov] = useState<{ r: number; c: number } | null>(null);
   const [box, W] = useWidth<HTMLDivElement>();
@@ -178,7 +190,7 @@ export function Heat({ rows, x0, x1, xTitle, xFmt = fmtNum, now, cell, sel, pick
                 onMouseEnter={() => setHov({ r: i, c: k })} />)}
               {sel === r.id && <rect x={L - 1} y={T + i * RH} width={W - L - R + 2} height={RH} className="pl-heat-sel" />}
             </g>))}
-          {niceTicks(x0, x1, 6).map((v) => <g key={v}><line x1={X(v)} x2={X(v)} y1={T + rows.length * RH} y2={T + rows.length * RH + 4} className="pl-axis" />
+          {(xTicks ?? niceTicks(x0, x1, 6)).map((v) => <g key={v}><line x1={X(v)} x2={X(v)} y1={T + rows.length * RH} y2={T + rows.length * RH + 4} className="pl-axis" />
             <text x={X(v)} y={T + rows.length * RH + 16} textAnchor="middle" className="pl-tick">{xFmt(v)}</text></g>)}
           <text x={(L + W - R) / 2} y={h - 6} textAnchor="middle" className="pl-title">{xTitle}</text>
           {now !== undefined && <line x1={X(now)} x2={X(now)} y1={T - 2} y2={T + rows.length * RH + 2} className="pl-now heat" />}
@@ -230,6 +242,112 @@ export function Bars({ bars, xTitle, yTitle, yMin, yMax, hlines = [], h = 220, y
             <b>{b.tip[0][1]}</b>{b.tip.slice(1).map(([k, v]) => <div key={k}><i />{k}<em>{v}</em></div>)}</div>;
         })()}
       </div>
+    </div>
+  );
+}
+
+/** Labelled points on two measures, with the better corner marked. */
+export function Scatter({ pts, xTitle, yTitle, xFmt = fmtNum, yFmt = fmtNum, xMin = 0, yMin, yMax, better, h = 260 }: {
+  pts: { label: string; x: number; y: number; color: string; tip: [string, string][] }[];
+  xTitle: string; yTitle: string; xFmt?: (v: number) => string; yFmt?: (v: number) => string; xMin?: number; yMin?: number; yMax?: number;
+  /** where the better corner is */ better: "top-left" | "top-right"; h?: number;
+}) {
+  const [box, W] = useWidth<HTMLDivElement>();
+  const [hov, setHov] = useState<number | null>(null);
+  const L = 58, R = 24, T = 18, B = 42;
+  const x1 = Math.max(...pts.map((p) => p.x)) * 1.15 || 1;
+  const y0 = yMin ?? Math.min(...pts.map((p) => p.y)) * 0.9, y1 = yMax ?? Math.max(...pts.map((p) => p.y)) * 1.05;
+  const X = (v: number) => L + ((v - xMin) / (x1 - xMin)) * (W - L - R);
+  const Y = (v: number) => T + (1 - (v - y0) / (y1 - y0)) * (h - T - B);
+  const left = better === "top-left";
+  return (
+    <div className="pl">
+      <div className="pl-box" ref={box} onMouseLeave={() => setHov(null)}>
+        <svg viewBox={`0 0 ${W} ${h}`}>
+          <rect x={left ? L : (L + W - R) / 2} y={T} width={(W - L - R) / 2} height={(h - T - B) / 2} className="sc-better" />
+          <text x={left ? L + 8 : W - R - 8} y={T + 14} textAnchor={left ? "start" : "end"} className="sc-better-t">better {left ? "↖" : "↗"}</text>
+          {niceTicks(y0, y1, 4).map((v) => <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} className="pl-grid" />
+            <text x={L - 7} y={Y(v) + 3.5} textAnchor="end" className="pl-tick">{yFmt(v)}</text></g>)}
+          {niceTicks(xMin, x1, W < 560 ? 3 : 6).map((v) => <text key={v} x={X(v)} y={h - B + 16} textAnchor="middle" className="pl-tick">{xFmt(v)}</text>)}
+          <line x1={L} x2={W - R} y1={h - B} y2={h - B} className="pl-axis" />
+          <text x={(L + W - R) / 2} y={h - 6} textAnchor="middle" className="pl-title">{xTitle}</text>
+          <text transform={`translate(13 ${(T + h - B) / 2}) rotate(-90)`} textAnchor="middle" className="pl-title">{yTitle}</text>
+          {(() => {
+            // labels of points that sit close together are stacked below one another
+            const placed: { x: number; y: number; w: number }[] = [];
+            return pts.map((p, i) => {
+              const right = X(p.x) > W * 0.7;
+              const wl = p.label.length * 6.8, x0 = right ? X(p.x) - 12 - wl : X(p.x) + 12;
+              const hits = (y: number) => placed.some((q) => Math.abs(q.y - y) < 15 && q.x < x0 + wl && x0 < q.x + q.w)
+                || pts.some((o, j) => j !== i && X(o.x) > x0 - 8 && X(o.x) < x0 + wl + 8 && Math.abs(Y(o.y) - (y - 4)) < 12);
+              const ly = [4, -14, 22, -32, 40].map((d) => Y(p.y) + d).find((y) => !hits(y)) ?? Y(p.y) + 4;
+              placed.push({ x: x0, y: ly, w: wl });
+              return <g key={p.label} onMouseEnter={() => setHov(i)}>
+                <circle cx={X(p.x)} cy={Y(p.y)} r={hov === i ? 9 : 7} fill={p.color} className="pl-dot" />
+                {ly !== Y(p.y) + 4 && <line x1={X(p.x)} y1={Y(p.y)} x2={X(p.x) + (right ? -10 : 10)} y2={ly - 4} className="pl-axis" />}
+                <text x={X(p.x) + (right ? -12 : 12)} y={ly} textAnchor={right ? "end" : "start"} className="sc-lab">{p.label}</text>
+              </g>;
+            });
+          })()}
+        </svg>
+        {hov !== null && (() => {
+          const p = pts[hov], lx = (X(p.x) / W) * 100;
+          return <div className="pl-tip" style={{ left: `${lx}%`, top: `${(Y(p.y) / h) * 100}%`, transform: `translateX(${lx > 60 ? "calc(-100% - 14px)" : "14px"})` }}>
+            <b>{p.label}</b>{p.tip.map(([k, v]) => <div key={k}><i />{k}<em>{v}</em></div>)}</div>;
+        })()}
+      </div>
+    </div>
+  );
+}
+
+/** Outcome shares per row as one 100 % bar each (e.g. warned in time / late / missed). */
+export function Stacked({ rows, parts, unit = "" }: {
+  rows: { label: string; v: number[]; on?: boolean }[]; parts: { name: string; color: string }[]; unit?: string;
+}) {
+  return (
+    <div className="st">
+      {rows.map((r) => {
+        const tot = r.v.reduce((a, b) => a + b, 0) || 1;
+        return (
+          <div key={r.label} className={`st-row ${r.on ? "on" : ""}`}>
+            <span className="st-name" title={r.label}>{r.label}</span>
+            <span className="st-bar">{r.v.map((v, i) => v > 0 && (
+              <i key={i} style={{ width: `${(v / tot) * 100}%`, background: parts[i].color }} title={`${parts[i].name}: ${v}${unit} (${Math.round((v / tot) * 100)} %)`}>
+                {v / tot > 0.07 ? v : ""}</i>))}</span>
+          </div>
+        );
+      })}
+      <div className="pl-legend static">{parts.map((p) => <span key={p.name}><i style={{ background: p.color }} />{p.name}</span>)}</div>
+    </div>
+  );
+}
+
+/** Two values per row on one 0..1 scale, joined by a line: the gap is the story. */
+export function Dumbbell({ rows, a, b, xTitle, fmt = (v: number) => `${Math.round(v * 100)} %` }: {
+  rows: { label: string; a: number; b: number; note?: string }[]; a: { name: string; color: string }; b: { name: string; color: string };
+  xTitle: string; fmt?: (v: number) => string;
+}) {
+  const [box, W] = useWidth<HTMLDivElement>();
+  const L = W < 560 ? 120 : 150, R = 16, T = 6, RH = 24, B = 38, h = T + rows.length * RH + B;
+  const X = (v: number) => L + v * (W - L - R);
+  return (
+    <div className="pl">
+      <div className="pl-box" ref={box}><svg viewBox={`0 0 ${W} ${h}`}>
+        {[0, 0.25, 0.5, 0.75, 1].map((v) => <g key={v}><line x1={X(v)} x2={X(v)} y1={T} y2={T + rows.length * RH} className="pl-grid" />
+          <text x={X(v)} y={T + rows.length * RH + 14} textAnchor="middle" className="pl-tick">{fmt(v)}</text></g>)}
+        <text x={(L + W - R) / 2} y={h - 6} textAnchor="middle" className="pl-title">{xTitle}</text>
+        {rows.map((r, i) => {
+          const y = T + i * RH + RH / 2;
+          return <g key={r.label}><title>{`${r.label}: ${a.name} ${fmt(r.a)}, ${b.name} ${fmt(r.b)}${r.note ? ` · ${r.note}` : ""}`}</title>
+            <rect x={0} y={y - RH / 2} width={W} height={RH} fill="transparent" />
+            <text x={L - 10} y={y + 4} textAnchor="end" className="pl-row">{r.label}</text>
+            <line x1={X(r.a)} x2={X(r.b)} y1={y} y2={y} className="db-gap" />
+            <circle cx={X(r.b)} cy={y} r={6} fill={b.color} className="pl-dot" />
+            <circle cx={X(r.a)} cy={y} r={6} fill={a.color} className="pl-dot" />
+          </g>;
+        })}
+      </svg></div>
+      <div className="pl-legend static"><span><i style={{ background: a.color, borderRadius: 4 }} />{a.name}</span><span><i style={{ background: b.color, borderRadius: 4 }} />{b.name}</span></div>
     </div>
   );
 }

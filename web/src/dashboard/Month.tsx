@@ -1,7 +1,7 @@
 // One simulated month of production (stf-cad/hbw/month.py): production,
 // sensor time series, component wear, maintenance, FSM and events. The page
 // reads web/public/month/month.json; the CSVs beside it hold the same data.
-import { Bars, Plot, fmtNum } from "./Plot";
+import { Bars, Heat, Plot, fmtNum, type Band, type Series as PlotSeries } from "./Plot";
 import { useMemo, useState } from "react";
 import { useJson } from "../shared/data";
 
@@ -48,12 +48,34 @@ export function useMonth() {
 const THEMED: Record<string, string> = { "#e6f0ff": "var(--ink)", "#f2efe6": "var(--ink)", "#9fd0ff": "var(--sky)",
   "#7cc3f5": "var(--sky)", "#3a4a5c": "var(--grid-strong)", "#fff": "var(--text)" };
 export const tc = (c: string) => THEMED[c.toLowerCase()] ?? c;
-type Line = { name: string; x: number[]; y: (number | null)[]; color: string; dash?: boolean; width?: number };
+type Line = { name: string; x: number[]; y: (number | null)[]; color: string; dash?: boolean; width?: number; kind?: PlotSeries["kind"]; fmt?: (v: number) => string };
+/** Pearson correlation of two series (pairs with a null skipped). */
+function corr(a: (number | null)[], b: (number | null)[]) {
+  const p = a.map((v, i) => [v, b[i]]).filter((q): q is [number, number] => q[0] !== null && q[1] !== null);
+  const ma = p.reduce((s, q) => s + q[0], 0) / p.length, mb = p.reduce((s, q) => s + q[1], 0) / p.length;
+  let sab = 0, saa = 0, sbb = 0;
+  for (const [x, y] of p) { sab += (x - ma) * (y - mb); saa += (x - ma) ** 2; sbb += (y - mb) ** 2; }
+  return sab / Math.sqrt(saa * sbb || 1);
+}
+/** Rolling mean over n points (the trend under per-order noise). */
+export function roll(y: (number | null)[], n: number) {
+  const out: (number | null)[] = [];
+  let sum = 0, cnt = 0;
+  for (let i = 0; i < y.length; i++) {
+    const v = y[i];
+    if (v !== null) { sum += v; cnt++; }
+    const o = i - n >= 0 ? y[i - n] : null;
+    if (i - n >= 0 && o !== null) { sum -= o; cnt--; }
+    out.push(cnt ? sum / cnt : null);
+  }
+  return out;
+}
 /** The month's time-series chart: x in hours, read as days of the month - or, with
     days=false, in the unit `xLabel` names. Drawn by Plot (axes, hover read-out, legend). */
-export function Chart({ lines, h = 180, yLabel, xLabel, hlines = [], marks = [], xMax, yMin, yMax, days = true }: {
+export function Chart({ lines, h = 180, yLabel, xLabel, hlines = [], marks = [], xMax, yMin, yMax, days = true, bands, tipExtra, yFmt }: {
   lines: Line[]; h?: number; yLabel?: string; xLabel?: string; hlines?: { y: number; color: string; label: string }[];
   marks?: { x: number; color: string; label: string }[]; xMax?: number; yMin?: number; yMax?: number; days?: boolean;
+  bands?: Band[]; tipExtra?: (x: number) => [string, string][]; yFmt?: (v: number) => string;
 }) {
   const x1 = xMax ?? Math.max(...lines.flatMap((l) => l.x), 1);
   const dayTicks = days ? Array.from({ length: Math.floor(x1 / 24 / 5) + 1 }, (_, i) => i * 5 * 24) : undefined;
@@ -65,8 +87,8 @@ export function Chart({ lines, h = 180, yLabel, xLabel, hlines = [], marks = [],
       xTitle={days ? "day of the month" : xLabel ?? ""} yTitle={yLabel ?? ""}
       xFmt={days ? (v) => `${Math.floor(v / 24) + 1}` : fmtNum}
       tipTitle={days ? (v) => `day ${Math.floor(v / 24) + 1}, ${String(Math.floor(v % 24)).padStart(2, "0")}:00` : undefined}
-      series={lines.map((l) => ({ name: l.name, x: l.x, y: l.y, color: tc(l.color), dash: l.dash, width: (l.width ?? 1.3) * 1.2 }))}
-      hlines={hlines.filter((l) => l.label).map((l) => ({ ...l, color: tc(l.color) }))} vmarks={vm} />
+      series={lines.map((l) => ({ name: l.name, x: l.x, y: l.y, color: tc(l.color), dash: l.dash, width: (l.width ?? 1.3) * 1.2, kind: l.kind, fmt: l.fmt }))}
+      hlines={hlines.filter((l) => l.label).map((l) => ({ ...l, color: tc(l.color) }))} vmarks={vm} bands={bands} tipExtra={tipExtra} yFmt={yFmt} />
   );
 }
 
@@ -184,58 +206,90 @@ function Components({ m }: { m: MonthDoc }) {
   const [id, setId] = useState(m.saves[0]?.comp ?? m.components[0].id);
   const c = m.components.find((x) => x.id === id)!;
   const s = m.sensors[id];
+  const H = m.meta.days * 24;
   const ev = m.events.filter((e) => e.comp === id && (e.kind === "maintenance" || e.kind === "warning"));
   const marks = [
     ...ev.map((e) => ({ x: e.t, color: e.kind === "warning" ? "#e0a02a" : "#22c55e", label: e.kind === "warning" ? "warning" : "renewed" })),
     ...c.disturbances.map((d) => ({ x: d.day * 24, color: "#b07ad6", label: "disturbance" })),
   ];
+  // the month's health of every component, one row each (sampled to 180 columns)
+  const heat = useMemo(() => m.components.map((x) => {
+    const q = m.sensors[x.id], n = 180;
+    return { id: x.id, label: x.name.replace(/ \(.*\)$/, ""), v: Array.from({ length: n }, (_, k) => {
+      const t = ((k + 0.5) / n) * H; let j = 0;
+      while (j < q.t.length - 1 && q.t[j + 1] <= t) j++;
+      return q.hi[j] ?? 100;
+    }) };
+  }), [m, H]);
+  const obs = s.obs.map((v) => v / (c.unit_of === "s" ? c.base : 1));
+  const at = (x: number) => { let j = 0; while (j < s.t.length - 1 && s.t[j + 1] <= x) j++; return j; };
+  const top = Math.max(c.r_fail * 1.06, ...obs.filter((v) => v !== null) as number[]);
   return (
     <div className="db-grid">
-      <section className="db-card wide"><h3>Component</h3>
-        <div className="db-chips">{m.components.map((x) => <button key={x.id} className={x.id === id ? "on" : ""} onClick={() => setId(x.id)}>{x.name} {x.maintenance ? `(${x.maintenance}×)` : ""}</button>)}</div>
+      <section className="db-card wide"><h3>Health of every component over the month</h3>
+        <Heat rows={heat} x0={0} x1={H} xTitle="day of the month" xFmt={(v) => `${Math.floor(v / 24) + 1}`} sel={id} pick={setId}
+          xTicks={Array.from({ length: Math.floor(m.meta.days / 5) + 1 }, (_, i) => i * 5 * 24)}
+          tip={(_, x, v) => `day ${Math.floor(x / 24) + 1}: health ${Math.round(v)}${v < 50 ? " — warned" : ""}`} />
+        <div className="pl-scale">health 0 <i /> 100 · a sudden jump back to green is a renewal · click a row</div>
       </section>
-      <section className="db-card wide"><h3>{c.name}: {c.metric}</h3>
-        <Chart yLabel="r = observed / new" lines={[{ name: "per order", x: s.t, y: s.ewma.map((_, i) => s.obs[i] / (c.unit_of === "s" ? c.base : 1)), color: "#5b7ea3", width: 0.8 },
-          { name: "EWMA (U6)", x: s.t, y: s.ewma, color: "#9fd0ff", width: 1.8 }]}
+      <section className="db-card hl-span2"><h3>{c.name}<span className="db-muted">{c.metric}</span></h3>
+        <Chart h={250} yLabel="signal r = measured ÷ new" yMin={Math.min(0.9, ...(obs.filter((v) => v !== null) as number[]))} yMax={top} yFmt={(v) => v.toFixed(2)}
+          lines={[{ name: "each order", x: s.t, y: obs, color: "#5b7ea3", kind: "dots", fmt: (v) => v.toFixed(3) },
+                  { name: "smoothed (EWMA)", x: s.t, y: s.ewma, color: "#9fd0ff", width: 2, fmt: (v) => v.toFixed(3) }]}
+          bands={[{ y0: 0, y1: c.soft, color: "var(--ok)" }, { y0: c.soft, y1: c.r_fail, color: "var(--warn)", label: "warned" }, { y0: c.r_fail, y1: top, color: "var(--bad)", label: "failed" }]}
           hlines={[{ y: c.soft, color: "#e0a02a", label: "soft limit" }, { y: c.r_fail, color: "#e0503a", label: "failure" }]}
-          marks={marks} xMax={m.meta.days * 24} />
-        <Chart h={130} yMin={0} yMax={100} yLabel="health index" lines={[{ name: "HI", x: s.t, y: s.hi, color: "#22c55e", width: 1.6 }]} marks={marks} xMax={m.meta.days * 24} />
-        <table className="db-table"><tbody>
-          <tr><td>worn at the start of the month</td><td className="num">{Math.round(c.w0 * 100)} % of its life</td></tr>
-          <tr><td>at the end</td><td className="num">{Math.round(c.w_end * 100)} %</td></tr>
-          {c.disturbances.map((d) => <tr key={d.what}><td>from day {d.day}: {d.what}</td><td className="num">wear × {d.x}</td></tr>)}
-          {ev.map((e) => <tr key={e.t} className={e.kind === "warning" ? "warn" : ""}><td>{e.what}</td><td className="num">day {(e.t / 24 + 1).toFixed(1)}</td></tr>)}
-        </tbody></table>
+          marks={marks} xMax={H}
+          tipExtra={(x) => { const j = at(x); return [["health index", `${Math.round(s.hi[j])}`], ["trend: life left", s.rul[j] === null ? "–" : s.rul[j]! >= 999 ? "> 999 sh" : `${s.rul[j]} sh`]]; }} />
+      </section>
+      <section className="db-card"><h3>This month</h3>
+        <div className="mo-wear"><span>worn at the start</span><i><b style={{ width: `${c.w0 * 100}%` }} /></i><em>{Math.round(c.w0 * 100)} %</em></div>
+        <div className="mo-wear"><span>worn at the end</span><i><b style={{ width: `${c.w_end * 100}%` }} /></i><em>{Math.round(c.w_end * 100)} %</em></div>
+        <ul className="mo-ev">
+          {c.disturbances.map((d) => <li key={d.what} className="dist"><b>day {d.day}</b>{d.what} · wear × {d.x}</li>)}
+          {ev.map((e) => <li key={e.t} className={e.kind}><b>day {(e.t / 24 + 1).toFixed(1)}</b>{e.what}</li>)}
+          {!c.disturbances.length && !ev.length && <li>nothing happened: wear as expected</li>}
+        </ul>
       </section>
     </div>
   );
 }
 
 function Raw({ m }: { m: MonthDoc }) {
-  const r = m.raw;
+  const r = m.raw, H = m.meta.days * 24, N = 40;
   const vac = m.events.filter((e) => e.code === "VGR-V01");
   const perDay = Array.from({ length: m.meta.days }, (_, d) => vac.filter((e) => Math.floor(e.t / 24) === d).length);
+  const cupPm = m.events.find((e) => e.comp === "cup" && e.kind === "maintenance");
+  const FL: [keyof typeof r.a4, string][] = [["vanilla", "#f2efe6"], ["strawberry", "#f4a6bf"], ["chocolate", "#b0773f"]];
   return (
     <div className="db-grid">
-      <section className="db-card wide"><h3>Colour sensor A4, per order (mV)</h3>
-        <Chart yLabel="mV" lines={[{ name: "vanilla", x: r.t, y: r.a4.vanilla, color: "#f2efe6" }, { name: "strawberry", x: r.t, y: r.a4.strawberry, color: "#f4a6bf" },
-          { name: "chocolate", x: r.t, y: r.a4.chocolate, color: "#b0773f" }]}
+      <section className="db-card wide"><h3>Colour sensor A4: each cookie's reading, and its band</h3>
+        <Chart h={240} yLabel="reading (mV)" yFmt={(v) => `${Math.round(v)}`}
+          lines={[...FL.map(([f, col]) => ({ name: f, x: r.t, y: r.a4[f], color: col, kind: "dots" as const, fmt: (v: number) => `${Math.round(v)} mV` })),
+                  ...FL.map(([f, col]) => ({ name: `${f}, ${N}-order mean`, x: r.t, y: roll(r.a4[f], N), color: col, width: 2, fmt: (v: number) => `${Math.round(v)} mV` }))]}
           hlines={[{ y: 1305, color: "#e0a02a", label: "band edge rot | weiss" }, { y: 645, color: "#e0a02a", label: "band edge blau | rot" }]}
-          marks={m.events.filter((e) => e.comp === "colour" && e.kind === "maintenance").map((e) => ({ x: e.t, color: "#22c55e", label: "recalibrated" }))} xMax={m.meta.days * 24} />
+          marks={m.events.filter((e) => e.comp === "colour" && e.kind === "maintenance").map((e) => ({ x: e.t, color: "#22c55e", label: "recalibrated" }))} xMax={H} />
+        <p className="hl-cap">The LED ages and readings drift down toward the next band; a reading across a band edge would sort a cookie into the wrong bin.</p>
       </section>
-      <section className="db-card wide"><h3>HBW actuator current (A), from the U3 breaker</h3>
-        <Chart yLabel="A" lines={[{ name: "HBW feed", x: r.t, y: r.i_hbw, color: "#4f8fd6" }]}
-          hlines={[{ y: 0.8 * 1.5, color: "#e0503a", label: "breaker trips (1.5 x)" }]}
-          marks={m.events.filter((e) => e.comp === "spindle" && e.kind !== "fault").map((e) => ({ x: e.t, color: e.kind === "warning" ? "#e0a02a" : "#22c55e", label: e.kind }))} xMax={m.meta.days * 24} />
+      <section className="db-card hl-span2"><h3>HBW actuator current, from the U3 breaker</h3>
+        <Chart h={210} yLabel="current (A)" yFmt={(v) => v.toFixed(2)}
+          lines={[{ name: "each order", x: r.t, y: r.i_hbw, color: "#4f8fd6", kind: "dots", fmt: (v) => `${v.toFixed(3)} A` },
+                  { name: `${N}-order mean`, x: r.t, y: roll(r.i_hbw, N), color: "#9fd0ff", width: 2.2, fmt: (v) => `${v.toFixed(3)} A` }]}
+          hlines={[{ y: 0.8 * 1.5, color: "#e0503a", label: "breaker trips (1.5 ×)" }]}
+          marks={m.events.filter((e) => e.comp === "spindle" && e.kind !== "fault").map((e) => ({ x: e.t, color: e.kind === "warning" ? "#e0a02a" : "#22c55e", label: e.kind }))} xMax={H} />
       </section>
-      <section className="db-card wide"><h3>Air: compressor duty, and hall temperature</h3>
-        <Chart yLabel="duty" lines={[{ name: "compressor duty", x: r.t, y: r.air_duty, color: "#7cc3f5" }]} xMax={m.meta.days * 24}
-          marks={m.events.filter((e) => e.comp === "air" && e.kind === "maintenance").map((e) => ({ x: e.t, color: "#22c55e", label: "leak fixed" }))} />
-        <Chart h={110} yLabel="°C" lines={[{ name: "hall temperature", x: r.t, y: r.temp, color: "#e0a02a" }]} xMax={m.meta.days * 24} />
+      <section className="db-card"><h3>VGR vacuum losses per day</h3>
+        <Bars h={210} xTitle="day of the month" yTitle="losses (VGR-V01)" yMin={0} yFmt={(v) => `${v}`} xLabelEvery={5}
+          bars={perDay.map((n, d) => ({ key: `${d}`, label: `${d + 1}`, v: n, color: cupPm && d >= Math.floor(cupPm.t / 24) ? "var(--ok)" : "var(--bad)",
+            tip: [["", `day ${d + 1}`], ["vacuum losses", `${n}`]] }))} />
+        <p className="hl-cap">{cupPm ? `Red before the cup seal's renewal (day ${(cupPm.t / 24 + 1).toFixed(1)}), green after: ` : ""}an earlier sign than the build-up time.</p>
       </section>
-      <section className="db-card wide"><h3>VGR vacuum losses per day (VGR-V01)</h3>
-        <div className="mo-days">{perDay.map((n, d) => <div key={d} title={`day ${d + 1}: ${n}`}><i className="fail" style={{ height: `${(n / Math.max(1, ...perDay)) * 100}%` }} /><span>{d + 1}</span></div>)}</div>
-        <p className="db-note">They climb with the nicked cup lip and stop after its renewal: an earlier signal than the build-up time (see the insights).</p>
+      <section className="db-card wide"><h3>Air: compressor duty against hall temperature</h3>
+        <Chart h={200} yLabel="compressor duty" yFmt={(v) => v.toFixed(2)}
+          lines={[{ name: "each order", x: r.t, y: r.air_duty, color: "#7cc3f5", kind: "dots", fmt: (v) => v.toFixed(3) },
+                  { name: `${N}-order mean`, x: r.t, y: roll(r.air_duty, N), color: "#9fd0ff", width: 2.2, fmt: (v) => v.toFixed(3) }]}
+          marks={m.events.filter((e) => e.comp === "air" && e.kind === "maintenance").map((e) => ({ x: e.t, color: "#22c55e", label: "leak fixed" }))} xMax={H} />
+        <Chart h={140} yLabel="hall (°C)" yFmt={(v) => v.toFixed(1)} lines={[{ name: "hall temperature", x: r.t, y: r.temp, color: "#e0a02a", fmt: (v) => `${v.toFixed(1)} °C` }]} xMax={H} />
+        <p className="hl-cap">Correlation of duty with temperature: r = {corr(r.air_duty, r.temp).toFixed(2)}{Math.abs(corr(r.air_duty, r.temp)) < 0.2 ? " — the duty follows the leak, not the weather." : "."}</p>
       </section>
     </div>
   );
