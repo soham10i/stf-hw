@@ -18,6 +18,7 @@ import { VisionPage } from "./Vision";
 import { Icon, ThemeToggle } from "../shared/icons";
 import { useTheme } from "../shared/theme";
 import { GUIDE, TERMS, cardHelp } from "./guide";
+import { Dumbbell, HBar } from "./Plot";
 
 // the docs pages carry KaTeX: loaded when opened
 const DegradationPage = lazy(() => import("./Degradation").then((m) => ({ default: m.DegradationPage })));
@@ -202,11 +203,10 @@ function Production({ doc, t }: { doc: CadDoc; t: number }) {
         </tbody></table>
       </Card>
       <Card title="Dispatch policies (measured)">
-        <table className="db-table"><tbody>
-          {Object.entries(c.policies).map(([k, p]) => <tr key={k} className={k === c.policy ? "on" : ""}><td>{k}<div className="db-muted">{p.say}</div></td>
-            <td className="num">{p.deadlock ? <span className="db-bad">deadlock</span> : `${p.makespan} s`}</td></tr>)}
-        </tbody></table>
-        <p className="db-note">Commissioned against the twin: {vc.performance.makespan} s (model {vc.performance.model} s).</p>
+        <HBar xTitle="order time (s) · hover for the rule" fmt={(v) => `${Math.round(v)}`}
+          rows={Object.entries(c.policies).map(([k, p]) => ({ label: p.deadlock ? `${k} — DEADLOCK` : k, v: p.deadlock ? 0 : p.makespan ?? 0, on: k === c.policy,
+            color: p.deadlock ? "var(--bad)" : k === c.policy ? "var(--ok)" : "#4f8fd6", tip: `${k}: ${p.say}` }))} />
+        <p className="hl-cap">The PLC runs <b>{c.policy}</b>. Commissioned against the twin: {vc.performance.makespan} s (model {vc.performance.model} s).</p>
       </Card>
     </div>
   );
@@ -257,6 +257,14 @@ function Alarms({ doc }: { doc: CadDoc }) {
         <Kpi label="MTTR" value={`${mttr.toFixed(0)} s`} sub="mean time lost per fault" />
         <Kpi label="fastest detection" value={`${Math.min(...vc.matrix.map((r) => r.latency_s ?? 99))} s`} />
       </div>
+      <Card title="Detection time per fault">
+        <HBar xTitle="seconds until the alarm" fmt={(v) => v < 1 ? v.toFixed(2) : v.toFixed(1)}
+          rows={[...vc.matrix].sort((x, y) => (x.latency_s ?? 0) - (y.latency_s ?? 0)).map((r) => ({ label: `${r.id} ${r.fault}`, v: r.latency_s ?? 0, color: "#4f8fd6", tip: `${r.id} ${r.fault}: ${r.what}` }))} />
+      </Card>
+      <Card title="Time lost per fault">
+        <HBar xTitle="seconds of production lost, once" fmt={(v) => `${Math.round(v)}`} refs={[{ v: mttr, label: "mean", color: "var(--muted)" }]}
+          rows={[...vc.matrix].sort((x, y) => y.lost_s - x.lost_s).map((r) => ({ label: `${r.id} ${r.fault}`, v: r.lost_s, color: "#e0503a", tip: `${r.id}: ${r.reaction} → ${r.recovery}` }))} />
+      </Card>
       <Card title="Fault matrix (commissioned)" wide>
         <table className="db-table">
           <thead><tr><td>fault</td><td>alarm</td><td className="num">detected</td><td>reaction</td><td>recovery</td><td className="num">lost</td></tr></thead>
@@ -279,23 +287,20 @@ function Engineering({ doc }: { doc: CadDoc }) {
   return (
     <div className="db-grid">
       <Card title="Positioning accuracy (U5)">
-        <table className="db-table"><thead><tr><td>axis</td><td>task</td><td className="num">error</td><td className="num">allowed</td></tr></thead>
-          <tbody>{vc.accuracy.map((a) => <tr key={a.axis}><td>{a.axis}</td><td>{a.scan_ms} ms</td><td className="num">± {a.error_mm} mm</td><td className="num">± {a.tol_mm} mm</td></tr>)}</tbody></table>
+        <Dumbbell xTitle="stopping error vs allowed (mm)" max={Math.max(...vc.accuracy.map((x) => Math.max(x.tol_mm, x.error_mm))) * 1.1} fmt={(v) => v.toFixed(1)}
+          a={{ name: "error", color: "#4f8fd6" }} b={{ name: "allowed", color: "var(--ok)" }}
+          rows={vc.accuracy.map((x) => ({ label: x.axis, a: x.error_mm, b: x.tol_mm, note: `${x.scan_ms} ms scan · ${x.why}` }))} />
       </Card>
       {lc && (
         <>
-          <Card title="Tolerance chains, worst case (U7)">
-            <table className="db-table"><thead><tr><td>chain</td><td className="num">nominal</td><td className="num">worst</td><td className="num">before U7</td></tr></thead>
-              <tbody>{lc.chains.map((ch) => {
-                const b = lc.chains_before?.find((x) => x.id === ch.id);
-                return <tr key={ch.id}><td>{ch.id} {ch.what}</td><td className="num">{ch.nominal}</td><td className={`num ${ch.ok ? "ok" : "fail"}`}>{ch.worst}</td>
-                  <td className={`num ${b && b.worst < 0 ? "fail" : ""}`}>{b?.worst ?? "–"}</td></tr>;
-              })}</tbody></table>
+          <Card title="Tolerance chains: worst-case margin (U7)">
+            <HBar xTitle="clearance left in the worst case (mm)" fmt={(v) => v.toFixed(2)}
+              rows={lc.chains.map((ch) => ({ label: `${ch.id} ${ch.what.split(" (")[0]}`, v: Math.max(0, ch.worst), color: ch.ok ? "var(--ok)" : "var(--bad)",
+                tip: `${ch.id} ${ch.what}: nominal ${ch.nominal} mm, worst ${ch.worst}, RSS ${ch.rss}${lc.chains_before?.find((x) => x.id === ch.id) ? ` · before U7: ${lc.chains_before.find((x) => x.id === ch.id)!.worst}` : ""}` }))} />
           </Card>
-          <Card title="Structure dynamics (U7)">
-            <table className="db-table"><thead><tr><td>member</td><td className="num">δ</td><td className="num">f₁</td></tr></thead>
-              <tbody>{lc.structure.map((s) => <tr key={s.member}><td>{s.member}<div className="db-muted">{s.section}</div></td>
-                <td className="num">{s.defl_mm} mm</td><td className="num">{s.f1_hz} Hz</td></tr>)}</tbody></table>
+          <Card title="Structure: first natural frequency (U7)">
+            <HBar xTitle="f₁ (Hz) · must stay above the drives' excitation" fmt={(v) => `${Math.round(v)}`} refs={[{ v: lc.rules.f_min_hz, label: "minimum", color: "var(--warn)" }]}
+              rows={lc.structure.map((m) => ({ label: m.member, v: m.f1_hz, color: m.ok ? "#4f8fd6" : "var(--bad)", tip: `${m.member}: ${m.section}, deflection ${m.defl_mm} mm` }))} />
           </Card>
           <Card title="Service access (U7)">
             <HBars rows={lc.access.map((a) => [`${a.part} (${a.door})`, a.reach_mm, a.in_reach ? "#4f8fd6" : "#e0503a"])} max={lc.rules.reach_mm} unit="mm" />

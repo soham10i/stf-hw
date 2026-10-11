@@ -107,7 +107,9 @@ Every alarm the PLC can raise, and how the machine reacted when each fault was i
 
 | Section | What it shows |
 |---|---|
-| Fault matrix (commissioned) | Seven faults injected into the virtual machine - stuck switch, motor stall, lost vacuum, E-stop and more - and the result of each. |
+| Detection time per fault | How fast each injected fault raised its alarm. |
+| Time lost per fault | Production lost when the fault happens once, against the mean (MTTR). |
+| Fault matrix (commissioned) | Each fault's alarm, reaction and recovery. |
 | Alarm list | Every watchdog alarm in the program: its code, the step it guards, and what to do. |
 
 *Data:* Virtual commissioning of the PLC program against the twin (Upgrade 5).
@@ -167,13 +169,15 @@ A neural network that predicts each part's remaining life from its sensor histor
 
 | Section | What it shows |
 |---|---|
-| Scored on unseen machines | Warnings in time, false alarms and wasted life, against the rule-based warnings. |
-| The decision, tuned properly | The alarm threshold chosen on validation data: the trade-off between warning late and renewing early. |
-| Per component | The same scores for each part. |
-| How it was trained | The network type, the data and the training method. |
-| Training loss | How the error fell while it learned. |
-| Running here, in the browser | The network applied to the simulated month, live in this page. |
-| An unseen test machine | Predicted against true remaining life for one machine the network never saw. |
+| What happened to each of the | Every failure on machines the network never saw: warned at least a shift ahead (green), late (amber) or missed (red), per method. |
+| Verdict | What to do with the network, in three lines. |
+| The trade-off | Each method as a point: failures warned in time against part life thrown away. Top-left is better; hover a point. |
+| Choosing the network's alarm threshold | How the share warned in time changes with the alarm threshold; the chosen value is marked. |
+| Per part | Network (blue) against the rules (amber) for each part: the gap shows where the network is weak. |
+| Training loss | How the error fell while it learned; 'Model and data' opens the details. |
+| An unseen machine | Predicted against true remaining life, part by part, with the failure, the alarms and the rule warnings marked. |
+| Running here | The network applied to the simulated month, live in this page. |
+| At order | Each part's predicted remaining life at the chosen order, shortest first. |
 
 *Data:* Upgrade 8: a TCN trained on a fleet of simulated machines, exported to ONNX and to the browser.
 
@@ -219,11 +223,12 @@ How the same machine was made faster by changing only its program, and what each
 | What the study says | The headline: order time before and after, and why. |
 | The same order, before and after | Both programs' runs, step by step, from virtual commissioning. |
 | Where the time went: the critical path | The chain of jobs that decides the order time. |
-| Ablation | Each improvement switched off alone: the time it saves. |
-| The VGR's tours | The arm's blended paths, flown just above the height the collision sweep proves clear. |
-| With a real bake | How the oven starts to limit the order when baking takes longer. |
-| OEE, same shift definition | OEE before and after, measured the same way. |
-| Proofs the faster program still passes | Deadlock freedom and collision checks, re-run for the new program. |
+| Ablation | The order time with each improvement switched off; hover a bar for cycle time and the busiest unit. |
+| What each measure is worth | Seconds each improvement saves alone and in the full set; they differ because the measures interact. |
+| The VGR's tours | Each tour's time before and after the blended paths. |
+| With a real bake | Order time against bake time: the longer the bake, the less the faster loop matters. |
+| OEE, before and after | Availability, performance, quality and OEE, measured the same way. |
+| Proofs the faster program still passes | Deadlock freedom and fault recovery, re-run for the new program. |
 
 *Data:* Upgrade 10's throughput study, measured by virtual commissioning.
 
@@ -239,12 +244,14 @@ The cell behind a small microgrid - solar panels, a battery and an energy manage
 | Section | What it shows |
 |---|---|
 | What the month says | The results: energy, cost, outages ridden through. |
-| Power flows on day … | Solar, battery, grid and load for one day, as the energy manager planned them. |
-| Three ways to power the cell | Grid only, solar + battery, and with the energy manager, side by side. |
-| Power quality | Every mains event (dips, outages) and what the inverter made of it. |
+| Power flows on day | Solar, battery, grid and load for one day; hover to read every flow. |
+| Three ways to power the cell | Grid only, PV only and PV + battery + energy manager on cost, CO₂, peak import and self-sufficiency. |
+| Energy per day | PV, load and grid import for each day: import rises on dull days. |
+| Power quality | Every mains event and whether the cell rides through; hover a result for why. |
 | Power-asset health | The power supply's capacitors and the cabinet air filter, which wear with heat and dust. |
-| PV soiling, battery and contactors | Panel cleaning, battery ageing and switching. |
-| Economics, honestly | What it costs and saves, with the assumptions stated. |
+| PV soiling | Panel performance against the irradiance sensor, and the cleanings. |
+| Battery and contactors | Battery ageing and contactor switching at this month's rate. |
+| Economics, honestly | Capital cost by item, payback and production protected. |
 | Standards the design follows | The norms the microgrid design is checked against. |
 
 *Data:* Upgrade 9's microgrid model (grid.py), simulated, not measured.
@@ -262,12 +269,14 @@ The cell's network split into IEC 62443 zones, and what happens when attacks are
 |---|---|
 | What the analysis says | The findings in short. |
 | Zones and conduits | Each zone, its target security level, and the allowed paths between zones. |
-| Attacks, replayed on the twin | Each attack's effect on production without and with the protections. |
+| Attacks, replayed on the twin | Each attack's effect without and with the protections; for the spoofed sensor, which steps catch a lie. |
 | Conduit C1: the Modbus allow-list | Every message the PLC may send to the I/O nodes, generated from the PLC program itself. |
 | Conduit C3: what the energy manager may write | The few inverter settings the energy manager may change. |
-| Security levels | Where the devices fall short of SL 2, and what covers the gap. |
+| Security levels | Capability (red) against target SL 2 (green) per device and requirement; hover for the countermeasure. |
 | Safety stays off the network | Why the E-stops and door locks have no network interface. |
-| HMI and the signed program manifest | What an operator may change, and how the PLC refuses an altered program. |
+| HMI: what an operator may write | The tags an operator may change, and who. |
+| New alarms | The security alarms this upgrade adds. |
+| Signed program manifest | The hashes the PLC checks before it runs a program. |
 
 *Data:* Upgrade 11's security design (security.py): a model-based assessment, not a penetration test.
 
@@ -283,9 +292,9 @@ Where the machine no longer trusts its own program: hardwired interlocks, and th
 | Section | What it shows |
 |---|---|
 | What changed | The hardening in short. |
-| Every jog rule | Which manual-move rules are now relay contacts instead of program logic, and why the others are not. |
+| Every jog rule | Steps each manual-move rule guards; green = now a relay contact, grey = no switch to wire it to, red = would block the program's own steps. |
 | The U11 findings, re-run | Each earlier finding against the hardened machine. |
-| Energy: the trade-off | What keeping a ride-through reserve costs in demand response. |
+| Energy: what holding the reserve costs | Lowest battery charge and grid import in demand-response windows, before (U9) and after (U12). |
 | New parts | The interlock relays on each I/O node's rail and the standstill monitor in the cabinet. |
 
 *Data:* Upgrade 12 (hardening.py).
@@ -304,9 +313,9 @@ The mechanical engineering behind the machine: how precisely it positions, its t
 
 | Section | What it shows |
 |---|---|
-| Positioning accuracy (U5) | How far each axis overshoots its target at the PLC's task cycle, against what is allowed. |
-| Tolerance chains, worst case (U7) | Stacked part tolerances at their worst combination, before and after Upgrade 7: a negative worst case means parts can collide or miss. |
-| Structure dynamics (U7) | How far each frame member bends under load (δ) and its lowest natural frequency (f₁): a stiff member vibrates fast and little. |
+| Positioning accuracy (U5) | Each axis's stopping error (blue) against what is allowed (green). |
+| Tolerance chains | Clearance left when every tolerance stacks the wrong way; red would mean parts can collide or miss. Hover for before U7. |
+| Structure | Each frame member's lowest natural frequency against the minimum the drives need. |
 | Service access (U7) | How far a technician must reach through each door to the part; red bars are beyond the allowed reach. |
 
 *Data:* Upgrades 5 and 7.

@@ -1,6 +1,7 @@
 // Upgrade 12 (stf-cad/hbw/hardening.py) and the validation of U1-U12
 // (stf-cad/hbw/validate.py): what is hardwired now, and whether every proof still holds.
 import { useJson } from "../shared/data";
+import { Dumbbell, HBar } from "./Plot";
 
 function useDoc<T>(path: string, hint: string) {
   const { data: d, error: err } = useJson<T>(path, hint);
@@ -36,14 +37,13 @@ export function HardeningPage() {
           <div className="mo-insights">{d.findings.map((f) => <div key={f.title}><b>{f.title}</b><p>{f.text}</p></div>)}</div>
         </section>
         <section className="db-card wide"><h3>Every jog rule, and whether it can be hardwired</h3>
-          <table className="db-table"><thead><tr><td>rule</td><td>guards</td><td>permissive</td><td className="num">steps</td><td>verdict</td></tr></thead>
-            <tbody>{d.interlocks.map((r) => (
-              <tr key={r.id} title={r.reason}><td><b>{r.id}</b> <span className="db-muted">{r.why.split(":")[0]}</span></td>
-                <td className="mono">{r.module} {r.outputs.join("/")}</td><td>{r.contact}</td><td className="num">{r.guarded_steps}</td>
-                <td className={r.adopted ? "ok" : ""}>{r.adopted ? "hardwired" : r.permissive === "POS" ? "no sensor" : `blocks ${r.blocked} steps`}</td></tr>))}</tbody></table>
-          <p className="db-note">A rule is hardwired only if the machine already has the switch it needs, and replaying the whole order - homing
-            first, then every step in the order the PLC runs it - never finds a step it would block. IL4 (swivel only at transit height) passed the
-            Upgrade 7 program but blocks Upgrade 10's blended path: the faster program and the hard limit exclude each other.</p>
+          <HBar xTitle="program steps the rule guards (hover for the reason)" fmt={(v) => `${Math.round(v)}`}
+            rows={d.interlocks.map((r) => ({ label: `${r.id} · ${r.module} ${r.outputs.join("/")}`, v: r.guarded_steps, on: r.adopted,
+              color: r.adopted ? "var(--ok)" : r.permissive === "POS" ? "#6c7884" : "var(--bad)",
+              tip: `${r.id}: ${r.why}\n${r.adopted ? "hardwired" : r.permissive === "POS" ? "no sensor for it" : `would block ${r.blocked} steps`} - ${r.reason}` }))} />
+          <div className="pl-legend static"><span><i style={{ background: "var(--ok)" }} />hardwired</span><span><i style={{ background: "#6c7884" }} />no switch to wire it to</span>
+            <span><i style={{ background: "var(--bad)" }} />would block the program's own steps</span></div>
+          <p className="hl-cap">Hardwired only if the switch exists and replaying the whole order never hits a blocked step. IL4 passed the U7 program but blocks U10's blended path.</p>
         </section>
         <section className="db-card wide"><h3>The U11 findings, re-run on the hardened machine</h3>
           <table className="db-table"><thead><tr><td>finding</td><td>Upgrade 11</td><td>Upgrade 12</td></tr></thead>
@@ -51,12 +51,13 @@ export function HardeningPage() {
               <tr><td><b>F3</b> forged demand-response event</td><td className="db-muted">a DR window could drain the battery to its 10 % floor</td>
                 <td className="ok">the window stops at the ride-through reserve; ride-through {E.U12.ride_through}/{E.U12.events}</td></tr></tbody></table>
         </section>
-        <section className="db-card"><h3>Energy: the trade-off</h3>
-          <table className="db-table"><thead><tr><td /><td className="num">U9</td><td className="num">U12</td></tr></thead><tbody>
-            <tr><td>DR met</td><td className="num">{E.U9.dr_met ? "yes" : "no"}</td><td className="num">{E.U12.dr_met ? "yes" : "no"}</td></tr>
-            <tr><td>import in DR windows</td><td className="num">{E.U9.dr_import_wh} Wh</td><td className="num">{E.U12.dr_import_wh} Wh</td></tr>
-            <tr><td>lowest charge in DR</td><td className="num">{Math.round((E.U9.lowest_soc_in_dr ?? 0) * 100)} %</td><td className="num">{Math.round((E.U12.lowest_soc_in_dr ?? 0) * 100)} %</td></tr>
-            <tr><td>bill</td><td className="num">€{E.U9.total_eur}</td><td className="num">€{E.U12.total_eur}</td></tr></tbody></table>
+        <section className="db-card"><h3>Energy: what holding the reserve costs</h3>
+          <h4 className="sec-h4">lowest battery charge in a DR window</h4>
+          <HBar xTitle="" x1={100} fmt={(v) => `${Math.round(v)} %`} refs={[{ v: 30, label: "reserve", color: "var(--warn)" }]}
+            rows={(["U9", "U12"] as const).map((k) => ({ label: k, v: Math.round((E[k].lowest_soc_in_dr ?? 0) * 100), color: k === "U12" ? "var(--ok)" : "var(--bad)" }))} />
+          <h4 className="sec-h4">grid import in DR windows</h4>
+          <HBar xTitle="" fmt={(v) => `${Math.round(v)} Wh`} rows={(["U9", "U12"] as const).map((k) => ({ label: k, v: E[k].dr_import_wh, color: k === "U12" ? "#4f8fd6" : "#6c7884" }))} />
+          <p className="hl-cap">Bill €{E.U9.total_eur} → €{E.U12.total_eur} · DR met: {E.U9.dr_met ? "yes" : "no"} → {E.U12.dr_met ? "yes" : "no"}.</p>
         </section>
         <section className="db-card"><h3>New parts</h3>
           <table className="db-table"><tbody>{Object.entries(d.relays).flatMap(([m, rs]) => rs.map((r) => (
@@ -97,18 +98,17 @@ export function ValidationPage() {
         <div className="db-kpi ok"><span>network parity</span><b>{Math.max(J.ml.onnx_vs_pytorch, J.ml.json_vs_pytorch).toFixed(4)}</b><em>orders, worst of 3 deployments</em></div>
       </div>
       <div className="db-grid">
-        <section className="db-card"><h3>Regression: every variant re-exported</h3>
-          <table className="db-table"><thead><tr><td>variant</td><td>gates</td><td>fingerprint</td><td className="num">time</td></tr></thead>
-            <tbody>{ex.sort((a, b) => a.variant.localeCompare(b.variant, undefined, { numeric: true })).map((e) => (
-              <tr key={e.variant}><td>{e.variant}</td><td className={e.ok ? "ok" : "fail"}>{e.ok ? "pass" : "FAIL"}</td>
-                <td className={`mono ${e.match ? "" : "fail"}`}>{e.fingerprint}</td><td className="num">{Math.round(e.s / 60)} min</td></tr>))}</tbody></table>
+        <section className="db-card hl-span2"><h3>Regression: every variant re-exported and re-proven</h3>
+          <HBar xTitle="export and proof time (min) · hover for the fingerprint" fmt={(v) => `${Math.round(v)}`}
+            rows={ex.sort((a, b) => a.variant.localeCompare(b.variant, undefined, { numeric: true })).map((e) => ({ label: e.variant, v: e.s / 60,
+              color: e.ok && e.match ? "var(--ok)" : "var(--bad)", tip: `${e.variant}: gates ${e.ok ? "pass" : "FAIL"} · fingerprint ${e.fingerprint}${e.match ? " = baseline" : ` ≠ baseline ${e.baseline}`} · ${Math.round(e.s / 60)} min` }))} />
+          <p className="hl-cap">Green = every gate passed and the fingerprint equals the recorded baseline.</p>
         </section>
         <section className="db-card"><h3>Robustness: ±20 % on every plant step</h3>
-          <table className="db-table"><thead><tr><td /><td className="num">fastest</td><td className="num">median</td><td className="num">slowest</td></tr></thead>
-            <tbody>{(["before", "after"] as const).map((k) => <tr key={k}><td>{k === "before" ? "U7 program" : "U10 program"}</td>
-              <td className="num">{J.mc[k].min} s</td><td className="num">{J.mc[k].median} s</td><td className="num">{J.mc[k].max} s</td></tr>)}</tbody></table>
-          <p className="db-note">25 random plants each. No watchdog tripped falsely (worst step used {Math.round(Math.max(J.mc.before.worst_watchdog_use, J.mc.after.worst_watchdog_use) * 100)} % of
-            its limit), and U10's slowest run beats U7's fastest: the gain holds across the spread.</p>
+          <Dumbbell xTitle="order time over 25 random plants (s)" max={Math.max(J.mc.before.max, J.mc.after.max) * 1.08} fmt={(v) => `${Math.round(v)}`}
+            a={{ name: "fastest", color: "var(--ok)" }} b={{ name: "slowest", color: "var(--bad)" }}
+            rows={(["before", "after"] as const).map((k) => ({ label: k === "before" ? "U7 program" : "U10 program", a: J.mc[k].min, b: J.mc[k].max, note: `median ${J.mc[k].median} s` }))} />
+          <p className="hl-cap">U10's slowest run beats U7's fastest. No watchdog tripped falsely (worst step used {Math.round(Math.max(J.mc.before.worst_watchdog_use, J.mc.after.worst_watchdog_use) * 100)} % of its limit).</p>
         </section>
         <section className="db-card"><h3>Data products</h3>
           <table className="db-table"><tbody>

@@ -465,3 +465,4 @@ details > summary { cursor: pointer; }
 .gr-four { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 28px; } .gr-four h4 { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); font-weight: 600; } @media (max-width: 900px) { .gr-four { grid-template-columns: 1fr; } }
 .gr-pill { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; cursor: help; } .gr-pill.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); } .gr-pill.fail { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
 .sec-h4 { margin: 12px 0 6px; font-size: 12.5px; color: var(--muted); }
+.pl-scale i.acc { background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 8%, var(--surface-2)), var(--accent)); }

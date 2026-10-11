@@ -1,7 +1,7 @@
 // One simulated month of production (stf-cad/hbw/month.py): production,
 // sensor time series, component wear, maintenance, FSM and events. The page
 // reads web/public/month/month.json; the CSVs beside it hold the same data.
-import { Bars, Heat, Plot, fmtNum, type Band, type Series as PlotSeries } from "./Plot";
+import { Bars, HBar, Heat, Plot, Stacked, fmtNum, useWidth, type Band, type Series as PlotSeries } from "./Plot";
 import { useMemo, useState } from "react";
 import { useJson } from "../shared/data";
 
@@ -107,7 +107,7 @@ function Summary({ m }: { m: MonthDoc }) {
   const k = m.kpi, c = m.kpi_cf;
   const minGood = Math.min(...m.daily.map((d) => d.good));
   const meanGood = m.daily.reduce((a, d) => a + d.good, 0) / m.daily.length;
-  const hmax = Math.max(...m.heat.flat());
+  const hmax = Math.max(...m.heat.flat()), hmin = Math.min(...m.heat.flat());
   return (
     <>
       <div className="db-kpis">
@@ -143,16 +143,16 @@ function Summary({ m }: { m: MonthDoc }) {
             tipTitle={(x) => `day ${Math.round(x)}`} legend={false} />
         </section>
         <section className="db-card"><h3>Where the time went</h3>
-          <div className="db-bars">{m.pareto.map((p) => <div key={p.cause}><span>{p.cause}</span><i style={{ width: `${(p.hours / m.pareto[0].hours) * 100}%` }} /><b>{p.hours} h</b></div>)}</div>
+          <HBar xTitle="hours this month" fmt={(v) => v < 1 ? v.toFixed(2) : v.toFixed(1)}
+            rows={m.pareto.map((p, i) => ({ label: p.cause, v: p.hours, color: i === 0 ? "var(--warn)" : "#4f8fd6", tip: `${p.cause}: ${p.hours} h (${Math.round((p.hours / k.planned_h) * 100)} % of planned time)` }))} />
           <p className="db-note">Planned {k.planned_h} h · producing {k.run_h} h.</p>
         </section>
         <section className="db-card wide"><h3>Orders started per hour (day × hour, 06:00–22:00)</h3>
-          <div className="mo-heat">
-            {m.heat.map((row, d) => (
-              <div key={d}><span>{d + 1}</span>{row.map((v, h) => <i key={h} style={{ opacity: 0.15 + 0.85 * (v / hmax) }} title={`day ${d + 1}, ${h + 6}:00 - ${v} orders`} />)}</div>
-            ))}
-            <div className="mo-heat-x"><span />{Array.from({ length: 16 }, (_, h) => <em key={h}>{h + 6}</em>)}</div>
-          </div>
+          <Heat rh={14} rows={m.heat.map((row, d) => ({ id: `${d}`, label: `day ${d + 1}`, v: row.map((v) => ((v - hmin) / Math.max(1, hmax - hmin)) * 100) }))} x0={6} x1={22}
+            xTitle="hour of the day" xTicks={[6, 8, 10, 12, 14, 16, 18, 20, 22]} xFmt={(v) => `${v}:00`}
+            cell={(v) => `color-mix(in srgb, var(--accent) ${Math.round(8 + v * 0.9)}%, var(--surface-2))`}
+            tip={(_, x, v) => `${Math.floor(x)}:00 — ${Math.round(hmin + (v / 100) * (hmax - hmin))} orders started`} />
+          <div className="pl-scale">{hmin} orders <i className="acc" /> {hmax} orders an hour · dark = fewer: changeovers, faults, the shift change</div>
         </section>
       </div>
     </>
@@ -301,20 +301,39 @@ function Fsm({ m }: { m: MonthDoc }) {
   return (
     <div className="db-grid">
       <section className="db-card wide"><h3>Hours per state, per unit (U4 state machines)</h3>
-        {Object.entries(m.fsm).map(([u, d]) => {
-          const tot = S.reduce((a, s) => a + (d[s] ?? 0), 0);
-          return (
-            <div key={u} className="mo-stack"><span>{u}</span>
-              <div>{S.map((s) => (d[s] ?? 0) > 0 && <i key={s} style={{ width: `${((d[s] ?? 0) / tot) * 100}%`, background: COL[s] }} title={`${s} ${d[s]} h`} />)}</div>
-              <b>{(d.RUN ?? 0).toFixed(0)} h run</b>
-            </div>
-          );
-        })}
-        <div className="mo-legend">{S.map((s) => <span key={s}><i style={{ background: COL[s] }} />{s}</span>)}</div>
+        <Stacked unit=" h" parts={S.map((x) => ({ name: x, color: COL[x] }))}
+          rows={Object.entries(m.fsm).sort((p, q) => (q[1].RUN ?? 0) - (p[1].RUN ?? 0)).map(([u, d]) => ({ label: `${u} · ${Math.round(d.RUN ?? 0)} h run`, v: S.map((x) => Math.round(d[x] ?? 0)) }))} />
         <p className="db-note">RUN: the unit's own step. HELD: its job waits on another unit, or it holds while another unit is faulted.
           READY: idle, including changeovers. FAULT/ESTOP: from the month's faults. MAINT: line-stopping maintenance (none this month).</p>
       </section>
     </div>
+  );
+}
+
+const EV_COL: Record<string, string> = { failure: "#e0503a", fault: "#e07a5a", warning: "#e0a02a", maintenance: "#22c55e", disturbance: "#b07ad6" };
+/** Every event of the month on one time axis, one row per kind. */
+function EventStrip({ m, kinds }: { m: MonthDoc; kinds: string[] }) {
+  const [box, W] = useWidth<HTMLDivElement>();
+  const [hov, setHov] = useState<number | null>(null);
+  const H = m.meta.days * 24, L = 110, R = 14, RH = 22, T = 4, B = 36, h = T + kinds.length * RH + B;
+  const X = (t: number) => L + (t / H) * (W - L - R);
+  const e = hov === null ? null : m.events[hov];
+  return (
+    <div className="pl"><div className="pl-box" ref={box} onMouseLeave={() => setHov(null)}><svg viewBox={`0 0 ${W} ${h}`}>
+      {Array.from({ length: Math.floor(m.meta.days / 5) + 1 }, (_, i) => i * 5 * 24).map((t) => <g key={t}>
+        <line x1={X(t)} x2={X(t)} y1={T} y2={T + kinds.length * RH} className="pl-grid" />
+        <text x={X(t)} y={T + kinds.length * RH + 14} textAnchor="middle" className="pl-tick">{t / 24 + 1}</text></g>)}
+      <text x={(L + W - R) / 2} y={h - 5} textAnchor="middle" className="pl-title">day of the month · hover an event</text>
+      {kinds.map((k, i) => <text key={k} x={L - 10} y={T + i * RH + RH / 2 + 4} textAnchor="end" className="pl-row">{k}</text>)}
+      {m.events.map((ev, j) => {
+        const i = kinds.indexOf(ev.kind);
+        return i < 0 ? null : <circle key={j} cx={X(ev.t)} cy={T + i * RH + RH / 2} r={hov === j ? 7 : 4.5} fill={EV_COL[ev.kind] ?? "#9fd0ff"} opacity={0.85}
+          onMouseEnter={() => setHov(j)} className="pl-dot" />;
+      })}
+    </svg>
+    {e && <div className="pl-tip" style={{ left: `${(X(e.t) / W) * 100}%`, transform: `translateX(${X(e.t) / W > 0.6 ? "calc(-100% - 12px)" : "12px"})` }}>
+      <b>day {(e.t / 24 + 1).toFixed(1)} · {e.kind}</b><div>{e.what}</div>{(e.lost_s || e.down_h) ? <div><i />lost<em>{e.lost_s ? `${e.lost_s} s` : `${e.down_h} h`}</em></div> : null}</div>}
+    </div></div>
   );
 }
 
@@ -333,6 +352,7 @@ function Events({ m }: { m: MonthDoc }) {
           <a href={`${BASE}month/month.json`} download>month.json</a></div>
       </section>
       <section className="db-card wide"><h3>Event log</h3>
+        <EventStrip m={m} kinds={kinds.slice(1)} />
         <div className="db-chips">{kinds.map((x) => <button key={x} className={x === k ? "on" : ""} onClick={() => setK(x)}>{x} ({x === "all" ? m.events.length : m.events.filter((e) => e.kind === x).length})</button>)}</div>
         <table className="db-table"><tbody>
           {ev.map((e, i) => <tr key={i} className={e.kind === "failure" ? "fail" : e.kind === "warning" ? "warn" : ""}>

@@ -44,6 +44,9 @@ export const fmtNum = (v: number) => {
   return +v.toFixed(2) + "";
 };
 
+/** A label cut to fit `px` pixels of 12 px text, with an ellipsis. */
+export const fit = (s: string, px: number) => { const n = Math.floor(px / 6.6); return s.length > n ? s.slice(0, Math.max(1, n - 1)) + "…" : s; };
+
 /** index of the x nearest to v (x sorted ascending) */
 function nearest(x: number[], v: number) {
   let lo = 0, hi = x.length - 1;
@@ -167,14 +170,14 @@ export function hiColor(v: number) {
 }
 
 /** Rows x time heat map: one row per item, colour = value (0..100), with a "now" line. */
-export function Heat({ rows, x0, x1, xTitle, xFmt = fmtNum, now, cell, sel, pick, tip, xTicks }: {
+export function Heat({ rows, x0, x1, xTitle, xFmt = fmtNum, now, cell, sel, pick, tip, xTicks, rh = 20 }: {
   rows: { id: string; label: string; v: number[] }[]; x0: number; x1: number; xTitle: string; xFmt?: (v: number) => string;
   now?: number; cell?: (v: number) => string; sel?: string; pick?: (id: string) => void; tip: (row: string, x: number, v: number) => string;
-  xTicks?: number[];
+  xTicks?: number[]; rh?: number;
 }) {
   const [hov, setHov] = useState<{ r: number; c: number } | null>(null);
   const [box, W] = useWidth<HTMLDivElement>();
-  const L = W < 560 ? 112 : 160, R = 16, T = 6, RH = 20, B = 40, n = rows[0]?.v.length ?? 1;
+  const L = W < 560 ? 112 : 160, R = 16, T = 6, RH = rh, B = 40, n = rows[0]?.v.length ?? 1;
   const h = T + rows.length * RH + B;
   const cw = (W - L - R) / n;
   const X = (x: number) => L + ((x - x0) / (x1 - x0)) * (W - L - R);
@@ -185,7 +188,7 @@ export function Heat({ rows, x0, x1, xTitle, xFmt = fmtNum, now, cell, sel, pick
         <svg viewBox={`0 0 ${W} ${h}`}>
           {rows.map((r, i) => (
             <g key={r.id} onClick={() => pick?.(r.id)} style={{ cursor: pick ? "pointer" : undefined }}>
-              <text x={L - 8} y={T + i * RH + RH / 2 + 4} textAnchor="end" className={`pl-row ${sel === r.id ? "on" : ""}`}>{r.label}</text>
+              <text x={L - 8} y={T + i * RH + RH / 2 + 4} textAnchor="end" className={`pl-row ${sel === r.id ? "on" : ""}`}>{fit(r.label, L - 12)}<title>{r.label}</title></text>
               {r.v.map((v, k) => <rect key={k} x={L + k * cw} y={T + i * RH + 1} width={cw + 0.4} height={RH - 2} fill={color(v)}
                 onMouseEnter={() => setHov({ r: i, c: k })} />)}
               {sel === r.id && <rect x={L - 1} y={T + i * RH} width={W - L - R + 2} height={RH} className="pl-heat-sel" />}
@@ -340,7 +343,7 @@ export function Dumbbell({ rows, a, b, xTitle, fmt = (v: number) => `${Math.roun
           const y = T + i * RH + RH / 2;
           return <g key={r.label}><title>{`${r.label}: ${a.name} ${fmt(r.a)}, ${b.name} ${fmt(r.b)}${r.note ? ` · ${r.note}` : ""}`}</title>
             <rect x={0} y={y - RH / 2} width={W} height={RH} fill="transparent" />
-            <text x={L - 10} y={y + 4} textAnchor="end" className="pl-row">{r.label}</text>
+            <text x={L - 10} y={y + 4} textAnchor="end" className="pl-row">{fit(r.label, L - 14)}</text>
             <line x1={X(r.a)} x2={X(r.b)} y1={y} y2={y} className="db-gap" />
             <circle cx={X(r.b)} cy={y} r={6} fill={b.color} className="pl-dot" />
             <circle cx={X(r.a)} cy={y} r={6} fill={a.color} className="pl-dot" />
@@ -370,7 +373,7 @@ export function HBar({ rows, xTitle, refs = [], fmt = fmtNum, x0 = 0, x1 }: {
         const y = T + i * RH;
         return <g key={r.label}><title>{r.tip ?? `${r.label}: ${fmt(r.v)}`}</title>
           {r.on && <rect x={0} y={y} width={W} height={RH} className="rw-hit on" />}
-          <text x={L - 10} y={y + RH / 2 + 4} textAnchor="end" className={`pl-row ${r.on ? "on" : ""}`}>{r.label}</text>
+          <text x={L - 10} y={y + RH / 2 + 4} textAnchor="end" className={`pl-row ${r.on ? "on" : ""}`}>{fit(r.label, L - 14)}</text>
           <rect x={X(x0)} y={y + 5} width={Math.max(1, X(r.v) - X(x0))} height={RH - 10} rx={3} fill={r.color} opacity={0.85} />
           <text x={X(r.v) + 6} y={y + RH / 2 + 4} className="hb-v">{fmt(r.v)}</text></g>;
       })}
