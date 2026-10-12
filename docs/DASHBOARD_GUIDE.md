@@ -93,6 +93,11 @@ The inspection camera's live feed: every cookie photographed, judged by the CNN 
 | Drift | The autoencoder's error on normal-looking cookies against its training baseline; above ×2 the line no longer looks like training. |
 | The camera | Where it is mounted in the colour hood, its lens and trigger, and the mount's checks against the model. |
 | The models, tested offline | The CNN and the autoencoder on held-out images like training and on unseen conditions. |
+| When the drift alarm rings | Every adaptation method on the changed line: right, good cookies rejected, defects passed, and whether the old line still works. |
+| The pass threshold | Each threshold as a point: defects passed against good cookies thrown out. Set it live with 'Pass threshold'. |
+| How many labels are worth it | Defects passed after tuning the final layers on a few labelled frames, against doing nothing and retraining. |
+| The safeguard | Once the alarm rings, what the autoencoder finds unusual goes to a person: fewer defects passed, more cookies checked by hand. |
+| Experiment: label-free adaptation | The same cookies classified twice, with and without online AdaBN. Switch it on under unseen conditions to watch it fail. |
 
 *Data:* Upgrade 15: the camera mount (vision/mount.py), the CNN (vision/train.py) and the autoencoder (vision/autoencoder.py), run in the browser on images drawn by the renderer port.
 

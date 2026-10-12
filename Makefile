@@ -2,7 +2,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas opcua opcua-check uns uns-check mechanisms guide health-theory vision-live audit clean
+.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas opcua opcua-check uns uns-check mechanisms guide health-theory vision-live vision-adapt audit clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -94,6 +94,11 @@ opcua-check: ## Upgrade 14: prove the OPC UA server (mapping, types, Machinery, 
 
 uns: ## Upgrade 14: Mosquitto (TLS) + Sparkplug B edge node + primary host writing the Unified Namespace (needs [uns], mosquitto)
 	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m uns.run --speed 1
+
+vision-adapt: ## Upgrade 15 step 3: adapt the inspection CNN to a changed line (AdaBN, TENT, self-training, few labels) + browser checks
+	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m vision.adapt
+	cd web && npx esbuild scripts/vision-adapt-check.ts --bundle --platform=node --format=esm --outfile=../.cache/vision-adapt-check.mjs --log-level=warning \
+		&& node ../.cache/vision-adapt-check.mjs public/vision 600
 
 mechanisms: ## The mechanisms' 3D views (drag chain, lift spindle drive, RFID head) - needs FreeCAD
 	cd stf-cad/hbw && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd -c "import sys; p='$(CURDIR)/stf-cad/hbw/mechanisms_cad.py'; sys.argv=[p]; exec(compile(open(p).read(), p, 'exec'), {'__file__': p, '__name__': '__main__'})"

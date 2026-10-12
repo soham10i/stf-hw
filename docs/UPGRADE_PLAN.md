@@ -939,7 +939,7 @@ any MQTT client as `stf-viewer`.
 
 ---
 
-## Upgrade 15: vision inspection, trained on rendered images (BUILT, with a live feed and an autoencoder)
+## Upgrade 15: vision inspection, trained on rendered images (BUILT: live feed, autoencoder, adaptation study)
 
 **Why.** The colour sensor (A4) tells the flavour but not whether a cookie is cracked, chipped, burnt or underbaked.
 A camera and a small network can, but there is no camera and no cookie to photograph. Training on images rendered
@@ -1042,9 +1042,56 @@ dominates the average. Scoring the worst local patch instead more than doubles t
 **Limits and the next step.**
 - Every image is rendered, so this shows the method, not the accuracy on a real camera. The camera itself is an
   assumed part.
-- The drift alarm is the trigger for adaptation. The step after it - collecting the flagged images, labelling a few
-  and fine-tuning the CNN, or adapting it without labels (self-training on confident frames, re-estimating its
-  normalisation) - is not built yet.
+- The drift alarm is the trigger for adaptation; step 3 tests what to do when it rings.
+
+### Step 3: what to do when the drift alarm rings (BUILT)
+
+**Question.** When the line changes (render.SHIFT: other light, a warm lamp, blur, a worn belt), can the inspection
+be adapted, without labels or with a few, and what does it cost on the old line?
+
+**As built:** `stf-cad/hbw/vision/adapt.py` (`make vision-adapt`), `web/src/vision/adapt.ts` (the batch-norm forward
+pass and an online AdaBN estimator), the "When the drift alarm rings" cards and a live experiment on Vision QC.
+Held-out rendered images of the new line, scored balanced and in the mix the line delivers (85 % good), and on the
+old line.
+
+**Results** (new line as delivered; old line in brackets):
+
+| | right | false rejects | escapes |
+|---|---|---|---|
+| deployed network | 66.6 % | 29.0 % | 2.1 % (98.7 %) |
+| same recipe, settled statistics (precise BN) | 96.4 % | 0.4 % | 20.6 % (99.9 %) |
+| AdaBN, no labels | 30.4 % | 72.5 % | 0.7 % (86.7 %) |
+| AdaBN on frames balanced by its own predictions | 78.7 % | 20.8 % | 3.0 % (98.7 %) |
+| TENT, no labels | 33.3 % | 73.0 % | 0.7 % (84.8 %) |
+| self-training on confident answers | 91.8 % | 0.0 % | 48.7 % (89.8 %) |
+| 10 labels per condition, final layers tuned | 96.5 % | 0.1 % | 20.6 % (99.8 %) |
+| retrained with new-line data | 99.2 % | 0.5 % | 0.7 % (100 %) |
+
+**Found.**
+- *The training recipe hid a fault.* At a high learning rate the batch norms' running statistics lag the weights
+  (validation swung between 7 % and 42 % until the last epoch). Settling them on training images makes the network
+  perfect on the old line, but under new conditions it then passes 21 % of defects, where the deployed one rejects
+  29 % of good cookies and passes 2 %. The deployed network fails safe by accident; it stays deployed
+  (`train.PRECISE = False`) and the study starts from the settled one.
+- *Label-free adaptation hurts on a line.* AdaBN and TENT assume the new frames have the training mix of classes.
+  Training was balanced; the line delivers 85 % good cookies, so the re-estimated statistics absorb the change of
+  mix and good cookies are rejected. Balancing the frames by the network's own predictions removes most of the harm
+  but still does worse than doing nothing. Self-training learns its own mistakes.
+- *The weak spot is one defect.* Under the new conditions the settled network catches 43 % of chipped cookies (blur
+  and a lighter belt hide the edge); the other defects 66-98 % (underbaked the next weakest). A few labels on the final layers do not help
+  (k = 2-20 per condition: escapes 17-20 %); the feature extractor has to learn the blurred chip, which takes the
+  new data in training (retrained: 98.5 % of chips caught).
+- *Until then, a safeguard without labels:* once the alarm rings, a cookie the CNN would pass but the autoencoder
+  finds unusual goes to a person: escapes 20.6 % to 11.2 %, with 12.7 % of good cookies checked by hand. The pass
+  threshold is the other lever (p(ok) >= 0.99: escapes 9.4 %, false rejects 5.9 %), set live on Vision QC.
+
+**Browser.** The batch-norm forward pass matches PyTorch (max |logit difference| 1.6e-5); fed the browser renderer's
+frames one at a time, the online AdaBN estimator lands where Python's AdaBN does (28.3 % vs 30.0 % right):
+`web/scripts/vision-adapt-check.ts`. The live experiment on Vision QC is off by default and labelled as a
+demonstration of the failure.
+
+**Limits.** Rendered images only: the method, not the accuracy on a real camera. One changed domain (SHIFT); one
+defect rate (15 %).
 
 ---
 

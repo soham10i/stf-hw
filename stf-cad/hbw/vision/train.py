@@ -9,6 +9,12 @@ DATA     vision/render.py: TRAIN_N randomised images to learn from, three times 
          the epoch, and two test sets drawn once and never used to decide
          anything - TEST_N like the training images, and TEST_N under conditions
          the network never saw (render.SHIFT).
+PRECISE  (vision/adapt.py found it) trained at a high learning rate, the batch norms' running
+         statistics lag the weights: validation swings until the last epoch. Re-estimating them
+         on training images (settle, PRECISE = True) gives 100 % on the training conditions -
+         but under unseen ones the network then fails UNSAFE (26 % of defects passed, 0.3 %
+         false rejects) where the deployed one fails SAFE (1.7 % passed, 30 % rejected). The
+         deployed network keeps the lagging statistics; adapt.py studies the settled one
 MODEL    four 3x3 convolutions (16-32-64-64, batch norm in training - folded into
          the weights for deployment - ReLU, 2x2 max-pool after the first three), global average pooling, a 64-unit layer, and two heads: the
          flavour (3) and the condition (5). Plain layers, so the same forward
@@ -41,6 +47,8 @@ OUT = os.path.expanduser("~/workspace/stf-hw/web/public/vision")
 TRAIN_N, VAL_N, TEST_N = 24000, 3000, 3000
 EPOCHS, BATCH, LR = 14, 128, 2e-3
 PASS_P, SURE_P = 0.5, 0.6
+PRECISE_N = 3000           # training images that settle the batch norms (precise BN, see train())
+PRECISE = False            # deployed without: see the PRECISE note above
 SEED = 15
 DEV = "mps" if torch.backends.mps.is_available() else "cpu"
 
@@ -88,6 +96,22 @@ class Net(nn.Module):
             sd[f"{name}.bias"] = (self.state_dict()[f"{name}.bias"] - bn.running_mean) * g + bn.bias
         plain.load_state_dict(sd)
         return plain.eval()
+
+
+def settle(net, X, bs=250):
+    """Precise BN: re-estimate every batch norm's mean and variance on images X (a cumulative
+    average, no gradients). With a high learning rate the running statistics lag the weights:
+    without this, validation swung between 7 % and 42 % until the last epoch."""
+    c = Net(ref=net.ref).to(DEV)
+    c.load_state_dict(net.state_dict())
+    for bn in c.bn:
+        bn.reset_running_stats()
+        bn.momentum = None
+    c.train()
+    with torch.no_grad():
+        for i in range(0, len(X), bs):
+            c(torch.from_numpy(X[i:i + bs]).to(DEV))
+    return c.eval()
 
 
 def n_params(net):
@@ -162,16 +186,22 @@ def train(ranges, ref=True):
             loss.backward()
             opt.step()
         sched.step()
-        pf, pc = predict(net, Xva)
+        cal = settle(net, Xtr[:PRECISE_N]) if PRECISE else net   # judged with settled statistics?
+        pf, pc = predict(cal, Xva)
         acc = float(((pf.argmax(1) == fva) & (pc.argmax(1) == cva)).mean())
         log.append({"epoch": ep + 1, "val_both": round(acc, 4)})
         if acc > best:                                   # the epoch is chosen on validation only
-            best, best_state = acc, {k: v.detach().clone() for k, v in net.state_dict().items()}
+            best, best_state = acc, {k: v.detach().clone() for k, v in cal.state_dict().items()}
     net.load_state_dict(best_state)
+    TRAINED["bn"] = {k: v.detach().cpu().clone() for k, v in settle(net, Xtr[:PRECISE_N]).state_dict().items()}  # adapt.py
     net = net.cpu().eval().folded().to(DEV)               # what is deployed is what is tested
     train_s = round(time.time() - t1, 1)
     res = {"in_domain": score(*predict(net, Xte), fte, cte), "shifted": score(*predict(net, Xsh), fsh, csh)}
     return net, res, log, gen_s, train_s
+
+
+TRAINED = {}
+BN_STATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".cache", "vision_cnn_bn.pt")
 
 
 # ------------------------------------------------------------- export
@@ -252,6 +282,8 @@ if __name__ == "__main__":
     _, narrow, _, _, _ = train(R.NARROW, ref=False)
     _, wide, _, _, _ = train(R.WIDE, ref=False)
     net, res, log, gen_s, train_s = train(R.WIDE, ref=True)          # the deployed network
+    os.makedirs(os.path.dirname(BN_STATE), exist_ok=True)
+    torch.save(TRAINED["bn"], BN_STATE)                              # unfolded, for vision.adapt
     meta = export(net, res, log, gen_s, train_s, {"narrow": narrow, "wide": wide})
     p = parity()
     meta["model"]["browser_max_abs_err"] = p["max_abs_err"]

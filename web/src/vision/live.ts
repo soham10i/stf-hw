@@ -41,7 +41,7 @@ export class LiveLine {
   constructor(private P: RenderParams, private cnn: Cnn, private ae: Ae, seed = 15) { this.rng = new Rng(seed); }
 
   /** Photograph one cookie of `flavour`; `defect` = probability that the simulation spoils it. */
-  capture(flavour: string, o: { scenario: Scenario; defect: number; age: number; source: "twin" | "line" }): Frame {
+  capture(flavour: string, o: { scenario: Scenario; defect: number; age: number; source: "twin" | "line"; passP?: number }): Frame {
     const P = this.P, r = this.rng;
     const bad = P.conditions.filter((c) => c !== "ok");
     const truth = r.random() < o.defect ? bad[Math.floor(r.random() * bad.length)] : "ok";
@@ -53,7 +53,7 @@ export class LiveLine {
     return {
       n: ++this.n, t: Date.now(), source: o.source, scenario: o.scenario, flavour, truth, img,
       pred: { flavour: this.cnn.classes.flavour[fi], condition: this.cnn.classes.condition[ci], pf: c.flavour[fi], pc: c.condition[ci],
-              verdict: verdict(this.cnn, c.condition) },
+              verdict: verdict(o.passP ? { ...this.cnn, pass_p: o.passP } : this.cnn, c.condition) },
       ae: { score: a.score, mean: a.mean, err: a.err, anomaly: a.score > this.ae.threshold },
     };
   }

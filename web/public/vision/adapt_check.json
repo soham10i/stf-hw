@@ -1,0 +1,39 @@
+{
+ "parity": 0.00001621246337890625,
+ "frames": 600,
+ "new_line": {
+  "source": {
+   "right": 0.9466666666666667,
+   "false_reject": 0.0038314176245210726,
+   "escape": 0.34615384615384615
+  },
+  "python_adabn": {
+   "right": 0.3,
+   "false_reject": 0.7183908045977011,
+   "escape": 0
+  },
+  "online": {
+   "right": 0.2833333333333333,
+   "false_reject": 0.735632183908046,
+   "escape": 0
+  },
+  "during": {
+   "right": 0.27,
+   "false_reject": 0.7581573896353166,
+   "escape": 0
+  }
+ },
+ "old_line": {
+  "source": {
+   "right": 0.9983333333333333,
+   "false_reject": 0,
+   "escape": 0
+  },
+  "after_return": {
+   "right": 0.8233333333333334,
+   "false_reject": 0.15625,
+   "escape": 0
+  }
+ },
+ "fails": []
+}
