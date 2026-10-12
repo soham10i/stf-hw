@@ -42,7 +42,14 @@ MONITOR = [("fbOven.bReady", "FBOVEN.BREADY.value"), ("fbOven.bHold", "FBOVEN.BH
     [(f"fbOven.aBroken[{i}]", f"FBOVEN.ABROKEN.value.table[{i}].value") for i in range(9)] + \
     [(f"fbBand.aZoneContent[{k}]", f"FBBAND.AZONECONTENT.value.table[{k}].value") for k in range(3)] + \
     [(f"fbOven.aI[{k}]", f"FBOVEN.AI.value.table[{k}].value") for k in range(3)] + \
-    [(f"fbOven.aLost[{k}]", f"FBOVEN.ALOST.value.table[{k}].value") for k in range(3)]
+    [(f"fbOven.aLost[{k}]", f"FBOVEN.ALOST.value.table[{k}].value") for k in range(3)] + \
+    [(f"{fb}.{c}", f"{fb.upper()}.{c.upper()}.value") for fb, cs in (
+        ("fbTransfer", ("nLoaded", "nGripFail", "nRecirc", "nEmpty", "nLost", "nTrackErr")),
+        ("fbQC", ("nKicks", "nVerdicts")),
+        ("fbPickA", ("nPicks", "nPickFail", "nMissed", "nRollback")),
+        ("fbPickB", ("nPicks", "nPickFail", "nMissed", "nRollback"))) for c in cs] + \
+    [(f"fbLane[{k}].nPacks", f"FBLANE_{k}.NPACKS.value") for k in range(3)] + \
+    [(f"aPuck[{k}].{c}", f"APUCK.value.table[{k}].{c.upper()}.value") for k in range(48) for c in ("bFull", "bKicked")]
 
 
 def glue(located):

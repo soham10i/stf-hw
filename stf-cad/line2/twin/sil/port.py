@@ -23,6 +23,8 @@ equivalent, and twin/sil_check.py proves the bodies are the generated ones apart
                                                       are never generated - finding)
   R13 ARRAY[..] OF <function block> (IEC 3rd ed.)   expanded into one instance per index (MatIEC is 2nd ed.)
   R12 a POU without statements (a stub)               a no-op (sil_stub := FALSE) - and the POU is LISTED as a stub
+  R14 job channels: ST_DeltaJob (PLC -> a delta's     located SIL variables, copied like the axes (R5): SIL_OUT
+      motion program), ST_QcResult (edge PC -> PLC)   writes each ST_DeltaJob field out, SIL_IN reads ST_QcResult in
 """
 import os
 import re
@@ -33,15 +35,17 @@ PLC = os.environ.get("STF_SIL_PLC", os.path.join(LINE2, "plc"))   # a mutant's c
 SCAN_MS = 10
 EXCLUDED = {"FB_Policy.st": "Tc3_MLL FB_MllPrediction: a licensed TwinCAT ML library, no IEC equivalent; "
                             "not instantiated by MAIN"}
-AXES_USED = ("axQ1", "axQ40", "axQ41", "axMasterEnc")   # the axes DT-4a's stations command / read
+AXES_USED = ("axQ1", "axQ40", "axQ41", "axMasterEnc", "axQ20", "axQ21", "axQ22")   # the axes the stations use
+CHANNELS = {"ST_DeltaJob": "out", "ST_QcResult": "in"}   # R14: the struct channels and their direction
 
 SIM_MC = """
 TYPE MC_Direction : (MC_Positive_Direction, MC_Shortest_Way, MC_Negative_Direction, MC_Current_Direction); END_TYPE
 TYPE ST_NcToPlc : STRUCT ActPos : LREAL; ActVelo : LREAL; Enabled : BOOL; END_STRUCT; END_TYPE
 TYPE ST_PlcToNc : STRUCT
-    Enable : BOOL; Mode : INT; Velocity : LREAL; Accel : LREAL; Ratio : LREAL;
+    Enable : BOOL; Mode : INT; Velocity : LREAL; Accel : LREAL; Ratio : LREAL; Target : LREAL;
 END_STRUCT; END_TYPE
-(* Mode: 0 standstill, 1 velocity, 2 geared to the master (Ratio), 3 halt (ramp to 0), 4 free (keep velocity) *)
+(* Mode: 0 standstill, 1 velocity, 2 geared to the master (Ratio), 3 halt (ramp to 0), 4 free (keep velocity),
+   5 position (to Target at Velocity, Accel) *)
 TYPE AXIS_REF : STRUCT NcToPlc : ST_NcToPlc; PlcToNc : ST_PlcToNc; END_STRUCT; END_TYPE
 
 FUNCTION_BLOCK MC_Power
@@ -102,6 +106,24 @@ IF rTrig.Q THEN Axis.PlcToNc.Mode := 3;  Axis.PlcToNc.Accel := Deceleration; END
 Done := Axis.PlcToNc.Mode = 3 AND ABS(Axis.NcToPlc.ActVelo) < 1.0E-9;
 END_FUNCTION_BLOCK
 
+FUNCTION_BLOCK MC_MoveRelative
+VAR_IN_OUT Axis : AXIS_REF; END_VAR
+VAR_INPUT Execute : BOOL; Distance : LREAL; Velocity : LREAL; Acceleration : LREAL; Deceleration : LREAL; END_VAR
+VAR_OUTPUT Done : BOOL; Busy : BOOL; END_VAR
+VAR rTrig : R_TRIG; END_VAR
+rTrig(CLK := Execute);
+IF rTrig.Q THEN                               (* from where the axis is, on the rising edge *)
+    Axis.PlcToNc.Mode := 5;  Axis.PlcToNc.Target := Axis.NcToPlc.ActPos + Distance;
+    Axis.PlcToNc.Velocity := Velocity;  Axis.PlcToNc.Accel := Acceleration;
+    Busy := TRUE;  Done := FALSE;
+END_IF;
+IF Busy AND Axis.PlcToNc.Mode = 5 AND ABS(Axis.NcToPlc.ActPos - Axis.PlcToNc.Target) < 1.0E-6
+   AND ABS(Axis.NcToPlc.ActVelo) < 1.0E-9 THEN
+    Busy := FALSE;  Done := TRUE;
+END_IF;
+IF NOT Execute THEN Done := FALSE; END_IF;
+END_FUNCTION_BLOCK
+
 FUNCTION LMOD : LREAL                         (* Tc2_Standard LMOD: floored modulo of LREALs *)
 VAR_INPUT x : LREAL; y : LREAL; END_VAR
 LMOD := x - y * LINT_TO_LREAL(TRUNC(x / y));
@@ -150,7 +172,10 @@ def project():
     gtype = {n: t for n, t, _ in gvl}
     parts, info = [], dict(excluded=EXCLUDED, pous=[], externals={})
     dut = open(os.path.join(PLC, "DUT_PhysicalAI.st")).read()
-    keep = [m.group(0) for m in re.finditer(r"TYPE\s+((?:ST_Ts|E_|T_)\w+)\s*:.*?END_TYPE", dut, re.S)]
+    keep = [m.group(0) for m in re.finditer(r"TYPE\s+((?:ST_|E_|T_)\w+)\s*:.*?END_TYPE", dut, re.S)
+            if m.group(1) != "ST_PuckEvent"]
+    fields = {m.group(1): re.findall(r"(\w+(?:\s*,\s*\w+)*)\s*:\s*(\w+)\s*;", re.sub(r"//[^\n]*", "", m.group(2)))
+              for m in re.finditer(r"TYPE\s+(ST_\w+)\s*:\s*STRUCT(.*?)END_STRUCT", dut, re.S)}
     info["excluded"]["DUT_PhysicalAI.st: ST_PuckEvent"] = "refers to E_Station / E_Outcome, never generated"
     parts.append(SIM_MC)
     parts += keep
@@ -198,15 +223,37 @@ def project():
                  f"    sil_{a}_Enable AT %QX100.{AXES_USED.index(a)} : BOOL;",
                  f"    sil_{a}_Mode AT %QW{200 + AXES_USED.index(a)} : INT;",
                  f"    sil_{a}_Velocity AT %QL{ql} : LREAL;", f"    sil_{a}_Accel AT %QL{ql + 1} : LREAL;",
-                 f"    sil_{a}_Ratio AT %QL{ql + 2} : LREAL;"]
+                 f"    sil_{a}_Ratio AT %QL{ql + 2} : LREAL;", f"    sil_{a}_Target AT %QL{ql + 3} : LREAL;"]
         il += 2
-        ql += 3
+        ql += 4
         ax_in += [f"{a}.NcToPlc.ActPos := sil_{a}_ActPos;", f"{a}.NcToPlc.ActVelo := sil_{a}_ActVelo;",
                   f"{a}.NcToPlc.Enabled := sil_{a}_Enabled;"]
         ax_out += [f"sil_{a}_Enable := {a}.PlcToNc.Enable;", f"sil_{a}_Mode := {a}.PlcToNc.Mode;",
                    f"sil_{a}_Velocity := {a}.PlcToNc.Velocity;", f"sil_{a}_Accel := {a}.PlcToNc.Accel;",
-                   f"sil_{a}_Ratio := {a}.PlcToNc.Ratio;"]
-    sil_ext = "VAR_EXTERNAL " + " ".join(f"{a} : AXIS_REF;" for a in AXES_USED) + " " + \
+                   f"sil_{a}_Ratio := {a}.PlcToNc.Ratio;", f"sil_{a}_Target := {a}.PlcToNc.Target;"]
+    # R14: the job channels -> located SIL variables (INT %IW / %QW from 300, LREAL after the axes' %IL / %QL)
+    ch_vars = []
+    w = {"I": 300, "Q": 300}
+    lw = {"I": il, "Q": ql}
+    for n, t, _ in gvl:
+        if t not in CHANNELS:
+            continue
+        ch_vars.append(f"{n} : {t};")
+        d = "I" if CHANNELS[t] == "in" else "Q"
+        for names, ft in fields[t]:
+            for fn in [x.strip() for x in names.split(",")]:
+                if ft == "INT":
+                    loc = f"%{d}W{w[d]}"
+                    w[d] += 1
+                else:
+                    loc = f"%{d}L{lw[d]}"
+                    lw[d] += 1
+                glob.append(f"    sil_{n}_{fn} AT {loc} : {ft};")
+                if d == "I":
+                    ax_in.append(f"{n}.{fn} := sil_{n}_{fn};")
+                else:
+                    ax_out.append(f"sil_{n}_{fn} := {n}.{fn};")
+    sil_ext = "VAR_EXTERNAL " + " ".join(f"{a} : AXIS_REF;" for a in AXES_USED) + " " + " ".join(ch_vars) + " " + \
         " ".join(g.strip().split(" AT ")[0] + " : " + g.split(":")[-1].strip() for g in glob) + " END_VAR"
     parts.append("PROGRAM SIL_IN\n" + sil_ext + "\n" + "\n".join(ax_in) + "\nEND_PROGRAM")
     parts.append("PROGRAM SIL_OUT\n" + sil_ext + "\n" + "\n".join(ax_out) + "\nEND_PROGRAM")

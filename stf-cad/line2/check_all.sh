@@ -28,6 +28,7 @@ if [ -x ../../.venv-twin/bin/python ]; then
   step twin_flow  ../../.venv-twin/bin/python -W ignore twin/flow_check.py
   if [ -x "${STF_MATIEC:-$HOME/workspace/stf-hw/.cache/matiec}/iec2c" ]; then
     step twin_sil  ../../.venv-twin/bin/python -W ignore twin/sil_check.py
+    step twin_silf ../../.venv-twin/bin/python -W ignore twin/sil_flow_check.py
   else
     echo "twin_sil       skipped (no MatIEC: see twin/MAC_SETUP.md section 5)"
   fi

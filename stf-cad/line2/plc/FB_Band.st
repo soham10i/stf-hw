@@ -8,7 +8,9 @@
 FUNCTION_BLOCK FB_Band
 VAR_IN_OUT axBand : AXIS_REF; axRolls : AXIS_REF; axMaster : AXIS_REF; END_VAR   // by reference (MC blocks)
 VAR_INPUT bOvenReady : BOOL; nDoughLevel : INT; END_VAR   // nDoughLevel: IOL1 distance to the dough, 0.1 mm
-VAR_OUTPUT fPos : LREAL; aZoneContent : T_ZoneArray; END_VAR   // 0..1 per zone, from the rows cut
+VAR_OUTPUT fPos : LREAL; aZoneContent : T_ZoneArray;   // 0..1 per zone, from the rows cut
+    nRows : UDINT; fRowPos : LREAL;        // rows cut so far, the band position of the last (-> FB_Transfer)
+END_VAR
 VAR RETAIN                                 // the rows on the band survive a power cycle (they are still there)
     aCut : ARRAY[0..31] OF LREAL;          // band position of each row cut (ring), -1 = empty
     nCut : INT; fLastCut : LREAL; bFirst : BOOL := TRUE;
@@ -18,8 +20,8 @@ VAR fbGearBand, fbGearRolls : MC_GearIn; fbGearOutRolls : MC_GearOut; fbHaltRoll
     fDoughRow : LREAL;                     // the most dough seen while this row was pressed out
     aZoneOff : ARRAY[0..2] OF LREAL := [200.0, 403.0, 606.0];   // die -> zone start, mm of band
 END_VAR
-fbGearBand(Master := axMaster, Slave := axBand, Execute := TRUE, RatioNumerator := 2292.0,
-           RatioDenominator := 20000);        // Tc2_MC2: numerator LREAL, denominator UINT
+fbGearBand(Master := axMaster, Slave := axBand, Execute := TRUE, RatioNumerator := 2.291666666667,
+           RatioDenominator := 20);   // band mm/s per master mm/s: exact (rounded, rows drift: finding 17)
 fbGearRolls(Master := axMaster, Slave := axRolls, Execute := bOvenReady, RatioNumerator := 1.0, RatioDenominator := 1);
 // a FALLING Execute does not decouple a geared slave (PLCopen): oven not ready -> decouple the rolls, then brake them
 fbGearOutRolls(Slave := axRolls, Execute := NOT bOvenReady);
@@ -35,7 +37,9 @@ IF fPos - fLastCut >= 55.0000 THEN                  // one row pitch of band: th
     fLastCut := fLastCut + 55.0000;
     // a row exists if the rolls REALLY turned (their actual velocity), not if they were told to: a halt brakes;
     // and only from a hopper holding a row's dough (6 x 0.0112 kg)
-    IF ABS(axRolls.NcToPlc.ActVelo) > 0.0 AND fDoughRow >= 0.0672 THEN aCut[nCut] := fLastCut;  nCut := (nCut + 1) MOD 32; END_IF;
+    IF ABS(axRolls.NcToPlc.ActVelo) > 0.0 AND fDoughRow >= 0.0672 THEN
+        aCut[nCut] := fLastCut;  nCut := (nCut + 1) MOD 32;  nRows := nRows + 1;  fRowPos := fLastCut;
+    END_IF;
     fDoughRow := fDough;
 END_IF;
 FOR k := 0 TO 2 DO

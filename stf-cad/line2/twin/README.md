@@ -13,7 +13,7 @@ All of it runs on one **MacBook with an Apple M4 and 24 GB of unified memory, wi
 | [TECH_STACK.md](TECH_STACK.md) | Every tool and library, why it was chosen, what replaces NVIDIA Omniverse on a Mac, the memory budget |
 | [DATA_CONTRACT.md](DATA_CONTRACT.md) | Every file and signal the twin consumes or produces: paths, schemas, units, frames, names |
 | [SIM_MODELS.md](SIM_MODELS.md) | The plant models (motion, process, oven thermal, product flow, safety), the PLC in the loop, the fault scenarios |
-| [ROADMAP.md](ROADMAP.md) | Ten phases DT-1 … DT-10, each with what is built and the proof that gates it. **Built: DT-1 (scene), DT-2 (playback), DT-3a/b (live plant + product flow), DT-4a (the generated PLC program compiled and run against the plant: 14 findings fixed).** |
+| [ROADMAP.md](ROADMAP.md) | Ten phases DT-1 … DT-10, each with what is built and the proof that gates it. **Built: DT-1 (scene), DT-2 (playback), DT-3a/b (live plant + product flow), DT-4a (the generated PLC program compiled and run against the plant, validated against the proven oven loop), DT-4b part 1 (the stations under PLC control = line_sim event for event for 1 h); 17 findings fixed.** |
 | [MAC_SETUP.md](MAC_SETUP.md) | Step-by-step install and run on the M4 Mac |
 | [VIEWING.md](VIEWING.md) | **How to watch it:** Blender (open the .blend, press Space) and the browser viewer, and how the web simulation works |
 

@@ -665,6 +665,9 @@ def _var(io):
             "SO": f"so{t}"}[io.kind]
 
 
+VAC_OK = -300        # mbar: a cup sealed on a cookie reads below -0.3 bar (process data of vac_iol) [assumed]
+
+
 def _r(x):
     """A REAL literal: IEC 61131-3 types strictly, so '20' is not a LREAL - '20.0' is."""
     t = f"{x:.10g}"
@@ -686,16 +689,24 @@ def twincat(ios):
             continue
         at = "AT %I*" if io.kind in ("DI", "AI", "TC", "IOL", "ENC", "DITS") else \
             ("AT %Q*" if io.kind in ("DO", "DOTS") else "")
-        t_ = "INT" if io.hw == "tof_level" else typ[io.kind]   # a ToF level's process data: the distance, 0.1 mm
+        # process data of the IO-Link sensors the stations read: ToF level = distance (0.1 mm), vacuum = mbar
+        t_ = "INT" if io.hw in ("tof_level", "vac_iol") else typ[io.kind]
         lines.append(f"    {_var(io):24s} {at:7s}: {t_};   // {io.slot:14s} {io.part:28s} {io.desc}"
                      + ("  [implied, not in CAD]" if not io.cad else ""))
     lines.append(f"    {'axMasterEnc':24s} {'':7s}: AXIS_REF;   // NC encoder axis on B1: the virtual master (gearing, cams)")
     lines.append(f"    {'xSafeRunPermit':24s} {'AT %I*':7s}: BOOL;   // EL6910 standard process data: no stop demand, "
                  "doors locked, resets done")
+    for d_ in "CAB":
+        lines.append(f"    {'stDelta' + d_:24s} {'':7s}: ST_DeltaJob;   // delta {d_}: the job its motion program (kinematic "
+                     "group + conveyor tracking) executes")
+    lines.append(f"    {'stQc':24s} {'':7s}: ST_QcResult;   // the QC verdict, written by the edge PC (ADS) per puck")
+    lines.append(f"    {'xHmiLoad':24s} {'AT %I*':7s}: BOOL;   // HMI start of production: load cookies into the pucks")
     lines.append("END_VAR")
     files["GVL_IO.st"] = "\n".join(lines) + "\n"
     v = {io.tag: _var(io) for io in ios}
     takt = M.takt()
+    import line_sim as LS                      # the loop stations of the flow model (the PLC tracks the same)
+    sl = LS.stations()
     files["MAIN.st"] = f"""// MAIN - one cycle of every station agent; all stations run on ONE time base (the master axis)
 PROGRAM MAIN
 VAR
@@ -708,16 +719,31 @@ VAR
     fbLane    : ARRAY[0..2] OF FB_Lane;
     fbPorts   : FB_AmrPorts;
     fbSafety  : FB_SafetyIf;      // S-1: standard side of the TwinSAFE project (requests + status only)
+    aPuck     : T_PuckArray;      // what the PLC knows of every puck (filled, flavour, verdict ...)
+    aLane     : T_LaneArray;      // per lane: blocked while it indexes, packs to index
 END_VAR
 fbSafety();                      // first: every station below runs only while fbSafety.bRunEnable
 fbMaster(axDrive := GVL_IO.{v['Q1']}, axMaster := GVL_IO.axMasterEnc, nEncoder := GVL_IO.{v['B1']});
 fbOven(bRunEnable := fbSafety.bRunEnable, aContent := fbBand.aZoneContent);   // last cycle's content
 fbBand(axBand := GVL_IO.{v['Q40']}, axRolls := GVL_IO.{v['Q41']}, axMaster := GVL_IO.axMasterEnc,
        bOvenReady := fbOven.bReady, nDoughLevel := GVL_IO.{v['IOL1']});
-fbTransfer(fMasterPos := fbMaster.fPos, fBandPos := fbBand.fPos, bPuckFull := GVL_IO.{v['I1']});
-fbQC(fMasterPos := fbMaster.fPos);
-fbPickA(fMasterPos := fbMaster.fPos, bUpstream := TRUE);
-fbPickB(fMasterPos := fbMaster.fPos, bUpstream := FALSE, bPartnerMissed := fbPickA.bMissed);
+// the stations in the order of the loop: at one master position the transfer comes first, then QC, the kicker,
+// delta A, delta B (A and B see their pucks at the same phase: A first)
+fbTransfer(stJob := GVL_IO.stDeltaC, aPuck := aPuck, fMaster := fbMaster.fAbs, fBand := fbBand.fPos,
+           nRows := fbBand.nRows, fRowPos := fbBand.fRowPos, bPuckFull := GVL_IO.{v['I1']},
+           nVacuum := GVL_IO.{v['delta_C.VAC.P']}, bLoad := GVL_IO.xHmiLoad);
+GVL_IO.{v['delta_C.VAC']} := fbTransfer.bVacuum;
+fbQC(aPuck := aPuck, fMaster := fbMaster.fAbs, stQc := GVL_IO.stQc);
+GVL_IO.{v['Q18']} := fbQC.bKick;
+fbPickA(stJob := GVL_IO.stDeltaA, aPuck := aPuck, aLane := aLane, fMaster := fbMaster.fAbs, nDelta := 0,
+        fIn := {sl['d0_in']:.9f}, fOut := {sl['d0_out']:.9f}, nVacuum := GVL_IO.{v['delta_A.VAC.P']});
+GVL_IO.{v['delta_A.VAC']} := fbPickA.bVacuum;
+fbPickB(stJob := GVL_IO.stDeltaB, aPuck := aPuck, aLane := aLane, fMaster := fbMaster.fAbs, nDelta := 1,
+        fIn := {sl['d1_in']:.9f}, fOut := {sl['d1_out']:.9f}, nVacuum := GVL_IO.{v['delta_B.VAC.P']});
+GVL_IO.{v['delta_B.VAC']} := fbPickB.bVacuum;
+fbLane[0](axLane := GVL_IO.{v['Q20']}, stLane := aLane[0], fMaster := fbMaster.fAbs);
+fbLane[1](axLane := GVL_IO.{v['Q21']}, stLane := aLane[1], fMaster := fbMaster.fAbs);
+fbLane[2](axLane := GVL_IO.{v['Q22']}, stLane := aLane[2], fMaster := fbMaster.fAbs);
 fbPorts();
 """
     files["FB_MasterAxis.st"] = f"""// FB_MasterAxis - the electronic line shaft. The chain NEVER stops (no stop path in the
@@ -733,7 +759,8 @@ VAR_INPUT
     nEncoder : UDINT;             // B1 counts
 END_VAR
 VAR_OUTPUT
-    fPos     : LREAL;             // mm along the loop, modulo N*P
+    fPos     : LREAL;             // mm along the loop, modulo the loop length
+    fAbs     : LREAL;             // mm since power-up (the stations' time base: tau = fAbs / v)
     fDrift   : LREAL;             // drive encoder - B1, mm (slip monitor)
 END_VAR
 VAR
@@ -742,7 +769,8 @@ END_VAR
 fbPower(Axis := axDrive, Enable := TRUE, Enable_Positive := TRUE, Enable_Negative := FALSE);
 fbVel(Axis := axDrive, Execute := fbPower.Status, Velocity := {L['V']:.1f}, Acceleration := 20.0, Deceleration := 20.0,
       Direction := MC_Positive_Direction);
-fPos := LMOD(axMaster.NcToPlc.ActPos, {L['N'] * L['PITCH']:.1f});
+fPos := LMOD(axMaster.NcToPlc.ActPos, {M.loop_len():.9f});   // the chain's loop, not N x P (finding 16)
+fAbs := axMaster.NcToPlc.ActPos;
 fDrift := axDrive.NcToPlc.ActPos - axMaster.NcToPlc.ActPos;
 """
     zs = oven_zones(ios)
@@ -952,7 +980,9 @@ F_InSlice := LMOD(fPhase - fStart + 1.0, 1.0) < fDuty;
 FUNCTION_BLOCK FB_Band
 VAR_IN_OUT axBand : AXIS_REF; axRolls : AXIS_REF; axMaster : AXIS_REF; END_VAR   // by reference (MC blocks)
 VAR_INPUT bOvenReady : BOOL; nDoughLevel : INT; END_VAR   // nDoughLevel: IOL1 distance to the dough, 0.1 mm
-VAR_OUTPUT fPos : LREAL; aZoneContent : T_ZoneArray; END_VAR   // 0..1 per zone, from the rows cut
+VAR_OUTPUT fPos : LREAL; aZoneContent : T_ZoneArray;   // 0..1 per zone, from the rows cut
+    nRows : UDINT; fRowPos : LREAL;        // rows cut so far, the band position of the last (-> FB_Transfer)
+END_VAR
 VAR RETAIN                                 // the rows on the band survive a power cycle (they are still there)
     aCut : ARRAY[0..31] OF LREAL;          // band position of each row cut (ring), -1 = empty
     nCut : INT; fLastCut : LREAL; bFirst : BOOL := TRUE;
@@ -962,8 +992,8 @@ VAR fbGearBand, fbGearRolls : MC_GearIn; fbGearOutRolls : MC_GearOut; fbHaltRoll
     fDoughRow : LREAL;                     // the most dough seen while this row was pressed out
     aZoneOff : ARRAY[0..{len(L['OVEN_ZONES']) - 1}] OF LREAL := [{', '.join(f"{x:.1f}" for x in zone_off)}];   // die -> zone start, mm of band
 END_VAR
-fbGearBand(Master := axMaster, Slave := axBand, Execute := TRUE, RatioNumerator := {_r(round(M.band_v() * 1000))},
-           RatioDenominator := {round(L['V'] * 1000)});        // Tc2_MC2: numerator LREAL, denominator UINT
+fbGearBand(Master := axMaster, Slave := axBand, Execute := TRUE, RatioNumerator := {M.band_v():.12f},
+           RatioDenominator := {round(L['V'])});   // band mm/s per master mm/s: exact (rounded, rows drift: finding 17)
 fbGearRolls(Master := axMaster, Slave := axRolls, Execute := bOvenReady, RatioNumerator := 1.0, RatioDenominator := 1);
 // a FALLING Execute does not decouple a geared slave (PLCopen): oven not ready -> decouple the rolls, then brake them
 fbGearOutRolls(Slave := axRolls, Execute := NOT bOvenReady);
@@ -979,7 +1009,9 @@ IF fPos - fLastCut >= {pitch:.4f} THEN                  // one row pitch of band
     fLastCut := fLastCut + {pitch:.4f};
     // a row exists if the rolls REALLY turned (their actual velocity), not if they were told to: a halt brakes;
     // and only from a hopper holding a row's dough ({L['BAND']['rows']} x {L['DOUGH_M']:g} kg)
-    IF ABS(axRolls.NcToPlc.ActVelo) > 0.0 AND fDoughRow >= {_r(L['BAND']['rows'] * L['DOUGH_M'])} THEN aCut[nCut] := fLastCut;  nCut := (nCut + 1) MOD 32; END_IF
+    IF ABS(axRolls.NcToPlc.ActVelo) > 0.0 AND fDoughRow >= {_r(L['BAND']['rows'] * L['DOUGH_M'])} THEN
+        aCut[nCut] := fLastCut;  nCut := (nCut + 1) MOD 32;  nRows := nRows + 1;  fRowPos := fLastCut;
+    END_IF
     fDoughRow := fDough;
 END_IF
 FOR k := 0 TO {len(L['OVEN_ZONES']) - 1} DO
@@ -995,38 +1027,200 @@ FOR k := 0 TO {len(L['OVEN_ZONES']) - 1} DO
     aZoneContent[k] := MIN(aZoneContent[k], 1.0);
 END_FOR
 """
+    # ------------------------------------------------ DT-4b: the stations (line_sim.flow's rules, event for event)
+    Lp, P_, N_, V_ = M.loop_len(), L["PITCH"], L["N"], L["V"]
+    sb = M.stations()
+    travel = sb["pick"][0] - sb["dep"]                       # band mm from the die to the pick window
+    col_flav = [M.row_flavour(j) for j in range(L["BAND"]["rows"])]
+    tray = L["BOX"][0]
+    t_mv = 0.8 * L["T_INDEX"]                                # the index move (triangle profile) inside T_INDEX
+    files["FB_Arrivals.st"] = f"""// FB_Arrivals - the pucks passing ONE station of the loop, from the master position alone: puck k is at the
+// station when the master is at fStation - k x {P_:g} (mod {Lp:.9f}, the loop); after puck k comes puck k-1.
+// The arrival is reported in the scan the master passes it, with the EXACT position it happened at (fArr).
+FUNCTION_BLOCK FB_Arrivals
+VAR_INPUT fMaster : LREAL; fStation : LREAL; END_VAR
+VAR_OUTPUT bArrive : BOOL; nPuck : INT; fArr : LREAL; END_VAR
+VAR bInit : BOOL; nNext, k : INT; fNext, f : LREAL; END_VAR
+bArrive := FALSE;
+IF NOT bInit THEN                          // the first arrival from now on, over all {N_} pucks
+    fNext := fMaster + {Lp:.9f};
+    FOR k := 0 TO {N_ - 1} DO
+        f := fMaster + LMOD(fStation - INT_TO_LREAL(k) * {_r(P_)} - fMaster, {Lp:.9f});
+        IF f < fNext THEN fNext := f;  nNext := k; END_IF
+    END_FOR
+    bInit := TRUE;
+END_IF
+IF fMaster >= fNext THEN
+    bArrive := TRUE;  nPuck := nNext;  fArr := fNext;
+    nNext := (nNext + {N_ - 1}) MOD {N_};
+    fNext := fArr + LMOD(fStation - INT_TO_LREAL(nNext) * {_r(P_)} - fArr, {Lp:.9f});
+END_IF
+"""
     files["FB_Transfer.st"] = f"""// FB_Transfer - delta C takes the cookies of the row in the pick window ({L['PICK_W']:g} mm = {L['PICK_W'] / M.band_v():.0f} s,
 // >= {L['BAND']['rows']} takts) in row order (W R B W R B) and places each into the next empty puck on the bend
 // ({L['PLACE_TH'][0]:g}..{L['PLACE_TH'][1]:g} deg). I1 = puck already full (recirculating): skip it, the cookie waits.
-// NFC-W writes flavour (band row), batch and the bake log (zone temperatures, IR1) into the tag; I9 confirms.
+// Rows come from FB_Band (the rows really cut); a row is in the window from {travel:.0f} mm of band after its cut for
+// {L['PICK_W']:g} mm, then it falls off the nose (lost). The band is judged where it was when the puck arrived.
+// The grip is known from the vacuum after T_GRAB ({L['T_GRAB']:g} s): held -> the puck is loaded; not held -> the
+// cookie stays on the band for the next puck.
 FUNCTION_BLOCK FB_Transfer
-VAR_INPUT fMasterPos : LREAL; fBandPos : LREAL; bPuckFull : BOOL; END_VAR
-VAR nRow : UINT; nNext : UINT; END_VAR
+VAR_IN_OUT stJob : ST_DeltaJob; aPuck : T_PuckArray; END_VAR
+VAR_INPUT fMaster : LREAL; fBand : LREAL; nRows : UDINT; fRowPos : LREAL; bPuckFull : BOOL; nVacuum : INT;
+    bLoad : BOOL; END_VAR
+VAR_OUTPUT bVacuum : BOOL; nLoaded, nGripFail, nRecirc, nEmpty, nLost, nTrackErr : DINT; END_VAR
+VAR fbArr : FB_Arrivals; aRow : ARRAY[0..31] OF LREAL; nHead, nTail, nCol, pk, nJobPuck : INT; nSeen : UDINT;
+    bFirst : BOOL := TRUE; bWait : BOOL; fGrip, fPlace, d : LREAL;
+    aColFlav : ARRAY[0..{len(col_flav) - 1}] OF INT := [{', '.join(str(c) for c in col_flav)}];   // flavour of each column
+END_VAR
+IF bFirst THEN nSeen := nRows;  bFirst := FALSE; END_IF
+IF nRows <> nSeen THEN aRow[nTail] := fRowPos;  nTail := (nTail + 1) MOD 32;  nSeen := nRows; END_IF
+fbArr(fMaster := fMaster, fStation := {sl['transfer']:.9f});
+IF bWait AND fMaster >= fGrip THEN         // the grip of the last job
+    bWait := FALSE;
+    IF nVacuum <= {VAC_OK} THEN
+        aPuck[nJobPuck].bFull := TRUE;  aPuck[nJobPuck].nFlav := aColFlav[nCol];  aPuck[nJobPuck].nCol := nCol;
+        aPuck[nJobPuck].fRowPos := aRow[nHead];  aPuck[nJobPuck].nVerdict := 0;
+        aPuck[nJobPuck].bKicked := FALSE;  aPuck[nJobPuck].bPending := FALSE;
+        nLoaded := nLoaded + 1;  nCol := nCol + 1;
+        IF nCol >= {len(col_flav)} THEN nCol := 0;  nHead := (nHead + 1) MOD 32; END_IF
+    ELSE
+        nGripFail := nGripFail + 1;  fPlace := fMaster;      // nothing held: vacuum off, the cookie stays
+    END_IF
+END_IF
+IF fbArr.bArrive AND bLoad THEN
+    pk := fbArr.nPuck;
+    d := fBand - (fMaster - fbArr.fArr) * {M.band_v() / V_:.12f};   // the band when the puck arrived
+    WHILE nHead <> nTail AND d - aRow[nHead] >= {travel + L['PICK_W']:.9f} DO   // past the nose: lost
+        nLost := nLost + {len(col_flav)} - INT_TO_DINT(nCol);  nCol := 0;  nHead := (nHead + 1) MOD 32;
+    END_WHILE
+    IF bPuckFull THEN                      // recirculating (or a kick that failed: the cookie is still in it)
+        nRecirc := nRecirc + 1;
+        IF NOT aPuck[pk].bFull THEN nTrackErr := nTrackErr + 1; END_IF
+        aPuck[pk].bKicked := FALSE;
+    ELSE
+        IF aPuck[pk].bFull AND NOT aPuck[pk].bKicked THEN nTrackErr := nTrackErr + 1; END_IF
+        aPuck[pk].bFull := FALSE;  aPuck[pk].bKicked := FALSE;     // kicked out: empty
+        IF nHead = nTail THEN
+            nEmpty := nEmpty + 1;
+        ELSIF d - aRow[nHead] < {travel:.9f} THEN
+            nEmpty := nEmpty + 1;                                     // the next row is not in the window yet
+        ELSE
+            stJob.nPuck := pk;  stJob.nCol := nCol;  stJob.nLane := -1;  stJob.fRowPos := aRow[nHead];
+            stJob.fStart := fbArr.fArr;  stJob.nJob := (stJob.nJob + 1) MOD 10000;
+            bWait := TRUE;  nJobPuck := pk;
+            fGrip := fbArr.fArr + {L['T_GRAB'] * V_:.4f};  fPlace := fbArr.fArr + {L['T_PICK'] * V_:.4f};
+        END_IF
+    END_IF
+END_IF
+bVacuum := fMaster < fPlace;
 """
-    files["FB_QC.st"] = f"""// FB_QC - camera verdict (edge PC via ADS) + colour sensor; kick on the fly.
+    files["FB_QC.st"] = f"""// FB_QC - camera verdict (edge PC via ADS: stQc, one per puck) + colour sensor; kick on the fly.
 // Camera -> kicker = {L['CAM_X'] - L['KICK_X']:.0f} mm = {(L['CAM_X'] - L['KICK_X']) / L['V']:.1f} s >= AI latency {L['AI_LATENCY']:g} s.
+// A rejected cookie is kicked when its puck reaches the kicker ({int(L['KICK_T'] * 1000)} ms pulse). Whether it left is
+// known at the transfer (I1): until then the puck is 'kicked' and keeps its data.
 FUNCTION_BLOCK FB_QC
-VAR_INPUT fMasterPos : LREAL; END_VAR
-VAR fKickPos : LREAL := {M.s_back(L['KICK_X']):.1f}; aReject : ARRAY[0..{L['N'] - 1}] OF BOOL; END_VAR
-// verdict k arrives -> aReject[k] := TRUE; write NFC-W2; when puck k reaches fKickPos: pulse GVL_IO.{v['Q18']} {int(L['KICK_T'] * 1000)} ms
+VAR_IN_OUT aPuck : T_PuckArray; END_VAR
+VAR_INPUT fMaster : LREAL; stQc : ST_QcResult; END_VAR
+VAR_OUTPUT bKick : BOOL; nKicks, nVerdicts : DINT; END_VAR
+VAR fbKick : FB_Arrivals; nSeen, pk : INT; fKickEnd : LREAL; bFirst : BOOL := TRUE; END_VAR
+IF bFirst THEN nSeen := stQc.nSeq;  bFirst := FALSE; END_IF
+IF stQc.nSeq <> nSeen THEN                 // a new verdict: 1 pass, 2 reject
+    nSeen := stQc.nSeq;  aPuck[stQc.nPuck].nVerdict := stQc.nVerdict;  nVerdicts := nVerdicts + 1;
+END_IF
+fbKick(fMaster := fMaster, fStation := {sl['kick']:.9f});
+IF fbKick.bArrive THEN
+    pk := fbKick.nPuck;
+    IF aPuck[pk].bFull AND NOT aPuck[pk].bKicked AND aPuck[pk].nVerdict = 2 THEN
+        aPuck[pk].bKicked := TRUE;  fKickEnd := fbKick.fArr + {L['KICK_T'] * V_:.4f};  nKicks := nKicks + 1;
+    END_IF
+END_IF
+bKick := fMaster < fKickEnd;
 """
     files["FB_DeltaPicker.st"] = f"""// FB_DeltaPicker - conveyor tracking pick of a moving cookie, place into the lane pocket.
-// Kinematics: the NC delta transformation (TF5110-class, licence to confirm) with conveyor
-// tracking coupled to the master axis; the tracking camera CAM2 gives pose + phase. A is
-// upstream and picks; B catches what A missed (N+1). Placement budget: backlash + steps
-// {''}<= DELTA_REP (proven in line_model.sizing with the Jacobian).
+// Kinematics: the NC delta transformation (TF5110-class, licence to confirm) with conveyor tracking coupled to the
+// master axis executes stJob (the puck, the lane, the master position to start at). A is upstream and picks; B
+// catches what A missed (N+1). Placement budget: backlash + steps <= DELTA_REP (line_model.sizing, the Jacobian).
+// A passing pass-verdict cookie is taken if the delta is free (after its last pick, {L['T_PICK']:g} s) and its lane is not
+// indexing, early enough to grip ({L['T_GRAB']:g} s) before the puck leaves the reach; else B counts it missed (it
+// recirculates). The grip is known from the vacuum at T_GRAB: the pick is booked when it is decided (the tray fill,
+// a full tray indexes the lane: blocked {L['T_INDEX']:g} s) and taken back if the cup holds nothing.
 FUNCTION_BLOCK FB_DeltaPicker
-VAR_INPUT fMasterPos : LREAL; bUpstream : BOOL; bPartnerMissed : BOOL; END_VAR
-VAR_OUTPUT bMissed : BOOL; END_VAR
-VAR eState : E_PickState; END_VAR
-// GRIP: vacuum valve ON, wait for the vacuum switch (.OK); no OK within {L['T_GRAB']:g} s -> bMissed (the cookie recirculates)
+VAR_IN_OUT stJob : ST_DeltaJob; aPuck : T_PuckArray; aLane : T_LaneArray; END_VAR
+VAR_INPUT fMaster : LREAL; nDelta : INT; fIn : LREAL; fOut : LREAL; nVacuum : INT; END_VAR
+VAR_OUTPUT bVacuum : BOOL; bMissed : BOOL; nPicks, nPickFail, nMissed, nRollback : DINT; END_VAR
+VAR fbArr : FB_Arrivals; pk, f, q : INT; t, tOut, tStart, tNow, fBusy, fHold : LREAL;
+    aFill : ARRAY[0..2] OF INT;            // cookies in this delta's tray, per lane
+    aQPuck, aQLane : ARRAY[0..3] OF INT; aQStart, aQPrev : ARRAY[0..3] OF LREAL; aQPack : ARRAY[0..3] OF BOOL;
+    nQHead, nQTail : INT;                  // the jobs given to the delta, not yet gripped
+END_VAR
+tNow := fMaster / {_r(V_)};
+fbArr(fMaster := fMaster, fStation := fIn);
+bMissed := FALSE;
+IF fbArr.bArrive THEN
+    pk := fbArr.nPuck;
+    IF aPuck[pk].bFull AND NOT aPuck[pk].bPending AND NOT aPuck[pk].bKicked AND aPuck[pk].nVerdict = 1 THEN
+        f := aPuck[pk].nFlav;
+        t := fbArr.fArr / {_r(V_)};
+        tOut := t + (fOut - fIn) / {_r(V_)};
+        tStart := MAX(t, MAX(fBusy, aLane[f].fBlock));
+        IF tStart + {_r(L['T_GRAB'])} <= tOut AND aLane[f].bCanPack THEN
+            fBusy := tStart + {_r(L['T_PICK'])};
+            stJob.nPuck := pk;  stJob.nCol := aPuck[pk].nCol;  stJob.nLane := f;  stJob.fRowPos := aPuck[pk].fRowPos;
+            stJob.fStart := tStart * {_r(V_)};  stJob.nJob := (stJob.nJob + 1) MOD 10000;
+            aPuck[pk].bPending := TRUE;
+            aQPuck[nQTail] := pk;  aQLane[nQTail] := f;  aQStart[nQTail] := tStart;  aQPack[nQTail] := FALSE;
+            aFill[f] := aFill[f] + 1;
+            IF aFill[f] >= {L['PACK']} THEN       // the tray is full: the lane indexes when this pick ends
+                aFill[f] := 0;  aQPack[nQTail] := TRUE;  aQPrev[nQTail] := aLane[f].fBlock;
+                aLane[f].fBlock := fBusy + {_r(L['T_INDEX'])};  aLane[f].fPackAt := fBusy;
+                aLane[f].nPackReq := aLane[f].nPackReq + 1;
+            END_IF
+            nQTail := (nQTail + 1) MOD 4;
+        ELSIF nDelta = 1 THEN
+            bMissed := TRUE;  nMissed := nMissed + 1;
+        END_IF
+    END_IF
+END_IF
+IF nQHead <> nQTail THEN                   // the grip of the oldest job
+    IF tNow >= aQStart[nQHead] + {_r(L['T_GRAB'])} THEN
+        pk := aQPuck[nQHead];  f := aQLane[nQHead];
+        IF nVacuum <= {VAC_OK} THEN
+            aPuck[pk].bFull := FALSE;  aPuck[pk].bPending := FALSE;  nPicks := nPicks + 1;
+            fHold := aQStart[nQHead] + {_r(L['T_PICK'])};   // held until it is placed
+        ELSE                               // not held: the cookie rides on, the booking is taken back
+            aPuck[pk].bPending := FALSE;  nPickFail := nPickFail + 1;
+            IF aQPack[nQHead] THEN
+                aFill[f] := {L['PACK'] - 1};  aLane[f].fBlock := aQPrev[nQHead];  aLane[f].nPackReq := aLane[f].nPackReq - 1;
+            ELSE
+                aFill[f] := aFill[f] - 1;
+            END_IF
+            q := (nQHead + 1) MOD 4;       // a later job of this delta already booked on the taken-back fill
+            IF q <> nQTail THEN nRollback := nRollback + 1; END_IF
+        END_IF
+        nQHead := (nQHead + 1) MOD 4;
+    END_IF
+END_IF
+bVacuum := tNow < fHold;
+IF nQHead <> nQTail THEN
+    IF tNow >= aQStart[nQHead] THEN bVacuum := TRUE; END_IF
+END_IF
 """
-    files["FB_Lane.st"] = f"""// FB_Lane - index one tray pitch when a tray is full; seal in the index pause ({L['SEAL_T']:g} s <= {L['T_INDEX']:g} s);
+    files["FB_Lane.st"] = f"""// FB_Lane - index one tray pitch ({tray:g} mm in {t_mv:g} s) when a tray is full, as the pick that filled it ends;
+// the pickers keep off the lane meanwhile ({L['T_INDEX']:g} s). Seal in the index pause ({L['SEAL_T']:g} s <= {L['T_INDEX']:g} s);
 // stacker lifts each pack through the pawls; the lift counter says 'cassette full' at {M.cass_cap()} packs;
 // shuttle swap (OPEN DESIGN ISSUE: a single bar cannot exchange two cassettes - see joints/README).
+// bCanPack: TRUE until the logistics (tray magazine, cassette, airlock) are written (DT-4b part 2).
 FUNCTION_BLOCK FB_Lane
-VAR_INPUT nLane : INT; END_VAR
-VAR nPacks : INT; END_VAR
+VAR_IN_OUT axLane : AXIS_REF; stLane : ST_Lane; END_VAR
+VAR_INPUT fMaster : LREAL; END_VAR
+VAR_OUTPUT nPacks : DINT; END_VAR
+VAR fbPower : MC_Power; fbIndex : MC_MoveRelative; nDone : INT; bGo : BOOL; END_VAR
+fbPower(Axis := axLane, Enable := TRUE, Enable_Positive := TRUE, Enable_Negative := FALSE);
+stLane.bCanPack := TRUE;
+bGo := stLane.nPackReq > nDone AND fMaster / {_r(V_)} >= stLane.fPackAt AND fbPower.Status;
+fbIndex(Axis := axLane, Execute := bGo, Distance := {_r(tray)}, Velocity := {_r(2 * tray / t_mv)},
+        Acceleration := {_r(4 * tray / t_mv ** 2)}, Deceleration := {_r(4 * tray / t_mv ** 2)});
+IF fbIndex.Done THEN nDone := nDone + 1;  nPacks := nPacks + 1; END_IF
 """
     files["DUT_PhysicalAI.st"] = f"""// timestamped I/O and the record every learned model is trained on
 TYPE ST_TsInput : STRUCT bNewEdge : BOOL; nTimestamp : ULINT; END_STRUCT END_TYPE     // EL1252 (DC ns)
@@ -1035,6 +1229,19 @@ TYPE ST_TsOutput : STRUCT bArm : BOOL; nFireAt : ULINT; END_STRUCT END_TYPE     
 TYPE T_ZoneArray : ARRAY[0..{len(L['OVEN_ZONES']) - 1}] OF LREAL; END_TYPE   // per oven zone (one named type: FB_Band -> FB_Oven)
 TYPE E_PickState : (WAIT, TRACK, GRIP, LIFT, PLACE, RELEASE, HOME); END_TYPE
 TYPE E_AirlockOut : (IDLE, CARRY_OUT, INNER_CLOSE, OUTER_OPEN, SWAP, OUTER_CLOSE, INNER_OPEN, CARRY_IN); END_TYPE
+// the stations (DT-4b)
+TYPE ST_DeltaJob : STRUCT              // PLC -> a delta's motion program: a new nJob starts the job
+    nJob : INT; nPuck : INT; nCol : INT; nLane : INT;   // C: the band row (fRowPos) + column -> puck; A/B: puck -> lane
+    fRowPos : LREAL; fStart : LREAL;                    // band mm of the row's cut; master mm to start at
+END_STRUCT END_TYPE
+TYPE ST_QcResult : STRUCT nSeq : INT; nPuck : INT; nVerdict : INT; END_STRUCT END_TYPE   // edge PC: 1 pass, 2 reject
+TYPE ST_Puck : STRUCT
+    bFull : BOOL; bKicked : BOOL; bPending : BOOL;      // pending: a pick is decided, its grip not yet known
+    nFlav : INT; nCol : INT; nVerdict : INT; fRowPos : LREAL;
+END_STRUCT END_TYPE
+TYPE T_PuckArray : ARRAY[0..{L['N'] - 1}] OF ST_Puck; END_TYPE
+TYPE ST_Lane : STRUCT fBlock : LREAL; fPackAt : LREAL; nPackReq : INT; bCanPack : BOOL; END_STRUCT END_TYPE   // s (master)
+TYPE T_LaneArray : ARRAY[0..{len(M.FLAV) - 1}] OF ST_Lane; END_TYPE
 TYPE ST_PuckEvent : STRUCT
     nPuck : UINT; sNfc : STRING(16); nDcTime : ULINT; fMasterPos : LREAL;
     eStation : E_Station; aSignals : ARRAY[0..15] OF REAL; nImageId : UDINT; eOutcome : E_Outcome;

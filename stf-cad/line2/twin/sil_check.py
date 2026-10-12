@@ -17,7 +17,8 @@ drives against the plant and does what the proven design (oven_ctrl.py) says.
                    Z1 rides through inside the window; Z2 / Z3 (no N-1 capacity) hold: the depositor decouples and
                    stops (no row is cut after it), the zone comes back inside the window once the band has emptied
   C7 no nuisance   1 h of production, the transducer error against the proof (reads low): no phase alarm, nothing named
-  C8 hot restart   the PLC restarts (power cycle) on a hot running oven: no zone leaves the bake window
+  C8 hot restart   the PLC restarts (power cycle) on a hot running oven, timed so a row is cut while the rolls brake:
+                   no zone leaves the bake window, FB_Band = the true content after it
   C9 determinism   two runs of 300 s: identical I/O traces
   C10 PLC = model  1 h of production with a dough outage (the hopper runs dry, the AMR refills it 10 min later): the
                    compiled PLC and oven_ctrl.ZoneLoop (the proven loop) on the same true band content agree within
@@ -172,6 +173,8 @@ def c7_nuisance(lib=LIB):
 
 def c8_restart(lib=LIB):
     s = warm(lib)
+    while s.pitch - (s.ax["axQ40"].pos - s.last_cut) > 0.6:   # timed: the next row is cut while the rolls brake
+        s.step()                                              # (0.5 s, 1.1 mm of band) after the restart
     before = [s.plc.mon(f"fbBand.aZoneContent[{j}]") for j in range(3)]
     learned = [s.plc.mon(f"fbOven.a{v}[{j}]") for v in ("W0", "A1") for j in range(3)]
     s.plc.power_cycle()                                   # off / on: initial values, except the RETAIN variables
@@ -244,6 +247,7 @@ def c2_identity(src):
         for mm in re.finditer(r"(\w+)\s*:\s*ARRAY\[(\d+)\.\.(\d+)\]\s+OF\s+(FB_\w+)\s*;", g2):   # R13
             nm, lo, hi, fb = mm.group(1), int(mm.group(2)), int(mm.group(3)), mm.group(4)
             g2 = g2.replace(mm.group(0), ", ".join(f"{nm}_{k}" for k in range(lo, hi + 1)) + f" : {fb};")
+            g2 = re.sub(rf"\b{nm}\[(\d+)\]", rf"{nm}_\1", g2)
         if _norm(ported) != _norm(g2):
             a, b = _norm(ported), _norm(g2)
             i = next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
@@ -265,7 +269,7 @@ MUTANTS = {
     "M6 rows counted from the command, not the rolls' motion": (
         "FB_Band.st", r"IF ABS\(axRolls\.NcToPlc\.ActVelo\) > 0\.0 AND", "IF bOvenReady AND", "C8"),
     "M7 rows counted from turning rolls on an empty hopper (finding 15)": (
-        "FB_Band.st", r" AND fDoughRow >= [0-9.]+ THEN aCut", " THEN aCut", "C10"),
+        "FB_Band.st", r" AND fDoughRow >= [0-9.]+ THEN$", " THEN", "C10"),
     "M8 the row judged on the level after its slug left": (
         "FB_Band.st", r"^fDoughRow := MAX\(fDoughRow, fDough\);", "fDoughRow := fDough;", "C10"),
 }

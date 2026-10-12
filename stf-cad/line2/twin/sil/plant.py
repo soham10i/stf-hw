@@ -14,6 +14,10 @@ DT-4a: the plant the compiled PLC runs against (software in the loop) - what the
             (sqrt(power ratio) for the supply) through the transducer (first-order t_resp / 3, accuracy acc of range
             with a chosen sign) -> aiBCn (0..32767 = 0..20 A).
   Safety    xSafeRunPermit: TRUE unless a test drops it (the TwinSAFE side is DT-4c).
+  Lanes     axQ20..22 in position mode (Mode 5: to Target at Velocity with the acceleration limit, MC_MoveRelative).
+  Running   running=(master mm, band mm): the line was already running when the PLC starts - the NC keeps the master
+            at v until the PLC's first velocity command (a PLC start does not stop the NC), the band where it is.
+  Products  _products() after the NC: nothing here; twin/sil/line.py (DT-4b) moves the cookies.
 """
 import math
 import os
@@ -37,7 +41,7 @@ class Axis:
 
 
 class SilPlant:
-    def __init__(self, T0=None, true=None, ct_sign=-1.0, dough=True, lib=None):
+    def __init__(self, T0=None, true=None, ct_sign=-1.0, dough=True, lib=None, running=None):
         """dough: True = the hopper is kept full (an endless supply), False = empty, a number = kg in the hopper."""
         self.plc = PLC(lib)
         self.pl = OC.Plant()
@@ -61,15 +65,21 @@ class SilPlant:
         self.stock = L["DOUGH_KG"] if dough is True else float(dough or 0.0)
         self.tof = M.hopper_tof()
         self.row_kg = L["BAND"]["rows"] * L["DOUGH_M"]
-        self.ax = {a: Axis(a) for a in ("axQ1", "axQ40", "axQ41", "axMasterEnc")}
-        self.ax["axQ1"].vel = 0.0
+        self.ax = {a: Axis(a) for a in ("axQ1", "axQ40", "axQ41", "axMasterEnc", "axQ20", "axQ21", "axQ22")}
+        self.hold = running is not None                      # the NC keeps the master running until commanded
+        if running:
+            m0, b0 = running
+            for a in ("axQ1", "axMasterEnc"):
+                self.ax[a].pos, self.ax[a].vel = m0, L["V"]
+            self.ax["axQ40"].pos = b0
         st = M.stations()
         self.z_off = [z - st["dep"] for z in st["zones"]]
         self.zlen = M.zone_len()
         self.pitch = M.band_v() * L["BAND"]["rows"] * M.takt()
         self.rows_full = self.zlen / self.pitch
         self.cuts = []                                       # band positions of the rows really cut
-        self.last_cut = 0.0
+        self.last_cut = self.ax["axQ40"].pos
+        self.n_cuts = 0
         self.t = 0.0
         self.scans = 0
         self._inputs()
@@ -89,7 +99,7 @@ class SilPlant:
         for a, ax in self.ax.items():
             p[f"sil_{a}_ActPos"] = ax.pos
             p[f"sil_{a}_ActVelo"] = ax.vel
-            p[f"sil_{a}_Enabled"] = 1 if (a != "axQ1" or p["sil_axQ1_Enable"]) else 0
+            p[f"sil_{a}_Enabled"] = 1 if (a not in ("axQ1", "axQ20", "axQ21", "axQ22") or p[f"sil_{a}_Enable"]) else 0
 
     def content(self, band=None):
         """The TRUE band content per zone (0..1): rows really on the band between each zone's walls (at the band's
@@ -106,7 +116,11 @@ class SilPlant:
     def _nc(self):
         p = self.plc
         m = self.ax["axQ1"]
+        if self.hold and p["sil_axQ1_Mode"] == 1:
+            self.hold = False
         target = p["sil_axQ1_Velocity"] if (p["sil_axQ1_Enable"] and p["sil_axQ1_Mode"] == 1) else 0.0
+        if self.hold:
+            target = m.vel
         acc = max(p["sil_axQ1_Accel"], 1e-9)
         dv = max(-acc * DT, min(acc * DT, target - m.vel))
         v0 = m.vel
@@ -130,6 +144,19 @@ class SilPlant:
             elif mode == 0:
                 ax.vel = 0.0
             ax.pos += ax.vel * DT                             # mode 4: free running at the last velocity
+        for a in ("axQ20", "axQ21", "axQ22"):
+            ax = self.ax[a]
+            if p[f"sil_{a}_Mode"] != 5 or not p[f"sil_{a}_Enable"]:
+                ax.vel = 0.0
+                continue
+            r = p[f"sil_{a}_Target"] - ax.pos                    # position mode: accelerate, cruise, brake to stop
+            acc, vmax = max(p[f"sil_{a}_Accel"], 1e-9), p[f"sil_{a}_Velocity"]
+            v = min(vmax, abs(ax.vel) + acc * DT, math.sqrt(2.0 * acc * abs(r)))
+            if v * DT >= abs(r):
+                ax.pos, ax.vel = p[f"sil_{a}_Target"], 0.0
+            else:
+                ax.vel = math.copysign(v, r)
+                ax.pos += ax.vel * DT
 
     def _band(self):
         band, rolls = self.ax["axQ40"].pos, self.ax["axQ41"]
@@ -137,18 +164,33 @@ class SilPlant:
             self.last_cut += self.pitch
             if abs(rolls.vel) > 1e-9 and self.stock >= self.row_kg:   # the wire cuts a slug only from turning rolls
                 self.cuts.append(self.last_cut)
+                self.n_cuts += 1
+                self._cut(self.last_cut)
                 if not self.endless:
                     self.stock -= self.row_kg
         far = self.z_off[-1] + self.zlen
         self.cuts = [c for c in self.cuts if band - c < far + self.pitch]
 
+    def _cut(self, pos):
+        """A row was cut at band position pos (twin/sil/line.py puts its cookies on the band)."""
+
+    def _products(self):
+        """After the NC moved: the product layer (twin/sil/line.py)."""
+
     def _oven(self):
         p = self.plc
+        if not hasattr(self, "_zone_terms"):                 # the per-scan terms, in the same order (same floats)
+            self._zone_terms = [[(q, tag, w * self.tp.P[k] / self.pl.P[k]) for q, kk, ph, w, tag in self.els
+                                 if kk == k] for k in range(self.n)]
+            self._ph_terms = {ph: ([(q, tag, w / H.SUPPLY["U"] * math.sqrt(self.tp.P[k] / self.pl.P[k]))
+                                    for q, k, ph_, w, tag in self.els if ph_ == ph],
+                                   [(q, w / H.SUPPLY["U"]) for q, ph_, w in self.fans if ph_ == ph])
+                              for ph in self.phases}
         on = {tag: bool(p[q]) and tag not in self.broken for q, k, ph, w, tag in self.els}
         f = self.content()
         Tn = list(self.T)
         for k in range(self.n):
-            P = sum(w * self.tp.P[k] / self.pl.P[k] for q, kk, ph, w, tag in self.els if kk == k and on[tag])
+            P = sum(x for q, tag, x in self._zone_terms[k] if on[tag])
             nb = [j for j in (k - 1, k + 1) if 0 <= j < self.n]
             q_ = P - self.tp.load(k, self.T[k], f[k]) + sum(self.G * (self.T[j] - self.T[k]) for j in nb)
             Tn[k] = self.T[k] + q_ * DT / self.tp.C[k]
@@ -157,9 +199,9 @@ class SilPlant:
             self.y[k] += (self.T[k] - self.y[k]) * DT / self.tc_tau
         a = min(1.0, DT / (self.ct["t_resp"] / 3))
         for ph in self.phases:
-            amps = sum(w / H.SUPPLY["U"] * math.sqrt(self.tp.P[k] / self.pl.P[k])
-                       for q, k, ph_, w, tag in self.els if ph_ == ph and on[tag])
-            amps += sum(w / H.SUPPLY["U"] for q, ph_, w in self.fans if ph_ == ph and p[q])
+            el, fan = self._ph_terms[ph]
+            amps = sum(x for q, tag, x in el if on[tag])
+            amps += sum(x for q, x in fan if p[q])
             self.I_lag[ph] += (amps - self.I_lag[ph]) * a
 
     def step(self, n=1):
@@ -168,6 +210,7 @@ class SilPlant:
             self.plc.scan()
             self._nc()
             self._band()
+            self._products()
             self._oven()
             self.scans += 1
             self.t = round(self.scans * DT, 6)

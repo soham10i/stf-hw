@@ -292,18 +292,60 @@ them, and the generated TwinCAT files now use them.
 | C10 PLC = model | 1 h of production; the hopper runs dry at 14.4 min and is refilled at 25 min. The compiled PLC and `oven_ctrl.ZoneLoop` on the same true band content: within 0.16 K (tolerance 0.5 K); FB_Band = the true content at 3,600 / 3,600 s; worst zone 0.62 K; no hold |
 | mutants | M1-M8 (findings 1, 2, 7, 11 + 13, 12, 14, 15 and the post-cut level put back) each rejected |
 
-## DT-4b The stations (to build)
+## DT-4b The stations - part 1 built: the product flow under PLC control
 
-- Write the station logic the 9 stubs only describe, generated in `plc_io.py`:
-  - delta C transfer;
-  - QC + kicker;
-  - the delta pickers;
-  - the lanes (index, seal, stack);
-  - the AMR ports and airlocks;
-  - the data tag.
-- Extend the plant to the full 181-signal sensor image (`SIM_MODELS.md` §3.4).
-- The plant obeys the PLC's outputs instead of line_sim's decisions.
-- **Proof:** the PLC-run line reproduces `sim_results.json["nominal_1h"]`, with the random outcomes (defects, grips, QC errors) drawn from one table shared by line_sim and the plant.
+**What runs.** The generator (`plc_io.py`) now writes the station logic the stubs only described, and the compiled
+program runs it against the plant's product side (`twin/sil/line.py`):
+
+- `FB_Arrivals`: which puck reaches a station, and at which exact master position, from the master alone (puck k is
+  at station s when the master is at s - k P, mod the loop);
+- `FB_Transfer` (delta C): the rows FB_Band really cut, the pick window judged where the band was when the puck
+  arrived, I1 = puck full, the grip known from the vacuum after T_GRAB (a failed grip leaves the cookie for the next
+  puck), the rows past the nose counted lost;
+- `FB_QC`: the edge PC's verdict per puck (`stQc`), the kick on the fly; a kicked puck stays "kicked" until I1
+  confirms it empty at the transfer;
+- `FB_DeltaPicker` A / B: line_sim's rule (free delta, lane not indexing, a grip before the puck leaves the reach,
+  else B counts it missed), booked when decided, taken back if the cup holds nothing;
+- `FB_Lane`: one tray pitch (MC_MoveRelative) when a tray is full, as the pick that filled it ends.
+
+The deltas take a **job** (`ST_DeltaJob`: puck, lane / band row + column, the master position to start at): the
+kinematic group with conveyor tracking executes it. The plant draws every outcome the PLC cannot know with
+line_sim's **keyed** draws (`line_sim.keyed`: the same luck for the same cookie in any event order) and tells the
+PLC through its sensors: vacuum (mbar), I1, the verdict, the lane axis.
+
+Port additions: R3 IO-Link process data (ToF distance, vacuum) as INT; R14 the job and verdict channels as located
+SIL variables; SIM_MC `MC_MoveRelative` (mode 5); the lane axes Q20-Q22.
+
+**Findings (by review while writing the stations):**
+
+| # | Found by | Finding |
+|---|---|---|
+| 16 | review | FB_MasterAxis wrapped the master at N x P = 3840.000 mm; the chain loop is 3840.037 mm: the stations drift 0.7 mm/h, 17 mm a day (mutant N2: 2,544 events wrong in 1 h) |
+| 17 | review | the band's gear ratio was rounded to 0.001 mm/s: the rows are cut 0.5 s/h early against the master, a cookie misses its puck after ~2 h. Now exact (mutant N1, caught by the deposit times) |
+
+The station constants are emitted at 1 nm (they were rounded to 0.1 µm: delta A's reach was 4e-5 mm short).
+
+**Gate - `sil_flow_check.py`** (reference: `line_sim.flow("nominal_1h", outcomes="keyed", ideal=True)`):
+
+| Proof | Result |
+|---|---|
+| F1 event for event | 1 h: 3,140 of 3,140 model events - every row cut when line_sim deposits it (176), 898 loads, 2 failed grips, 892 verdicts, 33 kicks, 854 picks, 4 failed picks, 281 packs) in the plant on the same puck / cookie / delta / lane within 10 ms, none extra; the same 11 cookies off the nose |
+| F2 the PLC's counts | loaded 898, recirculated 0, empty 0, lost 11, picks A 850 / B 4, missed 0, kicked 33, packs 281 = the model |
+| F3 physics | no impossible command; the PLC's puck table = the pucks; no tracking error; no taken-back booking reused |
+| F4 oven | worst zone 0.62 K while the line runs |
+| mutants | N1 finding 17 (172 events off), N2 finding 16 (2,544), N3 kick the passed (1,642), N4 no take-back of a failed pick (136), N5 a tray of 2 |
+
+Not covered yet: the nominal hour has no recirculating puck (nor does the model), so the I1 path waits for delta
+availability (part 2); the lane block never binds (one flavour every 12 s at a delta, more than T_PICK + T_INDEX) -
+a mutant that ignores it survives the nominal hour, and the delta-down scenarios of part 2 must exercise it.
+
+## DT-4b part 2 (to build)
+
+- Delta availability (ready / fault from the kinematic group) and the scenarios with a delta down (recirculation).
+- Logistics: tray magazines, cassettes, the out and boxes airlocks, the AMR ports (`FB_AmrPorts`, `FB_Airlock`);
+  dough and topping stock (IOL1, IOL5-7), the reject drawer (IOL4).
+- Sealer and stacker in the index pause; the data tag (`FB_DataTag`), the camera triggers.
+- **Proof:** the PLC-run line = `line_sim` keyed with logistics (`nominal_1h` and an 8 h shift).
 
 ## DT-4c Safety and the rest (to build)
 

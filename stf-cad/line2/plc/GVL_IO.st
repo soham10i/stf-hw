@@ -43,7 +43,7 @@ VAR_GLOBAL
     axdelta_C_M180                  : AXIS_REF;   // -KF23 ch1      delta_C_motor_180            stepper 17HS19-2004D-E1000+SWG17-30
     axdelta_C_M300                  : AXIS_REF;   // -KF24 ch1      delta_C_motor_300            stepper 17HS19-2004D-E1000+SWG17-30
     qdelta_C_VAC             AT %Q* : BOOL;   // -KF6 ch11      delta_C_cup_a                vacuum ejector valve
-    ioldelta_C_VAC_P         AT %I* : ARRAY[0..31] OF BYTE;   // -KF15 ch2      delta_C_cup_a                vacuum level (analogue grip quality)
+    ioldelta_C_VAC_P         AT %I* : INT;   // -KF15 ch2      delta_C_cup_a                vacuum level (analogue grip quality)
     iI1                      AT %I* : BOOL;   // -KF1 ch13      I1_full_check                puck already full (recirculating) -> delta C does NOT place 
     iolNFC_W                 AT %I* : ARRAY[0..31] OF BYTE;   // -KF15 ch1      nfc_writer                   RFID/NFC head (IO-Link)
     itsI9                    AT %I* : ST_TsInput;   // -KF43 ch1      I9_landing_check             landing check after the place: is the cookie seated in the n
@@ -61,12 +61,12 @@ VAR_GLOBAL
     axdelta_A_M105                  : AXIS_REF;   // -KF27 ch1      delta_A_motor_105            stepper 17HS19-2004D-E1000+SWG17-30
     axdelta_A_M225                  : AXIS_REF;   // -KF28 ch1      delta_A_motor_225            stepper 17HS19-2004D-E1000+SWG17-30
     qdelta_A_VAC             AT %Q* : BOOL;   // -KF6 ch14      delta_A_cup_a                vacuum ejector valve
-    ioldelta_A_VAC_P         AT %I* : ARRAY[0..31] OF BYTE;   // -KF16 ch2      delta_A_cup_a                vacuum level (analogue grip quality)
+    ioldelta_A_VAC_P         AT %I* : INT;   // -KF16 ch2      delta_A_cup_a                vacuum level (analogue grip quality)
     axdelta_B_M165                  : AXIS_REF;   // -KF29 ch1      delta_B_motor_165            stepper 17HS19-2004D-E1000+SWG17-30
     axdelta_B_M285                  : AXIS_REF;   // -KF30 ch1      delta_B_motor_285            stepper 17HS19-2004D-E1000+SWG17-30
     axdelta_B_M405                  : AXIS_REF;   // -KF31 ch1      delta_B_motor_405            stepper 17HS19-2004D-E1000+SWG17-30
     qdelta_B_VAC             AT %Q* : BOOL;   // -KF6 ch15      delta_B_cup_a                vacuum ejector valve
-    ioldelta_B_VAC_P         AT %I* : ARRAY[0..31] OF BYTE;   // -KF16 ch3      delta_B_cup_a                vacuum level (analogue grip quality)
+    ioldelta_B_VAC_P         AT %I* : INT;   // -KF16 ch3      delta_B_cup_a                vacuum level (analogue grip quality)
     qtsCAM2_TRG              AT %Q* : ST_TsOutput;   // -KF44 ch2      track_camera                 camera trigger (timestamped)
     iolNFC_R                 AT %I* : ARRAY[0..31] OF BYTE;   // -KF16 ch1      nfc_pick                     RFID/NFC head (IO-Link)
     axQ20                           : AXIS_REF;   // -KF32 ch1      lane_weiss_frame             stepper mini belt conveyor 60, end drive 17HS19-2004D-E1000+PG5 inside the frame
@@ -181,4 +181,9 @@ VAR_GLOBAL
     iQ38_STL                 AT %I* : BOOL;   // -KF3 ch10      sealer_blau_head             safety temperature limiter tripped (SF4, own element of a duplex thermocouple; its relay contact is in the heater load path)
     axMasterEnc                     : AXIS_REF;   // NC encoder axis on B1: the virtual master (gearing, cams)
     xSafeRunPermit           AT %I* : BOOL;   // EL6910 standard process data: no stop demand, doors locked, resets done
+    stDeltaC                        : ST_DeltaJob;   // delta C: the job its motion program (kinematic group + conveyor tracking) executes
+    stDeltaA                        : ST_DeltaJob;   // delta A: the job its motion program (kinematic group + conveyor tracking) executes
+    stDeltaB                        : ST_DeltaJob;   // delta B: the job its motion program (kinematic group + conveyor tracking) executes
+    stQc                            : ST_QcResult;   // the QC verdict, written by the edge PC (ADS) per puck
+    xHmiLoad                 AT %I* : BOOL;   // HMI start of production: load cookies into the pucks
 END_VAR
