@@ -73,6 +73,18 @@ SCENARIOS = {
 RATES = dict(p_defect=0.03, recall=0.98, false_reject=0.01, kick_ok=0.999)
 
 
+def keyed(seed):
+    """A draw that depends only on WHAT is drawn (kind + cookie row / column + attempt), never on the order of the
+    draws: the PLC-in-the-loop plant (twin/sil) and this model then see the same luck for the same cookie even
+    when their events run in a different order."""
+    import hashlib
+
+    def draw(*key):
+        h = hashlib.blake2b(repr((seed,) + key).encode(), digest_size=8).digest()
+        return int.from_bytes(h, "big") / 2.0 ** 64
+    return draw
+
+
 def run(name="nominal_1h", seed=7, **kw):
     """The scenario's KPIs (sim_results.json): flow() run to its horizon."""
     g = flow(name, seed, **kw)
@@ -89,10 +101,25 @@ def flow(name="nominal_1h", seed=7, **kw):
     with its machine time; run() drains it. Reporting only: no yield changes the logic (sim_results.json is
     byte-identical with and without the reports). Cookies get an id at deposit (their genealogy / bake log).
     kinds: deposit, starved, throttled, band_lost, grip_fail, load, recirc, qc, kick, kick_fail, kick_blocked, pick,
-    pick_fail, missed, pack, exchange, cassette_out, amr_go, amr_done"""
+    pick_fail, missed, pack, exchange, cassette_out, amr_go, amr_done
+    kw outcomes="keyed": every random outcome is keyed by its cookie (keyed()), not drawn in sequence;
+    kw ideal=True: unlimited stock, boxes, cassettes and reject drawer - the stations alone (no logistics).
+    The defaults are the model of sim_results.json."""
     out = []
     cid = [0]
     sc = {**SCENARIOS.get(name, {}), **kw}
+    ideal = sc.get("ideal", False)
+    kd = keyed(seed) if sc.get("outcomes") == "keyed" else None
+    tries = {}
+
+    def chance(kind, c, *more):
+        """The random number of one outcome: rnd in sequence (default) or keyed by the cookie (row, col)."""
+        if kd is None:
+            return rnd.random()
+        k = (kind, c[0], c[1]) + more
+        n = tries.get(k, 0)
+        tries[k] = n + 1
+        return kd(*k, n)
     horizon = sc.get("horizon", H1)
     rnd = random.Random(seed)
     T, Lp, v, P = M.takt(), M.loop_len(), L["V"], L["PITCH"]
@@ -259,18 +286,18 @@ def flow(name="nominal_1h", seed=7, **kw):
                     k["throttled"] += rows                   # agent: no dough into an oven nobody can unload
                     out.append((t, "throttled", dict(row=pk)))
                     continue
-                if dough["lvl"] < rows * L["DOUGH_M"]:
+                if not ideal and dough["lvl"] < rows * L["DOUGH_M"]:
                     k["starved_raw"] += rows
                     out.append((t, "starved", dict(row=pk)))
                     continue
-                dough["lvl"] -= rows * L["DOUGH_M"]
-                if dough["lvl"] <= L["REQ_HOPPER"] * L["DOUGH_KG"]:
+                dough["lvl"] -= 0.0 if ideal else rows * L["DOUGH_M"]
+                if not ideal and dough["lvl"] <= L["REQ_HOPPER"] * L["DOUGH_KG"]:
                     request("raw", "dough", t + dough["lvl"] / M.dough_rate())
             cookies = []
             for j in range(rows):
                 f = F[M.row_flavour(j)]
-                topped = pre or top[f] >= L["TOPPING"]["m"]
-                if not pre and topped:
+                topped = pre or ideal or top[f] >= L["TOPPING"]["m"]
+                if not pre and not ideal and topped:
                     top[f] -= L["TOPPING"]["m"]
                     if top[f] <= L["REQ_HOPPER"] * L["TOP_KG"]:
                         request("raw", f, t + top[f] / (L["TOPPING"]["m"] * rf))
@@ -294,14 +321,14 @@ def flow(name="nominal_1h", seed=7, **kw):
             if not band or band[0][0] > t:
                 k["empty_slots"] += 1
                 continue
-            if rnd.random() > L["PICK_OK"]:
+            if chance("transfer", (band[0][5], band[0][6])) > L["PICK_OK"]:
                 out.append((t, "grip_fail", dict(pk=pk, id=band[0][4])))
                 continue                                     # the grip failed: it stays on the band, next puck
             b_ = band.pop(0)
             f, topped = b_[2], b_[3]
             k["untopped"] += not topped
-            puck[pk] = dict(flav=f, oven=1, defect=rnd.random() < RATES["p_defect"] or not topped, qc=None,
-                            id=b_[4])
+            puck[pk] = dict(flav=f, oven=1, defect=chance("defect", (b_[5], b_[6])) < RATES["p_defect"] or not topped,
+                            qc=None, id=b_[4], row=b_[5], col=b_[6])
             k["loaded"] += 1
             out.append((t, "load", dict(pk=pk, id=b_[4], row=b_[5], col=b_[6], flav=f, topped=topped,
                                         defect=puck[pk]["defect"])))
@@ -310,19 +337,19 @@ def flow(name="nominal_1h", seed=7, **kw):
         elif sname == "qc":
             bad = c["defect"] or c["oven"] > 1
             if bad:
-                c["qc"] = "reject" if rnd.random() < RATES["recall"] else "pass"
+                c["qc"] = "reject" if chance("qc", (c["row"], c["col"])) < RATES["recall"] else "pass"
             else:
-                c["qc"] = "reject" if rnd.random() < RATES["false_reject"] else "pass"
+                c["qc"] = "reject" if chance("qc", (c["row"], c["col"])) < RATES["false_reject"] else "pass"
                 if c["qc"] == "reject":
                     k["false_rejects"] += 1
             out.append((t, "qc", dict(pk=pk, id=c["id"], verdict=c["qc"], bad=bad)))
         elif sname == "kick":
             if c["qc"] == "reject":
-                if rej["lvl"] >= reject_cap:
+                if not ideal and rej["lvl"] >= reject_cap:
                     k["reject_overflow"] += 1
                     out.append((t, "kick_blocked", dict(pk=pk, id=c["id"])))
                     continue
-                if rnd.random() < RATES["kick_ok"]:
+                if chance("kick", (c["row"], c["col"])) < RATES["kick_ok"]:
                     k["rejected"] += 1
                     k["burnt"] += c["oven"] > 1
                     puck[pk] = None
@@ -339,11 +366,11 @@ def flow(name="nominal_1h", seed=7, **kw):
             f = c["flav"]
             t_out = t + (st[f"d{d}_out"] - st[f"d{d}_in"]) / v
             start = max(t, busy[d], lane_block[f])
-            can_pack = boxes[f] > 0 and (active[f] < ccap + buf if lock else
-                                         not (active[f] >= ccap and standby_full[f]))
+            can_pack = ideal or (boxes[f] > 0 and (active[f] < ccap + buf if lock else
+                                                   not (active[f] >= ccap and standby_full[f])))
             if start + L["T_GRAB"] <= t_out and up(d, start, start + L["T_PICK"]) and can_pack:
                 busy[d] = start + L["T_PICK"]
-                if rnd.random() > L["PICK_OK"]:
+                if chance("pick", (c["row"], c["col"]), d) > L["PICK_OK"]:
                     out.append((start, "pick_fail", dict(pk=pk, id=c["id"], d=d)))
                     continue
                 puck[pk] = None
@@ -356,12 +383,12 @@ def flow(name="nominal_1h", seed=7, **kw):
                 box_fill[(f, d)] += 1
                 if box_fill[(f, d)] >= L["PACK"]:
                     box_fill[(f, d)] = 0
-                    boxes[f] -= 1
+                    boxes[f] -= 0 if ideal else 1
                     out.append((busy[d], "pack", dict(lane=f, d=d, active=active[f] + 1, boxes=boxes[f])))
-                    if boxes[f] <= L["REQ_BOXMAG"] * L["BOXMAG_CAP"]:
+                    if not ideal and boxes[f] <= L["REQ_BOXMAG"] * L["BOXMAG_CAP"]:
                         request("boxes", f, t + boxes[f] * L["PACK"] / rf)
                     lane_block[f] = busy[d] + L["T_INDEX"]
-                    active[f] += 1
+                    active[f] += 0 if ideal else 1
                     if lock and (ccap - active[f]) * pack_s <= L["CASS_LEAD"] and not called[f]:
                         called[f] = True
                         request("cassette", f, t + (ccap - active[f]) * pack_s)
