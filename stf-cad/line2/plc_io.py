@@ -686,7 +686,8 @@ def twincat(ios):
             continue
         at = "AT %I*" if io.kind in ("DI", "AI", "TC", "IOL", "ENC", "DITS") else \
             ("AT %Q*" if io.kind in ("DO", "DOTS") else "")
-        lines.append(f"    {_var(io):24s} {at:7s}: {typ[io.kind]};   // {io.slot:14s} {io.part:28s} {io.desc}"
+        t_ = "INT" if io.hw == "tof_level" else typ[io.kind]   # a ToF level's process data: the distance, 0.1 mm
+        lines.append(f"    {_var(io):24s} {at:7s}: {t_};   // {io.slot:14s} {io.part:28s} {io.desc}"
                      + ("  [implied, not in CAD]" if not io.cad else ""))
     lines.append(f"    {'axMasterEnc':24s} {'':7s}: AXIS_REF;   // NC encoder axis on B1: the virtual master (gearing, cams)")
     lines.append(f"    {'xSafeRunPermit':24s} {'AT %I*':7s}: BOOL;   // EL6910 standard process data: no stop demand, "
@@ -712,7 +713,7 @@ fbSafety();                      // first: every station below runs only while f
 fbMaster(axDrive := GVL_IO.{v['Q1']}, axMaster := GVL_IO.axMasterEnc, nEncoder := GVL_IO.{v['B1']});
 fbOven(bRunEnable := fbSafety.bRunEnable, aContent := fbBand.aZoneContent);   // last cycle's content
 fbBand(axBand := GVL_IO.{v['Q40']}, axRolls := GVL_IO.{v['Q41']}, axMaster := GVL_IO.axMasterEnc,
-       bOvenReady := fbOven.bReady);
+       bOvenReady := fbOven.bReady, nDoughLevel := GVL_IO.{v['IOL1']});
 fbTransfer(fMasterPos := fbMaster.fPos, fBandPos := fbBand.fPos, bPuckFull := GVL_IO.{v['I1']});
 fbQC(fMasterPos := fbMaster.fPos);
 fbPickA(fMasterPos := fbMaster.fPos, bUpstream := TRUE);
@@ -945,18 +946,20 @@ F_InSlice := LMOD(fPhase - fStart + 1.0, 1.0) < fDuty;
 // one row of {L['BAND']['rows']} per {L['BAND']['rows']} pucks ({L['BAND']['rows'] * takt:.0f} s). The wire is cammed from the rolls.
 // Topping: rows k and k+3 get flavour k (Q2/Q3/Q4), {st['top'] - st['dep']:.0f} mm after the die.
 // A cold oven (bOvenReady FALSE) stops the depositor, never the band: what is in the oven bakes out.
-// aZoneContent (the oven's feed-forward): every row the depositor cuts (the rolls' measured motion) is remembered at
-// the band position of its cut; a zone's content = the rows between its walls / the {rows_full:.2f} rows a full zone holds.
+// aZoneContent (the oven's feed-forward): every row the depositor cuts (the rolls' measured motion, AND dough in the
+// hopper - IOL1) is remembered at the band position of its cut; a zone's content = the rows between its walls / the
+// {rows_full:.2f} rows a full zone holds. Turning rolls on an empty hopper cut nothing (DT-4a finding 15).
 FUNCTION_BLOCK FB_Band
 VAR_IN_OUT axBand : AXIS_REF; axRolls : AXIS_REF; axMaster : AXIS_REF; END_VAR   // by reference (MC blocks)
-VAR_INPUT bOvenReady : BOOL; END_VAR
+VAR_INPUT bOvenReady : BOOL; nDoughLevel : INT; END_VAR   // nDoughLevel: IOL1 distance to the dough, 0.1 mm
 VAR_OUTPUT fPos : LREAL; aZoneContent : T_ZoneArray; END_VAR   // 0..1 per zone, from the rows cut
 VAR RETAIN                                 // the rows on the band survive a power cycle (they are still there)
     aCut : ARRAY[0..31] OF LREAL;          // band position of each row cut (ring), -1 = empty
     nCut : INT; fLastCut : LREAL; bFirst : BOOL := TRUE;
 END_VAR
 VAR fbGearBand, fbGearRolls : MC_GearIn; fbGearOutRolls : MC_GearOut; fbHaltRolls : MC_Halt;
-    k, i : INT; d : LREAL;
+    k, i : INT; d : LREAL; fDough : LREAL;   // kg of dough in the hopper
+    fDoughRow : LREAL;                     // the most dough seen while this row was pressed out
     aZoneOff : ARRAY[0..{len(L['OVEN_ZONES']) - 1}] OF LREAL := [{', '.join(f"{x:.1f}" for x in zone_off)}];   // die -> zone start, mm of band
 END_VAR
 fbGearBand(Master := axMaster, Slave := axBand, Execute := TRUE, RatioNumerator := {_r(round(M.band_v() * 1000))},
@@ -966,14 +969,18 @@ fbGearRolls(Master := axMaster, Slave := axRolls, Execute := bOvenReady, RatioNu
 fbGearOutRolls(Slave := axRolls, Execute := NOT bOvenReady);
 fbHaltRolls(Axis := axRolls, Execute := NOT bOvenReady AND fbGearOutRolls.Done, Deceleration := {_r(L['V'] / 0.5)});
 fPos := axBand.NcToPlc.ActPos;
+fDough := ({_r(M.hopper_tof()['d_empty'])} - INT_TO_LREAL(nDoughLevel) * {_r(M.hopper_tof()['unit'])}) * {M.hopper_tof()['kg_mm']:.6f};
+fDoughRow := MAX(fDoughRow, fDough);       // the level drops as the slug leaves: judge the row on the level before
 IF bFirst THEN
     FOR i := 0 TO 31 DO aCut[i] := -1.0; END_FOR
     fLastCut := fPos;  bFirst := FALSE;
 END_IF
 IF fPos - fLastCut >= {pitch:.4f} THEN                  // one row pitch of band: the wire cuts a row if the rolls run
     fLastCut := fLastCut + {pitch:.4f};
-    // a row exists if the rolls REALLY turned (their actual velocity), not if they were told to: a halt brakes
-    IF ABS(axRolls.NcToPlc.ActVelo) > 0.0 THEN aCut[nCut] := fLastCut;  nCut := (nCut + 1) MOD 32; END_IF
+    // a row exists if the rolls REALLY turned (their actual velocity), not if they were told to: a halt brakes;
+    // and only from a hopper holding a row's dough ({L['BAND']['rows']} x {L['DOUGH_M']:g} kg)
+    IF ABS(axRolls.NcToPlc.ActVelo) > 0.0 AND fDoughRow >= {_r(L['BAND']['rows'] * L['DOUGH_M'])} THEN aCut[nCut] := fLastCut;  nCut := (nCut + 1) MOD 32; END_IF
+    fDoughRow := fDough;
 END_IF
 FOR k := 0 TO {len(L['OVEN_ZONES']) - 1} DO
     aZoneContent[k] := 0.0;

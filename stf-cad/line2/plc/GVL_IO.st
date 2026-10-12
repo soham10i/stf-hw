@@ -4,7 +4,7 @@ VAR_GLOBAL
     axQ1                            : AXIS_REF;   // -KF20 ch1      M1_master_drive              stepper 17HS19-2004D-E1000+PG27
     encB1                    AT %I* : UDINT;   // -KF18 ch1      B1_master_encoder            master encoder, 1024 ppr RS422
     axQ41                           : AXIS_REF;   // -KF21 ch1      M_dep_rolls                  stepper 17HS19-2004D-E1000+PG27
-    iolIOL1                  AT %I* : ARRAY[0..31] OF BYTE;   // -KF14 ch1      dep_hopper_level             ToF level (IO-Link)
+    iolIOL1                  AT %I* : INT;   // -KF14 ch1      dep_hopper_level             ToF level (IO-Link)
     qQ2                      AT %Q* : BOOL;   // -KF5 ch7       top_cyl_weiss                valve coil (ISO6432-16x25)
     iQ2_S1                   AT %I* : BOOL;   // -KF1 ch1       top_cyl_weiss                reed switch retracted (ISO6432-16x25)
     iQ2_S2                   AT %I* : BOOL;   // -KF1 ch2       top_cyl_weiss                reed switch extended (ISO6432-16x25)
@@ -14,9 +14,9 @@ VAR_GLOBAL
     qQ4                      AT %Q* : BOOL;   // -KF5 ch9       top_cyl_blau                 valve coil (ISO6432-16x25)
     iQ4_S1                   AT %I* : BOOL;   // -KF1 ch5       top_cyl_blau                 reed switch retracted (ISO6432-16x25)
     iQ4_S2                   AT %I* : BOOL;   // -KF1 ch6       top_cyl_blau                 reed switch extended (ISO6432-16x25)
-    iolIOL5                  AT %I* : ARRAY[0..31] OF BYTE;   // -KF14 ch2      top_level_weiss              ToF level (IO-Link)
-    iolIOL6                  AT %I* : ARRAY[0..31] OF BYTE;   // -KF14 ch3      top_level_rot                ToF level (IO-Link)
-    iolIOL7                  AT %I* : ARRAY[0..31] OF BYTE;   // -KF14 ch4      top_level_blau               ToF level (IO-Link)
+    iolIOL5                  AT %I* : INT;   // -KF14 ch2      top_level_weiss              ToF level (IO-Link)
+    iolIOL6                  AT %I* : INT;   // -KF14 ch3      top_level_rot                ToF level (IO-Link)
+    iolIOL7                  AT %I* : INT;   // -KF14 ch4      top_level_blau               ToF level (IO-Link)
     axQ40                           : AXIS_REF;   // -KF22 ch1      M_band                       stepper 17HS19-2004D-E1000+PG27
     qE1T1                    AT %Q* : BOOL;   // -KF5 ch12      oven_heater_E1T1             oven element SSR (500 W 230 V, L1)
     qE1T2                    AT %Q* : BOOL;   // -KF5 ch13      oven_heater_E1T2             oven element SSR (500 W 230 V, L2)
@@ -56,7 +56,7 @@ VAR_GLOBAL
     qQ18                     AT %Q* : BOOL;   // -KF6 ch13      kick_cylinder                valve coil (ISO6432-10x100)
     iQ18_S1                  AT %I* : BOOL;   // -KF1 ch14      kick_cylinder                reed switch retracted (ISO6432-10x100)
     iQ18_S2                  AT %I* : BOOL;   // -KF1 ch15      kick_cylinder                reed switch extended (ISO6432-10x100)
-    iolIOL4                  AT %I* : ARRAY[0..31] OF BYTE;   // -KF15 ch3      reject_level                 ToF level (IO-Link)
+    iolIOL4                  AT %I* : INT;   // -KF15 ch3      reject_level                 ToF level (IO-Link)
     axdelta_A_M_15                  : AXIS_REF;   // -KF26 ch1      delta_A_motor_-15            stepper 17HS19-2004D-E1000+SWG17-30
     axdelta_A_M105                  : AXIS_REF;   // -KF27 ch1      delta_A_motor_105            stepper 17HS19-2004D-E1000+SWG17-30
     axdelta_A_M225                  : AXIS_REF;   // -KF28 ch1      delta_A_motor_225            stepper 17HS19-2004D-E1000+SWG17-30

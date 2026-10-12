@@ -19,7 +19,12 @@ drives against the plant and does what the proven design (oven_ctrl.py) says.
   C7 no nuisance   1 h of production, the transducer error against the proof (reads low): no phase alarm, nothing named
   C8 hot restart   the PLC restarts (power cycle) on a hot running oven: no zone leaves the bake window
   C9 determinism   two runs of 300 s: identical I/O traces
-  It can fail      six mutants of the generated program - the findings DT-4a fixed, put back - are each rejected
+  C10 PLC = model  1 h of production with a dough outage (the hopper runs dry, the AMR refills it 10 min later): the
+                   compiled PLC and oven_ctrl.ZoneLoop (the proven loop) on the same true band content agree within
+                   C10_TOL at every step; FB_Band (from the rolls + the IOL1 level) = the true content at every second;
+                   every zone in the bake window, no hold (finding 15: rows counted from turning rolls on an empty
+                   hopper fed forward heat for dough that was not there: 12 K apart, a hold, a -4.4 K restart dip)
+  It can fail      eight mutants of the generated program - the findings DT-4a fixed, put back - are each rejected
 """
 import hashlib
 import json
@@ -42,6 +47,8 @@ from twin.sil.plant import SilPlant                        # noqa: E402
 L = M.L
 LIB = os.path.join(HERE, "out", "sil", "libstf2plc.dylib")
 WIN = L["BAKE_MARGIN"]
+C10_TOL = 0.5                                              # K, PLC (10 ms, 2 s PWM) vs ZoneLoop (0.5 s, averaged)
+C10_STOCK, C10_REFILL = 2.35, 1500.0                       # kg in the hopper (dry at ~14 min), the refill (s)
 TAGS = ["E1T1", "E1T2", "E1T3", "E1B1", "E1B2", "E2T1", "E2B1", "E3T1", "E3B1"]   # FB_Oven's element order
 
 
@@ -112,7 +119,7 @@ def c5_production(lib=LIB):
             t_ready = s.t
         worst = max(worst, max(abs(d) for d in dev(s)))
         plc_c = [s.plc.mon(f"fbBand.aZoneContent[{j}]") for j in range(3)]
-        true_c = s.content()
+        true_c = s.content(s.band_in)                   # at the band position the PLC read
         cont_max = max(cont_max, max(true_c))
         if any(abs(a - b) > 1e-5 for a, b in zip(plc_c, true_c)):      # same rows (the PLC's constant has 6 decimals)
             mism += 1
@@ -145,7 +152,7 @@ def c6_break(tag, lib=LIB):
             stop_v = abs(s.ax["axQ41"].vel)
         d = abs(dev(s)[k])
         worst_ride = max(worst_ride, d)
-        cmis += any(abs(s.plc.mon(f"fbBand.aZoneContent[{j}]") - c) > 1e-5 for j, c in enumerate(s.content()))
+        cmis += any(abs(s.plc.mon(f"fbBand.aZoneContent[{j}]") - c) > 1e-5 for j, c in enumerate(s.content(s.band_in)))
         if back is None and hold_t is not None and d <= WIN and not s.content()[k]:
             back = s.t - t0
     return dict(tag=tag, named=named, others=sorted(others), alarm=alarm_t, hold=hold_t is not None,
@@ -175,7 +182,7 @@ def c8_restart(lib=LIB):
     for _ in range(600):
         s.step(100)
         worst = max(worst, max(abs(d) for d in dev(s)))
-        cmis += any(abs(s.plc.mon(f"fbBand.aZoneContent[{j}]") - c) > 1e-5 for j, c in enumerate(s.content()))
+        cmis += any(abs(s.plc.mon(f"fbBand.aZoneContent[{j}]") - c) > 1e-5 for j, c in enumerate(s.content(s.band_in)))
     return worst, kept and cmis == 0
 
 
@@ -187,6 +194,28 @@ def c9_trace(lib=LIB):
         s.step(10)
         h.update(json.dumps([s.plc[n] for n in outs] + [round(v, 9) for v in s.y]).encode())
     return h.hexdigest()
+
+
+def c10_model(lib=LIB, T=3600.0):
+    s = SilPlant(lib=lib, dough=C10_STOCK)
+    pl = OC.Plant()
+    zl = OC.ZoneLoop(pl, OC.tune(pl))
+    n = round(OC.CTRL["DT"] / 0.01)
+    worst, mism, hold, dry, wdev = [0.0] * 3, 0, 0, None, 0.0
+    while s.t < T:
+        if s.t >= C10_REFILL and s.stock < s.row_kg:
+            s.refill()
+        zl.step(s.content())                               # the model sees the same true content
+        s.step(n)
+        if dry is None and s.stock < s.row_kg:
+            dry = s.t
+        worst = [max(w, abs(a - b)) for w, a, b in zip(worst, s.y, zl.y)]
+        wdev = max(wdev, max(abs(y - t) for y, t in zip(s.y, pl.Ts)))
+        if round(s.t, 6) % 1.0 == 0:
+            mism += any(abs(s.plc.mon(f"fbBand.aZoneContent[{j}]") - c) > 1e-5
+                        for j, c in enumerate(s.content(s.band_in)))
+            hold += bool(s.plc.mon("fbOven.bHold"))
+    return worst, mism, hold, dry, wdev
 
 
 # ---------------------------------------------------------------------------------------------- C2
@@ -234,7 +263,11 @@ MUTANTS = {
         (r" AND fNow_s - aNamedT\[j\] >= [0-9.]+ THEN", " THEN")], None, "C6"),
     "M5 the band memory is not RETAIN": ("FB_Band.st", r"^VAR RETAIN([^\n]*)$", r"VAR\1", "C8"),
     "M6 rows counted from the command, not the rolls' motion": (
-        "FB_Band.st", r"IF ABS\(axRolls\.NcToPlc\.ActVelo\) > 0\.0 THEN", "IF bOvenReady THEN", "C8"),
+        "FB_Band.st", r"IF ABS\(axRolls\.NcToPlc\.ActVelo\) > 0\.0 AND", "IF bOvenReady AND", "C8"),
+    "M7 rows counted from turning rolls on an empty hopper (finding 15)": (
+        "FB_Band.st", r" AND fDoughRow >= [0-9.]+ THEN aCut", " THEN aCut", "C10"),
+    "M8 the row judged on the level after its slug left": (
+        "FB_Band.st", r"^fDoughRow := MAX\(fDoughRow, fDough\);", "fDoughRow := fDough;", "C10"),
 }
 
 
@@ -258,6 +291,10 @@ def run_mutant(name):
     if test == "C3":
         frac, duty, bad, stag = c3_pwm(lib)
         caught, why = bool(bad) or not stag, f"{len(bad)} elements off their duty"
+    elif test == "C10":
+        w, mism, hold, dry, wdev = c10_model(lib)
+        caught = max(w) > C10_TOL or mism > 0 or hold > 0 or wdev > WIN
+        why = f"PLC vs model {max(w):.2f} K, content wrong {mism} s, hold {hold} s, worst zone {wdev:.2f} K"
     elif test == "C8":
         w, kept = c8_restart(lib)
         caught, why = w > WIN or not kept, f"restart dip {w:.1f} K, memory {'kept' if kept else 'lost or wrong'}"
@@ -289,7 +326,8 @@ def check(verbose=True):
     with Pool(min(os.cpu_count() or 4, 12)) as pool:
         jobs = {"c3": pool.apply_async(c3_pwm), "c4": pool.apply_async(c4_cold), "c5": pool.apply_async(c5_production),
                 "c7": pool.apply_async(c7_nuisance), "c8": pool.apply_async(c8_restart),
-                "c9a": pool.apply_async(c9_trace), "c9b": pool.apply_async(c9_trace)}
+                "c9a": pool.apply_async(c9_trace), "c9b": pool.apply_async(c9_trace),
+                "c10": pool.apply_async(c10_model)}
         brk = [pool.apply_async(c6_break, (t,)) for t in TAGS]
         muts = [pool.apply_async(run_mutant, (m,)) for m in MUTANTS]
         res = {k: v.get() for k, v in jobs.items()}
@@ -331,6 +369,12 @@ def check(verbose=True):
         f"{'kept (RETAIN)' if kept else 'LOST'}; worst zone {w8:.2f} K", f"kept; <= {WIN:g} K", kept and w8 <= WIN)
     row("C9 determinism", f"300 s of outputs + TCs: {'identical' if res['c9a'] == res['c9b'] else 'DIFFERENT'}",
         "identical", res["c9a"] == res["c9b"], res["c9a"][:12])
+    w10, mism10, hold10, dry10, wdev10 = res["c10"]
+    row("C10 PLC = model, dough outage", f"1 h, hopper dry at {dry10 / 60:.1f} min, refilled at {C10_REFILL / 60:.0f} "
+        f"min: |PLC - ZoneLoop| {max(w10):.2f} K (zones {', '.join(f'{x:.2f}' for x in w10)}); FB_Band = true content "
+        f"at {3600 - mism10}/3600 s; worst zone {wdev10:.2f} K; hold {hold10} s" if dry10 else "the hopper never ran dry",
+        f"<= {C10_TOL:g} K; all; <= {WIN:g} K; 0", dry10 is not None and max(w10) <= C10_TOL and mism10 == 0 and
+        wdev10 <= WIN and hold10 == 0)
     for name, test, caught, why in muts:
         row(f"mutant {name}", f"{'caught by ' + test if caught else 'NOT caught'}: {why}", "caught", caught)
 
@@ -338,7 +382,8 @@ def check(verbose=True):
         for name, val, lim, ok, note in rows:
             print(f"  [{'ok' if ok else 'FAIL'}] {name:52s} {val:90s} {lim:22s} {note}")
         print("\n".join(fails) if fails else "ALL SIL PROOFS PASS (compiles, port only, PWM, cold start, production, "
-                                             "heater break x9, no nuisance, hot restart, determinism, 6 mutants caught)")
+                                             "heater break x9, no nuisance, hot restart, determinism, PLC = model "
+                                             "through a dough outage, 8 mutants caught)")
     return rows, fails
 
 

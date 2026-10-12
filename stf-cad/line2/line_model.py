@@ -362,6 +362,15 @@ def dough_autonomy():
     return L["DOUGH_KG"] / dough_rate()
 
 
+def hopper_tof():
+    """The dough hopper's level sensor IOL1 (ToF, looking down from 24 mm under the rim): its process data is the
+    DISTANCE to the dough in 0.1 mm. d_empty = sensor face -> hopper floor (mm), kg_mm = kg of dough per mm of
+    level (the hopper's inner section x DOUGH_RHO). Dough (kg) = (d_empty - distance) x kg_mm."""
+    hl, hh = L["DEP_HOPPER"]
+    inner = (hl - 6.0) * (chamber_y()["i1"] - L["DEP_HOPPER_Y0"] - 6.0)          # 3 mm walls
+    return dict(d_empty=hh - 24.0, kg_mm=L["DOUGH_RHO"] * inner * 1e-9, unit=0.1)
+
+
 def topping_autonomy():
     """s of production in a full topping hopper (each flavour feeds a third of the cookies)."""
     return L["TOP_KG"] / (L["TOPPING"]["m"] * rate_flavour())

@@ -253,7 +253,7 @@ DT-4a therefore proves the part that exists (the oven and the drives) and DT-4b 
   - the thermocouple lag, giving `tcTCn`;
   - the phase currents through the transducer model (lag and accuracy), giving `aiBCn`.
 
-**Findings.** The generated program had 14 defects, all fixed in the generator (`plc_io.py`), never in its output:
+**Findings.** The generated program had 15 defects, all fixed in the generator (`plc_io.py`), never in its output:
 
 | # | Found by | Finding |
 |---|---|---|
@@ -271,15 +271,16 @@ DT-4a therefore proves the part that exists (the oven and the drives) and DT-4b 
 | 12 | **run** | a power cycle lost FB_Band's row memory: the feed-forward saw an empty band under a full one (a 12.4 K dip). Now `VAR RETAIN` (mutant M5) |
 | 13 | **run** | after a naming, the settling current named a second, innocent element on the same phase. Now a 1 s hold-off |
 | 14 | **run** | FB_Band counted rows from its *command* (`bOvenReady`) rather than the rolls' measured motion: the row cut while the rolls brake was missed (a 3.7 K dip). Now from `axRolls.NcToPlc.ActVelo` (mutant M6) |
+| 15 | **validation** | FB_Band counted a row whenever the rolls turned, **even on an empty hopper**. Through a dough outage the feed-forward heated for dough that was not there: the PLC ran 12.1 K from the proven loop and left the bake window. Now a row needs the hopper level IOL1 (ToF, process data = distance in 0.1 mm, `line_model.hopper_tof`) to have held a row's dough while it was pressed out (mutant M7). Judging on the level *after* the slug left misses the last row (3.7 K, mutant M8) |
 
 Also strict IEC typing: real literals (`20.0`, not `20`), `END_IF;` and a named `T_ZoneArray`. TwinCAT accepts all of
 them, and the generated TwinCAT files now use them.
 
-**Gate - `sil_check.py`** (all pass, ~1 min on 10 cores):
+**Gate - `sil_check.py`** (all pass, ~30 s on 10 cores):
 
 | Proof | Result |
 |---|---|
-| C1 compiles | 712 lines → MatIEC 0 errors, 0 warnings → native library; 133 located variables; the 9 stubs listed |
+| C1 compiles | 718 lines → MatIEC 0 errors, 0 warnings → native library; 138 located variables; the 9 stubs listed |
 | C2 port only | the 15 ported POUs = the generated ones token for token, apart from R1-R13 |
 | C3 PWM | each of the 9 elements conducts its zone's duty (within one scan in 200), in staggered slices |
 | C4 cold start | within ±2 K after 18.5 min (oven_ctrl S1: 18.3 min); overshoot 1.05 K (S1: 1.64 K); ready at 19.5 min |
@@ -288,7 +289,8 @@ them, and the generated TwinCAT files now use them.
 | C7 no nuisance | 1 h of production, transducer error against the proof: no phase alarm, nothing named |
 | C8 hot restart | power cycle on a running oven: rows + learned feed-forward kept (RETAIN), worst zone 0.42 K |
 | C9 determinism | 300 s of outputs + TCs identical |
-| mutants | M1-M6 (findings 1, 2, 7, 11 + 13, 12, 14 put back) each rejected |
+| C10 PLC = model | 1 h of production; the hopper runs dry at 14.4 min and is refilled at 25 min. The compiled PLC and `oven_ctrl.ZoneLoop` on the same true band content: within 0.16 K (tolerance 0.5 K); FB_Band = the true content at 3,600 / 3,600 s; worst zone 0.62 K; no hold |
+| mutants | M1-M8 (findings 1, 2, 7, 11 + 13, 12, 14, 15 and the post-cut level put back) each rejected |
 
 ## DT-4b The stations (to build)
 

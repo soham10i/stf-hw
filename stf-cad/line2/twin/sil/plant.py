@@ -6,6 +6,8 @@ DT-4a: the plant the compiled PLC runs against (software in the loop) - what the
             PLCopen: the slave keeps its velocity). axMasterEnc = the measuring wheel B1 on the master (no slip here).
   Band      the mesh band moves with axQ40. A row is cut every band pitch WHILE THE DEPOSITOR ROLLS (axQ41) TURN and
             there is dough - the physical truth, independent of what FB_Band believes.
+  Hopper    the dough stock (kg): every row cut takes rows x DOUGH_M; refill() is the AMR tipping a tub. IOL1 (ToF) reads
+            the distance to the dough, 0.1 mm (line_model.hopper_tof).
   Oven      oven_ctrl.Plant's zone model (or Mismatch: the real oven differs) integrated every 10 ms with the power of
             the elements whose SSR output is on at that scan (broken elements give none); the zone-to-zone exchange G;
             the thermocouple lag TC_TAU -> tcTCn (0.1 C); the phase currents of the conducting elements + fans
@@ -36,6 +38,7 @@ class Axis:
 
 class SilPlant:
     def __init__(self, T0=None, true=None, ct_sign=-1.0, dough=True, lib=None):
+        """dough: True = the hopper is kept full (an endless supply), False = empty, a number = kg in the hopper."""
         self.plc = PLC(lib)
         self.pl = OC.Plant()
         self.tp = true or self.pl
@@ -54,7 +57,10 @@ class SilPlant:
         self.I_lag = {ph: 0.0 for ph in self.phases}
         self.broken = set()
         self.permit = True
-        self.dough = dough
+        self.endless = dough is True
+        self.stock = L["DOUGH_KG"] if dough is True else float(dough or 0.0)
+        self.tof = M.hopper_tof()
+        self.row_kg = L["BAND"]["rows"] * L["DOUGH_M"]
         self.ax = {a: Axis(a) for a in ("axQ1", "axQ40", "axQ41", "axMasterEnc")}
         self.ax["axQ1"].vel = 0.0
         st = M.stations()
@@ -72,19 +78,23 @@ class SilPlant:
     def _inputs(self):
         p = self.plc
         p["xSafeRunPermit"] = 1 if self.permit else 0
+        tf = self.tof
+        p["iolIOL1"] = int(round((tf["d_empty"] - self.stock / tf["kg_mm"]) / tf["unit"]))
         for k in range(self.n):
             p[f"tcTC{k + 1}"] = int(round(self.y[k] * 10.0))
         for j, ph in enumerate(self.phases):
             amps = max(0.0, self.I_lag[ph] + self.ct_err)
             p[f"aiBC{j + 1}"] = int(round(min(amps, self.ct["range"]) / self.ct["range"] * 32767))
+        self.band_in = self.ax["axQ40"].pos                 # the band position the PLC sees this scan
         for a, ax in self.ax.items():
             p[f"sil_{a}_ActPos"] = ax.pos
             p[f"sil_{a}_ActVelo"] = ax.vel
             p[f"sil_{a}_Enabled"] = 1 if (a != "axQ1" or p["sil_axQ1_Enable"]) else 0
 
-    def content(self):
-        """The TRUE band content per zone (0..1): rows really on the band between each zone's walls."""
-        band = self.ax["axQ40"].pos
+    def content(self, band=None):
+        """The TRUE band content per zone (0..1): rows really on the band between each zone's walls (at the band's
+        position now, or at band - e.g. band_in, the position the PLC read in its last scan)."""
+        band = self.ax["axQ40"].pos if band is None else band
         f = [0.0] * self.n
         for c in self.cuts:
             d = band - c
@@ -125,8 +135,10 @@ class SilPlant:
         band, rolls = self.ax["axQ40"].pos, self.ax["axQ41"]
         if band - self.last_cut >= self.pitch:
             self.last_cut += self.pitch
-            if abs(rolls.vel) > 1e-9 and self.dough:        # the wire cuts a slug only from turning rolls
+            if abs(rolls.vel) > 1e-9 and self.stock >= self.row_kg:   # the wire cuts a slug only from turning rolls
                 self.cuts.append(self.last_cut)
+                if not self.endless:
+                    self.stock -= self.row_kg
         far = self.z_off[-1] + self.zlen
         self.cuts = [c for c in self.cuts if band - c < far + self.pitch]
 
@@ -159,6 +171,10 @@ class SilPlant:
             self._oven()
             self.scans += 1
             self.t = round(self.scans * DT, 6)
+
+    def refill(self, kg=None):
+        """The AMR tips a tub: the hopper up to kg (default DOUGH_KG)."""
+        self.stock = L["DOUGH_KG"] if kg is None else kg
 
     def outputs(self, names):
         return {nm: self.plc[nm] for nm in names}
