@@ -235,6 +235,15 @@ export async function answer(q0: string, c: Ctx): Promise<Answer> {
   return { tool: "none", text: "I don't know: nothing in the twin's data or documents covers that. Try asking about a part, an alarm code, the month's stops, OEE, energy, carbon, the scheduler or the inspection.", sources: [] };
 }
 
+/** Everything the twin knows about a question, for a language model to answer from: the
+    copilot's own answer (a tool's result or a passage) and the best document passages. */
+export async function ground(q: string, c: Ctx, k = 3) {
+  const local = await answer(q, c);
+  const kb = await c.get<{ passages: Passage[] }>("kb");
+  const passages = bm25(kb.passages).search(q, k).filter((h) => h.score >= 2);
+  return { local, passages };
+}
+
 let cache: { n: number; idx: Bm25 } | null = null;
 function bm25(ps: Passage[]) {
   if (!cache || cache.n !== ps.length) cache = { n: ps.length, idx: new Bm25(ps) };

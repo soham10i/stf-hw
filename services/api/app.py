@@ -10,6 +10,8 @@ Endpoints:
     GET  /orders        recent order history
     POST /command       queue an order  {"op": "retrieve", "slot": "B2"}
                         (operator only, see security.py)
+    GET  /chat/status   is the dashboard's LLM chat on (GEMINI_API_KEY set)?
+    POST /chat          a question with the copilot's grounding -> Gemini's answer (chat.py)
     WS   /ws            live world frames at ~30 Hz
     GET  /stf/...       the built web app, when STF_WEB_DIST points at it (one-service deploy,
                         see docs/DEPLOY.md); / redirects there
@@ -35,6 +37,7 @@ from stf_layout import get_layout
 
 from . import security as sec
 from . import wire
+from .chat import Chat, ChatRequest
 from .runtime import SimRuntime
 
 # STF_TIME_SCALE speeds up (or slows) the DEMO only - it multiplies how much sim
@@ -47,6 +50,7 @@ runtime = SimRuntime(time_scale=_TIME_SCALE)
 settings = sec.Settings.from_env()
 command_guard = sec.CommandGuard(settings)
 ws_clients = sec.ClientCounter(settings.max_ws_clients)
+chat = Chat(settings)
 WS_MAX_MSG = 1024          # bytes: the client only ever sends {"type": "resync"}
 
 
@@ -139,6 +143,17 @@ async def command(req: CommandRequest) -> JSONResponse:
     except ValueError as exc:
         return JSONResponse(status_code=400, content={"error": str(exc)})
     return JSONResponse(content={"accepted": True, "order": order.as_dict()})
+
+
+@app.get("/chat/status")
+async def chat_status() -> dict:
+    return chat.status()
+
+
+@app.post("/chat")
+async def chat_ask(req: ChatRequest, request: Request) -> dict:
+    """Gemini, answering from the grounding the dashboard's copilot computed (chat.py)."""
+    return await chat.ask(req, request)
 
 
 @app.websocket("/ws")

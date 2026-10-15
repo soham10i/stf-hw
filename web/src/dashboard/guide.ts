@@ -141,7 +141,7 @@ export const GUIDE: Record<string, PageGuide> = {
   },
   copilot: {
     title: "Copilot",
-    what: "Ask about the cell in plain words; the answer is computed from the twin's data or quoted from its documents, with its source.",
+    what: "Ask about the cell in plain words. The twin computes the facts; with a Gemini key on the server, Gemini writes the answer from them, with citations. The Ask button on every page does the same for that page.",
     read: [
       "Type a question or pick one on the right.",
       "Each answer names the tool or document it came from and links to the page with the detail.",
@@ -151,7 +151,7 @@ export const GUIDE: Record<string, PageGuide> = {
       ["Try", "Example questions, one per tool."],
       ["Health questions use", "The machine age and maintenance setting the health answers are computed for."],
     ],
-    source: "copilot.ts: routing to tools over the twin's exports, BM25 over the project documents (no language model).",
+    source: "copilot.ts (tools over the twin's exports, BM25 over the documents) and, with a key, Gemini on the server (chat.py).",
     terms: ["Health index (HI)", "RUL", "OEE"],
   },
   health: {

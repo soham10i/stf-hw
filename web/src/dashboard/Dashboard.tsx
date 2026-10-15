@@ -18,6 +18,7 @@ import { VisionPage } from "./Vision";
 import { CarbonPage } from "./Carbon";
 import { SchedulerPage } from "./Scheduler";
 import { CopilotPage } from "./Copilot";
+import { Chat } from "./Chat";
 import { Icon, ThemeToggle } from "../shared/icons";
 import { useTheme } from "../shared/theme";
 import { GUIDE, TERMS, cardHelp } from "./guide";
@@ -344,6 +345,7 @@ export function Dashboard() {
   const [guide, setGuide] = useState(() => { try { return localStorage.getItem("stf.db.guide") !== "0"; } catch { return true; } });
   const showGuide = (v: boolean) => { setGuide(v); try { localStorage.setItem("stf.db.guide", v ? "1" : "0"); } catch { /* private mode */ } };
   const [navOpen, setNavOpen] = useState(() => window.innerWidth > 900);
+  const [askOpen, setAskOpen] = useState(false);
   const T = doc?.control ? makespan(doc.control) : 1;
   useEffect(() => {
     if (!play || !doc) return;
@@ -450,6 +452,18 @@ export function Dashboard() {
           {page === "data" && <Data doc={doc} src={src} />}
         </div>
         </PageCtx.Provider>
+        {page !== "copilot" && (
+          <>
+            <button className={`ch-fab ${askOpen ? "on" : ""}`} onClick={() => setAskOpen(!askOpen)} aria-expanded={askOpen} title="Ask about this page">
+              <Icon name={askOpen ? "chevron" : "info"} size={16} /> {askOpen ? "Close" : "Ask"}</button>
+            {askOpen && (
+              <aside className="ch-dock" aria-label="Ask about this page">
+                <div className="ch-dock-h"><b>Ask · {cur[1]}</b><button className="ui-btn ghost" onClick={() => setPage("copilot")}>full page</button></div>
+                <Chat key={page} page={page} go={(p) => { setPage(p as Page); }} age={age} pm={pm} compact />
+              </aside>
+            )}
+          </>
+        )}
         <p className="db-foot">Simulated from the twin's models; values marked assumed are listed on the blueprint sheets. Click any note to expand it.</p>
       </main>
     </div>

@@ -13,6 +13,7 @@ const API_PROXY = {
   "/command": API,
   "/orders": API,
   "/health": API,
+  "/chat": API,
   "/ws": { target: "ws://127.0.0.1:8000", ws: true, changeOrigin: false, xfwd: true },
 };
 

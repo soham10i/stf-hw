@@ -59,6 +59,20 @@ Every push to `main` redeploys both. To deploy only the demo, delete the `stf-li
   API sends the same security headers as `vite preview` (`services/api/app.py`). See `docs/SECURITY.md`.
 - WebSocket clients are capped (`STF_MAX_WS_CLIENTS`, 16 on Render) and commands are rate-limited.
 
+### The dashboard chat (Gemini)
+
+The dashboard's **Ask** button and the Copilot page answer with Gemini when the API service has a key,
+and offline otherwise (always on the static demo). The key lives only on the server:
+
+- **Locally:** put `GEMINI_API_KEY=...` in `.env` at the repo root (git-ignored; see `.env.example`)
+  and restart the API.
+- **Render:** dashboard → `stf-live` → Environment → set `GEMINI_API_KEY` (the Blueprint declares it
+  without a value). Optional: `GEMINI_MODEL` (default `gemini-3.5-flash-lite`), `GEMINI_DAILY_LIMIT`
+  (default 300 questions a day for the whole service).
+
+Gemini answers only from what the twin computes for the question (the copilot's tools and the best
+document passages) and cites it; each client is rate-limited and the daily cap protects the quota.
+
 ## 4. Free-tier limits, and what "full scale" means here
 
 | Part of the project | On the free tier | Why / alternative |
