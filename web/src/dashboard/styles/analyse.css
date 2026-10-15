@@ -1,0 +1,101 @@
+/* The Analyse pages: Month, AI maintenance, Energy & grid, OT security, Throughput. */
+
+.db-chips button, .mo-sub button {
+  height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface);
+  color: var(--muted); font: 500 12.5px var(--font); cursor: pointer;
+}
+.db-chips button:hover, .mo-sub button:hover { color: var(--text); background: var(--raised); }
+.db-chips button.on, .mo-sub button.on { background: var(--accent-weak); border-color: transparent; color: var(--accent); }
+/* --------------------------------------------------------------- month, AI, grid pages */
+.mo-sub { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.mo-sub .db-muted { margin-left: auto; }
+.mo-chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.mo-grid { stroke: var(--grid); }
+.mo-ax { fill: var(--faint); font: 10px var(--mono); }
+.mo-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); margin: 4px 0 10px; }
+.mo-legend i { display: inline-block; width: 10px; height: 3px; margin-right: 6px; vertical-align: 3px; border-radius: 3px; }
+.mo-good { color: var(--ok) !important; }
+.mo-bad { color: var(--bad) !important; }
+.mo-insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.mo-insights div {
+  position: relative; padding: 12px 14px 12px 16px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border-soft);
+  cursor: pointer; transition: border-color .15s;
+}
+.mo-insights div::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 3px; background: var(--accent); }
+.mo-insights div:hover { border-color: var(--border); }
+.mo-insights b { display: block; font-size: 13.5px; font-weight: 600; line-height: 1.4; }
+.mo-insights p {
+  margin: 6px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.55;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.mo-insights div.open p { -webkit-line-clamp: unset; display: block; }
+.mo-days { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; height: 150px; align-items: end; }
+.mo-days div { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; }
+.mo-days i { display: block; background: var(--accent); border-radius: 3px 3px 0 0; opacity: .85; }
+.mo-days i.maint { background: var(--warn); }
+.mo-days i.fail { background: var(--bad); }
+.mo-days em { position: absolute; left: 50%; width: 6px; height: 6px; margin-left: -3px; margin-bottom: -3px; border-radius: 50%; background: var(--ok); }
+.mo-days span { font: 9px var(--mono); color: var(--faint); text-align: center; margin-top: 3px; }
+.mo-heat { display: grid; gap: 2px; }
+.mo-heat div { display: grid; grid-template-columns: 22px repeat(16, 1fr); gap: 2px; }
+.mo-heat span { font: 9px var(--mono); color: var(--faint); }
+.mo-heat i { display: block; height: 9px; background: var(--ok); border-radius: 2px; }
+.mo-heat-x em { font: 9px var(--mono); color: var(--faint); font-style: normal; text-align: center; }
+.mo-save-grid { display: grid; grid-template-columns: minmax(260px, 1fr) 2fr; gap: 16px; align-items: start; }
+.mo-save p { font-size: 13px; margin: 4px 0 8px; }
+.mo-stack { display: grid; grid-template-columns: 90px 1fr 90px; gap: 10px; align-items: center; margin: 6px 0; font-size: 12.5px; }
+.mo-stack div { display: flex; height: 14px; border-radius: 99px; overflow: hidden; background: var(--raised); }
+.mo-stack b { font: 500 12px var(--mono); text-align: right; }
+.mo-dl { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.mo-dl a { color: var(--accent); background: var(--accent-weak); border-radius: 8px; padding: 6px 12px; font: 500 12.5px var(--font); text-decoration: none; }
+.ai-live { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.ai-live div { border: 1px solid var(--border); background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: 12px; }
+.ai-live div.warn { border-color: var(--warn); background: var(--warn-weak); }
+.ai-live div.alarm { border-color: var(--bad); background: var(--bad-weak); }
+.ai-live b { display: block; font-weight: 600; }
+.ai-live span { font: 600 17px var(--mono); }
+.ai-prob { display: flex; height: 6px; margin-top: 6px; border-radius: 99px; overflow: hidden; }
+.ai-prob i.h { background: var(--ok); }
+.ai-prob i.d { background: var(--warn); }
+.ai-prob i.c { background: var(--bad); }
+.gr-std { margin: 0 0 8px; padding-left: 18px; font-size: 12.5px; color: var(--muted); columns: 2; line-height: 1.7; }
+.tp-st { font: 11px var(--mono); color: var(--muted); white-space: pre-wrap; max-height: 320px; overflow: auto; background: var(--surface-2); padding: 10px; border-radius: 8px; }
+.sec-zone { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(0, 1.3fr); gap: 16px; align-items: start; }
+.sec-out { border-radius: 10px; padding: 12px 14px; font-size: 13.5px; line-height: 1.55; background: var(--surface-2); border-left: 3px solid var(--accent); }
+.sec-out.ok { background: var(--ok-weak); border-color: var(--ok); }
+.sec-out.bad { background: var(--bad-weak); border-color: var(--bad); }
+.sec-out.warn { background: var(--warn-weak); border-color: var(--warn); }
+.sec-node { fill: var(--surface-2); stroke: var(--accent); }
+.sec-node.safe { fill: var(--bad-weak); stroke: var(--bad); }
+.sec-node.out { fill: var(--raised); stroke: var(--grid-strong); }
+.sec-lbl { fill: var(--text); font: 600 13.5px var(--font); }
+.sec-zone .db-gt { font-size: 11px; }
+@media (max-width: 1100px) { .mo-save-grid, .sec-zone { grid-template-columns: 1fr; } }
+.ai-verdict { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.ai-verdict li { padding: 10px 12px; border-radius: 8px; background: var(--surface-2); font-size: 13px; line-height: 1.5; color: var(--muted); }
+.ai-verdict b { color: var(--text); }
+.ai-how { margin-top: 10px; font-size: 12.5px; }
+.ai-how summary { cursor: pointer; color: var(--accent); }
+.ai-slider { width: 140px; margin-left: auto; }
+.mo-wear { display: grid; grid-template-columns: 110px 1fr 44px; gap: 10px; align-items: center; font-size: 12.5px; margin-bottom: 8px; }
+.mo-wear span { color: var(--muted); }
+.mo-wear i { height: 9px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+.mo-wear i b { display: block; height: 100%; background: var(--warn); border-radius: 5px; }
+.mo-wear em { font: 600 12px var(--mono); font-style: normal; text-align: right; }
+.mo-ev { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.mo-ev li { padding: 7px 10px; border-radius: 8px; background: var(--surface-2); border-left: 3px solid var(--border); color: var(--muted); }
+.mo-ev li b { color: var(--text); margin-right: 8px; font-family: var(--mono); font-size: 12px; }
+.mo-ev li.warning { border-left-color: var(--warn); }
+.mo-ev li.maintenance { border-left-color: var(--ok); }
+.mo-ev li.dist { border-left-color: #b07ad6; }
+.tp-meas { list-style: none; margin: 8px 0 0; padding: 0; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; }
+.tp-meas b { color: var(--text); margin-right: 6px; font-family: var(--mono); }
+.gr-four { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 28px; }
+.gr-four h4 { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+@media (max-width: 900px) { .gr-four { grid-template-columns: 1fr; } }
+.gr-pill { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; cursor: help; }
+.gr-pill.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.gr-pill.fail { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.sec-h4 { margin: 12px 0 6px; font-size: 12.5px; color: var(--muted); }
+.gr-four.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .gr-four.three { grid-template-columns: 1fr; } }
