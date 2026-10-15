@@ -1,0 +1,19 @@
+# only web/, packages/ and services/ go into the image
+.git
+.github
+.venv
+.cache
+**/__pycache__
+**/*.pyc
+**/node_modules
+web/dist
+web/dist-pages
+web/tsconfig.tsbuildinfo
+stf-cad
+docs
+tests
+mosquitto
+utils
+*.md
+.env
+.env.*

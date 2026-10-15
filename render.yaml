@@ -1,0 +1,51 @@
+# Render Blueprint: New > Blueprint > pick this repository. Both services are on the free plan.
+# See docs/DEPLOY.md for what each one is, the free-tier limits, and the alternatives.
+services:
+  # 1. The public demo: the standalone twin (no server; the PLC program, the vision model and
+  #    the order simulation all run in the visitor's browser). A static site: free, on a CDN,
+  #    never sleeps. This is the link for LinkedIn and the README.
+  - type: web
+    name: stf-twin
+    runtime: static
+    rootDir: web
+    buildCommand: npm ci --no-audit --no-fund && npm run build:pages
+    staticPublishPath: dist-pages
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: STF_BASE
+        value: /
+      - key: NODE_VERSION
+        value: "20"
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=(), usb=(), serial=()
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+
+  # 2. Optional: the live twin - the Python physics kernel streaming over a WebSocket, with
+  #    the web app served by the same process (Dockerfile). Free web services sleep after
+  #    15 minutes without traffic and take about a minute to wake. Read-only to the public:
+  #    commands need STF_API_TOKEN (generated below; find it in the dashboard).
+  - type: web
+    name: stf-live
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: STF_API_TOKEN
+        generateValue: true
+      - key: STF_MAX_WS_CLIENTS
+        value: "16"

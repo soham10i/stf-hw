@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420mm" height="297mm" viewBox="0 0 420 297">
+<defs><marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+<path d="M0,2 L10,5 L0,8 z" fill="#1b2330"/></marker>
+<marker id="f" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+<path d="M0,1 L10,5 L0,9 z" fill="#1f4e8c"/></marker>
+<pattern id="hatch" width="1.6" height="1.6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="1.6" height="1.6" fill="#eef1f5"/><line x1="0" y1="0" x2="0" y2="1.6" stroke="#1b2330" stroke-width=".18"/></pattern></defs>
+<style>
+text{font-family:'Helvetica Neue',Arial,sans-serif;fill:#1b2330}
+.vt{font-size:3.2px;font-weight:700;letter-spacing:.3px}
+.dt{font-size:2.3px}
+.dim{stroke:#1b2330;stroke-width:.15;fill:none}
+.ext{stroke:#1b2330;stroke-width:.1}
+.tb{font-size:2.6px}.tbh{font-size:4.2px;font-weight:700}.tbs{font-size:2.1px;fill:#445}
+.nt{font-size:2.3px}.nh{font-size:2.8px;font-weight:700;fill:#1f4e8c}
+.co{font-size:2.1px}.col{stroke:#1f4e8c;stroke-width:.15}
+</style>
+<rect width="420" height="297" fill="#ffffff"/>
+<rect x="10" y="10" width="400" height="277" fill="none" stroke="#1b2330" stroke-width=".5"/>
+<rect x="33.00" y="85.80" width="29.50" height="0.70" fill="#9aafcb" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="122.80" y="32.00" width="0.70" height="13.00" fill="#9aafcb" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="30.00" y="32.00" width="0.70" height="13.00" fill="#9aafcb" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="95.75" y="85.80" width="6.00" height="0.70" fill="#9aafcb" stroke="#1b2330" stroke-width="0.18"/>
+<text x="30.0" y="29.0" class="vt">TOP VIEW</text>
+<rect x="122.80" y="108.50" width="0.70" height="2.00" fill="#9aafcb" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="30.00" y="108.50" width="0.70" height="2.00" fill="#9aafcb" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="33.00" y="108.50" width="29.50" height="2.00" fill="#9aafcb" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="95.75" y="108.50" width="6.00" height="2.00" fill="#9aafcb" stroke="#1b2330" stroke-width="0.18"/>
+<text x="30.0" y="105.5" class="vt">FRONT VIEW</text>
+<rect x="187.00" y="108.50" width="13.00" height="2.00" fill="#9aafcb" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="145.50" y="108.50" width="0.70" height="2.00" fill="#9aafcb" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="145.50" y="108.50" width="0.70" height="2.00" fill="#9aafcb" stroke="#1b2330" stroke-width="0.18"/>
+<rect x="187.00" y="108.50" width="13.00" height="2.00" fill="#9aafcb" stroke="#1b2330" stroke-width="0.18"/>
+<text x="145.5" y="105.5" class="vt">RIGHT VIEW</text>
+<line x1="30.00" y1="110.50" x2="30.00" y2="119.00" class="ext"/>
+<line x1="123.50" y1="110.50" x2="123.50" y2="119.00" class="ext"/>
+<line x1="30.00" y1="117.50" x2="123.50" y2="117.50" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="76.75" y="116.70" class="dt" text-anchor="middle">1870</text>
+<line x1="30.00" y1="110.50" x2="21.50" y2="110.50" class="ext"/>
+<line x1="30.00" y1="108.50" x2="21.50" y2="108.50" class="ext"/>
+<line x1="23.00" y1="110.50" x2="23.00" y2="108.50" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="21.80" y="109.50" class="dt" transform="rotate(-90 21.80 109.50)" text-anchor="middle">40</text>
+<line x1="30.00" y1="86.50" x2="21.50" y2="86.50" class="ext"/>
+<line x1="30.00" y1="32.00" x2="21.50" y2="32.00" class="ext"/>
+<line x1="23.00" y1="86.50" x2="23.00" y2="32.00" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="21.80" y="59.25" class="dt" transform="rotate(-90 21.80 59.25)" text-anchor="middle">1090</text>
+<line x1="145.50" y1="110.50" x2="145.50" y2="119.00" class="ext"/>
+<line x1="200.00" y1="110.50" x2="200.00" y2="119.00" class="ext"/>
+<line x1="145.50" y1="117.50" x2="200.00" y2="117.50" class="dim" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="172.75" y="116.70" class="dt" text-anchor="middle">1090</text>
+<text x="218.0" y="73.9" class="vt">ISOMETRIC (pictorial, not to scale)</text>
+<path d="M375.55,88.68 L376.59,88.08 L357.23,76.90 L356.19,77.50 Z" fill="#40689d" stroke="#1b2330" stroke-width=".06"/>
+<path d="M375.55,92.12 L376.59,91.51 L376.59,88.08 L375.55,88.68 Z" fill="#33537d" stroke="#1b2330" stroke-width=".06"/>
+<path d="M375.55,92.12 L356.19,80.94 L356.19,77.50 L375.55,88.68 Z" fill="#294366" stroke="#1b2330" stroke-width=".06"/>
+<path d="M397.07,147.61 L406.00,142.45 L404.96,141.85 L396.02,147.01 Z" fill="#40689d" stroke="#1b2330" stroke-width=".06"/>
+<path d="M397.07,151.05 L406.00,145.89 L406.00,142.45 L397.07,147.61 Z" fill="#33537d" stroke="#1b2330" stroke-width=".06"/>
+<path d="M397.07,151.05 L396.02,150.45 L396.02,147.01 L397.07,147.61 Z" fill="#294366" stroke="#1b2330" stroke-width=".06"/>
+<path d="M237.36,168.46 L238.40,167.86 L219.04,156.68 L218.00,157.28 Z" fill="#40689d" stroke="#1b2330" stroke-width=".06"/>
+<path d="M237.36,171.90 L238.40,171.30 L238.40,167.86 L237.36,168.46 Z" fill="#33537d" stroke="#1b2330" stroke-width=".06"/>
+<path d="M237.36,171.90 L218.00,160.72 L218.00,157.28 L237.36,168.46 Z" fill="#294366" stroke="#1b2330" stroke-width=".06"/>
+<path d="M303.62,201.56 L347.55,176.20 L346.51,175.60 L302.58,200.96 Z" fill="#40689d" stroke="#1b2330" stroke-width=".06"/>
+<path d="M303.62,205.00 L347.55,179.64 L347.55,176.20 L303.62,201.56 Z" fill="#33537d" stroke="#1b2330" stroke-width=".06"/>
+<path d="M303.62,205.00 L302.58,204.40 L302.58,200.96 L303.62,201.56 Z" fill="#294366" stroke="#1b2330" stroke-width=".06"/>
+<text x="14" y="252" class="nh">NOTES</text>
+<text x="14" y="256.2" class="nt">AMR docking faces - raw in + rejects (front), cassettes (right), boxes (left)</text>
+<text x="14" y="259.9" class="nt">OK - AMR call: cassette exchange: 75 s before full &gt;= trip 60 s airlock: no standby buffer - a late robot blocks that lane only (line_sim counts it)</text>
+<text x="14" y="263.6" class="nt">OK - AMR deadline: dough refill: 31.2 min &gt;= worst case ONE robot 16.5 min all 11 port tasks queued ahead - so one AMR suffices and the 2nd is N+1</text>
+<text x="14" y="267.3" class="nt">OK - AMR deadline: topping refill: 37.3 min &gt;= worst case ONE robot 16.5 min all 11 port tasks queued ahead - so one AMR suffices and the 2nd is N+1</text>
+<text x="14" y="271.0" class="nt">OK - AMR deadline: box refill: 18.0 min &gt;= worst case ONE robot 16.5 min all 11 port tasks queued ahead - so one AMR suffices and the 2nd is N+1</text>
+<text x="14" y="274.7" class="nt">OK - AMR deadline: reject drawer: 262.4 min &gt;= worst case ONE robot 16.5 min all 11 port tasks queued ahead - so one AMR suffices and the 2nd is N+1</text>
+<text x="14" y="278.4" class="nt">OK - AMR utilisation, one robot: 67% &lt; 70 % 24.9 tasks/h</text>
+<rect x="230" y="249" width="180" height="38" fill="#fff" stroke="#1b2330" stroke-width=".35"/>
+<rect x="230" y="249" width="180" height="9" fill="#1f4e8c"/>
+<text x="233" y="255.3" class="tbh" style="fill:#fff">STF-2 CONTINUOUS COOKIE LINE</text>
+<text x="233" y="264" class="tbh" style="font-size:3.6px">M9_ports - AMR docking faces</text>
+<text x="233" y="269" class="tbs">AMR docking faces - raw in + rejects (front), cassettes (right), boxes (left)</text>
+<text x="233" y="275" class="tbs">SCALE</text><text x="233" y="278" class="tb">1:20</text>
+<text x="293" y="275" class="tbs">SHEET</text><text x="293" y="278" class="tb">11 / 12</text>
+<text x="353" y="275" class="tbs">DATE</text><text x="353" y="278" class="tb">2026-10-12</text>
+<text x="233" y="281" class="tbs">UNITS</text><text x="233" y="284" class="tb">mm, deg</text>
+<text x="293" y="281" class="tbs">PROJECTION</text><text x="293" y="284" class="tb">third angle</text>
+<text x="353" y="281" class="tbs">SOURCE</text><text x="353" y="284" class="tb">line_model.py (generated - do not edit)</text>
+</svg>

@@ -1,0 +1,359 @@
+{
+ "scan_ms": 5,
+ "hbw": {
+  "v": 150.0,
+  "cv_x": 665.0,
+  "fork_out": 115.0,
+  "transit": 260.0,
+  "cols": [
+   120.0,
+   240.0,
+   360.0,
+   480.0
+  ],
+  "rows": {
+   "A": 120.0,
+   "B": 240.0,
+   "C": 360.0
+  },
+  "slots": [
+   "A1",
+   "A2",
+   "A3",
+   "A4",
+   "B1",
+   "B2",
+   "B3",
+   "B4",
+   "C1",
+   "C2",
+   "C3",
+   "C4"
+  ],
+  "belt_z": 90.0,
+  "belt": {
+   "v": 50.0,
+   "crane_end": 325.0,
+   "vgr_end": 580.0,
+   "rp1": 440.0,
+   "rp2": 580.0,
+   "rfid_s": 0.12,
+   "rp_window": 10.0
+  },
+  "init": {
+   "travel": 420.0,
+   "lift": 170.0,
+   "fork": 40.0
+  }
+ },
+ "vgr": {
+  "v_mm": 120.0,
+  "v_deg": 60.0,
+  "transit": 500.0,
+  "plunge": [
+   84.0,
+   540.0
+  ],
+  "reach": [
+   0.0,
+   400.0
+  ],
+  "stations": {
+   "belt": {
+    "swivel": 69.013,
+    "reach": 236.857,
+    "contact": 156.0
+   },
+   "oven": {
+    "swivel": 23.396,
+    "reach": 365.895,
+    "contact": 108.0
+   },
+   "bay_weiss": {
+    "swivel": -76.518,
+    "reach": 157.983,
+    "contact": 93.0
+   },
+   "bay_rot": {
+    "swivel": -101.414,
+    "reach": 155.396,
+    "contact": 93.0
+   },
+   "bay_blau": {
+    "swivel": -122.763,
+    "reach": 208.968,
+    "contact": 93.0
+   },
+   "buf_1": {
+    "swivel": 105.843,
+    "reach": 216.61,
+    "contact": 93.0
+   },
+   "buf_2": {
+    "swivel": 103.422,
+    "reach": 284.355,
+    "contact": 93.0
+   },
+   "buf_3": {
+    "swivel": 101.634,
+    "reach": 352.697,
+    "contact": 93.0
+   },
+   "buf_4": {
+    "swivel": 116.565,
+    "reach": 245.673,
+    "contact": 93.0
+   },
+   "buf_5": {
+    "swivel": 112.805,
+    "reach": 309.31,
+    "contact": 93.0
+   },
+   "buf_6": {
+    "swivel": 109.938,
+    "reach": 374.517,
+    "contact": 93.0
+   }
+  },
+  "overtravel": 4.0,
+  "seal": {
+   "swivel": 0.5043642562771331,
+   "reach": 5.0,
+   "plunge": 1.0
+  },
+  "vac_on": 0.35,
+  "vac_off": 0.15,
+  "init": {
+   "swivel": 30.0,
+   "reach": 120.0,
+   "plunge": 380.0
+  }
+ },
+ "oven": {
+  "slider": {
+   "in": 250.0,
+   "out": 435.0,
+   "v": 92.5
+  },
+  "door_s": 0.8,
+  "sauger": {
+   "oven": 100.0,
+   "tt": 335.0,
+   "v": 117.5
+  },
+  "lower_s": 0.48,
+  "turn": {
+   "v": 60.0,
+   "sauger": 0.0,
+   "saege": -90.0,
+   "band": -180.0
+  },
+  "push_s": 0.48,
+  "belt": {
+   "start": 502.0,
+   "end": 792.0,
+   "v": 50.0
+  },
+  "bake_s": 2.0,
+  "init": {
+   "slider": 300.0,
+   "door": 0.4,
+   "sauger": 200.0,
+   "lower": 0.0,
+   "turn": -40.0,
+   "push": 0.3
+  }
+ },
+ "sorting": {
+  "v": 50.0,
+  "inlet_x": 140.0,
+  "sensor_x": 240.0,
+  "after_x": 340.0,
+  "eject_x": [
+   460.0,
+   600.0,
+   740.0
+  ],
+  "pulse_mm": 5.0,
+  "sensor_window": 20.0,
+  "eject_window": 20.0,
+  "eject_push_s": 0.2,
+  "barrier_s": 0.3,
+  "belt_mv": 1900,
+  "raw_mv": 1500,
+  "bays": [
+   "weiss",
+   "rot",
+   "blau"
+  ],
+  "bay_cap": 4
+ },
+ "cookies": {
+  "1": {
+   "id": "c00",
+   "flavour": "chocolate",
+   "mV": 340,
+   "colour": "#5C3A1E",
+   "baked": false
+  },
+  "2": {
+   "id": "c01",
+   "flavour": "vanilla",
+   "mV": 1660,
+   "colour": "#FBF8F1",
+   "baked": false
+  },
+  "3": {
+   "id": "c02",
+   "flavour": "strawberry",
+   "mV": 950,
+   "colour": "#F4A6BF",
+   "baked": false
+  },
+  "4": {
+   "id": "c03",
+   "flavour": "chocolate",
+   "mV": 340,
+   "colour": "#5C3A1E",
+   "baked": false
+  },
+  "5": {
+   "id": "c04",
+   "flavour": "vanilla",
+   "mV": 1660,
+   "colour": "#FBF8F1",
+   "baked": false
+  },
+  "6": {
+   "id": "c05",
+   "flavour": "strawberry",
+   "mV": 950,
+   "colour": "#F4A6BF",
+   "baked": false
+  },
+  "7": {
+   "id": "c06",
+   "flavour": "chocolate",
+   "mV": 340,
+   "colour": "#5C3A1E",
+   "baked": false
+  },
+  "8": {
+   "id": "c07",
+   "flavour": "vanilla",
+   "mV": 1660,
+   "colour": "#FBF8F1",
+   "baked": false
+  },
+  "9": {
+   "id": "c08",
+   "flavour": "strawberry",
+   "mV": 950,
+   "colour": "#F4A6BF",
+   "baked": false
+  },
+  "10": {
+   "id": "c09",
+   "flavour": "vanilla",
+   "mV": 1660,
+   "colour": "#FBF8F1",
+   "baked": true
+  },
+  "11": {
+   "id": "c10",
+   "flavour": "strawberry",
+   "mV": 950,
+   "colour": "#F4A6BF",
+   "baked": true
+  },
+  "12": {
+   "id": "c11",
+   "flavour": "chocolate",
+   "mV": 340,
+   "colour": "#5C3A1E",
+   "baked": true
+  }
+ },
+ "slots0": {
+  "A1": {
+   "mould": 1,
+   "cookie": 1
+  },
+  "A2": {
+   "mould": 2,
+   "cookie": 2
+  },
+  "A3": {
+   "mould": 3,
+   "cookie": 3
+  },
+  "A4": {
+   "mould": 4,
+   "cookie": 4
+  },
+  "B1": {
+   "mould": 5,
+   "cookie": 5
+  },
+  "B2": {
+   "mould": 6,
+   "cookie": 6
+  },
+  "B3": {
+   "mould": 7,
+   "cookie": 7
+  },
+  "B4": {
+   "mould": 8,
+   "cookie": 8
+  },
+  "C1": {
+   "mould": 9,
+   "cookie": 9
+  },
+  "C2": {
+   "mould": 10,
+   "cookie": 0
+  },
+  "C3": {
+   "mould": 11,
+   "cookie": 0
+  },
+  "C4": {
+   "mould": 12,
+   "cookie": 0
+  }
+ },
+ "bays0": [
+  [
+   10
+  ],
+  [
+   11
+  ],
+  [
+   12
+  ]
+ ],
+ "moulds": {
+  "1": "M01",
+  "2": "M02",
+  "3": "M03",
+  "4": "M04",
+  "5": "M05",
+  "6": "M06",
+  "7": "M07",
+  "8": "M08",
+  "9": "M09",
+  "10": "M10",
+  "11": "M11",
+  "12": "M12"
+ },
+ "tol": {
+  "travel": 1.0,
+  "lift": 1.0,
+  "plunge": 4.0,
+  "reach": 2.5,
+  "swivel": 0.25218212813856655
+ }
+}

@@ -1,0 +1,14 @@
+{
+ "root": "86c74768ee63fdfc834c6ccbb82cab3cd5ac083982adb06576dc3901c0785a14",
+ "files": {
+  "FB_Arm.st": "83ef0b00398f1d8b2d9aae049df0ff566a08673025d74377741fadb8fa0fabea",
+  "FB_Belt.st": "0fd9dbf5d7e83dc4d4f848dae21dd3a982e3060f6a0100d9a057e4898b187ec5",
+  "FB_Crane.st": "78bc0058829c70ea3079ade908bae8ac2d2fd5aeb22367bc2365bbf9a9dd3f93",
+  "FB_Door.st": "8064b5fb7731677aee98c205c2b82492b0e00aaa3bb5a47abf671722bdc96690",
+  "FB_Line.st": "1e5d09b3983b79a0bcfc2bcb388746765b54f2402be0c8b68a33d8b3a0436b1f",
+  "FB_Ovenbelt.st": "5b25c7b4b6d686752c147432be672abbe3b6f01ac99bcac44353d94beea800e7",
+  "FB_Sauger.st": "23f71814be64d066846ae5e737104909bd673e1ae59672617d9021f2e3de0d0b",
+  "FB_Turntable.st": "aa1b76219abb2abef6993074445ea696924cd9ba91b5b77975e25c309e0d0a98",
+  "MAIN.st": "ed54226df4e82640568338bbafd1d80fa2d82b3a38883ebd802c4d09199fd933"
+ }
+}

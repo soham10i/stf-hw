@@ -1,0 +1,32 @@
+{
+ "in_domain": {
+  "browser": {
+   "n": 1500,
+   "condition_acc": 0.9926666666666667,
+   "flavour_acc": 0.9873333333333333,
+   "escape_rate": 0.004166666666666667,
+   "false_reject": 0
+  },
+  "python": {
+   "condition_acc": 0.9883,
+   "flavour_acc": 0.9863,
+   "escape_rate": 0.0042,
+   "false_reject": 0.0067
+  }
+ },
+ "shifted": {
+  "browser": {
+   "n": 1500,
+   "condition_acc": 0.6646666666666666,
+   "flavour_acc": 0.9246666666666666,
+   "escape_rate": 0.0225,
+   "false_reject": 0.30666666666666664
+  },
+  "python": {
+   "condition_acc": 0.6727,
+   "flavour_acc": 0.9257,
+   "escape_rate": 0.0171,
+   "false_reject": 0.2983
+  }
+ }
+}

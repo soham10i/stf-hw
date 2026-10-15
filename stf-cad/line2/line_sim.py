@@ -1,0 +1,440 @@
+"""
+Flow simulation of the STF-2 continuous line with FINITE stock and an AMR fleet.
+
+The chain NEVER stops: there is no stop path in this code, only losses. Every
+puck passes every station at a time fixed by the master axis; each station
+decides what to do with what passes it:
+
+  band       the depositor puts a row of plain dough every BAND rows takts (no dough -> no row), the
+             topping depositor gives rows k, k+3 flavour k (no topping -> an untopped cookie, a QC
+             reject); the row bakes and cools on the band and reaches the pick window
+             (oven.py time later), where it stays PICK_W / v_band.
+  transfer   delta C places the next cookie of the band (row order = W R B W R B) into the next
+             EMPTY puck on the bend; a full puck (recirculating) is skipped; a cookie still on the
+             band at the end of the window falls into the crumb pan (band loss) - the band never stops.
+  QC         vision + colour + NFC verdict (recall / false-reject rates).
+  kicker     drops flagged cookies through the deck into the reject drawer
+             (drawer full -> it cannot, the reject recirculates and burns).
+  delta A/B  tracking pickers: A first, B catches what A could not. A pick needs
+             the delta up and free, inside its window, an empty box and a cassette
+             that can take the pack.
+  cassettes  bottom-up stacker fills the ACTIVE cassette; when full the shuttle
+             swaps in the STANDBY (if empty) and the full one waits for the AMR;
+             if the standby is still full the lane is blocked.
+  AMR fleet  finite robots; every buffer raises a task with a DEADLINE (the
+             autonomy it has left); earliest deadline first; one visit to a port
+             serves every pending task at that port.
+
+Scenarios: 1 h picker scenarios and 8 h shift scenarios for the stock/AMR loop.
+"""
+import heapq
+import json
+import os
+import random
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import line_model as M
+
+L = M.L
+F = M.FLAV
+PORT = {"raw": "front", "reject": "front", "cassette": "right", "boxes": "left"}
+
+
+def stations():
+    c, _ = M.delta_window(L["DELTA_X"][0])
+    st = {
+        "transfer": M.bend_s(L["TRANSFER_TH"][1]),
+        "qc": M.s_back(L["CAM_X"]),
+        "kick": M.s_back(L["KICK_X"]),
+    }
+    for i, xd in enumerate(L["DELTA_X"]):
+        sc = M.s_back(xd)
+        st[f"d{i}_in"] = sc - c / 2
+        st[f"d{i}_out"] = sc + c / 2
+    return st
+
+
+H1, H8 = 3600.0, 8 * 3600.0
+SCENARIOS = {
+    "nominal_1h": {},
+    "delta_A_down_10min": {"down": {0: [(900.0, 1500.0)]}},
+    "both_deltas_down_2min": {"down": {0: [(1200.0, 1320.0)], 1: [(1200.0, 1320.0)]}},
+    "both_deltas_down_10min": {"down": {0: [(1200.0, 1800.0)], 1: [(1200.0, 1800.0)]}},
+    "both_deltas_down_10min_AGENT": {"down": {0: [(1200.0, 1800.0)], 1: [(1200.0, 1800.0)]}, "policy": "agent"},
+    "shift_2_AMR": {"horizon": H8},
+    "shift_1_AMR": {"horizon": H8, "n_amr": 1},
+    "shift_2_AMR_one_down_2h": {"horizon": H8, "amr_down": {0: [(7200.0, 14400.0)]}},
+    "shift_fleet_down_15min": {"horizon": H8, "amr_down": {0: [(10800.0, 11700.0)], 1: [(10800.0, 11700.0)]}},
+    "shift_fleet_down_45min": {"horizon": H8, "amr_down": {0: [(10800.0, 13500.0)], 1: [(10800.0, 13500.0)]}},
+    "shift_no_AMR": {"horizon": H8, "n_amr": 0},
+}
+RATES = dict(p_defect=0.03, recall=0.98, false_reject=0.01, kick_ok=0.999)
+
+
+def keyed(seed):
+    """A draw that depends only on WHAT is drawn (kind + cookie row / column + attempt), never on the order of the
+    draws: the PLC-in-the-loop plant (twin/sil) and this model then see the same luck for the same cookie even
+    when their events run in a different order."""
+    import hashlib
+
+    def draw(*key):
+        h = hashlib.blake2b(repr((seed,) + key).encode(), digest_size=8).digest()
+        return int.from_bytes(h, "big") / 2.0 ** 64
+    return draw
+
+
+def run(name="nominal_1h", seed=7, **kw):
+    """The scenario's KPIs (sim_results.json): flow() run to its horizon."""
+    g = flow(name, seed, **kw)
+    while True:
+        try:
+            next(g)
+        except StopIteration as e:
+            return e.value
+
+
+def flow(name="nominal_1h", seed=7, **kw):
+    """The flow as a GENERATOR: yields (t, kind, data) for every event as it is processed (t = machine time, the
+    master never stops in this model) and returns the KPIs. The live twin (twin/plant/flow.py) advances it in step
+    with its machine time; run() drains it. Reporting only: no yield changes the logic (sim_results.json is
+    byte-identical with and without the reports). Cookies get an id at deposit (their genealogy / bake log).
+    kinds: deposit, starved, throttled, band_lost, grip_fail, load, recirc, qc, kick, kick_fail, kick_blocked, pick,
+    pick_fail, missed, pack, exchange, cassette_out, amr_go, amr_done
+    kw outcomes="keyed": every random outcome is keyed by its cookie (keyed()), not drawn in sequence;
+    kw ideal=True: unlimited stock, boxes, cassettes and reject drawer - the stations alone (no logistics).
+    The defaults are the model of sim_results.json."""
+    out = []
+    cid = [0]
+    sc = {**SCENARIOS.get(name, {}), **kw}
+    ideal = sc.get("ideal", False)
+    kd = keyed(seed) if sc.get("outcomes") == "keyed" else None
+    tries = {}
+
+    def chance(kind, c, *more):
+        """The random number of one outcome: rnd in sequence (default) or keyed by the cookie (row, col)."""
+        if kd is None:
+            return rnd.random()
+        k = (kind, c[0], c[1]) + more
+        n = tries.get(k, 0)
+        tries[k] = n + 1
+        return kd(*k, n)
+    horizon = sc.get("horizon", H1)
+    rnd = random.Random(seed)
+    T, Lp, v, P = M.takt(), M.loop_len(), L["V"], L["PITCH"]
+    rf = M.rate_flavour()
+    st = stations()
+    down = sc.get("down", {})
+    amr_down = sc.get("amr_down", {})
+    n_amr = sc.get("n_amr", L["N_AMR"])
+    policy = sc.get("policy", "naive")
+
+    def up(d, t0, t1, table=None):
+        table = down if table is None else table
+        return all(not (a < t1 and t0 < b) for a, b in table.get(d, []))
+
+    dough = {"lvl": L["DOUGH_KG"]}
+    top = {f: L["TOP_KG"] for f in F}
+    band = []                                   # [t_avail, t_expire, flavour, topped] in row order
+    sb = M.stations()
+    vb = M.band_v()
+    t_travel = (sb["pick"][0] - sb["dep"]) / vb
+    t_window = L["PICK_W"] / vb
+    rows = L["BAND"]["rows"]
+    t_row = rows * M.takt()
+    boxes = {f: L["BOXMAG_CAP"] for f in F}
+    active = {f: 0 for f in F}
+    standby_full = {f: False for f in F}
+    box_fill = {(f, d): 0 for f in F for d in (0, 1)}
+    lane_block = {f: 0.0 for f in F}
+    rej = {"lvl": 0}
+    reject_cap = M.reject_cap()
+    ccap = M.cass_cap()
+    tasks = {}
+    amr_free = [0.0] * n_amr
+    amr_busy_s = [0.0] * n_amr
+    pending_done = []
+    late = []
+
+    def request(kind, f, deadline):
+        if (kind, f) not in tasks:
+            tasks[(kind, f)] = deadline
+
+    lock = L.get("AIRLOCK")
+    staged = {f: None for f in F}          # airlock: (time the robot is ready at the out port, robot)
+    waiting = {f: None for f in F}         # airlock: time the cassette became full with no robot there
+    called = {f: False for f in F}         # airlock: a robot is already called for this lane's exchange
+    exch_end = {f: None for f in F}        # airlock: the exchange in progress ends at this time
+    if lock and L.get("CASS_STAGGER"):     # policy: lanes a third of a fill apart
+        for j, f in enumerate(F):
+            active[f] = j * ccap // len(F)
+    buf = M.transfer_buffer()
+    swap_t = M.cass_swap_t()
+    pack_s = L["PACK"] / rf
+
+    def dispatch(t):
+        while tasks:
+            free = [i for i in range(n_amr) if amr_free[i] <= t and up(i, t, t + 1, amr_down)]
+            if not free:
+                return
+            i = free[0]
+            (kind, f), _ = min(tasks.items(), key=lambda kv: kv[1])
+            batch = [kk for kk in tasks if PORT[kk[0]] == PORT[kind]]
+            # airlock: the handling at the out port IS the exchange, booked when it happens
+            dur = L["AMR_TRIP"] + L["AMR_HANDLE"] * sum(1 for kk in batch if not (lock and kk[0] == "cassette"))
+            done = t + dur
+            for kk in batch:
+                late.append(max(0.0, done - tasks[kk]))
+                del tasks[kk]
+            amr_free[i] = done
+            amr_busy_s[i] += dur
+            heapq.heappush(pending_done, (done, batch, i))
+            out.append((t, "amr_go", dict(robot=i, batch=[list(b) for b in batch], done=done)))
+
+    def complete(t):
+        while pending_done and pending_done[0][0] <= t:
+            done, batch, i = heapq.heappop(pending_done)
+            out.append((done, "amr_done", dict(robot=i, batch=[list(b) for b in batch])))
+            for kind, f in batch:
+                if kind == "cassette" and lock:
+                    staged[f] = (done, i)               # robot at the port with an empty, held there
+                    amr_free[i] = float("inf")
+                    continue
+                if kind == "raw":
+                    if f == "dough":
+                        dough["lvl"] = L["DOUGH_KG"]
+                    else:
+                        top[f] = L["TOP_KG"]
+                elif kind == "boxes":
+                    boxes[f] = L["BOXMAG_CAP"]
+                elif kind == "cassette":
+                    standby_full[f] = False
+                elif kind == "reject":
+                    rej["lvl"] = 0
+
+    def swap_if_possible(f, t):
+        if lock:
+            if exch_end[f] is not None and t >= exch_end[f]:      # new cassette in: the waiting packs go up
+                active[f] -= ccap
+                exch_end[f] = None
+                called[f] = False
+                k["cassettes_out"][f] += 1
+                out.append((t, "cassette_out", dict(lane=f)))
+            if active[f] >= ccap and exch_end[f] is None and staged[f] is not None:
+                t0, i = staged[f]
+                start = max(t0, t)
+                end = start + swap_t
+                exch_end[f] = end
+                out.append((t, "exchange", dict(lane=f, start=start, end=end, robot=i)))
+                amr_busy_s[i] += end - t0
+                amr_free[i] = end
+                staged[f] = None
+            if active[f] >= ccap and not called[f]:             # full and nobody called (should not happen)
+                called[f] = True
+                request("cassette", f, t)
+            return
+        if active[f] >= ccap and not standby_full[f]:
+            active[f] = 0
+            standby_full[f] = True
+            k["cassettes_out"][f] += 1
+            out.append((t, "cassette_out", dict(lane=f)))
+            lane_block[f] = max(lane_block[f], t + L["SWAP_T"])
+            request("cassette", f, t + ccap * L["PACK"] / rf)
+
+    puck = [None] * L["N"]
+    seq = [f for f, m in zip(F, L["MIX"]) for _ in range(m)]
+    seq_i = 0
+    busy = [0.0, 0.0]
+    k = dict(loaded=0, packed={f: 0 for f in F}, rejected=0, burnt=0, escapes=0, recirc=0, empty_slots=0,
+             starved_raw=0, untopped=0, band_lost=0, blocked_cassette=0, blocked_boxes=0, reject_overflow=0,
+             cassettes_out={f: 0 for f in F}, picks=[0, 0], stops=0, missed_pick_windows=0,
+             false_rejects=0, throttled=0)
+    ss_from = 600.0
+    ss_packed = 0
+
+    ev = []
+    # rows already on the band at t = 0 (the line was running), then one row every BAND rows takts
+    r0 = -int(t_travel // t_row) - 2
+    r = r0
+    while r * t_row < horizon:
+        heapq.heappush(ev, (r * t_row - (0 if r < 0 else 0), -1, r, "deposit"))
+        r += 1
+    order = ["transfer", "qc", "kick", "d0_in", "d1_in"]
+    for pk in range(L["N"]):
+        for so, sname in enumerate(order):
+            t0 = ((st[sname] - pk * P) % Lp) / v
+            n = 0
+            while t0 + n * Lp / v < horizon:
+                heapq.heappush(ev, (t0 + n * Lp / v, so, pk, sname))
+                n += 1
+
+    while ev:
+        for e in out:                                        # report what the previous event did
+            yield e
+        out.clear()
+        t, _, pk, sname = heapq.heappop(ev)
+        complete(t)
+        for f in F:
+            swap_if_possible(f, t)
+        dispatch(t)
+        if sname == "deposit":
+            pre = pk < 0                                     # rows on the band before t = 0 cost no stock
+            t_dep = max(t, -1e9)
+            if not pre:
+                if policy == "agent" and not (up(0, t, t + 0.01) or up(1, t, t + 0.01)):
+                    k["throttled"] += rows                   # agent: no dough into an oven nobody can unload
+                    out.append((t, "throttled", dict(row=pk)))
+                    continue
+                if not ideal and dough["lvl"] < rows * L["DOUGH_M"]:
+                    k["starved_raw"] += rows
+                    out.append((t, "starved", dict(row=pk)))
+                    continue
+                dough["lvl"] -= 0.0 if ideal else rows * L["DOUGH_M"]
+                if not ideal and dough["lvl"] <= L["REQ_HOPPER"] * L["DOUGH_KG"]:
+                    request("raw", "dough", t + dough["lvl"] / M.dough_rate())
+            cookies = []
+            for j in range(rows):
+                f = F[M.row_flavour(j)]
+                topped = pre or ideal or top[f] >= L["TOPPING"]["m"]
+                if not pre and not ideal and topped:
+                    top[f] -= L["TOPPING"]["m"]
+                    if top[f] <= L["REQ_HOPPER"] * L["TOP_KG"]:
+                        request("raw", f, t + top[f] / (L["TOPPING"]["m"] * rf))
+                ta = t_dep + t_travel + j * M.takt() * 0       # the whole row enters the window together
+                cid[0] += 1
+                band.append([ta, ta + t_window, f, topped, cid[0], pk, j])
+                cookies.append(dict(id=cid[0], col=j, flav=f, topped=topped))
+            out.append((t, "deposit", dict(row=pk, pre=pre, cookies=cookies, dough=dough["lvl"],
+                                           topping=dict(top))))
+            continue
+        c = puck[pk]
+        if sname == "transfer":
+            while band and band[0][1] <= t:                  # reached the nose: into the crumb pan
+                lost = band.pop(0)
+                k["band_lost"] += 1
+                out.append((t, "band_lost", dict(id=lost[4], row=lost[5], col=lost[6])))
+            if c is not None:
+                k["recirc"] += 1
+                out.append((t, "recirc", dict(pk=pk, id=c["id"])))
+                continue
+            if not band or band[0][0] > t:
+                k["empty_slots"] += 1
+                continue
+            if chance("transfer", (band[0][5], band[0][6])) > L["PICK_OK"]:
+                out.append((t, "grip_fail", dict(pk=pk, id=band[0][4])))
+                continue                                     # the grip failed: it stays on the band, next puck
+            b_ = band.pop(0)
+            f, topped = b_[2], b_[3]
+            k["untopped"] += not topped
+            puck[pk] = dict(flav=f, oven=1, defect=chance("defect", (b_[5], b_[6])) < RATES["p_defect"] or not topped,
+                            qc=None, id=b_[4], row=b_[5], col=b_[6])
+            k["loaded"] += 1
+            out.append((t, "load", dict(pk=pk, id=b_[4], row=b_[5], col=b_[6], flav=f, topped=topped,
+                                        defect=puck[pk]["defect"])))
+        elif c is None:
+            continue
+        elif sname == "qc":
+            bad = c["defect"] or c["oven"] > 1
+            if bad:
+                c["qc"] = "reject" if chance("qc", (c["row"], c["col"])) < RATES["recall"] else "pass"
+            else:
+                c["qc"] = "reject" if chance("qc", (c["row"], c["col"])) < RATES["false_reject"] else "pass"
+                if c["qc"] == "reject":
+                    k["false_rejects"] += 1
+            out.append((t, "qc", dict(pk=pk, id=c["id"], verdict=c["qc"], bad=bad)))
+        elif sname == "kick":
+            if c["qc"] == "reject":
+                if not ideal and rej["lvl"] >= reject_cap:
+                    k["reject_overflow"] += 1
+                    out.append((t, "kick_blocked", dict(pk=pk, id=c["id"])))
+                    continue
+                if chance("kick", (c["row"], c["col"])) < RATES["kick_ok"]:
+                    k["rejected"] += 1
+                    k["burnt"] += c["oven"] > 1
+                    puck[pk] = None
+                    rej["lvl"] += 1
+                    out.append((t, "kick", dict(pk=pk, id=c["id"], drawer=rej["lvl"])))
+                else:
+                    out.append((t, "kick_fail", dict(pk=pk, id=c["id"])))
+                    if rej["lvl"] >= L["REQ_REJECT"] * reject_cap:
+                        request("reject", "-", t + (reject_cap - rej["lvl"]) / (0.05 / T))
+        elif sname in ("d0_in", "d1_in"):
+            d = int(sname[1])
+            if c["qc"] != "pass":
+                continue
+            f = c["flav"]
+            t_out = t + (st[f"d{d}_out"] - st[f"d{d}_in"]) / v
+            start = max(t, busy[d], lane_block[f])
+            can_pack = ideal or (boxes[f] > 0 and (active[f] < ccap + buf if lock else
+                                                   not (active[f] >= ccap and standby_full[f])))
+            if start + L["T_GRAB"] <= t_out and up(d, start, start + L["T_PICK"]) and can_pack:
+                busy[d] = start + L["T_PICK"]
+                if chance("pick", (c["row"], c["col"]), d) > L["PICK_OK"]:
+                    out.append((start, "pick_fail", dict(pk=pk, id=c["id"], d=d)))
+                    continue
+                puck[pk] = None
+                k["picks"][d] += 1
+                out.append((start, "pick", dict(pk=pk, id=c["id"], d=d, lane=f)))
+                k["packed"][f] += 1
+                if t >= ss_from:
+                    ss_packed += 1
+                k["escapes"] += c["defect"] or c["oven"] > 1
+                box_fill[(f, d)] += 1
+                if box_fill[(f, d)] >= L["PACK"]:
+                    box_fill[(f, d)] = 0
+                    boxes[f] -= 0 if ideal else 1
+                    out.append((busy[d], "pack", dict(lane=f, d=d, active=active[f] + 1, boxes=boxes[f])))
+                    if not ideal and boxes[f] <= L["REQ_BOXMAG"] * L["BOXMAG_CAP"]:
+                        request("boxes", f, t + boxes[f] * L["PACK"] / rf)
+                    lane_block[f] = busy[d] + L["T_INDEX"]
+                    active[f] += 0 if ideal else 1
+                    if lock and (ccap - active[f]) * pack_s <= L["CASS_LEAD"] and not called[f]:
+                        called[f] = True
+                        request("cassette", f, t + (ccap - active[f]) * pack_s)
+                    swap_if_possible(f, t)
+            elif d == 1:
+                k["missed_pick_windows"] += 1
+                out.append((t, "missed", dict(pk=pk, id=c["id"])))
+                if not can_pack:
+                    k["blocked_boxes" if boxes[f] <= 0 else "blocked_cassette"] += 1
+    for e in out:
+        yield e
+    out.clear()
+    theo = (horizon - ss_from) / T
+    k.update(scenario=name, hours=horizon / 3600, stops=0,
+             steady_state_per_h=round(ss_packed * 3600 / (horizon - ss_from), 1),
+             theoretical_per_h=round(3600 / T, 1), line_efficiency=round(ss_packed / theo, 3),
+             amr_util=[round(b / horizon, 2) for b in amr_busy_s],
+             amr_max_late_min=round(max(late) / 60, 1) if late else 0.0, amr_tasks=len(late))
+    return k
+
+
+def main():
+    res = {n: run(n) for n in SCENARIOS}
+    for n, r in res.items():
+        print(f"{n:30s} {r['hours']:.0f}h  eff {r['line_efficiency']:.2f} ({r['steady_state_per_h']:.0f}/h)  "
+              f"band lost {r['band_lost']:3d}  empty {r['empty_slots']:5d} (dough-starved {r['starved_raw']:5d}, "
+              f"untopped {r['untopped']:3d})  "
+              f"blocked cass/box {r['blocked_cassette']:4d}/{r['blocked_boxes']:4d}  "
+              f"AMR tasks {r['amr_tasks']:3d} util {r['amr_util']} max-late {r['amr_max_late_min']} min  "
+              f"STOPS {r['stops']}")
+    json.dump(res, open(os.path.join(HERE, "sim_results.json"), "w"), indent=1)
+    fails = []
+    for nm in ("nominal_1h", "delta_A_down_10min", "shift_2_AMR", "shift_1_AMR", "shift_2_AMR_one_down_2h",
+               "shift_fleet_down_15min"):
+        if res[nm]["line_efficiency"] < 0.90:
+            fails.append(f"{nm}: efficiency {res[nm]['line_efficiency']}")
+    if any(r["stops"] for r in res.values()):
+        fails.append("the chain stopped")
+    fl = res["shift_fleet_down_15min"]
+    loss = "without loss" if fl["band_lost"] == 0 and fl["blocked_cassette"] == 0 else \
+        f"at {fl['line_efficiency']:.0%} ({fl['blocked_cassette']} cookies recirculated past late cassette exchanges)"
+    print("\n".join(fails) if fails else
+          "SIM CLAIMS HOLD: never stops; one delta carries the line; ONE AMR carries an 8 h shift; the fleet may "
+          f"vanish for 15 min {loss}; losses are counted, not hidden")
+    return fails
+
+
+if __name__ == "__main__":
+    sys.exit(1 if main() else 0)

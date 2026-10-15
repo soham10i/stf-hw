@@ -1,0 +1,2812 @@
+<?xml version='1.0' encoding='utf-8'?>
+<UANodeSet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>http://opcfoundation.org/UA/DI/</Uri>
+    <Uri>http://opcfoundation.org/UA/Machinery/</Uri>
+    <Uri>https://soham10i.github.io/stf-hw/UA/</Uri>
+  </NamespaceUris>
+  <Aliases>
+    <Alias Alias="Boolean">i=1</Alias>
+    <Alias Alias="Int16">i=4</Alias>
+    <Alias Alias="UInt16">i=5</Alias>
+    <Alias Alias="UInt32">i=7</Alias>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="NodeId">i=17</Alias>
+    <Alias Alias="LocalizedText">i=21</Alias>
+    <Alias Alias="Number">i=26</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+    <Alias Alias="HasModellingRule">i=37</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+    <Alias Alias="Argument">i=296</Alias>
+    <Alias Alias="HasAddIn">i=17604</Alias>
+    <Alias Alias="Range">i=884</Alias>
+    <Alias Alias="EUInformation">i=887</Alias>
+  </Aliases>
+  <UAObjectType NodeId="ns=3;s=STFUnitType" BrowseName="3:STFUnitType">
+    <DisplayName>STFUnitType</DisplayName>
+    <Description>A unit sequencer of the PLC program (Upgrade 13): its state machine, job and alarm</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=STFUnitType.State</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=STFUnitType.StateText</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=STFUnitType.Job</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=STFUnitType.Busy</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=STFUnitType.Fault</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=STFUnitType.Alarm</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=3;s=STFUnitType.Alarm" BrowseName="3:Alarm" ParentNodeId="ns=3;s=STFUnitType" DataType="Int16">
+    <DisplayName>Alarm</DisplayName>
+    <Description>Alarm</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=STFUnitType</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=STFUnitType.Fault" BrowseName="3:Fault" ParentNodeId="ns=3;s=STFUnitType" DataType="Boolean">
+    <DisplayName>Fault</DisplayName>
+    <Description>Fault</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=STFUnitType</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=STFUnitType.Busy" BrowseName="3:Busy" ParentNodeId="ns=3;s=STFUnitType" DataType="Boolean">
+    <DisplayName>Busy</DisplayName>
+    <Description>Busy</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=STFUnitType</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=STFUnitType.Job" BrowseName="3:Job" ParentNodeId="ns=3;s=STFUnitType" DataType="String">
+    <DisplayName>Job</DisplayName>
+    <Description>Job</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=STFUnitType</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=STFUnitType.StateText" BrowseName="3:StateText" ParentNodeId="ns=3;s=STFUnitType" DataType="String">
+    <DisplayName>StateText</DisplayName>
+    <Description>StateText</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=STFUnitType</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=STFUnitType.State" BrowseName="3:State" ParentNodeId="ns=3;s=STFUnitType" DataType="Int16">
+    <DisplayName>State</DisplayName>
+    <Description>State</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=STFUnitType</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Cell" BrowseName="3:STF_Cell" ParentNodeId="ns=2;i=1001">
+    <DisplayName>STF_Cell</DisplayName>
+    <Description>STF_Cell</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=2;i=1001</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="HasAddIn">ns=3;s=Cell.Identification</Reference>
+      <Reference ReferenceType="HasAddIn">ns=3;s=Cell.MachineryItemState</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Cell.Components</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Safety</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Production</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=3;s=Production" BrowseName="3:Production" ParentNodeId="ns=3;s=Cell">
+    <DisplayName>Production</DisplayName>
+    <Description>Production</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Cell</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Production.Phase</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Production.JobsCompleted</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Production.MachineTime</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Production.OrderTime</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Production.Run</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Production.StartOrder</Reference>
+    </References>
+  </UAObject>
+  <UAMethod NodeId="ns=3;s=Production.StartOrder" BrowseName="3:StartOrder" ParentNodeId="ns=3;s=Production">
+    <DisplayName>StartOrder</DisplayName>
+    <Description>StartOrder</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Production</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;i=1</Reference>
+    </References>
+  </UAMethod>
+  <UAVariable NodeId="ns=3;i=1" BrowseName="0:OutputArguments" ParentNodeId="ns=3;s=Production.StartOrder" ValueRank="0" DataType="Argument">
+    <DisplayName>OutputArguments</DisplayName>
+    <Description>OutputArguments</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Production.StartOrder</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Production.Run" BrowseName="3:Run" ParentNodeId="ns=3;s=Production" DataType="UInt32">
+    <DisplayName>Run</DisplayName>
+    <Description>Run</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Production</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Production.OrderTime" BrowseName="3:OrderTime" ParentNodeId="ns=3;s=Production" DataType="Double">
+    <DisplayName>OrderTime</DisplayName>
+    <Description>OrderTime</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Production</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Production.MachineTime" BrowseName="3:MachineTime" ParentNodeId="ns=3;s=Production" DataType="Double">
+    <DisplayName>MachineTime</DisplayName>
+    <Description>MachineTime</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Production</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Production.JobsCompleted" BrowseName="3:JobsCompleted" ParentNodeId="ns=3;s=Production" DataType="UInt32">
+    <DisplayName>JobsCompleted</DisplayName>
+    <Description>JobsCompleted</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Production</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Production.Phase" BrowseName="3:Phase" ParentNodeId="ns=3;s=Production" DataType="String">
+    <DisplayName>Phase</DisplayName>
+    <Description>Phase</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Production</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Safety" BrowseName="3:Safety" ParentNodeId="ns=3;s=Cell">
+    <DisplayName>Safety</DisplayName>
+    <Description>Safety</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Cell</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Safety.SafetyOK</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Safety.SafetyOK" BrowseName="3:SafetyOK" ParentNodeId="ns=3;s=Safety" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>safety relay K0: OK</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Safety</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Safety.SafetyOK.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Safety.SafetyOK.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Safety.SafetyOK.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Safety.SafetyOK" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Safety.SafetyOK</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Safety.SafetyOK.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Safety.SafetyOK" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Safety.SafetyOK</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Cell.Components" BrowseName="2:Components" ParentNodeId="ns=3;s=Cell">
+    <DisplayName>MachineComponentsType</DisplayName>
+    <Description>Contains all identifiable components of a machine</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Cell</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=2;i=1006</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=VGR</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Sorting</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=3;s=Sorting" BrowseName="3:Sorting" ParentNodeId="ns=3;s=Cell.Components">
+    <DisplayName>Sorting</DisplayName>
+    <Description>Sorting line</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Cell.Components</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="HasAddIn">ns=3;s=Sorting.Identification</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Sorting.Inputs</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Sorting.Outputs</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Sorting.Units</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Sorting.ColourSensor</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Sorting.ColourSensor" BrowseName="3:ColourSensor_A4" ParentNodeId="ns=3;s=Sorting" ValueRank="-2" DataType="Number">
+    <DisplayName>AnalogUnitType</DisplayName>
+    <Description>colour sensor, mV</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Sorting</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=17497</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.ColourSensor.EngineeringUnits</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.ColourSensor.EURange</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.ColourSensor.EURange" BrowseName="0:EURange" ParentNodeId="ns=3;s=Sorting.ColourSensor" DataType="Range">
+    <DisplayName>EURange</DisplayName>
+    <Description>EURange</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.ColourSensor</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.ColourSensor.EngineeringUnits" BrowseName="0:EngineeringUnits" ParentNodeId="ns=3;s=Sorting.ColourSensor" DataType="EUInformation">
+    <DisplayName>EngineeringUnits</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.ColourSensor</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Sorting.Units" BrowseName="3:Units" ParentNodeId="ns=3;s=Sorting">
+    <DisplayName>Units</DisplayName>
+    <Description>Units</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Sorting</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Sorting.Units.line</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=3;s=Sorting.Units.line" BrowseName="3:line" ParentNodeId="ns=3;s=Sorting.Units">
+    <DisplayName>line</DisplayName>
+    <Description>A unit sequencer of the PLC program (Upgrade 13): its state machine, job and alarm</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Sorting.Units</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=3;s=STFUnitType</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Sorting.Units.line.State</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Sorting.Units.line.StateText</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Sorting.Units.line.Job</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Sorting.Units.line.Busy</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Sorting.Units.line.Fault</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Sorting.Units.line.Alarm</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Sorting.Units.line.Alarm" BrowseName="3:Alarm" ParentNodeId="ns=3;s=Sorting.Units.line" DataType="Int16">
+    <DisplayName>Alarm</DisplayName>
+    <Description>Alarm</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Sorting.Units.line</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Units.line.Fault" BrowseName="3:Fault" ParentNodeId="ns=3;s=Sorting.Units.line" DataType="Boolean">
+    <DisplayName>Fault</DisplayName>
+    <Description>Fault</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Sorting.Units.line</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Units.line.Busy" BrowseName="3:Busy" ParentNodeId="ns=3;s=Sorting.Units.line" DataType="Boolean">
+    <DisplayName>Busy</DisplayName>
+    <Description>Busy</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Sorting.Units.line</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Units.line.Job" BrowseName="3:Job" ParentNodeId="ns=3;s=Sorting.Units.line" DataType="String">
+    <DisplayName>Job</DisplayName>
+    <Description>Job</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Sorting.Units.line</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Units.line.StateText" BrowseName="3:StateText" ParentNodeId="ns=3;s=Sorting.Units.line" DataType="String">
+    <DisplayName>StateText</DisplayName>
+    <Description>StateText</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Sorting.Units.line</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Units.line.State" BrowseName="3:State" ParentNodeId="ns=3;s=Sorting.Units.line" DataType="Int16">
+    <DisplayName>State</DisplayName>
+    <Description>State</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Sorting.Units.line</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Sorting.Outputs" BrowseName="3:Outputs" ParentNodeId="ns=3;s=Sorting">
+    <DisplayName>Outputs</DisplayName>
+    <Description>Outputs</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Sorting</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Sorting.Outputs.Q1</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Sorting.Outputs.Q3</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Sorting.Outputs.Q4</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Sorting.Outputs.Q5</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Sorting.Outputs.Q5" BrowseName="3:Q5" ParentNodeId="ns=3;s=Sorting.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>Q5</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Sorting.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Outputs.Q5.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Outputs.Q5.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Outputs.Q5.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Sorting.Outputs.Q5" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Outputs.Q5</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Outputs.Q5.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Sorting.Outputs.Q5" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Outputs.Q5</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Outputs.Q4" BrowseName="3:Q4" ParentNodeId="ns=3;s=Sorting.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>Q4</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Sorting.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Outputs.Q4.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Outputs.Q4.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Outputs.Q4.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Sorting.Outputs.Q4" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Outputs.Q4</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Outputs.Q4.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Sorting.Outputs.Q4" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Outputs.Q4</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Outputs.Q3" BrowseName="3:Q3" ParentNodeId="ns=3;s=Sorting.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>Q3</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Sorting.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Outputs.Q3.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Outputs.Q3.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Outputs.Q3.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Sorting.Outputs.Q3" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Outputs.Q3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Outputs.Q3.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Sorting.Outputs.Q3" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Outputs.Q3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Outputs.Q1" BrowseName="3:Q1" ParentNodeId="ns=3;s=Sorting.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>conveyor belt</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Sorting.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Outputs.Q1.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Outputs.Q1.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Outputs.Q1.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Sorting.Outputs.Q1" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Outputs.Q1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Outputs.Q1.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Sorting.Outputs.Q1" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Outputs.Q1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Sorting.Inputs" BrowseName="3:Inputs" ParentNodeId="ns=3;s=Sorting">
+    <DisplayName>Inputs</DisplayName>
+    <Description>Inputs</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Sorting</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Sorting.Inputs.I1</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Sorting.Inputs.I3</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Sorting.Inputs.I5</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Sorting.Inputs.I6</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Sorting.Inputs.I7</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I7" BrowseName="3:I7" ParentNodeId="ns=3;s=Sorting.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>light barrier blue</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Sorting.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Inputs.I7.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Inputs.I7.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I7.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Sorting.Inputs.I7" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Inputs.I7</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I7.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Sorting.Inputs.I7" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Inputs.I7</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I6" BrowseName="3:I6" ParentNodeId="ns=3;s=Sorting.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>light barrier red</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Sorting.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Inputs.I6.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Inputs.I6.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I6.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Sorting.Inputs.I6" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Inputs.I6</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I6.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Sorting.Inputs.I6" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Inputs.I6</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I5" BrowseName="3:I5" ParentNodeId="ns=3;s=Sorting.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>light barrier white</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Sorting.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Inputs.I5.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Inputs.I5.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I5.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Sorting.Inputs.I5" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Inputs.I5</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I5.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Sorting.Inputs.I5" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Inputs.I5</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I3" BrowseName="3:I3" ParentNodeId="ns=3;s=Sorting.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>light barrier behind colour sensor</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Sorting.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Inputs.I3.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Inputs.I3.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I3.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Sorting.Inputs.I3" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Inputs.I3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I3.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Sorting.Inputs.I3" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Inputs.I3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I1" BrowseName="3:I1" ParentNodeId="ns=3;s=Sorting.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>pulse counter (Impulstaster)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Sorting.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Inputs.I1.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Inputs.I1.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I1.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Sorting.Inputs.I1" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Inputs.I1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Inputs.I1.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Sorting.Inputs.I1" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Inputs.I1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Sorting.Identification" BrowseName="1:Identification" ParentNodeId="ns=3;s=Sorting">
+    <DisplayName>MachineryComponentIdentificationType</DisplayName>
+    <Description>Contains information about the identification and nameplate of a component</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=2;i=1005</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Identification.Manufacturer</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Sorting.Identification.SerialNumber</Reference>
+      <Reference ReferenceType="HasAddIn" IsForward="false">ns=3;s=Sorting</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Sorting.Identification.SerialNumber" BrowseName="1:SerialNumber" ParentNodeId="ns=3;s=Sorting.Identification" DataType="String">
+    <DisplayName>SerialNumber</DisplayName>
+    <Description>A string containing a unique production number of the manufacturer of the MachineryItem. The global uniqueness of the serial number is only given in the context of the manufacturer, and potentially the model. The value shall not change during the life-cycle of the MachineryItem.</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Sorting.Identification.Manufacturer" BrowseName="1:Manufacturer" ParentNodeId="ns=3;s=Sorting.Identification" DataType="LocalizedText">
+    <DisplayName>Manufacturer</DisplayName>
+    <Description>A human-readable, localized name of the manufacturer of the MachineryItem.</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Sorting.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Oven" BrowseName="3:Oven" ParentNodeId="ns=3;s=Cell.Components">
+    <DisplayName>Oven</DisplayName>
+    <Description>Oven and turntable</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Cell.Components</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="HasAddIn">ns=3;s=Oven.Identification</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Outputs</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=3;s=Oven.Units" BrowseName="3:Units" ParentNodeId="ns=3;s=Oven">
+    <DisplayName>Units</DisplayName>
+    <Description>Units</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Units.door</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Units.sauger</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Units.turntable</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Units.ovenbelt</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=3;s=Oven.Units.ovenbelt" BrowseName="3:ovenbelt" ParentNodeId="ns=3;s=Oven.Units">
+    <DisplayName>ovenbelt</DisplayName>
+    <Description>A unit sequencer of the PLC program (Upgrade 13): its state machine, job and alarm</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Units</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=3;s=STFUnitType</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.ovenbelt.State</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.ovenbelt.StateText</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.ovenbelt.Job</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.ovenbelt.Busy</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.ovenbelt.Fault</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.ovenbelt.Alarm</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Oven.Units.ovenbelt.Alarm" BrowseName="3:Alarm" ParentNodeId="ns=3;s=Oven.Units.ovenbelt" DataType="Int16">
+    <DisplayName>Alarm</DisplayName>
+    <Description>Alarm</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.ovenbelt</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.ovenbelt.Fault" BrowseName="3:Fault" ParentNodeId="ns=3;s=Oven.Units.ovenbelt" DataType="Boolean">
+    <DisplayName>Fault</DisplayName>
+    <Description>Fault</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.ovenbelt</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.ovenbelt.Busy" BrowseName="3:Busy" ParentNodeId="ns=3;s=Oven.Units.ovenbelt" DataType="Boolean">
+    <DisplayName>Busy</DisplayName>
+    <Description>Busy</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.ovenbelt</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.ovenbelt.Job" BrowseName="3:Job" ParentNodeId="ns=3;s=Oven.Units.ovenbelt" DataType="String">
+    <DisplayName>Job</DisplayName>
+    <Description>Job</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.ovenbelt</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.ovenbelt.StateText" BrowseName="3:StateText" ParentNodeId="ns=3;s=Oven.Units.ovenbelt" DataType="String">
+    <DisplayName>StateText</DisplayName>
+    <Description>StateText</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.ovenbelt</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.ovenbelt.State" BrowseName="3:State" ParentNodeId="ns=3;s=Oven.Units.ovenbelt" DataType="Int16">
+    <DisplayName>State</DisplayName>
+    <Description>State</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.ovenbelt</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Oven.Units.turntable" BrowseName="3:turntable" ParentNodeId="ns=3;s=Oven.Units">
+    <DisplayName>turntable</DisplayName>
+    <Description>A unit sequencer of the PLC program (Upgrade 13): its state machine, job and alarm</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Units</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=3;s=STFUnitType</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.turntable.State</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.turntable.StateText</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.turntable.Job</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.turntable.Busy</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.turntable.Fault</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.turntable.Alarm</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Oven.Units.turntable.Alarm" BrowseName="3:Alarm" ParentNodeId="ns=3;s=Oven.Units.turntable" DataType="Int16">
+    <DisplayName>Alarm</DisplayName>
+    <Description>Alarm</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.turntable</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.turntable.Fault" BrowseName="3:Fault" ParentNodeId="ns=3;s=Oven.Units.turntable" DataType="Boolean">
+    <DisplayName>Fault</DisplayName>
+    <Description>Fault</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.turntable</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.turntable.Busy" BrowseName="3:Busy" ParentNodeId="ns=3;s=Oven.Units.turntable" DataType="Boolean">
+    <DisplayName>Busy</DisplayName>
+    <Description>Busy</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.turntable</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.turntable.Job" BrowseName="3:Job" ParentNodeId="ns=3;s=Oven.Units.turntable" DataType="String">
+    <DisplayName>Job</DisplayName>
+    <Description>Job</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.turntable</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.turntable.StateText" BrowseName="3:StateText" ParentNodeId="ns=3;s=Oven.Units.turntable" DataType="String">
+    <DisplayName>StateText</DisplayName>
+    <Description>StateText</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.turntable</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.turntable.State" BrowseName="3:State" ParentNodeId="ns=3;s=Oven.Units.turntable" DataType="Int16">
+    <DisplayName>State</DisplayName>
+    <Description>State</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.turntable</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Oven.Units.sauger" BrowseName="3:sauger" ParentNodeId="ns=3;s=Oven.Units">
+    <DisplayName>sauger</DisplayName>
+    <Description>A unit sequencer of the PLC program (Upgrade 13): its state machine, job and alarm</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Units</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=3;s=STFUnitType</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.sauger.State</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.sauger.StateText</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.sauger.Job</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.sauger.Busy</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.sauger.Fault</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.sauger.Alarm</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Oven.Units.sauger.Alarm" BrowseName="3:Alarm" ParentNodeId="ns=3;s=Oven.Units.sauger" DataType="Int16">
+    <DisplayName>Alarm</DisplayName>
+    <Description>Alarm</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.sauger</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.sauger.Fault" BrowseName="3:Fault" ParentNodeId="ns=3;s=Oven.Units.sauger" DataType="Boolean">
+    <DisplayName>Fault</DisplayName>
+    <Description>Fault</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.sauger</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.sauger.Busy" BrowseName="3:Busy" ParentNodeId="ns=3;s=Oven.Units.sauger" DataType="Boolean">
+    <DisplayName>Busy</DisplayName>
+    <Description>Busy</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.sauger</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.sauger.Job" BrowseName="3:Job" ParentNodeId="ns=3;s=Oven.Units.sauger" DataType="String">
+    <DisplayName>Job</DisplayName>
+    <Description>Job</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.sauger</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.sauger.StateText" BrowseName="3:StateText" ParentNodeId="ns=3;s=Oven.Units.sauger" DataType="String">
+    <DisplayName>StateText</DisplayName>
+    <Description>StateText</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.sauger</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.sauger.State" BrowseName="3:State" ParentNodeId="ns=3;s=Oven.Units.sauger" DataType="Int16">
+    <DisplayName>State</DisplayName>
+    <Description>State</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.sauger</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Oven.Units.door" BrowseName="3:door" ParentNodeId="ns=3;s=Oven.Units">
+    <DisplayName>door</DisplayName>
+    <Description>A unit sequencer of the PLC program (Upgrade 13): its state machine, job and alarm</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Units</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=3;s=STFUnitType</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.door.State</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.door.StateText</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.door.Job</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.door.Busy</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.door.Fault</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Oven.Units.door.Alarm</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Oven.Units.door.Alarm" BrowseName="3:Alarm" ParentNodeId="ns=3;s=Oven.Units.door" DataType="Int16">
+    <DisplayName>Alarm</DisplayName>
+    <Description>Alarm</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.door</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.door.Fault" BrowseName="3:Fault" ParentNodeId="ns=3;s=Oven.Units.door" DataType="Boolean">
+    <DisplayName>Fault</DisplayName>
+    <Description>Fault</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.door</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.door.Busy" BrowseName="3:Busy" ParentNodeId="ns=3;s=Oven.Units.door" DataType="Boolean">
+    <DisplayName>Busy</DisplayName>
+    <Description>Busy</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.door</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.door.Job" BrowseName="3:Job" ParentNodeId="ns=3;s=Oven.Units.door" DataType="String">
+    <DisplayName>Job</DisplayName>
+    <Description>Job</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.door</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.door.StateText" BrowseName="3:StateText" ParentNodeId="ns=3;s=Oven.Units.door" DataType="String">
+    <DisplayName>StateText</DisplayName>
+    <Description>StateText</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.door</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Units.door.State" BrowseName="3:State" ParentNodeId="ns=3;s=Oven.Units.door" DataType="Int16">
+    <DisplayName>State</DisplayName>
+    <Description>State</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven.Units.door</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Oven.Outputs" BrowseName="3:Outputs" ParentNodeId="ns=3;s=Oven">
+    <DisplayName>Outputs</DisplayName>
+    <Description>Outputs</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Outputs.Q5</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Outputs.Q6</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Outputs.Q9</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Outputs.Q13</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Outputs.Q7</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Outputs.Q8</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Outputs.Q11</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Outputs.Q12</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Outputs.Q1</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Outputs.Q2</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Outputs.Q4</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Outputs.Q14</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Outputs.Q3</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q3" BrowseName="3:Q3" ParentNodeId="ns=3;s=Oven.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>conveyor belt (M2)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q3.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q3.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q3.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Outputs.Q3" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q3.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Outputs.Q3" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q14" BrowseName="3:Q14" ParentNodeId="ns=3;s=Oven.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>Q14</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q14.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q14.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q14.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Outputs.Q14" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q14</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q14.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Outputs.Q14" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q14</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q4" BrowseName="3:Q4" ParentNodeId="ns=3;s=Oven.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>saw (M3)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q4.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q4.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q4.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Outputs.Q4" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q4</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q4.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Outputs.Q4" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q4</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q2" BrowseName="3:Q2" ParentNodeId="ns=3;s=Oven.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>turntable counter-clockwise (M1)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q2.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q2.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q2.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Outputs.Q2" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q2</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q2.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Outputs.Q2" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q2</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q1" BrowseName="3:Q1" ParentNodeId="ns=3;s=Oven.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>turntable clockwise (M1)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q1.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q1.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q1.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Outputs.Q1" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q1.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Outputs.Q1" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q12" BrowseName="3:Q12" ParentNodeId="ns=3;s=Oven.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>Q12</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q12.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q12.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q12.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Outputs.Q12" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q12</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q12.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Outputs.Q12" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q12</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q11" BrowseName="3:Q11" ParentNodeId="ns=3;s=Oven.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>Q11</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q11.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q11.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q11.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Outputs.Q11" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q11</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q11.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Outputs.Q11" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q11</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q8" BrowseName="3:Q8" ParentNodeId="ns=3;s=Oven.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>vacuum towards turntable (M5)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q8.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q8.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q8.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Outputs.Q8" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q8</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q8.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Outputs.Q8" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q8</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q7" BrowseName="3:Q7" ParentNodeId="ns=3;s=Oven.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>vacuum towards oven (M5)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q7.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q7.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q7.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Outputs.Q7" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q7</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q7.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Outputs.Q7" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q7</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q13" BrowseName="3:Q13" ParentNodeId="ns=3;s=Oven.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>Q13</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q13.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q13.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q13.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Outputs.Q13" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q13</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q13.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Outputs.Q13" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q13</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q9" BrowseName="3:Q9" ParentNodeId="ns=3;s=Oven.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>oven lamp</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q9.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q9.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q9.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Outputs.Q9" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q9</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q9.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Outputs.Q9" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q9</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q6" BrowseName="3:Q6" ParentNodeId="ns=3;s=Oven.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>oven feeder extend (M4)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q6.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q6.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q6.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Outputs.Q6" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q6</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q6.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Outputs.Q6" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q6</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q5" BrowseName="3:Q5" ParentNodeId="ns=3;s=Oven.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>oven feeder retract (M4)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q5.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Outputs.Q5.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q5.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Outputs.Q5" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q5</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Outputs.Q5.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Outputs.Q5" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Outputs.Q5</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Oven.Inputs" BrowseName="3:Inputs" ParentNodeId="ns=3;s=Oven">
+    <DisplayName>Inputs</DisplayName>
+    <Description>Inputs</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Oven</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Inputs.I6</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Inputs.I7</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Inputs.I10</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Inputs.I11</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Inputs.I5</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Inputs.I8</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Inputs.I12</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Inputs.I13</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Inputs.I1</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Inputs.I2</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Inputs.I4</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Inputs.I14</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Inputs.I15</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=Oven.Inputs.I3</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I3" BrowseName="3:I3" ParentNodeId="ns=3;s=Oven.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>light barrier end of conveyor belt</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I3.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I3.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I3.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Inputs.I3" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I3.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Inputs.I3" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I15" BrowseName="3:I15" ParentNodeId="ns=3;s=Oven.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reed switch: Auswerfer home</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I15.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I15.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I15.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Inputs.I15" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I15</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I15.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Inputs.I15" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I15</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I14" BrowseName="3:I14" ParentNodeId="ns=3;s=Oven.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reed switch: Auswerfer out</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I14.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I14.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I14.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Inputs.I14" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I14</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I14.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Inputs.I14" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I14</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I4" BrowseName="3:I4" ParentNodeId="ns=3;s=Oven.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reference turntable (saw position)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I4.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I4.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I4.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Inputs.I4" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I4</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I4.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Inputs.I4" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I4</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I2" BrowseName="3:I2" ParentNodeId="ns=3;s=Oven.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reference turntable (belt position)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I2.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I2.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I2.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Inputs.I2" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I2</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I2.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Inputs.I2" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I2</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I1" BrowseName="3:I1" ParentNodeId="ns=3;s=Oven.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reference turntable (vacuum position)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I1.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I1.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I1.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Inputs.I1" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I1.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Inputs.I1" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I13" BrowseName="3:I13" ParentNodeId="ns=3;s=Oven.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reed switch: Sauger up</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I13.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I13.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I13.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Inputs.I13" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I13</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I13.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Inputs.I13" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I13</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I12" BrowseName="3:I12" ParentNodeId="ns=3;s=Oven.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reed switch: Sauger lowered</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I12.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I12.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I12.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Inputs.I12" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I12</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I12.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Inputs.I12" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I12</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I8" BrowseName="3:I8" ParentNodeId="ns=3;s=Oven.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>vacuum at oven</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I8.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I8.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I8.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Inputs.I8" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I8</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I8.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Inputs.I8" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I8</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I5" BrowseName="3:I5" ParentNodeId="ns=3;s=Oven.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reference vacuum (turntable position)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I5.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I5.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I5.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Inputs.I5" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I5</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I5.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Inputs.I5" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I5</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I11" BrowseName="3:I11" ParentNodeId="ns=3;s=Oven.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reed switch: oven door shut</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I11.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I11.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I11.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Inputs.I11" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I11</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I11.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Inputs.I11" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I11</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I10" BrowseName="3:I10" ParentNodeId="ns=3;s=Oven.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reed switch: oven door open</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I10.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I10.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I10.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Inputs.I10" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I10</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I10.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Inputs.I10" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I10</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I7" BrowseName="3:I7" ParentNodeId="ns=3;s=Oven.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>oven feeder outside</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I7.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I7.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I7.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Inputs.I7" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I7</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I7.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Inputs.I7" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I7</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I6" BrowseName="3:I6" ParentNodeId="ns=3;s=Oven.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>oven feeder inside</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Oven.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I6.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Inputs.I6.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I6.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=Oven.Inputs.I6" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I6</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Inputs.I6.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=Oven.Inputs.I6" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Inputs.I6</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Oven.Identification" BrowseName="1:Identification" ParentNodeId="ns=3;s=Oven">
+    <DisplayName>MachineryComponentIdentificationType</DisplayName>
+    <Description>Contains information about the identification and nameplate of a component</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=2;i=1005</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Identification.Manufacturer</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Oven.Identification.SerialNumber</Reference>
+      <Reference ReferenceType="HasAddIn" IsForward="false">ns=3;s=Oven</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Oven.Identification.SerialNumber" BrowseName="1:SerialNumber" ParentNodeId="ns=3;s=Oven.Identification" DataType="String">
+    <DisplayName>SerialNumber</DisplayName>
+    <Description>A string containing a unique production number of the manufacturer of the MachineryItem. The global uniqueness of the serial number is only given in the context of the manufacturer, and potentially the model. The value shall not change during the life-cycle of the MachineryItem.</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Oven.Identification.Manufacturer" BrowseName="1:Manufacturer" ParentNodeId="ns=3;s=Oven.Identification" DataType="LocalizedText">
+    <DisplayName>Manufacturer</DisplayName>
+    <Description>A human-readable, localized name of the manufacturer of the MachineryItem.</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Oven.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=VGR" BrowseName="3:VGR" ParentNodeId="ns=3;s=Cell.Components">
+    <DisplayName>VGR</DisplayName>
+    <Description>Vacuum gripper robot</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Cell.Components</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="HasAddIn">ns=3;s=VGR.Identification</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=VGR.Inputs</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=VGR.Outputs</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=VGR.Units</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=VGR.Encoders.plunge</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=VGR.Encoders.reach</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=VGR.Encoders.swivel</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=VGR.Encoders.swivel" BrowseName="3:Position_swivel" ParentNodeId="ns=3;s=VGR" ValueRank="-2" DataType="Number">
+    <DisplayName>AnalogUnitType</DisplayName>
+    <Description>arm swivel position, from the encoder counter</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=VGR</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=17497</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Encoders.swivel.EngineeringUnits</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Encoders.swivel.EURange</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Encoders.swivel.EURange" BrowseName="0:EURange" ParentNodeId="ns=3;s=VGR.Encoders.swivel" DataType="Range">
+    <DisplayName>EURange</DisplayName>
+    <Description>EURange</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Encoders.swivel</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Encoders.swivel.EngineeringUnits" BrowseName="0:EngineeringUnits" ParentNodeId="ns=3;s=VGR.Encoders.swivel" DataType="EUInformation">
+    <DisplayName>EngineeringUnits</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Encoders.swivel</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Encoders.reach" BrowseName="3:Position_reach" ParentNodeId="ns=3;s=VGR" ValueRank="-2" DataType="Number">
+    <DisplayName>AnalogUnitType</DisplayName>
+    <Description>arm reach position, from the encoder counter</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=VGR</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=17497</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Encoders.reach.EngineeringUnits</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Encoders.reach.EURange</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Encoders.reach.EURange" BrowseName="0:EURange" ParentNodeId="ns=3;s=VGR.Encoders.reach" DataType="Range">
+    <DisplayName>EURange</DisplayName>
+    <Description>EURange</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Encoders.reach</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Encoders.reach.EngineeringUnits" BrowseName="0:EngineeringUnits" ParentNodeId="ns=3;s=VGR.Encoders.reach" DataType="EUInformation">
+    <DisplayName>EngineeringUnits</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Encoders.reach</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Encoders.plunge" BrowseName="3:Position_plunge" ParentNodeId="ns=3;s=VGR" ValueRank="-2" DataType="Number">
+    <DisplayName>AnalogUnitType</DisplayName>
+    <Description>arm plunge position, from the encoder counter</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=VGR</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=17497</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Encoders.plunge.EngineeringUnits</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Encoders.plunge.EURange</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Encoders.plunge.EURange" BrowseName="0:EURange" ParentNodeId="ns=3;s=VGR.Encoders.plunge" DataType="Range">
+    <DisplayName>EURange</DisplayName>
+    <Description>EURange</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Encoders.plunge</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Encoders.plunge.EngineeringUnits" BrowseName="0:EngineeringUnits" ParentNodeId="ns=3;s=VGR.Encoders.plunge" DataType="EUInformation">
+    <DisplayName>EngineeringUnits</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Encoders.plunge</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=VGR.Units" BrowseName="3:Units" ParentNodeId="ns=3;s=VGR">
+    <DisplayName>Units</DisplayName>
+    <Description>Units</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=VGR</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=VGR.Units.arm</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=3;s=VGR.Units.arm" BrowseName="3:arm" ParentNodeId="ns=3;s=VGR.Units">
+    <DisplayName>arm</DisplayName>
+    <Description>A unit sequencer of the PLC program (Upgrade 13): its state machine, job and alarm</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=VGR.Units</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=3;s=STFUnitType</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=VGR.Units.arm.State</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=VGR.Units.arm.StateText</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=VGR.Units.arm.Job</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=VGR.Units.arm.Busy</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=VGR.Units.arm.Fault</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=VGR.Units.arm.Alarm</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=VGR.Units.arm.Alarm" BrowseName="3:Alarm" ParentNodeId="ns=3;s=VGR.Units.arm" DataType="Int16">
+    <DisplayName>Alarm</DisplayName>
+    <Description>Alarm</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=VGR.Units.arm</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Units.arm.Fault" BrowseName="3:Fault" ParentNodeId="ns=3;s=VGR.Units.arm" DataType="Boolean">
+    <DisplayName>Fault</DisplayName>
+    <Description>Fault</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=VGR.Units.arm</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Units.arm.Busy" BrowseName="3:Busy" ParentNodeId="ns=3;s=VGR.Units.arm" DataType="Boolean">
+    <DisplayName>Busy</DisplayName>
+    <Description>Busy</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=VGR.Units.arm</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Units.arm.Job" BrowseName="3:Job" ParentNodeId="ns=3;s=VGR.Units.arm" DataType="String">
+    <DisplayName>Job</DisplayName>
+    <Description>Job</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=VGR.Units.arm</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Units.arm.StateText" BrowseName="3:StateText" ParentNodeId="ns=3;s=VGR.Units.arm" DataType="String">
+    <DisplayName>StateText</DisplayName>
+    <Description>StateText</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=VGR.Units.arm</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Units.arm.State" BrowseName="3:State" ParentNodeId="ns=3;s=VGR.Units.arm" DataType="Int16">
+    <DisplayName>State</DisplayName>
+    <Description>State</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=VGR.Units.arm</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=VGR.Outputs" BrowseName="3:Outputs" ParentNodeId="ns=3;s=VGR">
+    <DisplayName>Outputs</DisplayName>
+    <Description>Outputs</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=VGR</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=VGR.Outputs.Q1</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=VGR.Outputs.Q2</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=VGR.Outputs.Q3</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=VGR.Outputs.Q4</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=VGR.Outputs.Q5</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=VGR.Outputs.Q6</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=VGR.Outputs.Q8</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q8" BrowseName="3:Q8" ParentNodeId="ns=3;s=VGR.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>Q8</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=VGR.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Outputs.Q8.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Outputs.Q8.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q8.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=VGR.Outputs.Q8" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Outputs.Q8</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q8.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=VGR.Outputs.Q8" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Outputs.Q8</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q6" BrowseName="3:Q6" ParentNodeId="ns=3;s=VGR.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>rotate counter-clockwise (M3)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=VGR.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Outputs.Q6.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Outputs.Q6.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q6.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=VGR.Outputs.Q6" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Outputs.Q6</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q6.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=VGR.Outputs.Q6" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Outputs.Q6</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q5" BrowseName="3:Q5" ParentNodeId="ns=3;s=VGR.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>rotate clockwise (M3)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=VGR.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Outputs.Q5.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Outputs.Q5.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q5.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=VGR.Outputs.Q5" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Outputs.Q5</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q5.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=VGR.Outputs.Q5" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Outputs.Q5</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q4" BrowseName="3:Q4" ParentNodeId="ns=3;s=VGR.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>horizontal forward (M2)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=VGR.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Outputs.Q4.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Outputs.Q4.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q4.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=VGR.Outputs.Q4" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Outputs.Q4</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q4.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=VGR.Outputs.Q4" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Outputs.Q4</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q3" BrowseName="3:Q3" ParentNodeId="ns=3;s=VGR.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>horizontal backward (M2)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=VGR.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Outputs.Q3.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Outputs.Q3.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q3.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=VGR.Outputs.Q3" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Outputs.Q3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q3.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=VGR.Outputs.Q3" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Outputs.Q3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q2" BrowseName="3:Q2" ParentNodeId="ns=3;s=VGR.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>vertical down (M1)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=VGR.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Outputs.Q2.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Outputs.Q2.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q2.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=VGR.Outputs.Q2" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Outputs.Q2</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q2.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=VGR.Outputs.Q2" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Outputs.Q2</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q1" BrowseName="3:Q1" ParentNodeId="ns=3;s=VGR.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>vertical up (M1)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=VGR.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Outputs.Q1.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Outputs.Q1.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q1.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=VGR.Outputs.Q1" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Outputs.Q1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Outputs.Q1.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=VGR.Outputs.Q1" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Outputs.Q1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=VGR.Inputs" BrowseName="3:Inputs" ParentNodeId="ns=3;s=VGR">
+    <DisplayName>Inputs</DisplayName>
+    <Description>Inputs</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=VGR</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=VGR.Inputs.I1</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=VGR.Inputs.I2</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=VGR.Inputs.I3</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=VGR.Inputs.I4</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=VGR.Inputs.I4" BrowseName="3:I4" ParentNodeId="ns=3;s=VGR.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>vacuum switch: the cup is sealed on a part (-0.3 bar)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=VGR.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Inputs.I4.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Inputs.I4.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Inputs.I4.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=VGR.Inputs.I4" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Inputs.I4</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Inputs.I4.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=VGR.Inputs.I4" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Inputs.I4</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Inputs.I3" BrowseName="3:I3" ParentNodeId="ns=3;s=VGR.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reference rotate</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=VGR.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Inputs.I3.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Inputs.I3.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Inputs.I3.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=VGR.Inputs.I3" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Inputs.I3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Inputs.I3.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=VGR.Inputs.I3" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Inputs.I3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Inputs.I2" BrowseName="3:I2" ParentNodeId="ns=3;s=VGR.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reference horizontal</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=VGR.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Inputs.I2.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Inputs.I2.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Inputs.I2.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=VGR.Inputs.I2" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Inputs.I2</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Inputs.I2.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=VGR.Inputs.I2" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Inputs.I2</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Inputs.I1" BrowseName="3:I1" ParentNodeId="ns=3;s=VGR.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reference vertical</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=VGR.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Inputs.I1.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Inputs.I1.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Inputs.I1.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=VGR.Inputs.I1" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Inputs.I1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Inputs.I1.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=VGR.Inputs.I1" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Inputs.I1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=VGR.Identification" BrowseName="1:Identification" ParentNodeId="ns=3;s=VGR">
+    <DisplayName>MachineryComponentIdentificationType</DisplayName>
+    <Description>Contains information about the identification and nameplate of a component</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=2;i=1005</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Identification.Manufacturer</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=VGR.Identification.SerialNumber</Reference>
+      <Reference ReferenceType="HasAddIn" IsForward="false">ns=3;s=VGR</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=VGR.Identification.SerialNumber" BrowseName="1:SerialNumber" ParentNodeId="ns=3;s=VGR.Identification" DataType="String">
+    <DisplayName>SerialNumber</DisplayName>
+    <Description>A string containing a unique production number of the manufacturer of the MachineryItem. The global uniqueness of the serial number is only given in the context of the manufacturer, and potentially the model. The value shall not change during the life-cycle of the MachineryItem.</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=VGR.Identification.Manufacturer" BrowseName="1:Manufacturer" ParentNodeId="ns=3;s=VGR.Identification" DataType="LocalizedText">
+    <DisplayName>Manufacturer</DisplayName>
+    <Description>A human-readable, localized name of the manufacturer of the MachineryItem.</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=VGR.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=HBW" BrowseName="3:HBW" ParentNodeId="ns=3;s=Cell.Components">
+    <DisplayName>HBW</DisplayName>
+    <Description>High-bay warehouse</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Cell.Components</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="HasAddIn">ns=3;s=HBW.Identification</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Inputs</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Outputs</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Units</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Encoders.travel</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Encoders.lift</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.RF2_Tag</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=HBW.RF2_Tag" BrowseName="3:RF2_Tag" ParentNodeId="ns=3;s=HBW" DataType="Int16">
+    <DisplayName>RF2_Tag</DisplayName>
+    <Description>RFID RP2: the tag read (mould number)</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Encoders.lift" BrowseName="3:Position_lift" ParentNodeId="ns=3;s=HBW" ValueRank="-2" DataType="Number">
+    <DisplayName>AnalogUnitType</DisplayName>
+    <Description>crane lift position, from the encoder counter</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=17497</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Encoders.lift.EngineeringUnits</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Encoders.lift.EURange</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Encoders.lift.EURange" BrowseName="0:EURange" ParentNodeId="ns=3;s=HBW.Encoders.lift" DataType="Range">
+    <DisplayName>EURange</DisplayName>
+    <Description>EURange</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Encoders.lift</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Encoders.lift.EngineeringUnits" BrowseName="0:EngineeringUnits" ParentNodeId="ns=3;s=HBW.Encoders.lift" DataType="EUInformation">
+    <DisplayName>EngineeringUnits</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Encoders.lift</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Encoders.travel" BrowseName="3:Position_travel" ParentNodeId="ns=3;s=HBW" ValueRank="-2" DataType="Number">
+    <DisplayName>AnalogUnitType</DisplayName>
+    <Description>crane travel position, from the encoder counter</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=17497</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Encoders.travel.EngineeringUnits</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Encoders.travel.EURange</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Encoders.travel.EURange" BrowseName="0:EURange" ParentNodeId="ns=3;s=HBW.Encoders.travel" DataType="Range">
+    <DisplayName>EURange</DisplayName>
+    <Description>EURange</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Encoders.travel</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Encoders.travel.EngineeringUnits" BrowseName="0:EngineeringUnits" ParentNodeId="ns=3;s=HBW.Encoders.travel" DataType="EUInformation">
+    <DisplayName>EngineeringUnits</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Encoders.travel</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=HBW.Units" BrowseName="3:Units" ParentNodeId="ns=3;s=HBW">
+    <DisplayName>Units</DisplayName>
+    <Description>Units</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Units.crane</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Units.belt</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=3;s=HBW.Units.belt" BrowseName="3:belt" ParentNodeId="ns=3;s=HBW.Units">
+    <DisplayName>belt</DisplayName>
+    <Description>A unit sequencer of the PLC program (Upgrade 13): its state machine, job and alarm</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Units</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=3;s=STFUnitType</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Units.belt.State</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Units.belt.StateText</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Units.belt.Job</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Units.belt.Busy</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Units.belt.Fault</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Units.belt.Alarm</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=HBW.Units.belt.Alarm" BrowseName="3:Alarm" ParentNodeId="ns=3;s=HBW.Units.belt" DataType="Int16">
+    <DisplayName>Alarm</DisplayName>
+    <Description>Alarm</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW.Units.belt</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Units.belt.Fault" BrowseName="3:Fault" ParentNodeId="ns=3;s=HBW.Units.belt" DataType="Boolean">
+    <DisplayName>Fault</DisplayName>
+    <Description>Fault</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW.Units.belt</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Units.belt.Busy" BrowseName="3:Busy" ParentNodeId="ns=3;s=HBW.Units.belt" DataType="Boolean">
+    <DisplayName>Busy</DisplayName>
+    <Description>Busy</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW.Units.belt</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Units.belt.Job" BrowseName="3:Job" ParentNodeId="ns=3;s=HBW.Units.belt" DataType="String">
+    <DisplayName>Job</DisplayName>
+    <Description>Job</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW.Units.belt</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Units.belt.StateText" BrowseName="3:StateText" ParentNodeId="ns=3;s=HBW.Units.belt" DataType="String">
+    <DisplayName>StateText</DisplayName>
+    <Description>StateText</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW.Units.belt</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Units.belt.State" BrowseName="3:State" ParentNodeId="ns=3;s=HBW.Units.belt" DataType="Int16">
+    <DisplayName>State</DisplayName>
+    <Description>State</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW.Units.belt</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=HBW.Units.crane" BrowseName="3:crane" ParentNodeId="ns=3;s=HBW.Units">
+    <DisplayName>crane</DisplayName>
+    <Description>A unit sequencer of the PLC program (Upgrade 13): its state machine, job and alarm</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Units</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=3;s=STFUnitType</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Units.crane.State</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Units.crane.StateText</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Units.crane.Job</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Units.crane.Busy</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Units.crane.Fault</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=HBW.Units.crane.Alarm</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=HBW.Units.crane.Alarm" BrowseName="3:Alarm" ParentNodeId="ns=3;s=HBW.Units.crane" DataType="Int16">
+    <DisplayName>Alarm</DisplayName>
+    <Description>Alarm</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW.Units.crane</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Units.crane.Fault" BrowseName="3:Fault" ParentNodeId="ns=3;s=HBW.Units.crane" DataType="Boolean">
+    <DisplayName>Fault</DisplayName>
+    <Description>Fault</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW.Units.crane</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Units.crane.Busy" BrowseName="3:Busy" ParentNodeId="ns=3;s=HBW.Units.crane" DataType="Boolean">
+    <DisplayName>Busy</DisplayName>
+    <Description>Busy</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW.Units.crane</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Units.crane.Job" BrowseName="3:Job" ParentNodeId="ns=3;s=HBW.Units.crane" DataType="String">
+    <DisplayName>Job</DisplayName>
+    <Description>Job</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW.Units.crane</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Units.crane.StateText" BrowseName="3:StateText" ParentNodeId="ns=3;s=HBW.Units.crane" DataType="String">
+    <DisplayName>StateText</DisplayName>
+    <Description>StateText</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW.Units.crane</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Units.crane.State" BrowseName="3:State" ParentNodeId="ns=3;s=HBW.Units.crane" DataType="Int16">
+    <DisplayName>State</DisplayName>
+    <Description>State</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW.Units.crane</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=HBW.Outputs" BrowseName="3:Outputs" ParentNodeId="ns=3;s=HBW">
+    <DisplayName>Outputs</DisplayName>
+    <Description>Outputs</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Outputs.Q3</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Outputs.Q4</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Outputs.Q5</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Outputs.Q6</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Outputs.Q7</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Outputs.Q8</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Outputs.Q1</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Outputs.Q2</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q2" BrowseName="3:Q2" ParentNodeId="ns=3;s=HBW.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>conveyor belt backward (M1)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q2.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q2.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q2.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Outputs.Q2" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q2</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q2.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Outputs.Q2" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q2</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q1" BrowseName="3:Q1" ParentNodeId="ns=3;s=HBW.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>conveyor belt forward (M1)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q1.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q1.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q1.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Outputs.Q1" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q1.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Outputs.Q1" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q8" BrowseName="3:Q8" ParentNodeId="ns=3;s=HBW.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>cantilever back (M4)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q8.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q8.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q8.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Outputs.Q8" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q8</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q8.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Outputs.Q8" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q8</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q7" BrowseName="3:Q7" ParentNodeId="ns=3;s=HBW.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>cantilever forward (M4)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q7.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q7.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q7.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Outputs.Q7" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q7</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q7.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Outputs.Q7" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q7</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q6" BrowseName="3:Q6" ParentNodeId="ns=3;s=HBW.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>vertical axis up (M3)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q6.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q6.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q6.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Outputs.Q6" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q6</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q6.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Outputs.Q6" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q6</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q5" BrowseName="3:Q5" ParentNodeId="ns=3;s=HBW.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>vertical axis down (M3)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q5.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q5.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q5.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Outputs.Q5" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q5</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q5.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Outputs.Q5" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q5</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q4" BrowseName="3:Q4" ParentNodeId="ns=3;s=HBW.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>horizontal towards belt (M2)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q4.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q4.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q4.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Outputs.Q4" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q4</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q4.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Outputs.Q4" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q4</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q3" BrowseName="3:Q3" ParentNodeId="ns=3;s=HBW.Outputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>horizontal towards rack (M2)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Outputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q3.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Outputs.Q3.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q3.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Outputs.Q3" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Outputs.Q3.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Outputs.Q3" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Outputs.Q3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=HBW.Inputs" BrowseName="3:Inputs" ParentNodeId="ns=3;s=HBW">
+    <DisplayName>Inputs</DisplayName>
+    <Description>Inputs</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=HBW</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Inputs.I1</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Inputs.I4</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Inputs.I5</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Inputs.I6</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Inputs.I2</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Inputs.I3</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Inputs.RF1_Valid</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=HBW.Inputs.RF2_Valid</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.RF2_Valid" BrowseName="3:RF2_Valid" ParentNodeId="ns=3;s=HBW.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>RFID read point RP2: belt, VGR hand-over (IO-Link port 2)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.RF2_Valid.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.RF2_Valid.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.RF2_Valid.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Inputs.RF2_Valid" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.RF2_Valid</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.RF2_Valid.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Inputs.RF2_Valid" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.RF2_Valid</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.RF1_Valid" BrowseName="3:RF1_Valid" ParentNodeId="ns=3;s=HBW.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>RFID read point RP1: belt, crane end (IO-Link port 1)</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.RF1_Valid.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.RF1_Valid.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.RF1_Valid.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Inputs.RF1_Valid" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.RF1_Valid</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.RF1_Valid.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Inputs.RF1_Valid" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.RF1_Valid</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I3" BrowseName="3:I3" ParentNodeId="ns=3;s=HBW.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>phototransistor outside</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.I3.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.I3.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I3.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Inputs.I3" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.I3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I3.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Inputs.I3" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.I3</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I2" BrowseName="3:I2" ParentNodeId="ns=3;s=HBW.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>phototransistor inside</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.I2.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.I2.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I2.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Inputs.I2" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.I2</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I2.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Inputs.I2" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.I2</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I6" BrowseName="3:I6" ParentNodeId="ns=3;s=HBW.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reference switch cantilever back</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.I6.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.I6.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I6.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Inputs.I6" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.I6</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I6.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Inputs.I6" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.I6</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I5" BrowseName="3:I5" ParentNodeId="ns=3;s=HBW.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reference switch cantilever front</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.I5.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.I5.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I5.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Inputs.I5" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.I5</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I5.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Inputs.I5" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.I5</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I4" BrowseName="3:I4" ParentNodeId="ns=3;s=HBW.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reference switch vertical</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.I4.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.I4.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I4.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Inputs.I4" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.I4</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I4.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Inputs.I4" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.I4</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I1" BrowseName="3:I1" ParentNodeId="ns=3;s=HBW.Inputs" ValueRank="-2" DataType="Boolean">
+    <DisplayName>TwoStateDiscreteType</DisplayName>
+    <Description>reference switch horizontal</Description>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=HBW.Inputs</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2373</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.I1.FalseState</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Inputs.I1.TrueState</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I1.TrueState" BrowseName="0:TrueState" ParentNodeId="ns=3;s=HBW.Inputs.I1" DataType="LocalizedText">
+    <DisplayName>TrueState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.I1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Inputs.I1.FalseState" BrowseName="0:FalseState" ParentNodeId="ns=3;s=HBW.Inputs.I1" DataType="LocalizedText">
+    <DisplayName>FalseState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Inputs.I1</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=HBW.Identification" BrowseName="1:Identification" ParentNodeId="ns=3;s=HBW">
+    <DisplayName>MachineryComponentIdentificationType</DisplayName>
+    <Description>Contains information about the identification and nameplate of a component</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=2;i=1005</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Identification.Manufacturer</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=HBW.Identification.SerialNumber</Reference>
+      <Reference ReferenceType="HasAddIn" IsForward="false">ns=3;s=HBW</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=HBW.Identification.SerialNumber" BrowseName="1:SerialNumber" ParentNodeId="ns=3;s=HBW.Identification" DataType="String">
+    <DisplayName>SerialNumber</DisplayName>
+    <Description>A string containing a unique production number of the manufacturer of the MachineryItem. The global uniqueness of the serial number is only given in the context of the manufacturer, and potentially the model. The value shall not change during the life-cycle of the MachineryItem.</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=HBW.Identification.Manufacturer" BrowseName="1:Manufacturer" ParentNodeId="ns=3;s=HBW.Identification" DataType="LocalizedText">
+    <DisplayName>Manufacturer</DisplayName>
+    <Description>A human-readable, localized name of the manufacturer of the MachineryItem.</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=HBW.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Cell.MachineryItemState" BrowseName="2:MachineryItemState" ParentNodeId="ns=3;s=Cell">
+    <DisplayName>MachineryItemState_StateMachineType</DisplayName>
+    <Description>State machine representing the state of a machinery item</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=2;i=1002</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Cell.MachineryItemState.CurrentState</Reference>
+      <Reference ReferenceType="HasAddIn" IsForward="false">ns=3;s=Cell</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Cell.MachineryItemState.CurrentState" BrowseName="0:CurrentState" ParentNodeId="ns=3;s=Cell.MachineryItemState" DataType="LocalizedText">
+    <DisplayName>CurrentState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Cell.MachineryItemState</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2760</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Cell.MachineryItemState.CurrentState.Id</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Cell.MachineryItemState.CurrentState.Id" BrowseName="0:Id" ParentNodeId="ns=3;s=Cell.MachineryItemState.CurrentState" DataType="NodeId">
+    <DisplayName>Id</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Cell.MachineryItemState.CurrentState</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=3;s=Cell.Identification" BrowseName="1:Identification" ParentNodeId="ns=3;s=Cell">
+    <DisplayName>MachineIdentificationType</DisplayName>
+    <Description>Contains information about the identification and nameplate of a machine</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=2;i=1012</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Cell.Identification.ProductInstanceUri</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Cell.Identification.Manufacturer</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Cell.Identification.SerialNumber</Reference>
+      <Reference ReferenceType="HasAddIn" IsForward="false">ns=3;s=Cell</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Cell.Identification.Model</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Cell.Identification.YearOfConstruction</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Cell.Identification.SoftwareRevision</Reference>
+      <Reference ReferenceType="HasProperty">ns=3;s=Cell.Identification.ProductCode</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=Cell.Identification.ProductCode" BrowseName="1:ProductCode" ParentNodeId="ns=3;s=Cell.Identification" DataType="String">
+    <DisplayName>ProductCode</DisplayName>
+    <Description>ProductCode</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Cell.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Cell.Identification.SoftwareRevision" BrowseName="1:SoftwareRevision" ParentNodeId="ns=3;s=Cell.Identification" DataType="String">
+    <DisplayName>SoftwareRevision</DisplayName>
+    <Description>SoftwareRevision</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Cell.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Cell.Identification.YearOfConstruction" BrowseName="2:YearOfConstruction" ParentNodeId="ns=3;s=Cell.Identification" DataType="UInt16">
+    <DisplayName>YearOfConstruction</DisplayName>
+    <Description>YearOfConstruction</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Cell.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Cell.Identification.Model" BrowseName="1:Model" ParentNodeId="ns=3;s=Cell.Identification" DataType="LocalizedText">
+    <DisplayName>Model</DisplayName>
+    <Description>Model</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Cell.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Cell.Identification.SerialNumber" BrowseName="1:SerialNumber" ParentNodeId="ns=3;s=Cell.Identification" DataType="String">
+    <DisplayName>SerialNumber</DisplayName>
+    <Description>A string containing a unique production number of the manufacturer of the MachineryItem. The global uniqueness of the serial number is only given in the context of the manufacturer, and potentially the model. The value shall not change during the life-cycle of the MachineryItem.</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Cell.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Cell.Identification.Manufacturer" BrowseName="1:Manufacturer" ParentNodeId="ns=3;s=Cell.Identification" DataType="LocalizedText">
+    <DisplayName>Manufacturer</DisplayName>
+    <Description>A human-readable, localized name of the manufacturer of the MachineryItem.</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Cell.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=3;s=Cell.Identification.ProductInstanceUri" BrowseName="1:ProductInstanceUri" ParentNodeId="ns=3;s=Cell.Identification" DataType="String">
+    <DisplayName>ProductInstanceUri</DisplayName>
+    <Description>A globally unique resource identifier provided by the manufacturer of the machine</Description>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=3;s=Cell.Identification</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+</UANodeSet>

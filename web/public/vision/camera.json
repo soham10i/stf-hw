@@ -1,0 +1,154 @@
+{
+ "parts": [
+  {
+   "n": "cam_bracket",
+   "g": "vision",
+   "f": "world",
+   "k": "box",
+   "p": [
+    190.0,
+    225.0,
+    125.0
+   ],
+   "s": [
+    20.0,
+    10.0,
+    5.0
+   ],
+   "c": "#9aa3ac",
+   "tag": "",
+   "mech": "",
+   "note": "bracket screwed to the hood's roof"
+  },
+  {
+   "n": "cam_body",
+   "g": "vision",
+   "f": "world",
+   "k": "box",
+   "p": [
+    185.5,
+    215.5,
+    100.0
+   ],
+   "s": [
+    29.0,
+    29.0,
+    25.0
+   ],
+   "c": "#2b2d31",
+   "tag": "CAM1",
+   "mech": "",
+   "note": "inspection camera (Upgrade 15): 29 mm board camera, GigE; ASSUMED part"
+  },
+  {
+   "n": "cam_lens",
+   "g": "vision",
+   "f": "world",
+   "k": "cyl",
+   "p": [
+    200.0,
+    230.0,
+    92.0
+   ],
+   "s": [
+    "z",
+    8.0,
+    14.0
+   ],
+   "c": "#111316",
+   "tag": "",
+   "mech": "",
+   "note": "M12 wide-angle lens"
+  },
+  {
+   "n": "cam_ring_light",
+   "g": "vision",
+   "f": "world",
+   "k": "cyl",
+   "p": [
+    200.0,
+    230.0,
+    92.0
+   ],
+   "s": [
+    "z",
+    6.0,
+    40.0
+   ],
+   "c": "#e8eef7",
+   "tag": "CAM1-L",
+   "mech": "light",
+   "note": "LED ring light, strobed with the exposure"
+  }
+ ],
+ "frame": "sorting",
+ "lens": [
+  200.0,
+  230.0,
+  92.0
+ ],
+ "fov_mm": 80.0,
+ "image_px": 64,
+ "optics": {
+  "working_distance_mm": 47.0,
+  "lens_angle_deg": 80.8,
+  "blur_px": 0.04,
+  "trigger_delay_s": 1.05,
+  "roi_mm": 59.0
+ },
+ "checks": [
+  {
+   "check": "FIT",
+   "ok": true,
+   "detail": "no overlap with any of the line's parts"
+  },
+  {
+   "check": "PATH",
+   "ok": true,
+   "detail": "lowest camera part 92 mm, cookie top 65 mm: 27 mm clear"
+  },
+  {
+   "check": "SENSOR",
+   "ok": true,
+   "detail": "5.0 mm from A4's envelope (at least 5)"
+  },
+  {
+   "check": "SIGHT",
+   "ok": true,
+   "detail": "50 rays to the inspected area (59 mm square), none blocked"
+  },
+  {
+   "check": "OPTICS",
+   "ok": true,
+   "detail": "80 mm field at 47 mm needs a 81\u00b0 lens; 1 ms exposure at 50 mm/s blurs 0.04 px"
+  },
+  {
+   "check": "TRIGGER",
+   "ok": true,
+   "detail": "I2 breaks, the cookie is under the lens 1.05 s later; A4 reads it 0.80 s after that, with the ring light off"
+  }
+ ],
+ "mutants": [
+  {
+   "id": "CM1",
+   "what": "camera moved onto the colour sensor",
+   "caught": true,
+   "by": "FIT: [('cam_bracket', 'colour_arm'), ('cam_body', 'colour_arm'), ('cam_body', 'A4_colour_sensor')]"
+  },
+  {
+   "id": "CM2",
+   "what": "camera lowered into the cookie's path",
+   "caught": true,
+   "by": "PATH: lowest camera part 57 mm, cookie top 65 mm: -8 mm clear"
+  },
+  {
+   "id": "CM3",
+   "what": "camera moved back over the inlet barrier, outside the hood",
+   "caught": true,
+   "by": "SIGHT: blocked by ['I2_inlet_rx', 'I2_inlet_tx']"
+  }
+ ],
+ "fails": [],
+ "export": "bb0fe5697678867a",
+ "why_here": "inside the colour hood: its light is controlled, the CNN's weak point"
+}
