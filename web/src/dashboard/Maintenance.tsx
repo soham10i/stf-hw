@@ -2,6 +2,7 @@
 // (U7) create from the chosen machine age - when each part is next serviced and why, the
 // workload per day, the work orders and the spare parts to stock.
 import { useState } from "react";
+import { Kpi } from "./ui";
 import type { HealthDoc, LifecycleDoc } from "../shared/model";
 import { compAt } from "../shared/health";
 import { PART_COL } from "./Health";
@@ -17,9 +18,6 @@ const KIND = {
 type Kind = keyof typeof KIND;
 const short = (s: string) => s.replace(/ \(.*\)$/, "");
 
-function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
-  return <div className={`db-kpi ${tone ?? ""}`}><span>{label}</span><b>{value}</b>{sub && <em>{sub}</em>}</div>;
-}
 
 type Row = { id: string; name: string; col: string; door: string; kind: Kind; due: number; every: number; events: number[]; fail: number | null };
 

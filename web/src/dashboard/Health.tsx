@@ -2,6 +2,7 @@
 // there, and the signal behind the selected part (Upgrade 6, health.py). The theory and a
 // live run of the model are on the docs page (Degradation.tsx).
 import { useMemo, useState } from "react";
+import { Kpi } from "./ui";
 import type { HealthDoc } from "../shared/model";
 import { compAt, maxShifts, STATUS_TXT, type CompNow } from "../shared/health";
 import { Heat, niceTicks, Plot, useWidth } from "./Plot";
@@ -11,9 +12,6 @@ const STAT_COL = { ok: "var(--ok)", warn: "var(--warn)", fail: "var(--bad)" };
 const short = (s: string) => s.replace(/ \(.*\)$/, "");
 const sh = (x: number) => (x >= 100 ? x.toFixed(0) : x.toFixed(1));
 
-function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
-  return <div className={`db-kpi ${tone ?? ""}`}><span>{label}</span><b>{value}</b>{sub && <em>{sub}</em>}</div>;
-}
 
 /** Each part's remaining life from now: healthy until its warning (green), warned until it
     fails (amber). Sorted by what needs attention first. */
