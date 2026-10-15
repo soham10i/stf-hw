@@ -19,7 +19,7 @@ import * as THREE from "three";
 import { useContext } from "react";
 import { MM_TO_SCENE, PreciseLibCtx, PreciseMesh } from "./Precise";
 import { VIEW } from "../coords";
-import { physical } from "../views/ComponentView";
+import { physical } from "../views/materials";
 
 const MM = VIEW;
 const BASE = `${import.meta.env.BASE_URL}components/`;
