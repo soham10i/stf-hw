@@ -210,15 +210,18 @@ export function Heat({ rows, x0, x1, xTitle, xFmt = fmtNum, now, cell, sel, pick
 
 /** Categorical bars with a y axis that need not start at 0 (`yMin`), reference lines and a
     read-out per bar. */
-export function Bars({ bars, xTitle, yTitle, yMin, yMax, hlines = [], h = 220, yFmt = fmtNum, xLabelEvery = 1 }: {
+export function Bars({ bars, xTitle, yTitle, yMin, yMax, hlines = [], h = 220, yFmt = fmtNum, xLabelEvery = 1, base }: {
   bars: { key: string; label: string; v: number; color: string; tip: [string, string][] }[];
   xTitle: string; yTitle: string; yMin?: number; yMax?: number; hlines?: HLine[]; h?: number; yFmt?: (v: number) => string; xLabelEvery?: number;
+  /** bars grow from this value (default: the bottom of the axis); 0 for signed values */
+  base?: number;
 }) {
   const [box, W] = useWidth<HTMLDivElement>();
   const [hov, setHov] = useState<number | null>(null);
   const L = 58, R = 16, T = 14, B = 42;
   const vs = bars.map((b) => b.v);
-  const y0 = yMin ?? 0, y1 = yMax ?? Math.max(...vs, ...hlines.map((l) => l.y)) * 1.04;
+  const y0 = yMin ?? Math.min(0, ...vs), y1 = yMax ?? (Math.max(...vs, ...hlines.map((l) => l.y), 0) * 1.04 || 1);
+  const b0 = base ?? y0;
   const Y = (v: number) => T + (1 - (Math.min(Math.max(v, y0), y1) - y0) / (y1 - y0)) * (h - T - B);
   const bw = (W - L - R) / bars.length;
   const every = W < 560 ? Math.max(xLabelEvery, 5) : xLabelEvery;
@@ -230,7 +233,7 @@ export function Bars({ bars, xTitle, yTitle, yMin, yMax, hlines = [], h = 220, y
             <text x={L - 7} y={Y(v) + 3.5} textAnchor="end" className="pl-tick">{yFmt(v)}</text></g>)}
           {bars.map((b, i) => <g key={b.key} onMouseEnter={() => setHov(i)}>
             <rect x={L + i * bw} y={T} width={bw} height={h - T - B} fill="transparent" />
-            <rect x={L + i * bw + bw * 0.15} y={Y(b.v)} width={bw * 0.7} height={Math.max(1, Y(y0) - Y(b.v))} rx={2} fill={b.color} opacity={hov === null || hov === i ? 0.9 : 0.45} />
+            <rect x={L + i * bw + bw * 0.15} y={Math.min(Y(b.v), Y(b0))} width={bw * 0.7} height={Math.max(1, Math.abs(Y(b0) - Y(b.v)))} rx={2} fill={b.color} opacity={hov === null || hov === i ? 0.9 : 0.45} />
             {i % every === 0 && <text x={L + i * bw + bw / 2} y={h - B + 15} textAnchor="middle" className="pl-tick">{b.label}</text>}
           </g>)}
           <line x1={L} x2={W - R} y1={h - B} y2={h - B} className="pl-axis" />
@@ -326,17 +329,17 @@ export function Stacked({ rows, parts, unit = "" }: {
 }
 
 /** Two values per row on one 0..1 scale, joined by a line: the gap is the story. */
-export function Dumbbell({ rows, a, b, xTitle, fmt = (v: number) => `${Math.round(v * 100)} %`, max = 1 }: {
+export function Dumbbell({ rows, a, b, xTitle, fmt = (v: number) => `${Math.round(v * 100)} %`, max = 1, min = 0 }: {
   rows: { label: string; a: number; b: number; note?: string }[]; a: { name: string; color: string }; b: { name: string; color: string };
-  xTitle: string; fmt?: (v: number) => string; /** the axis runs 0..max */ max?: number;
+  xTitle: string; fmt?: (v: number) => string; /** the axis runs min..max */ max?: number; min?: number;
 }) {
   const [box, W] = useWidth<HTMLDivElement>();
   const L = Math.min(W < 560 ? 120 : 220, Math.max(...rows.map((r) => r.label.length)) * 6.6 + 14), R = 20, T = 6, RH = 24, B = 38, h = T + rows.length * RH + B;
-  const X = (v: number) => L + (v / max) * (W - L - R);
+  const X = (v: number) => L + ((v - min) / (max - min)) * (W - L - R);
   return (
     <div className="pl">
       <div className="pl-box" ref={box}><svg viewBox={`0 0 ${W} ${h}`}>
-        {(max === 1 ? [0, 0.25, 0.5, 0.75, 1] : niceTicks(0, max, W < 560 ? 3 : 5)).map((v) => <g key={v}><line x1={X(v)} x2={X(v)} y1={T} y2={T + rows.length * RH} className="pl-grid" />
+        {(max === 1 && min === 0 ? [0, 0.25, 0.5, 0.75, 1] : niceTicks(min, max, W < 560 ? 3 : 5)).map((v) => <g key={v}><line x1={X(v)} x2={X(v)} y1={T} y2={T + rows.length * RH} className="pl-grid" />
           <text x={X(v)} y={T + rows.length * RH + 14} textAnchor="middle" className="pl-tick">{fmt(v)}</text></g>)}
         <text x={(L + W - R) / 2} y={h - 6} textAnchor="middle" className="pl-title">{xTitle}</text>
         {rows.map((r, i) => {

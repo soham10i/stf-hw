@@ -2,7 +2,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas opcua opcua-check uns uns-check mechanisms guide health-theory vision-live vision-adapt audit clean
+.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas opcua opcua-check uns uns-check mechanisms guide health-theory vision-live vision-adapt sched carbon copilot audit clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -99,6 +99,18 @@ vision-adapt: ## Upgrade 15 step 3: adapt the inspection CNN to a changed line (
 	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m vision.adapt
 	cd web && npx esbuild scripts/vision-adapt-check.ts --bundle --platform=node --format=esm --outfile=../.cache/vision-adapt-check.mjs --log-level=warning \
 		&& node ../.cache/vision-adapt-check.mjs public/vision 600
+
+sched: ## Upgrade 16: a learned scheduler behind a deadlock shield, against the PLC's policies
+	cd stf-cad/hbw && STF_VARIANT=up12 PYTHONPATH=. ../../$(PY) sched_rl.py
+
+copilot: ## Upgrade 17: the copilot's knowledge base from docs/, and its test questions
+	cd web && npx esbuild scripts/copilot-kb.ts --bundle --platform=node --format=esm --outfile=../.cache/copilot-kb.mjs --log-level=warning \
+		&& node ../.cache/copilot-kb.mjs ../docs public/copilot/kb.json
+	cd web && npx esbuild scripts/copilot-check.ts --bundle --platform=node --format=esm --outfile=../.cache/copilot-check.mjs --log-level=warning \
+		&& node ../.cache/copilot-check.mjs public
+
+carbon: ## Upgrade 18: grams of CO2e per cookie from the microgrid month, and the levers that cut it
+	cd stf-cad/hbw && STF_VARIANT=up7 PYTHONPATH=. ../../$(PY) carbon.py
 
 mechanisms: ## The mechanisms' 3D views (drag chain, lift spindle drive, RFID head) - needs FreeCAD
 	cd stf-cad/hbw && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd -c "import sys; p='$(CURDIR)/stf-cad/hbw/mechanisms_cad.py'; sys.argv=[p]; exec(compile(open(p).read(), p, 'exec'), {'__file__': p, '__name__': '__main__'})"

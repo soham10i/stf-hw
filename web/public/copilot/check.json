@@ -1,0 +1,286 @@
+{
+ "right": 30,
+ "total": 30,
+ "rows": [
+  {
+   "q": "what should we service next",
+   "want": "service-next",
+   "got": "service-next",
+   "ok": true
+  },
+  {
+   "q": "which part needs maintenance first?",
+   "want": "service-next",
+   "got": "service-next",
+   "ok": true
+  },
+  {
+   "q": "is anything due for replacement at 300 shifts",
+   "want": "service-next",
+   "got": "service-next",
+   "ok": true
+  },
+  {
+   "q": "when will the hbw belt fail",
+   "want": "part-life",
+   "got": "part-life",
+   "ok": true
+  },
+  {
+   "q": "how long will the suction cup last",
+   "want": "part-life",
+   "got": "part-life",
+   "ok": true
+  },
+  {
+   "q": "health of the spindle at 200 shifts",
+   "want": "part-life",
+   "got": "part-life",
+   "ok": true
+  },
+  {
+   "q": "is the colour sensor worn",
+   "want": "part-life",
+   "got": "part-life",
+   "ok": true
+  },
+  {
+   "q": "what does VGR-V01 mean",
+   "want": "alarm-code",
+   "got": "alarm-code",
+   "ok": true
+  },
+  {
+   "q": "alarm HBW-C01",
+   "want": "alarm-code",
+   "got": "alarm-code",
+   "ok": true
+  },
+  {
+   "q": "why did the line stop this month",
+   "want": "why-stop",
+   "got": "why-stop",
+   "ok": true
+  },
+  {
+   "q": "what caused the most downtime",
+   "want": "why-stop",
+   "got": "why-stop",
+   "ok": true
+  },
+  {
+   "q": "what is the oee",
+   "want": "oee",
+   "got": "oee",
+   "ok": true
+  },
+  {
+   "q": "how many cookies per hour",
+   "want": "oee",
+   "got": "oee",
+   "ok": true
+  },
+  {
+   "q": "which unit is the bottleneck",
+   "want": "oee",
+   "got": "oee",
+   "ok": true
+  },
+  {
+   "q": "how much co2 does a cookie cost",
+   "want": "carbon",
+   "got": "carbon",
+   "ok": true
+  },
+  {
+   "q": "what is the carbon footprint per order",
+   "want": "carbon",
+   "got": "carbon",
+   "ok": true
+  },
+  {
+   "q": "how much energy did the cell use",
+   "want": "energy",
+   "got": "energy",
+   "ok": true
+  },
+  {
+   "q": "what does the battery save on the power bill",
+   "want": "energy",
+   "got": "energy",
+   "ok": true
+  },
+  {
+   "q": "is the learned scheduler faster than the plc",
+   "want": "scheduler",
+   "got": "scheduler",
+   "ok": true
+  },
+  {
+   "q": "can the scheduler deadlock",
+   "want": "scheduler",
+   "got": "scheduler",
+   "ok": true
+  },
+  {
+   "q": "how accurate is the vision inspection",
+   "want": "vision",
+   "got": "vision",
+   "ok": true
+  },
+  {
+   "q": "do defects escape the camera",
+   "want": "vision",
+   "got": "vision",
+   "ok": true
+  },
+  {
+   "q": "how well does the neural network predict failures",
+   "want": "ai",
+   "got": "ai",
+   "ok": true
+  },
+  {
+   "q": "were the attacks blocked",
+   "want": "security",
+   "got": "security",
+   "ok": true
+  },
+  {
+   "q": "what is the ride-through reserve",
+   "want": "doc:Upgrade 9",
+   "got": "doc:UPGRADE_PLAN › STF upgrade plan: from training model to industrial practice › Upgrade 9: the cell as a microgrid (BUILT)",
+   "ok": true
+  },
+  {
+   "q": "how does the light curtain work",
+   "want": "doc:safety",
+   "got": "doc:UPGRADE_PLAN › STF upgrade plan: from training model to industrial practice › Upgrade 2: machine safety (BUILT) › Scope",
+   "ok": true
+  },
+  {
+   "q": "what is IEC 62443",
+   "want": "doc:security",
+   "got": "doc:DASHBOARD_GUIDE › Operations dashboard: user guide › Terms",
+   "ok": true
+  },
+  {
+   "q": "how do I deploy the app on render",
+   "want": "doc:DEPLOY",
+   "got": "doc:DEPLOY › Deploying the twin › 3. Security on a public host",
+   "ok": true
+  },
+  {
+   "q": "what is the price of bitcoin",
+   "want": "none",
+   "got": "none",
+   "ok": true
+  },
+  {
+   "q": "who won the football match yesterday",
+   "want": "none",
+   "got": "none",
+   "ok": true
+  }
+ ],
+ "held": 11,
+ "held_total": 16,
+ "held_rows": [
+  {
+   "q": "anything I should fix before the next shift?",
+   "want": "service-next",
+   "got": "none",
+   "ok": false
+  },
+  {
+   "q": "remaining life of the gearbox",
+   "want": "part-life",
+   "got": "part-life",
+   "ok": true
+  },
+  {
+   "q": "will the oven door cylinder break soon",
+   "want": "part-life",
+   "got": "doc:UPGRADE_PLAN › STF upgrade plan: from training model to industrial practice › Upgrade 5: virtual commissioning (BUILT)",
+   "ok": false
+  },
+  {
+   "q": "explain alarm OVN-D01",
+   "want": "alarm-code",
+   "got": "alarm-code",
+   "ok": true
+  },
+  {
+   "q": "biggest reason for lost production",
+   "want": "why-stop",
+   "got": "why-stop",
+   "ok": true
+  },
+  {
+   "q": "are we losing efficiency anywhere",
+   "want": "oee",
+   "got": "doc:DASHBOARD_GUIDE › Operations dashboard: user guide › Operate › Overview",
+   "ok": false
+  },
+  {
+   "q": "what is our availability",
+   "want": "oee",
+   "got": "oee",
+   "ok": true
+  },
+  {
+   "q": "grams of carbon per cookie",
+   "want": "carbon",
+   "got": "carbon",
+   "ok": true
+  },
+  {
+   "q": "how much solar did we use",
+   "want": "energy",
+   "got": "energy",
+   "ok": true
+  },
+  {
+   "q": "did the shielded agent ever deadlock",
+   "want": "scheduler",
+   "got": "scheduler",
+   "ok": true
+  },
+  {
+   "q": "how many good cookies does the camera reject",
+   "want": "vision",
+   "got": "vision",
+   "ok": true
+  },
+  {
+   "q": "is the AI better than the rules",
+   "want": "ai",
+   "got": "ai",
+   "ok": true
+  },
+  {
+   "q": "can someone write coils over the network",
+   "want": "security",
+   "got": "ai",
+   "ok": false
+  },
+  {
+   "q": "what is the emergency stop circuit",
+   "want": "doc:safety",
+   "got": "why-stop",
+   "ok": false
+  },
+  {
+   "q": "how is the turntable saw driven",
+   "want": "doc:",
+   "got": "doc:UPGRADE_PLAN › STF upgrade plan: from training model to industrial practice › Upgrade 2: machine safety (BUILT) › Scope",
+   "ok": true
+  },
+  {
+   "q": "what's the weather tomorrow",
+   "want": "none",
+   "got": "none",
+   "ok": true
+  }
+ ]
+}

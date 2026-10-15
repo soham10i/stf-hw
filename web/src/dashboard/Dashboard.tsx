@@ -15,6 +15,9 @@ import { ThroughputPage } from "./Throughput";
 import { SecurityPage } from "./Security";
 import { HardeningPage, ValidationPage } from "./Assurance";
 import { VisionPage } from "./Vision";
+import { CarbonPage } from "./Carbon";
+import { SchedulerPage } from "./Scheduler";
+import { CopilotPage } from "./Copilot";
 import { Icon, ThemeToggle } from "../shared/icons";
 import { useTheme } from "../shared/theme";
 import { GUIDE, TERMS, cardHelp } from "./guide";
@@ -26,11 +29,11 @@ const DegradationPage = lazy(() => import("./Degradation").then((m) => ({ defaul
 const BASE = import.meta.env.BASE_URL;
 const PAGES = [
   ["overview", "Overview", "home", "Operate"], ["production", "Production", "factory", "Operate"],
-  ["quality", "Quality & trace", "check", "Operate"], ["vision", "Vision QC", "eye", "Operate"], ["alarms", "Alarms", "bell", "Operate"],
+  ["quality", "Quality & trace", "check", "Operate"], ["vision", "Vision QC", "eye", "Operate"], ["alarms", "Alarms", "bell", "Operate"], ["copilot", "Copilot", "info", "Operate"],
   ["health", "Health", "heart", "Maintain"], ["maintenance", "Maintenance", "wrench", "Maintain"],
   ["ai", "AI maintenance", "brain", "Maintain"],
-  ["month", "Month", "calendar", "Analyse"], ["throughput", "Throughput", "gauge", "Analyse"],
-  ["energy", "Energy & grid", "bolt", "Analyse"], ["security", "OT security", "shield", "Analyse"],
+  ["month", "Month", "calendar", "Analyse"], ["throughput", "Throughput", "gauge", "Analyse"], ["scheduler", "Learned scheduler", "cpu", "Analyse"],
+  ["energy", "Energy & grid", "bolt", "Analyse"], ["carbon", "Carbon per cookie", "sun", "Analyse"], ["security", "OT security", "shield", "Analyse"],
   ["hardening", "Defence in depth", "layers", "Analyse"],
   ["engineering", "Engineering", "cog", "Engineer"], ["validation", "Validation", "check", "Engineer"], ["data", "Data", "database", "Engineer"],
   ["docs-degradation", "Hardware degradation", "activity", "Docs"],
@@ -429,6 +432,9 @@ export function Dashboard() {
           {page === "vision" && <VisionPage />}
           {page === "ai" && <AiPage />}
           {page === "energy" && <GridPage />}
+          {page === "carbon" && <CarbonPage />}
+          {page === "scheduler" && <SchedulerPage />}
+          {page === "copilot" && <CopilotPage go={(p) => setPage(p as Page)} />}
           {page === "throughput" && <ThroughputPage />}
           {page === "security" && <SecurityPage />}
           {page === "hardening" && <HardeningPage />}

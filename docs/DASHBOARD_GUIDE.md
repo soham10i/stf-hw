@@ -9,9 +9,9 @@ page, and an **i** beside each card title that says what the card shows.
 
 ## Pages
 
-- **Operate**: [Overview](#overview) · [Production](#production) · [Quality & trace](#quality-trace) · [Vision QC](#vision-qc) · [Alarms](#alarms)
+- **Operate**: [Overview](#overview) · [Production](#production) · [Quality & trace](#quality-trace) · [Vision QC](#vision-qc) · [Alarms](#alarms) · [Copilot](#copilot)
 - **Maintain**: [Health](#health) · [Maintenance](#maintenance) · [AI maintenance](#ai-maintenance)
-- **Analyse**: [Month](#month) · [Throughput](#throughput) · [Energy & grid](#energy-grid) · [OT security](#ot-security) · [Defence in depth](#defence-in-depth)
+- **Analyse**: [Month](#month) · [Throughput](#throughput) · [Learned scheduler](#learned-scheduler) · [Energy & grid](#energy-grid) · [Carbon per cookie](#carbon-per-cookie) · [OT security](#ot-security) · [Defence in depth](#defence-in-depth)
 - **Engineer**: [Engineering](#engineering) · [Validation](#validation) · [Data](#data)
 - **Docs**: [Hardware degradation](#hardware-degradation)
 
@@ -118,6 +118,23 @@ Every alarm the PLC can raise, and how the machine reacted when each fault was i
 | Alarm list | Every watchdog alarm in the program: its code, the step it guards, and what to do. |
 
 *Data:* Virtual commissioning of the PLC program against the twin (Upgrade 5).
+
+### Copilot
+
+Ask about the cell in plain words; the answer is computed from the twin's data or quoted from its documents, with its source.
+
+**How to read it**
+
+1. Type a question or pick one on the right.
+2. Each answer names the tool or document it came from and links to the page with the detail.
+3. Health questions use the machine age and PM setting on the right.
+
+| Section | What it shows |
+|---|---|
+| Try | Example questions, one per tool. |
+| Health questions use | The machine age and maintenance setting the health answers are computed for. |
+
+*Data:* copilot.ts: routing to tools over the twin's exports, BM25 over the project documents (no language model).
 
 ---
 
@@ -237,6 +254,26 @@ How the same machine was made faster by changing only its program, and what each
 
 *Data:* Upgrade 10's throughput study, measured by virtual commissioning.
 
+### Learned scheduler
+
+Whether a learning scheduler finds a faster order than the PLC's priority list without ever risking a deadlock.
+
+**How to read it**
+
+1. The headline: order time against the PLC, and the deadlocks with and without the shield.
+2. The two Gantt charts share one time axis; hover a block for its job and slot.
+3. The test runs use identical random job times for every scheduler, so the comparison is fair run by run.
+
+| Section | What it shows |
+|---|---|
+| The same order, two schedulers | The PLC's schedule and the scheduler's, on one time axis. |
+| Order time on random job times | Fastest to slowest run, and the mean, for every scheduler. |
+| Run by run against the PLC | Seconds saved in each test run with identical job times. |
+| Learning, and what the shield blocked | Order time while the agent learned; hover for how many actions the shield blocked. |
+| Where the moulds go | The rack slots each scheduler stores into: the gain comes from shorter crane travel. |
+
+*Data:* sched_rl.py: Q-learning and a rollout scheduler over the PLC's job choices, behind a shield proven by exhaustive exploration.
+
 ### Energy & grid
 
 The cell behind a small microgrid - solar panels, a battery and an energy manager - over the simulated month.
@@ -260,6 +297,25 @@ The cell behind a small microgrid - solar panels, a battery and an energy manage
 | Standards the design follows | The norms the microgrid design is checked against. |
 
 *Data:* Upgrade 9's microgrid model (grid.py), simulated, not measured.
+
+### Carbon per cookie
+
+How many grams of CO₂e each good cookie costs, where they come from, and what each lever saves.
+
+**How to read it**
+
+1. The headline figures: grams per cookie and per order, and how much of it is the cell standing idle.
+2. The levers re-run the same month through the same energy manager, one change at a time.
+3. Hover the hourly chart to see the grid's carbon intensity at each hour.
+
+| Section | What it shows |
+|---|---|
+| Where a cookie's carbon comes from | The month's emissions shared out over what drew the power; red is drawn whether or not a cookie is made. |
+| What each lever does | Grams per cookie with each change added: PV and battery, sleep when idle, a carbon-aware battery, the faster program. |
+| The day, hour by hour | Load, PV and grid import through an average day, and the grid's carbon intensity by hour. |
+| Per day | Grams per cookie each day, coloured by the weather. |
+
+*Data:* The U9 microgrid month (grid.py) allocated by carbon.py.
 
 ### OT security
 

@@ -1095,13 +1095,96 @@ defect rate (15 %).
 
 ---
 
+## Upgrade 16: a learned scheduler behind a safety shield (BUILT)
+
+**Question.** The PLC dispatches by a fixed priority list, proven deadlock-free by exhaustive exploration. Does a
+learning scheduler find a faster order, without giving up that proof?
+
+**As built:** `stf-cad/hbw/sched_rl.py` (`make sched`), the "Learned scheduler" dashboard page.
+- *Choices.* At every scan the agent picks which startable job to launch, or to wait; it may also choose the free
+  slot a mould is stored in, the empty mould fetched and the raw cookie retrieved next (the program takes the
+  first free slot and the production order).
+- *Shield.* An action is allowed only if the PLC's own policy could take over from the state it leads to and finish
+  under every completion order (explored exhaustively, memoised per state). Whatever the agent learns, it cannot
+  steer into a state the proven policy could not rescue.
+- *Agent.* Tabular Q-learning on the event-driven simulation, job times +-20 %; a (state, action) seen for the
+  first time is valued by a rollout of the PLC's policy from where it leads (rollout policy improvement).
+
+**Results** (12-cookie order; 25 test runs with identical random job times for every scheduler):
+
+| | nominal | mean | fastest - slowest |
+|---|---|---|---|
+| rollout scheduler, shielded | 420.3 s | 420.0 s | 407.6 - 433.8 s |
+| Q-learning on top, shielded | 427.5 s | 426.8 s | 412.9 - 440.7 s |
+| PLC, reuse (in use) | 425.7 s | 424.4 s | 410.8 - 437.8 s |
+
+**Found.**
+- The rollout scheduler is faster in 20 of 25 runs on identical timings (4.4 s per order on average, best
+  16.2 s, worst 10.8 s slower). The gain is the crane: 198.3 s busy under the PLC, 190.4 s with
+  the moulds stored in the slots that finish the order soonest. Without slot choice the agent found nothing: the
+  program's job priority is already at the rollout optimum.
+- Q-learning on top does not improve the rollout prior: job times vary and the state does not see time.
+- Shielded: no deadlock in 1000 training orders and every test. The same agent without the shield deadlocked in
+  293 of 333 training orders.
+
+**Limits.** Simulated job times; one order of 12 cookies; the shield is exact for this model, not for a plant
+whose timing leaves the model.
+
+---
+
+## Upgrade 17: the operator copilot (BUILT)
+
+**Question.** Can an operator ask about the cell in plain words and get an answer that is true, sourced and free to
+run - without a language model?
+
+**As built:** `web/src/copilot/copilot.ts`, the "Copilot" dashboard page, `make copilot`.
+- *Tools.* A question is routed to a tool that computes the answer from the twin's data: what to service next, a
+  part's remaining life at a machine age, an alarm code, why the line stopped, OEE, energy, carbon, the scheduler,
+  the inspection, the maintenance network, the attacks. Each answer links to the page with the detail.
+- *Documents.* Otherwise the best passage of the project's documents (197 passages, BM25), shown with its section.
+- *No guessing.* A passage counts only if it covers more than half of the question's words; below that, and with no
+  tool, the answer is "I don't know".
+
+**Results.** 30/30 test questions answered by the right tool or document - the questions the routing was tuned on.
+11/16 on a held-out set written afterwards and run once: keyword routing misreads "network" (AI vs OT network),
+"stop" (emergency stop vs line stop) and everyday wording of health questions.
+
+**Limits.** Keyword routing, not understanding; a language model would read questions better but would need a paid
+API and could invent answers.
+
+---
+
+## Upgrade 18: carbon per cookie (BUILT)
+
+**Question.** How many grams of CO2e does a good cookie cost, where do they come from, and what cuts them?
+
+**As built:** `stf-cad/hbw/carbon.py` (`make carbon`), the "Carbon per cookie" dashboard page. The U9 microgrid month
+(grid.py) is allocated per 15-minute step to what drew the power; each lever re-runs the same month through the same
+energy manager.
+
+**Results** (operational, location-based; no credit for exported PV):
+
+| | g CO2e per good cookie |
+|---|---|
+| grid only | 0.659 |
+| as built: PV + battery | 0.366 |
+| + sleep when idle | 0.319 |
+| + carbon-aware battery | 0.319 |
+| + U10 throughput (estimate) | 0.252 |
+
+**Found.**
+- 69 % of the footprint is the cell standing idle: controller, I/O, sensors and the inverter, drawn
+  whether or not a cookie is made. The motors that move cookies are a few percent.
+- Sleeping when idle (36.7 to 13.3 W after 30 min) cuts the footprint and the bill.
+- Planning the battery on carbon instead of price gains nothing here: the price already peaks when the grid is
+  dirtiest, so the cost plan is the carbon plan - and it costs more.
+
+**Limits.** The intensity profile, the ratings and the sleep figures are assumed; the U10 figure is an estimate.
+
+---
+
 ## Order and dependencies
 
-```
-U1 utilities ─┬─> U2 safety ──> U3 I/O + carriers ──> U4 program ──> U5 commissioning
-              └────────────────────────────────────────────────────────> U6 lifecycle
-```
-
-U2 comes next because nothing else would pass an industrial review without it, and it fits the
-model as it is: guards are parts, interlocks are rules, and "no motion with a guard open" is a
-proof.
+Upgrades 1-18 are built. Each builds on the model of the ones before: the program (U4) on the safety and I/O (U2-U3),
+commissioning (U5) on the program, the analytics (U6-U10, U15-U18) on commissioning, the security (U11-U12) on the
+I/O and the standards (U14) on all of them.

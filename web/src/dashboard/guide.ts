@@ -139,6 +139,21 @@ export const GUIDE: Record<string, PageGuide> = {
     source: "Virtual commissioning of the PLC program against the twin (Upgrade 5).",
     terms: ["Watchdog"],
   },
+  copilot: {
+    title: "Copilot",
+    what: "Ask about the cell in plain words; the answer is computed from the twin's data or quoted from its documents, with its source.",
+    read: [
+      "Type a question or pick one on the right.",
+      "Each answer names the tool or document it came from and links to the page with the detail.",
+      "Health questions use the machine age and PM setting on the right.",
+    ],
+    sections: [
+      ["Try", "Example questions, one per tool."],
+      ["Health questions use", "The machine age and maintenance setting the health answers are computed for."],
+    ],
+    source: "copilot.ts: routing to tools over the twin's exports, BM25 over the project documents (no language model).",
+    terms: ["Health index (HI)", "RUL", "OEE"],
+  },
   health: {
     title: "Health",
     what: "How worn each part is at the chosen machine age, and which part needs attention first.",
@@ -278,6 +293,41 @@ export const GUIDE: Record<string, PageGuide> = {
     ],
     source: "Upgrade 9's microgrid model (grid.py), simulated, not measured.",
     terms: ["Ride-through", "Demand response", "Simulated"],
+  },
+  scheduler: {
+    title: "Learned scheduler",
+    what: "Whether a learning scheduler finds a faster order than the PLC's priority list without ever risking a deadlock.",
+    read: [
+      "The headline: order time against the PLC, and the deadlocks with and without the shield.",
+      "The two Gantt charts share one time axis; hover a block for its job and slot.",
+      "The test runs use identical random job times for every scheduler, so the comparison is fair run by run.",
+    ],
+    sections: [
+      ["The same order, two schedulers", "The PLC's schedule and the scheduler's, on one time axis."],
+      ["Order time on random job times", "Fastest to slowest run, and the mean, for every scheduler."],
+      ["Run by run against the PLC", "Seconds saved in each test run with identical job times."],
+      ["Learning, and what the shield blocked", "Order time while the agent learned; hover for how many actions the shield blocked."],
+      ["Where the moulds go", "The rack slots each scheduler stores into: the gain comes from shorter crane travel."],
+    ],
+    source: "sched_rl.py: Q-learning and a rollout scheduler over the PLC's job choices, behind a shield proven by exhaustive exploration.",
+    terms: ["Deadlock", "Policy", "Gantt chart", "Simulated"],
+  },
+  carbon: {
+    title: "Carbon per cookie",
+    what: "How many grams of CO₂e each good cookie costs, where they come from, and what each lever saves.",
+    read: [
+      "The headline figures: grams per cookie and per order, and how much of it is the cell standing idle.",
+      "The levers re-run the same month through the same energy manager, one change at a time.",
+      "Hover the hourly chart to see the grid's carbon intensity at each hour.",
+    ],
+    sections: [
+      ["Where a cookie's carbon comes from", "The month's emissions shared out over what drew the power; red is drawn whether or not a cookie is made."],
+      ["What each lever does", "Grams per cookie with each change added: PV and battery, sleep when idle, a carbon-aware battery, the faster program."],
+      ["The day, hour by hour", "Load, PV and grid import through an average day, and the grid's carbon intensity by hour."],
+      ["Per day", "Grams per cookie each day, coloured by the weather."],
+    ],
+    source: "The U9 microgrid month (grid.py) allocated by carbon.py.",
+    terms: ["Simulated"],
   },
   security: {
     title: "OT security",
