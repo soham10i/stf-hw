@@ -72,7 +72,8 @@ export function Plot({ series, xTitle, yTitle, xFmt = fmtNum, yFmt = fmtNum, xMi
   const vis = series.filter((s) => !off.has(s.name));
   const dom = useMemo(() => {
     const xs = series.flatMap((s) => s.x), ys = vis.flatMap((s) => s.y.filter((v): v is number => v !== null && isFinite(v)));
-    const x0 = xMin ?? Math.min(...xs), x1 = xMax ?? Math.max(...xs);
+    // an empty chart (no points yet) still gets a finite axis
+    const x0 = xMin ?? (xs.length ? Math.min(...xs) : 0), x1 = xMax ?? (xs.length ? Math.max(...xs) : 1);
     let y0 = yMin ?? Math.min(...ys, ...hlines.map((l) => l.y)), y1 = yMax ?? Math.max(...ys, ...hlines.map((l) => l.y));
     if (!isFinite(y0) || !isFinite(y1)) { y0 = 0; y1 = 1; }
     const pad = (y1 - y0) * 0.06 || 1;
