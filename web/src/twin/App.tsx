@@ -4,7 +4,8 @@
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
 
-import { HbwCadStage, RATE } from "../scene/HbwCad";
+import { HbwCadStage } from "../scene/Stage";
+import { RATE } from "../scene/timeline";
 import { useCadDoc } from "../shared/model";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { Icon } from "../shared/icons";

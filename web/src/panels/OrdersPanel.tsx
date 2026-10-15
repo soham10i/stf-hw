@@ -8,7 +8,7 @@
 // "Manual crane commands"; it still models the original 3x3 rack.
 
 import { useEffect, useState } from "react";
-import { twinOrders, type OrderLine } from "../scene/HbwCad";
+import { twinOrders, type OrderLine } from "../scene/hot";
 import { sendCommand } from "../socket";
 import type { SceneDescriptor } from "../types";
 import { useCadDoc } from "../shared/model";

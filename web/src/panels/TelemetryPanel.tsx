@@ -7,7 +7,7 @@
 // KERNEL (services/api) streams its own simulation when the live API is there.
 
 import { useEffect, useState } from "react";
-import { hbwHot, ovenHot, twinOrders, vgrHot } from "../scene/HbwCad";
+import { hbwHot, ovenHot, twinOrders, vgrHot } from "../scene/hot";
 import { hot } from "../store";
 import type { SceneDescriptor } from "../types";
 
