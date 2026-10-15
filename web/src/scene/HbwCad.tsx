@@ -35,7 +35,7 @@ import { DragChain } from "./DragChain";
 
 
 
-import type { CadPart, CadDoc, PlanKey } from "../shared/model";
+import { type CadPart, type CadDoc, type PlanKey, boxSize, cylSpec } from "../shared/model";
 import { FROM, OrderLine, twinOrders, cycleHot, Rack, Drive, vgrHot, hbwCookieHot, hbwHot, sortHot, ovenHot } from "./hot";
 import { MM, v, AIM, Solid, RackBadge, Cookie, Mould } from "./parts";
 import { binColour, script, SPEED, BELT_SPEED, RATE, PLAYBACK } from "./timeline";
@@ -54,7 +54,7 @@ function BeltLoop({ doc, drive }: { doc: CadDoc; drive: React.MutableRefObject<D
     const a = doc.parts.find((p) => p.n === "M1_drive_pulley");
     const b = doc.parts.find((p) => p.n === "M1_drum_pulley");
     if (!a || !b) return null;
-    const [, len, dia] = a.s as [string, number, number];
+    const [, len, dia] = cylSpec(a);
     const r = dia / 2 + 1.0;
     const A = new THREE.Vector2(a.p[1], a.p[2]), B = new THREE.Vector2(b.p[1], b.p[2]);
     const d = B.clone().sub(A).normalize();
@@ -135,7 +135,7 @@ function LightBarriers({ doc }: { doc: CadDoc }) {
 function Barrier({ rx, tx }: { rx: CadPart; tx: CadPart }) {
   const beam = useRef<THREE.Mesh>(null);
   const led = useRef<THREE.MeshStandardMaterial>(null);
-  const [sx, sy, sz] = rx.s as [number, number, number];
+  const [sx, sy, sz] = boxSize(rx);
   const x0 = rx.p[0] + sx, x1 = tx.p[0];
   const yc = rx.p[1] + sy / 2, zc = rx.p[2] + sz / 2;
   useFrame(({ clock }) => {
@@ -298,7 +298,7 @@ export function HbwCad({ doc, onPhase, tours }: {
       doc.parts
         .filter((p) => p.mech === "beam:rx")
         .map((p) => {
-          const [, sy, sz] = p.s as [number, number, number];
+          const [, sy, sz] = boxSize(p);
           return { tag: p.tag, y0: p.p[1], y1: p.p[1] + sy, z: p.p[2] + sz / 2 };
         }),
     [doc],
@@ -326,7 +326,7 @@ export function HbwCad({ doc, onPhase, tours }: {
   const seat = useMemo(() => {
     const t = doc.parts.find((p) => p.n === "fork_table");
     if (!t) return { y: 0, z: 10 };
-    const [, dy, dz] = t.s as [number, number, number];
+    const [, dy, dz] = boxSize(t);
     return { y: t.p[1] + dy / 2, z: t.p[2] + dz };
   }, [doc]);
   const phase = useRef("");

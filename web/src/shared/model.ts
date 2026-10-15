@@ -11,6 +11,17 @@ export interface CadPart {
   c: string; tag: string; mech: string; note: string;
   fit?: Fit;
 }
+/** A box part's size [dx, dy, dz] in mm. Throws on a cylinder: the size must match the kind. */
+export function boxSize(part: { n: string; k: string; s: CadPart["s"] }): [number, number, number] {
+  if (part.k !== "box") throw new Error(`${part.n} is a ${part.k}, not a box`);
+  return part.s as [number, number, number];
+}
+/** A cylinder part's [axis, length, diameter] (axis "x" | "y" | "z", mm). Throws on a box. */
+export function cylSpec(part: { n: string; k: string; s: CadPart["s"] }): [string, number, number] {
+  if (part.k !== "cyl") throw new Error(`${part.n} is a ${part.k}, not a cylinder`);
+  return part.s as [string, number, number];
+}
+
 export interface CadDoc {
   fingerprint: string;
   plate: [number, number, number];

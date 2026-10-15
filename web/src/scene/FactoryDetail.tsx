@@ -13,6 +13,7 @@
 // Coordinates: parts are in their module frame, everything else in the factory
 // frame, both in the stage's "factory-as-three" space v(x,y,z) = (x, z, y).
 
+import { boxSize, cylSpec, type CadPart } from "../shared/model";
 import { Html, useGLTF } from "@react-three/drei";
 import { useMemo } from "react";
 import * as THREE from "three";
@@ -110,7 +111,7 @@ export function ProfileBox({ p, s }: { p: [number, number, number]; s: [number, 
   return <group>{els}</group>;
 }
 
-type UpPart = { n: string; g: string; k: string; p: [number, number, number]; s: unknown[]; c: string; mech: string };
+type UpPart = { n: string; g: string; k: string; p: [number, number, number]; s: CadPart["s"]; c: string; mech: string };
 
 /** Upgrade 1's own parts (central air station, cookie buffer), factory frame. */
 export function UpgradeParts({ parts, module = "upgrade" }: { parts: UpPart[]; module?: string }) {
@@ -120,7 +121,7 @@ export function UpgradeParts({ parts, module = "upgrade" }: { parts: UpPart[]; m
       {parts.filter((q) => q.g !== "frame").map((q) => {
         // polycarbonate guard panels: clear, so the machine stays visible
         if (q.mech === "panel") {
-          const s = q.s as [number, number, number];
+          const s = boxSize(q);
           return (
             <mesh key={q.n} position={v(q.p[0] + s[0] / 2, q.p[1] + s[1] / 2, q.p[2] + s[2] / 2)} renderOrder={2}>
               <boxGeometry args={[s[0] * MM, s[2] * MM, s[1] * MM]} />
@@ -132,12 +133,12 @@ export function UpgradeParts({ parts, module = "upgrade" }: { parts: UpPart[]; m
         const pm = lib?.get(`${module}:${q.n}`);
         if (pm) return <PreciseMesh key={q.n} meshes={pm} />;
         if (q.k === "box") {
-          const s = q.s as [number, number, number];
+          const s = boxSize(q);
           return /^profile(:\d+)?$/.test(q.mech)
             ? <ProfileBox key={q.n} p={q.p} s={s} />
             : <B key={q.n} at={q.p} size={s} colour={q.c} metal={q.c === "#d6d9da" || q.c === "#aeb4b8"} />;
         }
-        const [ax, len, dia] = q.s as [string, number, number];
+        const [ax, len, dia] = cylSpec(q);
         const c = ax === "z" ? v(q.p[0], q.p[1], q.p[2] + len / 2)
           : ax === "x" ? v(q.p[0] + len / 2, q.p[1], q.p[2]) : v(q.p[0], q.p[1] + len / 2, q.p[2]);
         const rot: [number, number, number] = ax === "z" ? [0, 0, 0] : ax === "x" ? [0, 0, -Math.PI / 2] : [Math.PI / 2, 0, 0];

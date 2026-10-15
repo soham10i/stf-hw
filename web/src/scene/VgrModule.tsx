@@ -14,7 +14,7 @@ import { DragChain } from "./DragChain";
 
 
 
-import type { CadPart, CadDoc } from "../shared/model";
+import { type CadPart, type CadDoc, cylSpec } from "../shared/model";
 import { Drive, vgrHot } from "./hot";
 import { MM, v, Solid, Cookie } from "./parts";
 
@@ -67,8 +67,8 @@ export function VgrModule({ doc, drive }: { doc: CadDoc; drive: React.MutableRef
   }, [doc]);
   const cup = doc.vgr.parts.find((p) => p.n === "suction_cup")!;
   const stem = doc.vgr.parts.find((p) => p.n === "suction_stem")!;
-  const [, cupH, cupD] = cup.s as [string, number, number];
-  const [, stemL] = stem.s as [string, number, number];
+  const [, cupH, cupD] = cylSpec(cup);
+  const [, stemL] = cylSpec(stem);
   const cupZ = cup.p[2];                 // cup underside, authoring pose
   const cupTop = cupZ + cupH;
   const headZ = stem.p[2] + stemL;       // underside of the suction head

@@ -15,7 +15,7 @@ import { Suspense } from "react";
 
 import { MM_TO_SCENE, PreciseMesh, usePrecise } from "./Precise";
 
-import type { CadPart, CadDoc } from "../shared/model";
+import { type CadPart, type CadDoc, boxSize, cylSpec } from "../shared/model";
 import { Drive, vgrHot } from "./hot";
 
 
@@ -39,10 +39,10 @@ export const AIM: Record<string, [number, number, number]> = {
 export function centreOf(part: CadPart) {
   const [px, py, pz] = part.p;
   if (part.k === "box") {
-    const [dx, dy, dz] = part.s as [number, number, number];
+    const [dx, dy, dz] = boxSize(part);
     return v(px + dx / 2, py + dy / 2, pz + dz / 2);
   }
-  const [axis, len] = part.s as [string, number, number];
+  const [axis, len] = cylSpec(part);
   const h = len / 2;
   return axis === "x" ? v(px + h, py, pz) : axis === "y" ? v(px, py + h, pz) : v(px, py, pz + h);
 }
@@ -61,7 +61,7 @@ function Mat({ part }: { part: CadPart }) {
 /** A spindle: real 4 mm lead, turning at exactly translation / pitch. */
 function Spindle({ part, drive, pitch }: { part: CadPart; drive: React.MutableRefObject<Drive>; pitch: number }) {
   const spin = useRef<THREE.Group>(null);
-  const [axis, len, dia] = part.s as [string, number, number];
+  const [axis, len, dia] = cylSpec(part);
   const joint = part.mech.split(":")[1] as keyof Drive;
   useFrame(() => {
     // `?? 0`: a spindle whose joint the drive does not carry used to get NaN,
@@ -87,12 +87,12 @@ function Roller({ part, drive, drumD, precise }: {
   // spins about the part's axis and sits exactly on its box
   const inner = useMemo(() => {
     if (!precise) return null;
-    const [ax] = part.s as [string, number, number];
+    const [ax] = cylSpec(part);
     const R = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...AIM[ax]));
     const c = centreOf(part);
     return R.invert().multiply(new THREE.Matrix4().makeTranslation(-c.x, -c.y, -c.z)).multiply(MM_TO_SCENE);
   }, [precise, part]);
-  const [axis, len, dia] = part.s as [string, number, number];
+  const [axis, len, dia] = cylSpec(part);
   // The drive pulleys sit on the drum's axle, so they turn at the DRUM's rate,
   // not at the rate their own diameter would give.
   const d0 = part.mech === "spin:belt_x" && drumD ? drumD : dia;
@@ -130,7 +130,7 @@ function Roller({ part, drive, drumD, precise }: {
 function BeltStrip({
   part, drive, tex,
 }: { part: CadPart; drive: React.MutableRefObject<Drive>; tex: THREE.Texture }) {
-  const [dx, dy, dz] = part.s as [number, number, number];
+  const [dx, dy, dz] = boxSize(part);
   // "belt" runs along Y, "belt:z" is the vertical drive belt from the motor up
   // to the drum - same texture, different long axis.
   // a belt runs along its LONG horizontal side: the sorting line's runs along X
@@ -178,7 +178,7 @@ export function Solid({ part, drive, pitch, tex, drumD }: {
   if (part.fit) return <Suspense fallback={null}><PreciseComp fit={part.fit} /></Suspense>;
   // the adapter PCB's own renderer (headers, relays, terminals) is richer than its CAD block
   if (/pcb/i.test(part.n) && part.k === "box")
-    return <PcbBoard p={part.p} s={part.s as [number, number, number]} />;
+    return <PcbBoard p={part.p} s={boxSize(part)} />;
   // Upgrade 1: the exact CAD shape (web_precise.py), where one was exported
   if (precise) {
     if (part.mech === "pulley" || part.mech.startsWith("spin:"))
@@ -186,15 +186,15 @@ export function Solid({ part, drive, pitch, tex, drumD }: {
     return <PreciseMesh meshes={precise} />;
   }
   if (/pcb/i.test(part.n) && part.k === "box")
-    return <PcbBoard p={part.p} s={part.s as [number, number, number]} />;
+    return <PcbBoard p={part.p} s={boxSize(part)} />;
   if (part.mech.startsWith("thread:")) return <Spindle part={part} drive={drive} pitch={pitch} />;
   if (part.mech === "pulley" || part.mech.startsWith("spin:")) return <Roller part={part} drive={drive} drumD={drumD} />;
   if (part.mech.startsWith("belt")) return <BeltStrip part={part} drive={drive} tex={tex} />;
   if (part.k === "box" && /^profile(:20)?$/.test(part.mech))
-    return <ProfileBox p={part.p as [number, number, number]} s={part.s as [number, number, number]} />;
+    return <ProfileBox p={part.p as [number, number, number]} s={boxSize(part)} />;
 
   if (part.k === "box") {
-    const [dx, dy, dz] = part.s as [number, number, number];
+    const [dx, dy, dz] = boxSize(part);
     return (
       <mesh position={centreOf(part)} castShadow receiveShadow>
         <boxGeometry args={[dx * MM, dz * MM, dy * MM]} />
@@ -202,7 +202,7 @@ export function Solid({ part, drive, pitch, tex, drumD }: {
       </mesh>
     );
   }
-  const [axis, len, dia] = part.s as [string, number, number];
+  const [axis, len, dia] = cylSpec(part);
   return (
     <mesh position={centreOf(part)} rotation={AIM[axis]} castShadow receiveShadow>
       <cylinderGeometry args={[(dia / 2) * MM, (dia / 2) * MM, len * MM, 24]} />

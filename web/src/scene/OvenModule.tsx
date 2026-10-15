@@ -14,7 +14,7 @@ import * as THREE from "three";
 
 
 
-import type { CadPart, CadDoc } from "../shared/model";
+import { type CadPart, type CadDoc, boxSize, cylSpec } from "../shared/model";
 import { twinOrders, Drive, sortHot, ovenHot } from "./hot";
 import { MM, v, centreOf, Solid, Cookie, useBeltTexture } from "./parts";
 
@@ -75,7 +75,7 @@ export function OvenModule({ doc }: { doc: CadDoc }) {
     // the disc turns with its group; drawn as a plain solid, not a belt roller
     const part = p.mech === "spin:turn" ? { ...p, mech: "" } : p;
     if (p.n === "Q11_suction_cup") {
-      const [, len, dia] = p.s as [string, number, number];
+      const [, len, dia] = cylSpec(p);
       return (
         <mesh key={p.n} position={centreOf(p)} castShadow>
           <cylinderGeometry args={[(dia / 2) * MM * 0.55, (dia / 2) * MM, len * MM, 24]} />
@@ -91,7 +91,7 @@ export function OvenModule({ doc }: { doc: CadDoc }) {
       {lampPart && (() => {
         // Q9 "Leuchte Ofen": a lamp on the roof you can see from anywhere -
         // dark when idle, glowing amber (and lighting the chamber) while baking
-        const [dx, dy, dz] = lampPart.s as [number, number, number];
+        const [dx, dy, dz] = boxSize(lampPart);
         const [px, py, pz] = lampPart.p;
         return (
           <group>
@@ -152,7 +152,7 @@ export function FlowBarriers({ doc }: { doc: CadDoc }) {
     const [stx, sty] = doc.factory.sort_placement.translate;
     const out: { tag: string; a: THREE.Vector3; b: THREE.Vector3; bin?: string }[] = [];
     const centre = (p: CadPart): [number, number, number] => {
-      const [dx, dy, dz] = p.s as [number, number, number];
+      const [dx, dy, dz] = boxSize(p);
       return [p.p[0] + dx / 2, p.p[1] + dy / 2, p.p[2] + dz / 2];
     };
     const add = (parts: CadPart[], tf: (x: number, y: number) => [number, number]) => {
