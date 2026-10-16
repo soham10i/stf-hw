@@ -184,8 +184,9 @@ class ElevenLabsVoice:
             with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:  # noqa: S310 - fixed https URL
                 return r.read(), "audio/mpeg", f"elevenlabs {self.model}"
         except urllib.error.HTTPError as e:
-            if e.code in (401, 429, 503):
-                self.out_until = time.time() + (3600 if e.code == 401 else 60)
+            # 401 bad key or credits used up, 402 a voice the plan does not include: an hour off
+            if e.code in (401, 402, 429, 503):
+                self.out_until = time.time() + (3600 if e.code in (401, 402) else 60)
                 raise Unavailable(f"ElevenLabs answered HTTP {e.code}") from None
             raise
 
