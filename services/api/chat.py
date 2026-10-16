@@ -41,11 +41,23 @@ from pydantic import BaseModel, Field
 
 from . import security as sec
 from . import tools as T
+from . import verify as V
 
 API = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 TIMEOUT_S = 25
 TIMEOUT_OLLAMA_S = 120
 MAX_ROUNDS = 4
+
+
+def correction(bad: list[str]) -> str:
+    """What the model is told when its answer states numbers nothing backs (verify.py)."""
+    return (
+        f"Your answer states {', '.join(bad)}, which neither CONTEXT nor any tool result contains. "
+        "Rewrite the answer using only numbers that appear there - call a tool if you need "
+        "a fact - "
+        "and leave out what you cannot back. Do not mention this correction."
+    )
+
 
 SYSTEM = """You are the operations copilot on the dashboard of the STF digital twin: a
 simulated fischertechnik Smart Tabletop Factory that bakes cookies (high-bay warehouse, vacuum
@@ -327,10 +339,11 @@ class Chat:
         return out
 
     def _gemini(
-        self, req: ChatRequest, ctx: T.Ctx, results: list[T.Result], called: list[str]
-    ) -> str:
+        self, req: ChatRequest, ctx: T.Ctx, results: list[T.Result], called: list[str], check
+    ) -> tuple[str, list[str]]:
         body = build_body(req, results)
-        for _ in range(MAX_ROUNDS):
+        retried = False
+        for _ in range(MAX_ROUNDS + 1):
             try:
                 data = self.post(API.format(model=self.c.model), self.c.key, body)
             except urllib.error.HTTPError as e:
@@ -346,9 +359,16 @@ class Chat:
                 raise ModelError("Gemini did not answer in time") from None
             fcs = function_calls(data)
             if not fcs:
-                return parse(data)
+                text = parse(data)
+                bad = check(text)
+                if not bad or retried or not data.get("candidates"):
+                    return text, bad
+                retried = True  # one chance to drop what it cannot back
+                body["contents"].append({"role": "model", **data["candidates"][0]["content"]})
+                body["contents"].append({"role": "user", "parts": [{"text": correction(bad)}]})
+                continue
             # keep the model's turn as it came (it may carry thought signatures), then the results
-            body["contents"].append(data["candidates"][0]["content"])
+            body["contents"].append({"role": "model", **data["candidates"][0]["content"]})
             parts = []
             for fc in fcs:
                 r = T.call(fc.get("name", ""), fc.get("args") or {}, ctx)
@@ -360,16 +380,18 @@ class Chat:
             body["contents"].append({"role": "user", "parts": parts})
         body.pop("tools", None)  # last round: answer with what it has
         try:
-            return parse(self.post(API.format(model=self.c.model), self.c.key, body))
+            text = parse(self.post(API.format(model=self.c.model), self.c.key, body))
         except (urllib.error.URLError, TimeoutError):
             raise ModelError("Gemini did not answer in time") from None
+        return text, check(text)
 
     def _ollama(
-        self, req: ChatRequest, ctx: T.Ctx, results: list[T.Result], called: list[str]
-    ) -> str:
+        self, req: ChatRequest, ctx: T.Ctx, results: list[T.Result], called: list[str], check
+    ) -> tuple[str, list[str]]:
         model = self.c.ollama_model or "qwen2.5:7b-instruct"
         body = build_ollama_body(req, model, results)
-        for _ in range(MAX_ROUNDS):
+        retried = False
+        for _ in range(MAX_ROUNDS + 1):
             try:
                 data = self.post_ollama(self.c.ollama_url, body)
             except urllib.error.HTTPError as e:
@@ -381,7 +403,14 @@ class Chat:
             msg = data.get("message") or {}
             tcs = msg.get("tool_calls") or []
             if not tcs:
-                return parse_ollama(data)
+                text = parse_ollama(data)
+                bad = check(text)
+                if not bad or retried:
+                    return text, bad
+                retried = True
+                body["messages"].append({"role": "assistant", "content": text})
+                body["messages"].append({"role": "user", "content": correction(bad)})
+                continue
             body["messages"].append(msg)
             for tc in tcs:
                 fn = tc.get("function") or {}
@@ -396,7 +425,8 @@ class Chat:
                 called.append(r.tool)
                 body["messages"].append({"role": "tool", "content": json.dumps(r.as_dict())})
         body.pop("tools", None)
-        return parse_ollama(self.post_ollama(self.c.ollama_url, body))
+        text = parse_ollama(self.post_ollama(self.c.ollama_url, body))
+        return text, check(text)
 
     async def ask(self, req: ChatRequest, request: Request) -> dict:
         origin = request.headers.get("origin")
@@ -435,7 +465,19 @@ class Chat:
         else:
             note = None
 
-        def reply(answer: str, model: str, note: str | None = None) -> dict:
+        def evidence() -> str:
+            """What the answer may draw numbers from: the context and every tool result so far,
+            and the operator's own words (never the model's earlier answers)."""
+            mine = " ".join(t.text for t in req.history if t.role == "user")
+            dumps = " ".join(json.dumps(r.as_dict(), ensure_ascii=False) for r in results)
+            return f"{context_block(req.grounding, req.page, results)} {dumps} {mine}"
+
+        def check(answer: str) -> list[str]:
+            return V.unverified(answer, evidence(), req.question)
+
+        def reply(
+            answer: str, model: str, note: str | None = None, bad: list[str] | None = None
+        ) -> dict:
             sources, links = _cite(results)
             out = {
                 "answer": answer,
@@ -446,6 +488,8 @@ class Chat:
             }
             if note:
                 out["note"] = note
+            if bad:
+                out["unverified"] = bad
             return out
 
         if provider == "rules":
@@ -454,10 +498,15 @@ class Chat:
             raise HTTPException(status_code=429, detail="today's question budget is used up")
         try:
             run = self._gemini if provider == "gemini" else self._ollama
-            answer = await asyncio.to_thread(run, req, ctx, results, called)
-            return reply(
-                answer, self.c.model if provider == "gemini" else (self.c.ollama_model or "ollama")
+            answer, bad = await asyncio.to_thread(run, req, ctx, results, called, check)
+            model = self.c.model if provider == "gemini" else (self.c.ollama_model or "ollama")
+            warn = (
+                f"Not backed by the twin's data: {', '.join(bad)} - "
+                "check these before relying on them."
+                if bad
+                else None
             )
+            return reply(answer, model, warn, bad)
         except ModelError as e:
             return reply(
                 rules_text,

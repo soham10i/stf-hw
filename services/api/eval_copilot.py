@@ -8,9 +8,8 @@ Score the copilot with a real model on the evaluation set (tests/copilot_eval.js
 Per question, through the same Chat.ask the dashboard uses:
   tools      every tool the question needs was called (pre-fetched by the router or by the model)
   facts      the expected strings are in the answer
-  faithful   every number in the answer appears in the facts the tools returned - the check that
-             the model invents nothing (years, list numbering and the question's own numbers are
-             allowed)
+  faithful   every number in the answer is backed by what the tools returned (verify.py: the
+             same check the chat runs before it shows an answer)
   declines   an out-of-scope question is answered with "I don't know" or the like, not made up
 Held-out questions are reported apart: they were not used to tune the router, so they show how
 the model copes with paraphrases. Writes .cache/copilot_eval_<provider>.json.
@@ -31,9 +30,9 @@ from . import chat as C
 from . import live
 from . import security as sec
 from . import tools as T
+from . import verify as V
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-NUM = re.compile(r"(?<![\w.])-?\d+(?:[.,]\d+)?")
 DECLINE = re.compile(
     r"(don.?t|do not|does not|doesn.?t) (know|have|cover)|not (covered|available|in the)"
     r"|no (data|information|tool)"
@@ -54,40 +53,12 @@ def _req(client: str = "127.0.0.1") -> Request:
     )
 
 
-def _numbers(s: str) -> set[str]:
-    return {n.replace(",", ".").lstrip("-").rstrip("0").rstrip(".") or "0" for n in NUM.findall(s)}
-
-
-def _derived(evidence: str) -> set[str]:
-    """Sums and differences of two numbers the tools returned: correct arithmetic is not
-    invention (the saving between two costs), a misread unit still is (2.43 h is not 2 h 43)."""
-    xs = []
-    for n in NUM.findall(evidence):
-        try:
-            xs.append(float(n.replace(",", ".")))
-        except ValueError:
-            pass
-    xs = list(dict.fromkeys(xs))[:120]
-    out = set()
-    for i, a in enumerate(xs):
-        for b in xs[i + 1 :]:
-            for v in (a + b, abs(a - b)):
-                out |= _numbers(f"{round(v, 2):g}") | _numbers(f"{round(v, 1):g}")
-    return out
-
-
 def score(case: dict, out: dict, evidence: str) -> dict:
     ans = out.get("answer", "")
     called = set(out.get("tools", []))
     need = set(case["tools"])
     facts_ok = all(f.lower() in out.get("answer", "").lower() for f in case.get("facts", []))
-    allowed = _numbers(evidence) | _numbers(case["q"]) | _derived(evidence)
-    ans = re.sub(r"(?m)^\s*\d{1,2}[.)]\s", " ", ans)                 # list numbering is not a fact
-    invented = sorted(
-        n
-        for n in _numbers(ans) - allowed
-        if not (len(n) == 4 and n.startswith("20")) and n not in {"1", "2", "3", "4", "5"}
-    )
+    invented = V.unverified(ans, evidence, case["q"])  # the check the chat itself runs
     return {
         "q": case["q"],
         "held_out": bool(case.get("held_out")),

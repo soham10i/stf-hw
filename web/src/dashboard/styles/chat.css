@@ -41,3 +41,4 @@
 .ch-dock .cp-log { max-height: none; flex: 1; min-height: 0; }
 .ch.compact .cp-q, .ch.compact .cp-a { font-size: 13px; }
 @media (max-width: 600px) { .ch-dock { right: 16px; bottom: 70px; } .ch-fab { right: 16px; bottom: 16px; } }
+.ch-note.bad { color: var(--bad); font-weight: 500; }

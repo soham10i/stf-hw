@@ -38,7 +38,7 @@ def make(key=KEY, daily=100, reply=None, error=None):
     calls = []
 
     def fake(url, k, body):
-        calls.append((url, k, body))
+        calls.append((url, k, json.loads(json.dumps(body))))  # as sent, not as later extended
         if error:
             raise error
         return (
@@ -309,3 +309,37 @@ def test_live_state_reaches_the_model():
         "another client's twin is not visible"
     )
     live._by.clear()
+
+
+def _scripted(replies):
+    chat = C.Chat(
+        sec.Settings.from_env(), C.ChatSettings(key=KEY, model="gemini-test", daily_limit=100)
+    )
+    sent = []
+
+    def fake(url, k, body):
+        sent.append(json.loads(json.dumps(body)))
+        return {
+            "candidates": [
+                {"content": {"parts": [{"text": replies[min(len(sent), len(replies)) - 1]}]}}
+            ]
+        }
+
+    chat.post = fake
+    return chat, sent
+
+
+def test_an_invented_number_is_corrected_once():
+    chat, sent = _scripted(
+        ["The belt warns at 70 % health.", "The belt's health is falling [health model]."]
+    )
+    out = ask(chat, {"question": "how is the belt doing?"})
+    assert len(sent) == 2 and "70" in sent[1]["contents"][-1]["parts"][0]["text"]
+    assert out["answer"].startswith("The belt's health") and "unverified" not in out
+
+
+def test_a_persistent_invention_is_flagged():
+    chat, sent = _scripted(["The belt warns at 70 % health.", "Still 70 % - trust me."])
+    out = ask(chat, {"question": "how is the belt doing?"})
+    assert len(sent) == 2, "one retry, not a loop"
+    assert out["unverified"] == ["70"] and "Not backed" in out["note"]

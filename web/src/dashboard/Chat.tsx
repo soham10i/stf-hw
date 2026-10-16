@@ -10,6 +10,8 @@ import { GUIDE } from "./guide";
 type Reply = {
   text: string; via: "gemini" | "ollama" | "rules" | "offline"; model?: string; note?: string;
   sources?: string[]; links?: { page: string; label: string }[]; tools?: string[];
+  /** numbers in the answer that the twin's data does not back (the server's check) */
+  unverified?: string[];
 };
 type Msg = { q: string; r: Reply | null; ms?: number };
 type Status = {
@@ -98,7 +100,7 @@ export function Chat({ page, go, age, pm, compact = false }: { page: string; go:
         if (res.ok) {
           // the server answers from the twin's tools itself when the model is unavailable (body.note says so)
           r = { text: body.answer, via: body.model === "rules" ? "rules" : mode, model: body.model, note: body.note,
-                sources: body.sources, links: body.links, tools: body.tools };
+                sources: body.sources, links: body.links, tools: body.tools, unverified: body.unverified };
         } else {
           const ctx: Ctx = { age, pm, get: <T,>(k: DataKey) => loadJson<T>(DATA[k]) };
           const local = await answer(t, ctx);
@@ -142,7 +144,7 @@ export function Chat({ page, go, age, pm, compact = false }: { page: string; go:
             {m.r ? (
               <div className="cp-a">
                 {m.r.via !== "offline" ? <div className="ch-md"><Md text={m.r.text} /></div> : <p>{m.r.text}</p>}
-                {m.r.note && <p className="ch-note">{m.r.note}</p>}
+                {m.r.note && <p className={`ch-note ${m.r.unverified?.length ? "bad" : ""}`}>{m.r.unverified?.length ? "⚠ " : ""}{m.r.note}</p>}
                 <div className="cp-src">
                   {m.r.links?.map((l) => <button key={l.page} className="db-link" onClick={() => go(l.page)}>open {l.label} →</button>)}
                   {m.r.sources && m.r.sources.length > 0 && <span title={m.r.sources.join("\n")}>grounded in: {m.r.sources[0]}{m.r.sources.length > 1 ? ` +${m.r.sources.length - 1}` : ""}</span>}
