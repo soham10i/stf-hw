@@ -62,11 +62,29 @@ export const MM_TO_SCENE = new THREE.Matrix4().set(
   0, 0, 0, 1,
 );
 
+/** Depth bias from a part's volume (mm^3). Where two parts overlap and share a face (a column
+    running into the rail it carries, a shelf slotted flush into its post) the faces are coplanar
+    and z-fight into a flickering checker. The bias is continuous in log-volume, so of any two
+    parts of different size the smaller always wins the tie: an attachment shows over what it is
+    mounted on. */
+export function depthBias(volMm3: number) {
+  const b = -Math.max(0, Math.min(28, 4 * (7 - Math.log10(Math.max(1, volMm3)))));
+  return b ? { polygonOffset: true, polygonOffsetFactor: b, polygonOffsetUnits: b } : {};
+}
+
 export function PreciseMesh({ meshes, matrix = MM_TO_SCENE }: { meshes: THREE.Mesh[]; matrix?: THREE.Matrix4 }) {
   const objs = useMemo(() => meshes.map((m) => {
     const c = m.clone();
     c.castShadow = true;
     c.receiveShadow = true;
+    const g = c.geometry;
+    if (!g.boundingBox) g.computeBoundingBox();
+    const sz = g.boundingBox!.getSize(new THREE.Vector3());          // mm
+    const bias = depthBias(sz.x * sz.y * sz.z);
+    if (bias.polygonOffset && !Array.isArray(c.material)) {
+      c.material = c.material.clone();
+      Object.assign(c.material, bias);
+    }
     return c;
   }), [meshes]);
   return (

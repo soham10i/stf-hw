@@ -13,7 +13,7 @@ import { PcbBoard, PreciseComp, ProfileBox } from "./FactoryDetail";
 import { Suspense } from "react";
 
 
-import { MM_TO_SCENE, PreciseMesh, usePrecise } from "./Precise";
+import { MM_TO_SCENE, PreciseMesh, depthBias, usePrecise } from "./Precise";
 
 import { type CadPart, type CadDoc, boxSize, cylSpec } from "../shared/model";
 import { Drive, vgrHot } from "./hot";
@@ -47,6 +47,13 @@ export function centreOf(part: CadPart) {
   return axis === "x" ? v(px + h, py, pz) : axis === "y" ? v(px, py + h, pz) : v(px, py, pz + h);
 }
 
+/** A part's volume in mm^3, for its depth bias (see depthBias in Precise.tsx). */
+function volumeOf(part: CadPart) {
+  if (part.k === "box") { const [dx, dy, dz] = boxSize(part); return dx * dy * dz; }
+  const [, len, dia] = cylSpec(part);
+  return Math.PI * (dia / 2) ** 2 * len;
+}
+
 function Mat({ part }: { part: CadPart }) {
   const metal = part.c === "#d6d9da" || part.c === "#aeb4b8";
   // guide rods, piston rods and shafts are ground, hardened steel: polished, fully metallic
@@ -56,6 +63,7 @@ function Mat({ part }: { part: CadPart }) {
       color={ground ? "#d3d8de" : part.c}
       roughness={part.g === "workpiece" ? 0.45 : ground ? 0.12 : metal ? 0.3 : 0.62}
       metalness={ground ? 1 : metal ? 0.7 : 0.1}
+      {...depthBias(volumeOf(part))}
     />
   );
 }
