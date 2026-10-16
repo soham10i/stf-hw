@@ -1,5 +1,10 @@
 # Machine: Edge computer
 
+
+## In brief
+
+A fanless industrial edge PC on its own small plate in the free strip between the oven and the front of the warehouse, inside the guard and outside the robot's reach.
+
 ## What it is
 
 A fanless industrial edge PC on its own small plate in the free strip between the oven and the

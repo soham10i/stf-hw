@@ -3,6 +3,11 @@
 Two sub-tabs. While *OT security* is open, the 3D view shows the network zones instead of the
 hazard zones.
 
+
+## In brief
+
+Two sub-tabs.  While *OT security* is open, the 3D view shows the network zones instead of the hazard zones.
+
 ## Machine safety (ISO 12100, ISO 13849-1)
 
 7 hazards, each with its required performance level (PLr, a-e; d is the highest here):

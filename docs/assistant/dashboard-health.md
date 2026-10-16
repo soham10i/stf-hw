@@ -4,6 +4,10 @@ Dashboard group: Maintain. Page id: `health`.
 
 How worn each part is at the chosen machine age, and which part needs attention first.
 
+## In brief
+
+How worn each part is at the chosen machine age, and which part needs attention first.
+
 ## How to read it
 
 1. Drag the machine-age slider: health falls as parts wear. Green healthy, amber warned, red failed.

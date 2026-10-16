@@ -4,6 +4,10 @@ Dashboard group: Docs. Page id: `docs-degradation`.
 
 The theory behind the Health page: how wear is modelled, measured, smoothed and turned into warnings, running live.
 
+## In brief
+
+The theory behind the Health page: how wear is modelled, measured, smoothed and turned into warnings, running live.
+
 ## How to read it
 
 1. Pick a part: its own wear law runs on the chart, one life in about 30 seconds.

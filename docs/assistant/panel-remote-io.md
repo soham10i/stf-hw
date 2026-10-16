@@ -3,6 +3,11 @@
 Each module has its own I/O node (Modbus TCP) beside its controller board, so only an Ethernet
 line and a fused 24 V feed run to the cabinet instead of 34-way bundles.
 
+
+## In brief
+
+Each module has its own I/O node (Modbus TCP) beside its controller board, so only an Ethernet line and a fused 24 V feed run to the cabinet instead of 34-way bundles.
+
 ## I/O nodes
 
 A bar per node and signal type (DI digital in, DO digital out, AI analogue in, CNT counter/encoder,

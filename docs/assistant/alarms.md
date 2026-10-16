@@ -1,5 +1,10 @@
 # Alarm codes
 
+## In brief
+
+Each PLC step has a watchdog: a step that takes too long raises its alarm.  Codes are `MODULE-UNIT##`.
+
+
 Each PLC step has a watchdog: a step that takes too long raises its alarm. Codes are
 `MODULE-UNIT##`.
 

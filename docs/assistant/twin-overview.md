@@ -1,5 +1,10 @@
 # The digital twin: overview
 
+
+## In brief
+
+A digital twin of a fischertechnik Smart Tabletop Factory (536634, 24 V) that bakes cookies.  One parameter table per module drives the 3D view, the FreeCAD models, the drawings and every analysis, so the CAD, the kinematics and the I/O can never drift apart.
+
 ## What it is
 
 A digital twin of a fischertechnik Smart Tabletop Factory (536634, 24 V) that bakes cookies. One

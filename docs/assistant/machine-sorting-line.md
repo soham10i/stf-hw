@@ -1,5 +1,10 @@
 # Machine: Sorting line (ft 536633)
 
+
+## In brief
+
+Receives the baked cookie from the oven belt, reads its colour and ejects it into its bay.  The cookies wait in the bays until the robot collects them, which closes the factory loop.
+
 ## What it does
 
 Receives the baked cookie from the oven belt, reads its colour and ejects it into its bay. The

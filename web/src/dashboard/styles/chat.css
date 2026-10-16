@@ -147,6 +147,10 @@
 .cx-facts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .cx-facts li { padding: 7px 9px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border-soft); font-size: 12px; animation: cx-in .2s ease both; }
 .cx-facts b { display: block; font-weight: 500; color: var(--text); } .cx-facts span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.cx-fact-groups { display: flex; flex-direction: column; gap: 10px; }
+.cx-fact-group > i { display: block; font-style: normal; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+.cx-more { align-self: flex-start; border: 0; background: none; color: var(--accent); font: 600 11.5px var(--font); cursor: pointer; padding: 2px 0; }
+.cx-more:hover { text-decoration: underline; }
 
 /* ------------------------------------------------ the Ask button and panel on every page */
 .ch-fab { position: fixed; right: 22px; bottom: 22px; z-index: 40; display: inline-flex; align-items: center; gap: 6px; padding: 11px 18px;

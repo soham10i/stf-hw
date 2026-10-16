@@ -4,6 +4,10 @@ Dashboard group: Analyse. Page id: `hardening`.
 
 Where the machine no longer trusts its own program: hardwired interlocks, and the OT security findings re-run.
 
+## In brief
+
+Where the machine no longer trusts its own program: hardwired interlocks, and the OT security findings re-run.
+
 ## How to read it
 
 1. Each jog rule is hardwired only where the machine already has the switch it needs.

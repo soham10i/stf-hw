@@ -4,6 +4,10 @@ Dashboard group: Operate. Page id: `alarms`.
 
 Every alarm the PLC can raise, and how the machine reacted when each fault was injected into the twin.
 
+## In brief
+
+Every alarm the PLC can raise, and how the machine reacted when each fault was injected into the twin.
+
 ## How to read it
 
 1. Fault matrix: each injected fault, the alarm it raised, how quickly, and whether the reaction was right ('pass').

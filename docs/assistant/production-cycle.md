@@ -1,5 +1,10 @@
 # The production cycle
 
+## In brief
+
+One cookie's journey, as the 3D view plays it and the PLC runs it:
+
+
 One cookie's journey, as the 3D view plays it and the PLC runs it:
 
 1. **Retrieve**: the crane travels to the mould's slot, lifts, extends the fork, takes the mould

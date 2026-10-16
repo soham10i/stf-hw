@@ -15,12 +15,19 @@ them and link there. Numbers come only from the twin's exports (web/public) and 
 
 from __future__ import annotations
 
+import html
+import ipaddress
 import os
 import re
+import socket
+import urllib.parse
+import urllib.request
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 
+from . import gemini_pool as GP
 from . import live
+from . import security as sec
 from .grounding import get_bm25, load_json
 
 DOCS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "docs", "assistant"))
@@ -480,6 +487,142 @@ def live_state(args: dict, ctx: Ctx) -> Result:
     )
 
 
+# ------------------------------------------------------------------------ the copilot's own setup
+SETUP_PREFIXES = ("GEMINI_", "OLLAMA_", "TTS_", "ELEVENLABS_", "STF_")
+
+
+def _env() -> dict[str, str]:
+    """The repo's .env (git-ignored) merged under the process environment, which wins."""
+    env: dict[str, str] = {}
+    path = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
+    try:
+        for line in open(path, encoding="utf-8"):
+            k, sep, v = line.strip().partition("=")
+            if sep and k.strip().startswith(SETUP_PREFIXES):
+                env[k.strip()] = v.strip().strip('"').strip("'")
+    except OSError:
+        pass
+    env.update(os.environ)
+    return env
+
+
+def copilot_setup(args: dict, ctx: Ctx) -> Result:
+    """How this copilot itself is set up: the local text model, the Gemini chat and speech
+    models in their fallback order, the speech pipeline, and where its data lives."""
+    from . import tts as tts_mod  # local import: tts imports chat, chat imports this module
+
+    env = _env()
+    repo = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    chat = GP.models_from_env("GEMINI_MODELS", GP.CHAT, env)
+    first = env.get("GEMINI_MODEL", GP.CHAT[0])
+    chat_order = [first, *[m for m in chat if m != first]]
+    tts = GP.models_from_env("GEMINI_TTS_MODELS", GP.TTS, env)
+    stt = GP.models_from_env("GEMINI_STT_MODELS", tts_mod.STT_MODELS, env)
+    providers = [p.strip() for p in env.get("TTS_PROVIDERS", "elevenlabs,gemini,local").split(",")]
+    providers = [p for p in providers if p]
+    facts = [
+        ["local text model (Ollama)", env.get("OLLAMA_MODEL", "qwen2.5:7b-instruct")],
+        ["Ollama URL", env.get("OLLAMA_URL", "http://127.0.0.1:11434")],
+        ["Gemini chat models, fallback order", " -> ".join(chat_order)],
+        ["Gemini TTS voices, fallback order", " -> ".join(tts)],
+        ["Gemini STT models, fallback order", " -> ".join(stt)],
+        ["TTS providers, in order", ", ".join(providers)],
+        ["Gemini API key", "set" if env.get("GEMINI_API_KEY") else "not set"],
+        ["chat questions per day", env.get("GEMINI_DAILY_LIMIT", "300")],
+        ["spoken answers per day", env.get("GEMINI_TTS_DAILY_LIMIT", "100")],
+        ["data directory", env.get("STF_DATA_DIR", os.path.join(repo, ".data"))],
+    ]
+    text = (
+        f"Local text generation runs '{facts[0][1]}' on Ollama at {facts[1][1]}; the copilot "
+        f"switches to it when every Gemini model is at its limit. Gemini answers in fallback "
+        f"order {', '.join(chat_order)}. Speech comes from {', '.join(providers)} (Gemini "
+        f"voices: {', '.join(tts)}; STT: {', '.join(stt)})."
+    )
+    return Result("copilot_setup", text, facts, ["the copilot's own configuration (.env)"])
+
+
+# ------------------------------------------------------------------------ verified web access
+PAGE_LIMITER = sec.RateLimiter(rate=0.2, burst=3)
+PAGE_TIMEOUT_S = 8
+PAGE_MAX_BYTES = 512_000
+_PRIVATE_NETS = [
+    ipaddress.ip_network(c)
+    for c in (
+        "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16",
+        "169.254.0.0/16", "::1/128", "fc00::/7", "fe80::/10",
+    )
+]
+
+
+def _public_host(host: str) -> bool:
+    """True when every address the host resolves to is a public (routable) one."""
+    host = host.lower().rstrip(".")
+    if host == "localhost" or host.endswith(".localhost") or host.endswith(".internal"):
+        return False
+    try:
+        addrs = socket.getaddrinfo(host, None)
+    except OSError:
+        return False
+    for info in addrs:
+        raw = info[4][0].split("%")[0]
+        try:
+            ip = ipaddress.ip_address(raw)
+        except ValueError:
+            return False
+        if any(ip in net for net in _PRIVATE_NETS):
+            return False
+    return bool(addrs)
+
+
+def _http_get(url: str) -> tuple[bytes, str]:
+    req = urllib.request.Request(
+        url, method="GET", headers={"User-Agent": "stf-copilot/1.0 (research; contact local)"}
+    )
+    with urllib.request.urlopen(req, timeout=PAGE_TIMEOUT_S) as r:  # noqa: S310 - SSRF-guarded
+        return r.read(PAGE_MAX_BYTES + 1), r.headers.get("Content-Type", "")
+
+
+def _html_to_text(raw: str) -> str:
+    raw = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", raw)
+    raw = re.sub(r"(?is)<!--.*?-->", " ", raw)
+    raw = re.sub(r"(?s)<[^>]+>", " ", raw)
+    return re.sub(r"\s+", " ", html.unescape(raw)).strip()
+
+
+def open_page(args: dict, ctx: Ctx) -> Result:
+    """Read a public web page (http/https only, no private or local addresses) and quote its
+    main text - the verified web access the model uses when the documents do not cover a
+    question."""
+    url = str(args.get("url", "")).strip()
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        return Result("open_page", f"'{url or 'that'}' is not a fetchable http(s) URL.")
+    if not _public_host(parsed.hostname):
+        return Result(
+            "open_page",
+            f"'{parsed.hostname}' is a private, local or unknown host; only public web pages "
+            "can be fetched.",
+        )
+    if not PAGE_LIMITER.allow(ctx.client or "?"):
+        return Result("open_page", "Too many page fetches; wait a few seconds and try again.")
+    try:
+        body, ctype = _http_get(url)
+    except Exception as e:
+        return Result("open_page", f"The page could not be fetched: {type(e).__name__}.")
+    if "html" in ctype.lower():
+        text = _html_to_text(body.decode("utf-8", "replace"))
+    else:
+        text = re.sub(r"\s+", " ", body.decode("utf-8", "replace")).strip()
+    excerpt = text[:4000]
+    where = f"{parsed.hostname}{parsed.path or '/'}"
+    return Result(
+        "open_page",
+        f"Fetched {where}: {excerpt[:300]}" + ("…" if len(excerpt) > 300 else ""),
+        [["excerpt", excerpt]],
+        [url],
+    )
+
+
 # ------------------------------------------------------------------------ the table
 @dataclass
 class Tool:
@@ -586,6 +729,20 @@ TOOLS: dict[str, Tool] = {
             ),
         ),
         Tool("live_state", live_state, _obj({})),
+        Tool("copilot_setup", copilot_setup, _obj({})),
+        Tool(
+            "open_page",
+            open_page,
+            _obj(
+                {
+                    "url": {
+                        "type": "string",
+                        "description": "the http(s) URL of a public web page to read and quote",
+                    }
+                },
+                ["url"],
+            ),
+        ),
     ]
 }
 
@@ -614,14 +771,23 @@ GREETING = re.compile(
 )
 
 
-def route(q: str, ctx: Ctx) -> list[tuple[str, dict]]:
+def route(q: str, ctx: Ctx, lean: bool = False) -> list[tuple[str, dict]]:
     """The tool calls a question needs, by keyword - the rules mode, and the facts every model
-    starts from. Several calls when a question asks several things."""
+    starts from. Several calls when a question asks several things. `lean` shrinks the document
+    search for small local models."""
     s = q.lower()
     calls: list[tuple[str, dict]] = []
     codes = [f"{a}-{b}".upper() for a, b in ALARM_RE.findall(q)]
     for c in codes:
         calls.append(("alarm_lookup", {"code": c}))
+    if re.search(
+        r"(which|what) (setup|model)|local model|gemini model|ollama|"
+        r"\btts\b|text[- ]?to[- ]?speech|\bstt\b|speech[- ]?to[- ]?text|"
+        r"voice (model|pipeline|setup)|copilot.{0,24}(setup|config|model)|"
+        r"how (are|is) (you|the copilot) (set ?up|configured)",
+        s,
+    ) and not re.search(r"\b(plc|oven|machine|robot|crane|camera|servo|motor|sensor)\b", s):
+        calls.append(("copilot_setup", {}))
     parts = list(dict.fromkeys(pid for rx, pid in PART_WORDS if rx.search(s)))
     healthy = re.search(
         r"\b(fail|life|last|health|worn|wear|rul|how long|when|replace|service|maint)", s
@@ -665,7 +831,7 @@ def route(q: str, ctx: Ctx) -> list[tuple[str, dict]]:
     if re.search(r"this page|on this page|what (does|is) (this|the) page|how (do i|to) read", s):
         calls.append(("page_guide", {}))
     if not calls or re.search(r"\bhow does\b|\bwhy\b|\bwhat is\b|\bexplain\b|circuit|works?\b", s):
-        calls.append(("search_docs", {"query": q}))
+        calls.append(("search_docs", {"query": q, "k": 2 if lean else 4}))
     return calls
 
 
@@ -681,7 +847,7 @@ def _gist(guide: str) -> str:
     return (what + (" How to read it: " + read if read else ""))[:600]
 
 
-def rules_answer(q: str, ctx: Ctx) -> tuple[str, list[Result]]:
+def rules_answer(q: str, ctx: Ctx, lean: bool = False) -> tuple[str, list[Result]]:
     """The no-model answer: the routed tools' texts, or the best passage."""
     if GREETING.match(q.strip()):
         return (
@@ -691,7 +857,7 @@ def rules_answer(q: str, ctx: Ctx) -> tuple[str, list[Result]]:
             "security, or what the cell "
             "is doing right now."
         ), []
-    res = [call(n, a, ctx) for n, a in route(q, ctx)]
+    res = [call(n, a, ctx) for n, a in route(q, ctx, lean=lean)]
     # a page guide is long: the rules answer gives its gist (what the page is for, how to read it)
     texts = [
         _gist(r.text) if r.tool == "page_guide" else r.text for r in res if r.tool != "search_docs"

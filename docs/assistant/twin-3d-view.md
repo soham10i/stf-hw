@@ -1,5 +1,10 @@
 # The 3D view
 
+
+## In brief
+
+The machine fills the window.
+
 ## Layout
 
 The machine fills the window. The controls float over it:

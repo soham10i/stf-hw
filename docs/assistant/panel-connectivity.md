@@ -5,6 +5,11 @@ oven and the warehouse (see *Machine: Edge computer*). Each sub-tab starts with 
 what its checks proved, including how many planted mutants they caught (a check that cannot fail
 proves nothing).
 
+
+## In brief
+
+How the cell's data reaches other systems, three ways.  They run on the edge computer between the oven and the warehouse (see *Machine: Edge computer*).
+
 ## Asset shells (IEC 63278)
 
 Asset Administration Shells for the cell, its parts and its AI models, each submodel built from

@@ -4,6 +4,10 @@ Dashboard group: Analyse. Page id: `scheduler`.
 
 Whether a learning scheduler finds a faster order than the PLC's priority list without ever risking a deadlock.
 
+## In brief
+
+Whether a learning scheduler finds a faster order than the PLC's priority list without ever risking a deadlock.
+
 ## How to read it
 
 1. The headline: order time against the PLC, and the deadlocks with and without the shield.

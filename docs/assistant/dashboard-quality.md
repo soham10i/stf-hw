@@ -4,6 +4,10 @@ Dashboard group: Operate. Page id: `quality`.
 
 Every cookie's record: which mould carried it, where the RFID heads read it, its colour reading and whether it matched the order.
 
+## In brief
+
+Every cookie's record: which mould carried it, where the RFID heads read it, its colour reading and whether it matched the order.
+
 ## How to read it
 
 1. Each row is one cookie; click it for the times and readings along its way.

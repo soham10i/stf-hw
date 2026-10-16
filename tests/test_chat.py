@@ -138,10 +138,10 @@ def test_rate_limit_and_daily_cap():
             codes.append(e.status_code)
     assert codes[:5] == [200] * 5 and 429 in codes[5:]
     capped, _ = make(daily=2)
-    ask(capped, request=req(client="10.0.0.1"))
-    ask(capped, request=req(client="10.0.0.2"))
+    ask(capped, body={"question": "q1"}, request=req(client="10.0.0.1"))
+    ask(capped, body={"question": "q2"}, request=req(client="10.0.0.2"))
     with pytest.raises(HTTPException) as e:
-        ask(capped, request=req(client="10.0.0.3"))
+        ask(capped, body={"question": "q3"}, request=req(client="10.0.0.3"))
     assert e.value.status_code == 429 and "budget" in e.value.detail
 
 
@@ -388,7 +388,7 @@ def test_a_model_at_its_limit_hands_over_to_the_next():
         "Google's retry delay is used"
     )
     hit.clear()
-    ask(chat)
+    ask(chat, body={"question": "again, what needs service?"})
     assert hit == ["m-c"], "models at their limit are skipped until they are free again"
 
 

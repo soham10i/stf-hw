@@ -4,6 +4,10 @@ Dashboard group: Operate. Page id: `vision`.
 
 The inspection camera's live feed: every cookie photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.
 
+## In brief
+
+The inspection camera's live feed: every cookie photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.
+
 ## How to read it
 
 1. Watch the live camera: the image, the CNN's answer and decision, and the autoencoder's error map (hot = not as a good cookie looks).

@@ -2,6 +2,11 @@
 
 The first panel; also opened by *New order* and *Place an order*.
 
+
+## In brief
+
+The first panel; also opened by *New order* and *Place an order*.
+
 ## New order
 
 Pick a flavour (chocolate, strawberry, vanilla) and a quantity of 1 to 12, then *Place order*.

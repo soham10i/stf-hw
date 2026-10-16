@@ -4,6 +4,10 @@ Dashboard group: Operate. Page id: `production`.
 
 The order in detail: every job of every unit, how far each flavour is, and why the PLC uses the dispatch policy it does.
 
+## In brief
+
+The order in detail: every job of every unit, how far each flavour is, and why the PLC uses the dispatch policy it does.
+
 ## How to read it
 
 1. Play or drag the time slider and watch the Gantt chart and the unit steps move together.

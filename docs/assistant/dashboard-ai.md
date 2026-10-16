@@ -4,6 +4,10 @@ Dashboard group: Maintain. Page id: `ai`.
 
 A neural network that predicts each part's remaining life from its sensor history, tested on machines it never saw, and running here in your browser.
 
+## In brief
+
+A neural network that predicts each part's remaining life from its sensor history, tested on machines it never saw, and running here in your browser.
+
 ## How to read it
 
 1. Start with the scores: how often it warned in time, and how much part life it threw away.

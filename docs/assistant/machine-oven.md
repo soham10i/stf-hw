@@ -1,5 +1,10 @@
 # Machine: Oven (multi-processing station with kiln, ft 536632)
 
+
+## In brief
+
+Everything the cookie touches lies on one flow line:
+
 ## The flow
 
 Everything the cookie touches lies on one flow line:

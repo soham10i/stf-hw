@@ -1,5 +1,10 @@
 # Machine: Running gear and lubrication
 
+## In brief
+
+How the moving carriages ride on their guides, as drawn on every guided axis.
+
+
 How the moving carriages ride on their guides, as drawn on every guided axis.
 
 | Guide | Hardware on the carriage | Lubrication |

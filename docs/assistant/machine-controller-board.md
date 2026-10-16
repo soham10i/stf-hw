@@ -1,5 +1,10 @@
 # Machine: Controller board and PLC I/O
 
+## In brief
+
+The *Controller board · PLC I/O* view (view switcher) shows the 24 V adapter PCB of each module and its interface to the PLC, pin by pin.
+
+
 The *Controller board · PLC I/O* view (view switcher) shows the 24 V adapter PCB of each module and
 its interface to the PLC, pin by pin.
 

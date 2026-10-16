@@ -4,6 +4,11 @@ Virtual commissioning: the PLC program tested against the twin before any hardwa
 the real scan times (10 ms task, 5 ms for the robot) and Modbus TCP at 10 ms with the real
 register map.
 
+
+## In brief
+
+Virtual commissioning: the PLC program tested against the twin before any hardware exists, with the real scan times (10 ms task, 5 ms for the robot) and Modbus TCP at 10 ms with the real register map.
+
 ## Verdict and OEE
 
 The *Verified* line: the commissioned order time against the model (429.8 s vs 425.7 s, +1 %,

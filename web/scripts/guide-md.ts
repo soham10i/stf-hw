@@ -51,7 +51,9 @@ for (const f of readdirSync(dir).filter((x) => x.startsWith("dashboard-"))) rmSy
 for (const [g, ids] of GROUPS) {
   for (const id of ids) {
     const p = GUIDE[id];
-    const md = [`# Dashboard: ${p.title}`, "", `Dashboard group: ${g}. Page id: \`${id}\`.`, "", p.what, "", "## How to read it", ""];
+    // the retriever's compact entry point: the first two sentences of the page's "what"
+    const brief = p.what.match(/[^.!?]+[.!?]+/g)?.slice(0, 2).join(" ").trim() ?? p.what;
+    const md = [`# Dashboard: ${p.title}`, "", `Dashboard group: ${g}. Page id: \`${id}\`.`, "", p.what, "", "## In brief", "", brief, "", "## How to read it", ""];
     p.read.forEach((r, i) => md.push(`${i + 1}. ${r}`));
     md.push("", "## Sections", "");
     for (const [k, v] of p.sections) md.push(`### ${k}`, "", v, "");

@@ -1,5 +1,10 @@
 # Common questions
 
+
+## In brief
+
+No.  Everything is simulated from engineering models of the fischertechnik factory.
+
 ## Is this a real machine?
 
 No. Everything is simulated from engineering models of the fischertechnik factory. "Live" in the

@@ -2,6 +2,11 @@
 
 Live readings of the twin, sampled 8 times a second.
 
+
+## In brief
+
+Live readings of the twin, sampled 8 times a second.
+
 ## Sensors
 
 Lights at the top: on (lit) or off. The warehouse light barriers (I2, I3), the robot's vacuum

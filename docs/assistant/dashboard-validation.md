@@ -4,6 +4,10 @@ Dashboard group: Engineer. Page id: `validation`.
 
 How the project checks itself: every variant re-built, the plant varied, and defects planted to prove the checks can fail.
 
+## In brief
+
+How the project checks itself: every variant re-built, the plant varied, and defects planted to prove the checks can fail.
+
 ## How to read it
 
 1. Regression: every upgrade's machine is re-exported and must give the same result.

@@ -22,6 +22,49 @@ const PROVIDER: Record<api.Tab, string> = { gemini: "gemini", local: "ollama", v
 const THINKING: Record<api.Tab, string> = { gemini: "Asking Gemini…", local: "Asking the local model…", voice: "Thinking…" };
 const EMPTY: api.Session["context"] = { facts: [], tools: [], models: [], page: null };
 
+// The session's facts, grouped by where they came from (the tool's source), newest first:
+// the panel shows the 12 most recent facts across groups and expands on demand.
+function CtxFacts({ facts }: { facts: api.Session["context"]["facts"] }) {
+  const [all, setAll] = useState(false);
+  const groups = useMemo(() => {
+    const m = new Map<string, typeof facts>();
+    for (const f of [...facts].reverse()) {
+      const g = (f[2] || "this session").split(/[>,(]/)[0].trim() || "this session";
+      const arr = m.get(g) ?? [];
+      arr.push(f);
+      m.set(g, arr);
+    }
+    return [...m.entries()];
+  }, [facts]);
+  const flat = groups.flatMap(([, fs]) => fs);
+  const blocks: { g: string; fs: typeof facts }[] = [];
+  let budget = all ? flat.length : 12;
+  for (const [g, fs] of groups) {
+    if (budget <= 0) break;
+    blocks.push({ g, fs: fs.slice(0, budget) });
+    budget -= fs.length;
+  }
+  return (
+    <div className="cx-fact-groups">
+      {blocks.map(({ g, fs }) => (
+        <div className="cx-fact-group" key={g}>
+          <i>{g}</i>
+          <ul className="cx-facts">
+            {fs.map(([k, v, src]) => (
+              <li key={k} title={src}><b>{k}</b><span>{v}</span></li>
+            ))}
+          </ul>
+        </div>
+      ))}
+      {flat.length > 12 && (
+        <button className="cx-more" onClick={() => setAll(!all)}>
+          {all ? "Show less" : `Show all ${flat.length} facts`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function Chat({ page, go, age = 140, pm = true, compact = false }: {
   page: string; go: (p: string) => void; age?: number; pm?: boolean; compact?: boolean;
 }) {
@@ -123,9 +166,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
       <div className="cx-ctx-block">
         <span>Known facts ({context.facts.length})</span>
         {context.facts.length ? (
-          <ul className="cx-facts">{[...context.facts].reverse().slice(0, 18).map(([k, v, src]) => (
-            <li key={k} title={src}><b>{k}</b><span>{v}</span></li>
-          ))}</ul>
+          <CtxFacts facts={context.facts} />
         ) : <em className="cx-muted">Ask a question: the facts the tools return are kept here.</em>}
       </div>
       <div className="cx-ctx-block">

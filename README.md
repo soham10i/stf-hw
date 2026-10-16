@@ -1,11 +1,5 @@
 # STF digital twin
 
-[![CI](https://github.com/soham10i/stf-hw/actions/workflows/ci.yml/badge.svg)](https://github.com/soham10i/stf-hw/actions/workflows/ci.yml)
-[![Pages](https://github.com/soham10i/stf-hw/actions/workflows/pages.yml/badge.svg)](https://soham10i.github.io/stf-hw/)
-
-**Live demo: [soham10i.github.io/stf-hw](https://soham10i.github.io/stf-hw/)** (the 3D twin) and the
-[operations dashboard](https://soham10i.github.io/stf-hw/dashboard.html). Both run entirely in the browser.
-
 A digital twin of the fischertechnik *Fabrik Simulation 24V* (536634): the warehouse (HBW), the vacuum
 gripper robot (VGR), the oven with its turntable, and the sorting line. One parametric model is the source
 of truth for the CAD, the kinematics, the I/O, the PLC program and the analytics. Nothing is exported unless

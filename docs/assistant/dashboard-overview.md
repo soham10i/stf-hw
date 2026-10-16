@@ -4,6 +4,10 @@ Dashboard group: Operate. Page id: `overview`.
 
 The cell at a glance: order progress, what each unit is doing, where efficiency is lost and what needs service next.
 
+## In brief
+
+The cell at a glance: order progress, what each unit is doing, where efficiency is lost and what needs service next.
+
 ## How to read it
 
 1. The time slider plays the order; every card follows it.

@@ -1,5 +1,10 @@
 # Panel: Geometry
 
+## In brief
+
+What the 3D machine is made of: every part is generated from one parameter table (`stf-cad/hbw/hbw_model. py`, the same table that builds the FreeCAD model) and exported only after the clearance proof passes.
+
+
 What the 3D machine is made of: every part is generated from one parameter table
 (`stf-cad/hbw/hbw_model.py`, the same table that builds the FreeCAD model) and exported only
 after the clearance proof passes.

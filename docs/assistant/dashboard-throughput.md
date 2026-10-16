@@ -4,6 +4,10 @@ Dashboard group: Analyse. Page id: `throughput`.
 
 How the same machine was made faster by changing only its program, and what each change is worth.
 
+## In brief
+
+How the same machine was made faster by changing only its program, and what each change is worth.
+
 ## How to read it
 
 1. Compare the two Gantt rows: before and after, on one time scale.

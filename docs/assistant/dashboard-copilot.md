@@ -4,6 +4,10 @@ Dashboard group: Operate. Page id: `copilot`.
 
 Ask about the cell in plain words, by typing or by voice. A language model answers by calling the twin's own tools and states only what they return, with citations; the server checks every number before you see it. Conversations are kept in your history, and the facts each one establishes are kept with it.
 
+## In brief
+
+Ask about the cell in plain words, by typing or by voice.  A language model answers by calling the twin's own tools and states only what they return, with citations; the server checks every number before you see it.
+
 ## How to read it
 
 1. Pick a tab: Gemini (cloud models), Local (a model on this machine through Ollama) or Voice (speak, hear the answer).

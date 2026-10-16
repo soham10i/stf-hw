@@ -4,6 +4,10 @@ Dashboard group: Engineer. Page id: `engineering`.
 
 The mechanical engineering behind the machine: how precisely it positions, its tolerances, stiffness and service access.
 
+## In brief
+
+The mechanical engineering behind the machine: how precisely it positions, its tolerances, stiffness and service access.
+
 ## How to read it
 
 1. Each table compares what the design achieves with what it must achieve; green is within the limit.

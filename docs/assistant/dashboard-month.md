@@ -4,6 +4,10 @@ Dashboard group: Analyse. Page id: `month`.
 
 A whole simulated month of production - orders, faults, wear and maintenance - and what it says.
 
+## In brief
+
+A whole simulated month of production - orders, faults, wear and maintenance - and what it says.
+
 ## How to read it
 
 1. Read the insights first; each one points to the chart that shows it.

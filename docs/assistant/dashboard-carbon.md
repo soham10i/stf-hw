@@ -4,6 +4,10 @@ Dashboard group: Analyse. Page id: `carbon`.
 
 How many grams of CO₂e each good cookie costs, where they come from, and what each lever saves.
 
+## In brief
+
+How many grams of CO₂e each good cookie costs, where they come from, and what each lever saves.
+
 ## How to read it
 
 1. The headline figures: grams per cookie and per order, and how much of it is the cell standing idle.

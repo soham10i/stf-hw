@@ -1,5 +1,10 @@
 # Machine: Gripper robot (vacuum gripper robot, VGR, ft 536632)
 
+
+## In brief
+
+Links every station: picks the cookie at the warehouse belt and lays it on the oven tray, and collects sorted cookies from the sorting bays to bring them back to the warehouse.
+
 ## What it does
 
 Links every station: picks the cookie at the warehouse belt and lays it on the oven tray, and

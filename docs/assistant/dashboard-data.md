@@ -4,6 +4,10 @@ Dashboard group: Engineer. Page id: `data`.
 
 Where the dashboard's data would come from on a real machine: the MQTT topics and the I/O register map.
 
+## In brief
+
+Where the dashboard's data would come from on a real machine: the MQTT topics and the I/O register map.
+
 ## How to read it
 
 1. Topics: the path from the PLC through MQTT and a historian to this page.

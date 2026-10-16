@@ -4,6 +4,10 @@ Dashboard group: Analyse. Page id: `energy`.
 
 The cell behind a small microgrid - solar panels, a battery and an energy manager - over the simulated month.
 
+## In brief
+
+The cell behind a small microgrid - solar panels, a battery and an energy manager - over the simulated month.
+
 ## How to read it
 
 1. Pick a day to see its power flows hour by hour.

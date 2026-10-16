@@ -4,6 +4,10 @@ Dashboard group: Maintain. Page id: `maintenance`.
 
 When each part is next serviced and why, how the work spreads over the days, and the spares to stock.
 
+## In brief
+
+When each part is next serviced and why, how the work spreads over the days, and the spares to stock.
+
 ## How to read it
 
 1. Each row of the schedule is a part; each diamond a service. Colour says why: preventive, warned or failed.

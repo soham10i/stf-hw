@@ -1,5 +1,10 @@
 # Machine: Warehouse (high-bay warehouse, ft 536631)
 
+
+## In brief
+
+Stores the 12 moulds, each holding one cookie, in a rack of 3 rows x 4 columns (slots A1-C4).  A stacker crane fetches a mould and puts it on a belt that carries it to the gripper robot, and stores it again when it comes back.
+
 ## What it does
 
 Stores the 12 moulds, each holding one cookie, in a rack of 3 rows x 4 columns (slots A1-C4).

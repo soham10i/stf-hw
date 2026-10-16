@@ -4,6 +4,10 @@ Dashboard group: Analyse. Page id: `security`.
 
 The cell's network split into IEC 62443 zones, and what happens when attacks are replayed on the twin.
 
+## In brief
+
+The cell's network split into IEC 62443 zones, and what happens when attacks are replayed on the twin.
+
 ## How to read it
 
 1. Start with the zone picture: which devices trust each other, and the only paths (conduits) between zones.

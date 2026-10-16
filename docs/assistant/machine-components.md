@@ -3,6 +3,11 @@
 The view switcher lists every component and mechanism with its own detailed view: the part in 3D
 with sourced dimensions, its materials, how it works and its states.
 
+
+## In brief
+
+The view switcher lists every component and mechanism with its own detailed view: the part in 3D with sourced dimensions, its materials, how it works and its states.
+
 ## Components
 
 | Component | ft article |

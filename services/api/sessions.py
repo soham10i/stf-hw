@@ -22,6 +22,7 @@ import re
 import time
 import uuid
 
+from .grounding import tokenize
 from .store import DocStore
 
 COL = "sessions"
@@ -74,7 +75,7 @@ def remember(s: dict, results: list) -> None:
         src = r.sources[0] if r.sources else r.tool
         for k, v in r.facts:
             facts[:] = [f for f in facts if f[0] != k]
-            facts.append([k, str(v)[:300], src])
+            facts.append([k, str(v)[:200], src])
     del facts[:-MAX_FACTS]
 
 
@@ -87,12 +88,29 @@ def history(s: dict) -> list[dict]:
     return out
 
 
-def context_text(s: dict) -> str:
-    """The context store as text for any model: what this session already established."""
+def _rank_facts(facts: list[list[str]], question: str, limit: int) -> list[list[str]]:
+    """The facts that best overlap the question's words (token overlap of name + value), then
+    the newest ones, kept in their original order."""
+    qt = set(tokenize(question))
+    if not qt:
+        return facts[-limit:]
+    scored = [(len(qt & set(tokenize(f"{f[0]} {f[1]}"))), i) for i, f in enumerate(facts)]
+    picked = sorted(scored, key=lambda x: (-x[0], x[1]))[:limit]
+    return [facts[i] for _, i in sorted(picked, key=lambda x: x[1])]
+
+
+def context_text(s: dict, question: str = "") -> str:
+    """The context store as text for any model: what this session already established. When the
+    question is given and the store has grown, the facts that overlap the question come first
+    and the rest is trimmed, so a hand-over to another model stays short and on-point."""
     facts = s["context"]["facts"]
     if not facts:
         return ""
-    lines = [f"- {k}: {v} [{src}]" for k, v, src in facts[-25:]]
+    if question and len(facts) > 12:
+        head = _rank_facts(facts, question, 10)
+        tail = [f for f in facts if f not in head][-4:]
+        facts = head + [f for f in tail if f not in head]
+    lines = [f"- {k}: {v} [{src}]" for k, v, src in facts[-14:]]
     head = "Established earlier in this session (still valid unless a tool says otherwise):\n"
     return head + "\n".join(lines)
 

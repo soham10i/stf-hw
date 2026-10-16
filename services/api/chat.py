@@ -130,6 +130,7 @@ class ChatSettings:
     ollama_url: str = "http://127.0.0.1:11434"
     ollama_model: str | None = None
     models: list[str] = field(default_factory=list)  # the fallback order after `model`
+    grounding: bool = False  # Gemini's built-in Google Search, on with GEMINI_GROUNDING=1
 
     @staticmethod
     def from_env() -> ChatSettings:
@@ -142,6 +143,7 @@ class ChatSettings:
             daily_limit=int(env.get("GEMINI_DAILY_LIMIT", "300")),
             ollama_url=env.get("OLLAMA_URL", "http://127.0.0.1:11434"),
             ollama_model=env.get("OLLAMA_MODEL", "qwen2.5:7b-instruct"),
+            grounding=env.get("GEMINI_GROUNDING", "").lower() in ("1", "true", "yes"),
         )
 
 
@@ -219,16 +221,21 @@ def _prompt(req: ChatRequest, results: list[T.Result], extra: str = "") -> str:
     return f"CONTEXT:\n{ctx}\n\n{extra}\n\nQUESTION: {req.question}".replace("\n\n\n\n", "\n\n")
 
 
-def build_body(req: ChatRequest, results: list[T.Result] | None = None, extra: str = "") -> dict:
+def build_body(
+    req: ChatRequest, results: list[T.Result] | None = None, extra: str = "", search: bool = False
+) -> dict:
     contents = [
         {"role": "model" if t.role == "assistant" else "user", "parts": [{"text": t.text}]}
         for t in req.history
     ]
     contents.append({"role": "user", "parts": [{"text": _prompt(req, results or [], extra)}]})
+    tools: list[dict] = [{"functionDeclarations": T.declarations()}]
+    if search:  # Gemini's built-in Google Search: fresh facts the documents cannot have
+        tools.append({"google_search": {}})
     return {
         "systemInstruction": {"parts": [{"text": SYSTEM}]},
         "contents": contents,
-        "tools": [{"functionDeclarations": T.declarations()}],
+        "tools": tools,
         "generationConfig": {"temperature": 0.2, "maxOutputTokens": 900},
     }
 
@@ -282,7 +289,7 @@ def build_ollama_body(
         "messages": messages,
         "tools": [{"type": "function", "function": d} for d in T.declarations()],
         "stream": False,
-        "options": {"temperature": 0.2, "num_predict": 600},
+        "options": {"temperature": 0.2, "num_predict": 900},
     }
 
 
@@ -332,6 +339,9 @@ class Chat:
         self.post_ollama = _post_ollama
         # the configured model first, then the others in order: one at its limit hands over
         self.pool = GP.Pool([self.c.model, *[m for m in self.c.models if m != self.c.model]])
+        # identical session-less questions reuse the last answer briefly (see ask())
+        self.cache: dict[tuple, tuple[float, dict]] = {}
+        self.cache_ttl_s = 90.0
 
     def _ollama_alive(self) -> bool:
         if not self.c.ollama_url or not self.c.ollama_model:
@@ -358,6 +368,7 @@ class Chat:
                 gemini_model=(self.pool.available() or [self.c.model])[0] if gemini_on else None,
                 gemini_pool=self.pool.status() if gemini_on else None,
                 ollama_model=self.c.ollama_model if ollama_on else None,
+                grounding=self.c.grounding if gemini_on else False,
             )
         return out
 
@@ -398,7 +409,7 @@ class Chat:
         check,
         meta: dict,
     ) -> tuple[str, list[str]]:
-        body = build_body(req, results, meta.get("extra", ""))
+        body = build_body(req, results, meta.get("extra", ""), search=self.c.grounding)
         retried = False
         for _ in range(MAX_ROUNDS + 1):
             data = self._gemini_post(body, meta)
@@ -505,13 +516,22 @@ class Chat:
         user = request.headers.get("x-stf-user") or req.user
         user = user if user and S.USER.match(user) else None
         session = S.load(self.store, user, req.session_id, req.page) if user else None
-        memory = S.context_text(session) if session else ""
+        memory = S.context_text(session, req.question) if session else ""
         if session and not req.history:
             req.history = [Turn(role=t["role"], text=t["text"]) for t in S.history(session)]
 
         ctx = T.Ctx(age=req.age, pm=req.pm, page=req.page, client=client)
-        rules_text, results = T.rules_answer(req.question, ctx)
+        # every Gemini model is cooling down: give small local models the lean retrieval
+        lean = bool(self.c.key) and not self.pool.available()
+        rules_text, results = T.rules_answer(req.question, ctx, lean=lean)
         called = [r.tool for r in results]
+        # identical session-less questions (a double-ask, a voice echo) reuse the answer for
+        # CACHE_TTL_S; never cached when live_state answered (the twin may have moved on)
+        cache_key = (req.question, req.page, req.provider, req.age, req.pm)
+        if session is None and "live_state" not in called:
+            hit = self.cache.get(cache_key)
+            if hit and time.time() - hit[0] < self.cache_ttl_s:
+                return hit[1]
         style = R.classify(req.question, called)
         extra = "\n\n".join(x for x in (memory, R.instruction(style)) if x)
 
@@ -570,6 +590,11 @@ class Chat:
                     "facts": len(session["context"]["facts"]),
                     "models": session["context"]["models"],
                 }
+            elif "live_state" not in called:
+                if len(self.cache) >= 64:
+                    for old in sorted(self.cache, key=lambda k: self.cache[k][0])[:32]:
+                        self.cache.pop(old, None)
+                self.cache[cache_key] = (time.time(), out)
             return out
 
         chain = self._provider(req.provider)
