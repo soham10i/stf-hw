@@ -5,7 +5,7 @@ import { loadJson, useJson } from "../shared/data";
 import { Icon } from "../shared/icons";
 import { Sil, type JobEvent, type PlcMeta } from "../sil/sim";
 import type { PlantParams } from "../sil/plant";
-import { Empty, Stat } from "./kit";
+import { Empty } from "./kit";
 
 const BASE = import.meta.env.BASE_URL;
 const SPEEDS = [1, 4, 16, 64];
@@ -118,7 +118,7 @@ export function PlcPanel() {
   return (
     <div className="np plc">
       <div className="np-head">
-        <div><b>PLC program, live</b><span>IEC 61131-3, compiled by MatIEC, running in your browser</span></div>
+        <div><b>PLC program, live</b><span>the real program, running in your browser</span></div>
         <a className="ui-btn" href={`${BASE}sil/stf_plc.st`} target="_blank" rel="noopener noreferrer">Source <Icon name="external" size={13} /></a>
       </div>
 
@@ -132,12 +132,9 @@ export function PlcPanel() {
       </div>
 
       {proof && (
-        <div className="np-stats">
-          <Stat label="Decisions = proven model" value={`${proof.decisions}/${proof.decisions}`} sub="every job start, replayed in control.py" tone={proof.checks.decisions ? "ok" : "bad"} />
-          <Stat label="Mutants caught" value={`${caught}/${proof.mutants?.length ?? 0}`} sub="the proof can fail" tone={caught === proof.mutants?.length ? "ok" : "bad"} />
-          <Stat label="Order time" value={`${Math.round(proof.order_s)} s`} sub={`model ${Math.round(proof.model_s)} s`} tone={proof.checks.timing ? "ok" : "warn"} />
-          <Stat label="U4's program" value={proof.u4.accepted ? "compiled" : "rejected"} sub={`${proof.u4.errors} MatIEC errors`} tone="warn" />
-        </div>
+        <p className={`plc-proof ${proof.checks.decisions && caught === proof.mutants?.length ? "ok" : "bad"}`}>
+          <b>Proven</b> {proof.decisions}/{proof.decisions} decisions · {caught}/{proof.mutants?.length ?? 0} mutants caught · {Math.round(proof.order_s)} s
+        </p>
       )}
 
       <h4 className="np-h">Units</h4>
@@ -172,14 +169,14 @@ export function PlcPanel() {
         {live.flags.map((f) => <p key={f} className="bad">{f}</p>)}
       </div>
 
-      {proof && (
-        <details className="plc-find">
-          <summary>{proof.findings.length} findings: what running the program exposed</summary>
-          {proof.findings.map((f) => <p key={f.id}><b>{f.id}</b> {f.text}</p>)}
-        </details>
-      )}
-      <p className="np-foot">{proof ? `${proof.st_lines} lines of Structured Text · ${proof.compiler} · wasm ${proof.wasm_sha}. ` : ""}
-        The plant sees only the program's outputs; light barriers, the vacuum switch, RFID and the colour sensor report what is physically there.</p>
+      <details className="plc-find">
+        <summary>About this program</summary>
+        <p>IEC 61131-3 Structured Text, compiled by MatIEC to WebAssembly and scanned here against the plant. The plant sees only the
+          program's outputs; light barriers, the vacuum switch, RFID and the colour sensor report what is physically there.</p>
+        {proof && <p>{proof.st_lines} lines · {proof.compiler} · wasm {proof.wasm_sha} · every job start replayed against control.py's
+          proven model. Upgrade 4's program: {proof.u4.accepted ? "compiled" : `rejected (${proof.u4.errors} MatIEC errors)`}.</p>}
+        {proof?.findings.map((f) => <p key={f.id}><b>{f.id}</b> {f.text}</p>)}
+      </details>
     </div>
   );
 }

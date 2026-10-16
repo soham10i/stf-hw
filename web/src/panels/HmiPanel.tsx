@@ -1,4 +1,3 @@
-import { Note, Title } from "./kit";
 import { useEffect, useMemo, useState } from "react";
 import type { ControlDoc } from "../shared/model";
 import { JOB_COL, fmtT, makespan, unitsAt } from "../shared/hmi";
@@ -27,14 +26,13 @@ export function HmiPanel({ c }: { c: ControlDoc }) {
   const pol = c.policies;
   return (
     <section className="panel upgrade hmi">
-      <Title up="Upgrade 4" lead="The operator's screen: play the PLC's run of the 12-cookie order, see units, alarms and each cookie's trace.">
-        PLC program & HMI</Title>
+      <h2>Operator screen <span className="tag idle">replay</span></h2>
       <div className="hmi-clock">
         <button onClick={() => { if (t >= T) setT(0); setPlay((p) => !p); }}>{play ? "❚❚" : "▶"}</button>
         <input type="range" min={0} max={T} step={0.5} value={t} onChange={(e) => { setPlay(false); setT(+e.target.value); }} />
         <b>{fmtT(t)}</b><span className="muted small">/ {fmtT(T)}</span>
       </div>
-      <p className="muted small">The PLC's nominal run of the 12-cookie order (policy "{c.policy}"), 20× real time.</p>
+      <p className="muted small">The 12-cookie order as the PLC plans it, 20× real time.</p>
 
       <h3>Units</h3>
       <table className="kv up-table hmi-units">
@@ -55,7 +53,7 @@ export function HmiPanel({ c }: { c: ControlDoc }) {
         <div><b>{stored}</b>/{ret.length} returned to the rack</div>
       </div>
 
-      <h3>Alarms</h3>
+      <details className="hmi-fold"><summary>Alarms <em>preview one</em></summary>
       <select value={alarm} onChange={(e) => setAlarm(e.target.value)}>
         <option value="">no active alarm (nominal run) - preview one…</option>
         {c.alarms.map((a) => <option key={a.code} value={a.code}>{a.code} {a.text}</option>)}
@@ -69,8 +67,9 @@ export function HmiPanel({ c }: { c: ControlDoc }) {
           {al.limit && <div><span>watchdog</span>{al.limit} s · {al.steps.length} steps</div>}
         </div>
       )}
+      </details>
 
-      <h3>Trace</h3>
+      <details className="hmi-fold"><summary>Cookie trace <em>{c.trace.length} records</em></summary>
       <table className="kv up-table">
         <thead><tr><td>id</td><td>flavour</td><td>mould</td><td className="num">state</td></tr></thead>
         <tbody>
@@ -95,8 +94,9 @@ export function HmiPanel({ c }: { c: ControlDoc }) {
           {rec.colour_mV !== undefined && <div><span>A4</span>{rec.colour_mV} mV → {rec.class} {rec.verified ? "= record ✓" : "≠ record"}</div>}
         </div>
       )}
+      </details>
 
-      <h3>Manual jog</h3>
+      <details className="hmi-fold"><summary>Manual jog</summary>
       <select value={jogUnit} onChange={(e) => setJogUnit(e.target.value)}>
         {Object.keys(c.units).map((u) => <option key={u} value={u}>{u}</option>)}
       </select>
@@ -108,9 +108,10 @@ export function HmiPanel({ c }: { c: ControlDoc }) {
           ))}
         </tbody>
       </table>
-      <Note title="Jog rules">Jog: mode MANUAL, guard closed, hold-to-run; each axis only while its model's interlock allows it.</Note>
+      <p className="muted small">Mode MANUAL, guard closed, hold-to-run; each axis only while its interlock allows it.</p>
+      </details>
 
-      <h3>Dispatch policy (measured)</h3>
+      <details className="hmi-fold"><summary>Dispatch policies compared</summary>
       <table className="kv up-table">
         <tbody>
           {Object.entries(pol).map(([k, p]) => (
@@ -122,8 +123,8 @@ export function HmiPanel({ c }: { c: ControlDoc }) {
           ))}
         </tbody>
       </table>
-      <Note title="How the policies were compared">Every policy is explored over every completion order, i.e. every possible
-        timing. The Gantt and the bake-time study are on blueprint sheet U4-02.</Note>
+      <p className="muted small">Each policy explored over every completion order, i.e. every possible timing.</p>
+      </details>
     </section>
   );
 }

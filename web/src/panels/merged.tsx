@@ -14,10 +14,10 @@ import { UnsPanel } from "./UnsPanel";
 import { SubTabs, dashboardPage } from "./kit";
 
 export function PlcTabs({ c }: { c?: ControlDoc }) {
-  const [tab, setTab] = usePersistent<"program" | "live">("stf.side.plc", "program");
+  const [tab, setTab] = usePersistent<"program" | "live">("stf.side.plc2", "live");
   return (
     <div className="np-tabbed">
-      <SubTabs id="PLC" tabs={[["program", "Program & HMI"], ["live", "Live run"]]} value={c ? tab : "live"} onChange={setTab} />
+      <SubTabs id="PLC" tabs={[["live", "Live run"], ["program", "Program & HMI"]]} value={c ? tab : "live"} onChange={setTab} />
       {c && tab === "program" ? <HmiPanel c={c} /> : <PlcPanel />}
     </div>
   );
