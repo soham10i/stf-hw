@@ -19,6 +19,7 @@ import { CONTROLLER_VIEW, MACHINE_VIEW, PANELS, componentViews, type PanelCtx } 
 import { SidePanel } from "./SidePanel";
 import { TopBar } from "./TopBar";
 import { useBackend } from "./useBackend";
+import { useLiveShare } from "./liveShare";
 
 export default function App() {
   const [theme, toggleTheme] = useTheme();
@@ -93,6 +94,7 @@ export default function App() {
     "--tools-left": `${panelOpen && pinned ? 10 : inset}px`,
   } as React.CSSProperties;
   const waiting = phase === "Waiting for an order";
+  useLiveShare(machineView && !!machine.doc);
 
   return (
     <div className={`app ${machineView ? "immersive" : ""}`}>

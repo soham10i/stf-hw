@@ -3,6 +3,7 @@ twin's grounding, the limits hold, and errors never leak the key. Gemini is repl
 no network, no real key."""
 
 import asyncio
+import json
 import urllib.error
 
 import pytest
@@ -76,18 +77,23 @@ def ask(chat, body=None, request=None):
     return asyncio.run(chat.ask(r, request or req()))
 
 
-def test_status_and_no_key():
-    chat, _ = make(key=None)
+def test_status_and_no_key_answers_from_the_tools():
+    chat, calls = make(key=None)
+    chat.c.ollama_model = None
     assert chat.status() == {"enabled": False, "model": None}
-    with pytest.raises(HTTPException) as e:
-        ask(chat)
-    assert e.value.status_code == 503
+    out = ask(chat)
+    assert out["model"] == "rules" and not calls
+    assert "machine_health" in out["tools"] and out["sources"]
 
 
 def test_grounding_reaches_the_model_and_the_key_stays_in_the_header():
     chat, calls = make()
     out = ask(chat)
-    assert out == {"answer": "The belt warns in 0.6 shifts [health model].", "model": "gemini-test"}
+    assert (
+        out["answer"] == "The belt warns in 0.6 shifts [health model]."
+        and out["model"] == "gemini-test"
+    )
+    assert out["links"] and out["sources"] and out["tools"] == ["machine_health"]
     url, key, body = calls[0]
     assert KEY not in url and key == KEY
     prompt = body["contents"][-1]["parts"][0]["text"]
@@ -142,9 +148,9 @@ def test_rate_limit_and_daily_cap():
 def test_upstream_errors_never_echo_the_key():
     err = urllib.error.HTTPError("https://x", 403, f"forbidden {KEY}", {}, None)
     chat, _ = make(error=err)
-    with pytest.raises(HTTPException) as e:
-        ask(chat)
-    assert e.value.status_code == 502 and KEY not in e.value.detail
+    out = ask(chat)  # the model failed: the twin's tools answer instead
+    assert out["model"] == "rules" and "key was refused" in out["note"]
+    assert KEY not in json.dumps(out)
 
 
 def test_question_and_grounding_sizes_are_bounded():
@@ -160,3 +166,146 @@ def test_dotenv_reads_only_gemini_lines(tmp_path):
     p = tmp_path / ".env"
     p.write_text('GEMINI_API_KEY="abc"\nOTHER_SECRET=nope\nGEMINI_MODEL=m1\n')
     assert C.dotenv(str(p)) == {"GEMINI_API_KEY": "abc", "GEMINI_MODEL": "m1"}
+
+
+def test_ollama_ask():
+    chat = C.Chat(
+        sec.Settings.from_env(),
+        C.ChatSettings(
+            key=None, model="gemini-test", daily_limit=100, ollama_model="qwen2.5:7b-instruct"
+        ),
+    )
+    calls = []
+    chat.post_ollama = lambda url, body: (
+        calls.append((url, body)) or {"message": {"content": "Ollama says hello."}}
+    )
+    out = ask(chat, {"question": "what needs service?", "provider": "ollama"})
+    assert out["answer"] == "Ollama says hello." and out["model"] == "qwen2.5:7b-instruct"
+    assert calls[0][1]["tools"], "the tools are declared to the local model"
+    assert calls[0][1]["model"] == "qwen2.5:7b-instruct"
+    assert "QUESTION: what needs service?" in calls[0][1]["messages"][-1]["content"]
+
+
+def test_backend_auto_grounding():
+    chat, calls = make()
+    out = ask(chat, body={"question": "why did the line stop this month?"})
+    assert "month_downtime" in out["tools"]
+    assert calls, "Model was called"
+    prompt = calls[0][2]["contents"][-1]["parts"][0]["text"]
+    assert "downtime" in prompt.lower() or "stopped" in prompt.lower()
+
+
+def test_rules_provider():
+    chat, _ = make()
+    out = ask(chat, body={"question": "what is the oee?", "provider": "rules"})
+    assert "OEE is" in out["answer"]
+    assert out["model"] == "rules"
+
+
+def test_gemini_calls_tools_and_gets_their_results():
+    """The model asks for two tools; they run on the server and their results go back to it."""
+    chat = C.Chat(
+        sec.Settings.from_env(), C.ChatSettings(key=KEY, model="gemini-test", daily_limit=100)
+    )
+    bodies = []
+
+    def fake(url, k, body):
+        bodies.append(json.loads(json.dumps(body)))
+        if len(bodies) == 1:
+            return {
+                "candidates": [
+                    {
+                        "content": {
+                            "role": "model",
+                            "parts": [
+                                {
+                                    "functionCall": {
+                                        "name": "alarm_lookup",
+                                        "args": {"code": "SYS-04"},
+                                    }
+                                },
+                                {
+                                    "functionCall": {
+                                        "name": "machine_health",
+                                        "args": {"parts": ["belt", "spindle"]},
+                                    }
+                                },
+                            ],
+                        }
+                    }
+                ]
+            }
+        return {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [{"text": "SYS-04 is a lost I/O node [PLC alarm list, SYS-04]."}]
+                    }
+                }
+            ]
+        }
+
+    chat.post = fake
+    out = ask(chat, {"question": "explain this to me", "page": "alarms"})
+    assert out["answer"].startswith("SYS-04")
+    assert "alarm_lookup" in out["tools"] and "machine_health" in out["tools"]
+    names = {f["name"] for f in bodies[0]["tools"][0]["functionDeclarations"]}
+    assert {"machine_health", "alarm_lookup", "search_docs", "page_guide", "live_state"} <= names
+    replies = bodies[1]["contents"][-1]["parts"]
+    got = {p["functionResponse"]["name"]: p["functionResponse"]["response"] for p in replies}
+    assert "remote I/O node lost" in got["alarm_lookup"]["text"]
+    assert (
+        "HBW belt" in got["machine_health"]["text"] and "spindle" in got["machine_health"]["text"]
+    )
+    assert {"page": "alarms", "label": "Alarms"} in out["links"]
+
+
+def test_ollama_tool_calls_loop():
+    chat = C.Chat(
+        sec.Settings.from_env(),
+        C.ChatSettings(key=None, model="g", daily_limit=100, ollama_model="qwen"),
+    )
+    seen = []
+
+    def fake(url, body):
+        seen.append(json.loads(json.dumps(body)))
+        if len(seen) == 1:
+            return {
+                "message": {
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [{"function": {"name": "oee_bottleneck", "arguments": {}}}],
+                }
+            }
+        return {"message": {"content": "The crane is the bottleneck [virtual commissioning]."}}
+
+    chat.post_ollama = fake
+    out = ask(chat, {"question": "anything slow?", "provider": "ollama"})
+    assert "crane" in out["answer"] and "oee_bottleneck" in out["tools"]
+    assert (
+        seen[1]["messages"][-1]["role"] == "tool"
+        and "bottleneck" in seen[1]["messages"][-1]["content"]
+    )
+
+
+def test_page_question_gets_the_page_guide():
+    chat, calls = make()
+    ask(chat, {"question": "what does this page show?", "page": "health"})
+    prompt = calls[0][2]["contents"][-1]["parts"][0]["text"]
+    assert "[page_guide] # Dashboard: Health" in prompt
+
+
+def test_live_state_reaches_the_model():
+    from services.api import live
+
+    live.put({"step": "bake", "oven_temp_C": 178, "order": "3 x chocolate"}, "127.0.0.1")
+    chat, calls = make()
+    ask(chat, {"question": "is the oven hot right now?"})
+    prompt = calls[0][2]["contents"][-1]["parts"][0]["text"]
+    assert "oven_temp_C: 178" in prompt
+    other, calls2 = make()
+    ask(other, {"question": "is the oven hot right now?"}, request=req(client="10.9.9.9"))
+    assert "oven_temp_C" not in calls2[0][2]["contents"][-1]["parts"][0]["text"], (
+        "another client's twin is not visible"
+    )
+    live._by.clear()

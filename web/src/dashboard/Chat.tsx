@@ -4,12 +4,22 @@
 import { useEffect, useRef, useState } from "react";
 import { loadJson } from "../shared/data";
 import { HAS_API } from "../shared/mode";
-import { DATA, EXAMPLES, answer, ground, type Answer, type Ctx, type DataKey } from "../copilot/copilot";
+import { DATA, EXAMPLES, answer, type Ctx, type DataKey } from "../copilot/copilot";
 import { GUIDE } from "./guide";
 
-type Reply = { text: string; via: "gemini" | "offline"; model?: string; note?: string; local: Answer };
+type Reply = {
+  text: string; via: "gemini" | "ollama" | "rules" | "offline"; model?: string; note?: string;
+  sources?: string[]; links?: { page: string; label: string }[]; tools?: string[];
+};
 type Msg = { q: string; r: Reply | null; ms?: number };
-type Status = { enabled: boolean; model: string | null };
+type Status = {
+  enabled: boolean;
+  model: string | null;
+  gemini?: boolean;
+  ollama?: boolean;
+  gemini_model?: string | null;
+  ollama_model?: string | null;
+};
 
 async function llmStatus(): Promise<Status> {
   if (!HAS_API) return { enabled: false, model: null };
@@ -28,9 +38,21 @@ function Md({ text }: { text: string }) {
   let list: string[] = [];
   const flush = () => { if (list.length) { blocks.push(<ul key={blocks.length}>{list.map((l, i) => <li key={i}>{inline(l)}</li>)}</ul>); list = []; } };
   for (const line of text.split("\n")) {
+    const h = /^\s*(#{1,4})\s+(.*)$/.exec(line);
+    const hr = /^\s*[-*_]{3,}\s*$/.test(line);
     const m = /^\s*[-*•]\s+(.*)$/.exec(line);
-    if (m) list.push(m[1]);
-    else { flush(); if (line.trim()) blocks.push(<p key={blocks.length}>{inline(line)}</p>); }
+    if (h) {
+      flush();
+      blocks.push(<h4 key={blocks.length} style={{ margin: "8px 0 4px", fontSize: "0.95em", fontWeight: 600 }}>{inline(h[2])}</h4>);
+    } else if (hr) {
+      flush();
+      blocks.push(<hr key={blocks.length} style={{ opacity: 0.2, margin: "8px 0" }} />);
+    } else if (m) {
+      list.push(m[1]);
+    } else {
+      flush();
+      if (line.trim()) blocks.push(<p key={blocks.length}>{inline(line)}</p>);
+    }
   }
   flush();
   return <>{blocks}</>;
@@ -40,11 +62,19 @@ export function Chat({ page, go, age, pm, compact = false }: { page: string; go:
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<Status>({ enabled: false, model: null });
-  const [useLlm, setUseLlm] = useState(true);
+  const [mode, setMode] = useState<"gemini" | "ollama" | "rules">("gemini");
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => { llmStatus().then(setStatus); }, []);
+
+  useEffect(() => {
+    llmStatus().then((s) => {
+      setStatus(s);
+      if (s.gemini) setMode("gemini");
+      else if (s.ollama) setMode("ollama");
+      else setMode("rules");
+    });
+  }, []);
+
   useEffect(() => { end.current?.scrollIntoView({ block: "nearest" }); }, [msgs]);
-  const llm = status.enabled && useLlm;
 
   const ask = async (text: string) => {
     const t = text.trim();
@@ -52,35 +82,34 @@ export function Chat({ page, go, age, pm, compact = false }: { page: string; go:
     setQ("");
     const history = msgs.slice(-3).flatMap((m) => (m.r ? [{ role: "user", text: m.q }, { role: "assistant", text: m.r.text.slice(0, 1500) }] : []));
     setMsgs((m) => [...m, { q: t, r: null }]);
-    const ctx: Ctx = { age, pm, get: <T,>(k: DataKey) => loadJson<T>(DATA[k]) };
     const t0 = performance.now();
     let r: Reply;
     try {
-      if (!llm) {
+      if (!HAS_API) {
+        const ctx: Ctx = { age, pm, get: <T,>(k: DataKey) => loadJson<T>(DATA[k]) };
         const local = await answer(t, ctx);
-        r = { text: local.text, via: "offline", local };
+        r = { text: local.text, via: "offline", sources: local.sources, links: local.link ? [local.link] : [] };
       } else {
-        const { local, passages } = await ground(t, ctx);
-        const g = GUIDE[page];
-        const guide = g ? `Dashboard page "${g.title}": ${g.what} How to read it: ${g.read.join(" ")} Sections: ${g.sections.map(([k, v]) => `${k}: ${v}`).join(" ")}` : "";
         const res = await fetch("/chat", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            question: t, page: g?.title ?? page, history,
-            grounding: {
-              tool: local.tool === "documents" ? "none" : local.tool, text: local.text.slice(0, 2900),
-              facts: (local.facts ?? []).slice(0, 20).map(([k, v]) => [k, String(v)]),
-              sources: [...local.sources, ...passages.map((h) => `${h.p.doc} > ${h.p.path.filter(Boolean).slice(-1)[0] ?? ""}`)].slice(0, 6),
-              passages: [guide, ...passages.map((h) => `[${h.p.doc} > ${h.p.path.filter(Boolean).slice(-1)[0] ?? ""}] ${h.p.text}`)].filter(Boolean).slice(0, 4).map((x) => x.slice(0, 1800)),
-            },
-          }),
+          body: JSON.stringify({ question: t, page, history, provider: mode, age, pm }),
         });
         const body = await res.json().catch(() => ({}));
-        r = res.ok ? { text: body.answer, via: "gemini", model: body.model, local }
-          : { text: local.text, via: "offline", local, note: `Gemini unavailable (${body.detail ?? res.status}); answered offline.` };
+        if (res.ok) {
+          // the server answers from the twin's tools itself when the model is unavailable (body.note says so)
+          r = { text: body.answer, via: body.model === "rules" ? "rules" : mode, model: body.model, note: body.note,
+                sources: body.sources, links: body.links, tools: body.tools };
+        } else {
+          const ctx: Ctx = { age, pm, get: <T,>(k: DataKey) => loadJson<T>(DATA[k]) };
+          const local = await answer(t, ctx);
+          r = { text: local.text, via: "offline", note: `The server refused (${body.detail ?? res.status}); answered offline.`,
+                sources: local.sources, links: local.link ? [local.link] : [] };
+        }
       }
     } catch (e) {
-      r = { text: `Could not answer: ${(e as Error).message}`, via: "offline", local: { tool: "none", text: "", sources: [] } };
+      const ctx: Ctx = { age, pm, get: <T,>(k: DataKey) => loadJson<T>(DATA[k]) };
+      const local = await answer(t, ctx).catch(() => ({ text: `Could not reach backend: ${(e as Error).message}` }));
+      r = { text: local.text, via: "offline", note: "Server unreachable; answered with offline fallback." };
     }
     setMsgs((m) => m.map((x, i) => (i === m.length - 1 ? { ...x, r, ms: performance.now() - t0 } : x)));
   };
@@ -89,16 +118,21 @@ export function Chat({ page, go, age, pm, compact = false }: { page: string; go:
     <div className={`ch ${compact ? "compact" : ""}`}>
       <div className="ch-mode">
         {status.enabled ? (
-          <div className="ui-seg"><button className={useLlm ? "on" : ""} onClick={() => setUseLlm(true)}>Gemini</button>
-            <button className={!useLlm ? "on" : ""} onClick={() => setUseLlm(false)}>offline</button></div>
-        ) : <span className="db-muted">offline copilot{HAS_API ? " · set GEMINI_API_KEY on the server for the LLM" : ""}</span>}
-        {llm && <em>{status.model} · answers only from the twin's data</em>}
+          <div className="ui-seg">
+            {status.gemini && <button className={mode === "gemini" ? "on" : ""} onClick={() => setMode("gemini")}>Gemini</button>}
+            {status.ollama && <button className={mode === "ollama" ? "on" : ""} onClick={() => setMode("ollama")}>Ollama (offline)</button>}
+            <button className={mode === "rules" ? "on" : ""} onClick={() => setMode("rules")}>rules</button>
+          </div>
+        ) : <span className="db-muted">offline copilot{HAS_API ? " · set GEMINI_API_KEY or start Ollama for local LLM" : ""}</span>}
+        {mode === "gemini" && <em>{status.gemini_model ?? status.model} · cloud AI</em>}
+        {mode === "ollama" && <em>{status.ollama_model} · local offline LLM</em>}
+        {mode === "rules" && <em>grounded rules & BM25 search</em>}
       </div>
       <div className="cp-log">
         {msgs.length === 0 && (
           <div className="cp-empty">
             <b>Ask about {GUIDE[page] ? `“${GUIDE[page].title}”` : "the cell"}.</b>
-            <span>{llm ? "Gemini explains, using only the twin's own numbers and documents." : "Answers come from the twin's data or its documents, with the source."}</span>
+            <span>{mode === "gemini" ? "Gemini explains, grounded in the twin's live telemetry and documents." : mode === "ollama" ? "Local Qwen model answers offline, grounded in the twin's telemetry." : "Answers come from the twin's rule-based tools or documents, with the source."}</span>
             <div className="cp-ex row">{(compact ? ["What does this page show?", ...EXAMPLES.slice(0, 3)] : EXAMPLES).map((e) => <button key={e} onClick={() => ask(e)}>{e}</button>)}</div>
           </div>
         )}
@@ -106,17 +140,16 @@ export function Chat({ page, go, age, pm, compact = false }: { page: string; go:
           <div key={i} className="cp-turn">
             <div className="cp-q">{m.q}</div>
             {m.r ? (
-              <div className={`cp-a ${m.r.local.tool === "none" && m.r.via === "offline" ? "none" : ""}`}>
-                {m.r.via === "gemini" ? <div className="ch-md"><Md text={m.r.text} /></div> : <p>{m.r.text}</p>}
-                {m.r.via === "offline" && m.r.local.facts && <dl className="cp-facts">{m.r.local.facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
+              <div className="cp-a">
+                {m.r.via !== "offline" ? <div className="ch-md"><Md text={m.r.text} /></div> : <p>{m.r.text}</p>}
                 {m.r.note && <p className="ch-note">{m.r.note}</p>}
                 <div className="cp-src">
-                  {m.r.local.link && <button className="db-link" onClick={() => go(m.r!.local.link!.page)}>open {m.r.local.link.label} →</button>}
-                  {m.r.local.sources.length > 0 && <span>grounded in: {m.r.local.sources[0]}</span>}
-                  <em>{m.r.via === "gemini" ? m.r.model : m.r.local.tool === "documents" ? "documents" : m.r.local.tool === "none" ? "" : `tool: ${m.r.local.tool}`}{m.ms !== undefined ? ` · ${(m.ms / 1000).toFixed(1)} s` : ""}</em>
+                  {m.r.links?.map((l) => <button key={l.page} className="db-link" onClick={() => go(l.page)}>open {l.label} →</button>)}
+                  {m.r.sources && m.r.sources.length > 0 && <span title={m.r.sources.join("\n")}>grounded in: {m.r.sources[0]}{m.r.sources.length > 1 ? ` +${m.r.sources.length - 1}` : ""}</span>}
+                  <em>{m.r.model ?? (m.r.via === "offline" ? "offline fallback" : m.r.via)}{m.r.tools?.length ? ` · ${[...new Set(m.r.tools)].join(", ")}` : ""}{m.ms !== undefined ? ` · ${(m.ms / 1000).toFixed(1)} s` : ""}</em>
                 </div>
               </div>
-            ) : <div className="cp-a"><p className="db-muted">{llm ? "asking Gemini…" : "…"}</p></div>}
+            ) : <div className="cp-a"><p className="db-muted">{mode === "gemini" ? "asking Gemini…" : mode === "ollama" ? "asking local Ollama…" : "…"}</p></div>}
           </div>
         ))}
         <div ref={end} />

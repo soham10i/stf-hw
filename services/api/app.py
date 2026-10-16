@@ -11,7 +11,8 @@ Endpoints:
     POST /command       queue an order  {"op": "retrieve", "slot": "B2"}
                         (operator only, see security.py)
     GET  /chat/status   is the dashboard's LLM chat on (GEMINI_API_KEY set)?
-    POST /chat          a question with the copilot's grounding -> Gemini's answer (chat.py)
+    POST /chat          a question -> the copilot's answer, from the twin's tools (chat.py)
+    POST /twin/state    the open 3D twin's live snapshot, for the chat's live_state tool (live.py)
     WS   /ws            live world frames at ~30 Hz
     GET  /stf/...       the built web app, when STF_WEB_DIST points at it (one-service deploy,
                         see docs/DEPLOY.md); / redirects there
@@ -35,8 +36,8 @@ from pydantic import BaseModel, Field
 
 from stf_layout import get_layout
 
+from . import live, wire
 from . import security as sec
-from . import wire
 from .chat import Chat, ChatRequest
 from .runtime import SimRuntime
 
@@ -51,7 +52,7 @@ settings = sec.Settings.from_env()
 command_guard = sec.CommandGuard(settings)
 ws_clients = sec.ClientCounter(settings.max_ws_clients)
 chat = Chat(settings)
-WS_MAX_MSG = 1024          # bytes: the client only ever sends {"type": "resync"}
+WS_MAX_MSG = 1024  # bytes: the client only ever sends {"type": "resync"}
 
 
 @asynccontextmanager
@@ -76,19 +77,21 @@ app.add_middleware(
 
 # The headers `vite preview` sends (web/vite.config.ts), for when this process serves the app.
 SECURITY_HEADERS = {
-    "Content-Security-Policy": "; ".join([
-        "default-src 'self'",
-        "script-src 'self' 'wasm-unsafe-eval'",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "font-src 'self' https://fonts.gstatic.com",
-        "img-src 'self' data: blob:",
-        "connect-src 'self' blob: data: ws: wss:",
-        "worker-src 'self' blob:",
-        "base-uri 'self'",
-        "form-action 'none'",
-        "object-src 'none'",
-        "frame-ancestors 'none'",
-    ]),
+    "Content-Security-Policy": "; ".join(
+        [
+            "default-src 'self'",
+            "script-src 'self' 'wasm-unsafe-eval'",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "font-src 'self' https://fonts.gstatic.com",
+            "img-src 'self' data: blob:",
+            "connect-src 'self' blob: data: ws: wss:",
+            "worker-src 'self' blob:",
+            "base-uri 'self'",
+            "form-action 'none'",
+            "object-src 'none'",
+            "frame-ancestors 'none'",
+        ]
+    ),
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
     "X-Frame-Options": "DENY",
@@ -107,6 +110,7 @@ async def security_headers(request: Request, call_next):
 
 class CommandRequest(BaseModel):
     """A command, validated at the boundary: a fixed set of operations, a slot like B2."""
+
     op: Literal["retrieve", "store", "home", "cycle"]
     slot: str | None = Field(
         default=None, pattern=r"^[A-C][1-4]$", description="target slot A1..C4"
@@ -152,8 +156,39 @@ async def chat_status() -> dict:
 
 @app.post("/chat")
 async def chat_ask(req: ChatRequest, request: Request) -> dict:
-    """Gemini, answering from the grounding the dashboard's copilot computed (chat.py)."""
+    """The copilot: a language model answering from the twin's tools (chat.py)."""
     return await chat.ask(req, request)
+
+
+_state_limit = sec.RateLimiter(rate=2.0, burst=4)
+
+
+@app.post("/twin/state")
+async def twin_state(request: Request) -> JSONResponse:
+    """The open 3D twin's live snapshot, kept per client for that client's chat (live.py)."""
+    origin = request.headers.get("origin")
+    if (
+        origin
+        and origin not in settings.allowed_origins
+        and sec._host(origin.split("://", 1)[-1]) != sec._host(request.headers.get("host"))
+    ):
+        return JSONResponse(status_code=403, content={"error": "origin not allowed"})
+    client = request.client.host if request.client else "?"
+    if client in ("127.0.0.1", "::1"):
+        client = (request.headers.get("x-forwarded-for") or client).split(",")[0].strip()
+    if not _state_limit.allow(client):
+        return JSONResponse(status_code=429, content={"error": "too often"})
+    raw = await request.body()
+    if len(raw) > live.MAX_BYTES * 2:
+        return JSONResponse(status_code=413, content={"error": "too large"})
+    try:
+        snap = json.loads(raw)
+        if not isinstance(snap, dict):
+            raise ValueError
+        live.put(snap, client)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "a JSON object of at most 8 kB"})
+    return JSONResponse(content={"ok": True})
 
 
 @app.websocket("/ws")
@@ -205,6 +240,7 @@ async def ws(websocket: WebSocket) -> None:
 # routes above take precedence.
 _WEB = os.environ.get("STF_WEB_DIST")
 if _WEB and os.path.isdir(_WEB):
+
     @app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
     async def root() -> RedirectResponse:
         return RedirectResponse("/stf/")

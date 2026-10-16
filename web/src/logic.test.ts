@@ -10,6 +10,7 @@ import { boxSize, cylSpec, type HealthComp } from "./shared/model";
 import { Bm25, answer, tokens, type Ctx } from "./copilot/copilot";
 import { Rng } from "./vision/render";
 import { clean, cleanDeep } from "./shared/names";
+import cases from "../../tests/fixtures/names_cases.json";
 
 describe("chart axes", () => {
   it("niceTicks covers the range with 1-2-5 steps", () => {
@@ -144,6 +145,9 @@ describe("feature names instead of design-step numbers", () => {
     expect(clean("STF-U12")).toBe("STF-01");
     expect(clean("stf-hw/virtual-site/bakery/line-1/cell-u12/hbw/inputs/hbw_I1_long_long_long_topic")).toBe("stf-hw/virtual-site/bakery/line-1/cell-01/hbw/inputs/hbw_I1_long_long_long_topic");
     expect(clean("Upgrades 5 and 7.")).toBe("Commissioning and lifecycle design.");
+  });
+  it("agrees with the Python cleaner on the shared cases", () => {
+    for (const [inp, out] of cases as [string, string][]) expect(clean(inp)).toBe(out);
   });
   it("cleans values, not keys", () => {
     expect(cleanDeep({ U9: { what: "before (U9)" } })).toEqual({ U9: { what: "before" } });

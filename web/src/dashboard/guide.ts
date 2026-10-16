@@ -141,17 +141,18 @@ export const GUIDE: Record<string, PageGuide> = {
   },
   copilot: {
     title: "Copilot",
-    what: "Ask about the cell in plain words. The twin computes the facts; with a Gemini key on the server, Gemini writes the answer from them, with citations. The Ask button on every page does the same for that page.",
+    what: "Ask about the cell in plain words. A language model (Gemini, or a local model through Ollama) answers by calling the twin's own tools - health, alarms, the month, OEE, energy, carbon, the scheduler, vision, security, the documents, this page's guide and the running twin - and states only what they return, with citations. Without a model, the same tools answer directly (rules). The Ask button on every page does the same for that page.",
     read: [
-      "Type a question or pick one on the right.",
-      "Each answer names the tool or document it came from and links to the page with the detail.",
+      "Type a question or pick one on the right. Ask several things at once if you like: the model calls as many tools as it needs.",
+      "Each answer names its sources, the tools it used, and links to the page with the detail.",
+      "Questions about what the cell is doing now need the 3D twin open in another tab.",
       "Health questions use the machine age and PM setting on the right.",
     ],
     sections: [
       ["Try", "Example questions, one per tool."],
       ["Health questions use", "The machine age and maintenance setting the health answers are computed for."],
     ],
-    source: "copilot.ts (tools over the twin's exports, BM25 over the documents) and, with a key, Gemini on the server (chat.py).",
+    source: "The server's tools (services/api/tools.py) over the twin's exports and documents; the model and its tool calls in chat.py; scored on tests/copilot_eval.json. Offline (no server): copilot.ts in the browser.",
     terms: ["Health index (HI)", "RUL", "OEE"],
   },
   health: {

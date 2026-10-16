@@ -215,9 +215,18 @@ const TOOLS: Tool[] = [
   },
 ];
 
+const GREETING = /^(hi|hello|hey|howdy|greetings|good\s+(morning|afternoon|evening))\b/i;
+
 /** Route a question: the best-scoring tool, else the documents, else "I don't know". */
 export async function answer(q0: string, c: Ctx): Promise<Answer> {
-  const q = q0.toLowerCase();
+  const q = q0.toLowerCase().trim();
+  if (GREETING.test(q)) {
+    return {
+      tool: "greeting",
+      text: "Hello! I am the STF Digital Twin Copilot. Ask me about machine health, maintenance schedules, OEE, alarm codes, energy, carbon, or vision inspection.",
+      sources: [],
+    };
+  }
   const ranked = TOOLS.map((t) => ({ t, s: t.score(q) })).sort((a, b) => b.s - a.s);
   if (ranked[0].s >= 3) return ranked[0].t.run(q, c);
   const kb = await c.get<{ passages: Passage[] }>("kb");
@@ -239,6 +248,9 @@ export async function answer(q0: string, c: Ctx): Promise<Answer> {
     copilot's own answer (a tool's result or a passage) and the best document passages. */
 export async function ground(q: string, c: Ctx, k = 3) {
   const local = await answer(q, c);
+  if (local.tool === "greeting") {
+    return { local, passages: [] };
+  }
   const kb = await c.get<{ passages: Passage[] }>("kb");
   const passages = bm25(kb.passages).search(q, k).filter((h) => h.score >= 2);
   return { local, passages };

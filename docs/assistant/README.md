@@ -6,13 +6,16 @@ module, each dashboard page, plus the production cycle, the alarm codes and comm
 
 How the chat uses them:
 
-- The knowledge base (`web/public/copilot/kb.json`) splits every document into passages under
-  its headings; the chat searches them (BM25) for each question.
-- The document for the page the user is on is always sent with the question, so questions
-  like "what does this page show?" are answered from the right text.
-- Live numbers (health, alarms, energy, the month, the scheduler, the inspection) come from the
-  twin's own tools at question time; these documents explain what the numbers mean and where
-  they come from. Numbers quoted here are from the model at the time of writing.
+- The chat runs on the server. The language model (Gemini, or a local model through Ollama)
+  calls the twin's tools (`services/api/tools.py`): machine health, alarm lookup, the month,
+  OEE, energy, carbon, the scheduler, vision, security, the running twin's live state, this
+  page's guide, and `search_docs`, a BM25 search over the passages of these documents
+  (`web/public/copilot/kb.json`).
+- `page_guide` returns the `dashboard-<page>.md` of the page the user is on.
+- Live numbers come from the tools at question time; these documents explain what the numbers
+  mean and where they come from. Numbers quoted here are from the model at the time of writing.
+- The evaluation set (`tests/copilot_eval.json`) checks that questions reach the right tools
+  and that answers state only numbers the tools returned.
 
 Rebuild after editing: `make copilot` (or `make guide` for the generated dashboard pages).
 
