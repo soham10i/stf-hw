@@ -49,11 +49,13 @@ export function centreOf(part: CadPart) {
 
 function Mat({ part }: { part: CadPart }) {
   const metal = part.c === "#d6d9da" || part.c === "#aeb4b8";
+  // guide rods, piston rods and shafts are ground, hardened steel: polished, fully metallic
+  const ground = metal && part.k === "cyl" && /rod|shaft|spindle/.test(part.n);
   return (
     <meshStandardMaterial
-      color={part.c}
-      roughness={part.g === "workpiece" ? 0.45 : metal ? 0.3 : 0.62}
-      metalness={metal ? 0.7 : 0.1}
+      color={ground ? "#d3d8de" : part.c}
+      roughness={part.g === "workpiece" ? 0.45 : ground ? 0.12 : metal ? 0.3 : 0.62}
+      metalness={ground ? 1 : metal ? 0.7 : 0.1}
     />
   );
 }

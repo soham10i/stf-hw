@@ -17,6 +17,7 @@ import { DragChain } from "./DragChain";
 import { type CadPart, type CadDoc, cylSpec } from "../shared/model";
 import { Drive, vgrHot } from "./hot";
 import { MM, v, Solid, Cookie } from "./parts";
+import { RunningGear, VGR } from "./RunningGear";
 
 
 
@@ -102,22 +103,26 @@ export function VgrModule({ doc, drive }: { doc: CadDoc; drive: React.MutableRef
   return (
     <group>
       {byFrame.world.map(P)}
+      <RunningGear all={doc.vgr.parts} frame="world" axes={VGR} />
       <group position={v(cx, cy, 0)}>
         <group ref={gSwivel}>
           <group position={back}>
             {byFrame.swivel.map(P)}
+            <RunningGear all={doc.vgr.parts} frame="swivel" axes={VGR} />
             {doc.chains?.chains["vgr:plunge"] && (
               <DragChain spec={doc.chains.chains["vgr:plunge"]}
                 joint={() => vgrHot.plunge + doc.chains!.chains["vgr:plunge"].M[2]} />
             )}
             <group ref={gPlunge}>
               {byFrame.plunge.map(P)}
+              <RunningGear all={doc.vgr.parts} frame="plunge" axes={VGR} />
               {doc.chains?.chains["vgr:reach"] && (
                 <DragChain spec={doc.chains.chains["vgr:reach"]} zBase={A.plunge}
                   joint={() => doc.chains!.chains["vgr:reach"].M[1] - vgrHot.reach} />
               )}
               <group ref={gReach}>
                 {byFrame.reach.map(P)}
+                <RunningGear all={doc.vgr.parts} frame="reach" axes={VGR} />
                 {/* spring: from the cup's top up to the underside of the head */}
                 <group position={v(px, py, cupTop)}>
                   <group ref={gCoil}>

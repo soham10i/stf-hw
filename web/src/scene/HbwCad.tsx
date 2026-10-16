@@ -39,6 +39,7 @@ import { type CadPart, type CadDoc, type PlanKey, boxSize, cylSpec } from "../sh
 import { FROM, OrderLine, twinOrders, cycleHot, Rack, Drive, vgrHot, hbwCookieHot, hbwHot, sortHot, ovenHot } from "./hot";
 import { MM, v, AIM, Solid, RackBadge, Cookie, Mould } from "./parts";
 import { binColour, script, SPEED, BELT_SPEED, RATE, PLAYBACK } from "./timeline";
+import { HBW, RunningGear } from "./RunningGear";
 
 
 
@@ -469,6 +470,7 @@ export function HbwCad({ doc, onPhase, tours }: {
   return (
     <group>
       {byFrame.world.map(P)}
+      <RunningGear all={doc.parts} frame="world" axes={HBW} />
       {doc.chains?.chains["hbw:travel"] && (
         <DragChain spec={doc.chains.chains["hbw:travel"]} joint={() => drive.current.travel} />
       )}
@@ -507,14 +509,17 @@ export function HbwCad({ doc, onPhase, tours }: {
 
       <group ref={gTravel}>
         {byFrame.travel.map(P)}
+        <RunningGear all={doc.parts} frame="travel" axes={HBW} />
         {doc.chains?.chains["hbw:lift"] && (
           <DragChain spec={doc.chains.chains["hbw:lift"]}
             joint={() => drive.current.lift + doc.chains!.chains["hbw:lift"].M[2]} />
         )}
         <group ref={gLift}>
           {byFrame.lift.map(P)}
+          <RunningGear all={doc.parts} frame="lift" axes={HBW} />
           <group ref={gFork}>
             {byFrame.fork.map(P)}
+            <RunningGear all={doc.parts} frame="fork" axes={HBW} />
             {/* seated on the fork table: local table top = lift + 10 -> z = 10 */}
             <group ref={gOnFork}>
               <Mould x={0} y={seat.y} z={seat.z} doc={doc} />
