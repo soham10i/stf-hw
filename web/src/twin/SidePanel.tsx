@@ -49,23 +49,23 @@ export function SidePanel({ panels, active, open, pinned, width, onPick, onToggl
   return (
     <>
       <nav className="rail" role="tablist" aria-label="Panels">
-        {panels.map((p) => (
-          <button key={p.id} role="tab" aria-selected={open && p.id === active.id} data-tip={p.label} aria-label={p.label}
+        {panels.map((p, i) => (
+          <button key={p.id} role="tab" aria-selected={open && p.id === active.id} data-tip={p.label} data-key={i < 9 ? i + 1 : undefined} aria-label={p.label}
             className={open && p.id === active.id ? "on" : ""} onClick={() => onPick(p.id)}>
             <Icon name={p.icon} size={19} />
           </button>
         ))}
         <span className="rail-sp" />
-        <button onClick={onToggle} data-tip={open ? "Hide panel" : "Show panel"} aria-label="Toggle the panel">
+        <button onClick={onToggle} data-tip={open ? "Hide panel" : "Show panel"} data-key="[" aria-label="Toggle the panel">
           <Icon name="panel" size={19} />
         </button>
       </nav>
       {open ? (
         <aside className={`side ${pinned ? "pinned" : "float"} ${drag !== null ? "dragging" : ""}`} aria-label={active.label} style={{ width: w }}>
           <div className="side-head">
-            <Icon name={active.icon} size={17} /><b>{active.label}</b>
+            <span className="side-ico"><Icon name={active.icon} size={16} /></span><b>{active.label}</b>
             <button className={`ui-btn icon ghost side-pin ${pinned ? "on" : ""}`} onClick={onPin} aria-pressed={pinned}
-              title={pinned ? "Unpin: float the panel over the 3D view" : "Pin the panel beside the 3D view"} aria-label="Pin the panel">
+              title={pinned ? "Unpin: float the panel over the 3D view (P)" : "Pin the panel beside the 3D view (P)"} aria-label="Pin the panel">
               <Icon name="pin" size={15} />
             </button>
             <button className="ui-btn icon ghost side-close" onClick={onToggle} title="Close the panel" aria-label="Close the panel">

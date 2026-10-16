@@ -1,5 +1,6 @@
-// The twin's top bar: brand, the view picker (from the view registry), what the
-// view shows, the backend status, the dashboard link and the theme.
+// The twin's top bar: brand, the view switcher (searchable, Cmd/Ctrl+K), the backend status,
+// the order shortcut, the dashboard link and the theme.
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Theme } from "../shared/theme";
 import { Icon, ThemeToggle } from "../shared/icons";
 import type { View } from "./registry";
@@ -11,36 +12,94 @@ const CHIP: Record<Status, [cls: string, label: string, tip: string]> = {
   closed: ["", "Offline", ""],
   standalone: ["ok", "Simulation", "Runs entirely in your browser: the machine, its PLC cycle and every analysis are generated from one model."],
 };
+const MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
-export function TopBar({ views, view, onView, status, statusTip, theme, toggleTheme }: {
+/** The current view as a button; it opens a searchable list of every view. */
+function ViewMenu({ views, view, onView }: { views: View[]; view: View; onView: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [hi, setHi] = useState(0);
+  const box = useRef<HTMLDivElement>(null);
+  const hits = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    return t ? views.filter((v) => `${v.label} ${v.group} ${v.about}`.toLowerCase().includes(t)) : views;
+  }, [q, views]);
+
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setOpen((o) => !o); }
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    setQ(""); setHi(Math.max(0, views.findIndex((v) => v.id === view.id)));
+    const away = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    window.addEventListener("pointerdown", away);
+    return () => window.removeEventListener("pointerdown", away);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const choose = (v: View) => { onView(v.id); setOpen(false); };
+  const groups = Array.from(new Set(hits.map((v) => v.group)));
+  return (
+    <div className="vm" ref={box}>
+      <button className="vm-btn" onClick={() => setOpen(!open)} aria-haspopup="listbox" aria-expanded={open} title={view.about}>
+        <span className="vm-group">{view.group}</span><b>{view.label}</b>
+        <kbd>{MAC ? "⌘" : "Ctrl"} K</kbd><Icon name="down" size={14} />
+      </button>
+      {open && (
+        <div className="vm-pop" role="dialog" aria-label="Switch view">
+          <label className="vm-search"><Icon name="search" size={15} />
+            <input autoFocus value={q} placeholder="Search views…" aria-label="Search views"
+              onChange={(e) => { setQ(e.target.value); setHi(0); }}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowDown") { e.preventDefault(); setHi((h) => Math.min(hits.length - 1, h + 1)); }
+                else if (e.key === "ArrowUp") { e.preventDefault(); setHi((h) => Math.max(0, h - 1)); }
+                else if (e.key === "Enter" && hits[hi]) choose(hits[hi]);
+                else if (e.key === "Escape") setOpen(false);
+              }} />
+          </label>
+          <div className="vm-list" role="listbox">
+            {groups.map((g) => (
+              <div key={g}>
+                <em>{g}</em>
+                {hits.filter((v) => v.group === g).map((v) => {
+                  const i = hits.indexOf(v);
+                  return (
+                    <button key={v.id} role="option" aria-selected={v.id === view.id} className={`${i === hi ? "hi" : ""} ${v.id === view.id ? "cur" : ""}`}
+                      onMouseEnter={() => setHi(i)} onClick={() => choose(v)}>
+                      <b>{v.label}</b><span>{v.about}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+            {!hits.length && <p className="vm-none">No view matches “{q}”.</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function TopBar({ views, view, onView, status, statusTip, theme, toggleTheme, onOrder }: {
   views: View[]; view: View; onView: (id: string) => void;
-  status: Status; statusTip: string; theme: Theme; toggleTheme: () => void;
+  status: Status; statusTip: string; theme: Theme; toggleTheme: () => void; onOrder?: () => void;
 }) {
-  const groups = Array.from(new Set(views.map((v) => v.group)));
   return (
     <header className="topbar">
       <div className="brand">
         <span className="brand-mark">STF</span>
         <div><b>Digital Twin</b><span>Smart Tabletop Factory</span></div>
       </div>
-      <div className="view-pick">
-        <select className="ui-select" value={view.id} onChange={(e) => onView(e.target.value)} aria-label="View">
-          {groups.map((g) => (
-            <optgroup key={g} label={g}>
-              {views.filter((v) => v.group === g).map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
-            </optgroup>
-          ))}
-        </select>
-        <span className="view-info" tabIndex={0} aria-label="About this view">
-          <Icon name="info" size={16} />
-          <span className="view-pop">{view.about}</span>
-        </span>
-      </div>
+      <ViewMenu views={views} view={view} onView={onView} />
       <div className="top-actions">
         <span className={`ui-chip ${CHIP[status][0]}`} title={[CHIP[status][2], statusTip].filter(Boolean).join("\n")}>
           <span className="ui-dot" />{CHIP[status][1]}
         </span>
-        <a className="ui-btn" href={`${import.meta.env.BASE_URL}dashboard.html`}><Icon name="gauge" size={16} />Dashboard</a>
+        {onOrder && <button className="ui-btn" onClick={onOrder} title="Open the order form"><Icon name="plus" size={15} />New order</button>}
+        <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html`}><Icon name="gauge" size={16} /><span className="hide-sm">Dashboard</span></a>
         <ThemeToggle theme={theme} toggle={toggleTheme} />
       </div>
     </header>

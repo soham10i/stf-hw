@@ -66,48 +66,52 @@ export default function App() {
     setPanelId(id);
   };
   const netZones = open && active?.id === "safety" && netZonesAsked;
+  const order = () => { if (!open) toggle(); setPanelId("orders"); };
+
+  // keyboard: 1-9 open a panel, [ shows or hides it, P pins it (not while typing)
+  useEffect(() => {
+    if (view.kind !== "machine") return;
+    const key = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (e.metaKey || e.ctrlKey || e.altKey || t.closest("input, textarea, select, [contenteditable]")) return;
+      if (e.key === "[") toggle();
+      else if (e.key.toLowerCase() === "p" && open) { setPinned(!pinned); nudge(); }
+      else if (/^[1-9]$/.test(e.key) && panels[+e.key - 1]) pick(panels[+e.key - 1].id);
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  });
+
+  // the floating chrome keeps clear of the dock (62 px) and of an open panel
+  const machineView = view.kind === "machine";
+  const panelOpen = !!(ctx && active && open);
+  const inset = 72 + (panelOpen ? sideW + 10 : 0);
+  const vars = {
+    "--vp-left": panelOpen && pinned ? `${inset}px` : "0px",
+    "--tools-left": `${panelOpen && pinned ? 10 : inset}px`,
+  } as React.CSSProperties;
+  const waiting = phase === "Waiting for an order";
 
   return (
-    <div className="app">
+    <div className={`app ${machineView ? "immersive" : ""}`}>
       <TopBar views={views} view={view} onView={setViewId} theme={theme} toggleTheme={toggleTheme}
-        status={conn.conn}
+        status={conn.conn} onOrder={machineView && ctx ? order : undefined}
         statusTip={[scene && `layout ${scene.fingerprint}`, machine.doc && `cad ${machine.doc.fingerprint}`].filter(Boolean).join("  ·  ")} />
 
       {view.kind === "controller" && (ctl.doc ? <ControllerView doc={ctl.doc} /> : <div className="error">{ctl.err}</div>)}
       {view.kind === "component" && comps.doc && <ComponentView id={view.id} doc={comps.doc} />}
 
-      {view.kind === "machine" && (
-        <div className="body" style={{ "--float": open && !pinned && ctx ? `${sideW + 8}px` : "0px" } as React.CSSProperties}>
+      {machineView && (
+        <div className="body" style={vars}>
           {ctx && active && (
             <SidePanel panels={panels} active={active} open={open} pinned={pinned} width={sideW} ctx={ctx}
               onPick={pick} onToggle={toggle} onPin={() => { setPinned(!pinned); nudge(); }} onWidth={(w) => { setSideW(w); nudge(); }} />
           )}
           <div className="viewport">
-            {apiError && <div className="error">{apiError}</div>}
-            {machine.err && <div className="error">{machine.err}</div>}
-            <div className="vp-tools">
-              <span className="vp-pill"><Icon name="play" size={12} />{RATE}×<span className="vp-phase">{phase}</span></span>
-              {machine.doc?.safety && !netZones && (
-                <button className={`vp-pill btn ${showZones ? "on" : ""}`} onClick={() => setShowZones(!showZones)}
-                  title="Show or hide the hazard zones: the swept envelopes of the moving arms">
-                  <Icon name={showZones ? "eye" : "eyeoff"} size={14} />Hazard zones
-                </button>
-              )}
-            </div>
-            {machine.doc?.wiring?.roles && (
-              <details className="wire-legend">
-                <summary>Wiring colours</summary>
-                <ul>
-                  {Object.entries(machine.doc.wiring.roles).map(([k, r]) => (
-                    <li key={k}>
-                      <span className={`sw ${r.colour === "PE" ? "pe" : ""} ${k === "AIR" ? "air" : ""}`}
-                        style={r.colour === "PE" ? undefined : { background: r.colour }} />
-                      <b>{k}</b> {r.label}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            )}
+            {(apiError || machine.err) && <div className="vp-errors">
+              {apiError && <div className="error">{apiError}</div>}
+              {machine.err && <div className="error">{machine.err}</div>}
+            </div>}
             {machine.doc && (
               <ErrorBoundary>
                 <Canvas shadows dpr={[1, 2]} gl={{ preserveDrawingBuffer: true }}>
@@ -115,6 +119,35 @@ export default function App() {
                 </Canvas>
               </ErrorBoundary>
             )}
+          </div>
+          <div className="vp-dock">
+            <div className="vp-bar">
+              <span className="vp-status" title={phase}>
+                <i className={waiting ? "idle" : "run"} /><b>{RATE}×</b><span className="vp-phase">{phase || "Loading the machine…"}</span>
+              </span>
+              {waiting && ctx && <button className="vp-cta" onClick={order}><Icon name="plus" size={14} />Place an order</button>}
+              <span className="vp-sep" />
+              {machine.doc?.safety && !netZones && (
+                <button className={`vp-btn ${showZones ? "on" : ""}`} onClick={() => setShowZones(!showZones)}
+                  title="Show or hide the hazard zones: the swept envelopes of the moving arms" aria-pressed={showZones}>
+                  <Icon name={showZones ? "eye" : "eyeoff"} size={15} />Hazard zones
+                </button>
+              )}
+              {machine.doc?.wiring?.roles && (
+                <details className="wire-legend">
+                  <summary className="vp-btn"><Icon name="zap" size={15} />Wiring</summary>
+                  <ul>
+                    {Object.entries(machine.doc.wiring.roles).map(([k, r]) => (
+                      <li key={k}>
+                        <span className={`sw ${r.colour === "PE" ? "pe" : ""} ${k === "AIR" ? "air" : ""}`}
+                          style={r.colour === "PE" ? undefined : { background: r.colour }} />
+                        <b>{k}</b> {r.label}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
           </div>
         </div>
       )}
