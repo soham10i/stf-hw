@@ -4,13 +4,10 @@
 // completed its cookies are all in the rack. "Deliver" hands the baked cookies over and
 // refills their moulds with fresh dough, so the count stays 12.
 //
-// With the live API (scene !== null) the physics kernel's manual commands are under
-// "Manual crane commands"; it still models the original 3x3 rack.
+// The physics kernel's manual crane commands are in the Telemetry panel, beside the kernel.
 
 import { useEffect, useState } from "react";
 import { twinOrders, type OrderLine } from "../scene/hot";
-import { sendCommand } from "../socket";
-import type { SceneDescriptor } from "../types";
 import { useCadDoc } from "../shared/model";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -18,7 +15,7 @@ const clock = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60))
 /** The step text without the "VGR:" prefix and the oven's side note. */
 const plain = (s: string) => cap(s.split("   ·   ")[0].replace(/^VGR: /, "Robot arm: ").replace(/—/g, "–"));
 
-export function OrdersPanel({ scene, slots }: { scene: SceneDescriptor | null; slots?: string[] }) {
+export function OrdersPanel({ slots }: { slots?: string[] }) {
   const { doc } = useCadDoc();
   const flavours = doc ? doc.pipeline.flavours : {};
   const names = Object.keys(flavours);
@@ -65,28 +62,9 @@ export function OrdersPanel({ scene, slots }: { scene: SceneDescriptor | null; s
     twinOrders.restock = true;
     setMsg({ tone: "ok", text: `${baked} baked cookie${baked === 1 ? "" : "s"} delivered; their moulds are refilled with fresh dough.` });
   };
-  const manual = async (op: string, slot: string | null) => {
-    try { await sendCommand(op, slot); setMsg({ tone: "ok", text: `Queued ${op}${slot ? " " + slot : ""} on the physics kernel.` }); }
-    catch (e) { setMsg({ tone: "bad", text: (e as Error).message }); }
-  };
 
   return (
     <div className="panel orders ord">
-      {/* ---------------------------------------------------------------- stock */}
-      <section className="ord-card">
-        <div className="ord-head"><h3>Cookies in the cell</h3><span className="ord-total">{total} cookies, always</span></div>
-        <div className="ord-stockbar" aria-hidden>
-          {names.map((f) => counts[f] ? <i key={f} style={{ flex: counts[f], background: colour(f) }} /> : null)}
-          {counts.oven ? <i className="oven" style={{ flex: 1 }} /> : null}
-          {counts.raw ? <i style={{ flex: counts.raw, background: raw }} /> : null}
-        </div>
-        <ul className="ord-stock">
-          <li><i style={{ background: raw }} /><span>Raw dough</span><b>{counts.raw}</b></li>
-          {names.map((f) => <li key={f}><i style={{ background: colour(f) }} /><span>{cap(f)}, baked</span><b>{counts[f] ?? 0}</b></li>)}
-          <li><i className="oven" /><span>In the oven line</span><b>{counts.oven}</b></li>
-        </ul>
-      </section>
-
       {/* ---------------------------------------------------------------- new order */}
       <section className="ord-card">
         <div className="ord-head"><h3>New order</h3><span className={`ord-avail ${free ? "" : "none"}`}>{free} raw available</span></div>
@@ -161,7 +139,8 @@ export function OrdersPanel({ scene, slots }: { scene: SceneDescriptor | null; s
 
       {/* ---------------------------------------------------------------- rack */}
       <section className="ord-card">
-        <div className="ord-head"><h3>Warehouse rack</h3><span className="ord-total">{baked} baked · {counts.raw} raw</span></div>
+        <div className="ord-head"><h3>Warehouse rack</h3><span className="ord-total">{total} cookies, always</span></div>
+        <p className="ord-sum">{counts.raw} raw{names.map((f) => counts[f] ? ` · ${counts[f]} ${f}` : "").join("")}{counts.oven ? ` · ${counts.oven} in the oven line` : ""}</p>
         {/* as the rack stands: the top shelf (row C) first, row A at the bottom */}
         <div className="ord-rack">
           {[...all].sort((a, b) => b[0].localeCompare(a[0]) || Number(a.slice(1)) - Number(b.slice(1))).map((s) => {
@@ -178,18 +157,6 @@ export function OrdersPanel({ scene, slots }: { scene: SceneDescriptor | null; s
         </div>
       </section>
 
-      {scene && (
-        <details className="ord-manual">
-          <summary>Manual crane commands (physics kernel, 3×3 rack)</summary>
-          <div className="op-actions">
-            <div className="btn-row">
-              <button className="op retrieve" onClick={() => manual("retrieve", "B2")}>Retrieve B2</button>
-              <button className="op store" onClick={() => manual("store", "B2")}>Store B2</button>
-            </div>
-            <button className="op home" onClick={() => manual("home", null)}>Home crane</button>
-          </div>
-        </details>
-      )}
     </div>
   );
 }

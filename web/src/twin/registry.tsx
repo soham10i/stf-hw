@@ -51,7 +51,7 @@ export type Panel = {
 
 export const PANELS: Panel[] = [
   { id: "orders", label: "Orders", icon: "list", available: () => true,
-    render: (c) => <OrdersPanel scene={c.scene} slots={Object.keys(c.doc.slots)} /> },
+    render: (c) => <OrdersPanel slots={Object.keys(c.doc.slots)} /> },
   { id: "telemetry", label: "Telemetry", icon: "activity", available: () => true,
     render: (c) => <TelemetryPanel scene={c.scene} /> },
   { id: "plc", label: "PLC", icon: "monitor", available: () => true, render: (c) => <PlcTabs c={c.doc.control} /> },

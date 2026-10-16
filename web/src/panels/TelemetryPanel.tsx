@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { hbwHot, ovenHot, twinOrders, vgrHot } from "../scene/hot";
 import { hot } from "../store";
 import type { SceneDescriptor } from "../types";
+import { sendCommand } from "../socket";
 
 type Row = [label: string, value: string, warn?: boolean];
 
@@ -95,8 +96,33 @@ export function TelemetryPanel({ scene }: { scene: SceneDescriptor | null }) {
               ))}
             </tbody>
           </table>
+          <KernelCommands />
         </>
       )}
     </div>
+  );
+}
+
+
+/** Manual commands to the physics kernel (the live API's crane, which still models the original
+    3x3 rack): retrieve or store slot B2, or home the crane. */
+function KernelCommands() {
+  const [msg, setMsg] = useState<string | null>(null);
+  const run = async (op: string, slot: string | null) => {
+    try { await sendCommand(op, slot); setMsg(`Queued ${op}${slot ? " " + slot : ""} on the physics kernel.`); }
+    catch (e) { setMsg((e as Error).message); }
+  };
+  return (
+    <details className="ord-manual">
+      <summary>Manual crane commands (physics kernel, 3×3 rack)</summary>
+      <div className="op-actions">
+        <div className="btn-row">
+          <button className="op retrieve" onClick={() => run("retrieve", "B2")}>Retrieve B2</button>
+          <button className="op store" onClick={() => run("store", "B2")}>Store B2</button>
+        </div>
+        <button className="op home" onClick={() => run("home", null)}>Home crane</button>
+        {msg && <p className="ord-msg ok" role="status">{msg}</p>}
+      </div>
+    </details>
   );
 }
