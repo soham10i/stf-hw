@@ -5,7 +5,11 @@ import os
 
 from services.api.names import clean, clean_deep
 
-CASES = json.load(open(os.path.join(os.path.dirname(__file__), "fixtures", "names_cases.json")))
+# the cases live with the web app (web/src/shared), so the web build - which sees only web/ in the
+# Docker image - is self-contained; this test reads them from there
+CASES = json.load(
+    open(os.path.join(os.path.dirname(__file__), "..", "web", "src", "shared", "names_cases.json"))
+)
 
 
 def test_shared_cases():

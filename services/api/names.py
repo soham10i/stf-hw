@@ -1,7 +1,7 @@
 """
 The design-step numbers of the generators (Upgrade 1 ... 18, U1 ... U18) shown as the features
 they built - the Python twin of web/src/shared/names.ts, tested against the same cases
-(tests/fixtures/names_cases.json), so the chat says what the dashboard says.
+(web/src/shared/names_cases.json), so the chat says what the dashboard says.
 """
 
 from __future__ import annotations
