@@ -1,7 +1,7 @@
 // Upgrade 11: IEC 62443 zones and conduits, and attacks replayed on the twin (security.py).
 import { useState } from "react";
 import { useJson } from "../shared/data";
-import { Empty, Head, Stat, Note } from "./kit";
+import { Empty, Head } from "./kit";
 
 export const ZONE_COL: Record<string, string> = { Z0: "#ef4444", Z1: "#3b82f6", Z2: "#8b5cf6", Z3: "#f59e0b", Z4: "#14b8a6", Z5: "#94a3b8" };
 type Sec = {
@@ -26,10 +26,9 @@ export function NetSecurityPanel() {
             <em>{z.sl_t ? `SL ${z.sl_t}` : z.id === "Z0" ? "no network" : "untrusted"}</em></div>
         ))}
       </div>
-      <div className="np-stats">
-        <Stat label="Allow-list" value={`${d.allow_list.length} rules`} sub={`${d.n_access} program accesses`} />
-        <Stat label="Unused, writable" value={`${d.exposed.length}`} sub={d.exposed.map((e) => `${e.module}.${e.signal}`).join(" ")} tone="warn" />
-      </div>
+      <p className="sf-line" title={d.exposed.map((e) => `${e.module}.${e.signal}`).join("\n")}>
+        {d.allow_list.length} allow-list rules ({d.n_access} program accesses) · <span className="warn">{d.exposed.length} unused writable signals</span>
+      </p>
       <h4 className="np-h">Replay an attack</h4>
       <select className="ui-select np-sel" value={atk} onChange={(e) => setAtk(e.target.value)}>
         {d.attacks.map((x) => <option key={x.id} value={x.id}>{x.id} · {x.name}</option>)}
@@ -39,8 +38,7 @@ export function NetSecurityPanel() {
           <button key={m} className={m === mode ? "on" : ""} onClick={() => setMode(m)}>{m === "without" ? "None" : m === "detect_only" ? "Detect" : "U11"}</button>))}
       </div>
       <div className={`np-out ${mode === "with" ? "ok" : mode === "without" ? "bad" : "warn"}`}>{a[mode]}</div>
-      <Note title="What the boxes in 3D are">In 3D: blue boxes are cell control (Z1) - the four I/O nodes and the PLC; red boxes are the hardwired E-stops and
-        reset (Z0), which have no network interface.</Note>
+      <p className="muted small">In 3D: blue = cell control (Z1: the I/O nodes and the PLC), red = hardwired E-stops and reset (Z0).</p>
     </div>
   );
 }

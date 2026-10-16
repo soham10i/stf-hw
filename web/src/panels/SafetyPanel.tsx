@@ -1,50 +1,39 @@
 import type { SafetyDoc } from "../shared/model";
-import { Note, Proofs, Title } from "./kit";
 
 // Upgrade 2's risk assessment and safety functions, straight from safety.py.
 export function SafetyPanel({ sf, showZones, setShowZones }: {
   sf: SafetyDoc; showZones: boolean; setShowZones: (v: boolean) => void;
 }) {
+  const proofs: [string, string][] = [
+    ["reach", "every hazard zone lies ≥ 20 mm inside the guard (the VGR arm sampled every 5° over its full range)"],
+    ["fit", "no guard part touches any module"],
+    ["logic", `${sf.logic_states.toLocaleString()} input states checked exhaustively: motion only with every E-stop released, every door closed and locked, and a reset; a fault in any single channel blocks enable; a door unlocks only at standstill`],
+    ["air", `all ${sf.cylinders_vented.length} cylinders are fed only through the safe exhaust valve Y1`],
+  ];
   return (
     <section className="panel upgrade safety">
-      <Title up="Upgrade 2" lead={`${sf.hazards.length} hazards rated; ${sf.functions.length} safety functions meet the level each one needs.`}>
-        Machine safety</Title>
-      <label className="small" style={{ display: "flex", gap: 6, alignItems: "center", margin: "0 0 8px" }}>
-        <input type="checkbox" checked={showZones} onChange={(e) => setShowZones(e.target.checked)} />
-        show hazard zones in 3D (coloured by PLr)
-      </label>
-      <h3>Hazards (ISO 12100 / 13849-1)</h3>
-      <table className="kv up-table">
-        <thead><tr><td>hazard</td><td className="num">S F P</td><td className="num">PLr</td></tr></thead>
-        <tbody>
-          {sf.hazards.map((h) => (
-            <tr key={h.id} title={h.what}>
-              <td>{h.id} {h.name}<div className="muted small">{h.what}</div></td>
-              <td className="num">{h.S} {h.F} {h.P}</td>
-              <td className={`num plr plr-${h.PLr}`}>{h.PLr}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="sf-head">
+        <span>{sf.hazards.length} hazards · {sf.functions.length} safety functions, each at the PL it needs</span>
+        <button className={`ui-btn ${showZones ? "on" : ""}`} onClick={() => setShowZones(!showZones)}>{showZones ? "Hide" : "Show"} zones in 3D</button>
+      </div>
+      <h3>Hazards <em className="sf-std">ISO 12100 · 13849-1</em></h3>
+      <ul className="sf-rows">
+        {sf.hazards.map((h) => (
+          <li key={h.id} title={`${h.what}\nS${h.S} F${h.F} P${h.P}`}><b>{h.id}</b><span>{h.name}</span><i className={`plr plr-${h.PLr}`}>PL {h.PLr}</i></li>
+        ))}
+      </ul>
       <h3>Safety functions</h3>
-      <table className="kv up-table">
-        <tbody>
-          {sf.functions.map((f) => (
-            <tr key={f.id}>
-              <td>{f.id} {f.name}<div className="muted small">{f.devices} · {f.stop}</div></td>
-              <td className="num">Cat {f.category}</td>
-              <td className={`num plr plr-${f.PLr}`}>PL{f.PLr}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <Proofs items={[
-        "reach: every hazard zone lies ≥ 20 mm inside the guard (the VGR arm sampled every 5° over its full range)",
-        "fit: no guard part touches any module",
-        `logic: ${sf.logic_states.toLocaleString()} input states checked exhaustively. Motion is enabled only with every E-stop released, every door closed and locked, and a reset. A fault in any single channel blocks enable, and a door unlocks only at standstill.`,
-        `air: all ${sf.cylinders_vented.length} cylinders are fed only through the safe exhaust valve Y1`,
-      ]} />
-      {sf.notes.length > 0 && <Note title="Why guard locking, not a light curtain">{sf.notes.map((n) => <p key={n}>{n}</p>)}</Note>}
+      <ul className="sf-rows">
+        {sf.functions.map((f) => (
+          <li key={f.id} title={`${f.devices} · ${f.stop}`}><b>{f.id}</b><span>{f.name}</span><em>Cat {f.category}</em><i className={`plr plr-${f.PLr}`}>PL {f.PLr}</i></li>
+        ))}
+      </ul>
+      <div className="sf-proven"><b>Proven</b>{proofs.map(([k]) => <span key={k}>✓ {k}</span>)}</div>
+      <details className="hmi-fold">
+        <summary>How each was proven{sf.notes.length > 0 ? " · why guard locking" : ""}</summary>
+        <ul className="sf-how">{proofs.map(([k, v]) => <li key={k}><b>{k}</b> {v}</li>)}</ul>
+        {sf.notes.map((n) => <p key={n} className="muted small">{n}</p>)}
+      </details>
     </section>
   );
 }
