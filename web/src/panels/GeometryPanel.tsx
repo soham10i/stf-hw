@@ -1,52 +1,31 @@
 import type { CadDoc } from "../shared/model";
-import { Note, Title } from "./kit";
+import { Fill, Note } from "./kit";
 
 // Side panel: what the 3D geometry is made of and where it came from (hbw_export.py),
 // and the cookies the pipeline conserves.
 export function GeometryPanel({ doc }: { doc: CadDoc }) {
-  const groups = doc.parts.reduce<Record<string, number>>((a, p) => {
+  const groups = Object.entries(doc.parts.reduce<Record<string, number>>((a, p) => {
     a[p.g] = (a[p.g] ?? 0) + 1;
     return a;
-  }, {});
+  }, {})).sort((a, b) => b[1] - a[1]);
+  const most = groups[0]?.[1] ?? 1;
   const io = doc.parts.filter((p) => p.tag);
   return (
     <section className="panel">
-      <Title lead="What the 3D machine is made of, generated from one parameter table and exported only after its proofs pass.">
-        Generated geometry</Title>
+      <p className="sf-line">{doc.parts.length} parts from one parameter table, exported only after the proofs pass</p>
+      <h3>Parts</h3>
+      <div className="geo-parts">
+        {groups.map(([g, n]) => [<span key={g}>{g}</span>, <Fill key={g + "f"} v={n / most} />, <b key={g + "n"}>{n}</b>])}
+      </div>
+      <PipelinePanel doc={doc} />
+      <details className="hmi-fold">
+        <summary>I/O on this module <em>{io.length} tags</em></summary>
+        <ul className="sf-rows">{io.map((p) => <li key={p.n}><b>{p.tag}</b><span>{p.n}</span></li>)}</ul>
+      </details>
       <Note title="Where it comes from">
         Emitted from <code>stf-cad/hbw/hbw_model.py</code>, the same table that builds
         <code> STF_HBW.FCStd</code>. Exported only after the clearance proof passes.
       </Note>
-      <table className="kv">
-        <tbody>
-          {Object.entries(groups).map(([g, n]) => (
-            <tr key={g}>
-              <td>{g}</td>
-              <td className="num">{n}</td>
-            </tr>
-          ))}
-          <tr>
-            <td>
-              <b>total</b>
-            </td>
-            <td className="num">
-              <b>{doc.parts.length}</b>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <PipelinePanel doc={doc} />
-      <h3>I/O on this module</h3>
-      <table className="kv">
-        <tbody>
-          {io.map((p) => (
-            <tr key={p.n}>
-              <td>{p.tag}</td>
-              <td>{p.n}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </section>
   );
 }
@@ -59,46 +38,23 @@ function PipelinePanel({ doc }: { doc: CadDoc }) {
   for (const [, v] of Object.entries(pl.initial as Record<string, [string, string[]]>)) {
     counts[v[0]] = (counts[v[0]] ?? 0) + 1;
   }
+  const safety = pl.safety as string[];
   return (
     <>
-      <h3>
-        Cookies <span className="muted">— {pl.n_cookies} in the system, conserved</span>
-      </h3>
-      <table className="kv">
-        <tbody>
-          {Object.entries(pl.flavours as Record<string, any>).map(([name, f]) => (
-            <tr key={name}>
-              <td>
-                <span
-                  style={{
-                    display: "inline-block",
-                    width: 10,
-                    height: 10,
-                    marginRight: 7,
-                    background: f.colour,
-                    borderRadius: 2,
-                  }}
-                />
-                {name}
-              </td>
-              <td className="num">{counts[name] ?? 0}</td>
-              <td className="muted">
-                ~{f.mV} mV → {f.bin}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <h3>Cookies <em className="sf-std">{pl.n_cookies} in the system, conserved</em></h3>
+      <div className="geo-cookies">
+        {Object.entries(pl.flavours as Record<string, { colour: string; mV: number; bin: string }>).map(([name, f]) => (
+          <span key={name} title={`colour sensor ~${f.mV} mV`}><i style={{ background: f.colour }} />{name} <b>{counts[name] ?? 0}</b> → {f.bin}</span>
+        ))}
+      </div>
+      <details className="hmi-fold">
+        <summary>Pipeline safety rules <em>{safety.length}</em></summary>
+        <ul className="sf-how">{safety.map((t, i) => <li key={i}>{t}</li>)}</ul>
+      </details>
       <Note title="Why these three flavours">
         The Farbsensor measures reflected brightness, not colour, so the three flavours are
         chosen to separate on exactly that. {pl.transfers.length} transfers per full cycle.
       </Note>
-      <h3>Safety</h3>
-      <ul className="safety">
-        {(pl.safety as string[]).map((t, i) => (
-          <li key={i}>{t}</li>
-        ))}
-      </ul>
     </>
   );
 }

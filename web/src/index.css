@@ -495,11 +495,6 @@ svg.circuit { height: auto; aspect-ratio: 520 / 170; }
 .zone-toggle.on .zone-swatch { background: rgba(214, 40, 40, 0.75); border-color: #d62828; }
 
 /* ---------------------------------------------------------- Upgrade 5 */
-.vc-oee { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 4px 0 6px; }
-.vc-oee div { border: 1px solid rgba(160, 200, 240, .35); padding: 5px 6px; font: 600 15px ui-monospace, monospace; }
-.vc-oee div.big { border-color: var(--ok); color: var(--ok); }
-.vc-oee span { display: block; font: 9.5px system-ui; opacity: .65; text-transform: uppercase; letter-spacing: .06em; }
-.vc-matrix td { vertical-align: top; }
 .vc-bars div.hl i { background: var(--warn); }
 /* ------------------------------------------------- Upgrades 6 and 7 */
 .ops-kpis > div.warn { border-color: var(--warn); } .ops-kpis > div.fail { border-color: var(--bad); }

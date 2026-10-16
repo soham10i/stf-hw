@@ -70,3 +70,8 @@ export function Verified({ ok, items }: { ok: boolean; items: [string, string?][
     </p>
   );
 }
+
+/** A thin fill bar; tone "hi" once the value passes the limit. */
+export function Fill({ v, limit = 1, title }: { v: number; limit?: number; title?: string }) {
+  return <span className={`io-fill ${v > limit ? "hi" : ""}`} title={title}><i style={{ width: `${Math.min(1, v) * 100}%` }} /></span>;
+}

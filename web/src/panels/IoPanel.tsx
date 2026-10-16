@@ -1,13 +1,8 @@
 import type { ChainsDoc, Io3Doc } from "../shared/model";
-import { Note, Proofs } from "./kit";
+import { Fill, Note, Proofs } from "./kit";
 
 // Upgrade 3's remote I/O, drag chains and cabinet, straight from io_nodes.py,
 // chains.py and plc_model.py.
-
-/** A thin fill bar; tone "hi" once the value passes the limit. */
-function Fill({ v, limit = 1, title }: { v: number; limit?: number; title?: string }) {
-  return <span className={`io-fill ${v > limit ? "hi" : ""}`} title={title}><i style={{ width: `${Math.min(1, v) * 100}%` }} /></span>;
-}
 
 export function IoPanel({ io, ch }: { io: Io3Doc; ch: ChainsDoc }) {
   const types = ["DI", "DO", "AI", "CNT", ...(Object.values(io.nodes).some((n) => n.slices.some((s) => s.type === "IOL")) ? ["IOL"] : [])];
