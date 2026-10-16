@@ -1,5 +1,8 @@
-// Upgrade 17: the operator copilot's knowledge base - the project's documents split into
-// passages under their headings, so an answer can quote one and say where it is from.
+// The operator copilot's knowledge base - the project's documents split into passages under
+// their headings, so an answer can quote one and say where it is from. Two sources: the
+// project documents (docs/*.md) and the assistant's per-section documents (docs/assistant/),
+// which are cited by their title. DASHBOARD_GUIDE.md is left out: docs/assistant holds the same
+// text, one document per page.
 //   node .cache/copilot-kb.mjs ../docs public/copilot/kb.json
 import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -15,8 +18,15 @@ function plain(md: string) {
     .replace(/\|/g, " ").replace(/^-{3,}$/gm, " ").replace(/^[ \t]*[-:| ]{3,}$/gm, " ").replace(/\s+/g, " ").trim();
 }
 
-for (const f of readdirSync(docs).filter((x) => x.endsWith(".md")).sort()) {
-  const doc = f.replace(/\.md$/, "");
+const SKIP = new Set(["DASHBOARD_GUIDE.md", "README.md"]);
+const files = [
+  ...readdirSync(docs).filter((x) => x.endsWith(".md") && !SKIP.has(x)).sort().map((f) => join(docs, f)),
+  ...readdirSync(join(docs, "assistant")).filter((x) => x.endsWith(".md") && !SKIP.has(x)).sort().map((f) => join(docs, "assistant", f)),
+];
+for (const file of files) {
+  const src = readFileSync(file, "utf8");
+  const title = /^#\s+(.+)$/m.exec(src)?.[1];
+  const doc = file.includes("/assistant/") && title ? plain(title) : file.split("/").pop()!.replace(/\.md$/, "");
   const path: string[] = [];
   let buf: string[] = [];
   const flush = () => {
@@ -27,7 +37,7 @@ for (const f of readdirSync(docs).filter((x) => x.endsWith(".md")).sort()) {
     }
     buf = [];
   };
-  for (const line of readFileSync(join(docs, f), "utf8").split("\n")) {
+  for (const line of src.split("\n")) {
     const m = /^(#{1,4})\s+(.*)$/.exec(line);
     if (m) {
       flush();

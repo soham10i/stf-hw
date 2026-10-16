@@ -161,7 +161,7 @@
   {
    "q": "what is IEC 62443",
    "want": "doc:security",
-   "got": "doc:DASHBOARD_GUIDE › Operations dashboard: user guide › Terms",
+   "got": "doc:Dashboard: OT security › Dashboard: OT security › Terms",
    "ok": true
   },
   {
@@ -201,7 +201,7 @@
   {
    "q": "will the oven door cylinder break soon",
    "want": "part-life",
-   "got": "doc:UPGRADE_PLAN › STF upgrade plan: from training model to industrial practice › Upgrade 5: virtual commissioning (BUILT)",
+   "got": "doc:Machine: Oven (multi-processing station with kiln, ft 536632) › Machine: Oven (multi-processing station with kiln, ft 536632) › Faults and wear",
    "ok": false
   },
   {
@@ -219,7 +219,7 @@
   {
    "q": "are we losing efficiency anywhere",
    "want": "oee",
-   "got": "doc:DASHBOARD_GUIDE › Operations dashboard: user guide › Operate › Overview",
+   "got": "none",
    "ok": false
   },
   {
@@ -273,7 +273,7 @@
   {
    "q": "how is the turntable saw driven",
    "want": "doc:",
-   "got": "doc:UPGRADE_PLAN › STF upgrade plan: from training model to industrial practice › Upgrade 2: machine safety (BUILT) › Scope",
+   "got": "doc:The 3D view › The 3D view › What moves",
    "ok": true
   },
   {

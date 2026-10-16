@@ -39,7 +39,7 @@ The cell at a glance: order progress, what each unit is doing, where efficiency 
 | Downtime by fault | Time lost to each commissioning fault when it happens once. |
 | Unit utilisation | Share of the order each unit is busy; the bottleneck is highlighted. |
 
-*Data:* The PLC program's run of the order (Upgrade 4), commissioning (Upgrade 5) and the wear model (Upgrade 6).
+*Data:* The PLC program's run of the order, commissioning and the wear model.
 
 ### Production
 
@@ -57,7 +57,7 @@ The order in detail: every job of every unit, how far each flavour is, and why t
 | Order by flavour | How many cookies of each flavour are baked, sorted and back in the rack. |
 | Dispatch policies (measured) | Each policy's order time, checked over every possible timing; the one in use is highlighted. |
 
-*Data:* The PLC orchestration model and its exhaustive check of every completion order (Upgrade 4).
+*Data:* The PLC orchestration model and its exhaustive check of every completion order.
 
 ### Quality & trace
 
@@ -72,7 +72,7 @@ Every cookie's record: which mould carried it, where the RFID heads read it, its
 |---|---|
 | Records | One line per cookie: flavour, mould, RFID reads, colour sensor reading in mV, and the verdict. |
 
-*Data:* The traceability design of Upgrade 4: RFID read points on the HBW belt and the sorting line's colour sensor.
+*Data:* The PLC program's traceability design: RFID read points on the HBW belt and the sorting line's colour sensor.
 
 ### Vision QC
 
@@ -99,7 +99,7 @@ The inspection camera's live feed: every cookie photographed, judged by the CNN 
 | The safeguard | Once the alarm rings, what the autoencoder finds unusual goes to a person: fewer defects passed, more cookies checked by hand. |
 | Experiment: label-free adaptation | The same cookies classified twice, with and without online AdaBN. Switch it on under unseen conditions to watch it fail. |
 
-*Data:* Upgrade 15: the camera mount (vision/mount.py), the CNN (vision/train.py) and the autoencoder (vision/autoencoder.py), run in the browser on images drawn by the renderer port.
+*Data:* The camera mount (vision/mount.py), the CNN (vision/train.py) and the autoencoder (vision/autoencoder.py), run in the browser on images drawn by the renderer port.
 
 ### Alarms
 
@@ -117,7 +117,7 @@ Every alarm the PLC can raise, and how the machine reacted when each fault was i
 | Fault matrix (commissioned) | Each fault's alarm, reaction and recovery. |
 | Alarm list | Every watchdog alarm in the program: its code, the step it guards, and what to do. |
 
-*Data:* Virtual commissioning of the PLC program against the twin (Upgrade 5).
+*Data:* Virtual commissioning of the PLC program against the twin.
 
 ### Copilot
 
@@ -158,7 +158,7 @@ How worn each part is at the chosen machine age, and which part needs attention 
 | (the selected part) | Its smoothed signal against the soft and failure limits. Hover to read the health index, the true time to failure and the trend's estimate. |
 | About this part | Warning lead time, false warnings, uses so far and the sensor it is measured with. |
 
-*Data:* The condition-monitoring model of Upgrade 6. The theory is under Docs → Hardware degradation.
+*Data:* The condition-monitoring model. The theory is under Docs → Hardware degradation.
 
 ### Maintenance
 
@@ -175,9 +175,9 @@ When each part is next serviced and why, how the work spreads over the days, and
 | Service schedule · next 30 days | Every service ahead, part by part, plus the routine PM visit. |
 | Workload · services per day | How many services fall on each day; busy days are highlighted. |
 | Work orders | The next six jobs, soonest first. |
-| Spare parts (U7) | Wear parts used per year against stock, and the one-off breakdown spares. |
+| Spare parts | Wear parts used per year against stock, and the one-off breakdown spares. |
 
-*Data:* Upgrade 6 (warnings) and Upgrade 7 (lifecycle and spares).
+*Data:* Condition monitoring (warnings) and the lifecycle design (spares).
 
 ### AI maintenance
 
@@ -201,7 +201,7 @@ A neural network that predicts each part's remaining life from its sensor histor
 | Running here | The network applied to the simulated month, live in this page. |
 | At order | Each part's predicted remaining life at the chosen order, shortest first. |
 
-*Data:* Upgrade 8: a TCN trained on a fleet of simulated machines, exported to ONNX and to the browser.
+*Data:* A TCN trained on a fleet of simulated machines, exported to ONNX and to the browser.
 
 ---
 
@@ -229,7 +229,7 @@ A whole simulated month of production - orders, faults, wear and maintenance - a
 | Hours per state, per unit | RUN, HELD, IDLE and FAULT hours from each unit's state machine. |
 | Downloads (CSV) and event log | Every order, event and sensor reading of the month. |
 
-*Data:* The month simulator (month.py) driven by the wear model of Upgrade 6 and the maintenance of Upgrade 7.
+*Data:* The month simulator (month.py) driven by the wear model and the maintenance plan.
 
 ### Throughput
 
@@ -237,7 +237,7 @@ How the same machine was made faster by changing only its program, and what each
 
 **How to read it**
 
-1. Compare the two Gantt rows: before (Upgrade 7) and after (Upgrade 10), on one time scale.
+1. Compare the two Gantt rows: before and after, on one time scale.
 2. The critical path shows which jobs set the order time; the ablation shows each improvement's own value.
 
 | Section | What it shows |
@@ -252,7 +252,7 @@ How the same machine was made faster by changing only its program, and what each
 | OEE, before and after | Availability, performance, quality and OEE, measured the same way. |
 | Proofs the faster program still passes | Deadlock freedom and fault recovery, re-run for the new program. |
 
-*Data:* Upgrade 10's throughput study, measured by virtual commissioning.
+*Data:* The throughput study, measured by virtual commissioning.
 
 ### Learned scheduler
 
@@ -296,7 +296,7 @@ The cell behind a small microgrid - solar panels, a battery and an energy manage
 | Economics, honestly | Capital cost by item, payback and production protected. |
 | Standards the design follows | The norms the microgrid design is checked against. |
 
-*Data:* Upgrade 9's microgrid model (grid.py), simulated, not measured.
+*Data:* The microgrid model (grid.py), simulated, not measured.
 
 ### Carbon per cookie
 
@@ -315,7 +315,7 @@ How many grams of CO₂e each good cookie costs, where they come from, and what 
 | The day, hour by hour | Load, PV and grid import through an average day, and the grid's carbon intensity by hour. |
 | Per day | Grams per cookie each day, coloured by the weather. |
 
-*Data:* The U9 microgrid month (grid.py) allocated by carbon.py.
+*Data:* The microgrid month (grid.py) allocated by carbon.py.
 
 ### OT security
 
@@ -324,7 +324,7 @@ The cell's network split into IEC 62443 zones, and what happens when attacks are
 **How to read it**
 
 1. Start with the zone picture: which devices trust each other, and the only paths (conduits) between zones.
-2. For each attack, compare: no protection, detection only, and the Upgrade 11 design.
+2. For each attack, compare: no protection, detection only, and the OT security design.
 
 | Section | What it shows |
 |---|---|
@@ -339,11 +339,11 @@ The cell's network split into IEC 62443 zones, and what happens when attacks are
 | New alarms | The security alarms this upgrade adds. |
 | Signed program manifest | The hashes the PLC checks before it runs a program. |
 
-*Data:* Upgrade 11's security design (security.py): a model-based assessment, not a penetration test.
+*Data:* The security design (security.py): a model-based assessment, not a penetration test.
 
 ### Defence in depth
 
-Where the machine no longer trusts its own program: hardwired interlocks, and the Upgrade 11 findings re-run.
+Where the machine no longer trusts its own program: hardwired interlocks, and the OT security findings re-run.
 
 **How to read it**
 
@@ -354,11 +354,11 @@ Where the machine no longer trusts its own program: hardwired interlocks, and th
 |---|---|
 | What changed | The hardening in short. |
 | Every jog rule | Steps each manual-move rule guards; green = now a relay contact, grey = no switch to wire it to, red = would block the program's own steps. |
-| The U11 findings, re-run | Each earlier finding against the hardened machine. |
-| Energy: what holding the reserve costs | Lowest battery charge and grid import in demand-response windows, before (U9) and after (U12). |
+| The OT security findings, re-run | Each earlier finding against the hardened machine. |
+| Energy: what holding the reserve costs | Lowest battery charge and grid import in demand-response windows, before and after. |
 | New parts | The interlock relays on each I/O node's rail and the standstill monitor in the cabinet. |
 
-*Data:* Upgrade 12 (hardening.py).
+*Data:* The hardened machine (hardening.py).
 
 ---
 
@@ -374,12 +374,12 @@ The mechanical engineering behind the machine: how precisely it positions, its t
 
 | Section | What it shows |
 |---|---|
-| Positioning accuracy (U5) | Each axis's stopping error (blue) against what is allowed (green). |
-| Tolerance chains | Clearance left when every tolerance stacks the wrong way; red would mean parts can collide or miss. Hover for before U7. |
+| Positioning accuracy | Each axis's stopping error (blue) against what is allowed (green). |
+| Tolerance chains | Clearance left when every tolerance stacks the wrong way; red would mean parts can collide or miss. Hover for the value before the lifecycle changes. |
 | Structure | Each frame member's lowest natural frequency against the minimum the drives need. |
-| Service access (U7) | How far a technician must reach through each door to the part; red bars are beyond the allowed reach. |
+| Service access | How far a technician must reach through each door to the part; red bars are beyond the allowed reach. |
 
-*Data:* Upgrades 5 and 7.
+*Data:* Commissioning and the lifecycle design.
 
 ### Validation
 
@@ -412,9 +412,9 @@ Where the dashboard's data would come from on a real machine: the MQTT topics an
 | Section | What it shows |
 |---|---|
 | Topics (PLC → MQTT → historian → this page) | The message topics the page would read on real hardware. |
-| Register map (U5) | Each signal, its node and its Modbus register. |
+| Register map | Each signal, its node and its Modbus register. |
 
-*Data:* Upgrade 5's register map; the live MQTT/Sparkplug namespace is in the twin's 'MQTT Sparkplug · UNS' panel (Upgrade 14).
+*Data:* The register map; the live MQTT/Sparkplug namespace is in the twin's 'MQTT Sparkplug · UNS' panel.
 
 ---
 
@@ -437,7 +437,7 @@ The theory behind the Health page: how wear is modelled, measured, smoothed and 
 | Every part: closed form vs simulation | The equations predict when each part warns; the simulation agrees. |
 | References | The standards, papers and books each step comes from. |
 
-*Data:* health.py (Upgrade 6) and health_theory.py; the same model ported to the browser.
+*Data:* health.py and health_theory.py; the same model ported to the browser.
 
 ---
 

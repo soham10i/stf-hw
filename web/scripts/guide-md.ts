@@ -1,7 +1,7 @@
 // Writes docs/DASHBOARD_GUIDE.md from src/dashboard/guide.ts - the same text the dashboard's
 // Guide button shows, so the two cannot drift apart.
 //   npx esbuild scripts/guide-md.ts --bundle --platform=node --outfile=../.cache/guide-md.mjs && node ../.cache/guide-md.mjs
-import { writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { GUIDE, TERMS } from "../src/dashboard/guide";
 
 const GROUPS: [string, string[]][] = [
@@ -42,3 +42,27 @@ for (const [k, v] of Object.entries(TERMS)) out.push(`| ${k} | ${v} |`);
 out.push("", "*Generated from `web/src/dashboard/guide.ts` by `web/scripts/guide-md.ts`.*", "");
 writeFileSync(new URL("../../docs/DASHBOARD_GUIDE.md", import.meta.url), out.join("\n"));
 console.log(`wrote docs/DASHBOARD_GUIDE.md: ${Object.keys(GUIDE).length} pages, ${Object.keys(TERMS).length} terms`);
+
+// One document per page for the chat's knowledge base (docs/assistant), each with the terms it
+// uses: the chat sends the page's own document with every question asked on that page.
+const dir = new URL("../../docs/assistant/", import.meta.url);
+mkdirSync(dir, { recursive: true });
+for (const f of readdirSync(dir).filter((x) => x.startsWith("dashboard-"))) rmSync(new URL(f, dir));
+for (const [g, ids] of GROUPS) {
+  for (const id of ids) {
+    const p = GUIDE[id];
+    const md = [`# Dashboard: ${p.title}`, "", `Dashboard group: ${g}. Page id: \`${id}\`.`, "", p.what, "", "## How to read it", ""];
+    p.read.forEach((r, i) => md.push(`${i + 1}. ${r}`));
+    md.push("", "## Sections", "");
+    for (const [k, v] of p.sections) md.push(`### ${k}`, "", v, "");
+    md.push("## Where the numbers come from", "", p.source, "", "Every number is simulated from the twin's models, not measured on a real machine.", "");
+    if (p.terms.length) {
+      md.push("## Terms", "");
+      for (const t of p.terms) if (TERMS[t]) md.push(`- **${t}**: ${TERMS[t]}`);
+      md.push("");
+    }
+    md.push(`*Generated from \`web/src/dashboard/guide.ts\`; edit the guide, not this file.*`, "");
+    writeFileSync(new URL(`dashboard-${id}.md`, dir), md.join("\n"));
+  }
+}
+console.log(`wrote docs/assistant/dashboard-*.md: ${GROUPS.flatMap(([, ids]) => ids).length} pages`);
