@@ -73,7 +73,13 @@ def _audio(mime, raw):
 
 
 def test_pro_voice_at_its_limit_hands_over_to_flash():
-    t = V.Tts(sec.Settings.from_env(), key=KEY, models=["pro-tts", "flash-tts"], daily_limit=10)
+    t = V.Tts(
+        sec.Settings.from_env(),
+        key=KEY,
+        models=["pro-tts", "flash-tts"],
+        daily_limit=10,
+        providers=["gemini"],
+    )
     hit = []
 
     def fake(url, k, body):
@@ -97,16 +103,20 @@ def test_pro_voice_at_its_limit_hands_over_to_flash():
 
 
 def test_a_wav_answer_passes_through():
-    t = V.Tts(sec.Settings.from_env(), key=KEY, models=["w"], daily_limit=10)
+    t = V.Tts(sec.Settings.from_env(), key=KEY, models=["w"], daily_limit=10, providers=["gemini"])
     t.post = lambda url, k, body: _audio("audio/wav", V.wav(b"\x00\x00" * 10))
     assert speak(t).body[:4] == b"RIFF"
 
 
 def test_no_key_and_all_voices_busy_are_explained():
     with pytest.raises(HTTPException) as e:
-        speak(V.Tts(sec.Settings.from_env(), key="", models=["x"], daily_limit=10))
+        speak(
+            V.Tts(
+                sec.Settings.from_env(), key="", models=["x"], daily_limit=10, providers=["gemini"]
+            )
+        )
     assert e.value.status_code == 503
-    t = V.Tts(sec.Settings.from_env(), key=KEY, models=["a"], daily_limit=10)
+    t = V.Tts(sec.Settings.from_env(), key=KEY, models=["a"], daily_limit=10, providers=["gemini"])
 
     def busy(url, k, body):
         raise urllib.error.HTTPError("x", 429, "q", {}, io.BytesIO(b"{}"))
@@ -118,7 +128,13 @@ def test_no_key_and_all_voices_busy_are_explained():
 
 
 def test_a_voice_that_returns_no_audio_is_passed_over():
-    t = V.Tts(sec.Settings.from_env(), key=KEY, models=["silent", "speaks"], daily_limit=10)
+    t = V.Tts(
+        sec.Settings.from_env(),
+        key=KEY,
+        models=["silent", "speaks"],
+        daily_limit=10,
+        providers=["gemini"],
+    )
     t.post = lambda url, k, body: (
         {"candidates": [{"finishReason": "OTHER", "index": 0}]}
         if "/silent:" in url
@@ -126,3 +142,36 @@ def test_a_voice_that_returns_no_audio_is_passed_over():
     )
     r = speak(t)
     assert r.headers["X-TTS-Model"] == "speaks" and r.body[:4] == b"RIFF"
+
+
+def test_providers_in_order_elevenlabs_then_gemini_then_local(monkeypatch):
+    t = V.Tts(
+        sec.Settings.from_env(),
+        key=KEY,
+        models=["g"],
+        daily_limit=10,
+        providers=["elevenlabs", "gemini", "local"],
+    )
+    el = t.providers[0]
+    el.key = "el-test"
+    el.speak = lambda text, voice: (_ for _ in ()).throw(
+        V.Unavailable("ElevenLabs is at its limit")
+    )
+    t.post = lambda url, k, body: _audio("audio/wav", V.wav(b"\x00\x00" * 10))
+    r = speak(t)
+    assert r.headers["X-TTS-Provider"] == "gemini"
+    el.speak = lambda text, voice: (b"ID3mp3", "audio/mpeg", "elevenlabs eleven_multilingual_v2")
+    r = speak(t)
+    assert r.headers["X-TTS-Provider"] == "elevenlabs" and r.media_type == "audio/mpeg"
+
+
+def test_status_lists_the_providers():
+    t = V.Tts(
+        sec.Settings.from_env(),
+        key=KEY,
+        models=["g"],
+        daily_limit=10,
+        providers=["elevenlabs", "gemini"],
+    )
+    st = t.status()
+    assert [p["name"] for p in st["providers"]] == ["elevenlabs", "gemini"] and st["enabled"]

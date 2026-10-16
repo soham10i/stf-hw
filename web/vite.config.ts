@@ -15,6 +15,7 @@ const API_PROXY = {
   "/health": API,
   "/chat": API,
   "/twin": API,
+  "/copilot": API,
   "/ws": { target: "ws://127.0.0.1:8000", ws: true, changeOrigin: false, xfwd: true },
 };
 
@@ -40,7 +41,7 @@ const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer",
   "X-Frame-Options": "DENY",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), usb=(), serial=()",
+  "Permissions-Policy": "camera=(), microphone=(self), geolocation=(), usb=(), serial=()",
   "Cross-Origin-Opener-Policy": "same-origin",
 };
 

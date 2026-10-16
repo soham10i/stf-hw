@@ -13,8 +13,12 @@ Endpoints:
     GET  /chat/status   is the dashboard's LLM chat on (GEMINI_API_KEY set)?
     POST /chat          a question -> the copilot's answer, from the twin's tools (chat.py)
     POST /twin/state    the open 3D twin's live snapshot, for the chat's live_state tool (live.py)
-    GET  /chat/tts/status  the voices and which voice models have quota left
-    POST /chat/tts      an answer read aloud by a Gemini voice -> audio/wav (tts.py)
+    GET  /chat/tts/status  the voice providers and which voice models have quota left
+    POST /chat/tts      an answer read aloud: ElevenLabs, Gemini or the local voice (tts.py)
+    POST /chat/stt      a recorded question (audio/webm ...) -> its transcript (tts.py)
+    GET  /copilot/sessions        the user's chat history (header X-STF-User)
+    GET  /copilot/sessions/{id}   one session: its turns and its context store
+    DELETE /copilot/sessions/{id}
     WS   /ws            live world frames at ~30 Hz
     GET  /stf/...       the built web app, when STF_WEB_DIST points at it (one-service deploy,
                         see docs/DEPLOY.md); / redirects there
@@ -42,7 +46,7 @@ from . import live, wire
 from . import security as sec
 from .chat import Chat, ChatRequest
 from .runtime import SimRuntime
-from .tts import Tts, TtsRequest
+from .tts import Stt, Tts, TtsRequest
 
 # STF_TIME_SCALE speeds up (or slows) the DEMO only - it multiplies how much sim
 # time each real second advances. The physics is unchanged; a move still takes
@@ -56,6 +60,7 @@ command_guard = sec.CommandGuard(settings)
 ws_clients = sec.ClientCounter(settings.max_ws_clients)
 chat = Chat(settings)
 tts = Tts(settings)
+stt = Stt(settings)
 WS_MAX_MSG = 1024  # bytes: the client only ever sends {"type": "resync"}
 
 
@@ -74,8 +79,8 @@ app = FastAPI(title="STF Digital Twin", version="4.0.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(settings.allowed_origins),
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "X-STF-Token"],
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Content-Type", "X-STF-Token", "X-STF-User"],
 )
 
 
@@ -99,7 +104,7 @@ SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
     "X-Frame-Options": "DENY",
-    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), usb=(), serial=()",
+    "Permissions-Policy": "camera=(), microphone=(self), geolocation=(), usb=(), serial=()",
     "Cross-Origin-Opener-Policy": "same-origin",
 }
 
@@ -173,6 +178,28 @@ async def tts_status() -> dict:
 async def tts_speak(req: TtsRequest, request: Request):
     """The answer read aloud: Gemini 2.5 Pro TTS, the flash voices when its quota is closed."""
     return await tts.speak(req, request)
+
+
+@app.post("/chat/stt")
+async def stt_transcribe(request: Request) -> dict:
+    """A spoken question to text, for browsers without speech recognition (tts.py)."""
+    return await stt.transcribe(request)
+
+
+@app.get("/copilot/sessions")
+async def copilot_sessions(request: Request) -> dict:
+    """The user's chat history, newest first (sessions.py, store.py)."""
+    return {"sessions": chat.sessions(request)}
+
+
+@app.get("/copilot/sessions/{sid}")
+async def copilot_session(sid: str, request: Request) -> dict:
+    return chat.session(request, sid)
+
+
+@app.delete("/copilot/sessions/{sid}")
+async def copilot_forget(sid: str, request: Request) -> dict:
+    return chat.forget(request, sid)
 
 
 _state_limit = sec.RateLimiter(rate=2.0, burst=4)

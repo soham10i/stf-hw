@@ -31,6 +31,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -40,9 +41,12 @@ from fastapi import HTTPException, Request
 from pydantic import BaseModel, Field
 
 from . import gemini_pool as GP
+from . import respond as R
 from . import security as sec
+from . import sessions as S
 from . import tools as T
 from . import verify as V
+from .store import DocStore, default_store
 
 API = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 TIMEOUT_S = 25
@@ -111,9 +115,11 @@ class ChatRequest(BaseModel):
     history: list[Turn] = Field(default_factory=list, max_length=8)
     grounding: Grounding = Field(default_factory=Grounding)
     page: str | None = Field(default=None, max_length=40, pattern=r"^[a-z0-9-]*$")
-    provider: str | None = Field(default=None, pattern="^(gemini|ollama|rules)$")
+    provider: str | None = Field(default=None, pattern="^(gemini|ollama|rules|auto)$")
     age: float = Field(default=140.0, ge=0, le=2000)
     pm: bool = Field(default=True)
+    session_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
+    user: str | None = Field(default=None, pattern=r"^[a-zA-Z0-9_-]{8,64}$")
 
 
 @dataclass
@@ -206,18 +212,19 @@ def context_block(g: Grounding, page: str | None, results: list[T.Result] | None
     return "\n".join(out) or "(no facts yet: call a tool)"
 
 
-def _prompt(req: ChatRequest, results: list[T.Result]) -> str:
-    return (
-        f"CONTEXT:\n{context_block(req.grounding, req.page, results)}\n\nQUESTION: {req.question}"
-    )
+def _prompt(req: ChatRequest, results: list[T.Result], extra: str = "") -> str:
+    """CONTEXT (the session's remembered facts, the client's grounding, the pre-fetched tool
+    results), then the format for this kind of question, then the question."""
+    ctx = context_block(req.grounding, req.page, results)
+    return f"CONTEXT:\n{ctx}\n\n{extra}\n\nQUESTION: {req.question}".replace("\n\n\n\n", "\n\n")
 
 
-def build_body(req: ChatRequest, results: list[T.Result] | None = None) -> dict:
+def build_body(req: ChatRequest, results: list[T.Result] | None = None, extra: str = "") -> dict:
     contents = [
         {"role": "model" if t.role == "assistant" else "user", "parts": [{"text": t.text}]}
         for t in req.history
     ]
-    contents.append({"role": "user", "parts": [{"text": _prompt(req, results or [])}]})
+    contents.append({"role": "user", "parts": [{"text": _prompt(req, results or [], extra)}]})
     return {
         "systemInstruction": {"parts": [{"text": SYSTEM}]},
         "contents": contents,
@@ -261,13 +268,15 @@ def _post(url: str, key: str, body: dict) -> dict:
         return json.loads(r.read())
 
 
-def build_ollama_body(req: ChatRequest, model: str, results: list[T.Result] | None = None) -> dict:
+def build_ollama_body(
+    req: ChatRequest, model: str, results: list[T.Result] | None = None, extra: str = ""
+) -> dict:
     messages = [{"role": "system", "content": SYSTEM}]
     for t in req.history:
         messages.append(
             {"role": "assistant" if t.role == "assistant" else "user", "content": t.text}
         )
-    messages.append({"role": "user", "content": _prompt(req, results or [])})
+    messages.append({"role": "user", "content": _prompt(req, results or [], extra)})
     return {
         "model": model,
         "messages": messages,
@@ -308,8 +317,14 @@ class ModelError(Exception):
 
 # --------------------------------------------------------------------- the chat
 class Chat:
-    def __init__(self, settings: sec.Settings, chat: ChatSettings | None = None) -> None:
+    def __init__(
+        self,
+        settings: sec.Settings,
+        chat: ChatSettings | None = None,
+        store: DocStore | None = None,
+    ) -> None:
         self.s = settings
+        self.store = store or default_store()
         self.c = chat or ChatSettings.from_env()
         self.limiter = sec.RateLimiter(rate=0.2, burst=5)  # per client: 5 at once, then one per 5 s
         self.cap = DailyCap(self.c.daily_limit)
@@ -360,7 +375,7 @@ class Chat:
             return self.post(url, self.c.key, b)
 
         try:
-            data, meta["model"] = self.pool.call(post, body)
+            data, meta["model"] = self.pool.call(post, body, trace=meta.setdefault("skipped", []))
             return data
         except GP.AllBusy as e:
             raise ModelError(f"Gemini's rate limits: {e}") from None
@@ -383,7 +398,7 @@ class Chat:
         check,
         meta: dict,
     ) -> tuple[str, list[str]]:
-        body = build_body(req, results)
+        body = build_body(req, results, meta.get("extra", ""))
         retried = False
         for _ in range(MAX_ROUNDS + 1):
             data = self._gemini_post(body, meta)
@@ -422,7 +437,7 @@ class Chat:
         meta: dict,
     ) -> tuple[str, list[str]]:
         model = self.c.ollama_model or "qwen2.5:7b-instruct"
-        body = build_ollama_body(req, model, results)
+        body = build_ollama_body(req, model, results, meta.get("extra", ""))
         retried = False
         for _ in range(MAX_ROUNDS + 1):
             try:
@@ -461,6 +476,17 @@ class Chat:
         text = parse_ollama(self.post_ollama(self.c.ollama_url, body))
         return text, check(text)
 
+    def _provider(self, wanted: str | None) -> list[str]:
+        """The order models are tried in for the tab the operator chose: the chosen one first,
+        the other kind next, so a limit never stops the conversation; the tools come last."""
+        gem = bool(self.c.key)
+        loc = bool(self.c.ollama_model)
+        if wanted == "rules":
+            return []
+        if wanted == "ollama":
+            return [*(["ollama"] if loc else []), *(["gemini"] if gem else [])]
+        return [*(["gemini"] if gem else []), *(["ollama"] if loc else [])]
+
     async def ask(self, req: ChatRequest, request: Request) -> dict:
         origin = request.headers.get("origin")
         if (
@@ -475,38 +501,32 @@ class Chat:
         if not self.limiter.allow(client):
             raise HTTPException(status_code=429, detail="too many questions: wait a few seconds")
 
+        # the session: its turns become the model's history, its facts the shared context
+        user = request.headers.get("x-stf-user") or req.user
+        user = user if user and S.USER.match(user) else None
+        session = S.load(self.store, user, req.session_id, req.page) if user else None
+        memory = S.context_text(session) if session else ""
+        if session and not req.history:
+            req.history = [Turn(role=t["role"], text=t["text"]) for t in S.history(session)]
+
         ctx = T.Ctx(age=req.age, pm=req.pm, page=req.page, client=client)
         rules_text, results = T.rules_answer(req.question, ctx)
         called = [r.tool for r in results]
-
-        provider = req.provider
-        if provider is None:
-            provider = (
-                "gemini"
-                if self.c.key
-                else (
-                    "ollama"
-                    if self.c.ollama_model and await asyncio.to_thread(self._ollama_alive)
-                    else "rules"
-                )
-            )
-        if provider == "gemini" and not self.c.key:
-            provider, note = (
-                "rules",
-                "Gemini is not configured on the server; answered from the twin's tools.",
-            )
-        else:
-            note = None
+        style = R.classify(req.question, called)
+        extra = "\n\n".join(x for x in (memory, R.instruction(style)) if x)
 
         def evidence() -> str:
-            """What the answer may draw numbers from: the context and every tool result so far,
-            and the operator's own words (never the model's earlier answers)."""
+            """What the answer may draw numbers from: the context, the session's remembered
+            facts, every tool result so far, and the operator's own words (never the model's
+            earlier answers)."""
             mine = " ".join(t.text for t in req.history if t.role == "user")
             dumps = " ".join(json.dumps(r.as_dict(), ensure_ascii=False) for r in results)
-            return f"{context_block(req.grounding, req.page, results)} {dumps} {mine}"
+            return f"{context_block(req.grounding, req.page, results)} {memory} {dumps} {mine}"
 
         def check(answer: str) -> list[str]:
             return V.unverified(answer, evidence(), req.question)
+
+        switched: list[dict] = []
 
         def reply(
             answer: str, model: str, note: str | None = None, bad: list[str] | None = None
@@ -518,46 +538,108 @@ class Chat:
                 "sources": sources,
                 "links": links,
                 "tools": called,
+                "style": style,
+                "facts": [f for r in results if r.tool != "search_docs" for f in r.facts][:8],
             }
             if note:
                 out["note"] = note
             if bad:
                 out["unverified"] = bad
+            if switched:
+                out["switched"] = switched
+            if session is not None:
+                S.add_turn(session, "user", req.question)
+                S.add_turn(
+                    session,
+                    "assistant",
+                    answer,
+                    model=model,
+                    style=style,
+                    sources=sources,
+                    links=links,
+                    tools=called,
+                    note=note,
+                    unverified=bad,
+                    switched=switched,
+                )
+                S.remember(session, results)
+                S.save(self.store, user, session)
+                out["session"] = {
+                    "id": session["id"],
+                    "title": session["title"],
+                    "facts": len(session["context"]["facts"]),
+                    "models": session["context"]["models"],
+                }
             return out
 
-        if provider == "rules":
-            return reply(rules_text, "rules", note)
+        chain = self._provider(req.provider)
+        if not chain:
+            why = None
+            if req.provider != "rules":
+                why = "No model is configured; answered from the twin's tools."
+            return reply(rules_text, "rules", why)
         if not self.cap.take():
             raise HTTPException(status_code=429, detail="today's question budget is used up")
-        # Gemini (its models in turn) -> the local model -> the twin's tools: never an error page
-        chain = [provider] + (["ollama"] if provider == "gemini" and self.c.ollama_model else [])
+        # the chosen kind first, the other next (each Gemini model in turn), then the tools:
+        # a limit hands the question - with the session's context - to the next, never an error
         notes = []
-        for prov in chain:
-            if (
-                prov == "ollama"
-                and prov != provider
-                and not await asyncio.to_thread(self._ollama_alive)
-            ):
+        for i, prov in enumerate(chain):
+            if prov == "ollama" and not await asyncio.to_thread(self._ollama_alive):
+                notes.append("the local model is not running")
+                switched.append({"from": "local model", "to": "next", "why": "not running"})
                 continue
             run = self._gemini if prov == "gemini" else self._ollama
-            meta: dict = {}
+            meta: dict = {"extra": extra}
             try:
                 answer, bad = await asyncio.to_thread(run, req, ctx, results, called, check, meta)
             except ModelError as e:
-                notes.append(
-                    f"{'Gemini' if prov == 'gemini' else 'The local model'} unavailable ({e})"
-                )
+                who = "Gemini" if prov == "gemini" else "the local model"
+                notes.append(f"{who} unavailable ({e})")
+                for m, why in meta.get("skipped", []):
+                    switched.append({"from": m, "to": "next", "why": why})
+                if i + 1 < len(chain):
+                    nxt = "Gemini" if chain[i + 1] == "gemini" else "local model"
+                    switched.append(
+                        {
+                            "from": "Gemini" if prov == "gemini" else "local model",
+                            "to": nxt,
+                            "why": str(e),
+                        }
+                    )
                 continue
-            model = (
-                (meta.get("model") or self.c.model)
-                if prov == "gemini"
-                else (self.c.ollama_model or "ollama")
-            )
-            warn = [*notes]
+            for m, why in meta.get("skipped", []):
+                switched.append({"from": m, "to": meta.get("model"), "why": why})
+            if prov == "gemini":
+                model = meta.get("model") or self.c.model
+            else:
+                model = self.c.ollama_model or "ollama"
+            warn = []
             if bad:
                 warn.append(
                     f"Not backed by the twin's data: {', '.join(bad)} - "
                     "check these before relying on them"
                 )
             return reply(answer, model, "; ".join(warn) + "." if warn else None, bad)
-        return reply(rules_text, "rules", "; ".join(notes) + "; answered from the twin's tools.")
+        note = "Every model is busy (" + "; ".join(notes) + "); answered from the twin's tools."
+        return reply(rules_text, "rules", note)
+
+    # ------------------------------------------------------------------ history
+    def sessions(self, request: Request) -> list[dict]:
+        user = request.headers.get("x-stf-user", "")
+        if not S.USER.match(user):
+            return []
+        return self.store.list(S.COL, user, S.SUMMARY)
+
+    def session(self, request: Request, sid: str) -> dict:
+        user = request.headers.get("x-stf-user", "")
+        sid_ok = bool(re.match(r"^[a-f0-9]{32}$", sid))
+        doc = self.store.get(S.COL, user, sid) if S.USER.match(user) and sid_ok else None
+        if not doc:
+            raise HTTPException(status_code=404, detail="no such session")
+        return S.public(doc)
+
+    def forget(self, request: Request, sid: str) -> dict:
+        user = request.headers.get("x-stf-user", "")
+        ok = S.USER.match(user) and bool(re.match(r"^[a-f0-9]{32}$", sid))
+        ok = ok and self.store.delete(S.COL, user, sid)
+        return {"deleted": bool(ok)}

@@ -78,9 +78,19 @@ server keeps an ordered list and takes a model out for as long as Google's error
 then tries the next; when every Gemini model is out, a local model (Ollama) answers if one runs, and
 otherwise the twin's tools answer directly. `GET /chat/status` shows which models are free.
 
-**Spoken answers** (the speaker button on each answer, `POST /chat/tts`) use Gemini 2.5 Pro TTS first
-and the flash voices while its quota is closed - on the free tier the Pro voice has no quota at all,
-so it speaks only on a paid plan. Without any voice, the browser reads the answer with its own.
+**Conversations are kept** as JSON documents, one per session (`services/api/store.py`, under
+`STF_DATA_DIR`, default `.data/`), owned by an anonymous id the browser keeps. Each session carries a
+context store - the facts the tools established - that whichever model answers next is given, so a
+hand-over from Gemini to the local model keeps the thread. The store has the shape of a NoSQL one
+(get / put / delete / list by owner), so MongoDB or Firestore can replace it. On Render's free tier
+the disk is ephemeral: history lasts until the next deploy.
+
+**Spoken answers** (🔊 on each answer, and the Voice tab) go through one speech pipeline,
+`POST /chat/tts` - see `docs/TTS_PIPELINE.md` to use it from another site: ElevenLabs when
+`ELEVENLABS_API_KEY` is set, then Gemini TTS (2.5 Pro first, the flash voices while its quota is
+closed - on the free tier the Pro voice has none), then the computer's own voice (macOS `say`). Ollama
+serves language models, not speech. The Voice tab hears questions with the browser's speech
+recognition, or records them for `POST /chat/stt` (Gemini transcription) where the browser has none.
 
 | Variable | Default | |
 |---|---|---|
@@ -90,6 +100,10 @@ so it speaks only on a paid plan. Without any voice, the browser reads the answe
 | `GEMINI_TTS_MODELS` | `gemini-2.5-pro-preview-tts,gemini-2.5-flash-preview-tts,gemini-3.8-flash-tts` | voices in order |
 | `GEMINI_TTS_DAILY_LIMIT` | 100 | spoken answers a day, whole service |
 | `OLLAMA_URL`, `OLLAMA_MODEL` | `http://127.0.0.1:11434`, `qwen2.5:7b-instruct` | the local model, when it runs |
+| `TTS_PROVIDERS` | `elevenlabs,gemini,local` | the speech pipeline's order |
+| `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MODEL` | unset, a narrator voice, `eleven_multilingual_v2` | ElevenLabs |
+| `GEMINI_STT_MODELS` | the lite models, then 2.5 flash | transcription for the Voice tab |
+| `STF_DATA_DIR` | `.data/` | where conversations are stored |
 
 ## 4. Free-tier limits, and what "full scale" means here
 

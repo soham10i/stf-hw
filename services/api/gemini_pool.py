@@ -76,7 +76,7 @@ class Pool:
             self._why[model] = why
 
     def call(
-        self, post, body: dict, retryable=(429, 500, 503, 404), accept=None
+        self, post, body: dict, retryable=(429, 500, 503, 404), accept=None, trace=None
     ) -> tuple[dict, str]:
         """post(url, body) with the first available model; on a quota or overload error the
         model is taken out and the next one is tried. `accept(response)` may raise ValueError
@@ -94,8 +94,12 @@ class Pool:
                 if e.code not in retryable:
                     raise
                 self.out(m, cooldown_of(e), f"HTTP {e.code}")
+                if trace is not None:
+                    trace.append((m, "at its limit" if e.code == 429 else f"HTTP {e.code}"))
             except ValueError as e:
                 self.out(m, 60.0, f"unusable answer: {e}")
+                if trace is not None:
+                    trace.append((m, "no usable answer"))
         nxt = min((self._out.get(m, 0.0) for m in self.models), default=0.0) - self.clock()
         raise AllBusy(
             f"every model is at its limit ({', '.join(tried) or 'none free'}); "

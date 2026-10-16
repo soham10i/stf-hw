@@ -141,18 +141,20 @@ export const GUIDE: Record<string, PageGuide> = {
   },
   copilot: {
     title: "Copilot",
-    what: "Ask about the cell in plain words. A language model (Gemini, or a local model through Ollama) answers by calling the twin's own tools - health, alarms, the month, OEE, energy, carbon, the scheduler, vision, security, the documents, this page's guide and the running twin - and states only what they return, with citations. Without a model, the same tools answer directly (rules). The Ask button on every page does the same for that page.",
+    what: "Ask about the cell in plain words, by typing or by voice. A language model answers by calling the twin's own tools and states only what they return, with citations; the server checks every number before you see it. Conversations are kept in your history, and the facts each one establishes are kept with it.",
     read: [
-      "Type a question or pick one on the right. Ask several things at once if you like: the model calls as many tools as it needs.",
-      "Each answer names its sources, the tools it used, and links to the page with the detail.",
-      "Questions about what the cell is doing now need the 3D twin open in another tab.",
-      "Health questions use the machine age and PM setting on the right.",
+      "Pick a tab: Gemini (cloud models), Local (a model on this machine through Ollama) or Voice (speak, hear the answer).",
+      "If the model you chose is at its limit or not running, the next one answers with the same context - the chip on the answer says it switched.",
+      "Answers take the form the question needs: a figure, a table for comparisons, numbered steps for an alarm, a status card for 'now'.",
+      "Copy any question or answer; 🔊 reads an answer aloud.",
+      "History is on the left; the Context panel on the right lists what the conversation has established.",
     ],
     sections: [
-      ["Try", "Example questions, one per tool."],
-      ["Health questions use", "The machine age and maintenance setting the health answers are computed for."],
+      ["History", "Your earlier conversations; open one to continue it, × to delete it."],
+      ["Gemini / Local / Voice", "Which model answers first; the others take over when it cannot."],
+      ["Context", "The models that answered, the tools used and the facts found - what any model answering next is given."],
     ],
-    source: "The server's tools (services/api/tools.py) over the twin's exports and documents; the model and its tool calls in chat.py; scored on tests/copilot_eval.json. Offline (no server): copilot.ts in the browser.",
+    source: "The server's tools (services/api/tools.py), the model and its tool calls (chat.py), sessions and their context (sessions.py, store.py), speech (tts.py); scored on tests/copilot_eval.json.",
     terms: ["Health index (HI)", "RUL", "OEE"],
   },
   health: {
