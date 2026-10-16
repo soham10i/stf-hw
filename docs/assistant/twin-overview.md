@@ -23,7 +23,8 @@ in the top bar says whether the physics API is running or the twin runs entirely
   (weiss, rot, blau).
 
 Around them: a guard enclosure with doors and E-stops, a PLC cabinet, four remote I/O nodes, a
-central air station, drag chains and the wiring.
+central air station, an edge computer (OPC UA, MQTT Sparkplug, Unified Namespace), drag chains
+and the wiring.
 
 ## The product
 

@@ -45,6 +45,11 @@ BUF_AT = (1235.0, 1025.0)       # buffer plate corner, factory frame (translated
 AIR_AT = (1520.0, 1240.0)       # air station plate corner
 BUF_PLATE = (210.0, 160.0, 10.0)
 AIR_PLATE = (300.0, 230.0, 10.0)
+# The edge computer (2026-10-16): the free strip between the oven and the front of the
+# warehouse plate (inside the guard posts), outside the VGR's sweep like the air station. It hosts what the twin's connectivity already
+# models - the OPC UA server, the Sparkplug edge node and the UNS bridge - on real hardware.
+EDGE_AT = (1232.0, 35.0)
+EDGE_PLATE = (230.0, 112.0, 10.0)
 NEST_X = (35.0, 105.0, 175.0)   # nest centres, buffer frame
 NEST_Y = (40.0, 120.0)
 NEST_TOP = 45.0                 # = sorting BELT_Z: the cookie's underside in a Lagerstelle
@@ -149,6 +154,23 @@ def air_parts():
     return out
 
 
+def edge_parts():
+    out = []; A = out.append
+    A(Part("edge_plate", "frame", "box", (0, 0, -EDGE_PLATE[2]), EDGE_PLATE, "slate", "table"))
+    A(Part("edge_pc", "edge", "box", (10, 6, 0), (150, 100, 50), "darkgrey", "plate",
+           note="fanless industrial edge PC (x86, 8 GB, 64 GB SSD, 2 x GbE): runs the OPC UA server "
+                "(Machinery companion spec), the Sparkplug B edge node and the UNS bridge. Port 1 to "
+                "the cell switch through conduit C2 (allow-list only), port 2 to the site network"))
+    A(Part("edge_pc_heatsink", "edge", "box", (10, 6, 50), (150, 100, 8), "alu", "edge_pc",
+           note="finned aluminium lid: the PC's heat sink, so it needs no fan to clog with flour dust"))
+    A(Part("edge_pc_ports", "edge", "box", (160, 26, 10), (4, 60, 20), "black", "edge_pc",
+           note="2 x RJ45 (GbE), 2 x USB, 24 V DC input; link and activity LEDs"))
+    A(Part("edge_ups", "edge", "box", (185, 6, 0), (35, 100, 60), "darkgrey", "plate",
+           note="24 V DC UPS with supercapacitors: bridges a mains dip and gives the edge PC the "
+                "seconds it needs to shut down cleanly instead of corrupting its store"))
+    return out
+
+
 def outlets():
     """Factory-frame tops of the manifold outlets, oven / sorting / VGR / spare."""
     return [(AIR_AT[0] + 160 + k * 33, AIR_AT[1] + 152.5, 33.0) for k in range(4)]
@@ -159,7 +181,8 @@ def factory_parts(include_io=True):
     Upgrade 3's remote I/O nodes join it, so every proof that reads this list
     (check_cross, the VGR tours, the wiring router) sees them too."""
     out = []
-    for mod, at, parts in (("buffer", BUF_AT, buffer_parts()), ("air", AIR_AT, air_parts())):
+    for mod, at, parts in (("buffer", BUF_AT, buffer_parts()), ("air", AIR_AT, air_parts()),
+                           ("edge", EDGE_AT, edge_parts())):
         for p in parts:
             if p.group == "frame":
                 continue
@@ -173,7 +196,8 @@ def factory_parts(include_io=True):
 
 def rects():
     return {"buffer": [BUF_AT[0], BUF_AT[1], BUF_PLATE[0], BUF_PLATE[1]],
-            "air": [AIR_AT[0], AIR_AT[1], AIR_PLATE[0], AIR_PLATE[1]]}
+            "air": [AIR_AT[0], AIR_AT[1], AIR_PLATE[0], AIR_PLATE[1]],
+            "edge": [EDGE_AT[0], EDGE_AT[1], EDGE_PLATE[0], EDGE_PLATE[1]]}
 
 
 # ---------------------------------------------------------------- beam sag
@@ -263,6 +287,10 @@ def check(verbose=True):
     near = math.hypot(min(max(tx, ax), ax + AIR_PLATE[0]) - tx, min(max(ty, ay), ay + AIR_PLATE[1]) - ty)
     if near <= rmax:
         fails.append(f"air station inside the VGR's sweep ({near:.0f} <= {rmax:.0f} mm)")
+    ex, ey = EDGE_AT
+    near = math.hypot(min(max(tx, ex), ex + EDGE_PLATE[0]) - tx, min(max(ty, ey), ey + EDGE_PLATE[1]) - ty)
+    if near <= rmax:
+        fails.append(f"edge computer inside the VGR's sweep ({near:.0f} <= {rmax:.0f} mm)")
     for r in sag_report():
         if not r["ok"]:
             fails.append(f"SAG {r['member']}: {r['sag_mm']:.3f} mm > {r['limit_mm']} mm")

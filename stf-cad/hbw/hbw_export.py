@@ -77,7 +77,7 @@ def _upgrade_block(doc):
                 "vgr_stations": len(d["factory"]["stations"])}
     rep = U.report(doc)
     blk = {"name": "Upgrade 1 - central air, cookie buffer, stiff members",
-           "parts": pj(U.buffer_parts(), U.BUF_AT) + pj(U.air_parts(), U.AIR_AT),
+           "parts": pj(U.buffer_parts(), U.BUF_AT) + pj(U.air_parts(), U.AIR_AT) + pj(U.edge_parts(), U.EDGE_AT),
            "report": rep, "sag_before": base_sag,
            "buffer_tour": vgr_path.plan(vgr_path.buffer_tour()),
            "proofs": ["upgrade.check: plates on the table and clear of every module; nests "

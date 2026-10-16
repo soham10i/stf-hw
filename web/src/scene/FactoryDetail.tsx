@@ -114,11 +114,59 @@ export function ProfileBox({ p, s }: { p: [number, number, number]; s: [number, 
 type UpPart = { n: string; g: string; k: string; p: [number, number, number]; s: CadPart["s"]; c: string; mech: string };
 
 /** Upgrade 1's own parts (central air station, cookie buffer), factory frame. */
+/** The edge PC's finned aluminium lid: a base plate and fins along X, inside the lid's envelope. */
+function HeatSink({ at, size }: { at: [number, number, number]; size: [number, number, number] }) {
+  const [x, y, z] = at, [dx, dy, dz] = size, n = 14, t = 2.2, base = 2;
+  const alu = { color: "#c8cdd2", metalness: 0.7, roughness: 0.38 };
+  return (
+    <group>
+      <mesh position={v(x + dx / 2, y + dy / 2, z + base / 2)} castShadow receiveShadow>
+        <boxGeometry args={[dx * MM, base * MM, dy * MM]} /><meshStandardMaterial {...alu} />
+      </mesh>
+      {Array.from({ length: n }, (_, i) => {
+        const fy = y + (i + 0.5) * (dy / n);
+        return (
+          <mesh key={i} position={v(x + dx / 2, fy, z + base + (dz - base) / 2)} castShadow>
+            <boxGeometry args={[(dx - 4) * MM, (dz - base) * MM, t * MM]} /><meshStandardMaterial {...alu} />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
+/** The edge PC's port side: two RJ45 sockets with link/activity LEDs, two USB, the 24 V input.
+    The face is +X; everything stays inside the part's envelope. */
+function PortPanel({ at, size }: { at: [number, number, number]; size: [number, number, number] }) {
+  const [x, y, z] = at, [dx, dy, dz] = size, fx = x + dx;
+  const sock = (cy: number, w: number, h: number, k: string, col = "#0d0e10") => (
+    <mesh key={k} position={v(fx - 0.6, cy, z + dz / 2)}><boxGeometry args={[1.2 * MM, h * MM, w * MM]} />
+      <meshStandardMaterial color={col} roughness={0.6} /></mesh>
+  );
+  const led = (cy: number, cz: number, col: string, k: string) => (
+    <mesh key={k} position={v(fx - 0.3, cy, cz)}><boxGeometry args={[0.6 * MM, 1.6 * MM, 1.6 * MM]} />
+      <meshStandardMaterial color={col} emissive={col} emissiveIntensity={2.2} toneMapped={false} /></mesh>
+  );
+  const c = y + dy / 2;
+  return (
+    <group>
+      <mesh position={v(x + dx / 2, c, z + dz / 2)}><boxGeometry args={[dx * MM, dz * MM, dy * MM]} />
+        <meshStandardMaterial color="#1c1e22" roughness={0.5} /></mesh>
+      {sock(c - 20, 15, 13, "eth1")}{sock(c - 2, 15, 13, "eth2")}
+      {led(c - 25, z + dz - 2.5, "#3ddc84", "l1")}{led(c - 15, z + dz - 2.5, "#ffb020", "a1")}
+      {led(c - 7, z + dz - 2.5, "#3ddc84", "l2")}{led(c + 3, z + dz - 2.5, "#ffb020", "a2")}
+      {sock(c + 14, 12, 5, "usb1", "#1f4fa8")}{sock(c + 24, 6, 8, "dc", "#2a2a2a")}
+    </group>
+  );
+}
+
 export function UpgradeParts({ parts, module = "upgrade" }: { parts: UpPart[]; module?: string }) {
   const lib = useContext(PreciseLibCtx);
   return (
     <group>
       {parts.filter((q) => q.g !== "frame").map((q) => {
+        if (q.n === "edge_pc_heatsink") return <HeatSink key={q.n} at={q.p as [number, number, number]} size={boxSize(q)} />;
+        if (q.n === "edge_pc_ports") return <PortPanel key={q.n} at={q.p as [number, number, number]} size={boxSize(q)} />;
         // polycarbonate guard panels: clear, so the machine stays visible
         if (q.mech === "panel") {
           const s = boxSize(q);

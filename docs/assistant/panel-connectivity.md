@@ -1,6 +1,7 @@
 # Panel: Connectivity
 
-How the cell's data reaches other systems, three ways. Each sub-tab starts with a *Verified* line:
+How the cell's data reaches other systems, three ways. They run on the edge computer between the
+oven and the warehouse (see *Machine: Edge computer*). Each sub-tab starts with a *Verified* line:
 what its checks proved, including how many planted mutants they caught (a check that cannot fail
 proves nothing).
 

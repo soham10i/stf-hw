@@ -604,6 +604,33 @@ def _node_links(m, pb, pc, cond, grid, bundles, plc_pt, Z):
                         "points": [[round(v, 1) for v in p] for p in _dedupe(pts)]})
 
 
+def _edge_link(grid, bundles, plc_pt, Z):
+    """The edge computer: one Ethernet line from its port 1 to the cabinet's switch (the conduit
+    to cell control) and a fused 24 V feed from the electronic breaker, routed on the table like
+    the I/O nodes' links."""
+    import upgrade as U
+    ex, ey = U.EDGE_AT
+    pa = next(p for p in U.edge_parts() if p.name == "edge_pc_ports").local_aabb()
+    port = (ex + pa[3], ey + (pa[1] + pa[4]) / 2, pa[2] + 5)
+
+    def floor_run(a, b, key):
+        s_cell, t_cell = grid.nearest_free(a[0], a[1]), grid.nearest_free(b[0], b[1], toward=grid.cell(a[0], a[1]))
+        return [(i * CELL, j * CELL) for i, j in _simplify(grid.route(s_cell, t_cell, key))]
+
+    for key, end, duct_name, conds in (
+            ("bus", "eth_switch", "cable_duct", ["BUS"] * 4),
+            ("feed", "ecb_4ch", "duct_power", ["+24V", "0V"])):
+        d = plc_pt(duct_name, 0.5, 1.0)
+        e = plc_pt(end)
+        run = floor_run(port, (d[0], d[1] + 25), f"edge_{key}")
+        pts = [port, (run[0][0], run[0][1], port[2]), (run[0][0], run[0][1], Z + 3)]
+        pts += [(x, y, Z + 3) for x, y in run[1:]]
+        pts += [(d[0], d[1] + 5, Z + 3), (d[0], d[1] - 5, d[2] + 4), (d[0], e[1], d[2] + 4),
+                (e[0], e[1], e[2] + 16), (e[0], e[1], e[2])]
+        bundles.append({"module": f"edge:{key}", "conductors": conds,
+                        "points": [[round(v, 1) for v in p] for p in _dedupe(pts)]})
+
+
 def _chain_harness(grid, cables, boards, Z):
     """Upgrade 3: the moving devices' cables leave their chains at the fixed
     end (HBW travel chain) / the swivel axis (VGR tower duct) and run on the
@@ -858,6 +885,8 @@ def wires(doc):
         _safety(doc, grid, cables, plc_pt, Z)
     if UP3:
         _chain_harness(grid, cables, boards, Z)
+        if FL.UP1:
+            _edge_link(grid, bundles, plc_pt, Z)
     if UP4:
         _rfid_cables(grid, cables, Z)
     if UP5:

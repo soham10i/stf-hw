@@ -265,6 +265,12 @@
     1240.0,
     300.0,
     230.0
+   ],
+   "edge": [
+    1232.0,
+    35.0,
+    230.0,
+    112.0
    ]
   },
   "sketch": "top view supplied 2026-09-06: 1 PCB, 2 rack, 3 conveyor, 4 picker, 5 VGR, 6 oven, 7 sorting"
@@ -42375,6 +42381,186 @@
       97.5
      ]
     ]
+   },
+   {
+    "module": "edge:bus",
+    "conductors": [
+     "BUS",
+     "BUS",
+     "BUS",
+     "BUS"
+    ],
+    "points": [
+     [
+      1396.0,
+      91.0,
+      15
+     ],
+     [
+      1400.0,
+      85.0,
+      15
+     ],
+     [
+      1400.0,
+      85.0,
+      4.2
+     ],
+     [
+      1400.0,
+      355.0,
+      4.2
+     ],
+     [
+      1220.0,
+      355.0,
+      4.2
+     ],
+     [
+      1220.0,
+      395.0,
+      4.2
+     ],
+     [
+      895.0,
+      395.0,
+      4.2
+     ],
+     [
+      895.0,
+      385.0,
+      4.2
+     ],
+     [
+      645.0,
+      385.0,
+      4.2
+     ],
+     [
+      645.0,
+      415.0,
+      4.2
+     ],
+     [
+      315.0,
+      415.0,
+      4.2
+     ],
+     [
+      314.0,
+      395.0,
+      4.2
+     ],
+     [
+      314.0,
+      385.0,
+      64.0
+     ],
+     [
+      314.0,
+      126.0,
+      64.0
+     ],
+     [
+      180.0,
+      126.0,
+      118.5
+     ],
+     [
+      180.0,
+      126.0,
+      102.5
+     ]
+    ]
+   },
+   {
+    "module": "edge:feed",
+    "conductors": [
+     "+24V",
+     "0V"
+    ],
+    "points": [
+     [
+      1396.0,
+      91.0,
+      15
+     ],
+     [
+      1400.0,
+      85.0,
+      15
+     ],
+     [
+      1400.0,
+      85.0,
+      4.2
+     ],
+     [
+      1400.0,
+      355.0,
+      4.2
+     ],
+     [
+      1220.0,
+      355.0,
+      4.2
+     ],
+     [
+      1220.0,
+      395.0,
+      4.2
+     ],
+     [
+      895.0,
+      395.0,
+      4.2
+     ],
+     [
+      895.0,
+      385.0,
+      4.2
+     ],
+     [
+      645.0,
+      385.0,
+      4.2
+     ],
+     [
+      645.0,
+      415.0,
+      4.2
+     ],
+     [
+      260.0,
+      415.0,
+      4.2
+     ],
+     [
+      259.0,
+      395.0,
+      4.2
+     ],
+     [
+      259.0,
+      385.0,
+      64.0
+     ],
+     [
+      259.0,
+      164.0,
+      64.0
+     ],
+     [
+      180.0,
+      164.0,
+      113.5
+     ],
+     [
+      180.0,
+      164.0,
+      97.5
+     ]
+    ]
    }
   ],
   "power": [
@@ -43593,6 +43779,106 @@
     "tag": "",
     "mech": "",
     "note": ""
+   },
+   {
+    "n": "edge_plate",
+    "f": "world",
+    "g": "frame",
+    "k": "box",
+    "p": [
+     1232.0,
+     35.0,
+     -10.0
+    ],
+    "s": [
+     230.0,
+     112.0,
+     10.0
+    ],
+    "c": "#3a3f44",
+    "tag": "",
+    "mech": "",
+    "note": ""
+   },
+   {
+    "n": "edge_pc",
+    "f": "world",
+    "g": "edge",
+    "k": "box",
+    "p": [
+     1242.0,
+     41.0,
+     0
+    ],
+    "s": [
+     150,
+     100,
+     50
+    ],
+    "c": "#474b52",
+    "tag": "",
+    "mech": "",
+    "note": "fanless industrial edge PC (x86, 8 GB, 64 GB SSD, 2 x GbE): runs the OPC UA server (Machinery companion spec), the Sparkplug B edge node and the UNS bridge. Port 1 to the cell switch through conduit C2 (allow-list only), port 2 to the site network"
+   },
+   {
+    "n": "edge_pc_heatsink",
+    "f": "world",
+    "g": "edge",
+    "k": "box",
+    "p": [
+     1242.0,
+     41.0,
+     50
+    ],
+    "s": [
+     150,
+     100,
+     8
+    ],
+    "c": "#d6d9da",
+    "tag": "",
+    "mech": "",
+    "note": "finned aluminium lid: the PC's heat sink, so it needs no fan to clog with flour dust"
+   },
+   {
+    "n": "edge_pc_ports",
+    "f": "world",
+    "g": "edge",
+    "k": "box",
+    "p": [
+     1392.0,
+     61.0,
+     10
+    ],
+    "s": [
+     4,
+     60,
+     20
+    ],
+    "c": "#2b2b2f",
+    "tag": "",
+    "mech": "",
+    "note": "2 x RJ45 (GbE), 2 x USB, 24 V DC input; link and activity LEDs"
+   },
+   {
+    "n": "edge_ups",
+    "f": "world",
+    "g": "edge",
+    "k": "box",
+    "p": [
+     1417.0,
+     41.0,
+     0
+    ],
+    "s": [
+     35,
+     100,
+     60
+    ],
+    "c": "#474b52",
+    "tag": "",
+    "mech": "",
+    "note": "24 V DC UPS with supercapacitors: bridges a mains dip and gives the edge PC the seconds it needs to shut down cleanly instead of corrupting its store"
    }
   ],
   "report": {
@@ -43740,6 +44026,12 @@
      1240.0,
      300.0,
      230.0
+    ],
+    "edge": [
+     1232.0,
+     35.0,
+     230.0,
+     112.0
     ]
    },
    "outlets": [
@@ -59468,8 +59760,8 @@
     "blocked_by": [
      "convection_fan_motor"
     ],
-    "side": "+x",
-    "from": "side +x",
+    "side": "-x",
+    "from": "side -x",
     "door": "C",
     "reach_mm": 799,
     "in_reach": true,
@@ -60181,5 +60473,5 @@
   },
   "assumed": "tolerance contributors, densities (ft blocks 35 % solid PA6, profiles 45 % alu), the profile section area, the reach"
  },
- "fingerprint": "73baa31a75252be7"
+ "fingerprint": "af23193285c05d49"
 }
