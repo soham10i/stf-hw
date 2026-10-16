@@ -510,3 +510,18 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .sf-how { margin: 0; padding-left: 16px; font-size: 12px; color: var(--muted); } .sf-how li { margin-bottom: 4px; } .sf-how b { color: var(--text, inherit); }
 .sf-line { font-size: 12px; color: var(--muted); margin: 8px 0; } .sf-line .warn { color: var(--warn); }
 .sf-rows i.plr-a, .sf-rows i.plr-b { color: var(--ok); } .sf-rows i.plr-c { color: var(--warn); } .sf-rows i.plr-d, .sf-rows i.plr-e { color: var(--bad); }
+
+/* Remote I/O: fill bars instead of number tables */
+.io-fill { display: block; height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; min-width: 40px; }
+.io-fill i { display: block; height: 100%; background: var(--ok); opacity: .75; border-radius: 4px; }
+.io-fill.hi i { background: var(--warn); }
+.io-grid { display: grid; gap: 7px 10px; align-items: center; font-size: 12px; }
+.io-grid > em { font-style: normal; font-size: 11px; color: var(--faint); font-family: var(--mono); }
+.io-grid > b { font-weight: 600; font-family: var(--mono); font-size: 11.5px; cursor: default; }
+.io-na { color: var(--faint); font-size: 11px; }
+.io-chains .io-fill { flex: 0 0 64px; }
+.io-chains em { min-width: 32px; text-align: right; }
+.io-chains b { min-width: 44px; }
+.io-chains i.plr-a { color: var(--ok); } .io-chains i.plr-e { color: var(--bad); }
+.io-rail { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: center; font-size: 12px; cursor: default; }
+.io-rail em { grid-column: 1 / -1; font-style: normal; font-size: 11.5px; color: var(--muted); }

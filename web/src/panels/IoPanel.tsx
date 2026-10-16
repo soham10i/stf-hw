@@ -1,32 +1,33 @@
 import type { ChainsDoc, Io3Doc } from "../shared/model";
-import { Note, Proofs, Title } from "./kit";
+import { Note, Proofs } from "./kit";
 
 // Upgrade 3's remote I/O, drag chains and cabinet, straight from io_nodes.py,
 // chains.py and plc_model.py.
+
+/** A thin fill bar; tone "hi" once the value passes the limit. */
+function Fill({ v, limit = 1, title }: { v: number; limit?: number; title?: string }) {
+  return <span className={`io-fill ${v > limit ? "hi" : ""}`} title={title}><i style={{ width: `${Math.min(1, v) * 100}%` }} /></span>;
+}
+
 export function IoPanel({ io, ch }: { io: Io3Doc; ch: ChainsDoc }) {
   const types = ["DI", "DO", "AI", "CNT", ...(Object.values(io.nodes).some((n) => n.slices.some((s) => s.type === "IOL")) ? ["IOL"] : [])];
   return (
     <section className="panel upgrade io3">
-      <Title up="Upgrade 3" lead="Each module has its own I/O node; moving cables ride in drag chains; one tidy cabinet.">
-        Remote I/O, chains, cabinet</Title>
+      <p className="sf-line">{Object.keys(io.nodes).length} I/O nodes · {ch.rows.length} drag chains · 1 cabinet, all 5 export checks pass</p>
 
-      <h3>I/O nodes (Modbus TCP) · channels used</h3>
-      <table className="kv up-table">
-        <thead><tr><td>module</td>{types.map((t) => <td key={t} className="num">{t}</td>)}</tr></thead>
-        <tbody>
-          {Object.entries(io.nodes).map(([m, n]) => (
-            <tr key={m} title={n.where}>
-              <td>{m}<div className="muted small">{n.where} · {n.length} mm rail</div></td>
-              {types.map((t) => {
-                const sl = n.slices.filter((s) => s.type === t);
-                const used = sl.reduce((a, s) => a + s.channels.filter(Boolean).length, 0);
-                const cap = sl.reduce((a, s) => a + s.channels.length, 0);
-                return <td key={t} className="num">{cap ? `${used}/${cap}` : "–"}</td>;
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <h3>I/O nodes <em className="sf-std">Modbus TCP · channels used</em></h3>
+      <div className="io-grid" style={{ gridTemplateColumns: `minmax(56px, auto) repeat(${types.length}, minmax(0, 1fr))` }}>
+        <span />{types.map((t) => <em key={t}>{t}</em>)}
+        {Object.entries(io.nodes).map(([m, n]) => [
+          <b key={m} title={`${n.where} · ${n.length} mm rail`}>{m}</b>,
+          ...types.map((t) => {
+            const sl = n.slices.filter((x) => x.type === t);
+            const used = sl.reduce((a, x) => a + x.channels.filter(Boolean).length, 0);
+            const cap = sl.reduce((a, x) => a + x.channels.length, 0);
+            return cap ? <Fill key={m + t} v={used / cap} limit={1 - io.spare_min} title={`${m} ${t}: ${used}/${cap} channels`} /> : <span key={m + t} className="io-na">–</span>;
+          }),
+        ])}
+      </div>
       <Note title="What changed">
         Each module's ST3 now lands on a node beside its PCB. Only an Ethernet line and a fused 24 V feed run
         to the cabinet (the 34-way bundles are gone). Every signal is on exactly one channel, with at least{" "}
@@ -34,34 +35,24 @@ export function IoPanel({ io, ch }: { io: Io3Doc; ch: ChainsDoc }) {
         sweep, so its node stands in the free corner.
       </Note>
 
-      <h3>Drag chains</h3>
-      <table className="kv up-table">
-        <thead><tr><td>chain</td><td className="num">stroke</td><td className="num">R</td><td className="num">fill</td></tr></thead>
-        <tbody>
-          {ch.rows.map((r) => (
-            <tr key={r.module + r.id} title={r.devices.join(", ")}>
-              <td>{r.module} {r.id}<div className="muted small">{r.devices.length} devices · {r.conductors} conductors · L {r.length} mm</div></td>
-              <td className="num">{r.stroke[1] - r.stroke[0]}</td>
-              <td className="num">{r.R} ≥ {r.bend_min}</td>
-              <td className="num">{Math.round(r.fill * 100)} %</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <h3>Drag chains <em className="sf-std">fill · bend radius</em></h3>
+      <ul className="sf-rows io-chains">
+        {ch.rows.map((r) => (
+          <li key={r.module + r.id} title={`${r.devices.length} devices: ${r.devices.join(", ")}\n${r.conductors} conductors · L ${r.length} mm · stroke ${r.stroke[1] - r.stroke[0]} mm`}>
+            <b>{r.module}</b><span>{r.id}</span>
+            <Fill v={r.fill} limit={ch.rules.fill_max} /><em>{Math.round(r.fill * 100)} %</em>
+            <i className={r.R >= r.bend_min ? "plr-a" : "plr-e"}>{r.R >= r.bend_min ? "✓" : "✗"} R {r.R} ≥ {r.bend_min}</i>
+          </li>
+        ))}
+      </ul>
       <Note title="Chain rules and the swivel">{ch.swivel}. Rules: {ch.rules.bend}, fill ≤ {Math.round(ch.rules.fill_max * 100)} %,
         unsupported span ≤ {ch.rules.self_support_mm} mm. {ch.sizes}. Open “Drag chain” under Mechanisms in the view list for the chain in 3D.</Note>
 
-      <h3>Cabinet (EN 60204-1)</h3>
-      <table className="kv up-table">
-        <tbody>
-          <tr><td>DIN rail</td><td className="num">{io.rail.used_mm} / {io.rail.length_mm} mm</td>
-            <td className={`num ${io.rail.free >= 0.2 ? "up-good" : "up-cost"}`}>{Math.round(io.rail.free * 100)} % free</td></tr>
-          <tr><td colSpan={3} className="muted small">
-            3 DIO + AIO out → Ethernet switch + 4-ch electronic breaker in. PE on its own busbar, power and
-            signal in separate ducts.
-          </td></tr>
-        </tbody>
-      </table>
+      <h3>Cabinet <em className="sf-std">EN 60204-1</em></h3>
+      <div className="io-rail" title="3 DIO + AIO out; Ethernet switch + 4-ch electronic breaker in. PE on its own busbar, power and signal in separate ducts.">
+        <span>DIN rail</span><Fill v={io.rail.used_mm / io.rail.length_mm} limit={0.8} />
+        <em>{io.rail.used_mm} / {io.rail.length_mm} mm · {Math.round(io.rail.free * 100)} % free</em>
+      </div>
 
       <Proofs items={[
         "allocation: every Belegungsplan signal on exactly one channel, ≥ 20 % spare per type",
