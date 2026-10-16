@@ -49,14 +49,16 @@ export default function App() {
   const [showZones, setShowZones] = usePersistent("stf.zones", true);
   const [open, setOpen] = usePersistent("stf.side.open", window.innerWidth >= 900);
   const [panelId, setPanelId] = usePersistent("stf.side.tab", "orders");
+  const [pinned, setPinned] = usePersistent("stf.side.pinned", false);
+  const [sideW, setSideW] = usePersistent("stf.side.width", 380);
+  const nudge = () => requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
   const [netZonesAsked, setNetZones] = useState(false);
   const ctx: PanelCtx | null = machine.doc ? { doc: machine.doc, scene, showZones, setShowZones, setNetZones } : null;
   const panels = ctx ? PANELS.filter((p) => p.available(ctx)) : [];
   const active = panels.find((p) => p.id === panelId) ?? panels[0];
   const toggle = () => {
     setOpen(!open);
-    // the Canvas remeasures on resize; some embedded browsers need the nudge
-    requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+    nudge(); // the Canvas remeasures on resize; some embedded browsers need the nudge
   };
   const pick = (id: string) => {
     if (open && id === active?.id) return toggle();
@@ -75,7 +77,11 @@ export default function App() {
       {view.kind === "component" && comps.doc && <ComponentView id={view.id} doc={comps.doc} />}
 
       {view.kind === "machine" && (
-        <div className="body">
+        <div className="body" style={{ "--float": open && !pinned && ctx ? `${sideW + 8}px` : "0px" } as React.CSSProperties}>
+          {ctx && active && (
+            <SidePanel panels={panels} active={active} open={open} pinned={pinned} width={sideW} ctx={ctx}
+              onPick={pick} onToggle={toggle} onPin={() => { setPinned(!pinned); nudge(); }} onWidth={(w) => { setSideW(w); nudge(); }} />
+          )}
           <div className="viewport">
             {apiError && <div className="error">{apiError}</div>}
             {machine.err && <div className="error">{machine.err}</div>}
@@ -110,9 +116,6 @@ export default function App() {
               </ErrorBoundary>
             )}
           </div>
-          {ctx && active && (
-            <SidePanel panels={panels} active={active} open={open} onPick={pick} onToggle={toggle} ctx={ctx} />
-          )}
         </div>
       )}
     </div>

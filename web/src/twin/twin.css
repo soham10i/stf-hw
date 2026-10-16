@@ -37,7 +37,7 @@
   padding: 8px 14px; border-radius: 10px; font-size: 12.5px; background: var(--bad-weak); color: var(--bad);
   border: 1px solid color-mix(in srgb, var(--bad) 30%, transparent); backdrop-filter: blur(8px);
 }
-.vp-tools { position: absolute; top: 12px; left: 12px; z-index: 3; display: flex; gap: 8px; flex-wrap: wrap; }
+.vp-tools { position: absolute; top: 12px; left: calc(12px + var(--float, 0px)); transition: left .18s; z-index: 3; display: flex; gap: 8px; flex-wrap: wrap; }
 .vp-pill {
   display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 999px;
   background: color-mix(in srgb, var(--surface) 78%, transparent); border: 1px solid var(--border); backdrop-filter: blur(10px);
@@ -49,7 +49,7 @@
 .vp-phase { color: var(--muted); font-weight: 400; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vp-phase:empty { display: none; }
 .wire-legend {
-  position: absolute; left: 12px; bottom: 12px; top: auto; right: auto; z-index: 3; max-width: 300px;
+  position: absolute; left: calc(12px + var(--float, 0px)); bottom: 12px; top: auto; right: auto; z-index: 3; max-width: 300px; transition: left .18s;
   background: color-mix(in srgb, var(--surface) 85%, transparent); border: 1px solid var(--border); border-radius: 12px;
   backdrop-filter: blur(10px); color: var(--text); box-shadow: var(--shadow); padding: 8px 12px; font-size: 12px;
 }
@@ -60,7 +60,7 @@
 /* ------------------------------------------------------------ rail + side panel */
 .rail {
   width: 52px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0;
-  border-left: 1px solid var(--border); background: var(--surface);
+  border-right: 1px solid var(--border); background: var(--surface); z-index: 7;
 }
 .rail button {
   position: relative; width: 38px; height: 38px; border: 0; border-radius: 10px; background: transparent;
@@ -68,9 +68,9 @@
 }
 .rail button:hover { background: var(--raised); color: var(--text); }
 .rail button.on { background: var(--accent-weak); color: var(--accent); }
-.rail button.on::before { content: ""; position: absolute; right: -7px; top: 9px; bottom: 9px; width: 3px; border-radius: 3px; background: var(--accent); }
+.rail button.on::before { content: ""; position: absolute; left: -7px; top: 9px; bottom: 9px; width: 3px; border-radius: 3px; background: var(--accent); }
 .rail button::after {
-  content: attr(data-tip); position: absolute; right: 46px; top: 50%; transform: translateY(-50%) translateX(4px);
+  content: attr(data-tip); position: absolute; left: 46px; top: 50%; transform: translateY(-50%) translateX(-4px);
   padding: 5px 9px; border-radius: 7px; background: var(--text); color: var(--bg); font: 500 12px var(--font);
   white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .12s, transform .12s; z-index: 30;
 }
@@ -78,10 +78,33 @@
 .rail-sp { flex: 1; }
 
 .side {
-  width: 380px; flex: none; display: flex; flex-direction: column; min-height: 0;
-  background: var(--surface-2); border-left: 1px solid var(--border); animation: side-in .18s ease;
+  width: 380px; flex: none; display: flex; flex-direction: column; min-height: 0; position: relative;
+  background: var(--surface-2); animation: side-in .18s ease;
 }
-@keyframes side-in { from { opacity: 0; transform: translateX(10px); } }
+@keyframes side-in { from { opacity: 0; transform: translateX(-10px); } }
+/* pinned: its own column beside the canvas */
+.side.pinned { border-right: 1px solid var(--border); }
+/* floating: over the canvas, frosted glass so the machine shows through */
+.side.float {
+  position: absolute; left: 60px; top: 8px; bottom: 8px; z-index: 6; border-radius: 16px;
+  background: color-mix(in srgb, var(--surface-2) 52%, transparent);
+  -webkit-backdrop-filter: blur(28px) saturate(185%); backdrop-filter: blur(28px) saturate(185%);
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .28), inset 0 1px 0 color-mix(in srgb, #fff 18%, transparent);
+}
+.side.float .side-head { border-bottom-color: color-mix(in srgb, var(--text) 10%, transparent); }
+.side.float .side-body .panel { background: color-mix(in srgb, var(--surface) 55%, transparent); border-color: color-mix(in srgb, var(--text) 9%, transparent); }
+.side.dragging { animation: none; user-select: none; }
+.side-pin { color: var(--faint); } .side-pin.on { color: var(--accent); }
+.side-pin svg { transform: rotate(45deg); transition: transform .15s; } .side-pin.on svg { transform: none; }
+.side-close svg { transform: scaleX(-1); }
+/* the grip on the panel's outer edge: drag to resize, click to fold; on the rail's edge when folded */
+.side-grip { position: absolute; top: 50%; right: -7px; width: 14px; height: 56px; transform: translateY(-50%); z-index: 8;
+  display: grid; place-items: center; cursor: ew-resize; touch-action: none; }
+.side-grip i { width: 5px; height: 40px; border-radius: 99px; background: color-mix(in srgb, var(--text) 38%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg) 60%, transparent); transition: background .15s, height .15s; }
+.side-grip:hover i, .side.dragging .side-grip i { background: var(--accent); height: 52px; }
+.side-grip.closed { left: 52px; right: auto; cursor: pointer; width: 16px; }
+.side-grip.closed i { width: 6px; border-radius: 0 99px 99px 0; }
 .side-head { display: flex; align-items: center; gap: 9px; height: 50px; padding: 0 8px 0 16px; border-bottom: 1px solid var(--border); color: var(--muted); }
 .side-head b { color: var(--text); font-size: 14px; font-weight: 600; flex: 1; }
 .side-body { flex: 1; overflow-y: auto; padding: 12px; }
@@ -142,7 +165,7 @@
   .topbar { grid-template-columns: auto 1fr; height: auto; padding: 8px 12px; row-gap: 8px; }
   .brand div { display: none; }
   .top-actions { grid-column: 1 / -1; justify-content: flex-end; }
-  .side { position: absolute; right: 52px; top: 0; bottom: 0; z-index: 6; width: min(380px, calc(100vw - 64px)); box-shadow: var(--shadow); }
+  .side, .side.pinned, .side.float { position: absolute; left: 52px; top: 0; bottom: 0; z-index: 6; width: min(380px, calc(100vw - 64px)) !important; border-radius: 0; box-shadow: var(--shadow); }
   /* pinned to the screen edges: a hidden 320px popover still counts towards the page width,
      and on a phone it widened the page past the screen */
   .view-pop { position: fixed; top: 96px; left: 16px; right: 16px; width: auto; }
