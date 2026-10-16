@@ -24,6 +24,8 @@ RUN pip install --no-cache-dir "pydantic>=2.9" "pyyaml>=6.0" "numpy>=1.26" \
     "fastapi>=0.115" "uvicorn[standard]>=0.30" "websockets>=13"
 COPY packages/ packages/
 COPY services/ services/
+# the copilot's page guides (tools.page_guide); the twin's data it reads is in web/dist
+COPY docs/assistant/ docs/assistant/
 COPY --from=web /app/web/dist web/dist
 RUN useradd --create-home --uid 10001 stf && chown -R stf /app
 USER stf

@@ -15,7 +15,21 @@ from typing import Any
 
 from .names import clean_deep
 
-PUBLIC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "web", "public"))
+
+def _public_dir() -> str:
+    """Where the twin's exports are: STF_PUBLIC_DIR if set; web/public in a checkout; else the
+    built web app the server serves (STF_WEB_DIST) - the Docker image ships only that, and the
+    build copies web/public into it."""
+    if os.environ.get("STF_PUBLIC_DIR"):
+        return os.environ["STF_PUBLIC_DIR"]
+    src = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "web", "public"))
+    dist = os.environ.get("STF_WEB_DIST")
+    if os.path.isdir(src) or not dist:
+        return src
+    return dist
+
+
+PUBLIC_DIR = _public_dir()
 
 STOP_WORDS = set(
     "a an the of to in on at for and or is are was were be been it its this that what which "

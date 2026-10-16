@@ -55,3 +55,7 @@ services:
         value: "300"
       - key: GEMINI_TTS_DAILY_LIMIT  # spoken answers a day (Gemini TTS)
         value: "100"
+      - key: ELEVENLABS_API_KEY      # optional: the first voice when set (docs/TTS_PIPELINE.md)
+        sync: false
+      - key: OLLAMA_MODEL            # no local model on Render: Gemini models in turn, then the tools
+        value: ""
