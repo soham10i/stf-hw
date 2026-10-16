@@ -47,6 +47,7 @@ export default function App() {
 
   // ----------------------------------------------------------- the panels
   const [showZones, setShowZones] = usePersistent("stf.zones", true);
+  const [showCover, setShowCover] = usePersistent("stf.cover", true);
   const [open, setOpen] = usePersistent("stf.side.open", window.innerWidth >= 900);
   const [panelId, setPanelId] = usePersistent("stf.side.tab", "orders");
   const [pinned, setPinned] = usePersistent("stf.side.pinned", false);
@@ -76,6 +77,7 @@ export default function App() {
       if (e.metaKey || e.ctrlKey || e.altKey || t.closest("input, textarea, select, [contenteditable]")) return;
       if (e.key === "[") toggle();
       else if (e.key.toLowerCase() === "p" && open) { setPinned(!pinned); nudge(); }
+      else if (e.key.toLowerCase() === "c") setShowCover(!showCover);
       else if (/^[1-9]$/.test(e.key) && panels[+e.key - 1]) pick(panels[+e.key - 1].id);
     };
     window.addEventListener("keydown", key);
@@ -115,7 +117,7 @@ export default function App() {
             {machine.doc && (
               <ErrorBoundary>
                 <Canvas shadows dpr={[1, 2]} gl={{ preserveDrawingBuffer: true }}>
-                  <HbwCadStage doc={machine.doc} onPhase={setPhase} showZones={showZones && !netZones} netZones={netZones} />
+                  <HbwCadStage doc={machine.doc} onPhase={setPhase} showZones={showZones && !netZones} netZones={netZones} showCover={showCover} />
                 </Canvas>
               </ErrorBoundary>
             )}
@@ -127,6 +129,12 @@ export default function App() {
               </span>
               {waiting && ctx && <button className="vp-cta" onClick={order}><Icon name="plus" size={14} />Place an order</button>}
               <span className="vp-sep" />
+              {machine.doc?.safety && (
+                <button className={`vp-btn ${showCover ? "" : "off"}`} onClick={() => setShowCover(!showCover)} aria-pressed={showCover}
+                  title="Show or hide the enclosure: guard frame, polycarbonate panels and doors (C)">
+                  <Icon name="cube" size={15} />Enclosure
+                </button>
+              )}
               {machine.doc?.safety && !netZones && (
                 <button className={`vp-btn ${showZones ? "on" : ""}`} onClick={() => setShowZones(!showZones)}
                   title="Show or hide the hazard zones: the swept envelopes of the moving arms" aria-pressed={showZones}>

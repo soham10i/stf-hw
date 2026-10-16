@@ -353,13 +353,15 @@ export interface WiringDoc {
   power: { name: string; conductors: string[]; points: number[][] }[];
 }
 
-export function Wiring({ w }: { w: WiringDoc }) {
+/** The cables, bundles, mains and air hoses. Without the enclosure, the cables to the devices
+    mounted on it (E-stops, door switches, reset) go too. */
+export function Wiring({ w, cover = true }: { w: WiringDoc; cover?: boolean }) {
   const hoses = useMemo(() => w.hoses.map((h) => ({
     main: !!h.main, pts: h.points.map((q) => new THREE.Vector3(q[0], q[1], q[2])),
   })), [w]);
   return (
     <group>
-      {w.cables.map((c) => <Run key={c.module + c.part} points={c.points} conductors={c.conductors} roles={w.roles} />)}
+      {w.cables.filter((c) => cover || c.module !== "safety" || c.part.startsWith("air_")).map((c) => <Run key={c.module + c.part} points={c.points} conductors={c.conductors} roles={w.roles} />)}
       {w.bundles.map((b) => <Run key={b.module} points={b.points} conductors={b.conductors} roles={w.roles} radius={0.8} pitch={1.9} />)}
       {w.power.map((p) => <Run key={p.name} points={p.points} conductors={p.conductors} roles={w.roles} radius={1.1} pitch={2.6} />)}
       {hoses.map((h, i) => <Conductor key={i} pts={h.pts} colour={w.roles.AIR.colour} radius={h.main ? 3 : 2} translucent />)}

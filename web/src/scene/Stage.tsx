@@ -83,8 +83,8 @@ function camDir() {
     ? new THREE.Vector3(v[0], v[1], v[2]) : new THREE.Vector3(-0.78, 0.62, -0.62);
 }
 
-export function HbwCadStage({ doc, onPhase, showZones = false, netZones = false }: {
-  doc: CadDoc; onPhase: (s: string) => void; showZones?: boolean; netZones?: boolean;
+export function HbwCadStage({ doc, onPhase, showZones = false, netZones = false, showCover = true }: {
+  doc: CadDoc; onPhase: (s: string) => void; showZones?: boolean; netZones?: boolean; showCover?: boolean;
 }) {
   const [px, py] = doc.factory.plate;
   const [precise, setPrecise] = useState<PreciseLib | null>(null);
@@ -182,14 +182,15 @@ export function HbwCadStage({ doc, onPhase, showZones = false, netZones = false 
       <FlowBarriers doc={doc} />
       <PlcCabinet parts={doc.plc.parts as never} at={doc.plc.at} />
       {doc.upgrade && <PreciseScope module="upgrade"><UpgradeParts parts={doc.upgrade.parts as never} module="upgrade" /></PreciseScope>}
-      {doc.safety && <UpgradeParts parts={doc.safety.parts as never} module="safety" />}
+      {/* the enclosure: guard frame, panels, doors and what is mounted on them */}
+      {doc.safety && showCover && <UpgradeParts parts={doc.safety.parts as never} module="safety" />}
       {doc.io3 && <UpgradeParts parts={doc.io3.parts as never} module="io-own" />}
       {doc.safety && showZones && <HazardZones hazards={doc.safety.hazards} />}
       {netZones && doc.io3 && doc.safety && (
         <SecurityOverlay io={doc.io3.parts as never} plc={doc.plc as never} safety={doc.safety.parts as never}
           ips={{ hbw: "192.168.10.11", vgr: "192.168.10.12", oven: "192.168.10.13", sorting: "192.168.10.14" }} />
       )}
-      <Wiring w={doc.wiring} />
+      <Wiring w={doc.wiring} cover={showCover} />
       {/* Rigid placement of the proven module onto the table: +90 deg about the
           factory Z, which in three is -90 deg about Y, then translate. */}
       <group
