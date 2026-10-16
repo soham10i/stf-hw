@@ -53,3 +53,5 @@ services:
         sync: false
       - key: GEMINI_DAILY_LIMIT
         value: "300"
+      - key: GEMINI_TTS_DAILY_LIMIT  # spoken answers a day (Gemini TTS)
+        value: "100"

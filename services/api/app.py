@@ -13,6 +13,8 @@ Endpoints:
     GET  /chat/status   is the dashboard's LLM chat on (GEMINI_API_KEY set)?
     POST /chat          a question -> the copilot's answer, from the twin's tools (chat.py)
     POST /twin/state    the open 3D twin's live snapshot, for the chat's live_state tool (live.py)
+    GET  /chat/tts/status  the voices and which voice models have quota left
+    POST /chat/tts      an answer read aloud by a Gemini voice -> audio/wav (tts.py)
     WS   /ws            live world frames at ~30 Hz
     GET  /stf/...       the built web app, when STF_WEB_DIST points at it (one-service deploy,
                         see docs/DEPLOY.md); / redirects there
@@ -40,6 +42,7 @@ from . import live, wire
 from . import security as sec
 from .chat import Chat, ChatRequest
 from .runtime import SimRuntime
+from .tts import Tts, TtsRequest
 
 # STF_TIME_SCALE speeds up (or slows) the DEMO only - it multiplies how much sim
 # time each real second advances. The physics is unchanged; a move still takes
@@ -52,6 +55,7 @@ settings = sec.Settings.from_env()
 command_guard = sec.CommandGuard(settings)
 ws_clients = sec.ClientCounter(settings.max_ws_clients)
 chat = Chat(settings)
+tts = Tts(settings)
 WS_MAX_MSG = 1024  # bytes: the client only ever sends {"type": "resync"}
 
 
@@ -158,6 +162,17 @@ async def chat_status() -> dict:
 async def chat_ask(req: ChatRequest, request: Request) -> dict:
     """The copilot: a language model answering from the twin's tools (chat.py)."""
     return await chat.ask(req, request)
+
+
+@app.get("/chat/tts/status")
+async def tts_status() -> dict:
+    return tts.status()
+
+
+@app.post("/chat/tts")
+async def tts_speak(req: TtsRequest, request: Request):
+    """The answer read aloud: Gemini 2.5 Pro TTS, the flash voices when its quota is closed."""
+    return await tts.speak(req, request)
 
 
 _state_limit = sec.RateLimiter(rate=2.0, burst=4)

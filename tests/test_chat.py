@@ -343,3 +343,100 @@ def test_a_persistent_invention_is_flagged():
     out = ask(chat, {"question": "how is the belt doing?"})
     assert len(sent) == 2, "one retry, not a loop"
     assert out["unverified"] == ["70"] and "Not backed" in out["note"]
+
+
+def _http(code, retry=None):
+    body = (
+        {
+            "error": {
+                "details": [
+                    {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": retry}
+                ]
+            }
+        }
+        if retry
+        else {}
+    )
+    import io
+
+    return urllib.error.HTTPError(
+        "https://x", code, "limit", {}, io.BytesIO(json.dumps(body).encode())
+    )
+
+
+def test_a_model_at_its_limit_hands_over_to_the_next():
+    chat = C.Chat(
+        sec.Settings.from_env(),
+        C.ChatSettings(key=KEY, model="m-a", daily_limit=100, models=["m-b", "m-c"]),
+    )
+    hit = []
+
+    def fake(url, k, body):
+        m = url.split("/models/")[1].split(":")[0]
+        hit.append(m)
+        if m == "m-a":
+            raise _http(429, "120s")
+        if m == "m-b":
+            raise _http(503)
+        return {"candidates": [{"content": {"parts": [{"text": "Answered by the third model."}]}}]}
+
+    chat.post = fake
+    out = ask(chat)
+    assert out["model"] == "m-c" and hit == ["m-a", "m-b", "m-c"]
+    st = {s["model"]: s for s in chat.pool.status()}
+    assert not st["m-a"]["free"] and 110 < st["m-a"]["back_in_s"] <= 121, (
+        "Google's retry delay is used"
+    )
+    hit.clear()
+    ask(chat)
+    assert hit == ["m-c"], "models at their limit are skipped until they are free again"
+
+
+def test_all_gemini_models_busy_falls_back_to_the_tools():
+    chat = C.Chat(
+        sec.Settings.from_env(),
+        C.ChatSettings(key=KEY, model="m-a", daily_limit=100, models=["m-b"]),
+    )
+    chat.c.ollama_model = None
+
+    def fake(url, k, body):
+        raise _http(429, "30s")
+
+    chat.post = fake
+    out = ask(chat)
+    assert out["model"] == "rules" and "rate limits" in out["note"] and KEY not in json.dumps(out)
+
+
+def test_switching_models_drops_the_old_models_thought_signatures():
+    chat = C.Chat(
+        sec.Settings.from_env(),
+        C.ChatSettings(key=KEY, model="m-a", daily_limit=100, models=["m-b"]),
+    )
+    sent = []
+
+    def fake(url, k, body):
+        m = url.split("/models/")[1].split(":")[0]
+        sent.append((m, json.loads(json.dumps(body))))
+        if len(sent) == 1:  # m-a calls a tool and signs its turn, then reaches its limit
+            return {
+                "candidates": [
+                    {
+                        "content": {
+                            "role": "model",
+                            "parts": [
+                                {
+                                    "functionCall": {"name": "oee_bottleneck", "args": {}},
+                                    "thoughtSignature": "sig-a",
+                                }
+                            ],
+                        }
+                    }
+                ]
+            }
+        if m == "m-a":
+            raise _http(429, "60s")
+        return {"candidates": [{"content": {"parts": [{"text": "The crane is the bottleneck."}]}}]}
+
+    chat.post = fake
+    out = ask(chat, {"question": "anything slow?"})
+    assert out["model"] == "m-b" and "sig-a" not in json.dumps(sent[-1][1])

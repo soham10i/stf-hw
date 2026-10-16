@@ -60,6 +60,53 @@ function Md({ text }: { text: string }) {
   return <>{blocks}</>;
 }
 
+/** Reads an answer aloud: the server's Gemini voice (2.5 Pro TTS, a flash voice when its quota
+    is closed), or the browser's own voice when the server has none. Click again to stop. */
+function Speak({ text }: { text: string }) {
+  const [state, setState] = useState<"idle" | "loading" | "playing">("idle");
+  const [by, setBy] = useState<string | null>(null);
+  const audio = useRef<HTMLAudioElement | null>(null);
+  const stop = () => {
+    audio.current?.pause();
+    audio.current = null;
+    window.speechSynthesis?.cancel();
+    setState("idle");
+  };
+  useEffect(() => stop, []);
+  const browserVoice = () => {
+    if (!window.speechSynthesis) { setState("idle"); return; }
+    const u = new SpeechSynthesisUtterance(text.replace(/\[[^\]]{1,120}\]|[*_`#>]/g, ""));
+    u.onend = () => setState("idle");
+    setBy("browser voice");
+    setState("playing");
+    window.speechSynthesis.speak(u);
+  };
+  const play = async () => {
+    if (state !== "idle") return stop();
+    setState("loading");
+    if (!HAS_API) return browserVoice();
+    try {
+      const r = await fetch("/chat/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+      if (!r.ok) return browserVoice();
+      setBy(r.headers.get("X-TTS-Model"));
+      const a = new Audio(URL.createObjectURL(await r.blob()));
+      audio.current = a;
+      a.onended = () => { URL.revokeObjectURL(a.src); setState("idle"); };
+      setState("playing");
+      await a.play();
+    } catch {
+      browserVoice();
+    }
+  };
+  return (
+    <button className={`ch-speak ${state}`} onClick={play} title={state === "idle" ? "Read the answer aloud" : "Stop"}
+      aria-label={state === "idle" ? "Read the answer aloud" : "Stop reading"}>
+      {state === "loading" ? "…" : state === "playing" ? "■" : "🔊"}
+      {state === "playing" && by && <span>{by}</span>}
+    </button>
+  );
+}
+
 export function Chat({ page, go, age, pm, compact = false }: { page: string; go: (p: string) => void; age: number; pm: boolean; compact?: boolean }) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [q, setQ] = useState("");
@@ -146,6 +193,7 @@ export function Chat({ page, go, age, pm, compact = false }: { page: string; go:
                 {m.r.via !== "offline" ? <div className="ch-md"><Md text={m.r.text} /></div> : <p>{m.r.text}</p>}
                 {m.r.note && <p className={`ch-note ${m.r.unverified?.length ? "bad" : ""}`}>{m.r.unverified?.length ? "⚠ " : ""}{m.r.note}</p>}
                 <div className="cp-src">
+                  {m.r.text && <Speak text={m.r.text} />}
                   {m.r.links?.map((l) => <button key={l.page} className="db-link" onClick={() => go(l.page)}>open {l.label} →</button>)}
                   {m.r.sources && m.r.sources.length > 0 && <span title={m.r.sources.join("\n")}>grounded in: {m.r.sources[0]}{m.r.sources.length > 1 ? ` +${m.r.sources.length - 1}` : ""}</span>}
                   <em>{m.r.model ?? (m.r.via === "offline" ? "offline fallback" : m.r.via)}{m.r.tools?.length ? ` · ${[...new Set(m.r.tools)].join(", ")}` : ""}{m.ms !== undefined ? ` · ${(m.ms / 1000).toFixed(1)} s` : ""}</em>

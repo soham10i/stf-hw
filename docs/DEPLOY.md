@@ -67,11 +67,29 @@ and offline otherwise (always on the static demo). The key lives only on the ser
 - **Locally:** put `GEMINI_API_KEY=...` in `.env` at the repo root (git-ignored; see `.env.example`)
   and restart the API.
 - **Render:** dashboard → `stf-live` → Environment → set `GEMINI_API_KEY` (the Blueprint declares it
-  without a value). Optional: `GEMINI_MODEL` (default `gemini-3.5-flash-lite`), `GEMINI_DAILY_LIMIT`
-  (default 300 questions a day for the whole service).
+  without a value).
 
-Gemini answers only from what the twin computes for the question (the copilot's tools and the best
-document passages) and cites it; each client is rate-limited and the daily cap protects the quota.
+The model calls the twin's tools (`services/api/tools.py`) and may state only what they return; the
+server checks every number in the answer (`verify.py`) and cites the sources. Each client is
+rate-limited and the daily caps protect the quota.
+
+**When a model reaches its limit, the next one answers.** Each Gemini model has its own quota, so the
+server keeps an ordered list and takes a model out for as long as Google's error says (`retryDelay`),
+then tries the next; when every Gemini model is out, a local model (Ollama) answers if one runs, and
+otherwise the twin's tools answer directly. `GET /chat/status` shows which models are free.
+
+**Spoken answers** (the speaker button on each answer, `POST /chat/tts`) use Gemini 2.5 Pro TTS first
+and the flash voices while its quota is closed - on the free tier the Pro voice has no quota at all,
+so it speaks only on a paid plan. Without any voice, the browser reads the answer with its own.
+
+| Variable | Default | |
+|---|---|---|
+| `GEMINI_MODEL` | `gemini-3.5-flash` | the first chat model |
+| `GEMINI_MODELS` | 3.5/3.8/3.7/3.6/3 flash, 2.5 flash, the lite models | the fallback order, comma-separated |
+| `GEMINI_DAILY_LIMIT` | 300 | model questions a day, whole service |
+| `GEMINI_TTS_MODELS` | `gemini-2.5-pro-preview-tts,gemini-2.5-flash-preview-tts,gemini-3.8-flash-tts` | voices in order |
+| `GEMINI_TTS_DAILY_LIMIT` | 100 | spoken answers a day, whole service |
+| `OLLAMA_URL`, `OLLAMA_MODEL` | `http://127.0.0.1:11434`, `qwen2.5:7b-instruct` | the local model, when it runs |
 
 ## 4. Free-tier limits, and what "full scale" means here
 

@@ -42,3 +42,8 @@
 .ch.compact .cp-q, .ch.compact .cp-a { font-size: 13px; }
 @media (max-width: 600px) { .ch-dock { right: 16px; bottom: 70px; } .ch-fab { right: 16px; bottom: 16px; } }
 .ch-note.bad { color: var(--bad); font-weight: 500; }
+.ch-speak { display: inline-flex; align-items: center; gap: 6px; height: 24px; min-width: 28px; padding: 0 7px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 12px; cursor: pointer; }
+.ch-speak:hover { color: var(--text); border-color: var(--grid-strong); }
+.ch-speak.playing { color: var(--accent); border-color: var(--accent); }
+.ch-speak span { font: 500 10.5px var(--mono); color: var(--faint); }

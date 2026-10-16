@@ -14,9 +14,10 @@ export function CopilotPage({ go }: { go: (p: string) => void }) {
         <label className="vq-row"><span>machine age</span><input type="range" min={0} max={420} step={10} value={age} onChange={(e) => setAge(+e.target.value)} /><b>{age} sh</b></label>
         <div className="ui-seg"><button className={pm ? "on" : ""} onClick={() => setPm(true)}>PM on</button><button className={!pm ? "on" : ""} onClick={() => setPm(false)}>PM off</button></div>
         <h3 style={{ marginTop: 18 }}>How it answers</h3>
-        <p className="hl-cap">The twin's tools compute the facts (health, alarms, the month, energy, carbon, the scheduler, the inspection) and the
-          documents are searched. With a Gemini key on the server, Gemini writes the answer from those facts only, with citations;
-          without one, the copilot answers on its own, offline. Either way the numbers come from the twin, never from the model.</p>
+        <p className="hl-cap">The model calls the twin's tools (health, alarms, the month, OEE, energy, carbon, the scheduler, the inspection,
+          security, the documents, the running twin) and states only what they return, with citations. The server checks every number in the
+          answer against the tools; one it cannot back is flagged. When a Gemini model reaches its limit the next one answers, then a local
+          model, then the tools themselves. 🔊 reads an answer aloud (Gemini TTS).</p>
       </aside>
     </div>
   );
