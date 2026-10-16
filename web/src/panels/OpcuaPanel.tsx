@@ -147,7 +147,7 @@ export function OpcuaPanel() {
       <Verified ok={held === 5 && caught === r.mutants.length} items={[
         [`${r.nodes} nodes`, `${r.signals} PLC signals, one node each`],
         [`${held}/5 attacks refused`, "Basic256Sha256 Sign & Encrypt only"],
-        ...(r.live ? [[`order ${r.live.order_s.toFixed(1)} s`, `${r.live.jobs} jobs, as Upgrade 13`] as [string, string]] : []),
+        ...(r.live ? [[`order ${r.live.order_s.toFixed(1)} s`, `${r.live.jobs} jobs, as in the live PLC`] as [string, string]] : []),
         [`${caught}/${r.mutants.length} mutants caught`, "the checks can fail"],
       ]} />
 

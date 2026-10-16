@@ -154,12 +154,12 @@ export function UnsPanel() {
       <Verified ok={ok === r.tck.length && caught === r.mutants.length} items={[
         [`${metrics} metrics`, `${Object.keys(r.namespace.devices).length - 1} devices + the edge node`],
         [`${ok}/${r.tck.length} spec rules`, `hold over ${r.traffic.messages.toLocaleString()} messages`],
-        [`order ${r.live.order_s.toFixed(1)} s`, `${r.live.jobs} jobs, as Upgrade 13`],
+        [`order ${r.live.order_s.toFixed(1)} s`, `${r.live.jobs} jobs, as in the live PLC`],
         [`${caught}/${r.mutants.length} mutants caught`, "the checks can fail"],
       ]} />
 
       <div className="uns-flow" aria-label="Data flow">
-        <span><b>Edge node</b><small>{r.namespace.edge} · PLC (U13)</small></span><i>→</i>
+        <span><b>Edge node</b><small>{r.namespace.edge} · PLC</small></span><i>→</i>
         <span><b>Mosquitto</b><small>TLS 1.3 · access list</small></span><i>→</i>
         <span><b>Primary host</b><small>{r.namespace.host}</small></span><i>→</i>
         <span><b>Unified Namespace</b><small>retained JSON</small></span>

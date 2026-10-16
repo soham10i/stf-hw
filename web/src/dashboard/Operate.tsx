@@ -186,7 +186,7 @@ export function Alarms({ doc }: { doc: CadDoc }) {
     <div className="db-grid">
       <div className="db-kpis wide">
         <Kpi label="alarms defined" value={`${c.alarms.length}`} />
-        <Kpi label="fault matrix" value={`${vc.matrix.filter((r) => r.pass).length}/${vc.matrix.length}`} sub="pass (U5)" tone="ok" />
+        <Kpi label="fault matrix" value={`${vc.matrix.filter((r) => r.pass).length}/${vc.matrix.length}`} sub="pass" tone="ok" />
         <Kpi label="MTTR" value={`${mttr.toFixed(0)} s`} sub="mean time lost per fault" />
         <Kpi label="fastest detection" value={`${Math.min(...vc.matrix.map((r) => r.latency_s ?? 99))} s`} />
       </div>

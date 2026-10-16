@@ -171,7 +171,7 @@ function Saves({ m }: { m: MonthDoc }) {
               <div>
                 <p><b>Root cause:</b> {s.cause}.</p>
                 <table className="db-table"><tbody>
-                  <tr><td>U6 warning</td><td className="num">day {(s.warn_h / 24 + 1).toFixed(1)}</td></tr>
+                  <tr><td>condition monitoring warning</td><td className="num">day {(s.warn_h / 24 + 1).toFixed(1)}</td></tr>
                   <tr><td>renewed</td><td className="num">day {(s.pm_h / 24 + 1).toFixed(1)} · {s.pm_min} min at night · HI {s.hi_at_pm}</td></tr>
                   <tr><td>would have failed</td><td className="num mo-bad">day {(s.fail_h / 24 + 1).toFixed(1)}</td></tr>
                   <tr><td>warning lead</td><td className="num">{s.lead_h} h ({(s.lead_h / 8).toFixed(1)} shifts)</td></tr>
@@ -270,7 +270,7 @@ function Raw({ m }: { m: MonthDoc }) {
           marks={m.events.filter((e) => e.comp === "colour" && e.kind === "maintenance").map((e) => ({ x: e.t, color: "#22c55e", label: "recalibrated" }))} xMax={H} />
         <p className="hl-cap">The LED ages and readings drift down toward the next band; a reading across a band edge would sort a cookie into the wrong bin.</p>
       </section>
-      <section className="db-card hl-span2"><h3>HBW actuator current, from the U3 breaker</h3>
+      <section className="db-card hl-span2"><h3>HBW actuator current, from the remote I/O breaker</h3>
         <Chart h={210} yLabel="current (A)" yFmt={(v) => v.toFixed(2)}
           lines={[{ name: "each order", x: r.t, y: r.i_hbw, color: "#4f8fd6", kind: "dots", fmt: (v) => `${v.toFixed(3)} A` },
                   { name: `${N}-order mean`, x: r.t, y: roll(r.i_hbw, N), color: "#9fd0ff", width: 2.2, fmt: (v) => `${v.toFixed(3)} A` }]}
@@ -300,7 +300,7 @@ function Fsm({ m }: { m: MonthDoc }) {
   const COL: Record<string, string> = { RUN: "#22c55e", HELD: "#e0a02a", READY: "#3a4a5c", FAULT: "#e0503a", ESTOP: "#b91c1c", MAINT: "#4f8fd6" };
   return (
     <div className="db-grid">
-      <section className="db-card wide"><h3>Hours per state, per unit (U4 state machines)</h3>
+      <section className="db-card wide"><h3>Hours per state, per unit (state machines)</h3>
         <Stacked unit=" h" parts={S.map((x) => ({ name: x, color: COL[x] }))}
           rows={Object.entries(m.fsm).sort((p, q) => (q[1].RUN ?? 0) - (p[1].RUN ?? 0)).map(([u, d]) => ({ label: `${u} · ${Math.round(d.RUN ?? 0)} h run`, v: S.map((x) => Math.round(d[x] ?? 0)) }))} />
         <p className="db-note">RUN: the unit's own step. HELD: its job waits on another unit, or it holds while another unit is faulted.

@@ -391,16 +391,17 @@ export function SecurityOverlay({ io, plc, safety, ips }: {
     return [b[0] - pad, b[1] - pad, Math.max(0, b[2] - pad), b[3] + pad, b[4] + pad, b[5] + pad];
   };
   const boxes: { key: string; b: Box6; col: string; label: string }[] = [];
+  const NODE: Record<string, string> = { hbw: "Warehouse", vgr: "Gripper robot", oven: "Oven", sorting: "Sorting line" };
   for (const m of ["hbw", "vgr", "oven", "sorting"]) {
     const ps = io.filter((q) => q.n.startsWith(`io_${m}_`));
-    if (ps.length) boxes.push({ key: m, b: bound(ps, 14), col: ZC.Z1, label: `${m} node · ${ips[m] ?? ""}` });
+    if (ps.length) boxes.push({ key: m, b: bound(ps, 14), col: ZC.Z1, label: `${NODE[m]} I/O · ${ips[m] ?? ""}` });
   }
   const [ax, ay] = plc.at;
   const cab = bound(plc.parts.map((q) => ({ ...q, p: [q.p[0] + ax, q.p[1] + ay, Math.max(0, q.p[2])] as [number, number, number] })), 10);
-  boxes.push({ key: "plc", b: cab, col: ZC.Z1, label: "PLC · 192.168.10.10" });
+  boxes.push({ key: "plc", b: cab, col: ZC.Z1, label: "PLC cabinet · 192.168.10.10" });
   for (const d of ["ES1", "ES2", "ES3", "S3"]) {
     const ps = safety.filter((q) => q.n.startsWith(`${d}_`));
-    if (ps.length) boxes.push({ key: d, b: bound(ps, 10), col: ZC.Z0, label: d === "S3" ? "reset · hardwired" : `${d} · hardwired` });
+    if (ps.length) boxes.push({ key: d, b: bound(ps, 10), col: ZC.Z0, label: d === "S3" ? "Reset button · hardwired" : `E-stop ${d.slice(2)} · hardwired` });
   }
   return (
     <group>

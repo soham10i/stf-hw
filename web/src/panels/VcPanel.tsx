@@ -54,9 +54,9 @@ export function VcPanel({ vc }: { vc: VcDoc }) {
         ))}
       </ul>
 
-      <Note title="Test setup">Upgrade 4's program against the twin: a {vc.scan_ms.crane} ms task ({vc.scan_ms.arm} ms for
+      <Note title="Test setup">The PLC program against the twin: a {vc.scan_ms.crane} ms task ({vc.scan_ms.arm} ms for
         the VGR), Modbus TCP at {vc.bus_ms} ms, the same register map as the real nodes.</Note>
-      <Note title="Without Upgrade 5's sensors">{vc.before.map((b) => `${b.id} found only by ${b.detected}, ${b.after_s} s later`).join("; ")}.</Note>
+      <Note title="Without the commissioning sensors">{vc.before.map((b) => `${b.id} found only by ${b.detected}, ${b.after_s} s later`).join("; ")}.</Note>
     </section>
   );
 }

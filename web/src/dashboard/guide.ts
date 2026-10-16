@@ -65,7 +65,7 @@ export const GUIDE: Record<string, PageGuide> = {
       ["Downtime by fault", "Time lost to each commissioning fault when it happens once."],
       ["Unit utilisation", "Share of the order each unit is busy; the bottleneck is highlighted."],
     ],
-    source: "The PLC program's run of the order (Upgrade 4), commissioning (Upgrade 5) and the wear model (Upgrade 6).",
+    source: "The PLC program's run of the order, commissioning and the wear model.",
     terms: ["OEE", "Order time (makespan)", "Shift", "Health index (HI)", "PM", "Gantt chart", "Simulated"],
   },
 
@@ -82,7 +82,7 @@ export const GUIDE: Record<string, PageGuide> = {
       ["Order by flavour", "How many cookies of each flavour are baked, sorted and back in the rack."],
       ["Dispatch policies (measured)", "Each policy's order time, checked over every possible timing; the one in use is highlighted."],
     ],
-    source: "The PLC orchestration model and its exhaustive check of every completion order (Upgrade 4).",
+    source: "The PLC orchestration model and its exhaustive check of every completion order.",
     terms: ["Order time (makespan)", "Gantt chart", "Policy", "Deadlock"],
   },
   quality: {
@@ -95,7 +95,7 @@ export const GUIDE: Record<string, PageGuide> = {
     sections: [
       ["Records", "One line per cookie: flavour, mould, RFID reads, colour sensor reading in mV, and the verdict."],
     ],
-    source: "The traceability design of Upgrade 4: RFID read points on the HBW belt and the sorting line's colour sensor.",
+    source: "The PLC program's traceability design: RFID read points on the HBW belt and the sorting line's colour sensor.",
     terms: ["mV (colour sensor)"],
   },
   vision: {
@@ -120,7 +120,7 @@ export const GUIDE: Record<string, PageGuide> = {
       ["The safeguard", "Once the alarm rings, what the autoencoder finds unusual goes to a person: fewer defects passed, more cookies checked by hand."],
       ["Experiment: label-free adaptation", "The same cookies classified twice, with and without online AdaBN. Switch it on under unseen conditions to watch it fail."],
     ],
-    source: "Upgrade 15: the camera mount (vision/mount.py), the CNN (vision/train.py) and the autoencoder (vision/autoencoder.py), run in the browser on images drawn by the renderer port.",
+    source: "The camera mount (vision/mount.py), the CNN (vision/train.py) and the autoencoder (vision/autoencoder.py), run in the browser on images drawn by the renderer port.",
     terms: ["Simulated", "Drift", "Autoencoder", "Escape", "False reject"],
   },
   alarms: {
@@ -136,7 +136,7 @@ export const GUIDE: Record<string, PageGuide> = {
       ["Fault matrix (commissioned)", "Each fault's alarm, reaction and recovery."],
       ["Alarm list", "Every watchdog alarm in the program: its code, the step it guards, and what to do."],
     ],
-    source: "Virtual commissioning of the PLC program against the twin (Upgrade 5).",
+    source: "Virtual commissioning of the PLC program against the twin.",
     terms: ["Watchdog"],
   },
   copilot: {
@@ -169,7 +169,7 @@ export const GUIDE: Record<string, PageGuide> = {
       ["(the selected part)", "Its smoothed signal against the soft and failure limits. Hover to read the health index, the true time to failure and the trend's estimate."],
       ["About this part", "Warning lead time, false warnings, uses so far and the sensor it is measured with."],
     ],
-    source: "The condition-monitoring model of Upgrade 6. The theory is under Docs → Hardware degradation.",
+    source: "The condition-monitoring model. The theory is under Docs → Hardware degradation.",
     terms: ["Health index (HI)", "RUL", "Shift", "PM", "EWMA"],
   },
   "docs-degradation": {
@@ -186,7 +186,7 @@ export const GUIDE: Record<string, PageGuide> = {
       ["Every part: closed form vs simulation", "The equations predict when each part warns; the simulation agrees."],
       ["References", "The standards, papers and books each step comes from."],
     ],
-    source: "health.py (Upgrade 6) and health_theory.py; the same model ported to the browser.",
+    source: "health.py and health_theory.py; the same model ported to the browser.",
     terms: ["Health index (HI)", "RUL", "EWMA", "Shift", "Simulated"],
   },
   maintenance: {
@@ -201,9 +201,9 @@ export const GUIDE: Record<string, PageGuide> = {
       ["Service schedule · next 30 days", "Every service ahead, part by part, plus the routine PM visit."],
       ["Workload · services per day", "How many services fall on each day; busy days are highlighted."],
       ["Work orders", "The next six jobs, soonest first."],
-      ["Spare parts (U7)", "Wear parts used per year against stock, and the one-off breakdown spares."],
+      ["Spare parts", "Wear parts used per year against stock, and the one-off breakdown spares."],
     ],
-    source: "Upgrade 6 (warnings) and Upgrade 7 (lifecycle and spares).",
+    source: "Condition monitoring (warnings) and the lifecycle design (spares).",
     terms: ["PM", "Shift", "RUL"],
   },
 
@@ -226,7 +226,7 @@ export const GUIDE: Record<string, PageGuide> = {
       ["Running here", "The network applied to the simulated month, live in this page."],
       ["At order", "Each part's predicted remaining life at the chosen order, shortest first."],
     ],
-    source: "Upgrade 8: a TCN trained on a fleet of simulated machines, exported to ONNX and to the browser.",
+    source: "A TCN trained on a fleet of simulated machines, exported to ONNX and to the browser.",
     terms: ["RUL", "TCN", "Semi-supervised", "Health index (HI)"],
   },
   month: {
@@ -248,14 +248,14 @@ export const GUIDE: Record<string, PageGuide> = {
       ["Hours per state, per unit", "RUN, HELD, IDLE and FAULT hours from each unit's state machine."],
       ["Downloads (CSV) and event log", "Every order, event and sensor reading of the month."],
     ],
-    source: "The month simulator (month.py) driven by the wear model of Upgrade 6 and the maintenance of Upgrade 7.",
+    source: "The month simulator (month.py) driven by the wear model and the maintenance plan.",
     terms: ["OEE", "Shift", "PM", "mV (colour sensor)", "Simulated"],
   },
   throughput: {
     title: "Throughput",
     what: "How the same machine was made faster by changing only its program, and what each change is worth.",
     read: [
-      "Compare the two Gantt rows: before (Upgrade 7) and after (Upgrade 10), on one time scale.",
+      "Compare the two Gantt rows: before and after, on one time scale.",
       "The critical path shows which jobs set the order time; the ablation shows each improvement's own value.",
     ],
     sections: [
@@ -269,7 +269,7 @@ export const GUIDE: Record<string, PageGuide> = {
       ["OEE, before and after", "Availability, performance, quality and OEE, measured the same way."],
       ["Proofs the faster program still passes", "Deadlock freedom and fault recovery, re-run for the new program."],
     ],
-    source: "Upgrade 10's throughput study, measured by virtual commissioning.",
+    source: "The throughput study, measured by virtual commissioning.",
     terms: ["Order time (makespan)", "Gantt chart", "Critical path", "Ablation", "OEE", "Deadlock"],
   },
   energy: {
@@ -291,7 +291,7 @@ export const GUIDE: Record<string, PageGuide> = {
       ["Economics, honestly", "Capital cost by item, payback and production protected."],
       ["Standards the design follows", "The norms the microgrid design is checked against."],
     ],
-    source: "Upgrade 9's microgrid model (grid.py), simulated, not measured.",
+    source: "The microgrid model (grid.py), simulated, not measured.",
     terms: ["Ride-through", "Demand response", "Simulated"],
   },
   scheduler: {
@@ -326,7 +326,7 @@ export const GUIDE: Record<string, PageGuide> = {
       ["The day, hour by hour", "Load, PV and grid import through an average day, and the grid's carbon intensity by hour."],
       ["Per day", "Grams per cookie each day, coloured by the weather."],
     ],
-    source: "The U9 microgrid month (grid.py) allocated by carbon.py.",
+    source: "The microgrid month (grid.py) allocated by carbon.py.",
     terms: ["Simulated"],
   },
   security: {
@@ -334,7 +334,7 @@ export const GUIDE: Record<string, PageGuide> = {
     what: "The cell's network split into IEC 62443 zones, and what happens when attacks are replayed on the twin.",
     read: [
       "Start with the zone picture: which devices trust each other, and the only paths (conduits) between zones.",
-      "For each attack, compare: no protection, detection only, and the Upgrade 11 design.",
+      "For each attack, compare: no protection, detection only, and the OT security design.",
     ],
     sections: [
       ["What the analysis says", "The findings in short."],
@@ -348,12 +348,12 @@ export const GUIDE: Record<string, PageGuide> = {
       ["New alarms", "The security alarms this upgrade adds."],
       ["Signed program manifest", "The hashes the PLC checks before it runs a program."],
     ],
-    source: "Upgrade 11's security design (security.py): a model-based assessment, not a penetration test.",
+    source: "The security design (security.py): a model-based assessment, not a penetration test.",
     terms: ["Zone / conduit", "SL", "Allow-list"],
   },
   hardening: {
     title: "Defence in depth",
-    what: "Where the machine no longer trusts its own program: hardwired interlocks, and the Upgrade 11 findings re-run.",
+    what: "Where the machine no longer trusts its own program: hardwired interlocks, and the OT security findings re-run.",
     read: [
       "Each jog rule is hardwired only where the machine already has the switch it needs.",
       "The re-run shows each finding closed on the hardened machine, and what it cost.",
@@ -361,11 +361,11 @@ export const GUIDE: Record<string, PageGuide> = {
     sections: [
       ["What changed", "The hardening in short."],
       ["Every jog rule", "Steps each manual-move rule guards; green = now a relay contact, grey = no switch to wire it to, red = would block the program's own steps."],
-      ["The U11 findings, re-run", "Each earlier finding against the hardened machine."],
-      ["Energy: what holding the reserve costs", "Lowest battery charge and grid import in demand-response windows, before (U9) and after (U12)."],
+      ["The OT security findings, re-run", "Each earlier finding against the hardened machine."],
+      ["Energy: what holding the reserve costs", "Lowest battery charge and grid import in demand-response windows, before and after."],
       ["New parts", "The interlock relays on each I/O node's rail and the standstill monitor in the cabinet."],
     ],
-    source: "Upgrade 12 (hardening.py).",
+    source: "The hardened machine (hardening.py).",
     terms: ["Ride-through", "Demand response"],
   },
   engineering: {
@@ -375,12 +375,12 @@ export const GUIDE: Record<string, PageGuide> = {
       "Each table compares what the design achieves with what it must achieve; green is within the limit.",
     ],
     sections: [
-      ["Positioning accuracy (U5)", "Each axis's stopping error (blue) against what is allowed (green)."],
-      ["Tolerance chains", "Clearance left when every tolerance stacks the wrong way; red would mean parts can collide or miss. Hover for before U7."],
+      ["Positioning accuracy", "Each axis's stopping error (blue) against what is allowed (green)."],
+      ["Tolerance chains", "Clearance left when every tolerance stacks the wrong way; red would mean parts can collide or miss. Hover for the value before the lifecycle changes."],
       ["Structure", "Each frame member's lowest natural frequency against the minimum the drives need."],
-      ["Service access (U7)", "How far a technician must reach through each door to the part; red bars are beyond the allowed reach."],
+      ["Service access", "How far a technician must reach through each door to the part; red bars are beyond the allowed reach."],
     ],
-    source: "Upgrades 5 and 7.",
+    source: "Commissioning and the lifecycle design.",
     terms: [],
   },
   validation: {
@@ -409,9 +409,9 @@ export const GUIDE: Record<string, PageGuide> = {
     ],
     sections: [
       ["Topics (PLC → MQTT → historian → this page)", "The message topics the page would read on real hardware."],
-      ["Register map (U5)", "Each signal, its node and its Modbus register."],
+      ["Register map", "Each signal, its node and its Modbus register."],
     ],
-    source: "Upgrade 5's register map; the live MQTT/Sparkplug namespace is in the twin's 'MQTT Sparkplug · UNS' panel (Upgrade 14).",
+    source: "The register map; the live MQTT/Sparkplug namespace is in the twin's 'MQTT Sparkplug · UNS' panel.",
     terms: [],
   },
 };

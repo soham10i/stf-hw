@@ -163,7 +163,7 @@ export function MaintenancePage({ h, lc, age, pm }: { h: HealthDoc; lc?: Lifecyc
         ))}</ul>
       </section>
 
-      {lc && <section className="db-card wide"><h3>Spare parts (U7)</h3><Spares lc={lc} /></section>}
+      {lc && <section className="db-card wide"><h3>Spare parts</h3><Spares lc={lc} /></section>}
     </div>
   );
 }

@@ -79,14 +79,14 @@ export function AiPage() {
   const rule = R.tuned?.table[0] ?? R.results[0];
   const k = W.components[comp];
   const tArr = M.t.filter((_, i) => i % 4 === 0).slice(0, full?.rul.length ?? 0);
-  const marks = [...M.rule_warnings.filter((w) => w.comp === k).map((w) => ({ x: w.t, color: "#e0a02a", label: "U6 warning" })),
+  const marks = [...M.rule_warnings.filter((w) => w.comp === k).map((w) => ({ x: w.t, color: "#e0a02a", label: "rule warning" })),
                  ...M.maintenance.filter((w) => w.comp === k).map((w) => ({ x: w.t, color: "#22c55e", label: "renewed" }))];
   const stages = Array.from(new Set(R.log.map((l) => l.stage)));
   const SC: Record<string, string> = { pretrain: "#9fd0ff", "fine-tune": "#86efac", "mean teacher": "#22c55e", "supervised-only": "#e0a02a", oracle: "#b07ad6" };
   const tuned = R.tuned?.table ?? R.results;
-  const short = (n: string) => n.startsWith("U6") ? "U6 rules" : n.startsWith("hybrid") ? "hybrid" : n.startsWith("semi") ? "network (semi-supervised)"
+  const short = (n: string) => n.startsWith("Condition monitoring") ? "threshold rules" : n.startsWith("hybrid") ? "hybrid" : n.startsWith("semi") ? "network (semi-supervised)"
     : n.startsWith("supervised") ? "network (supervised only)" : n.startsWith("oracle") ? "network (all labelled)" : n;
-  const PC: Record<string, string> = { "U6 rules": "#e0a02a", hybrid: "#22c55e", "network (semi-supervised)": "#4f8fd6", "network (supervised only)": "#9fd0ff", "network (all labelled)": "#b07ad6" };
+  const PC: Record<string, string> = { "threshold rules": "#e0a02a", hybrid: "#22c55e", "network (semi-supervised)": "#4f8fd6", "network (supervised only)": "#9fd0ff", "network (all labelled)": "#b07ad6" };
   const hybrid = R.tuned?.table.find((r) => r.name.startsWith("hybrid"));
   const row = R.showcase.rows[Math.min(show, R.showcase.rows.length - 1)];
   const sx = row.pred.map((_, i) => i * R.showcase.stride);
@@ -132,7 +132,7 @@ export function AiPage() {
           </section>
         )}
         <section className="db-card hl-span2"><h3>Per part: failures warned in time</h3>
-          <Dumbbell xTitle="failures warned ≥ 1 shift ahead" a={{ name: "network", color: "#4f8fd6" }} b={{ name: "U6 rules", color: "#e0a02a" }}
+          <Dumbbell xTitle="failures warned ≥ 1 shift ahead" a={{ name: "network", color: "#4f8fd6" }} b={{ name: "threshold rules", color: "#e0a02a" }}
             rows={Object.entries(R.per_component).sort((x, y) => x[1].ml_ok / x[1].failures - y[1].ml_ok / y[1].failures)
               .map(([c, v]) => ({ label: NICE[c] ?? c, a: v.ml_ok / v.failures, b: v.rule_ok / v.failures, note: `${v.failures} failures` }))} />
           <p className="hl-cap">The network is weakest on rare failures (cup seal, pusher, RFID: too few examples to learn from).</p>

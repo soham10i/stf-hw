@@ -92,7 +92,7 @@ const TOOLS: Tool[] = [
         text: due.length ? `${due.map((s) => short(s.c.name)).join(", ")} ${due.length > 1 ? "need" : "needs"} service now (${due.map((s) => s.status === "fail" ? "failed" : "warned").join(", ")}).`
           : `Nothing is due. Next: ${short(next.c.name)} warns in ${warnIn.toFixed(1)} shifts.`,
         facts: st.slice(0, 5).map((s) => [short(s.c.name), s.status === "ok" ? `health ${Math.round(s.hi)} · warns in ${(((s.c.warn ?? 0) - s.n) / s.c.per_shift).toFixed(1)} sh` : s.status === "fail" ? "FAILED" : `warned · fails in ${(s.rulShifts ?? 0).toFixed(1)} sh`]),
-        link: { page: "maintenance", label: "Maintenance" }, sources: [`health model (Upgrade 6) at a machine age of ${age} shifts, PM ${c.pm ? "on" : "off"}`],
+        link: { page: "maintenance", label: "Maintenance" }, sources: [`health model at a machine age of ${age} shifts, PM ${c.pm ? "on" : "off"}`],
       };
     },
   },
@@ -109,7 +109,7 @@ const TOOLS: Tool[] = [
           : `${comp.name} is healthy (health index ${Math.round(s.hi)}); it warns in ${(((comp.warn ?? 0) - s.n) / comp.per_shift).toFixed(1)} shifts and would fail in ${(s.rulShifts ?? 0).toFixed(1)}.`,
         facts: [["measured by", comp.metric], ["warning comes", `${comp.lead_shifts} shifts before failure`], ["uses this life", Math.round(s.n).toLocaleString()],
                 ["false warnings", `${comp.false_warnings} in ${comp.healthy_cycles.toLocaleString()} healthy uses`]],
-        link: { page: "health", label: "Health" }, sources: [`health model (Upgrade 6), ${comp.name}, at ${age} shifts`],
+        link: { page: "health", label: "Health" }, sources: [`health model, ${comp.name}, at ${age} shifts`],
       };
     },
   },
@@ -119,9 +119,9 @@ const TOOLS: Tool[] = [
     run: async (q, c) => {
       const d = await c.get<CadDoc>("cad"), code = /([a-z]{3}-[a-z]\d\d)/i.exec(q)?.[1]?.toUpperCase();
       const a = d.control!.alarms.find((x) => x.code === code);
-      if (!a) return { tool: "alarm-code", text: `There is no alarm ${code ?? "with that code"}. Alarm codes look like HBW-C01.`, sources: ["the PLC's alarm list (Upgrade 4)"], link: { page: "alarms", label: "Alarms" } };
+      if (!a) return { tool: "alarm-code", text: `There is no alarm ${code ?? "with that code"}. Alarm codes look like HBW-C01.`, sources: ["the PLC's alarm list"], link: { page: "alarms", label: "Alarms" } };
       return { tool: "alarm-code", text: `${a.code}: ${a.text}.`, facts: [["likely cause", a.cause], ["what the machine does", a.reaction], ["to recover", a.recovery], ["watchdog", `${a.limit} s`]],
-               link: { page: "alarms", label: "Alarms" }, sources: [`the PLC's alarm list (Upgrade 4), ${a.code}`] };
+               link: { page: "alarms", label: "Alarms" }, sources: [`the PLC's alarm list, ${a.code}`] };
     },
   },
   {
@@ -150,7 +150,7 @@ const TOOLS: Tool[] = [
       const loss = [["availability", p.availability], ["performance", p.performance], ["quality", p.quality]].sort((a, b) => (a[1] as number) - (b[1] as number))[0];
       return { tool: "oee", text: `OEE ${pct(p.oee)}: the biggest loss is ${loss[0]} (${pct(loss[1] as number)}). A 12-cookie order takes ${p.makespan} s; the bottleneck is the ${p.bottleneck}.`,
                facts: [["availability", pct(p.availability)], ["performance", pct(p.performance)], ["quality", pct(p.quality)], ["order time", `${p.makespan} s`]],
-               link: { page: "overview", label: "Overview" }, sources: ["virtual commissioning (Upgrade 5)"] };
+               link: { page: "overview", label: "Overview" }, sources: ["virtual commissioning"] };
     },
   },
   {
@@ -160,7 +160,7 @@ const TOOLS: Tool[] = [
       const d = await c.get<{ levers: Record<string, { g_per_cookie: number }>; standing_share: number; meta: { cookies_per_order: number } }>("carbon");
       const b = d.levers["as built: PV + battery"], keys = Object.keys(d.levers), best = d.levers[keys[keys.length - 1]];
       return { tool: "carbon", text: `${b.g_per_cookie.toFixed(2)} g CO₂e per good cookie (${(b.g_per_cookie * d.meta.cookies_per_order).toFixed(1)} g per order). ${pct(d.standing_share)} of it is the cell standing idle; with every lever it falls to ${best.g_per_cookie.toFixed(2)} g.`,
-               facts: keys.map((k) => [k, `${d.levers[k].g_per_cookie.toFixed(3)} g`]), link: { page: "carbon", label: "Carbon per cookie" }, sources: ["carbon.py over the U9 microgrid month"] };
+               facts: keys.map((k) => [k, `${d.levers[k].g_per_cookie.toFixed(3)} g`]), link: { page: "carbon", label: "Carbon per cookie" }, sources: ["carbon.py over the microgrid month"] };
     },
   },
   {
@@ -170,7 +170,7 @@ const TOOLS: Tool[] = [
       const g = await c.get<{ scenarios: Record<string, { load_kwh: number; total_eur: number; self_sufficiency: number; import_kwh: number }> }>("grid");
       const b = g.scenarios["pv+battery"], o = g.scenarios.grid;
       return { tool: "energy", text: `The cell used ${b.load_kwh} kWh this month; PV and the battery covered ${pct(b.self_sufficiency)} of it, for €${b.total_eur} instead of €${o.total_eur} from the grid alone.`,
-               facts: [["imported", `${b.import_kwh} kWh`], ["self-sufficiency", pct(b.self_sufficiency)], ["cost", `€${b.total_eur}`]], link: { page: "energy", label: "Energy & grid" }, sources: ["the U9 microgrid month (grid.py)"] };
+               facts: [["imported", `${b.import_kwh} kWh`], ["self-sufficiency", pct(b.self_sufficiency)], ["cost", `€${b.total_eur}`]], link: { page: "energy", label: "Energy & grid" }, sources: ["the microgrid month (grid.py)"] };
     },
   },
   {
@@ -180,7 +180,7 @@ const TOOLS: Tool[] = [
       const d = await c.get<{ eval: Record<string, { nominal: number; mean: number }>; paired: { wins: number; runs: number; mean_diff_s: number }; unshielded: { deadlocks: number; episodes: number }; meta: { fallback: string } }>("sched");
       const r = d.eval["rollout, no learning"], p = d.eval[d.meta.fallback];
       return { tool: "scheduler", text: `The shielded scheduler finishes an order in ${r.nominal} s against the PLC's ${p.nominal} s, faster in ${d.paired.wins} of ${d.paired.runs} runs on identical timings; it never deadlocked, where the same agent without its shield deadlocked in ${d.unshielded.deadlocks} of ${d.unshielded.episodes} orders.`,
-               facts: [["scheduler, mean", `${r.mean} s`], ["PLC, mean", `${p.mean} s`], ["per order", `${d.paired.mean_diff_s} s`]], link: { page: "scheduler", label: "Learned scheduler" }, sources: ["sched_rl.py (Upgrade 16)"] };
+               facts: [["scheduler, mean", `${r.mean} s`], ["PLC, mean", `${p.mean} s`], ["per order", `${d.paired.mean_diff_s} s`]], link: { page: "scheduler", label: "Learned scheduler" }, sources: ["sched_rl.py"] };
     },
   },
   {
@@ -191,7 +191,7 @@ const TOOLS: Tool[] = [
       const i = v.results.in_domain, s = v.results.shifted;
       return { tool: "vision", text: `Under the conditions it was trained for, the inspection is right ${pct(i.condition_acc, 1)} of the time; under unseen light it drops to ${pct(s.condition_acc, 1)} and rejects ${pct(s.false_reject)} of good cookies. The drift alarm catches that; retraining with images of the new conditions fixes it.`,
                facts: [["trained conditions: escapes", pct(i.escape_rate, 1)], ["unseen: false rejects", pct(s.false_reject, 1)], ["unseen: escapes", pct(s.escape_rate, 1)]],
-               link: { page: "vision", label: "Vision QC" }, sources: ["vision/train.py and vision/adapt.py (Upgrade 15)"] };
+               link: { page: "vision", label: "Vision QC" }, sources: ["vision/train.py and vision/adapt.py"] };
     },
   },
   {
@@ -201,7 +201,7 @@ const TOOLS: Tool[] = [
       const r = await c.get<{ results: { name: string; warned_1shift: number; failures: number; missed: number }[] }>("ai");
       const rule = r.results[0], semi = r.results.find((x) => x.name.startsWith("semi"))!;
       return { tool: "ai", text: `On machines it never saw, the network warned ${semi.warned_1shift} of ${semi.failures} failures a shift ahead (rules: ${rule.warned_1shift}). It runs as an advisory estimate beside the rules.`,
-               link: { page: "ai", label: "AI maintenance" }, sources: ["ml/train.py (Upgrade 8)"] };
+               link: { page: "ai", label: "AI maintenance" }, sources: ["ml/train.py"] };
     },
   },
   {
@@ -210,7 +210,7 @@ const TOOLS: Tool[] = [
     run: async (_q, c) => {
       const d = await c.get<{ attacks: { id: string; name: string; blocked: boolean }[] }>("security");
       return { tool: "security", text: `${d.attacks.filter((a) => a.blocked).length} of ${d.attacks.length} attacks replayed on the twin are contained.`,
-               facts: d.attacks.map((a) => [`${a.id} ${a.name}`, a.blocked ? "contained" : "open"]), link: { page: "security", label: "OT security" }, sources: ["security.py (Upgrade 11)"] };
+               facts: d.attacks.map((a) => [`${a.id} ${a.name}`, a.blocked ? "contained" : "open"]), link: { page: "security", label: "OT security" }, sources: ["security.py"] };
     },
   },
 ];

@@ -102,7 +102,7 @@ export function SecurityPage() {
           <div className="mo-sub">
             {(["without", "detect_only", "with"] as const).map((m) => (
               <button key={m} className={m === mode ? "on" : ""} onClick={() => setMode(m)}>
-                {m === "without" ? "no security" : m === "detect_only" ? "detection only" : "Upgrade 11"}</button>))}
+                {m === "without" ? "no security" : m === "detect_only" ? "detection only" : "protected"}</button>))}
           </div>
           <div className={`sec-out ${mode === "with" ? "ok" : mode === "without" ? "bad" : "warn"}`}>{a[mode]}</div>
           <p className="db-note"><b>Residual:</b> {a.residual}</p>

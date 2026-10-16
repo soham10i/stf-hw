@@ -15,8 +15,8 @@ export type ViewKind = "machine" | "controller" | "component";
 export type View = { id: string; label: string; kind: ViewKind; group: string; about: string };
 
 export const MACHINE_VIEW: View = {
-  id: "factory", label: "Factory · Upgrade 12", kind: "machine", group: "Factory",
-  about: "The machine with every upgrade (U1-U12): guarded, on remote I/O, run by the generated PLC program, "
+  id: "factory", label: "Smart Tabletop Factory", kind: "machine", group: "Factory",
+  about: "The complete machine: guarded, on remote I/O, run by the generated PLC program, "
     + "commissioned, monitored, hardened. Open the side panels for each layer.",
 };
 export const CONTROLLER_VIEW: View = {
@@ -28,9 +28,10 @@ export function componentViews(components: Record<string, { name: string; ft: st
   return Object.entries(components ?? {}).map(([id, c]) => {
     const mech = c.kind === "mechanism";
     return {
-      id, label: mech ? `${c.name} (${c.upgrade})` : `${c.name} (${c.ft})`, kind: "component" as const,
+      id, label: c.name, kind: "component" as const,
       group: mech ? "Mechanisms" : "Components",
-      about: mech ? `${c.name}: how it works, its numbers from the model, where it is used` : `${c.name}: sourced dimensions, materials, how it works`,
+      about: mech ? "How it works, its numbers from the model, where it is used"
+        : `${/^\d+$/.test(c.ft) ? `fischertechnik ${c.ft} · ` : ""}sourced dimensions, materials, how it works`,
     };
   });
 }

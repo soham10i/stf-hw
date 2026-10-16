@@ -2,6 +2,7 @@
 // good cookie from the simulated month on the microgrid, where they come from, and what each
 // lever saves when the same month is re-run through the same energy manager.
 import { useJson } from "../shared/data";
+import { clean } from "../shared/names";
 import { Bars, HBar, Plot } from "./Plot";
 
 type Lever = { co2_kg: number | null; g_per_cookie: number; load_kwh?: number; import_kwh?: number; cost_eur?: number; wh_per_cookie?: number; estimate?: boolean; note?: string };
@@ -45,7 +46,7 @@ export function CarbonPage() {
         </section>
         <section className="db-card"><h3>What each lever does</h3>
           <HBar xTitle="g CO₂e per good cookie" fmt={(v) => v.toFixed(3)}
-            rows={keys.map((k, i) => ({ label: k, v: L[k].g_per_cookie, on: k.startsWith("as built"),
+            rows={keys.map((k, i) => ({ label: clean(k), v: L[k].g_per_cookie, on: k.startsWith("as built"),
               color: k === "grid only" ? "#6c7884" : L[k].estimate ? "#b07ad6" : i === 1 ? "#4f8fd6" : "#22c55e",
               tip: L[k].note ?? `${k}: ${L[k].import_kwh} kWh imported, €${L[k].cost_eur} this month` }))} />
           <ul className="ai-verdict">

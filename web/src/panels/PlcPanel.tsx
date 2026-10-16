@@ -174,7 +174,7 @@ export function PlcPanel() {
         <p>IEC 61131-3 Structured Text, compiled by MatIEC to WebAssembly and scanned here against the plant. The plant sees only the
           program's outputs; light barriers, the vacuum switch, RFID and the colour sensor report what is physically there.</p>
         {proof && <p>{proof.st_lines} lines · {proof.compiler} · wasm {proof.wasm_sha} · every job start replayed against control.py's
-          proven model. Upgrade 4's program: {proof.u4.accepted ? "compiled" : `rejected (${proof.u4.errors} MatIEC errors)`}.</p>}
+          proven model. The first PLC program: {proof.u4.accepted ? "compiled" : `rejected (${proof.u4.errors} MatIEC errors)`}.</p>}
         {proof?.findings.map((f) => <p key={f.id}><b>{f.id}</b> {f.text}</p>)}
       </details>
     </div>

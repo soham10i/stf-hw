@@ -3,6 +3,7 @@
 // for it (a small repository with a promise cache), instead of each panel and page
 // keeping its own fetch + state + error copy.
 import { useEffect, useState } from "react";
+import { cleanDeep } from "./names";
 
 const BASE = import.meta.env.BASE_URL;
 const cache = new Map<string, Promise<unknown>>();
@@ -13,7 +14,7 @@ export function loadJson<T>(path: string): Promise<T> {
     const p = fetch(`${BASE}${path}`, { cache: "no-store" }).then((r) => {
       if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`);
       return r.json();
-    });
+    }).then(cleanDeep);                           // design-step numbers shown as feature names
     p.catch(() => cache.delete(path));           // a failed fetch may be retried later
     cache.set(path, p);
   }

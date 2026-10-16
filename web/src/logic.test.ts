@@ -9,6 +9,7 @@ import { DegradeSim, wear, type Law } from "./shared/degrade";
 import { boxSize, cylSpec, type HealthComp } from "./shared/model";
 import { Bm25, answer, tokens, type Ctx } from "./copilot/copilot";
 import { Rng } from "./vision/render";
+import { clean, cleanDeep } from "./shared/names";
 
 describe("chart axes", () => {
   it("niceTicks covers the range with 1-2-5 steps", () => {
@@ -126,5 +127,25 @@ describe("renderer random numbers", () => {
   it("are the same for the same seed", () => {
     const a = new Rng(7), b = new Rng(7);
     expect([a.random(), a.normal(), a.u(2, 3)]).toEqual([b.random(), b.normal(), b.u(2, 3)]);
+  });
+});
+
+describe("feature names instead of design-step numbers", () => {
+  it("rewrites references and keeps sheet ids and encoded data", () => {
+    expect(clean("force-guided contactor K1 (Upgrade 2)")).toBe("force-guided contactor K1");
+    expect(clean("Upgrade 1 - central air, cookie buffer, stiff members")).toBe("Central air, cookie buffer, stiff members");
+    expect(clean("carries the door cylinder - 20x20 aluminium profile (Upgrade 1: sag check)")).toBe("carries the door cylinder - 20x20 aluminium profile (sag check)");
+    expect(clean("+ the VGR parks raw cookies in Upgrade 1's buffer while the oven is busy")).toBe("+ the VGR parks raw cookies in the buffer while the oven is busy");
+    expect(clean("U6 warning: HBW belt")).toBe("Condition monitoring warning: HBW belt");
+    expect(clean("travel stop (U5 accuracy)")).toBe("travel stop (accuracy)");
+    expect(clean("on the I/O and the standards (U11-U12) here")).toBe("on the I/O and the standards here");
+    expect(clean("Upgrade 12 interlock relay IL1: coil")).toBe("interlock relay IL1: coil".replace(/^i/, "I"));
+    expect(clean("Guarding layout U2-02")).toBe("Guarding layout U2-02");
+    expect(clean("STF-U12")).toBe("STF-01");
+    expect(clean("stf-hw/virtual-site/bakery/line-1/cell-u12/hbw/inputs/hbw_I1_long_long_long_topic")).toBe("stf-hw/virtual-site/bakery/line-1/cell-01/hbw/inputs/hbw_I1_long_long_long_topic");
+    expect(clean("Upgrades 5 and 7.")).toBe("Commissioning and lifecycle design.");
+  });
+  it("cleans values, not keys", () => {
+    expect(cleanDeep({ U9: { what: "before (U9)" } })).toEqual({ U9: { what: "before" } });
   });
 });

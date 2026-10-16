@@ -156,7 +156,7 @@ export function ComponentView({ id, doc }: { id: string; doc: ComponentDoc }) {
       <aside className="sidebar">
         <section className="panel">
           <h2>
-            {c.name} <span className="tag idle">{c.kind === "mechanism" ? c.upgrade : `ft ${c.ft}`}</span>
+            {c.name} <span className="tag idle">{c.kind === "mechanism" ? "mechanism" : `ft ${c.ft}`}</span>
           </h2>
           <p className="clock">{c.name_de} · {c.material}</p>
           <p className="clock">

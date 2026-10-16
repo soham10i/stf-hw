@@ -6,7 +6,7 @@ import { useJson } from "../shared/data";
 import { Dumbbell, HBar, Plot } from "./Plot";
 
 const COL: Record<string, string> = { ...JOB_COL, present: "#f0c05a", place_oven: "#c7851c", store_retrieve: "#1f78c8" };
-const SAY: Record<string, string> = { ...JOB_SAY, belt_to_oven: "VGR: pick from the belt (U10: the pick half only)",
+const SAY: Record<string, string> = { ...JOB_SAY, belt_to_oven: "VGR: pick from the belt (the pick half only)",
   present: "oven: door open, Ofenschieber out", place_oven: "VGR: lay the cookie on the tray, home",
   store_retrieve: "crane: store the mould coming in + retrieve the next (one trip)" };
 const UNITS = ["crane", "belt", "arm", "door", "sauger", "turntable", "ovenbelt", "line"];
@@ -86,8 +86,8 @@ export function ThroughputPage() {
           <div className="mo-insights">{d.findings.map((f) => <div key={f.title}><b>{f.title}</b><p>{f.text}</p></div>)}</div>
         </section>
         <section className="db-card wide"><h3>The same order, before and after, on one time scale (virtual commissioning)</h3>
-          <Gantt bars={d.gantt.before} tMax={tMax} title="before: the Upgrade 7 program" />
-          <Gantt bars={d.gantt.after} tMax={tMax} title="after: Upgrade 10" />
+          <Gantt bars={d.gantt.before} tMax={tMax} title="before: the original program" />
+          <Gantt bars={d.gantt.after} tMax={tMax} title="after: the throughput program" />
           <div className="db-legend">{jobs.map((j) => <span key={j}><i style={{ background: COL[j] ?? "#888" }} />{j}</span>)}</div>
           <p className="db-note">Each row is a unit's state machine; each block one step, as the PLC saw it complete (plant physics, both
             Modbus hops, the scan). Hover a block for its job. Before, the arm row is long and the crane waits for the mould; after, the
@@ -103,9 +103,9 @@ export function ThroughputPage() {
         </section>
         <section className="db-card hl-span2"><h3>Ablation: the order time with each measure switched off</h3>
           <HBar xTitle="12-cookie order, commissioned (s)" fmt={(v) => `${Math.round(v)}`} x0={Math.floor(a.vc_s * 0.8 / 50) * 50}
-            refs={[{ v: b.vc_s, label: "before", color: "var(--muted)" }, { v: a.vc_s, label: "Upgrade 10", color: "var(--ok)" }]}
-            rows={[...d.ablation].sort((p, q) => q.vc_s - p.vc_s).map((x) => ({ label: x.name, v: x.vc_s, on: x.name === "Upgrade 10",
-              color: x.name.startsWith("before") ? "#6c7884" : x.name === "Upgrade 10" ? "var(--ok)" : "#4f8fd6",
+            refs={[{ v: b.vc_s, label: "before", color: "var(--muted)" }, { v: a.vc_s, label: "Throughput program", color: "var(--ok)" }]}
+            rows={[...d.ablation].sort((p, q) => q.vc_s - p.vc_s).map((x) => ({ label: x.name, v: x.vc_s, on: x.name === "Throughput program",
+              color: x.name.startsWith("before") ? "#6c7884" : x.name === "Throughput program" ? "var(--ok)" : "#4f8fd6",
               tip: `${x.name}: ${x.vc_s} s commissioned (${x.model_s} s nominal) · cycle ${x.cycle_s} s · ${x.per_hour}/h · busiest ${bott(x)[0]}` }))} />
           <p className="hl-cap">Axis starts at {Math.floor(a.vc_s * 0.8 / 50) * 50} s so the differences show. Hover a bar for cycle time and the busiest unit.</p>
         </section>
@@ -124,13 +124,13 @@ export function ThroughputPage() {
         <section className="db-card"><h3>With a real bake</h3>
           <Plot h={230} xTitle="bake time (s)" yTitle="order time (s)" yMin={0}
             series={[{ name: "before", x: d.study.map((r) => r.bake_s), y: d.study.map((r) => r.before), color: "#6c7884", width: 2.2 },
-                     { name: "Upgrade 10", x: d.study.map((r) => r.bake_s), y: d.study.map((r) => r.after), color: "#22c55e", width: 2.4 }]}
+                     { name: "Throughput program", x: d.study.map((r) => r.bake_s), y: d.study.map((r) => r.after), color: "#22c55e", width: 2.4 }]}
             vmarks={[{ x: d.meta.bake_demo_s, color: "var(--muted)", label: "demo bake" }]}
             tipExtra={(x) => { const r = d.study.find((q) => q.bake_s === x); return r ? [["gain", `${Math.round(r.gain * 100)} %`]] : []; }} />
           <p className="hl-cap">The longer the bake, the more the oven limits the order and the less the faster loop matters.</p>
         </section>
         <section className="db-card"><h3>OEE, before and after</h3>
-          <Dumbbell xTitle="share of the shift" a={{ name: "before", color: "#6c7884" }} b={{ name: "Upgrade 10", color: "var(--ok)" }}
+          <Dumbbell xTitle="share of the shift" a={{ name: "before", color: "#6c7884" }} b={{ name: "Throughput program", color: "var(--ok)" }}
             rows={(["availability", "performance", "quality", "oee"] as const).map((k) => ({ label: k === "oee" ? "OEE" : k, a: d.oee.before[k], b: d.oee.after[k] }))} />
           <p className="hl-cap">Bottleneck: {d.oee.before.bottleneck} → {d.oee.after.bottleneck}. Performance rises because idle waiting went, not because anything runs faster.</p>
         </section>

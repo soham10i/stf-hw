@@ -230,7 +230,7 @@ export function RackBadge({ doc, rack, raw }: { doc: CadDoc; rack: Record<string
   return (
     <Html position={pos} center zIndexRange={[5, 0]}>
       <span className="zone-tag rack-badge" style={{ borderColor: col }}>
-        <i style={{ background: col }} />{baked.length ? `${baked.length} baked · ${baked.join(" ")}` : "rack: raw dough only"}
+        <i style={{ background: col }} />{baked.length ? `${baked.length} baked · ${baked.join(" ")}` : "Rack: raw dough only"}
       </span>
     </Html>
   );

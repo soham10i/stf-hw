@@ -35,7 +35,7 @@ export function NetSecurityPanel() {
       </select>
       <div className="ui-seg np-seg">
         {(["without", "detect_only", "with"] as const).map((m) => (
-          <button key={m} className={m === mode ? "on" : ""} onClick={() => setMode(m)}>{m === "without" ? "None" : m === "detect_only" ? "Detect" : "U11"}</button>))}
+          <button key={m} className={m === mode ? "on" : ""} onClick={() => setMode(m)}>{m === "without" ? "None" : m === "detect_only" ? "Detect" : "Protected"}</button>))}
       </div>
       <div className={`np-out ${mode === "with" ? "ok" : mode === "without" ? "bad" : "warn"}`}>{a[mode]}</div>
       <p className="muted small">In 3D: blue = cell control (Z1: the I/O nodes and the PLC), red = hardwired E-stops and reset (Z0).</p>

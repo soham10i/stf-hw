@@ -29,7 +29,7 @@ export function HardeningPage() {
       <div className="db-kpis">
         <div className="db-kpi ok"><span>hardwired interlocks</span><b>{ad} / {d.interlocks.length}</b><em>jog rules that were software only</em></div>
         <div className="db-kpi ok"><span>program steps replayed</span><b>{d.program_steps}</b><em>none blocked by an adopted interlock</em></div>
-        <div className="db-kpi ok"><span>U11 findings closed</span><b>{d.attacks.filter((a) => a.closed).length + (E.U12.lowest_soc_in_dr === null || E.U12.lowest_soc_in_dr >= 0.3 - 1e-6 ? 1 : 0)} / 4</b><em>F1 · F2 · F3 · soft link</em></div>
+        <div className="db-kpi ok"><span>OT security findings closed</span><b>{d.attacks.filter((a) => a.closed).length + (E.U12.lowest_soc_in_dr === null || E.U12.lowest_soc_in_dr >= 0.3 - 1e-6 ? 1 : 0)} / 4</b><em>F1 · F2 · F3 · soft link</em></div>
         <div className={`db-kpi ${E.U12.dr_met ? "ok" : "warn"}`}><span>demand response</span><b>{E.U12.dr_met ? "met" : "not fully"}</b><em>with the reserve held</em></div>
       </div>
       <div className="db-grid">
@@ -43,10 +43,10 @@ export function HardeningPage() {
               tip: `${r.id}: ${r.why}\n${r.adopted ? "hardwired" : r.permissive === "POS" ? "no sensor for it" : `would block ${r.blocked} steps`} - ${r.reason}` }))} />
           <div className="pl-legend static"><span><i style={{ background: "var(--ok)" }} />hardwired</span><span><i style={{ background: "#6c7884" }} />no switch to wire it to</span>
             <span><i style={{ background: "var(--bad)" }} />would block the program's own steps</span></div>
-          <p className="hl-cap">Hardwired only if the switch exists and replaying the whole order never hits a blocked step. IL4 passed the U7 program but blocks U10's blended path.</p>
+          <p className="hl-cap">Hardwired only if the switch exists and replaying the whole order never hits a blocked step. IL4 passed the original program but blocks the throughput program's blended path.</p>
         </section>
-        <section className="db-card wide"><h3>The U11 findings, re-run on the hardened machine</h3>
-          <table className="db-table"><thead><tr><td>finding</td><td>Upgrade 11</td><td>Upgrade 12</td></tr></thead>
+        <section className="db-card wide"><h3>The OT security findings, re-run on the hardened machine</h3>
+          <table className="db-table"><thead><tr><td>finding</td><td>OT security</td><td>hardened machine</td></tr></thead>
             <tbody>{d.attacks.map((a) => <tr key={a.id}><td><b>{a.id}</b> {a.name}</td><td className="db-muted">{a.u11}</td><td className="ok">{a.u12}</td></tr>)}
               <tr><td><b>F3</b> forged demand-response event</td><td className="db-muted">a DR window could drain the battery to its 10 % floor</td>
                 <td className="ok">the window stops at the ride-through reserve; ride-through {E.U12.ride_through}/{E.U12.events}</td></tr></tbody></table>
@@ -54,9 +54,9 @@ export function HardeningPage() {
         <section className="db-card"><h3>Energy: what holding the reserve costs</h3>
           <h4 className="sec-h4">lowest battery charge in a DR window</h4>
           <HBar xTitle="" x1={100} fmt={(v) => `${Math.round(v)} %`} refs={[{ v: 30, label: "reserve", color: "var(--warn)" }]}
-            rows={(["U9", "U12"] as const).map((k) => ({ label: k, v: Math.round((E[k].lowest_soc_in_dr ?? 0) * 100), color: k === "U12" ? "var(--ok)" : "var(--bad)" }))} />
+            rows={(["U9", "U12"] as const).map((k) => ({ label: k === "U9" ? "before" : "hardened", v: Math.round((E[k].lowest_soc_in_dr ?? 0) * 100), color: k === "U12" ? "var(--ok)" : "var(--bad)" }))} />
           <h4 className="sec-h4">grid import in DR windows</h4>
-          <HBar xTitle="" fmt={(v) => `${Math.round(v)} Wh`} rows={(["U9", "U12"] as const).map((k) => ({ label: k, v: E[k].dr_import_wh, color: k === "U12" ? "#4f8fd6" : "#6c7884" }))} />
+          <HBar xTitle="" fmt={(v) => `${Math.round(v)} Wh`} rows={(["U9", "U12"] as const).map((k) => ({ label: k === "U9" ? "before" : "hardened", v: E[k].dr_import_wh, color: k === "U12" ? "#4f8fd6" : "#6c7884" }))} />
           <p className="hl-cap">Bill €{E.U9.total_eur} → €{E.U12.total_eur} · DR met: {E.U9.dr_met ? "yes" : "no"} → {E.U12.dr_met ? "yes" : "no"}.</p>
         </section>
         <section className="db-card"><h3>New parts</h3>
@@ -107,8 +107,8 @@ export function ValidationPage() {
         <section className="db-card"><h3>Robustness: ±20 % on every plant step</h3>
           <Dumbbell xTitle="order time over 25 random plants (s)" max={Math.max(J.mc.before.max, J.mc.after.max) * 1.08} fmt={(v) => `${Math.round(v)}`}
             a={{ name: "fastest", color: "var(--ok)" }} b={{ name: "slowest", color: "var(--bad)" }}
-            rows={(["before", "after"] as const).map((k) => ({ label: k === "before" ? "U7 program" : "U10 program", a: J.mc[k].min, b: J.mc[k].max, note: `median ${J.mc[k].median} s` }))} />
-          <p className="hl-cap">U10's slowest run beats U7's fastest. No watchdog tripped falsely (worst step used {Math.round(Math.max(J.mc.before.worst_watchdog_use, J.mc.after.worst_watchdog_use) * 100)} % of its limit).</p>
+            rows={(["before", "after"] as const).map((k) => ({ label: k === "before" ? "original program" : "throughput program", a: J.mc[k].min, b: J.mc[k].max, note: `median ${J.mc[k].median} s` }))} />
+          <p className="hl-cap">The throughput program's slowest run beats the original's fastest. No watchdog tripped falsely (worst step used {Math.round(Math.max(J.mc.before.worst_watchdog_use, J.mc.after.worst_watchdog_use) * 100)} % of its limit).</p>
         </section>
         <section className="db-card"><h3>Data products</h3>
           <table className="db-table"><tbody>
