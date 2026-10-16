@@ -6639,10 +6639,10 @@
      180.0,
      10
     ],
-    "c": "#e0492f",
+    "c": "#aeb4b8",
     "tag": "",
     "mech": "",
-    "note": ""
+    "note": "stainless floor over the insulated pedestal"
    },
    {
     "n": "oven_wall_back",
@@ -6659,10 +6659,10 @@
      180.0,
      180.0
     ],
-    "c": "#e0492f",
+    "c": "#aeb4b8",
     "tag": "",
     "mech": "",
-    "note": ""
+    "note": "brushed stainless casing around 10 mm ceramic-fibre board; the elements and the fan pass through it"
    },
    {
     "n": "oven_wall_L",
@@ -6679,10 +6679,10 @@
      10.0,
      180.0
     ],
-    "c": "#e0492f",
+    "c": "#aeb4b8",
     "tag": "",
     "mech": "",
-    "note": ""
+    "note": "stainless casing, insulated"
    },
    {
     "n": "oven_wall_R",
@@ -6699,10 +6699,10 @@
      10.0,
      180.0
     ],
-    "c": "#e0492f",
+    "c": "#aeb4b8",
     "tag": "",
     "mech": "",
-    "note": ""
+    "note": "stainless casing, insulated; carries the control panel"
    },
    {
     "n": "oven_front_lintel",
@@ -6719,7 +6719,7 @@
      160.0,
      60.0
     ],
-    "c": "#e0492f",
+    "c": "#aeb4b8",
     "tag": "",
     "mech": "",
     "note": "front wall above the mouth; the door slides in front of it"
@@ -6763,6 +6763,579 @@
     "tag": "Q9",
     "mech": "",
     "note": "Leuchte Ofen - on the roof at the front corner, where it can be seen; lit while the oven bakes"
+   },
+   {
+    "n": "liner_back",
+    "f": "world",
+    "g": "oven",
+    "k": "box",
+    "p": [
+     70.0,
+     20.0,
+     40.0
+    ],
+    "s": [
+     1.5,
+     160.0,
+     180.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "stainless liner over the insulated back wall"
+   },
+   {
+    "n": "liner_L",
+    "f": "world",
+    "g": "oven",
+    "k": "box",
+    "p": [
+     71.5,
+     20.0,
+     40.0
+    ],
+    "s": [
+     258.5,
+     1.5,
+     180.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "stainless liner, left wall"
+   },
+   {
+    "n": "liner_R",
+    "f": "world",
+    "g": "oven",
+    "k": "box",
+    "p": [
+     71.5,
+     178.5,
+     40.0
+    ],
+    "s": [
+     258.5,
+     1.5,
+     180.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "stainless liner, right wall"
+   },
+   {
+    "n": "liner_roof",
+    "f": "world",
+    "g": "oven",
+    "k": "box",
+    "p": [
+     71.5,
+     21.5,
+     218.5
+    ],
+    "s": [
+     258.5,
+     157.0,
+     1.5
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "stainless liner under the roof; reflects the grill element down"
+   },
+   {
+    "n": "heater_top_0",
+    "f": "world",
+    "g": "heat",
+    "k": "cyl",
+    "p": [
+     62.0,
+     60.0,
+     150.0
+    ],
+    "s": [
+     "x",
+     242.0,
+     8.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "tubular heating element, 400 W, Incoloy sheath; glows while baking"
+   },
+   {
+    "n": "heater_top_0_clip_130",
+    "f": "world",
+    "g": "heat",
+    "k": "box",
+    "p": [
+     126.0,
+     56.0,
+     154.0
+    ],
+    "s": [
+     8,
+     8,
+     64.5
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "stainless hanger: the grill element hangs low enough to be seen through the door"
+   },
+   {
+    "n": "heater_top_0_clip_240",
+    "f": "world",
+    "g": "heat",
+    "k": "box",
+    "p": [
+     236.0,
+     56.0,
+     154.0
+    ],
+    "s": [
+     8,
+     8,
+     64.5
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "stainless hanger: the grill element hangs low enough to be seen through the door"
+   },
+   {
+    "n": "heater_top_1",
+    "f": "world",
+    "g": "heat",
+    "k": "cyl",
+    "p": [
+     62.0,
+     140.0,
+     150.0
+    ],
+    "s": [
+     "x",
+     242.0,
+     8.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "tubular heating element, 400 W, Incoloy sheath; glows while baking"
+   },
+   {
+    "n": "heater_top_1_clip_130",
+    "f": "world",
+    "g": "heat",
+    "k": "box",
+    "p": [
+     126.0,
+     136.0,
+     154.0
+    ],
+    "s": [
+     8,
+     8,
+     64.5
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "stainless hanger: the grill element hangs low enough to be seen through the door"
+   },
+   {
+    "n": "heater_top_1_clip_240",
+    "f": "world",
+    "g": "heat",
+    "k": "box",
+    "p": [
+     236.0,
+     136.0,
+     154.0
+    ],
+    "s": [
+     8,
+     8,
+     64.5
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "stainless hanger: the grill element hangs low enough to be seen through the door"
+   },
+   {
+    "n": "heater_top_bend",
+    "f": "world",
+    "g": "heat",
+    "k": "cyl",
+    "p": [
+     300.0,
+     60.0,
+     150.0
+    ],
+    "s": [
+     "y",
+     80.0,
+     8.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "the hairpin's bend"
+   },
+   {
+    "n": "heater_bot_0_0",
+    "f": "world",
+    "g": "heat",
+    "k": "cyl",
+    "p": [
+     62.0,
+     35.0,
+     48.0
+    ],
+    "s": [
+     "x",
+     242.0,
+     8.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "tubular heating element, 250 W per hairpin, under the tray's path"
+   },
+   {
+    "n": "heater_bot_0_1",
+    "f": "world",
+    "g": "heat",
+    "k": "cyl",
+    "p": [
+     62.0,
+     55.0,
+     48.0
+    ],
+    "s": [
+     "x",
+     242.0,
+     8.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "tubular heating element, 250 W per hairpin, under the tray's path"
+   },
+   {
+    "n": "heater_bot_0_bend",
+    "f": "world",
+    "g": "heat",
+    "k": "cyl",
+    "p": [
+     300.0,
+     35.0,
+     48.0
+    ],
+    "s": [
+     "y",
+     20.0,
+     8.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "the hairpin's bend"
+   },
+   {
+    "n": "heater_bot_0_standoff_130",
+    "f": "world",
+    "g": "heat",
+    "k": "box",
+    "p": [
+     125.0,
+     30.0,
+     40.0
+    ],
+    "s": [
+     10,
+     30.0,
+     4.0
+    ],
+    "c": "#f2f0ea",
+    "tag": "",
+    "mech": "",
+    "note": "steatite standoff: holds the element off the floor, insulates it"
+   },
+   {
+    "n": "heater_bot_0_standoff_240",
+    "f": "world",
+    "g": "heat",
+    "k": "box",
+    "p": [
+     235.0,
+     30.0,
+     40.0
+    ],
+    "s": [
+     10,
+     30.0,
+     4.0
+    ],
+    "c": "#f2f0ea",
+    "tag": "",
+    "mech": "",
+    "note": "steatite standoff: holds the element off the floor, insulates it"
+   },
+   {
+    "n": "heater_bot_1_0",
+    "f": "world",
+    "g": "heat",
+    "k": "cyl",
+    "p": [
+     62.0,
+     145.0,
+     48.0
+    ],
+    "s": [
+     "x",
+     242.0,
+     8.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "tubular heating element, 250 W per hairpin, under the tray's path"
+   },
+   {
+    "n": "heater_bot_1_1",
+    "f": "world",
+    "g": "heat",
+    "k": "cyl",
+    "p": [
+     62.0,
+     165.0,
+     48.0
+    ],
+    "s": [
+     "x",
+     242.0,
+     8.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "tubular heating element, 250 W per hairpin, under the tray's path"
+   },
+   {
+    "n": "heater_bot_1_bend",
+    "f": "world",
+    "g": "heat",
+    "k": "cyl",
+    "p": [
+     300.0,
+     145.0,
+     48.0
+    ],
+    "s": [
+     "y",
+     20.0,
+     8.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "the hairpin's bend"
+   },
+   {
+    "n": "heater_bot_1_standoff_130",
+    "f": "world",
+    "g": "heat",
+    "k": "box",
+    "p": [
+     125.0,
+     140.0,
+     40.0
+    ],
+    "s": [
+     10,
+     30.0,
+     4.0
+    ],
+    "c": "#f2f0ea",
+    "tag": "",
+    "mech": "",
+    "note": "steatite standoff: holds the element off the floor, insulates it"
+   },
+   {
+    "n": "heater_bot_1_standoff_240",
+    "f": "world",
+    "g": "heat",
+    "k": "box",
+    "p": [
+     235.0,
+     140.0,
+     40.0
+    ],
+    "s": [
+     10,
+     30.0,
+     4.0
+    ],
+    "c": "#f2f0ea",
+    "tag": "",
+    "mech": "",
+    "note": "steatite standoff: holds the element off the floor, insulates it"
+   },
+   {
+    "n": "heater_terminal_box",
+    "f": "world",
+    "g": "heat",
+    "k": "box",
+    "p": [
+     44.0,
+     40.0,
+     150.0
+    ],
+    "s": [
+     16,
+     120,
+     60
+    ],
+    "c": "#474b52",
+    "tag": "",
+    "mech": "",
+    "note": "terminal box on the back: the elements' cold ends, earth, the cutout's sensor"
+   },
+   {
+    "n": "thermocouple_K",
+    "f": "world",
+    "g": "heat",
+    "k": "cyl",
+    "p": [
+     200.0,
+     148.5,
+     110.0
+    ],
+    "s": [
+     "y",
+     56.5,
+     4.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "K-type thermocouple, 3 mm sheath, 30 mm into the chamber at mid height"
+   },
+   {
+    "n": "convection_fan_guard",
+    "f": "world",
+    "g": "heat",
+    "k": "cyl",
+    "p": [
+     71.5,
+     100.0,
+     130.0
+    ],
+    "s": [
+     "x",
+     6.0,
+     70.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "wire guard of the convection fan: even heat over the tray"
+   },
+   {
+    "n": "convection_fan_motor",
+    "f": "world",
+    "g": "heat",
+    "k": "box",
+    "p": [
+     30.0,
+     85.0,
+     115.0
+    ],
+    "s": [
+     30,
+     30,
+     30
+    ],
+    "c": "#474b52",
+    "tag": "",
+    "mech": "",
+    "note": "fan motor outside the hot zone, behind the back wall",
+    "fit": {
+     "comp": "s_motor",
+     "perm": [
+      0,
+      1,
+      2
+     ],
+     "sign": [
+      1,
+      1,
+      1
+     ],
+     "centre": [
+      45.0,
+      100.0,
+      130.0
+     ],
+     "origin": [
+      37.5,
+      10.0,
+      15.0
+     ],
+     "overall": [
+      75.0,
+      40.001,
+      30.0
+     ],
+     "oversize_mm": [
+      45.0,
+      10.0,
+      0.0
+     ]
+    }
+   },
+   {
+    "n": "oven_control_panel",
+    "f": "world",
+    "g": "heat",
+    "k": "box",
+    "p": [
+     120.0,
+     190.0,
+     60.0
+    ],
+    "s": [
+     80.0,
+     35.0,
+     140.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "control panel on the oven's side, as on a real deck oven: PID temperature controller with display, the solid-state relay Q9 switches on its heat sink, 10 A fuse, manual-reset over-temperature cutout (250 C); the mains contactor drops with the safety relay"
+   },
+   {
+    "n": "oven_vent",
+    "f": "world",
+    "g": "heat",
+    "k": "cyl",
+    "p": [
+     110.0,
+     100.0,
+     232.0
+    ],
+    "s": [
+     "z",
+     35.0,
+     28.0
+    ],
+    "c": "#aeb4b8",
+    "tag": "",
+    "mech": "",
+    "note": "steam vent: lets the moisture of the bake out of the chamber"
    },
    {
     "n": "door_guide_L",
@@ -6892,10 +7465,10 @@
      160.0,
      110.0
     ],
-    "c": "#e0492f",
+    "c": "#aeb4b8",
     "tag": "Q13",
     "mech": "pneumatic",
-    "note": "Ofentuer: shut at z=50 (sits on the slider rail), open at z=170"
+    "note": "Ofentuer: stainless frame round a triple-glazed borosilicate window; shut at z=50 (sits on the slider rail), open at z=170"
    },
    {
     "n": "door_rod",
@@ -7014,37 +7587,37 @@
     "n": "I6_ref_slider_in",
     "f": "world",
     "g": "slider_fix",
-    "k": "box",
+    "k": "cyl",
     "p": [
-     240,
-     112.0,
-     40.0
+     275.0,
+     118.0,
+     13.0
     ],
     "s": [
+     "z",
      30.0,
-     15.0,
-     7.5
+     18.0
     ],
-    "c": "#1b8f52",
+    "c": "#474b52",
     "tag": "I6",
-    "mech": "",
-    "note": "Ofenschieber innen - under the retracted tray",
+    "mech": "sensor:inductive",
+    "note": "Ofenschieber innen: high-temperature inductive sensor in the floor, under the retracted tray; electronics and cable outside the hot chamber",
     "fit": {
      "comp": "mini_switch",
      "perm": [
-      0,
       2,
+      0,
       1
      ],
      "sign": [
       1,
       1,
-      -1
+      1
      ],
      "centre": [
-      255.0,
-      119.5,
-      43.75
+      275.0,
+      118.0,
+      28.0
      ],
      "origin": [
       15.0,
@@ -7058,8 +7631,8 @@
      ],
      "oversize_mm": [
       6.0,
-      0.0,
-      2.5
+      -10.5,
+      -0.5
      ]
     }
    },
@@ -37506,27 +38079,27 @@
     ],
     "points": [
      [
-      1092.5,
-      280.0,
-      46.0
+      1094.0,
+      294.0,
+      19.0
      ],
      [
-      1092.5,
-      286.0,
-      46.0
+      1094.0,
+      300.0,
+      19.0
      ],
      [
-      1092.5,
-      286.0,
+      1094.0,
+      300.0,
       1.2
      ],
      [
-      1015.0,
+      1040.0,
       360.0,
       1.2
      ],
      [
-      1015.0,
+      1040.0,
       380.0,
       1.2
      ],
@@ -38198,12 +38771,12 @@
       1.2
      ],
      [
-      1015.0,
+      780.0,
       10.0,
       1.2
      ],
      [
-      1015.0,
+      780.0,
       380.0,
       1.2
      ],
@@ -45973,7 +46546,7 @@
    "after": {
     "compressors": 1,
     "air_hose_m": 8.36,
-    "cable_m": 75.06,
+    "cable_m": 75.03,
     "cables": 74,
     "hoses": 16,
     "vgr_stations": 11
@@ -58876,11 +59449,27 @@
    },
    {
     "module": "oven",
+    "part": "convection_fan_motor",
+    "above_clear": false,
+    "blocked_by": [
+     "heater_terminal_box"
+    ],
+    "side": "+x",
+    "from": "side +x",
+    "door": "C",
+    "reach_mm": 796,
+    "in_reach": true,
+    "ok": true
+   },
+   {
+    "module": "oven",
     "part": "M4_slider_motor",
-    "above_clear": true,
-    "blocked_by": [],
-    "side": null,
-    "from": "above",
+    "above_clear": false,
+    "blocked_by": [
+     "convection_fan_motor"
+    ],
+    "side": "+x",
+    "from": "side +x",
     "door": "C",
     "reach_mm": 799,
     "in_reach": true,
@@ -59131,7 +59720,7 @@
    {
     "item": "motor",
     "what": "ft encoder / S-motor 24 V",
-    "qty": 13,
+    "qty": 14,
     "wear": false,
     "per_year": null,
     "stock": 1,
@@ -59592,5 +60181,5 @@
   },
   "assumed": "tolerance contributors, densities (ft blocks 35 % solid PA6, profiles 45 % alu), the profile section area, the reach"
  },
- "fingerprint": "bb0fe5697678867a"
+ "fingerprint": "73baa31a75252be7"
 }

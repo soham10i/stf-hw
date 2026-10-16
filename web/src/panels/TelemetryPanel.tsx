@@ -25,13 +25,16 @@ function twinRows(): { crane: Row[]; vgr: Row[]; oven: Row[]; sensors: [string, 
     ["vacuum", pct(vgrHot.seal)], ["carrying", vgrHot.carry ?? "—"],
   ];
   const oven: Row[] = s
-    ? [["oven slider", mm(s.slider)], ["oven door", mm(s.door)], ["oven sauger", mm(s.sauger)],
+    ? [["chamber temp", `${Math.round(ovenHot.tempC)} °C`, ovenHot.tempC > 240],
+       ["elements", ovenHot.heat > 0.5 ? "heating" : "off"],
+       ["oven slider", mm(s.slider)], ["oven door", mm(s.door)], ["oven sauger", mm(s.sauger)],
        ["turntable", `${s.turn.toFixed(1)}°`], ["baked", pct(s.baked)], ["belt path", mm(s.ly)]]
     : [];
   const sensors: [string, boolean][] = [
     ...Object.entries(hbwHot.blocked).map(([k, v]) => [`${k} light barrier`, v] as [string, boolean]),
     ["VGR vacuum", vgrHot.seal > 0.5],
-    ["oven lamp", !!s && s.lamp > 0.5],
+    ["oven heating", !!s && s.lamp > 0.5],
+    ["oven at temperature", ovenHot.tempC >= 170],
     ["sorting vacuum", !!s && s.vac > 0.5],
   ];
   const cycle = c.total > 0 ? `${c.from} → ${c.to} · ${Math.round((100 * c.t) / c.total)} %` : "starting";

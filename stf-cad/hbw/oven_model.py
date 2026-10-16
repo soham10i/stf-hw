@@ -95,6 +95,18 @@ O = dict(
     # rod ends and leads included), so the drawn parts can never overlap
     CYL=(20.0, 15.0, 69.0), VALVE=(40.0, 15.0, 33.0),
     COMPRESSOR=(66.0, 30.0, 30.0), PCB=(100.0, 160.0, 22.0),
+    # Baking for real (2026-10-16): the ft lamp Q9 only SHOWS the bake. A real chamber has
+    # tubular heating elements (Rohrheizkoerper, 8 mm stainless sheath, 230 V) above and below
+    # the workpiece, a stainless liner over insulated walls, a K-type thermocouple, a convection
+    # fan, and a power box with the temperature controller, the solid-state relay Q9 switches
+    # and a manual-reset over-temperature cutout. 7.5 l chamber -> 2 x 400 W top, 2 x 250 W
+    # bottom heats it to 180 C in ~6 min.
+    HEATER_D=8.0, HEAT_X=(62.0, 300.0),             # runs start inside the back wall
+    TOP_Z=150.0, TOP_Y=(60.0, 140.0),                # grill element: one hairpin, in sight through the door window
+    BOT_Z=48.0, BOT_Y=((35.0, 55.0), (145.0, 165.0)),  # bottom elements either side of the rail
+    LINER_T=1.5,
+    CONTROL=(120.0, 200.0, 35.0, 60.0, 140.0),       # side control panel: x0, x1, depth, z0, height
+    VENT=(110.0, 100.0, 28.0, 35.0),                 # steam vent on the roof: x, y, dia, height
     # Upgrade 1: the members the sag check (upgrade.py) failed become 20 x 20
     # aluminium profile; the Sauger rail stays 15 mm but becomes aluminium
     PROFILE=20.0 if UP1 else None,
@@ -182,22 +194,74 @@ def build(slider=435.0, door=170.0, turn=0.0, sauger=335.0, lower=0.0, push=0.0)
     A(Part("oven_pedestal", "oven", "box", (cx0, cy0, 0), (cx1 - cx0, cy1 - cy0, cz0 - 10),
            "black", "plate", note="lifts the chamber floor to the slider rail"))
     A(Part("oven_floor", "oven", "box", (cx0, cy0, cz0 - 10), (cx1 - cx0, cy1 - cy0, 10),
-           "ftred", "oven_pedestal"))
+           "steel", "oven_pedestal", note="stainless floor over the insulated pedestal"))
     A(Part("oven_wall_back", "oven", "box", (cx0, cy0, cz0), (wl, cy1 - cy0, cz1 - cz0),
-           "ftred", "oven_floor"))
+           "steel", "oven_floor", note="brushed stainless casing around 10 mm ceramic-fibre board; "
+                                       "the elements and the fan pass through it"))
     A(Part("oven_wall_L", "oven", "box", (cx0 + wl, cy0, cz0), (cx1 - cx0 - wl, wl, cz1 - cz0),
-           "ftred", "oven_floor"))
+           "steel", "oven_floor", note="stainless casing, insulated"))
     A(Part("oven_wall_R", "oven", "box", (cx0 + wl, cy1 - wl, cz0), (cx1 - cx0 - wl, wl, cz1 - cz0),
-           "ftred", "oven_floor"))
+           "steel", "oven_floor", note="stainless casing, insulated; carries the control panel"))
     mt = q["MOUTH_TOP"]
     A(Part("oven_front_lintel", "oven", "box", (cx1 - wl, cy0 + wl, mt), (wl, cy1 - cy0 - 2 * wl, cz1 - mt),
-           "ftred", "oven_wall_L", note="front wall above the mouth; the door slides in front of it"))
+           "steel", "oven_wall_L", note="front wall above the mouth; the door slides in front of it"))
     A(Part("oven_roof", "oven", "box", (cx0, cy0, cz1), (cx1 - cx0, cy1 - cy0, q["ROOF_T"]),
            "black", "oven_wall_L", note="black slatted top (Abb. 9)"))
     A(Part("Q9_oven_lamp", "oven", "box", (cx1 - 40, cy1 - 40, cz1 + q["ROOF_T"]), (20, 20, 12),
            "amber", "oven_roof", tag="Q9",
            note="Leuchte Ofen - on the roof at the front corner, where it can be seen; "
                 "lit while the oven bakes"))
+
+    # ------------------------------------------------ baking: heat, liner, sensing
+    # The chamber walls are a powder-coated steel casing (ft red) with 10 mm ceramic-fibre
+    # board inside; a 1.5 mm stainless liner faces the chamber. The floor is stainless.
+    LT = q["LINER_T"]; ix0 = cx0 + wl
+    A(Part("liner_back", "oven", "box", (ix0, cy0 + wl, cz0), (LT, cy1 - cy0 - 2 * wl, cz1 - cz0), "steel",
+           "oven_wall_back", note="stainless liner over the insulated back wall"))
+    A(Part("liner_L", "oven", "box", (ix0 + LT, cy0 + wl, cz0), (cx1 - wl - ix0 - LT, LT, cz1 - cz0), "steel",
+           "oven_wall_L", note="stainless liner, left wall"))
+    A(Part("liner_R", "oven", "box", (ix0 + LT, cy1 - wl - LT, cz0), (cx1 - wl - ix0 - LT, LT, cz1 - cz0), "steel",
+           "oven_wall_R", note="stainless liner, right wall"))
+    A(Part("liner_roof", "oven", "box", (ix0 + LT, cy0 + wl + LT, cz1 - LT), (cx1 - wl - ix0 - LT, cy1 - cy0 - 2 * wl - 2 * LT, LT),
+           "steel", "liner_L", note="stainless liner under the roof; reflects the grill element down"))
+    hd = q["HEATER_D"]; hx0, hx1 = q["HEAT_X"]      # runs reach through the bend: one continuous tube
+    # top (grill) element: a hairpin, cold ends through the back wall into the terminal box
+    for k, yy in enumerate(q["TOP_Y"]):
+        A(Part(f"heater_top_{k}", "heat", "cyl", (hx0, yy, q["TOP_Z"]), ("x", hx1 - hx0 + hd / 2, hd), "steel",
+               "oven_wall_back", note="tubular heating element, 400 W, Incoloy sheath; glows while baking"))
+        for xc in (130.0, 240.0):
+            A(Part(f"heater_top_{k}_clip_{xc:.0f}", "heat", "box", (xc - 4, yy - 4, q["TOP_Z"] + hd / 2),
+                   (8, 8, cz1 - LT - q["TOP_Z"] - hd / 2), "steel", "liner_roof",
+                   note="stainless hanger: the grill element hangs low enough to be seen through the door"))
+    t0, t1 = q["TOP_Y"]
+    A(Part("heater_top_bend", "heat", "cyl", (hx1, t0, q["TOP_Z"]), ("y", t1 - t0, hd), "steel",
+           "heater_top_0", note="the hairpin's bend"))
+    # bottom elements: two hairpins either side of the slider rail, under the tray
+    for k, (ya, yb) in enumerate(q["BOT_Y"]):
+        for m, yy in enumerate((ya, yb)):
+            A(Part(f"heater_bot_{k}_{m}", "heat", "cyl", (hx0, yy, q["BOT_Z"]), ("x", hx1 - hx0 + hd / 2, hd), "steel",
+                   "oven_wall_back", note="tubular heating element, 250 W per hairpin, under the tray's path"))
+        A(Part(f"heater_bot_{k}_bend", "heat", "cyl", (hx1, ya, q["BOT_Z"]), ("y", yb - ya, hd), "steel",
+               f"heater_bot_{k}_0", note="the hairpin's bend"))
+        for xc in (130.0, 240.0):
+            A(Part(f"heater_bot_{k}_standoff_{xc:.0f}", "heat", "box", (xc - 5, ya - 5, cz0), (10, yb - ya + 10, q["BOT_Z"] - hd / 2 - cz0),
+                   "white", "oven_floor", note="steatite standoff: holds the element off the floor, insulates it"))
+    A(Part("heater_terminal_box", "heat", "box", (cx0 - 16, cy0 + 30, 150.0), (16, 120, 60), "darkgrey",
+           "oven_wall_back", note="terminal box on the back: the elements' cold ends, earth, the cutout's sensor"))
+    A(Part("thermocouple_K", "heat", "cyl", (200.0, cy1 - wl - LT - 30, 110.0), ("y", 30 + LT + wl + 15, 4.0), "steel",
+           "oven_wall_R", note="K-type thermocouple, 3 mm sheath, 30 mm into the chamber at mid height"))
+    A(Part("convection_fan_guard", "heat", "cyl", (ix0 + LT, 100.0, 130.0), ("x", 6.0, 70.0), "steel",
+           "liner_back", note="wire guard of the convection fan: even heat over the tray"))
+    A(Part("convection_fan_motor", "heat", "box", (cx0 - 30, 85.0, 115.0), (30, 30, 30), "darkgrey",
+           "oven_wall_back", note="fan motor outside the hot zone, behind the back wall"))
+    c0, c1, cd, cz, ch = q["CONTROL"]
+    A(Part("oven_control_panel", "heat", "box", (c0, cy1, cz), (c1 - c0, cd, ch), "steel", "oven_wall_R",
+           note="control panel on the oven's side, as on a real deck oven: PID temperature controller "
+                "with display, the solid-state relay Q9 switches on its heat sink, 10 A fuse, "
+                "manual-reset over-temperature cutout (250 C); the mains contactor drops with the safety relay"))
+    vx, vy, vd, vh = q["VENT"]
+    A(Part("oven_vent", "heat", "cyl", (vx, vy, cz1 + q["ROOF_T"]), ("z", vh, vd), "steel", "oven_roof",
+           note="steam vent: lets the moisture of the bake out of the chamber"))
 
     # door: guides stand on the plate either side of the mouth, a gantry on top
     dt = q["DOOR_T"]
@@ -214,8 +278,9 @@ def build(slider=435.0, door=170.0, turn=0.0, sauger=335.0, lower=0.0, push=0.0)
            "steel", "door_gantry", tag="Q13", mech="pneumatic",
            note="Pneumatikzylinder; Ventil Ofentuer pulls the door up"))
     A(Part("Q13_oven_door", "door", "box", (cx1, cy0 + 10, door), (dt, cy1 - cy0 - 20, q["DOOR_H"]),
-           "ftred", "door_guide_L", frame="door", tag="Q13", mech="pneumatic",
-           note="Ofentuer: shut at z=50 (sits on the slider rail), open at z=170"))
+           "steel", "door_guide_L", frame="door", tag="Q13", mech="pneumatic",
+           note="Ofentuer: stainless frame round a triple-glazed borosilicate window; "
+                "shut at z=50 (sits on the slider rail), open at z=170"))
     A(Part("door_rod", "door", "cyl", (cx1 + 4, q["TRAY_Y"], door + q["DOOR_H"] - 5), ("z", 165 + gh, 8),
            "steel", "Q13_oven_door", frame="door", note="piston rod up into the door cylinder"))
 
@@ -229,8 +294,14 @@ def build(slider=435.0, door=170.0, turn=0.0, sauger=335.0, lower=0.0, push=0.0)
     A(Part("M4_slider_motor", "slider_fix", "box", (10, ty - SM[1] / 2, 0), SM, "black", "plate",
            tag="Q5/Q6", mech="motor:slider",
            note="S-Motor 24V + U-Getriebe behind the chamber; runs to a switch, no encoder"))
-    A(Part("I6_ref_slider_in", "slider_fix", "box", (240, ty + 12, cz0), q["SWITCH"], "green",
-           "oven_floor", tag="I6", note="Ofenschieber innen - under the retracted tray"))
+    # I6 sits in the bake zone, where a plastic mini switch and its PVC cable would not survive
+    # 180 C: a high-temperature inductive proximity sensor instead (M18, non-flush, Sn 8 mm,
+    # rated 230 C), mounted from below through the insulated floor. Its body and cable stay in
+    # the cool pedestal; only the ceramic face shows, 7 mm under the stainless tray at its stop.
+    A(Part("I6_ref_slider_in", "slider_fix", "cyl", (275.0, ty + 18, 13.0), ("z", cz0 + 3 - 13.0, 18.0), "darkgrey",
+           "oven_pedestal", tag="I6", mech="sensor:inductive",
+           note="Ofenschieber innen: high-temperature inductive sensor in the floor, under the "
+                "retracted tray; electronics and cable outside the hot chamber"))
     A(Part("I7_ref_slider_out", "slider_fix", "box", (440, ty + 5, cz0), q["SWITCH"], "green",
            "slider_rail", tag="I7", note="Ofenschieber aussen - under the extended tray"))
     A(Part("ofenschieber_tray", "slider", "box", (slider, ty - td / 2, cz0 + 10), (tw, td, th),
@@ -403,7 +474,8 @@ def belt_load(y):
     return _wp("wp_belt", O["X_LINE"], y, Z_W, "world", "belt_web")
 
 
-JOINED = [("oven", "oven"), ("oven", "door"), ("slider", "slider_fix"),
+JOINED = [("heat", "heat"), ("heat", "oven"),
+          ("oven", "oven"), ("oven", "door"), ("slider", "slider_fix"),
           ("slider_fix", "oven"), ("slider", "oven"), ("turn", "turn_fix"),
           ("turn_fix", "turn_fix"), ("saw", "saw"), ("belt", "belt"),
           ("portal", "portal"), ("sauger", "portal"), ("portal", "oven"), ("lower", "sauger"),
@@ -461,6 +533,11 @@ CANTILEVERS = {
     "belt_rail_L", "belt_rail_R", "belt_web", "belt_drum_in", "belt_drum_out",
     "belt_nose_L", "belt_nose_R", "belt_nose_roller",
     "I3_lightbarrier_rx", "I3_lightbarrier_tx", "drehtisch_nest",
+    # wall-hung baking hardware: the elements' cold ends are clamped in the back wall (and held
+    # by clips and standoffs along the run), the rest is bolted to a wall
+    "heater_top_0", "heater_top_1", "heater_top_bend", "heater_bot_0_bend", "heater_bot_1_bend",
+    "heater_terminal_box", "thermocouple_K", "convection_fan_guard", "convection_fan_motor", "oven_control_panel",
+    "I6_ref_slider_in",                     # clamped in a bore through the floor
 }
 
 

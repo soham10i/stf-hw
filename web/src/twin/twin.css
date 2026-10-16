@@ -578,3 +578,4 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .vp-status { flex: 1 1 auto; }
 .vp-btn.off { color: var(--faint); } .vp-btn.off svg { opacity: .5; }
 .vp-btn[aria-pressed="true"]:not(.on) { color: var(--text); }
+

@@ -27,7 +27,15 @@ The original ft model only signals baking with a lamp. The twin's oven is built 
   250 W hairpins sit on steatite standoffs under the tray, either side of its rail. Their cold
   ends pass through the back wall into a terminal box.
 - **Convection fan** on the back wall (motor outside the hot zone) for even heat over the tray.
-- **Temperature**: a K-type thermocouple reaches 30 mm into the chamber.
+- **Temperature sensor**: a K-type thermocouple (3 mm sheath) reaches 30 mm into the chamber at
+  mid height through the side wall and runs straight into the control panel, where the PID
+  controller reads it. Its reading is shown on the panel's display and in *Telemetry* (chamber
+  temperature, and an *oven at temperature* light from 170 C).
+- **Nothing heat-sensitive inside**: the tray's "in" reference I6 is not a plastic mini switch but a
+  high-temperature inductive proximity sensor (M18, rated 230 C) mounted from below through the
+  insulated floor. Its body and cable stay in the cool pedestal; only its ceramic face shows, 7 mm
+  under the stainless tray when the tray is in. All other sensors and every cable are outside the
+  chamber.
 - **Door**: a stainless frame round a triple-glazed borosilicate window.
 - **Control panel** on the oven's side: PID temperature controller with display, the solid-state
   relay that Q9 switches, a 10 A fuse, and a manual-reset over-temperature cutout at 250 C. The
@@ -45,7 +53,7 @@ tray, the rail, the door or the cookie in any allowed pose.
 
 Inputs: I1/I2/I4 turntable positions (gripper, belt, saw), I3 belt end, I5/I8 gripper at turntable
 / at oven, I6/I7 tray in / out, I9 oven light barrier, I10/I11 door, I12/I13 gripper cylinder,
-I14/I15 pusher. Outputs: Q1/Q2 turntable, Q3 belt, Q4 saw, Q5/Q6 tray, Q7/Q8 gripper travel, Q9
+I14/I15 pusher. I6 is the high-temperature inductive sensor in the floor. Outputs: Q1/Q2 turntable, Q3 belt, Q4 saw, Q5/Q6 tray, Q7/Q8 gripper travel, Q9
 oven (heat), Q10 compressor, Q11 vacuum, Q12 lower gripper, Q13 door, Q14 pusher. No encoders:
 every axis runs to a switch.
 

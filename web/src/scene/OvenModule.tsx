@@ -16,7 +16,7 @@ import * as THREE from "three";
 
 import { type CadPart, type CadDoc, boxSize, cylSpec } from "../shared/model";
 import { twinOrders, Drive, sortHot, ovenHot } from "./hot";
-import { MM, v, centreOf, Solid, Cookie, useBeltTexture } from "./parts";
+import { AIM, MM, v, centreOf, Solid, Cookie, useBeltTexture } from "./parts";
 
 
 
@@ -36,6 +36,13 @@ export function OvenModule({ doc }: { doc: CadDoc }) {
   const lamp = useRef<THREE.MeshStandardMaterial>(null);
   const lampLight = useRef<THREE.PointLight>(null);
   const cup = useRef<THREE.MeshStandardMaterial>(null);
+  // the heating: one material for every element, its glow following the element temperature
+  const heaterMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color: "#6f7175", metalness: 0.75, roughness: 0.42, emissive: new THREE.Color("#ff4a0a"), emissiveIntensity: 0, toneMapped: false,
+  }), []);
+  const thermo = useRef({ element: 0, chamber: 25 });
+  const display = useReadout();
+  const heatLed = useRef<THREE.MeshStandardMaterial>(null);
   const beltDrive = useRef<Drive>({ travel: 0, lift: 0, fork: 0, belt: 0, plunge: 0, reach: 0, swivel: 0 });
   const sawDrive = useRef<Drive>({ travel: 0, lift: 0, fork: 0, belt: 0, plunge: 0, reach: 0, swivel: 0 });
   const [tx, ty] = doc.oven.turntable;
@@ -50,9 +57,19 @@ export function OvenModule({ doc }: { doc: CadDoc }) {
   const lampPart = doc.oven.parts.find((p) => p.n === "Q9_oven_lamp");
   const tex = useBeltTexture();
 
-  useFrame(() => {
+  useFrame((_, dt) => {
     const s = ovenHot.s;
     if (!s) return;
+    // first-order lags: the sheath glows within seconds, the chamber air follows over a minute
+    // (time scaled with the twin's rate, so a bake shows the whole curve)
+    const on = s.lamp > 0.5 ? 1 : 0, h = thermo.current, k = Math.min(0.1, dt);
+    h.element += (on - h.element) * (1 - Math.exp(-k / 0.6));
+    h.chamber += ((on ? 182 : 25) - h.chamber) * (1 - Math.exp(-k / 2.5));
+    heaterMat.emissiveIntensity = 2.6 * h.element * h.element;
+    heaterMat.color.setRGB(0.44 + 0.3 * h.element, 0.44 - 0.12 * h.element, 0.46 - 0.2 * h.element);
+    ovenHot.tempC = h.chamber; ovenHot.heat = h.element;
+    display.show(`${Math.round(h.chamber)} °C`);
+    if (heatLed.current) heatLed.current.emissiveIntensity = on ? 3 : 0.15;
     // module frame = factory axes: +X -> three x, +Y -> three z, +Z -> three y
     if (g.slider.current) g.slider.current.position.x = (s.slider - A.slider) * MM;
     if (g.door.current) g.door.current.position.y = (s.door - A.door) * MM;
@@ -64,7 +81,7 @@ export function OvenModule({ doc }: { doc: CadDoc }) {
       lamp.current.emissiveIntensity = 0.05 + 4 * s.lamp;
       lamp.current.color.set(s.lamp > 0.5 ? "#ffb13b" : "#6f6a5e");
     }
-    if (lampLight.current) lampLight.current.intensity = 3 * s.lamp;
+    if (lampLight.current) lampLight.current.intensity = 1.2 * s.lamp + 4 * thermo.current.element;
     if (cup.current) cup.current.emissiveIntensity = 0.6 * s.vac;
     beltDrive.current.belt = ovenHot.belts.oven;
     sawDrive.current.belt = s.saw * 20;
@@ -83,6 +100,37 @@ export function OvenModule({ doc }: { doc: CadDoc }) {
         </mesh>
       );
     }
+    if (/^heater_(top|bot)_\d(_\d)?(_bend)?$|^heater_top_bend$/.test(p.n) && p.k === "cyl") {
+      const [ax, len, dia] = cylSpec(p);
+      return (
+        <mesh key={p.n} position={centreOf(p)} rotation={AIM[ax]} material={heaterMat} castShadow>
+          <cylinderGeometry args={[(dia / 2) * MM, (dia / 2) * MM, len * MM, 20]} />
+        </mesh>
+      );
+    }
+    if (CASING[p.n]) {
+      const [dx, dy, dz] = boxSize(p);
+      return (
+        <mesh key={p.n} position={centreOf(p)} castShadow receiveShadow>
+          <boxGeometry args={[dx * MM, dz * MM, dy * MM]} />
+          <meshStandardMaterial {...CASING[p.n]} />
+        </mesh>
+      );
+    }
+    if (p.n === "Q13_oven_door") return <WindowDoor key={p.n} part={p} />;
+    if (p.n === "drehtisch_nest") {
+      // the nest's top is the disc's top (both z = Z_W): drawn coplanar they z-fight into a
+      // flickering black pattern as the disc turns. Drawn as the locating ring it is, a hair
+      // proud of the disc and depth-biased toward the camera.
+      const [, len, dia] = cylSpec(p);
+      return (
+        <mesh key={p.n} position={v(p.p[0], p.p[1], p.p[2] + len + 0.3)} rotation={[-Math.PI / 2, 0, 0]} renderOrder={1}>
+          <ringGeometry args={[(dia / 2 - 3) * MM, (dia / 2) * MM, 48]} />
+          <meshStandardMaterial color="#2b2b2f" roughness={0.7} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} side={THREE.DoubleSide} />
+        </mesh>
+      );
+    }
+    if (p.n === "oven_control_panel") return <ControlPanel key={p.n} part={p} display={display} led={heatLed} />;
     return <Solid key={p.n} part={part} drive={drive} pitch={4} tex={tex} />;
   };
   return (
@@ -120,6 +168,105 @@ export function OvenModule({ doc }: { doc: CadDoc }) {
           <group position={v(-tx, -ty, 0)}>{byFrame.turn.map(P)}</group>
         </group>
       </group>
+    </group>
+  );
+}
+
+// The oven's casing, as a real deck oven is built: brushed stainless walls over ceramic-fibre
+// insulation, a stainless floor, a black enamelled top. Drawn here rather than from the ft
+// detail meshes, which show the plastic model's red plates.
+// metalness kept moderate: a fully metallic surface only mirrors the dark studio and reads black
+const STAINLESS = { color: "#d4d9de", metalness: 0.55, roughness: 0.3 };
+const CASING: Record<string, object> = {
+  oven_wall_back: STAINLESS, oven_wall_L: STAINLESS, oven_wall_R: STAINLESS, oven_front_lintel: STAINLESS,
+  oven_floor: { color: "#b9bfc5", metalness: 0.55, roughness: 0.38 },
+  oven_roof: { color: "#2a2d31", metalness: 0.35, roughness: 0.5 },
+  oven_pedestal: { color: "#2f3236", metalness: 0.3, roughness: 0.6 },
+};
+
+/** The oven door: a stainless frame round a tinted, triple-glazed window, so the glowing
+    elements and the cookie on its tray can be watched while it bakes. Inside the door's
+    proven envelope (factory axes: x through the door, y across, z up). */
+function WindowDoor({ part }: { part: CadPart }) {
+  const [dx, dy, dz] = boxSize(part);
+  const [x, y, z] = part.p, f = 16;
+  const bar = (yy: number, zz: number, w: number, h: number, k: string) => (
+    <mesh key={k} position={v(x + dx / 2, yy + w / 2, zz + h / 2)} castShadow>
+      <boxGeometry args={[dx * MM, h * MM, w * MM]} /><meshStandardMaterial {...STAINLESS} />
+    </mesh>
+  );
+  return (
+    <group>
+      {bar(y, z, f, dz, "l")}{bar(y + dy - f, z, f, dz, "r")}
+      {bar(y + f, z, dy - 2 * f, f, "b")}{bar(y + f, z + dz - f, dy - 2 * f, f, "t")}
+      <mesh position={v(x + dx / 2, y + dy / 2, z + dz / 2)} renderOrder={2}>
+        <boxGeometry args={[(dx - 2) * MM, (dz - 2 * f) * MM, (dy - 2 * f) * MM]} />
+        <meshPhysicalMaterial color="#2a1a10" transparent opacity={0.28} roughness={0.04} metalness={0}
+          clearcoat={1} clearcoatRoughness={0.03} depthWrite={false} />
+      </mesh>
+      {/* the gasket where the frame meets the glass */}
+      <mesh position={v(x + dx + 0.3, y + dy / 2, z + dz - f / 2)}>
+        <boxGeometry args={[0.6 * MM, 3 * MM, (dy - 2 * f) * MM]} /><meshStandardMaterial color="#111" roughness={0.9} />
+      </mesh>
+    </group>
+  );
+}
+
+/** The control panel on the oven's side: the controller's display (chamber temperature from
+    the thermocouple), the set-point and timer knobs and the heating lamp. Its face is +Y. */
+/** A seven-segment-style readout drawn into a canvas texture; `show` redraws it only when the
+    text changes. */
+export function useReadout(w = 256, h = 96) {
+  return useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    let last = "";
+    const show = (text: string) => {
+      if (text === last) return;
+      last = text;
+      const g = canvas.getContext("2d")!;
+      g.fillStyle = "#0b0907"; g.fillRect(0, 0, w, h);
+      g.font = `700 ${Math.round(h * 0.62)}px ui-monospace, Menlo, monospace`;
+      g.textAlign = "center"; g.textBaseline = "middle";
+      g.shadowColor = "rgba(255,110,40,.8)"; g.shadowBlur = 10;
+      g.fillStyle = "#ff7a2e"; g.fillText(text, w / 2, h / 2 + 2);
+      tex.needsUpdate = true;
+    };
+    show("25 °C");
+    return { tex, show };
+  }, [w, h]);
+}
+
+function ControlPanel({ part, display, led }: {
+  part: CadPart; display: { tex: THREE.Texture }; led: React.RefObject<THREE.MeshStandardMaterial>;
+}) {
+  const [dx, dy, dz] = boxSize(part);
+  const [x, y, z] = part.p, face = y + dy;
+  return (
+    <group>
+      <mesh position={centreOf(part)} castShadow><boxGeometry args={[dx * MM, dz * MM, dy * MM]} /><meshStandardMaterial {...STAINLESS} /></mesh>
+      {/* black glass fascia */}
+      <mesh position={v(x + dx / 2, face + 0.5, z + dz / 2)}>
+        <boxGeometry args={[(dx - 16) * MM, (dz - 16) * MM, 1 * MM]} /><meshStandardMaterial color="#121418" metalness={0.2} roughness={0.15} />
+      </mesh>
+      {/* the controller's display: a texture on the fascia, so the oven hides it like any face */}
+      <mesh position={v(x + dx / 2, face + 1.2, z + dz - 34)} rotation={[0, 0, 0]}>
+        <planeGeometry args={[64 * MM, 24 * MM]} />
+        <meshBasicMaterial map={display.tex} toneMapped={false} />
+      </mesh>
+      {[x + dx * 0.32, x + dx * 0.68].map((kx, i) => (
+        <group key={i} position={v(kx, face + 4, z + 42)}>
+          <mesh rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[11 * MM, 12 * MM, 8 * MM, 28]} />
+            <meshStandardMaterial color="#1b1d21" roughness={0.45} metalness={0.3} /></mesh>
+          <mesh position={[0, 6 * MM, 4.2 * MM]}><boxGeometry args={[2 * MM, 8 * MM, 0.6 * MM]} /><meshStandardMaterial color="#d9dde2" /></mesh>
+        </group>
+      ))}
+      <mesh position={v(x + dx / 2, face + 1.5, z + 70)}>
+        <sphereGeometry args={[3.5 * MM, 16, 12]} />
+        <meshStandardMaterial ref={led} color="#ff8a2a" emissive="#ff6a00" emissiveIntensity={0.15} toneMapped={false} />
+      </mesh>
     </group>
   );
 }

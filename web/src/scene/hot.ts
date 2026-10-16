@@ -113,4 +113,8 @@ export const ovenHot = {
   visible: false,
   pos: [0, 0, 0] as [number, number, number],
   colour: "#D8B98C",
+  /** chamber temperature at the K-type thermocouple, C, and the elements' glow 0..1
+      (written by OvenModule's thermal model) */
+  tempC: 25,
+  heat: 0,
 };
