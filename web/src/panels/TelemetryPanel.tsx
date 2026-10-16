@@ -38,19 +38,14 @@ function twinRows(): { crane: Row[]; vgr: Row[]; oven: Row[]; sensors: [string, 
   return { crane, vgr, oven, sensors, cycle };
 }
 
-function Table({ title, rows }: { title: string; rows: Row[] }) {
+/** One machine's live values as a compact card. */
+function Card({ title, rows, wide }: { title: string; rows: Row[]; wide?: boolean }) {
   if (!rows.length) return null;
   return (
-    <>
-      <h3>{title}</h3>
-      <table className="tbl">
-        <tbody>
-          {rows.map(([k, v, w]) => (
-            <tr key={k}><td>{k}</td><td className={"num " + (w ? "warn" : "")}>{v}</td></tr>
-          ))}
-        </tbody>
-      </table>
-    </>
+    <div className={`tm-card ${wide ? "wide" : ""}`}>
+      <b>{title}</b>
+      <dl>{rows.map(([k, v, w]) => <div key={k}><dt>{k}</dt><dd className={w ? "warn" : ""}>{v}</dd></div>)}</dl>
+    </div>
   );
 }
 
@@ -74,19 +69,19 @@ export function TelemetryPanel({ scene }: { scene: SceneDescriptor | null }) {
   return (
     <div className="panel">
       <h2>Telemetry <span className="tag run">{s.twin.cycle}</span></h2>
-
-      <Table title="Warehouse crane" rows={s.twin.crane} />
-      <Table title="Vacuum gripper robot" rows={s.twin.vgr} />
-      <Table title="Oven & sorting line" rows={s.twin.oven} />
-
-      <h3>Sensors</h3>
-      <div className="sensors">
+      <div className="sensors tm-sensors">
         {s.twin.sensors.map(([name, on]) => <span key={name} className={on ? "led on" : "led"}>{name}</span>)}
+      </div>
+      <div className="tm-grid">
+        <Card title="Crane" rows={s.twin.crane} />
+        <Card title="Robot arm" rows={s.twin.vgr} />
+        <Card title="Oven & sorting" rows={s.twin.oven} wide />
       </div>
 
       {scene && (
-        <>
-          <h3>Physics kernel <span className={s.busy ? "tag run" : "tag idle"}>{s.busy ? "RUNNING" : "IDLE"}</span></h3>
+        <details className="tm-kernel">
+          <summary>Physics kernel <span className={s.busy ? "tag run" : "tag idle"}>{s.busy ? "RUNNING" : "IDLE"}</span>
+            <em>live API · the original 3×3 machine</em></summary>
           <p className="clock">t = {s.t.toFixed(1)} s</p>
           <table className="tbl">
             <tbody>
@@ -97,12 +92,11 @@ export function TelemetryPanel({ scene }: { scene: SceneDescriptor | null }) {
             </tbody>
           </table>
           <KernelCommands />
-        </>
+        </details>
       )}
     </div>
   );
 }
-
 
 /** Manual commands to the physics kernel (the live API's crane, which still models the original
     3x3 rack): retrieve or store slot B2, or home the crane. */
@@ -113,8 +107,8 @@ function KernelCommands() {
     catch (e) { setMsg((e as Error).message); }
   };
   return (
-    <details className="ord-manual">
-      <summary>Manual crane commands (physics kernel, 3×3 rack)</summary>
+    <div className="tm-cmds">
+      <b>Manual crane commands</b>
       <div className="op-actions">
         <div className="btn-row">
           <button className="op retrieve" onClick={() => run("retrieve", "B2")}>Retrieve B2</button>
@@ -123,6 +117,6 @@ function KernelCommands() {
         <button className="op home" onClick={() => run("home", null)}>Home crane</button>
         {msg && <p className="ord-msg ok" role="status">{msg}</p>}
       </div>
-    </details>
+    </div>
   );
 }

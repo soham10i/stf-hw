@@ -469,3 +469,21 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .np-link:hover { border-color: var(--accent); }
 .np-link b { display: block; font-size: 13.5px; } .np-link em { display: block; font-style: normal; font-size: 12px; color: var(--muted); margin-top: 2px; }
 .ord-sum { margin: -4px 0 10px; font-size: 12px; color: var(--muted); }
+
+/* Telemetry (panels/TelemetryPanel.tsx): sensors as lights, one compact card per machine */
+.tm-sensors { margin: 4px 0 12px; }
+.tm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tm-card { padding: 10px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border-soft); min-width: 0; }
+.tm-card.wide { grid-column: 1 / -1; }
+.tm-card > b { display: block; font-size: 12.5px; margin-bottom: 6px; }
+.tm-card dl { margin: 0; display: grid; grid-template-columns: 1fr; gap: 2px; }
+.tm-card.wide dl { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 14px; }
+.tm-card dl div { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+.tm-card dt { color: var(--muted); } .tm-card dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.tm-card dd.warn { color: var(--warn); }
+.tm-kernel { margin-top: 14px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-soft); }
+.tm-kernel summary { cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tm-kernel summary em { font-style: normal; font-weight: 400; font-size: 11.5px; color: var(--faint); }
+.tm-cmds { margin-top: 10px; } .tm-cmds > b { font-size: 12.5px; }
+.tm-kernel summary { list-style: none; } .tm-kernel summary::-webkit-details-marker { display: none; }
+.tm-kernel summary::before { content: "▸"; color: var(--faint); } .tm-kernel[open] summary::before { content: "▾"; }
