@@ -5,22 +5,10 @@ import type { CadDoc } from "../shared/model";
 import type { SceneDescriptor } from "../types";
 import { OrdersPanel } from "../panels/OrdersPanel";
 import { TelemetryPanel } from "../panels/TelemetryPanel";
-import { SafetyPanel } from "../panels/SafetyPanel";
-import { HealthPanel } from "../panels/HealthPanel";
 import { VcPanel } from "../panels/VcPanel";
-import { HmiPanel } from "../panels/HmiPanel";
 import { IoPanel } from "../panels/IoPanel";
-import { AiPanel } from "../panels/AiPanel";
-import { EnergyPanel } from "../panels/EnergyPanel";
-import { ThroughputPanel } from "../panels/ThroughputPanel";
-import { NetSecurityPanel } from "../panels/NetSecurityPanel";
-import { HardeningPanel } from "../panels/HardeningPanel";
-import { PlcPanel } from "../panels/PlcPanel";
-import { VisionPanel } from "../panels/VisionPanel";
-import { AasPanel } from "../panels/AasPanel";
-import { OpcuaPanel } from "../panels/OpcuaPanel";
-import { UnsPanel } from "../panels/UnsPanel";
 import { GeometryPanel } from "../panels/GeometryPanel";
+import { Analysis, Connectivity, PlcTabs, SafetySecurity } from "../panels/merged";
 
 // ---------------------------------------------------------------- views
 export type ViewKind = "machine" | "controller" | "component";
@@ -51,14 +39,14 @@ export function componentViews(components: Record<string, { name: string; ft: st
 export type PanelCtx = {
   doc: CadDoc; scene: SceneDescriptor | null;
   showZones: boolean; setShowZones: (v: boolean) => void;
+  /** the security view asks for the network zones in 3D while it is shown */
+  setNetZones: (v: boolean) => void;
 };
 export type Panel = {
   id: string; label: string; icon: string;
   /** shown only when the export (or the live backend) has what it needs */
   available: (c: PanelCtx) => boolean;
   render: (c: PanelCtx) => ReactNode;
-  /** 3D overlays this panel turns on while it is open */
-  overlays?: { netZones?: boolean };
 };
 
 export const PANELS: Panel[] = [
@@ -66,24 +54,13 @@ export const PANELS: Panel[] = [
     render: (c) => <OrdersPanel scene={c.scene} slots={Object.keys(c.doc.slots)} /> },
   { id: "telemetry", label: "Telemetry", icon: "activity", available: () => true,
     render: (c) => <TelemetryPanel scene={c.scene} /> },
-  { id: "safety", label: "Safety", icon: "shield", available: (c) => !!c.doc.safety,
-    render: (c) => <SafetyPanel sf={c.doc.safety!} showZones={c.showZones} setShowZones={c.setShowZones} /> },
+  { id: "plc", label: "PLC", icon: "monitor", available: () => true, render: (c) => <PlcTabs c={c.doc.control} /> },
+  { id: "safety", label: "Safety & security", icon: "shield", available: (c) => !!c.doc.safety,
+    render: (c) => <SafetySecurity sf={c.doc.safety!} showZones={c.showZones} setShowZones={c.setShowZones} setNetZones={c.setNetZones} /> },
   { id: "io", label: "Remote I/O", icon: "plug", available: (c) => !!(c.doc.io3 && c.doc.chains),
     render: (c) => <IoPanel io={c.doc.io3!} ch={c.doc.chains!} /> },
-  { id: "hmi", label: "PLC program & HMI", icon: "monitor", available: (c) => !!c.doc.control,
-    render: (c) => <HmiPanel c={c.doc.control!} /> },
-  { id: "plc", label: "PLC program (live)", icon: "play", available: () => true, render: () => <PlcPanel /> },
-  { id: "vision", label: "Vision inspection", icon: "eye", available: () => true, render: () => <VisionPanel /> },
-  { id: "aas", label: "Asset Administration Shells", icon: "database", available: () => true, render: () => <AasPanel /> },
-  { id: "opcua", label: "OPC UA server", icon: "network", available: () => true, render: () => <OpcuaPanel /> },
-  { id: "uns", label: "MQTT Sparkplug · UNS", icon: "broadcast", available: () => true, render: () => <UnsPanel /> },
+  { id: "connectivity", label: "Connectivity", icon: "network", available: () => true, render: () => <Connectivity /> },
   { id: "vc", label: "Commissioning", icon: "cpu", available: (c) => !!c.doc.vc, render: (c) => <VcPanel vc={c.doc.vc!} /> },
-  { id: "health", label: "Health", icon: "heart", available: (c) => !!c.doc.health, render: (c) => <HealthPanel doc={c.doc} /> },
-  { id: "ai", label: "AI maintenance", icon: "brain", available: () => true, render: () => <AiPanel /> },
-  { id: "energy", label: "Microgrid", icon: "bolt", available: () => true, render: () => <EnergyPanel /> },
-  { id: "throughput", label: "Throughput", icon: "gauge", available: () => true, render: () => <ThroughputPanel /> },
-  { id: "security", label: "OT security", icon: "lock", available: (c) => !!(c.doc.io3 && c.doc.safety),
-    render: () => <NetSecurityPanel />, overlays: { netZones: true } },
-  { id: "hardening", label: "Defence in depth", icon: "layers", available: () => true, render: () => <HardeningPanel /> },
   { id: "geometry", label: "Geometry", icon: "cube", available: () => true, render: (c) => <GeometryPanel doc={c.doc} /> },
+  { id: "analysis", label: "Analysis", icon: "gauge", available: () => true, render: () => <Analysis /> },
 ];

@@ -57,3 +57,16 @@ export function Proofs({ items }: { items: React.ReactNode[] }) {
     </details>
   );
 }
+
+/** Sub-tabs inside one side panel; the choice is remembered per panel. */
+export function SubTabs<T extends string>({ id, tabs, value, onChange }: {
+  id: string; tabs: [T, string][]; value: T; onChange: (v: T) => void;
+}) {
+  return (
+    <div className="ui-seg np-subtabs" role="tablist" aria-label={id}>
+      {tabs.map(([k, label]) => (
+        <button key={k} role="tab" aria-selected={k === value} className={k === value ? "on" : ""} onClick={() => onChange(k)}>{label}</button>
+      ))}
+    </div>
+  );
+}

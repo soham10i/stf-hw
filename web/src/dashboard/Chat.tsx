@@ -11,11 +11,13 @@ type Reply = { text: string; via: "gemini" | "offline"; model?: string; note?: s
 type Msg = { q: string; r: Reply | null; ms?: number };
 type Status = { enabled: boolean; model: string | null };
 
-let statusP: Promise<Status> | null = null;
-function llmStatus(): Promise<Status> {
-  if (!HAS_API) return Promise.resolve({ enabled: false, model: null });
-  statusP ??= fetch("/chat/status").then((r) => (r.ok ? r.json() : { enabled: false, model: null })).catch(() => ({ enabled: false, model: null }));
-  return statusP;
+async function llmStatus(): Promise<Status> {
+  if (!HAS_API) return { enabled: false, model: null };
+  try {
+    const r = await fetch("/chat/status");
+    if (r.ok) return await r.json();
+  } catch {}
+  return { enabled: false, model: null };
 }
 
 /** Minimal markdown for the model's replies: paragraphs, "- " lists, **bold**, [citations]. */

@@ -49,7 +49,8 @@ export default function App() {
   const [showZones, setShowZones] = usePersistent("stf.zones", true);
   const [open, setOpen] = usePersistent("stf.side.open", window.innerWidth >= 900);
   const [panelId, setPanelId] = usePersistent("stf.side.tab", "orders");
-  const ctx: PanelCtx | null = machine.doc ? { doc: machine.doc, scene, showZones, setShowZones } : null;
+  const [netZonesAsked, setNetZones] = useState(false);
+  const ctx: PanelCtx | null = machine.doc ? { doc: machine.doc, scene, showZones, setShowZones, setNetZones } : null;
   const panels = ctx ? PANELS.filter((p) => p.available(ctx)) : [];
   const active = panels.find((p) => p.id === panelId) ?? panels[0];
   const toggle = () => {
@@ -62,7 +63,7 @@ export default function App() {
     if (!open) toggle();
     setPanelId(id);
   };
-  const netZones = !!(open && active?.overlays?.netZones);
+  const netZones = open && active?.id === "safety" && netZonesAsked;
 
   return (
     <div className="app">
