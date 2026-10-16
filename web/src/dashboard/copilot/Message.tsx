@@ -78,31 +78,55 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
   );
 }
 
-/** Read aloud: the server's voice pipeline (ElevenLabs / Gemini / the local voice), else the browser. */
+/** The one voice speaking now, app-wide: starting another stops it, so answers never overlap. */
+let speaking: (() => void) | null = null;
+
+/** Read aloud: the server's voice pipeline (ElevenLabs / Gemini / the local voice), else the browser.
+    Every play has a generation; stopping (or unmounting) moves it on, so a speech request that
+    returns afterwards is dropped instead of played - which is what let React's development
+    double-mount, or a fast second click, speak an answer twice. */
 export function Speak({ text, auto = false }: { text: string; auto?: boolean }) {
   const [state, setState] = useState<"idle" | "loading" | "playing">("idle");
   const [by, setBy] = useState("");
   const audio = useRef<HTMLAudioElement | null>(null);
-  const stop = () => { audio.current?.pause(); audio.current = null; window.speechSynthesis?.cancel(); setState("idle"); };
-  const browser = () => {
-    if (!window.speechSynthesis) return setState("idle");
-    const u = new SpeechSynthesisUtterance(text.replace(/\[[^\]]{1,140}\]|[*_`#>|]/g, ""));
-    u.onend = () => setState("idle");
-    setBy("browser voice"); setState("playing");
-    window.speechSynthesis.speak(u);
+  const gen = useRef(0);
+  const stop = () => {
+    gen.current++;
+    audio.current?.pause();
+    audio.current = null;
+    window.speechSynthesis?.cancel();
+    if (speaking === stop) speaking = null;
+    setState("idle");
   };
   const play = async () => {
-    if (state !== "idle") return stop();
+    if (state !== "idle" || audio.current) return stop();
+    speaking?.();                                   // one voice at a time
+    speaking = stop;
+    const my = ++gen.current;
     setState("loading");
     const s = await speech(text);
-    if (!s) return browser();
+    if (my !== gen.current) { if (s) URL.revokeObjectURL(s.url); return; }   // stopped meanwhile
+    if (!s) {
+      if (!window.speechSynthesis) return setState("idle");
+      const u = new SpeechSynthesisUtterance(text.replace(/\[[^\]]{1,140}\]|[*_`#>|]/g, ""));
+      u.onend = () => { if (my === gen.current) setState("idle"); };
+      setBy("browser voice"); setState("playing");
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+      return;
+    }
     const a = new Audio(s.url);
     audio.current = a;
-    a.onended = () => { URL.revokeObjectURL(s.url); setState("idle"); };
+    a.onended = () => { URL.revokeObjectURL(s.url); if (my === gen.current) { audio.current = null; setState("idle"); } };
     setBy(s.by); setState("playing");
-    a.play().catch(browser);
+    a.play().catch(() => { if (my === gen.current) stop(); });
   };
-  useEffect(() => { if (auto) play(); return stop; }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    // a tick later, so React's development double-mount cancels the first attempt before any
+    // speech is requested (one request, one voice)
+    const t = auto ? window.setTimeout(play, 0) : 0;
+    return () => { window.clearTimeout(t); stop(); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <button className={`cx-icon speak ${state}`} onClick={play} title={state === "idle" ? "Read aloud" : `Stop${by ? ` (${by})` : ""}`}
       aria-label={state === "idle" ? "Read aloud" : "Stop reading"}>

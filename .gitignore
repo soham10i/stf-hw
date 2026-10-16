@@ -88,3 +88,8 @@ stf-cad/hw/*.pdf
 stf-cad/line2/twin/out/
 stf-cad/line2/twin/node_modules/
 .venv-twin/
+.claude/
+.ruff_cache/
+
+# Kimi Code agent context (local working notes, never pushed)
+kimi-code/

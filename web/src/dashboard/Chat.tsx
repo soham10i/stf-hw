@@ -36,13 +36,15 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
   const [showCtx, setShowCtx] = useState(false);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
-  const [speakNext, setSpeakNext] = useState(-1);
+  // the answer to read aloud by itself (a Voice question's): by its time, so it is spoken once,
+  // not again when the list re-renders or the conversation is reopened
+  const [speakNext, setSpeakNext] = useState<number | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
 
   const refreshList = () => api.sessions().then(setList);
   const open = async (id: string | null) => {
-    setSid(id); api.currentSession.set(id); setShowList(false);
+    setSid(id); api.currentSession.set(id); setShowList(false); setSpeakNext(null);
     if (!id) { setTurns([]); setContext(EMPTY); setTitle(""); return; }
     const s = await api.session(id);
     if (!s) { setSid(null); api.currentSession.set(null); setTurns([]); setContext(EMPTY); return; }
@@ -79,7 +81,9 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
       reply = { role: "assistant", text: `I could not answer: ${(e as Error).message}`, t: now, model: "error", style: "answer" };
     }
     reply.ms = performance.now() - t0;
-    setTurns((m) => { const n = [...m.slice(0, -1), reply]; if (viaVoice) setSpeakNext(n.length - 1); return n; });
+    reply.t = Date.now() / 1000;
+    if (viaVoice) setSpeakNext(reply.t);
+    setTurns((m) => [...m.slice(0, -1), reply]);
     setBusy(false);
     if (!viaVoice) input.current?.focus();
   };
@@ -164,7 +168,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
             {tab !== "voice" && <div className="cx-examples">{examples.map((e) => <button key={e} onClick={() => ask(e)}>{e}</button>)}</div>}
           </div>
         )}
-        {turns.map((m, i) => <Message key={i} turn={m} go={go} autoSpeak={i === speakNext} />)}
+        {turns.map((m, i) => <Message key={`${i}-${m.t}`} turn={m} go={go} autoSpeak={m.role === "assistant" && !m.pending && m.t === speakNext} />)}
         <div ref={end} />
       </div>
 

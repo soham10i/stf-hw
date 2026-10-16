@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>STF digital twin — 3D preview</title>
+<style>
+  body { margin: 0; font: 13px/1.4 system-ui, sans-serif; background: #14171c; color: #dde3ea; }
+  #app { position: fixed; inset: 0; }
+  #hud { position: fixed; top: 12px; left: 12px; background: rgba(10,12,16,.78);
+         padding: 10px 14px; border-radius: 8px; max-width: 360px; }
+  #hud h1 { font-size: 14px; margin: 0 0 4px; }
+  #hud p { margin: 2px 0; color: #9fb0c3; }
+  #hud .dim { color: #6c7c8f; font-size: 11px; }
+  #switch { margin-top: 6px; }
+  #switch button { background: #1d2530; color: #cdd7e2; border: 1px solid #33405200;
+                   border-radius: 6px; padding: 4px 10px; margin-right: 6px; cursor: pointer; }
+  #switch button.on { background: #2f66d0; color: #fff; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="hud">
+  <h1>STF digital twin — 3D preview</h1>
+  <p id="cap">loading…</p>
+  <div id="switch">
+    <button data-m="factory_scene.glb" class="on">Full factory</button>
+    <button data-m="vgr_fab.glb">VGR (fab)</button>
+  </div>
+  <p class="dim">Drag to orbit · wheel to zoom · right-drag to pan</p>
+</div>
+<script type="importmap">
+{ "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const CAPTIONS = {
+  'factory_scene.glb': 'Complete tabletop factory — HBW · VGR · oven · sorting line (from STF_Factory.gltf)',
+  'vgr_fab.glb': 'VGR fabrication build — EN AW-6082-T6 / C45 / 1.4305 · welds ISO 5817-C',
+};
+
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+app.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1f27);
+
+// environment map: metallic PBR materials are black without one
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.01, 200);
+const controls = new OrbitControls(camera, renderer.domElement);
+
+const key = new THREE.DirectionalLight(0xfff2e6, 2.5);
+key.position.set(2.2, 3.5, 1.6);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.bias = -0.0004;
+scene.add(key);
+scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x30281e, 0.35));
+
+const floor = new THREE.Mesh(
+  new THREE.CircleGeometry(4, 64),
+  new THREE.MeshStandardMaterial({ color: 0x232830, roughness: 0.9, metalness: 0.0 })
+);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -0.021;
+floor.receiveShadow = true;
+scene.add(floor);
+
+const grid = new THREE.GridHelper(4, 40, 0x334052, 0x242c38);
+grid.position.y = -0.02;
+scene.add(grid);
+
+let current = null;
+
+function frame(model) {
+  const box = new THREE.Box3().setFromObject(model);
+  const c = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const r = Math.max(size.x, size.y, size.z);
+  controls.target.copy(c);
+  camera.position.set(c.x + 1.1 * r, c.y + 0.75 * r, c.z + 1.35 * r);
+  camera.near = r / 500; camera.far = r * 20;
+  camera.updateProjectionMatrix();
+  controls.update();
+  key.target.copy(c);
+  key.position.set(c.x + 1.6 * r, c.y + 2.2 * r, c.z + 1.2 * r);
+  const d = 2.2 * r;
+  Object.assign(key.shadow.camera, { left: -d, right: d, top: d, bottom: -d, far: 6 * r });
+  key.shadow.camera.updateProjectionMatrix();
+}
+
+function load(name) {
+  document.getElementById('cap').textContent = 'loading ' + name + '…';
+  if (current) { scene.remove(current); current = null; }
+  new GLTFLoader().load(name, (g) => {
+    current = g.scene;
+    current.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    scene.add(current);
+    frame(current);
+    document.getElementById('cap').textContent = CAPTIONS[name] || name;
+  }, undefined, (e) => {
+    document.getElementById('cap').textContent = 'failed to load ' + name + ' — serve this folder over HTTP (see FABRICATION.md)';
+    console.error(e);
+  });
+  document.querySelectorAll('#switch button').forEach((b) =>
+    b.classList.toggle('on', b.dataset.m === name));
+}
+
+document.querySelectorAll('#switch button').forEach((b) => b.addEventListener('click', () => load(b.dataset.m)));
+const first = new URLSearchParams(location.search).get('model') || 'factory_scene.glb';
+load(first);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+</script>
+</body>
+</html>

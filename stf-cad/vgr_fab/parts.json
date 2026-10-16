@@ -1,0 +1,490 @@
+{
+ "source": "/Users/sohampatel/workspace/stf-hw/stf-cad/hbw/vgr_model.py",
+ "pose": {
+  "swivel": 0.0,
+  "plunge": 320.0,
+  "reach": 150.0
+ },
+ "dims": {
+  "PLATE": [
+   495.0,
+   740.0,
+   10.0
+  ],
+  "CX": 180.0,
+  "CY": 200.0,
+  "RING_D": 180.0,
+  "RING_Z": [
+   14.0,
+   26.0
+  ],
+  "BASE_D": 160.0,
+  "BASE_H": 14.0,
+  "DISC_Z": [
+   26.0,
+   38.0
+  ],
+  "COL": 15.0,
+  "COL_DX": 50.0,
+  "COL_DY": 15.0,
+  "COL_Z": [
+   38.0,
+   600.0
+  ],
+  "TOP": [
+   140.0,
+   50.0,
+   14.0
+  ],
+  "SPINDLE_D": 12.0,
+  "PITCH_MM": 4.0,
+  "CARR": [
+   140.0,
+   54.0,
+   46.0
+  ],
+  "PLUNGE": [
+   84.0,
+   540.0
+  ],
+  "TRANSIT": 500.0,
+  "ARM": [
+   30.0,
+   640.0,
+   26.0
+  ],
+  "ARM_FRONT": 150.0,
+  "ARM_RAIL": 12.0,
+  "ARM_END": 14.0,
+  "REACH": [
+   0.0,
+   400.0
+  ],
+  "REACH_SPINDLE_D": 10.0,
+  "SPRING": 6.0,
+  "HEAD": [
+   36.0,
+   36.0,
+   32.0
+  ],
+  "CUP_D": 35.0,
+  "CUP_H": 14.0,
+  "STEM_D": 18.0,
+  "SWIVEL": [
+   -125.0,
+   135.0
+  ],
+  "CARRY_FLOOR": 100.0,
+  "MOTOR": [
+   60.0,
+   30.0,
+   30.0
+  ],
+  "SWITCH": [
+   30.0,
+   15.0,
+   7.5
+  ]
+ },
+ "parts": [
+  {
+   "name": "vgr_plate",
+   "group": "frame",
+   "dims": "495.0 x 740.0 x 10.0",
+   "material": "plate",
+   "process": "reference only"
+  },
+  {
+   "name": "drehkranz_base",
+   "group": "base",
+   "dims": "160.0 dia x 14.0",
+   "material": "c45",
+   "process": "CNC turn, bore/face; weld W1"
+  },
+  {
+   "name": "W1_base_to_plate",
+   "group": "weld",
+   "dims": "fillet ring r=78.0 at z=0.5",
+   "material": "weld",
+   "process": "GTAW fillet, ISO 5817-C"
+  },
+  {
+   "name": "drehkranz_ring",
+   "group": "turn",
+   "dims": "180.0 dia x 12.0",
+   "material": "c45",
+   "process": "ring gear, teeth m=1.5, hardened 45 HRC"
+  },
+  {
+   "name": "turntable_disc",
+   "group": "turn",
+   "dims": "180.0 dia x 12.0",
+   "material": "alu6082",
+   "process": "laser-cut 6082 plate; weld W2, then face flat"
+  },
+  {
+   "name": "W2_disc_to_ring",
+   "group": "weld",
+   "dims": "fillet ring r=88.0 at z=26.0",
+   "material": "weld",
+   "process": "GTAW fillet, ISO 5817-C"
+  },
+  {
+   "name": "tower_column_1",
+   "group": "tower",
+   "dims": "15.0 x 15.0 x 562.0",
+   "material": "alu6082",
+   "process": "EN AW-6082-T6 profile 15x15, guide faces finish-milled post-assembly"
+  },
+  {
+   "name": "tower_column_2",
+   "group": "tower",
+   "dims": "15.0 x 15.0 x 562.0",
+   "material": "alu6082",
+   "process": "EN AW-6082-T6 profile 15x15, guide faces finish-milled post-assembly"
+  },
+  {
+   "name": "tower_column_3",
+   "group": "tower",
+   "dims": "15.0 x 15.0 x 562.0",
+   "material": "alu6082",
+   "process": "EN AW-6082-T6 profile 15x15, guide faces finish-milled post-assembly"
+  },
+  {
+   "name": "tower_column_4",
+   "group": "tower",
+   "dims": "15.0 x 15.0 x 562.0",
+   "material": "alu6082",
+   "process": "EN AW-6082-T6 profile 15x15, guide faces finish-milled post-assembly"
+  },
+  {
+   "name": "tower_top_plate",
+   "group": "tower",
+   "dims": "140.0 x 50.0 x 14.0",
+   "material": "alu6082",
+   "process": "6082 plate; welds W3..W6 then bored H7 in one setup"
+  },
+  {
+   "name": "W3_topplate_col1",
+   "group": "weld",
+   "dims": "16.0 x 16.0 x 2.0",
+   "material": "weld",
+   "process": "GTAW fillet, ISO 5817-C"
+  },
+  {
+   "name": "W4_topplate_col2",
+   "group": "weld",
+   "dims": "16.0 x 16.0 x 2.0",
+   "material": "weld",
+   "process": "GTAW fillet, ISO 5817-C"
+  },
+  {
+   "name": "W5_topplate_col3",
+   "group": "weld",
+   "dims": "16.0 x 16.0 x 2.0",
+   "material": "weld",
+   "process": "GTAW fillet, ISO 5817-C"
+  },
+  {
+   "name": "W6_topplate_col4",
+   "group": "weld",
+   "dims": "16.0 x 16.0 x 2.0",
+   "material": "weld",
+   "process": "GTAW fillet, ISO 5817-C"
+  },
+  {
+   "name": "plunge_spindle",
+   "group": "tower",
+   "dims": "12.0 dia x 562.0",
+   "material": "c45",
+   "process": "C45, rolled thread Tr12x4-7e, journals k6"
+  },
+  {
+   "name": "plunge_carriage",
+   "group": "carriage",
+   "dims": "140.0 x 54.0 x 46.0",
+   "material": "alu6082",
+   "process": "6082 machined from solid; 4 guide pockets + 2 bores, one setup"
+  },
+  {
+   "name": "plunge_nut",
+   "group": "carriage",
+   "dims": "20.0 x 20.0 x 10.0",
+   "material": "brass",
+   "process": "CuZn39Pb3 nut, thread Tr12x4-7H"
+  },
+  {
+   "name": "reach_nut",
+   "group": "carriage",
+   "dims": "17.0 x 12.0 x 20.0",
+   "material": "brass",
+   "process": "CuZn39Pb3 nut, thread Tr10x4-7H"
+  },
+  {
+   "name": "arm_rail_L",
+   "group": "arm",
+   "dims": "12.0 x 612.0 x 12.0",
+   "material": "alu6082",
+   "process": "6082 precision profile 12x12, milled on 3 faces"
+  },
+  {
+   "name": "arm_rail_R",
+   "group": "arm",
+   "dims": "12.0 x 612.0 x 12.0",
+   "material": "alu6082",
+   "process": "6082 precision profile 12x12, milled on 3 faces"
+  },
+  {
+   "name": "arm_end_F",
+   "group": "arm",
+   "dims": "30.0 x 14.0 x 26.0",
+   "material": "alu6082",
+   "process": "machined 6082; doweled + 4x M6 to rails"
+  },
+  {
+   "name": "arm_end_B",
+   "group": "arm",
+   "dims": "30.0 x 14.0 x 26.0",
+   "material": "alu6082",
+   "process": "machined 6082; doweled + 4x M6 to rails"
+  },
+  {
+   "name": "reach_bearing_F",
+   "group": "arm",
+   "dims": "17.0 x 10.0 x 16.0",
+   "material": "alu6082",
+   "process": "bronze-lined bearing block, bore 10 H7"
+  },
+  {
+   "name": "reach_bearing_B",
+   "group": "arm",
+   "dims": "17.0 x 10.0 x 16.0",
+   "material": "alu6082",
+   "process": "bronze-lined bearing block, bore 10 H7"
+  },
+  {
+   "name": "reach_spindle",
+   "group": "arm",
+   "dims": "10.0 dia x 636.0",
+   "material": "c45",
+   "process": "C45, rolled thread Tr10x4-7e, journals k6"
+  },
+  {
+   "name": "suction_head",
+   "group": "tool",
+   "dims": "36.0 x 36.0 x 32.0",
+   "material": "alu6082",
+   "process": "6082 machined; stem bore H7"
+  },
+  {
+   "name": "suction_stem",
+   "group": "tool",
+   "dims": "18.0 dia x 22.0",
+   "material": "stainless",
+   "process": "1.4305; spring 1.4310 (6 mm travel) over stem"
+  },
+  {
+   "name": "suction_cup",
+   "group": "tool",
+   "dims": "35.0 dia x 14.0",
+   "material": "nbr",
+   "process": "NBR 60 ShA, FDA 21 CFR 177.2600, bonded to Al retainer"
+  },
+  {
+   "name": "spring_sleeve",
+   "group": "tool",
+   "dims": "22.0 dia x 12.0",
+   "material": "stainless",
+   "process": "1.4310 compression spring, 6 mm travel"
+  },
+  {
+   "name": "cookie_body",
+   "group": "render",
+   "dims": "45.0 dia x 16.0",
+   "material": "dough",
+   "process": "render aid"
+  },
+  {
+   "name": "cookie_top",
+   "group": "render",
+   "dims": "45.0 dia x 4.0",
+   "material": "dough",
+   "process": "render aid"
+  },
+  {
+   "name": "B1_M1_motor_head",
+   "group": "fastener",
+   "dims": "10.0 dia x 6.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 head"
+  },
+  {
+   "name": "B1_M1_motor_shank",
+   "group": "fastener",
+   "dims": "6.0 dia x 10.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 shank"
+  },
+  {
+   "name": "B1_M1_motor",
+   "group": "fastener",
+   "dims": "M6x16 ISO 4762, A4-70",
+   "material": "stainless",
+   "process": "torque 10 Nm"
+  },
+  {
+   "name": "B2_M1_motor_head",
+   "group": "fastener",
+   "dims": "10.0 dia x 6.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 head"
+  },
+  {
+   "name": "B2_M1_motor_shank",
+   "group": "fastener",
+   "dims": "6.0 dia x 10.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 shank"
+  },
+  {
+   "name": "B2_M1_motor",
+   "group": "fastener",
+   "dims": "M6x16 ISO 4762, A4-70",
+   "material": "stainless",
+   "process": "torque 10 Nm"
+  },
+  {
+   "name": "B3_M1_motor_head",
+   "group": "fastener",
+   "dims": "10.0 dia x 6.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 head"
+  },
+  {
+   "name": "B3_M1_motor_shank",
+   "group": "fastener",
+   "dims": "6.0 dia x 10.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 shank"
+  },
+  {
+   "name": "B3_M1_motor",
+   "group": "fastener",
+   "dims": "M6x16 ISO 4762, A4-70",
+   "material": "stainless",
+   "process": "torque 10 Nm"
+  },
+  {
+   "name": "B4_M1_motor_head",
+   "group": "fastener",
+   "dims": "10.0 dia x 6.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 head"
+  },
+  {
+   "name": "B4_M1_motor_shank",
+   "group": "fastener",
+   "dims": "6.0 dia x 10.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 shank"
+  },
+  {
+   "name": "B4_M1_motor",
+   "group": "fastener",
+   "dims": "M6x16 ISO 4762, A4-70",
+   "material": "stainless",
+   "process": "torque 10 Nm"
+  },
+  {
+   "name": "B5_M2_motor_head",
+   "group": "fastener",
+   "dims": "10.0 dia x 6.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 head"
+  },
+  {
+   "name": "B5_M2_motor_shank",
+   "group": "fastener",
+   "dims": "6.0 dia x 10.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 shank"
+  },
+  {
+   "name": "B5_M2_motor",
+   "group": "fastener",
+   "dims": "M6x16 ISO 4762, A4-70",
+   "material": "stainless",
+   "process": "torque 10 Nm"
+  },
+  {
+   "name": "B6_M2_motor_head",
+   "group": "fastener",
+   "dims": "10.0 dia x 6.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 head"
+  },
+  {
+   "name": "B6_M2_motor_shank",
+   "group": "fastener",
+   "dims": "6.0 dia x 10.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 shank"
+  },
+  {
+   "name": "B6_M2_motor",
+   "group": "fastener",
+   "dims": "M6x16 ISO 4762, A4-70",
+   "material": "stainless",
+   "process": "torque 10 Nm"
+  },
+  {
+   "name": "B7_M2_motor_head",
+   "group": "fastener",
+   "dims": "10.0 dia x 6.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 head"
+  },
+  {
+   "name": "B7_M2_motor_shank",
+   "group": "fastener",
+   "dims": "6.0 dia x 10.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 shank"
+  },
+  {
+   "name": "B7_M2_motor",
+   "group": "fastener",
+   "dims": "M6x16 ISO 4762, A4-70",
+   "material": "stainless",
+   "process": "torque 10 Nm"
+  },
+  {
+   "name": "B8_M2_motor_head",
+   "group": "fastener",
+   "dims": "10.0 dia x 6.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 head"
+  },
+  {
+   "name": "B8_M2_motor_shank",
+   "group": "fastener",
+   "dims": "6.0 dia x 10.0",
+   "material": "stainless",
+   "process": "ISO 4762 M6x16 shank"
+  },
+  {
+   "name": "B8_M2_motor",
+   "group": "fastener",
+   "dims": "M6x16 ISO 4762, A4-70",
+   "material": "stainless",
+   "process": "torque 10 Nm"
+  },
+  {
+   "name": "ground",
+   "group": "render",
+   "dims": "1400.0 x 1600.0 x 1.0",
+   "material": "plate",
+   "process": "render"
+  }
+ ]
+}
