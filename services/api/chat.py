@@ -357,14 +357,15 @@ class Chat:
         gemini_on = bool(self.c.key)
         ollama_on = bool(self.c.ollama_model and self._ollama_alive())
         enabled = gemini_on or ollama_on
+        # gemini/ollama are always given, so the browser can show a provider that is off as off
         out = {
             "enabled": enabled,
             "model": self.c.model if gemini_on else (self.c.ollama_model if ollama_on else None),
+            "gemini": gemini_on,
+            "ollama": ollama_on,
         }
         if enabled:
             out.update(
-                gemini=gemini_on,
-                ollama=ollama_on,
                 gemini_model=(self.pool.available() or [self.c.model])[0] if gemini_on else None,
                 gemini_pool=self.pool.status() if gemini_on else None,
                 ollama_model=self.c.ollama_model if ollama_on else None,
