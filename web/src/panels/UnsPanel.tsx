@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useJson } from "../shared/data";
 import { Icon } from "../shared/icons";
 import { useSil } from "./PlcPanel";
-import { Empty, Stat, Note } from "./kit";
+import { Empty, Verified, Note } from "./kit";
 
 const BASE = import.meta.env.BASE_URL;
 const PHASES = ["homing", "running", "complete"];
@@ -151,12 +151,12 @@ export function UnsPanel() {
         <div><b>MQTT Sparkplug B · Unified Namespace</b><span>{r.spec}</span></div>
         <a className="ui-btn" href={`${BASE}uns/uns.json`} download>JSON</a>
       </div>
-      <div className="np-stats">
-        <Stat label="Metrics" value={`${metrics}`} sub={`${Object.keys(r.namespace.devices).length - 1} devices + the edge node`} />
-        <Stat label="Spec requirements" value={`${ok}/${r.tck.length}`} sub={`hold over ${r.traffic.messages.toLocaleString()} messages`} tone={ok === r.tck.length ? "ok" : "bad"} />
-        <Stat label="Live order" value={`${r.live.order_s.toFixed(1)} s`} sub={`${r.live.jobs} jobs, as Upgrade 13`} tone="ok" />
-        <Stat label="Mutants caught" value={`${caught}/${r.mutants.length}`} sub="the checks can fail" tone={caught === r.mutants.length ? "ok" : "bad"} />
-      </div>
+      <Verified ok={ok === r.tck.length && caught === r.mutants.length} items={[
+        [`${metrics} metrics`, `${Object.keys(r.namespace.devices).length - 1} devices + the edge node`],
+        [`${ok}/${r.tck.length} spec rules`, `hold over ${r.traffic.messages.toLocaleString()} messages`],
+        [`order ${r.live.order_s.toFixed(1)} s`, `${r.live.jobs} jobs, as Upgrade 13`],
+        [`${caught}/${r.mutants.length} mutants caught`, "the checks can fail"],
+      ]} />
 
       <div className="uns-flow" aria-label="Data flow">
         <span><b>Edge node</b><small>{r.namespace.edge} · PLC (U13)</small></span><i>→</i>

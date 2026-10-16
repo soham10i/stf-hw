@@ -2,7 +2,7 @@
 // models - generated from the model by stf-cad/hbw/aas, each submodel from its IDTA template.
 import { useMemo, useState } from "react";
 import { useJson } from "../shared/data";
-import { Empty, Stat, Note } from "./kit";
+import { Empty, Note, Verified } from "./kit";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -78,12 +78,12 @@ export function AasPanel() {
         <div><b>Asset Administration Shells</b><span>IEC 63278, every submodel from its IDTA template</span></div>
         <a className="ui-btn" href={`${BASE}aas/stf.aasx`} download>AASX</a>
       </div>
-      <div className="np-stats">
-        <Stat label="Shells" value={`${ix.counts.shells}`} sub={`${ix.counts.submodels} submodels · ${ix.counts.elements} elements`} />
-        <Stat label="AAS v3 violations" value={`${ix.fails.length}`} sub="aas-core3.0 verification" tone={ix.fails.length ? "bad" : "ok"} />
-        <Stat label="IDTA templates" value={`${Object.keys(ix.templates).length}`} sub="every element conforms" tone="ok" />
-        <Stat label="Mutants caught" value={`${caught}/${ix.mutants.length}`} sub="the checks can fail" tone={caught === ix.mutants.length ? "ok" : "bad"} />
-      </div>
+      <Verified ok={!ix.fails.length && caught === ix.mutants.length} items={[
+        [`${ix.counts.shells} shells`, `${ix.counts.submodels} submodels · ${ix.counts.elements} elements`],
+        [`${ix.fails.length} AAS v3 violations`, "aas-core3.0 verification"],
+        [`${Object.keys(ix.templates).length} IDTA templates`, "every element conforms"],
+        [`${caught}/${ix.mutants.length} mutants caught`, "the checks can fail"],
+      ]} />
 
       <select className="ui-select" value={sid} onChange={(e) => { setShellId(e.target.value); setSm("Nameplate"); }} aria-label="Shell">
         {groups.map(([g, f]) => (

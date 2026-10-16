@@ -1,5 +1,5 @@
 // Building blocks shared by the side panels: a header with a link to the full
-// dashboard page, a stat tile and a sparkline.
+// dashboard page, and the folded notes, proofs and sub-tabs.
 import { Icon } from "../shared/icons";
 
 const BASE = import.meta.env.BASE_URL;
@@ -12,16 +12,6 @@ export function Head({ title, sub, page }: { title: string; sub: string; page: s
       <a className="ui-btn" href={dashboardPage(page)} target="_blank" rel="noopener noreferrer">Full page <Icon name="external" size={13} /></a>
     </div>
   );
-}
-
-export function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
-  return <div className={`np-stat ${tone ?? ""}`}><span>{label}</span><b>{value}</b>{sub && <em>{sub}</em>}</div>;
-}
-
-export function Spark({ ys, color, h = 46, min, max }: { ys: number[]; color: string; h?: number; min?: number; max?: number }) {
-  const W = 300, lo = min ?? Math.min(...ys), hi = max ?? Math.max(...ys);
-  const d = ys.map((y, i) => `${i ? "L" : "M"}${((i / (ys.length - 1)) * W).toFixed(1)},${(h - 3 - ((y - lo) / (hi - lo || 1)) * (h - 6)).toFixed(1)}`).join("");
-  return <svg viewBox={`0 0 ${W} ${h}`} className="np-spark" preserveAspectRatio="none"><path d={d} style={{ stroke: color }} /></svg>;
 }
 
 export function Empty({ text }: { text: string }) {
@@ -68,5 +58,15 @@ export function SubTabs<T extends string>({ id, tabs, value, onChange }: {
         <button key={k} role="tab" aria-selected={k === value} className={k === value ? "on" : ""} onClick={() => onChange(k)}>{label}</button>
       ))}
     </div>
+  );
+}
+
+/** What the checks verified, as one line; hover a part for its detail. */
+export function Verified({ ok, items }: { ok: boolean; items: [string, string?][] }) {
+  return (
+    <p className={`plc-proof ${ok ? "ok" : "bad"}`}>
+      <b>{ok ? "Verified" : "Check failed"}</b>{" "}
+      {items.map(([t, tip], i) => <span key={t} title={tip}>{i ? " · " : ""}{t}</span>)}
+    </p>
   );
 }

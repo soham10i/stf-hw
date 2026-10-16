@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useJson } from "../shared/data";
 import { Icon } from "../shared/icons";
 import { useSil } from "./PlcPanel";
-import { Empty, Stat, Note } from "./kit";
+import { Empty, Verified, Note } from "./kit";
 
 const BASE = import.meta.env.BASE_URL;
 const PHASES = ["homing", "running", "complete"];
@@ -144,19 +144,22 @@ export function OpcuaPanel() {
         <div><b>OPC UA server</b><span>IEC 62541 · Machinery (OPC 40001-1) on DI and IA</span></div>
         <a className="ui-btn" href={`${BASE}opcua/stf.NodeSet2.xml`} download>NodeSet2</a>
       </div>
-      <div className="np-stats">
-        <Stat label="Nodes" value={`${r.nodes}`} sub={`${r.signals} PLC signals, one node each`} />
-        <Stat label="Attacks refused" value={`${held}/5`} sub="Basic256Sha256 Sign & Encrypt only" tone={held === 5 ? "ok" : "bad"} />
-        <Stat label="Live order" value={r.live ? `${r.live.order_s.toFixed(1)} s` : "–"} sub={r.live ? `${r.live.jobs} jobs, as Upgrade 13` : ""} tone="ok" />
-        <Stat label="Mutants caught" value={`${caught}/${r.mutants.length}`} sub="the checks can fail" tone={caught === r.mutants.length ? "ok" : "bad"} />
-      </div>
+      <Verified ok={held === 5 && caught === r.mutants.length} items={[
+        [`${r.nodes} nodes`, `${r.signals} PLC signals, one node each`],
+        [`${held}/5 attacks refused`, "Basic256Sha256 Sign & Encrypt only"],
+        ...(r.live ? [[`order ${r.live.order_s.toFixed(1)} s`, `${r.live.jobs} jobs, as Upgrade 13`] as [string, string]] : []),
+        [`${caught}/${r.mutants.length} mutants caught`, "the checks can fail"],
+      ]} />
 
-      <div className="ua-sec">
-        {refused.map((k) => (
-          <div key={k}><span>{k}</span><code className={sec[k] === "ACCEPTED" ? "bad" : ""}>{String(sec[k])}</code></div>
-        ))}
-        <div><span>write a variable</span><code className={sec.write === "ACCEPTED" ? "bad" : ""}>{String(sec.write)}</code></div>
-      </div>
+      <details className="hmi-fold">
+        <summary>The {refused.length + 1} attacks and what the server answered</summary>
+        <div className="ua-sec">
+          {refused.map((k) => (
+            <div key={k}><span>{k}</span><code className={sec[k] === "ACCEPTED" ? "bad" : ""}>{String(sec[k])}</code></div>
+          ))}
+          <div><span>write a variable</span><code className={sec.write === "ACCEPTED" ? "bad" : ""}>{String(sec.write)}</code></div>
+        </div>
+      </details>
 
       <div className="plc-bar">
         <button className="ui-btn icon" onClick={() => setOn(!on)} aria-label={on ? "Pause values" : "Run values"}><Icon name={on ? "pause" : "play"} size={15} /></button>
