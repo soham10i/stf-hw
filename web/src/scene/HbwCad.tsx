@@ -40,6 +40,7 @@ import { FROM, OrderLine, twinOrders, cycleHot, Rack, Drive, vgrHot, hbwCookieHo
 import { MM, v, AIM, Solid, RackBadge, Cookie, Mould } from "./parts";
 import { binColour, script, SPEED, BELT_SPEED, RATE, PLAYBACK } from "./timeline";
 import { HBW, RunningGear } from "./RunningGear";
+import { clearCell, loadCell, saveCell } from "./cellStore";
 
 
 
@@ -266,7 +267,17 @@ export function HbwCad({ doc, onPhase, tours }: {
     for (const c of doc.sorting.colours) twinOrders.bays[c] ??= [];
     // The rack outlives this view (switching to a component and back remounts it): keep it.
     // A cookie that was in the oven line goes back to dough in its slot and is baked again.
-    const saved = Object.keys(twinOrders.rack).length === Object.keys(doc.slots).length ? { ...twinOrders.rack } : null;
+    let saved = Object.keys(twinOrders.rack).length === Object.keys(doc.slots).length ? { ...twinOrders.rack } : null;
+    // ...and outlives a reload: the rack and the orders this browser saved (cellStore.ts)
+    if (!saved) {
+      const kept = loadCell(Object.keys(doc.slots));
+      if (kept) {
+        saved = kept.rack;
+        twinOrders.queue = kept.queue;
+        twinOrders.seq = Math.max(kept.seq, ...kept.queue.map((o) => o.id), 0);
+        twinOrders.delivered = kept.delivered;
+      }
+    }
     for (const o of twinOrders.queue) o.started = o.done;
     const r0 = saved ?? { ...freshRack() };
     const line = nextWork();
@@ -338,6 +349,10 @@ export function HbwCad({ doc, onPhase, tours }: {
     return { y: t.p[1] + dy / 2, z: t.p[2] + dz };
   }, [doc]);
   const phase = useRef("");
+  // each rack slot's static mould + cookie; the slot whose mould is out on its cycle is hidden
+  // while the cycle runs (the circulating mould is drawn instead) and shown again at rest
+  const slotG = useRef<Record<string, THREE.Group | null>>({});
+  const saveAt = useRef(0);
 
   // Review aid: ?at=<phrase>[&n=2] freezes the cycle at the END of the n-th step
   // whose caption contains <phrase> (e.g. ?at=cup%20meets&n=2), so any single
@@ -358,6 +373,24 @@ export function HbwCad({ doc, onPhase, tours }: {
 
   useFrame(({ clock }) => {
     const el = clock.getElapsedTime() * PLAYBACK;
+    if (twinOrders.reset && frozen === null) {
+      // the visitor reset the rack: twelve raw cookies, no orders, the cell at rest
+      twinOrders.reset = false;
+      for (const o of twinOrders.queue) o.started = o.done = o.qty;
+      twinOrders.queue = [];
+      twinOrders.delivered = 0;
+      twinOrders.restock = false;
+      const r = freshRack();
+      rackRef.current = r;
+      setRack(r);
+      twinOrders.raw = rawIn(r);
+      const from = rawIn(r)[0] ?? FROM;
+      const c = { ...planCycle(from, from, Object.keys(doc.pipeline.flavours)[0], null), line: -1 };
+      cyc.current = { c, t0: el };
+      setCur(c);
+      twinOrders.idle = true;
+      clearCell();
+    }
     if (frozen === null && !twinOrders.idle && el - cyc.current.t0 >= cyc.current.c.total) {
       // the cycle is complete: the cookie baked in it is back in its slot
       const done = cyc.current.c;
@@ -440,13 +473,19 @@ export function HbwCad({ doc, onPhase, tours }: {
     if (gLift.current) gLift.current.position.y = d.lift * MM;
     if (gFork.current) gFork.current.position.z = d.fork * MM;
 
-    const held = leg.a.held;
+    // at rest every mould is in its slot and drawn from the rack; nothing circulates
+    const held = twinOrders.idle && frozen === null ? null : leg.a.held;
+    for (const [q, g] of Object.entries(slotG.current)) if (g) g.visible = q !== C.from || held === null;
     if (gOnFork.current) gOnFork.current.visible = held === "fork";
     if (gOnBelt.current) {
       gOnBelt.current.visible = held === "belt";
       gOnBelt.current.position.z = d.belt * MM;
     }
     if (gStowed.current) gStowed.current.visible = held === "shelf";
+    if (frozen === null && el - saveAt.current > 1) {
+      saveAt.current = el;
+      saveCell({ rack: rackRef.current, queue: twinOrders.queue, seq: twinOrders.seq, delivered: twinOrders.delivered });
+    }
     if (stowRef.current && held === "shelf") {
       const sp = doc.slots[leg.a.slot];
       stowRef.current.position.set(sp[0] * MM, sp[2] * MM, sp[1] * MM);
@@ -483,10 +522,10 @@ export function HbwCad({ doc, onPhase, tours }: {
       )}
       {/* the rack as it stands after every cycle so far - the circulating
           mould's own slot is drawn by the stowed group below */}
-      {Object.entries(rack).filter(([q]) => q !== cur.from).map(([q, col]) => {
+      {Object.entries(rack).map(([q, col]) => {
         const sp = doc.slots[q];
         return (
-          <group key={q} position={[sp[0] * MM, sp[2] * MM, sp[1] * MM]}>
+          <group key={q} ref={(g) => { slotG.current[q] = g; }} position={[sp[0] * MM, sp[2] * MM, sp[1] * MM]} visible={q !== cur.from}>
             <Mould x={0} y={0} z={0} doc={doc} />
             {col && <Cookie x={0} y={0} z={mb} colour={col} />}
           </group>

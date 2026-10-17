@@ -44,6 +44,8 @@ export const twinOrders = {
   raw: [] as string[],
   /** set by the panel; the loop swaps the baked cookies for fresh dough while idle */
   restock: false,
+  /** set by the panel: back to twelve raw cookies and no orders, at once (cellStore.ts forgets) */
+  reset: false,
   delivered: 0,
   /** what the cell is doing right now, in words */
   step: "",

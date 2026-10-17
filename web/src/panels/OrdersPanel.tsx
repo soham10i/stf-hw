@@ -2,7 +2,8 @@
 // raw or baked. Pick a flavour and a quantity, place the order, and the 3D twin bakes exactly
 // that: one cycle per cookie, each brought back into the slot it came from. When an order is
 // completed its cookies are all in the rack. "Deliver" hands the baked cookies over and
-// refills their moulds with fresh dough, so the count stays 12.
+// refills their moulds with fresh dough, so the count stays 12. The rack and the orders are kept
+// in this browser across reloads (scene/cellStore.ts) until "Reset rack" starts the cell afresh.
 //
 // The physics kernel's manual crane commands are in the Telemetry panel, beside the kernel.
 
@@ -57,6 +58,11 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
     const wasIdle = twinOrders.idle && !queue.some((o) => o.done < o.qty);
     twinOrders.place(flavour, qty);
     setMsg({ tone: "ok", text: `Order placed: ${qty} × ${flavour}. ${wasIdle ? "The cell starts now." : "It is queued after the current order."}` });
+  };
+  const reset = () => {
+    if (!window.confirm("Reset the rack? Every slot gets fresh dough and the order list is cleared.")) return;
+    twinOrders.reset = true;
+    setMsg({ tone: "ok", text: "The rack is reset: 12 raw cookies, no orders." });
   };
   const deliver = () => {
     twinOrders.restock = true;
@@ -155,6 +161,9 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
             );
           })}
         </div>
+        <button className="op ord-reset" onClick={reset} title="Fresh dough in every slot and an empty order list; also forgets what this browser saved">
+          Reset rack
+        </button>
       </section>
 
     </div>
