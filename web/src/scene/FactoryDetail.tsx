@@ -18,7 +18,8 @@ import { Html, useGLTF } from "@react-three/drei";
 import { useMemo } from "react";
 import * as THREE from "three";
 import { useContext } from "react";
-import { MM_TO_SCENE, PreciseLibCtx, PreciseMesh } from "./Precise";
+import { MM_TO_SCENE, PreciseLibCtx, PreciseMesh, type PreciseLib } from "./Precise";
+import { Trimmed, jointTrims } from "./joints";
 import { VIEW } from "../coords";
 import { physical } from "../views/materials";
 
@@ -162,43 +163,48 @@ function PortPanel({ at, size }: { at: [number, number, number]; size: [number, 
 
 export function UpgradeParts({ parts, module = "upgrade" }: { parts: UpPart[]; module?: string }) {
   const lib = useContext(PreciseLibCtx);
+  // joints drawn trimmed where one part is slotted into another (joints.ts)
+  const trims = useMemo(() => jointTrims(parts as never), [parts]);
   return (
     <group>
-      {parts.filter((q) => q.g !== "frame").map((q) => {
-        if (q.n === "edge_pc_heatsink") return <HeatSink key={q.n} at={q.p as [number, number, number]} size={boxSize(q)} />;
-        if (q.n === "edge_pc_ports") return <PortPanel key={q.n} at={q.p as [number, number, number]} size={boxSize(q)} />;
-        // polycarbonate guard panels: clear, so the machine stays visible
-        if (q.mech === "panel") {
-          const s = boxSize(q);
-          return (
-            <mesh key={q.n} position={v(q.p[0] + s[0] / 2, q.p[1] + s[1] / 2, q.p[2] + s[2] / 2)} renderOrder={2}>
-              <boxGeometry args={[s[0] * MM, s[2] * MM, s[1] * MM]} />
-              <meshPhysicalMaterial color="#d6ecff" transparent opacity={q.n === "guard_roof" ? 0.06 : 0.14}
-                roughness={0.08} metalness={0} depthWrite={false} />
-            </mesh>
-          );
-        }
-        const pm = lib?.get(`${module}:${q.n}`);
-        if (pm) return <PreciseMesh key={q.n} meshes={pm} />;
-        if (q.k === "box") {
-          const s = boxSize(q);
-          return /^profile(:\d+)?$/.test(q.mech)
-            ? <ProfileBox key={q.n} p={q.p} s={s} />
-            : <B key={q.n} at={q.p} size={s} colour={q.c} metal={q.c === "#d6d9da" || q.c === "#aeb4b8"} />;
-        }
-        const [ax, len, dia] = cylSpec(q);
-        const c = ax === "z" ? v(q.p[0], q.p[1], q.p[2] + len / 2)
-          : ax === "x" ? v(q.p[0] + len / 2, q.p[1], q.p[2]) : v(q.p[0], q.p[1] + len / 2, q.p[2]);
-        const rot: [number, number, number] = ax === "z" ? [0, 0, 0] : ax === "x" ? [0, 0, -Math.PI / 2] : [Math.PI / 2, 0, 0];
-        const metal = q.c === "#aeb4b8" || q.c === "#d6d9da";
-        return (
-          <mesh key={q.n} position={c} rotation={rot} castShadow receiveShadow>
-            <cylinderGeometry args={[(dia / 2) * MM, (dia / 2) * MM, len * MM, 32]} />
-            <meshStandardMaterial color={q.c} roughness={metal ? 0.35 : 0.55} metalness={metal ? 0.45 : 0.05} />
-          </mesh>
-        );
-      })}
+      {parts.filter((q) => q.g !== "frame").map((q) => <Trimmed key={q.n} trims={trims.get(q.n)}>{upgradePart(q, module, lib)}</Trimmed>)}
     </group>
+  );
+}
+
+/** One part of an upgrade's export, drawn as what it is. */
+function upgradePart(q: UpPart, module: string, lib: PreciseLib | null) {
+  if (q.n === "edge_pc_heatsink") return <HeatSink at={q.p as [number, number, number]} size={boxSize(q)} />;
+  if (q.n === "edge_pc_ports") return <PortPanel at={q.p as [number, number, number]} size={boxSize(q)} />;
+  // polycarbonate guard panels: clear, so the machine stays visible
+  if (q.mech === "panel") {
+    const s = boxSize(q);
+    return (
+      <mesh position={v(q.p[0] + s[0] / 2, q.p[1] + s[1] / 2, q.p[2] + s[2] / 2)} renderOrder={2}>
+        <boxGeometry args={[s[0] * MM, s[2] * MM, s[1] * MM]} />
+        <meshPhysicalMaterial color="#d6ecff" transparent opacity={q.n === "guard_roof" ? 0.06 : 0.14}
+          roughness={0.08} metalness={0} depthWrite={false} />
+      </mesh>
+    );
+  }
+  const pm = lib?.get(`${module}:${q.n}`);
+  if (pm) return <PreciseMesh meshes={pm} />;
+  if (q.k === "box") {
+    const s = boxSize(q);
+    return /^profile(:\d+)?$/.test(q.mech)
+      ? <ProfileBox p={q.p} s={s} />
+      : <B at={q.p} size={s} colour={q.c} metal={q.c === "#d6d9da" || q.c === "#aeb4b8"} />;
+  }
+  const [ax, len, dia] = cylSpec(q);
+  const c = ax === "z" ? v(q.p[0], q.p[1], q.p[2] + len / 2)
+    : ax === "x" ? v(q.p[0] + len / 2, q.p[1], q.p[2]) : v(q.p[0], q.p[1] + len / 2, q.p[2]);
+  const rot: [number, number, number] = ax === "z" ? [0, 0, 0] : ax === "x" ? [0, 0, -Math.PI / 2] : [Math.PI / 2, 0, 0];
+  const metal = q.c === "#aeb4b8" || q.c === "#d6d9da";
+  return (
+    <mesh position={c} rotation={rot} castShadow receiveShadow>
+      <cylinderGeometry args={[(dia / 2) * MM, (dia / 2) * MM, len * MM, 32]} />
+      <meshStandardMaterial color={q.c} roughness={metal ? 0.35 : 0.55} metalness={metal ? 0.45 : 0.05} />
+    </mesh>
   );
 }
 

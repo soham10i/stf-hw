@@ -36,6 +36,7 @@ export function PreciseLoader({ url, onLib }: { url: string; onLib: (l: PreciseL
         // the GLB's metal class (metalness 0.85) mirrors this stage's dark
         // surroundings and turns aluminium black; keep it bright, satin metal
         const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial;
+        m.userData.shared = true;           // used by every clone of the part (joints.ts clones it to trim)
         if (m.metalness > 0.5 && !m.userData.tuned) {
           m.metalness = 0.55;
           m.roughness = 0.38;
@@ -83,6 +84,7 @@ export function PreciseMesh({ meshes, matrix = MM_TO_SCENE }: { meshes: THREE.Me
     const bias = depthBias(sz.x * sz.y * sz.z);
     if (bias.polygonOffset && !Array.isArray(c.material)) {
       c.material = c.material.clone();
+      c.material.userData = { ...c.material.userData, shared: false };
       Object.assign(c.material, bias);
     }
     return c;

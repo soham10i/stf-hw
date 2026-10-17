@@ -123,7 +123,7 @@ export default function App() {
             <LoadingVeil hasDoc={!!machine.doc} />
             {machine.doc && (
               <ErrorBoundary>
-                <Canvas shadows dpr={[1, 2]} gl={{ preserveDrawingBuffer: true }}>
+                <Canvas shadows dpr={[1, 2]} gl={{ preserveDrawingBuffer: true }} onCreated={({ gl }) => { gl.localClippingEnabled = true; }}>
                   <HbwCadStage doc={machine.doc} showZones={showZones && !netZones} netZones={netZones} showCover={showCover} />
                 </Canvas>
               </ErrorBoundary>
