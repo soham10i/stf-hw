@@ -28,8 +28,12 @@ import type { CadDoc, PlanKey } from "../shared/model";
 //   crane lifts the mould (raw cookie) out of B2 -> hands it to the belt -> belt
 //   carries it to the VGR point -> the VGR plays its PROVEN tour
 //   (stf-cad/hbw/vgr_path.py: belt -> oven -> rot Lagerstelle -> belt, every leg
-//   swept against every module) -> the belt brings the mould, now holding a
-//   BAKED cookie, back to the crane -> the crane stows it in C4.
+//   swept against every module). Once the VGR has lifted the raw cookie off,
+//   the belt returns the EMPTY mould and the crane stores it back in its own
+//   slot, so it does not stand on the belt through the whole bake. While the
+//   cookie bakes, the crane fetches the mould again and the belt brings it to
+//   the VGR point, where the VGR sets the BAKED cookie into it -> the belt
+//   brings it back to the crane -> the crane stows it in the slot it came from.
 // The VGR waypoints are the exported plan, not typed in here: if the geometry
 // changes, the planner re-plans and this view follows.
 type Held = "shelf" | "fork" | "belt";
@@ -38,6 +42,8 @@ type Key = {
   held: Held; slot: string; cookie: boolean; cc: string;
   vs: number; vr: number; vp: number; vc: number; cup: boolean; carry: string | null;
   taken: string | null; ovenIn: boolean; ovenGo: boolean;
+  /** the first step toward the Lagerstelle: the VGR waits before it until the cookie has arrived */
+  bayGo?: boolean;
   say: string;
 };
 
@@ -62,12 +68,13 @@ export function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[],
   const LTu = L[`row${tr}_under`], LTl = L[`row${tr}_lift`];
 
   const home = plan[0];
-  const V0 = { vs: home.sw, vr: home.rr, vp: home.pz, vc: 0, cup: false, carry: null };
+  type VV = { vs: number; vr: number; vp: number; vc: number; cup: boolean; carry: string | null };
+  const V0: VV = { vs: home.sw, vr: home.rr, vp: home.pz, vc: 0, cup: false, carry: null };
   const st = { cookie: true, cc: RAW, taken: null as string | null, ovenIn: false, ovenGo: false };
   const out: Key[] = [];
   const k = (
     t: number, l: number, f: number, b: number, held: Held, slot: string,
-    vv: { vs: number; vr: number; vp: number; vc: number; cup: boolean; carry: string | null },
+    vv: VV,
     say: string,
   ) => out.push({ t, l, f, b, held, slot, cookie: st.cookie, cc: st.cc, ...vv,
                   taken: st.taken, ovenIn: st.ovenIn, ovenGo: st.ovenGo, say });
@@ -88,10 +95,49 @@ export function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[],
   k(T.conveyor, L.transit, F.retracted, hb, "belt", FROM, V0, "raise clear");
   k(T.conveyor, L.transit, F.retracted, vg, "belt", FROM, V0, "Q1 belt forward — through the hood to I3 at the VGR point");
 
+  // ---- the empty mould: back into its slot, and out again for the baked cookie ----
+  // The VGR holds its pose (vv) while the crane works; nothing else moves.
+  const stowEmpty = (vv: VV) => {
+    k(T.conveyor, L.transit, F.retracted, hb, "belt", FROM, vv, "Q2 belt reverse — the empty mould rides back to the crane");
+    k(T.conveyor, L.belt_under, F.retracted, hb, "belt", FROM, vv, "descend below the empty mould");
+    k(T.conveyor, L.belt_under, F.conveyor, hb, "belt", FROM, vv, "Ausleger under the empty mould");
+    k(T.conveyor, L.belt_lift, F.conveyor, hb, "fork", FROM, vv, "lift — the empty mould off the belt");
+    k(T.conveyor, L.belt_lift, F.retracted, hb, "fork", FROM, vv, "retract");
+    k(T.conveyor, L.transit, F.retracted, hb, "fork", FROM, vv, "raise to transit");
+    k(TF, L.transit, F.retracted, hb, "fork", FROM, vv, `travel to bay column ${fc} — the mould goes home to ${FROM}`);
+    k(TF, LFl, F.retracted, hb, "fork", FROM, vv, `descend to shelf ${fr}`);
+    k(TF, LFl, F.bay, hb, "fork", FROM, vv, "Ausleger into its own bay");
+    k(TF, LFu, F.bay, hb, "shelf", FROM, vv, `lower — the empty mould waits in ${FROM} while the cookie bakes`);
+    k(TF, LFu, F.retracted, hb, "shelf", FROM, vv, "retract");
+    k(TF, L.transit, F.retracted, hb, "shelf", FROM, vv, "raise to transit");
+    k(T.conveyor, L.transit, F.retracted, hb, "shelf", FROM, vv, "return to park");
+  };
+  const fetchEmpty = (vv: VV) => {
+    k(TF, L.transit, F.retracted, hb, "shelf", FROM, vv, `travel to bay column ${fc} — fetch the empty mould for the baked cookie`);
+    k(TF, LFu, F.retracted, hb, "shelf", FROM, vv, `drop 10 mm below shelf ${fr}`);
+    k(TF, LFu, F.bay, hb, "shelf", FROM, vv, `Ausleger into ${FROM}, under the empty mould`);
+    k(TF, LFl, F.bay, hb, "fork", FROM, vv, "lift 10 mm — the mould off the brackets");
+    k(TF, LFl, F.retracted, hb, "fork", FROM, vv, "retract clear of the rack face");
+    k(TF, L.transit, F.retracted, hb, "fork", FROM, vv, "raise to transit");
+    k(T.conveyor, L.transit, F.retracted, hb, "fork", FROM, vv, "travel to the conveyor");
+    k(T.conveyor, L.belt_lift, F.retracted, hb, "fork", FROM, vv, "descend to the hand-over height");
+    k(T.conveyor, L.belt_lift, F.conveyor, hb, "fork", FROM, vv, "Ausleger out over the belt (I2)");
+    k(T.conveyor, L.belt_under, F.conveyor, hb, "belt", FROM, vv, "table through the belt gap — mould released");
+    k(T.conveyor, L.belt_under, F.retracted, hb, "belt", FROM, vv, "retract");
+    k(T.conveyor, L.transit, F.retracted, hb, "belt", FROM, vv, "raise clear");
+    k(T.conveyor, L.transit, F.retracted, vg, "belt", FROM, vv, "Q1 belt forward — the empty mould waits at the VGR point (I3)");
+  };
+
   // ---- the VGR's proven tour ----
+  let stowed = false, fetched = false, toBay = false;
   for (let i = 1; i < plan.length; i++) {
     const p = plan[i], q = plan[i - 1];
     const picked = !q.carry && !!p.carry, placed = !!q.carry && !p.carry;
+    const vq = { vs: q.sw, vr: q.rr, vp: q.pz, vc: q.compress, cup: q.cup, carry: q.carry };
+    // the VGR has left the belt with the raw cookie: the empty mould goes home
+    if (!stowed && !st.cookie && p.station !== "belt") { stowEmpty(vq); stowed = true; }
+    // the cookie is baking and the VGR is clear of the oven: the crane brings the mould back
+    if (collect && stowed && !fetched && st.ovenGo && p.station !== "oven") { fetchEmpty(vq); fetched = true; }
     if (p.station === "belt" && picked) st.cookie = false;
     if (p.station === "belt" && placed) { st.cookie = true; st.cc = colourOf(q.carry); }
     if (p.station?.startsWith("bay_") && picked) st.taken = p.station.slice(4);
@@ -100,12 +146,20 @@ export function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[],
     // path), or on its way to the next station (Upgrade 10's blended path never climbs to transit)
     if (st.ovenIn && !st.ovenGo && (p.station !== "oven" || p.pz >= doc.vgr.plan.transit - 0.5))
       st.ovenGo = true;
-    k(T.conveyor, L.transit, F.retracted, vg, "belt", FROM,
+    // the crane and the belt stay where the last step left them (the mould on the belt, or home)
+    const h = out[out.length - 1];
+    k(h.t, h.l, h.f, h.b, h.held, h.slot,
       { vs: p.sw, vr: p.rr, vp: p.pz, vc: p.compress, cup: p.cup, carry: p.carry }, `VGR: ${p.say}`);
+    if (!toBay && p.station?.startsWith("bay_")) { out[out.length - 1].bayGo = true; toBay = true; }
+  }
+  // no cookie comes back (no order): the empty mould is already home
+  if (!collect) {
+    if (!stowed) stowEmpty(V0);
+    return out;
   }
 
   // ---- the BAKED cookie goes back into the rack in its mould ----
-  const back = collect ? "the finished cookie" : "the empty mould";
+  const back = "the finished cookie";
   k(T.conveyor, L.transit, F.retracted, hb, "belt", FROM, V0, `Q2 belt reverse — ${back} rides back to the crane`);
   k(T.conveyor, L.belt_under, F.retracted, hb, "belt", FROM, V0, "descend below the mould");
   k(T.conveyor, L.belt_under, F.conveyor, hb, "belt", FROM, V0, "Ausleger under the mould");
@@ -126,4 +180,4 @@ export const SPEED = 14.27; // mm/s, the real encoder-motor rate
 export const BELT_SPEED = 25; // mm/s - slowed so the hand-over reads clearly
 export const RATE = 4; // playback speedup
 /** Review aid: ?speed=N plays the cell N times faster still (e.g. to watch a whole order). */
-export const PLAYBACK = Math.max(0.1, Math.min(50, Number(new URLSearchParams(window.location.search).get("speed")) || 1));
+export const PLAYBACK = Math.max(0.1, Math.min(50, Number(new URLSearchParams(typeof window === "undefined" ? "" : window.location.search).get("speed")) || 1));

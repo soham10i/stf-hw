@@ -211,15 +211,18 @@ export function HbwCad({ doc, onPhase, tours }: {
       const i0 = legs.findIndex((l) => l.a.ovenGo);
       const tOvenGo = i0 >= 0 ? legs[i0].start : Infinity;
       const flow = buildFlow(doc, flavour);
-      // The VGR collects THIS cookie from its Lagerstelle, so it holds clear of the oven until
-      // the cookie has been baked and sorted, then fetches it (1.5 s after it lands).
+      // The VGR collects THIS cookie from its Lagerstelle. While it bakes, the crane brings the
+      // empty mould back to the belt (timeline.ts); then the VGR holds clear until the cookie
+      // has been sorted and has come to rest, and fetches it.
+      // The VGR sets off for the Lagerstelle only once the cookie is at rest there.
       const pick = legs.find((l) => !l.a.taken && l.b.taken === flow.bin);
-      const wait = pick && i0 >= 0 ? Math.max(0, tOvenGo + flow.arrive + 1.5 - pick.start) : 0;
+      const iH = Math.max(i0, legs.findIndex((l) => l.b.bayGo));
+      const wait = pick && i0 >= 0 ? Math.max(0, tOvenGo + flow.arrive + 0.5 - legs[iH].start) : 0;
       if (wait > 0) {
-        const a = legs[i0].a;
-        const hold = { a, b: { ...a, say: "VGR: holds clear of the oven while the cookie is baked and sorted" }, dur: wait, start: tOvenGo };
-        for (const l of legs.slice(i0)) l.start += wait;
-        legs.splice(i0, 0, hold);
+        const a = legs[iH].a;
+        const hold = { a, b: { ...a, say: "VGR: holds clear while the cookie is baked and sorted" }, dur: wait, start: legs[iH].start };
+        for (const l of legs.slice(iH)) l.start += wait;
+        legs.splice(iH, 0, hold);
       }
       const total = Math.max(legs.reduce((q, l) => q + l.dur, 0), tOvenGo + flow.total + 3);
       const baked = doc.pipeline.flavours[flavour]?.colour ?? doc.pipeline.raw_colour;
@@ -240,7 +243,11 @@ export function HbwCad({ doc, onPhase, tours }: {
     for (const q of Object.keys(doc.slots)) r[q] = RAW;
     return r;
   }, [doc, RAW]);
-  const rawIn = (r: Rack) => Object.keys(doc.slots).filter((q) => r[q] === RAW);
+  // the top shelf first (C, then B, then A), left to right: the baked cookies of an order are
+  // stored where the view sees them, not behind the crane's beam on the bottom shelf
+  const order = useMemo(() => Object.keys(doc.slots)
+    .sort((a, b) => b[0].localeCompare(a[0]) || Number(a.slice(1)) - Number(b.slice(1))), [doc]);
+  const rawIn = (r: Rack) => order.filter((q) => r[q] === RAW);
   /** The next ordered cookie, if any: its flavour and its order line. */
   const nextWork = () => {
     const line = twinOrders.queue.find((o) => o.started < o.qty);
