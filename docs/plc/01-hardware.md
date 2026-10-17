@@ -4,6 +4,8 @@ The control cabinet holds one controller and the safety circuit; each module has
 remote I/O node on its plate, reached over Ethernet (Modbus TCP). The modules keep their
 fischertechnik 24 V sensors and actuators, wired to the node through the adaptor PCB.
 
+![The control cabinet in the 3D twin: the controller, the 24 V supply, the safety relay and contactors on the DIN rail](../images/docs/cabinet.jpg)
+
 ```plc-hardware
 ```
 

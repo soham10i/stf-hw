@@ -31,7 +31,7 @@ export type CameraDoc = { parts: CadPart[]; lens: [number, number, number]; fov_
 /** the parts under the lens that the inspection camera sees */
 const HOOD = new Set(["belt_web", "belt_rail_F", "belt_rail_B"]);
 export type SortJoints = Pick<CellJoints, "oven" | "sort" | "camera">;
-type Shot = { n: number; label: string };
+type Shot = { n: number; label: string; truth: string };
 
 /** The sorting line: colour sensor, three pneumatic ejectors, three Lagerstellen and the
     inspection camera in the colour hood. */

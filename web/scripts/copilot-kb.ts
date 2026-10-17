@@ -19,7 +19,7 @@ const passages: Passage[] = [];
 
 /** Markdown to plain text: no tables' pipes, links keep their text, no emphasis marks. */
 function plain(md: string) {
-  return md.replace(/```[\s\S]*?```/g, " ").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[*_`>#]/g, "")
+  return md.replace(/```[\s\S]*?```/g, " ").replace(/!\[([^\]]*)\]\([^)]+\)/g, "Figure: $1.").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[*_`>#]/g, "")
     .replace(/\|/g, " ").replace(/^-{3,}$/gm, " ").replace(/^[ \t]*[-:| ]{3,}$/gm, " ").replace(/\s+/g, " ").trim();
 }
 /** A heading's anchor, as GitHub and the Docs page make it. */
@@ -31,7 +31,7 @@ const cells = (row: string) => row.trim().replace(/^\||\|$/g, "").split(/(?<!\\)
 const SKIP = new Set(["DASHBOARD_GUIDE.md", "README.md"]);
 const md = (dir: string, keepReadme = false) =>
   readdirSync(join(docs, dir)).filter((x) => x.endsWith(".md") && (keepReadme || !SKIP.has(x))).sort().map((f) => join(docs, dir, f));
-const files = [...md(""), ...md("plc", true), ...md("assistant")];
+const files = [...md(""), ...md("plc", true), ...md("vision", true), ...md("assistant")];
 const repo = join(docs, "..");
 const copyTo = dirname(out);
 
@@ -39,7 +39,7 @@ for (const file of files) {
   const src = readFileSync(file, "utf8");
   const rel = relative(repo, file);
   const title = /^#\s+(.+)$/m.exec(src)?.[1];
-  const doc = (file.includes("/assistant/") || file.includes("/plc/")) && title ? plain(title) : file.split("/").pop()!.replace(/\.md$/, "");
+  const doc = (file.includes("/assistant/") || file.includes("/plc/") || file.includes("/vision/")) && title ? plain(title) : file.split("/").pop()!.replace(/\.md$/, "");
   const path: string[] = [];
   let anchor = "", startLine = 1;
   let buf: { line: number; text: string }[] = [];
@@ -90,6 +90,14 @@ for (const file of files) {
   flush();
   mkdirSync(dirname(join(copyTo, rel)), { recursive: true });
   copyFileSync(file, join(copyTo, rel));
+  // and the images it shows, at their place relative to it
+  for (const m of src.matchAll(/!\[[^\]]*\]\(([^)\s]+)\)/g)) {
+    if (/^https?:/.test(m[1])) continue;
+    const img = join(dirname(file), m[1]);
+    const to = join(copyTo, relative(repo, img));
+    mkdirSync(dirname(to), { recursive: true });
+    try { copyFileSync(img, to); } catch { console.warn(`  missing image ${relative(repo, img)} (in ${rel})`); }
+  }
 }
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify({ passages, files: files.map((f) => relative(repo, f)) }));

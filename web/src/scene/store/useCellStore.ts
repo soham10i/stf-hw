@@ -61,11 +61,21 @@ export interface CellJoints {
   oven: FlowState & { beltOven: number; beltSort: number; element: number; chamberC: number };
   /** the sorting line's ejector that fires (-1: none) */
   sort: { ejector: number };
-  /** the one cookie travelling through the oven and the sorting line, factory mm */
-  workpiece: { visible: boolean; pos: [number, number, number]; tint: Tint };
+  /** the one cookie travelling through the oven and the sorting line, factory mm; `defect`: the
+      fault the simulation gave it (drawn once it is baked), `seed`: where the fault falls */
+  workpiece: { visible: boolean; pos: [number, number, number]; tint: Tint; defect: Defect | null; seed: number };
   /** the inspection camera: ring light 0..1, and a photo to take this frame */
-  camera: { lit: number; shots: number; pending: { n: number; label: string } | null };
+  camera: { lit: number; shots: number; pending: { n: number; label: string; truth: string } | null };
 }
+
+/** A fault the simulation can give a cookie, for the inspection to catch. */
+export type Defect = "burnt" | "underbaked" | "cracked";
+export const DEFECTS: Defect[] = ["burnt", "underbaked", "cracked"];
+/** The inspection's decision on a cookie (vision/inspect.ts): pass to its Lagerstelle, or reject
+    (and an unsure one goes to a person: rejected too, held at the end of the line). */
+export type Verdict = { n: number; verdict: "pass" | "reject" | "check"; condition: string; p: number; flavour: string; ae: number; anomaly: boolean };
+/** One inspected cookie, as the Orders panel shows it. */
+export type Inspected = Verdict & { truth: string; cookieFlavour: string };
 
 export interface CellModel {
   rack: Rack;
@@ -79,9 +89,11 @@ export interface CellModel {
   step: string;
   /** the running cycle: its slot, its flavour, its Lagerstelle; t of total seconds */
   cycle: { from: string; to: string; total: number; t: number; flavour: string; collect: string };
+  /** the inspection: the defect for the next cookie, the last decisions, the counts */
+  inspect: { next: Defect | null; recent: Inspected[]; passed: number; rejected: number };
 }
 
-export type Capture = { n: number; flavour: string };
+export type Capture = { n: number; flavour: string; truth: string };
 
 function newJoints(): CellJoints {
   const oven = { beltOven: 0, beltSort: 0, element: 0, chamberC: 25 } as CellJoints["oven"];
@@ -94,7 +106,7 @@ function newJoints(): CellJoints {
     vgr: { swivel: 0, reach: 0, plunge: 500, compress: 0, seal: 0, carry: null, tint: tint() },
     oven,
     sort: { ejector: -1 },
-    workpiece: { visible: false, pos: [0, 0, 0], tint: tint() },
+    workpiece: { visible: false, pos: [0, 0, 0], tint: tint(), defect: null, seed: 0 },
     camera: { lit: 0, shots: 0, pending: null },
   };
 }
@@ -104,9 +116,12 @@ export class CellStore {
   readonly model: CellModel = {
     rack: {}, rawColour: "#D8B98C", queue: [], seq: 0, delivered: 0, idle: true, step: "",
     cycle: { from: "", to: "", total: 0, t: 0, flavour: "", collect: "" },
+    inspect: { next: null, recent: [], passed: 0, rejected: 0 },
   };
   /** requests the coordinator carries out on its next tick, in step with the machine */
   readonly requests = { restock: false, reset: false };
+  /** the inspection's decisions, by camera shot, as they come back from the renderer */
+  readonly verdicts = new Map<number, Verdict>();
 
   private version = 0;
   private modelVersion = 0;
@@ -159,6 +174,10 @@ export class CellStore {
   }
   /** Hand the baked cookies over and refill their moulds with dough (once the cell is idle). */
   deliver() { this.requests.restock = true; }
+  /** Give the next cookie a fault, for the inspection to catch (null: a good one). */
+  injectDefect(d: Defect | null) { this.model.inspect.next = d; this.commit(false); }
+  /** The inspection decided on camera shot `v.n` (vision/inspect.ts, after the photo). */
+  decide(v: Verdict) { this.verdicts.set(v.n, v); }
   /** Twelve raw cookies, no orders, at once. */
   reset() { this.requests.reset = true; }
 }

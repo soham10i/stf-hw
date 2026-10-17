@@ -239,7 +239,7 @@ export function VisionPage() {
     if (!line || !m || !runRef.current) return;
     setTwinAt(Date.now());
     prepare(p, m.P.N, m.P.REF)
-      .then(({ img }) => push({ ...line.inspect(img, p.flavour, opts.current.passP), photo: URL.createObjectURL(p.jpeg) }))
+      .then(({ img }) => push({ ...line.inspect(img, p.flavour, opts.current.passP, p.truth ?? "ok"), photo: URL.createObjectURL(p.jpeg) }))
       .catch(() => { /* a photo that would not decode */ });
   });
   useEffect(() => { if (liveFrame) setTwinAt(Date.now()); }, [liveFrame]);
@@ -286,7 +286,7 @@ export function VisionPage() {
                 )}
                 <figure><Pic img={last.img} N={N} scale={3} err={last.ae.err} max={errMax} /><figcaption>autoencoder error</figcaption></figure>
                 <dl className="vq-facts">
-                  <div><dt>truth (simulation)</dt><dd>{last.flavour} · <b>{last.truth}</b>{last.source === "twin" ? " (the twin bakes every cookie right)" : ""}</dd></div>
+                  <div><dt>truth (simulation)</dt><dd>{last.flavour} · <b>{last.truth}</b>{last.source === "twin" ? (last.truth === "ok" ? " (baked right)" : " (fault injected in the twin)") : ""}</dd></div>
                   <div><dt>CNN</dt><dd>{last.pred.flavour} · <b>{last.pred.condition}</b> ({pct(last.pred.pc)})</dd></div>
                   <div><dt>decision</dt><dd className={`vq-v ${last.pred.verdict}`}>{last.pred.verdict === "pass" ? "pass" : last.pred.verdict === "reject" ? "reject" : "to a person"}
                     <span className={`vq-tag ${verdictCls(last)}`}>{{ right: "right", escape: "ESCAPE", false: "false reject", check: "unsure" }[verdictCls(last)]}</span></dd></div>

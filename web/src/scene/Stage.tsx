@@ -24,6 +24,7 @@ import { PLAYBACK } from "./timeline";
 import { FOCUS, getViewInset, useFocus, type FocusId } from "./focus";
 import { markStageReady } from "./stageReady";
 import { keep } from "../vision/photo";
+import { judge } from "../vision/inspect";
 import type { CameraDoc } from "./SortingModule";
 
 import { HbwCad } from "./HbwCad";
@@ -281,7 +282,11 @@ export function HbwCadStage({ doc, showZones = false, netZones = false, showCove
         rotation={[0, -Math.PI / 2, 0]}
       >
         <TrimsCtx.Provider value={trims.sorting}><PreciseScope module="sorting">
-          <SortingModule doc={doc} joints={J} onPhoto={(b, e, s) => void keep(b, e, s.label, s.n)} />
+          <SortingModule doc={doc} joints={J} onPhoto={(b, e, s) => {
+            void keep(b, e, s.label, s.n, s.truth);
+            // the inspection judges the photo, and the cell acts on its verdict
+            judge(s.n, b, e).then((v) => store.decide(v)).catch(() => store.decide({ n: s.n, verdict: "check", condition: "no verdict", p: 0, flavour: "", ae: 0, anomaly: true }));
+          }} />
         </PreciseScope></TrimsCtx.Provider>
       </group>
       <FlowCookie workpiece={J.workpiece} />

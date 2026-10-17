@@ -45,9 +45,26 @@ why.
 Nothing to do: `make api` (or the dev server) creates `.data/stf.db` and a session secret in
 `.data/session_secret` (both git-ignored).
 
-### Supabase tables
+### Supabase
 
-In the Supabase **SQL editor**:
+The schema is a migration in the repo,
+[`supabase/migrations/20261017150000_stf_guests_documents_captures.sql`](../supabase/migrations/20261017150000_stf_guests_documents_captures.sql):
+the three tables below, the photos' table and their **private** `captures` bucket (JPEG only,
+200 kB). Row-level security is on with no policies, and the browser roles (`anon`,
+`authenticated`) have no privileges: only the API server, holding the service key, reaches the
+data. It is applied to the project *smart tabletop factory* (`buiwsvaowyigqpeprike`, eu-west-1).
+
+To connect the API to it:
+
+1. Supabase dashboard → **Project Settings → API keys** → copy the **service_role** key. It bypasses
+   row-level security: it belongs on the server only, never in git, the browser or a chat.
+2. Locally, in the git-ignored `.env`:
+   `SUPABASE_URL=https://buiwsvaowyigqpeprike.supabase.co` and `SUPABASE_SERVICE_KEY=<the key>`.
+3. On Render: `stf-live` → **Environment** → the same two variables (the blueprint declares them).
+4. `make db-check`: a round trip through the API's own code with a throwaway guest. It prints which
+   database is in use and why (for example "Supabase rejected the service key"), never a key.
+
+The same SQL by hand, for another project, in the Supabase **SQL editor**:
 
 ```sql
 create table public.guests (

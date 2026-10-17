@@ -1,5 +1,7 @@
 # Machine: Gripper robot (vacuum gripper robot, VGR, ft 536632)
 
+![The vacuum gripper robot in the 3D twin, between the warehouse belt, the oven and the sorting line](../images/docs/robot-arm.jpg)
+
 
 ## In brief
 

@@ -22,7 +22,7 @@ import * as THREE from "three";
 import { boxSize, type CadDoc, type PlanKey } from "../../shared/model";
 import { buildFlow, newSample, type FlowSample } from "../OvenFlow";
 import { binColour, script, SPEED, BELT_SPEED, RATE } from "../timeline";
-import { FROM, type CellStore, type OrderLine, type Rack } from "../store/useCellStore";
+import { FROM, type CellStore, type Defect, type OrderLine, type Rack, type Verdict } from "../store/useCellStore";
 import type { CellPersistence } from "./persistence";
 
 type Key = ReturnType<typeof script>[number];
@@ -30,8 +30,12 @@ type Leg = { a: Key; b: Key; dur: number; start: number };
 type Plan = {
   from: string; to: string; legs: Leg[]; tOvenGo: number; flow: ReturnType<typeof buildFlow>; total: number;
   baked: string; flavour: string; collect: string | null; collectColour: string | null; bin: string;
+  /** the same journey for a cookie the inspection rejects: to the end of the line, held there */
+  rflow: ReturnType<typeof buildFlow>;
 };
-type Cycle = Plan & { line: number };
+/** A cycle: its plan, its order line, and its cookie's inspection - the fault the simulation gave
+    it, the camera shot that photographed it, and the verdict on that photo once it is in. */
+type Cycle = Plan & { line: number; defect: Defect | null; seed: number; shot: number; verdict: Verdict | null };
 
 export interface CoordinatorOptions {
   /** the VGR's tours per Lagerstelle (vgr_tours.json); null: the exported demo tour */
@@ -73,6 +77,8 @@ export class CellCoordinator {
   private legIdx = -1;
   private flowSay = "";
   private thermo = { element: 0, chamber: 25 };
+  /** a running count, so each faulty cookie's fault falls somewhere else */
+  private seeds = 0;
 
   constructor(doc: CadDoc, store: CellStore, opts: CoordinatorOptions) {
     this.doc = doc;
@@ -165,7 +171,8 @@ export class CellCoordinator {
     this.colour(baked);
     const collectColour = collect ? binColour(doc, collect) : null;
     if (collectColour) this.colour(collectColour);
-    const p: Plan = { from, to, legs, tOvenGo, flow, total, baked, flavour, collect, collectColour, bin: flow.bin };
+    const rflow = buildFlow(doc, flavour, 0, true);
+    const p: Plan = { from, to, legs, tOvenGo, flow, rflow, total, baked, flavour, collect, collectColour, bin: flow.bin };
     this.plans.set(key, p);
     return p;
   }
@@ -176,8 +183,10 @@ export class CellCoordinator {
     return r;
   }
   private rawIn(r: Rack) { return this.order.filter((q) => r[q] === this.RAW); }
-  /** The next ordered cookie, if any: its order line, one more of it started. */
+  /** The next ordered cookie, if any - and if there is raw dough left to make it from: its order
+      line, one more of it started. */
   private nextWork(): OrderLine | null {
+    if (!this.rawIn(this.store.model.rack).length) return null;
     const line = this.store.model.queue.find((o) => o.started < o.qty);
     if (!line) return null;
     line.started++;
@@ -187,12 +196,16 @@ export class CellCoordinator {
   private begin(r: Rack, line: OrderLine): Cycle {
     const from = this.rawIn(r)[0] ?? FROM;
     const bin = this.doc.pipeline.flavours[line.flavour]?.bin ?? null;
-    return { ...this.plan(from, from, line.flavour, bin), line: line.id };
+    // the fault asked for the next cookie (the Orders panel) goes to this one
+    const ins = this.store.model.inspect, defect = ins.next;
+    ins.next = null;
+    this.seeds++;
+    return { ...this.plan(from, from, line.flavour, bin), line: line.id, defect, seed: this.seeds, shot: 0, verdict: null };
   }
   /** The pose the cell rests in: a finished cycle with no cookie to fetch. */
   private rest(r: Rack): Cycle {
     const from = this.rawIn(r)[0] ?? FROM;
-    return { ...this.plan(from, from, Object.keys(this.doc.pipeline.flavours)[0], null), line: -1 };
+    return { ...this.plan(from, from, Object.keys(this.doc.pipeline.flavours)[0], null), line: -1, defect: null, seed: 0, shot: 0, verdict: null };
   }
 
   /** The cell as it was: the store's (a remounted view) or the saved one (a reload), else fresh.
@@ -277,6 +290,23 @@ export class CellCoordinator {
     J.load.tint.baked = a.cc.toLowerCase() !== this.RAW.toLowerCase();
     J.out = resting ? null : C.from;
 
+    // the inspection's verdict on this cycle's cookie, once its photo has been judged; a cookie
+    // that does not pass is not ejected to its Lagerstelle: it stays on the belt to the end of the
+    // line, the VGR finds its bay empty, and its mould goes home empty
+    if (C.shot && !C.verdict && live) {
+      const v = store.verdicts.get(C.shot);
+      if (v) {
+        store.verdicts.delete(C.shot);
+        C.verdict = v;
+        const ins = m.inspect;
+        ins.recent = [{ ...v, truth: C.defect ?? "ok", cookieFlavour: C.flavour }, ...ins.recent].slice(0, 8);
+        if (v.verdict === "pass") ins.passed++; else ins.rejected++;
+        store.commit(false);
+      }
+    }
+    const rejected = !!C.verdict && C.verdict.verdict !== "pass";
+    if (rejected && a.cc.toLowerCase() !== this.RAW.toLowerCase()) J.load.cookie = false;
+
     // the VGR: every axis rides the same interpolation, the spring stem included
     const vg = J.vgr;
     vg.swivel = a.vs + (b.vs - a.vs) * s;
@@ -285,28 +315,34 @@ export class CellCoordinator {
     vg.compress = a.vc + (b.vc - a.vc) * s;
     // vacuum builds (or bleeds off) across the step where Q8 switches
     vg.seal = (a.cup ? 1 : 0) + ((b.cup ? 1 : 0) - (a.cup ? 1 : 0)) * s;
-    vg.carry = a.carry;
+    vg.carry = rejected && a.carry === "baked" ? null : a.carry;
     const cupHex = a.carry === "baked" ? (C.collectColour ?? this.RAW) : this.RAW;
     vg.tint.color.copy(this.colour(cupHex));
     vg.tint.baked = a.carry === "baked";
 
     // the oven and the sorting line: idle until the VGR has delivered and left, then the one
     // cookie runs its whole journey (OvenFlow.ts)
-    const f = C.flow.sample(tc - C.tOvenGo, this.flow);
+    const flow = rejected ? C.rflow : C.flow;
+    const f = flow.sample(tc - C.tOvenGo, this.flow);
     const o = J.oven;
     const fs = f.s;
     o.slider = fs.slider; o.door = fs.door; o.turn = fs.turn; o.sauger = fs.sauger; o.lower = fs.lower;
     o.push = fs.push; o.lamp = fs.lamp; o.saw = fs.saw; o.vac = fs.vac; o.baked = fs.baked;
     o.ly = fs.ly; o.eject = fs.eject; o.chute = fs.chute;
-    o.beltOven = C.flow.beltOven(fs.ly);
-    o.beltSort = C.flow.beltSort(fs.ly);
+    o.beltOven = flow.beltOven(fs.ly);
+    o.beltSort = flow.beltSort(fs.ly);
     this.heat(fs.lamp > 0.5, dt);
-    J.sort.ejector = this.colours.indexOf(C.bin);
+    J.sort.ejector = rejected ? -1 : this.colours.indexOf(C.bin);
     const wp = J.workpiece;
-    wp.visible = !m.idle && (tc >= C.tOvenGo || a.ovenIn) && !a.taken;
+    // a rejected cookie stays where the line left it, at its end, until the cycle is over
+    wp.visible = !m.idle && (tc >= C.tOvenGo || a.ovenIn) && (rejected || !a.taken);
     wp.pos[0] = f.pos[0]; wp.pos[1] = f.pos[1]; wp.pos[2] = f.pos[2];
-    wp.tint.color.lerpColors(this.rawColor, this.colour(C.baked), fs.baked);
+    // its fault shows as it bakes: underbaked takes only part of its colour, burnt goes dark
+    wp.tint.color.lerpColors(this.rawColor, this.colour(C.baked), fs.baked * (C.defect === "underbaked" ? 0.3 : 1));
+    if (C.defect === "burnt") wp.tint.color.multiplyScalar(1 - 0.55 * fs.baked);
     wp.tint.baked = fs.baked > 0.5;
+    wp.defect = C.defect;
+    wp.seed = C.seed;
 
     this.sensors(held);
     this.camera(dt, C.flavour);
@@ -324,9 +360,15 @@ export class CellCoordinator {
   /** The cycle is done: its cookie is back in its slot, baked. */
   private complete() {
     const m = this.store.model, done = this.cyc.c;
-    m.rack = { ...m.rack, [done.to]: done.baked };
     const line = m.queue.find((q) => q.id === done.line);
-    if (line) line.done++;
+    if (done.verdict && done.verdict.verdict !== "pass") {
+      // rejected: its mould came home empty, and the order makes this cookie again
+      m.rack = { ...m.rack, [done.to]: null };
+      if (line) line.started--;
+    } else {
+      m.rack = { ...m.rack, [done.to]: done.baked };
+      if (line) line.done++;
+    }
     m.idle = true;
     this.store.commit();
   }
@@ -334,7 +376,7 @@ export class CellCoordinator {
   /** The baked cookies are delivered and their moulds refilled with dough. */
   private restock() {
     const m = this.store.model, r = { ...m.rack };
-    for (const q of Object.keys(r)) if (r[q] !== this.RAW) { r[q] = this.RAW; m.delivered++; }
+    for (const q of Object.keys(r)) if (r[q] !== this.RAW) { if (r[q] !== null) m.delivered++; r[q] = this.RAW; }
     m.rack = r;
     this.store.requests.restock = false;
     this.store.commit();
@@ -392,8 +434,10 @@ export class CellCoordinator {
     if (along >= 0 && this.along < 0) {
       cam.shots++;
       cam.lit = 1;
-      cam.pending = { n: cam.shots, label: flavour };
-      this.store.emitCapture({ n: cam.shots, flavour });
+      const truth = this.cyc.c.defect ?? "ok";
+      cam.pending = { n: cam.shots, label: flavour, truth };
+      if (!this.cyc.c.shot) this.cyc.c.shot = cam.shots;
+      this.store.emitCapture({ n: cam.shots, flavour, truth });
     }
     this.along = along;
   }

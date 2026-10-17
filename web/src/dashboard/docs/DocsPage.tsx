@@ -15,13 +15,14 @@ export type DocTarget = { file: string; anchor?: string; line?: number };
 /** Where a document belongs in the library. */
 function group(f: string) {
   if (f.startsWith("docs/plc/")) return "PLC program";
+  if (f.startsWith("docs/vision/")) return "Vision QC";
   if (f.startsWith("docs/assistant/machine")) return "The machine";
   if (f.startsWith("docs/assistant/panel") || f.startsWith("docs/assistant/twin")) return "The 3D twin";
   if (f.startsWith("docs/assistant/dashboard")) return "Dashboard pages";
   if (f.startsWith("docs/assistant/")) return "Operations";
   return "Project documents";
 }
-const ORDER = ["PLC program", "The machine", "Operations", "The 3D twin", "Dashboard pages", "Project documents"];
+const ORDER = ["PLC program", "Vision QC", "The machine", "Operations", "The 3D twin", "Dashboard pages", "Project documents"];
 
 function useText(file: string | undefined) {
   const [t, setT] = useState<{ file: string; text: string } | null>(null);
@@ -86,13 +87,21 @@ export function DocsPage({ doc, target, open }: { doc: CadDoc; target: DocTarget
     if (kind === "plc-hardware") return <Network />;
     return null;
   };
+  // an image's path, relative to its document, as the URL the knowledge base copied it to
+  const asset = (path: string) => {
+    if (/^https?:/.test(path)) return path;
+    const parts = [...target.file.split("/").slice(0, -1), ...path.split("/")];
+    const out: string[] = [];
+    for (const p of parts) { if (p === "..") out.pop(); else if (p !== ".") out.push(p); }
+    return `${BASE}copilot/${out.join("/")}`;
+  };
   const name = (f: string) => titles[f] ?? f.split("/").pop()!.replace(/\.md$/, "");
 
   return (
     <div className="doc-layout">
       <nav className="doc-lib" aria-label="Documents">
         {lib.map(([g, fs]) => (
-          <details key={g} open={fs.includes(target.file) || g === "PLC program"}>
+          <details key={g} open={fs.includes(target.file) || g === "PLC program" || g === "Vision QC"}>
             <summary>{g} <em>{fs.length}</em></summary>
             {fs.map((f) => (
               <button key={f} className={f === target.file ? "on" : ""} onClick={() => open({ file: f })}>{name(f)}</button>
@@ -106,7 +115,7 @@ export function DocsPage({ doc, target, open }: { doc: CadDoc; target: DocTarget
           <a href={`${REPO}${target.file}${target.line ? `#L${target.line}` : ""}`} target="_blank" rel="noopener noreferrer">Open on GitHub ↗</a>
         </div>
         {err ? <p className="doc-muted">{err}</p> : text === null ? <p className="doc-muted">Opening…</p>
-          : <Markdown src={text} hl={target.line} open={follow} block={block} />}
+          : <Markdown src={text} hl={target.line} open={follow} block={block} asset={asset} />}
       </article>
       {toc.length > 2 && (
         <nav className="doc-toc" aria-label="On this page">

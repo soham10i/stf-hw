@@ -108,12 +108,12 @@ export function visionChannel() {
 /** Keep the photo: in the tab's gallery, at the dashboard's inspection (Vision QC, with the empty
     hood's reference image) and, with the API, in the server's photo store. The only camera
     images that are kept. */
-export async function keep(blob: Blob, empty: Blob | null, flavour: string, n: number) {
+export async function keep(blob: Blob, empty: Blob | null, flavour: string, n: number, truth = "ok") {
   const entry = { n, flavour, url: URL.createObjectURL(blob), stored: "off" as "yes" | "no" | "off" };
   photos.list.unshift(entry);
   for (const old of photos.list.splice(24)) URL.revokeObjectURL(old.url);
   photos.listeners.forEach((f) => f());
-  visionChannel()?.postMessage({ type: "photo", n, flavour, jpeg: blob, empty, t: Date.now() });
+  visionChannel()?.postMessage({ type: "photo", n, flavour, truth, jpeg: blob, empty, t: Date.now() });
   if (!HAS_API) return;
   try {
     const q = new URLSearchParams({ flavour, n: String(n), source: "twin" });

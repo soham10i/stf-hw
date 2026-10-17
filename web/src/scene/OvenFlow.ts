@@ -61,7 +61,11 @@ export interface Flow {
 
 const BELT = 60; // mm/s of playback on the belts - slowed so the hand-over reads
 
-export function buildFlow(doc: CadDoc, flavour: string, bakeExtra = 0): Flow {
+/** The cookie's journey. `reject`: the inspection rejected it - no ejector fires, and the belt
+    carries it past the Lagerstellen to the end of the line, where it is held for the operator.
+    Up to the ejectors both journeys are the same, at the same speed: the coordinator can switch
+    a cookie onto this one whenever the inspection's verdict comes in before then. */
+export function buildFlow(doc: CadDoc, flavour: string, bakeExtra = 0, reject = false): Flow {
   const J = doc.oven.joints, F = doc.oven.flow;
   // the oven is placed rotated +90 about Z: module (x, y) -> (-y + tx, x + ty)
   const [ox, oy] = doc.factory.oven_placement.translate;
@@ -112,7 +116,9 @@ export function buildFlow(doc: CadDoc, flavour: string, bakeExtra = 0): Flow {
   const P3 = new THREE.Vector2(fromSort(0, beltC)[0] - 0.5, P2.y);
   const sortZ = web.p[2] + (web.s[2] as number);
   const P4 = V2(fromSort(sensorX, beltC));
-  const P5 = V2(fromSort(ejX, beltC));
+  // a rejected cookie rides to the end of the belt, short of its drive drum
+  const endX = web.p[0] + (web.s[0] as number) - F.wp_d / 2 - 8;
+  const P5 = V2(fromSort(reject ? endX : ejX, beltC));
   const path = [P0, P1, P2, P3, P4, P5];
   const cum = path.map((_, i) => path.slice(1, i + 1).reduce((a, p, j) => a + p.distanceTo(path[j]), 0));
   const bandY = 0;
@@ -145,10 +151,15 @@ export function buildFlow(doc: CadDoc, flavour: string, bakeExtra = 0): Flow {
     { d: 0.8, mode: "line", say: "Hand-over: over the nose roller, the cookie drops onto the Sortierstrecke's belt (I2), Q1 on", to: { ly: handY + 10 } },
     { d: (sensorLy - handY - 10) / BELT, mode: "line", say: "Sortierstrecke belt: into the darkened colour lock", to: { ly: sensorLy } },
     { d: 1.4, mode: "line", say: `Farbsensor A4 reads ~${mV ?? "?"} mV -> ${flavour} -> Lagerstelle ${bin}`, to: { ly: sensorLy + 12 } },
-    { d: (ejectLy - sensorLy - 12) / BELT, mode: "line", say: `I3 passed; the I1 Impulstaster counts belt pulses to the ${bin} ejector`, to: { ly: ejectLy } },
-    { d: 1, mode: "eject", say: `Q${3 + binIndex}: the ${bin} ejector pushes it off the belt into its Lagerstelle`, to: { eject: bayEj + gap } },
-    { d: 0.4 + chute / 120, mode: "slide", say: `It slides down the ${bin} Lagerstelle to the end stop (I${5 + binIndex}); the ejector returns`, to: { eject: 0, chute } },
-    { d: 0.8, mode: "bay", say: `The baked cookie rests in the ${bin} Lagerstelle, where the VGR collects from`, to: {} },
+    ...(reject ? [
+      { d: (ejectLy - sensorLy - 12) / BELT, mode: "line" as Mode, say: "Inspection: REJECTED - no ejector fires; the cookie rides on past the Lagerstellen", to: { ly: ejectLy } },
+      { d: 1.5, mode: "line" as Mode, say: "Held at the end of the line for the operator: the inspection rejected it", to: {} },
+    ] : [
+      { d: (ejectLy - sensorLy - 12) / BELT, mode: "line" as Mode, say: `I3 passed; the I1 Impulstaster counts belt pulses to the ${bin} ejector`, to: { ly: ejectLy } },
+      { d: 1, mode: "eject" as Mode, say: `Q${3 + binIndex}: the ${bin} ejector pushes it off the belt into its Lagerstelle`, to: { eject: bayEj + gap } },
+      { d: 0.4 + chute / 120, mode: "slide" as Mode, say: `It slides down the ${bin} Lagerstelle to the end stop (I${5 + binIndex}); the ejector returns`, to: { eject: 0, chute } },
+      { d: 0.8, mode: "bay" as Mode, say: `The baked cookie rests in the ${bin} Lagerstelle, where the VGR collects from`, to: {} },
+    ]),
   ];
 
   const s0: FlowState = {
@@ -166,8 +177,9 @@ export function buildFlow(doc: CadDoc, flavour: string, bakeExtra = 0): Flow {
   });
   const total = t0;
   // the cookie has arrived once it has come to rest at the Lagerstelle's end stop
-  const slid = timed.find((st) => st.mode === "slide")!;
-  const arrive = slid.t0 + slid.d;
+  const slid = timed.find((st) => st.mode === "slide");
+  const arrive = slid ? slid.t0 + slid.d : total;
+  const last: Mode = reject ? "line" : "bay";
 
   // the sorting frame -> factory frame, and the oven frame -> factory frame, into `out`
   const sortTo = (x: number, y: number, z: number, out: [number, number, number]) => {
@@ -220,7 +232,7 @@ export function buildFlow(doc: CadDoc, flavour: string, bakeExtra = 0): Flow {
       for (let i = 0; i < timed.length; i++) if (t < timed[i].t0 + timed[i].d) { hit = i; break; }
       if (hit < 0) {
         for (const k of FLOW_KEYS) o[k] = cur[k];
-        out.mode = "bay"; out.say = "";
+        out.mode = last; out.say = "";
       } else {
         const st = timed[hit];
         const u = THREE.MathUtils.smoothstep((t - st.t0) / st.d, 0, 1);

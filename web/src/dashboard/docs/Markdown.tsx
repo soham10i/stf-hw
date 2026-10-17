@@ -12,10 +12,12 @@ export function slug(h: string) {
     .replace(/[^a-z0-9 _-]/g, "").trim().replace(/\s+/g, "-");
 }
 
-function inline(s: string, open: (href: string) => void, key = 0): ReactNode[] {
-  const parts = s.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*\s][^*]*\*|\[[^\]]+\]\([^)\s]+\))/g);
+function inline(s: string, open: (href: string) => void, key = 0, src?: (path: string) => string): ReactNode[] {
+  const parts = s.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*\s][^*]*\*|!?\[[^\]]*\]\([^)\s]+\))/g);
   return parts.map((p, i) => {
     const k = `${key}-${i}`;
+    const im = /^!\[([^\]]*)\]\(([^)\s]+)\)$/.exec(p);
+    if (im) return <img key={k} src={src ? src(im[2]) : im[2]} alt={im[1]} loading="lazy" />;
     if (p.startsWith("`") && p.endsWith("`") && p.length > 1) return <code key={k}>{p.slice(1, -1)}</code>;
     if (p.startsWith("**") && p.endsWith("**")) return <b key={k}>{p.slice(2, -2)}</b>;
     if (p.startsWith("*") && p.endsWith("*") && p.length > 2) return <em key={k}>{p.slice(1, -1)}</em>;
@@ -31,8 +33,9 @@ function inline(s: string, open: (href: string) => void, key = 0): ReactNode[] {
 
 const row = (l: string) => l.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/).map((c) => c.trim());
 
-/** Render `src`; `hl` is the source line to highlight (a citation's), `open` follows a relative link. */
-export function Markdown({ src, hl, open, block }: { src: string; hl?: number; open: (href: string) => void; block: Block }) {
+/** Render `src`; `hl` is the source line to highlight (a citation's), `open` follows a relative
+    link, `asset` turns an image's path (relative to the document) into its URL. */
+export function Markdown({ src, hl, open, block, asset }: { src: string; hl?: number; open: (href: string) => void; block: Block; asset?: (path: string) => string }) {
   const lines = src.split("\n");
   const out: ReactNode[] = [];
   const mark = (a: number, b: number) => (hl !== undefined && hl >= a && hl <= b ? "doc-hl" : undefined);
@@ -88,12 +91,24 @@ export function Markdown({ src, hl, open, block }: { src: string; hl?: number; o
       continue;
     }
     if (!line.trim()) { i++; continue; }
+    // an image on a line of its own: a figure, its alt text the caption
+    const fig = /^!\[([^\]]*)\]\(([^)\s]+)\)\s*$/.exec(line.trim());
+    if (fig) {
+      out.push(
+        <figure key={n} className={`doc-img ${mark(n, n) ?? ""}`} data-line={n}>
+          <img src={asset ? asset(fig[2]) : fig[2]} alt={fig[1]} loading="lazy" />
+          {fig[1] && <figcaption>{fig[1]}</figcaption>}
+        </figure>,
+      );
+      i++;
+      continue;
+    }
     // a paragraph: until a blank line or another block
     let j = i;
     const para: string[] = [];
     while (j < lines.length && lines[j].trim() && !/^(#{1,4}\s|```|\s*\||\s*([-*]|\d+[.)])\s)/.test(lines[j])) para.push(lines[j++]);
     if (!para.length) { para.push(lines[j++]); }
-    out.push(<p key={n} className={mark(n, j)} data-line={n}>{inline(para.join(" "), open, n)}</p>);
+    out.push(<p key={n} className={mark(n, j)} data-line={n}>{inline(para.join(" "), open, n, asset)}</p>);
     i = j;
   }
   return <>{out}</>;

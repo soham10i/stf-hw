@@ -53,9 +53,10 @@ export class LiveLine {
     return this.judge(img, flavour, truth, o.source, o.scenario, o.passP);
   }
 
-  /** Judge a photo the twin's camera took (N x N x 3, 0..1): a cookie of `flavour`, baked right. */
-  inspect(img: Float32Array, flavour: string, passP?: number): Frame {
-    return this.judge(img, flavour, "ok", "twin", "hood", passP);
+  /** Judge a photo the twin's camera took (N x N x 3, 0..1): a cookie of `flavour`, in the
+      condition the simulation gave it (`truth`: ok, or the fault injected from the Orders panel). */
+  inspect(img: Float32Array, flavour: string, passP?: number, truth = "ok"): Frame {
+    return this.judge(img, flavour, truth, "twin", "hood", passP);
   }
 
   private judge(img: Float32Array, flavour: string, truth: string, source: "twin" | "line", scenario: Scenario, passP?: number): Frame {

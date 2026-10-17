@@ -6,6 +6,8 @@ compiles it with MatIEC to WebAssembly and runs it in the browser against the si
 every 5 ms (software in the loop). Nothing in the 3D view moves unless this
 program drives an output.
 
+![The PLC panel in the 3D twin: the program running, its units' states and its I/O image, live](../images/docs/twin-plc.jpg)
+
 ```plc-architecture
 ```
 

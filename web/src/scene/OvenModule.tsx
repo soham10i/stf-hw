@@ -294,7 +294,7 @@ export function FlowCookie({ workpiece }: { workpiece: CellJoints["workpiece"] }
   });
   return (
     <group ref={grp}>
-      <Cookie x={0} y={0} z={0} tint={workpiece.tint} />
+      <Cookie x={0} y={0} z={0} tint={workpiece.tint} fault={workpiece} />
     </group>
   );
 }

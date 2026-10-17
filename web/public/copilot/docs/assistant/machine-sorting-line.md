@@ -1,5 +1,7 @@
 # Machine: Sorting line (ft 536633)
 
+![The sorting line in the 3D twin: the belt, the colour hood with the inspection camera, three ejectors and their Lagerstellen](../images/docs/sorting-line.jpg)
+
 
 ## In brief
 

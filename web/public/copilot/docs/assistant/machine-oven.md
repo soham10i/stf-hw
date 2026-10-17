@@ -1,5 +1,7 @@
 # Machine: Oven (multi-processing station with kiln, ft 536632)
 
+![The oven in the 3D twin: the chamber with its controller display, the Drehtisch with the saw, and the belt to the sorting line](../images/docs/oven.jpg)
+
 
 ## In brief
 

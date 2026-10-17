@@ -12,7 +12,7 @@
 // The physics kernel's manual crane commands are in the Telemetry panel, beside the kernel.
 
 import { useState } from "react";
-import { useCell, type OrderLine } from "../scene/store/useCellStore";
+import { DEFECTS, useCell, type Defect, type OrderLine } from "../scene/store/useCellStore";
 import { useCadDoc } from "../shared/model";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -35,6 +35,7 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
   const colour = (f: string) => flavours[f]?.colour ?? raw;
   const flavourOf = (c: string | null | undefined) => names.find((f) => flavours[f].colour.toLowerCase() === c?.toLowerCase());
   const queue = m.queue;
+  const ins = m.inspect;
   const free = store.free();
   const current = queue.find((o) => o.started > o.done);
 
@@ -44,7 +45,7 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
   for (const q of all) {
     if (q === inOven) continue;
     const f = flavourOf(rack[q]);
-    const k = f ?? "raw";
+    const k = rack[q] === null ? "empty" : f ?? "raw";
     counts[k] = (counts[k] ?? 0) + 1;
   }
   const baked = names.reduce((n, f) => n + (counts[f] ?? 0), 0);
@@ -123,6 +124,36 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
         )}
       </section>
 
+      {/* ---------------------------------------------------------------- inspection */}
+      <section className="ord-card">
+        <div className="ord-head"><h3>Quality inspection</h3>
+          <span className="ord-total">{ins.passed} passed · {ins.rejected} rejected</span></div>
+        <p className="ord-hint">The camera in the colour hood photographs every cookie; the CNN decides, and the sorting line acts on it - a cookie that does not pass is not ejected to its Lagerstelle but held at the end of the line, and the order makes it again.</p>
+        <div className="ord-label">Next cookie</div>
+        <div className="ui-seg ord-defects" role="radiogroup" aria-label="Fault for the next cookie">
+          {([null, ...DEFECTS] as (Defect | null)[]).map((d) => (
+            <button key={d ?? "ok"} role="radio" aria-checked={ins.next === d} className={ins.next === d ? "on" : ""}
+              onClick={() => store.injectDefect(d)} title={d ? `The simulation makes the next cookie ${d}` : "A good cookie"}>{d ? cap(d) : "Good"}</button>
+          ))}
+        </div>
+        {ins.recent.length > 0 && (
+          <ol className="ord-ins">
+            {ins.recent.slice(0, 4).map((r) => {
+              const pass = r.verdict === "pass", ok = r.truth === "ok";
+              const call = pass === ok ? (pass ? "right" : "caught") : pass ? "escape" : "false reject";
+              return (
+                <li key={r.n} className={call.replace(" ", "-")}>
+                  <i className="slot-dot" style={{ background: colour(r.cookieFlavour) }} />
+                  <span><b>#{r.n} {r.truth === "ok" ? "good" : r.truth}</b><small>CNN: {r.condition} {Math.round(r.p * 100)} % · autoencoder {r.ae.toFixed(2)}×</small></span>
+                  <em className={pass ? "pass" : "reject"}>{pass ? "pass" : r.verdict === "check" ? "to a person" : "reject"}</em>
+                  <small className="ord-call">{call}</small>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </section>
+
       {/* ---------------------------------------------------------------- orders */}
       <section className="ord-card">
         <div className="ord-head"><h3>Orders</h3><span className="ord-total">{queue.filter((o) => o.done >= o.qty).length} of {queue.length} completed</span></div>
@@ -148,17 +179,17 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
       {/* ---------------------------------------------------------------- rack */}
       <section className="ord-card">
         <div className="ord-head"><h3>Warehouse rack</h3><span className="ord-total">{total} cookies, always</span></div>
-        <p className="ord-sum">{counts.raw} raw{names.map((f) => counts[f] ? ` · ${counts[f]} ${f}` : "").join("")}{counts.oven ? ` · ${counts.oven} in the oven line` : ""}</p>
+        <p className="ord-sum">{counts.raw ?? 0} raw{names.map((f) => counts[f] ? ` · ${counts[f]} ${f}` : "").join("")}{counts.oven ? ` · ${counts.oven} in the oven line` : ""}{counts.empty ? ` · ${counts.empty} empty (rejected)` : ""}</p>
         {/* as the rack stands: the top shelf (row C) first, row A at the bottom */}
         <div className="ord-rack">
           {[...all].sort((a, b) => b[0].localeCompare(a[0]) || Number(a.slice(1)) - Number(b.slice(1))).map((s) => {
-            const out = s === inOven, f = flavourOf(rack[s]);
+            const out = s === inOven, f = flavourOf(rack[s]), empty = rack[s] === null;
             return (
-              <div key={s} className={`ord-cell ${out ? "out" : f ? "baked" : "raw"}`}
-                title={out ? `${s}: in the oven line` : f ? `${s}: ${f}, baked` : `${s}: raw dough`}>
-                <i style={{ background: out ? "transparent" : rack[s] ?? "transparent" }} />
+              <div key={s} className={`ord-cell ${out ? "out" : empty ? "empty" : f ? "baked" : "raw"}`}
+                title={out ? `${s}: in the oven line` : empty ? `${s}: an empty mould - its cookie was rejected by the inspection` : f ? `${s}: ${f}, baked` : `${s}: raw dough`}>
+                <i style={{ background: out || empty ? "transparent" : rack[s] ?? "transparent" }} />
                 <b>{s}</b>
-                <small>{out ? "in oven" : f ?? "raw"}</small>
+                <small>{out ? "in oven" : empty ? "empty" : f ?? "raw"}</small>
               </div>
             );
           })}

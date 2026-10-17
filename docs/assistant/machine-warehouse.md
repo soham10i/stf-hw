@@ -1,5 +1,7 @@
 # Machine: Warehouse (high-bay warehouse, ft 536631)
 
+![The high-bay warehouse in the 3D twin: the 3 x 4 rack of moulds, the stacker crane and its belt](../images/docs/warehouse.jpg)
+
 
 ## In brief
 

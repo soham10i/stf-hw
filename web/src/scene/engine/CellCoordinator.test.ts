@@ -199,3 +199,62 @@ describe("sensors", () => {
     expect(hottest).toBeGreaterThan(100);
   });
 });
+
+describe("the inspection steers the line", () => {
+  // the twin judges each photo (vision/inspect.ts); here the verdict is the simulation's truth
+  const judgeByTruth = (store: CellStore) => store.onCapture((c) => store.decide({
+    n: c.n, verdict: c.truth === "ok" ? "pass" : "reject", condition: c.truth, p: 0.99, flavour: c.flavour, ae: 0.3, anomaly: false,
+  }));
+  const lensOf = () => {
+    const [tx, ty] = doc.factory.sort_placement.translate;
+    return [-230 + tx, 200 + ty] as [number, number];
+  };
+
+  it("a rejected cookie is held at the end of the line, its mould comes home empty, and the order makes it again", () => {
+    const { store, coord, run, done } = cell();
+    coord.setCamera(lensOf());
+    judgeByTruth(store);
+    store.place("chocolate", 1);
+    store.injectDefect("burnt");
+    let ejectorFired = false, heldAtEnd = false;
+    expect(run(3600, () => {
+      const wp = store.joints.workpiece;
+      // the burnt cookie, once the inspection has rejected it
+      if (store.model.inspect.rejected && wp.visible && wp.defect === "burnt") {
+        if (store.joints.sort.ejector >= 0 && store.joints.oven.eject > 0) ejectorFired = true;
+        heldAtEnd = true;
+      }
+      return done();
+    })).toBe(true);
+    const rack = Object.values(store.model.rack);
+    expect(rack.filter((c) => c === null)).toHaveLength(1);            // the rejected cookie's mould
+    expect(rack.filter((c) => c === CHOC)).toHaveLength(1);           // and the one that passed
+    expect(store.model.queue[0].done).toBe(1);
+    expect(store.model.inspect).toMatchObject({ passed: 1, rejected: 1, next: null });
+    expect(store.model.inspect.recent.map((r) => r.truth)).toEqual(["ok", "burnt"]);
+    expect(ejectorFired).toBe(false);
+    expect(heldAtEnd).toBe(true);
+  });
+
+  it("a good cookie passes to its Lagerstelle as before", () => {
+    const { store, coord, run, done } = cell();
+    coord.setCamera(lensOf());
+    judgeByTruth(store);
+    store.place("vanilla", 2);
+    expect(run(3600, done)).toBe(true);
+    expect(Object.values(store.model.rack).filter((c) => c === null)).toHaveLength(0);
+    expect(store.model.inspect).toMatchObject({ passed: 2, rejected: 0 });
+  });
+
+  it("with no raw dough left, an order waits rather than take a baked cookie's slot", () => {
+    const { store, coord, run } = cell();
+    coord.setCamera(lensOf());
+    store.onCapture((c) => store.decide({ n: c.n, verdict: "reject", condition: "burnt", p: 1, flavour: c.flavour, ae: 2, anomaly: true }));
+    store.place("strawberry", 12);
+    run(36000, () => store.model.idle && Object.values(store.model.rack).every((c) => c !== store.model.rawColour));
+    expect(Object.values(store.model.rack).every((c) => c === null)).toBe(true);   // all rejected
+    expect(store.model.queue[0].done).toBe(0);
+    expect(store.model.idle).toBe(true);
+  });
+});
+

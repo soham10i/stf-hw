@@ -69,3 +69,8 @@
 .arch-t { font-size: 12.5px; font-weight: 600; text-anchor: middle; }
 .arch-s { font-size: 11px; text-anchor: middle; fill: var(--muted) !important; }
 .arch .mono { font-family: var(--mono) !important; }
+/* figures: a screenshot or a photo with its caption */
+.doc-img { margin: 8px 0 20px; }
+.doc-img img { display: block; max-width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border-soft); }
+.doc-img figcaption { margin-top: 6px; font-size: var(--fs-callout); color: var(--muted); }
+.doc-body p img { max-width: 100%; border-radius: 8px; vertical-align: middle; }

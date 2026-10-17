@@ -288,21 +288,77 @@ export function RackBadge({ doc, rack, raw }: { doc: CadDoc; rack: Record<string
 /** A cookie. Raw dough is pale and matt; a BAKED one has its flavour colour with
     a faint glow, so it still reads deep in a mould. A fixed `colour`, or a `tint`
     the coordinator rewrites in place every frame (copied, never parsed). */
+/** A fault drawn on a cookie's dome (`fault` is read every frame: the travelling cookie's). */
+export type Fault = { defect: string | null; seed: number };
+
+/** The dome's texture for a fault, as the vision models were trained to see it (render.py):
+    burnt - the rim darkened from 60-75 % of the radius out; cracked - a wavy dark line across the
+    top, 1-2 px wide in the camera's 64 px image and 60-95 % of the radius long. The dome's UVs
+    are polar: u goes round the axis, v from the rim (0) to the crown (1). Cached per fault. */
+const FAULT_MAPS = new Map<string, THREE.Texture>();
+function faultMap(defect: string, seed: number): THREE.Texture | null {
+  if (defect !== "burnt" && defect !== "cracked") return null;
+  const key = `${defect}:${seed}`;
+  const hit = FAULT_MAPS.get(key);
+  if (hit) return hit;
+  let st = (seed * 2654435761) >>> 0;
+  const rnd = () => { st = (st + 0x6d2b79f5) >>> 0; let t = Math.imul(st ^ (st >>> 15), st | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const u = (a: number, b: number) => a + (b - a) * rnd();
+  const W = 512, H = 128, RPX = 18; // the cookie's radius in the camera's 64 px image
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const g = c.getContext("2d")!;
+  const img = g.createImageData(W, H);
+  const rimAt = u(0.6, 0.75);
+  const rot = u(0, 2 * Math.PI), ax = Math.cos(rot), ay = Math.sin(rot);
+  const f = u(0.4, 0.8), ph = u(0, 6), w = u(0.8, 1.6), len = RPX * u(0.6, 0.95), k = u(0.25, 0.45);
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    // the texture is flipped onto the mesh: canvas row 0 lands on v = 1, the crown - so the radius
+    // d (0 at the crown, 1 at the rim) grows with the row
+    const d = (j + 0.5) / H, th = ((i + 0.5) / W) * 2 * Math.PI;
+    let m = 1;
+    if (defect === "burnt") m = 1 - 0.7 * Math.min(1, Math.max(0, (d - rimAt) / 0.3));
+    else {
+      const x = d * RPX * Math.cos(th), y = d * RPX * Math.sin(th);
+      const along = x * ax + y * ay, across = -x * ay + y * ax;
+      if (Math.abs(across - 1.6 * Math.sin(along * f + ph)) < w && Math.abs(along) < len) m = k;
+    }
+    const o = (j * W + i) * 4;
+    img.data[o] = img.data[o + 1] = img.data[o + 2] = Math.round(255 * m); img.data[o + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  FAULT_MAPS.set(key, t);
+  return t;
+}
+
 export function Cookie({
-  x, y, z, colour = DOUGH, tint,
+  x, y, z, colour = DOUGH, tint, fault,
 }: {
-  x: number; y: number; z: number; colour?: string; tint?: Tint;
+  x: number; y: number; z: number; colour?: string; tint?: Tint; fault?: Fault;
 }) {
   // baked dough is matte: no glare back into the inspection camera's lens
   const material = useMemo(() => new THREE.MeshPhysicalMaterial({ roughness: 0.9, specularIntensity: 0 }), []);
-  useEffect(() => () => material.dispose(), [material]);
+  // the wall keeps its colour without the dome's fault texture
+  const wall = useMemo(() => new THREE.MeshPhysicalMaterial({ roughness: 0.9, specularIntensity: 0 }), []);
+  useEffect(() => () => { material.dispose(); wall.dispose(); }, [material, wall]);
   const mat = useRef(material);
+  const shown = useRef("");
   useFrame(() => {
     if (!tint || !mat.current) return;
     mat.current.color.copy(tint.color);
     if (tint.baked) mat.current.emissive.copy(tint.color);
     else mat.current.emissive.setRGB(0, 0, 0);
     mat.current.emissiveIntensity = tint.baked ? 0.18 : 0;
+    wall.color.copy(mat.current.color); wall.emissive.copy(mat.current.emissive); wall.emissiveIntensity = mat.current.emissiveIntensity;
+    // a fault shows once the cookie is baked
+    const want = fault?.defect && tint.baked ? `${fault.defect}:${fault.seed}` : "";
+    if (want !== shown.current) {
+      shown.current = want;
+      mat.current.map = want ? faultMap(fault!.defect!, fault!.seed) : null;
+      mat.current.needsUpdate = true;
+    }
   });
   useEffect(() => {
     if (tint || !mat.current) return;
@@ -314,7 +370,7 @@ export function Cookie({
   return (
     <group position={v(x, y, z)}>
       <mesh geometry={DOME_GEO} material={material} castShadow />
-      <mesh geometry={WALL_GEO} material={material} castShadow />
+      <mesh geometry={WALL_GEO} material={tint ? wall : material} castShadow />
     </group>
   );
 }

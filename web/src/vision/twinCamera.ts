@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { VISION_CHANNEL } from "./channel";
 
-export type TwinPhoto = { n: number; flavour: string; jpeg: Blob; empty: Blob | null; t: number };
+export type TwinPhoto = { n: number; flavour: string; truth?: string; jpeg: Blob; empty: Blob | null; t: number };
 type Msg = { type: "frame"; jpeg: Blob; t: number; lit: boolean } | ({ type: "photo" } & TwinPhoto);
 
 /** Say "watching" every 2 s while the page is visible; the twin streams for 5 s after each. */
