@@ -9,6 +9,10 @@ import "./styles/maintain.css";
 import "./styles/vision.css";
 import "./styles/chat.css";
 import { Dashboard } from "./Dashboard";
+import { applyTheme } from "../shared/theme";
+
+// the saved theme on the document before the first render: no flash of the other one
+applyTheme();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

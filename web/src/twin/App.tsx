@@ -23,7 +23,7 @@ import { useLiveShare } from "./liveShare";
 import { CameraTip, CellStatus, FocusMenu, LoadingVeil } from "./ViewportChrome";
 
 export default function App() {
-  const [theme, toggleTheme] = useTheme();
+  const { theme, setTheme } = useTheme();
   const { scene, error: apiError, conn } = useBackend();
   const machine = useCadDoc();
   const comps = useComponents();
@@ -102,7 +102,7 @@ export default function App() {
 
   return (
     <div className={`app ${machineView ? "immersive" : ""}`}>
-      <TopBar views={views} view={view} onView={setViewId} theme={theme} toggleTheme={toggleTheme}
+      <TopBar views={views} view={view} onView={setViewId} theme={theme} setTheme={setTheme}
         status={conn.conn} onOrder={machineView && ctx ? order : undefined}
         statusTip={[scene && `layout ${scene.fingerprint}`, machine.doc && `cad ${machine.doc.fingerprint}`].filter(Boolean).join("  ·  ")} />
 

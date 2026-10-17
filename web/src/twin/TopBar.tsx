@@ -1,8 +1,8 @@
 // The twin's top bar: brand, the view switcher (searchable, Cmd/Ctrl+K), the backend status,
 // the order shortcut, the dashboard link and the theme.
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Theme } from "../shared/theme";
-import { Icon, ThemeToggle } from "../shared/icons";
+import type { ThemeId } from "../shared/theme";
+import { Icon, ThemeMenu } from "../shared/icons";
 import type { View } from "./registry";
 
 export type Status = "open" | "connecting" | "closed" | "standalone";
@@ -83,9 +83,9 @@ function ViewMenu({ views, view, onView }: { views: View[]; view: View; onView: 
   );
 }
 
-export function TopBar({ views, view, onView, status, statusTip, theme, toggleTheme, onOrder }: {
+export function TopBar({ views, view, onView, status, statusTip, theme, setTheme, onOrder }: {
   views: View[]; view: View; onView: (id: string) => void;
-  status: Status; statusTip: string; theme: Theme; toggleTheme: () => void; onOrder?: () => void;
+  status: Status; statusTip: string; theme: ThemeId; setTheme: (t: ThemeId) => void; onOrder?: () => void;
 }) {
   return (
     <header className="topbar">
@@ -100,7 +100,7 @@ export function TopBar({ views, view, onView, status, statusTip, theme, toggleTh
         </span>
         {onOrder && <button className="ui-btn primary" onClick={onOrder} title="Open the order form" aria-label="New order"><Icon name="plus" size={15} /><span className="hide-sm">New order</span></button>}
         <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html`} aria-label="Dashboard"><Icon name="gauge" size={16} /><span className="hide-sm">Dashboard</span></a>
-        <ThemeToggle theme={theme} toggle={toggleTheme} />
+        <ThemeMenu theme={theme} setTheme={setTheme} />
       </div>
     </header>
   );

@@ -201,7 +201,7 @@ const TOOLS: Tool[] = [
       const r = await c.get<{ results: { name: string; warned_1shift: number; failures: number; missed: number }[] }>("ai");
       const rule = r.results[0], semi = r.results.find((x) => x.name.startsWith("semi"))!;
       return { tool: "ai", text: `On machines it never saw, the network warned ${semi.warned_1shift} of ${semi.failures} failures a shift ahead (rules: ${rule.warned_1shift}). It runs as an advisory estimate beside the rules.`,
-               link: { page: "ai", label: "AI maintenance" }, sources: ["ml/train.py"] };
+               link: { page: "ai", label: "Maintenance · AI predictions" }, sources: ["ml/train.py"] };
     },
   },
   {

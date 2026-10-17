@@ -1,4 +1,4 @@
-# Dashboard: AI maintenance
+# Dashboard: Maintenance · AI predictions
 
 Dashboard group: Maintain. Page id: `ai`.
 

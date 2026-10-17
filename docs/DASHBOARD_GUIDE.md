@@ -11,7 +11,7 @@ title says what the card shows.
 ## Pages
 
 - **Operate**: [Overview](#overview) · [Production](#production) · [Quality & trace](#quality-trace) · [Vision QC](#vision-qc) · [Alarms](#alarms) · [Copilot](#copilot)
-- **Maintain**: [Health](#health) · [Maintenance](#maintenance) · [AI maintenance](#ai-maintenance)
+- **Maintain**: [Health](#health) · [Maintenance](#maintenance) · [Maintenance · AI predictions](#maintenance-ai-predictions)
 - **Analyse**: [Month](#month) · [Throughput](#throughput) · [Learned scheduler](#learned-scheduler) · [Energy & grid](#energy-grid) · [Carbon per cookie](#carbon-per-cookie) · [OT security](#ot-security) · [Defence in depth](#defence-in-depth)
 - **Engineer**: [Engineering](#engineering) · [Validation](#validation) · [Data](#data)
 - **Docs**: [Hardware degradation](#hardware-degradation)
@@ -185,7 +185,7 @@ When each part is next serviced and why, how the work spreads over the days, and
 
 *Data:* Condition monitoring (warnings) and the lifecycle design (spares).
 
-### AI maintenance
+### Maintenance · AI predictions
 
 A neural network that predicts each part's remaining life from its sensor history, tested on machines it never saw, and running here in your browser.
 

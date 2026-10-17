@@ -228,3 +228,12 @@ details > summary { cursor: pointer; }
 }
 /* the header's popover stays above the page on a phone, where the header scrolls with it */
 @media (max-width: 900px) { .db-top { position: relative; z-index: 6; } }
+/* a page's own tabs, under its lede (Maintenance: service plan · AI predictions) */
+.db-tabs { margin: -6px 0 18px; }
+.db-tabs button { padding: 6px 14px; }
+/* the sidebar's glyphs in the theme's accent, its labels in the label colour (sidebars.md: a
+   sidebar's icons take the accent) - so the icons follow the theme chosen */
+.db-nav button { color: var(--text); }
+.db-nav button svg { color: var(--accent); opacity: .9; }
+.db-nav button.on { color: var(--accent); }
+.db-nav button.on svg { opacity: 1; }

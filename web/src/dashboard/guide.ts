@@ -213,7 +213,7 @@ export const GUIDE: Record<string, PageGuide> = {
   },
 
   ai: {
-    title: "AI maintenance",
+    title: "Maintenance · AI predictions",
     what: "A neural network that predicts each part's remaining life from its sensor history, tested on machines it never saw, and running here in your browser.",
     read: [
       "Start with the scores: how often it warned in time, and how much part life it threw away.",

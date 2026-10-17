@@ -48,12 +48,12 @@ export function Connectivity() {
 }
 
 const ANALYSIS: [string, string, string, string][] = [
-  ["health", "heart", "Health", "How worn each part is, what fails first and when"],
-  ["ai", "brain", "AI maintenance", "The neural network's remaining-life predictions against the rules"],
+  ["health", "pulse", "Health", "How worn each part is, what fails first and when"],
+  ["ai", "brain", "Maintenance", "The neural network's remaining-life predictions against the service rules"],
   ["energy", "bolt", "Energy & grid", "Solar, battery and grid for a month; cost and ride-through"],
   ["throughput", "gauge", "Throughput", "Where an order's time goes and what made it faster"],
   ["hardening", "layers", "Defence in depth", "The interlocks moved into hardware, and what they cost"],
-  ["vision", "eye", "Vision QC", "The inspection camera's live feed, with this twin's cookies"],
+  ["vision", "viewfinder", "Vision QC", "The inspection camera's live feed, with this twin's cookies"],
 ];
 
 export function Analysis() {

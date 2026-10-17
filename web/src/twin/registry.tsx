@@ -51,17 +51,17 @@ export type Panel = {
 };
 
 export const PANELS: Panel[] = [
-  { id: "orders", label: "Orders", icon: "list", available: () => true,
+  { id: "orders", label: "Orders", icon: "cart", available: () => true,
     render: (c) => <OrdersPanel slots={Object.keys(c.doc.slots)} /> },
-  { id: "telemetry", label: "Telemetry", icon: "activity", available: () => true,
+  { id: "telemetry", label: "Telemetry", icon: "wave", available: () => true,
     render: (c) => <TelemetryPanel scene={c.scene} /> },
-  { id: "plc", label: "PLC", icon: "monitor", available: () => true, render: (c) => <PlcTabs c={c.doc.control} /> },
+  { id: "plc", label: "PLC", icon: "chip", available: () => true, render: (c) => <PlcTabs c={c.doc.control} /> },
   { id: "safety", label: "Safety & security", icon: "shield", available: (c) => !!c.doc.safety,
     render: (c) => <SafetySecurity sf={c.doc.safety!} showZones={c.showZones} setShowZones={c.setShowZones} setNetZones={c.setNetZones} /> },
   { id: "io", label: "Remote I/O", icon: "plug", available: (c) => !!(c.doc.io3 && c.doc.chains),
     render: (c) => <IoPanel io={c.doc.io3!} ch={c.doc.chains!} /> },
   { id: "connectivity", label: "Connectivity", icon: "network", available: () => true, render: () => <Connectivity /> },
-  { id: "vc", label: "Commissioning", icon: "cpu", available: (c) => !!c.doc.vc, render: (c) => <VcPanel vc={c.doc.vc!} /> },
-  { id: "geometry", label: "Geometry", icon: "cube", available: () => true, render: (c) => <GeometryPanel doc={c.doc} /> },
-  { id: "analysis", label: "Analysis", icon: "gauge", available: () => true, render: () => <Analysis /> },
+  { id: "vc", label: "Commissioning", icon: "checklist", available: (c) => !!c.doc.vc, render: (c) => <VcPanel vc={c.doc.vc!} /> },
+  { id: "geometry", label: "Geometry", icon: "ruler", available: () => true, render: (c) => <GeometryPanel doc={c.doc} /> },
+  { id: "analysis", label: "Analysis", icon: "bars", available: () => true, render: () => <Analysis /> },
 ];

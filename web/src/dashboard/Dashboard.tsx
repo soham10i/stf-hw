@@ -19,7 +19,7 @@ import { CarbonPage } from "./Carbon";
 import { SchedulerPage } from "./Scheduler";
 import { CopilotPage } from "./Copilot";
 import { Chat } from "./Chat";
-import { Icon, ThemeToggle } from "../shared/icons";
+import { Icon, ThemeMenu } from "../shared/icons";
 import { useTheme } from "../shared/theme";
 import { GUIDE, cardHelp } from "./guide";
 
@@ -29,19 +29,21 @@ const DegradationPage = lazy(() => import("./Degradation").then((m) => ({ defaul
 
 const BASE = import.meta.env.BASE_URL;
 const PAGES = [
-  ["overview", "Overview", "home", "Operate"], ["production", "Production", "factory", "Operate"],
-  ["quality", "Quality & trace", "check", "Operate"], ["vision", "Vision QC", "eye", "Operate"], ["alarms", "Alarms", "bell", "Operate"], ["copilot", "Copilot", "info", "Operate"],
-  ["health", "Health", "heart", "Maintain"], ["maintenance", "Maintenance", "wrench", "Maintain"],
-  ["ai", "AI maintenance", "brain", "Maintain"],
-  ["month", "Month", "calendar", "Analyse"], ["throughput", "Throughput", "gauge", "Analyse"], ["scheduler", "Learned scheduler", "cpu", "Analyse"],
-  ["energy", "Energy & grid", "bolt", "Analyse"], ["carbon", "Carbon per cookie", "sun", "Analyse"], ["security", "OT security", "shield", "Analyse"],
+  ["overview", "Overview", "overview", "Operate"], ["production", "Production", "factory", "Operate"],
+  ["quality", "Quality & trace", "seal", "Operate"], ["vision", "Vision QC", "viewfinder", "Operate"], ["alarms", "Alarms", "bell", "Operate"], ["copilot", "Copilot", "spark", "Operate"],
+  ["health", "Health", "pulse", "Maintain"], ["maintenance", "Maintenance", "wrench", "Maintain"],
+  ["month", "Month", "calendar", "Analyse"], ["throughput", "Throughput", "gauge", "Analyse"], ["scheduler", "Learned scheduler", "shuffle", "Analyse"],
+  ["energy", "Energy & grid", "bolt", "Analyse"], ["carbon", "Carbon per cookie", "leaf", "Analyse"], ["security", "OT security", "shieldlock", "Analyse"],
   ["hardening", "Defence in depth", "layers", "Analyse"],
-  ["engineering", "Engineering", "cog", "Engineer"], ["validation", "Validation", "check", "Engineer"], ["data", "Data", "database", "Engineer"],
-  ["docs-degradation", "Hardware degradation", "activity", "Docs"],
+  ["engineering", "Engineering", "cog", "Engineer"], ["validation", "Validation", "checklist", "Engineer"], ["data", "Data", "database", "Engineer"],
+  ["docs-degradation", "Hardware degradation", "book", "Docs"],
 ] as const;
 const CLOCK_PAGES = ["overview", "production", "quality"];
 const AGE_PAGES = ["overview", "health", "maintenance"];
 type Page = (typeof PAGES)[number][0];
+/** what is on screen: a page, or the Maintenance page's AI tab (its own guide, copilot context
+    and link, ?p=ai, as when it was a page) */
+type View = Page | "ai";
 
 function useDoc() {
   const { doc, err } = useCadDoc();
@@ -56,12 +58,21 @@ import { Engineering, Data } from "./Engineer";
 // ----------------------------------------------------------------- shell
 export function Dashboard() {
   const { doc, src, err } = useDoc();
-  const [page, setPage] = useState<Page>(() => (new URLSearchParams(location.search).get("p") as Page) || "overview");
+  const first = new URLSearchParams(location.search).get("p");
+  const [page, setPageOnly] = useState<Page>(() => (first === "ai" ? "maintenance" : (first as Page)) || "overview");
+  // Maintenance: the service plan from the rules, or the neural network's predictions
+  const [mtab, setMtab] = useState<"plan" | "ai">(first === "ai" ? "ai" : "plan");
+  const setPage = (p: View) => {
+    if (p === "ai") { setPageOnly("maintenance"); setMtab("ai"); return; }
+    if (p === "maintenance") setMtab("plan");
+    setPageOnly(p);
+  };
+  const view: View = page === "maintenance" && mtab === "ai" ? "ai" : page;
   const [t, setT] = useState(0);
   const [play, setPlay] = useState(true);
   const [age, setAge] = useState(0);
   const [pm, setPm] = useState(true);
-  const [theme, toggleTheme] = useTheme();
+  const { theme, setTheme } = useTheme();
   // the page's guide opens on request, as a popover from its button
   const [guide, setGuide] = useState(false);
   const [navOpen, setNavOpen] = useState(() => window.innerWidth > 900);
@@ -74,7 +85,7 @@ export function Dashboard() {
     const id = window.setInterval(() => setT((x) => (x + 2 >= T ? 0 : x + 2)), 100);
     return () => window.clearInterval(id);
   }, [play, T, doc]);
-  useEffect(() => { history.replaceState(null, "", `?p=${page}`); }, [page]);
+  useEffect(() => { history.replaceState(null, "", `?p=${view}`); }, [view]);
   // the pages that build their own sections (Month, AI, Energy, Throughput, Security, Assurance)
   // get the same i-hint on each section title as Card gives, as their data loads
   useEffect(() => {
@@ -83,7 +94,7 @@ export function Dashboard() {
     const hint = () => {
       root.querySelectorAll<HTMLElement>(".db-card > h3").forEach((h) => {
         if (h.querySelector(".db-help")) return;
-        const help = cardHelp(page, h.textContent ?? "");
+        const help = cardHelp(view, h.textContent ?? "");
         if (!help) return;
         const i = document.createElement("i");
         i.className = "db-help"; i.title = help; i.setAttribute("aria-label", help); i.textContent = "i";
@@ -94,7 +105,7 @@ export function Dashboard() {
     const mo = new MutationObserver(hint);
     mo.observe(root, { childList: true, subtree: true });
     return () => mo.disconnect();
-  }, [page, doc]);
+  }, [view, doc]);
   const ageMax = useMemo(() => (doc?.health ? maxShifts(doc.health.components) : 1), [doc]);
   if (err) return <div className="db-err">{err}</div>;
   if (!doc) return <div className="db-loading" aria-busy="true"><span className="brand-mark">STF</span><b>Operations</b><span>Reading the twin's export…</span><i /></div>;
@@ -134,17 +145,17 @@ export function Dashboard() {
           <div className="db-guide-anchor">
             <button className={`ui-btn db-guide-btn ${guide ? "on" : ""}`} onClick={() => setGuide(!guide)} aria-expanded={guide}
               title="How to read this page, and the terms it uses"><Icon name="info" size={15} /><span className="hide-sm">Guide</span></button>
-            {guide && <GuideBox page={page} onClose={() => setGuide(false)} />}
+            {guide && <GuideBox page={view} onClose={() => setGuide(false)} />}
           </div>
           {page !== "copilot" && (
             <button className={`ui-btn db-ask-btn ${askOpen ? "on" : ""}`} onClick={() => showAsk(!askOpen)} aria-expanded={askOpen}
               title="Ask the copilot about this page"><Icon name="spark" size={15} />Ask</button>
           )}
-          <ThemeToggle theme={theme} toggle={toggleTheme} />
-          {(CLOCK_PAGES.includes(page) || AGE_PAGES.includes(page)) && (
+          <ThemeMenu theme={theme} setTheme={setTheme} />
+          {(CLOCK_PAGES.includes(view) || AGE_PAGES.includes(view)) && (
             // the page's own controls: a second row of the header, so the title row never wraps
             <div className="db-tools">
-              {CLOCK_PAGES.includes(page) && (
+              {CLOCK_PAGES.includes(view) && (
                 <div className="db-ctl">
                   <span>Order</span>
                   <button className="ui-btn icon" onClick={() => setPlay(!play)} aria-label={play ? "Pause" : "Play"}><Icon name={play ? "pause" : "play"} size={14} /></button>
@@ -152,7 +163,7 @@ export function Dashboard() {
                   <span className="mono">{fmtT(t)}</span>
                 </div>
               )}
-              {AGE_PAGES.includes(page) && (
+              {AGE_PAGES.includes(view) && (
                 <div className="db-ctl">
                   <span>Machine age</span>
                   <input type="range" min={0} max={ageMax} step={1} value={age} onChange={(e) => setAge(+e.target.value)} aria-label="Machine age" />
@@ -163,25 +174,31 @@ export function Dashboard() {
             </div>
           )}
         </div>
-        {GUIDE[page] && <p className="db-lede">{GUIDE[page].what}</p>}
-        <PageCtx.Provider value={page}>
-        <div className="db-page" key={page}>
+        {GUIDE[view] && <p className="db-lede">{GUIDE[view].what}</p>}
+        {page === "maintenance" && (
+          <div className="ui-seg db-tabs" role="tablist" aria-label="Maintenance">
+            <button role="tab" aria-selected={mtab === "plan"} className={mtab === "plan" ? "on" : ""} onClick={() => setMtab("plan")}>Service plan</button>
+            <button role="tab" aria-selected={mtab === "ai"} className={mtab === "ai" ? "on" : ""} onClick={() => setMtab("ai")}>AI predictions</button>
+          </div>
+        )}
+        <PageCtx.Provider value={view}>
+        <div className="db-page" key={view}>
           {page === "month" && <MonthPage />}
           {page === "vision" && <VisionPage />}
-          {page === "ai" && <AiPage />}
+          {view === "ai" && <AiPage />}
           {page === "energy" && <GridPage />}
           {page === "carbon" && <CarbonPage />}
           {page === "scheduler" && <SchedulerPage />}
-          {page === "copilot" && <CopilotPage go={(p) => setPage(p as Page)} />}
+          {page === "copilot" && <CopilotPage go={(p) => setPage(p as View)} />}
           {page === "throughput" && <ThroughputPage />}
           {page === "security" && <SecurityPage />}
           {page === "hardening" && <HardeningPage />}
           {page === "validation" && <ValidationPage />}
-          {page === "overview" && <Overview doc={doc} t={t} age={age} pm={pm} go={(p) => setPage(p as Page)} />}
+          {page === "overview" && <Overview doc={doc} t={t} age={age} pm={pm} go={(p) => setPage(p as View)} />}
           {page === "production" && <Production doc={doc} t={t} />}
-          {page === "health" && <HealthPage h={doc.health!} age={age} pm={pm} go={(p) => setPage(p as Page)} />}
+          {page === "health" && <HealthPage h={doc.health!} age={age} pm={pm} go={(p) => setPage(p as View)} />}
           {page === "docs-degradation" && <Suspense fallback={<div className="db-err">loading…</div>}><DegradationPage h={doc.health!} /></Suspense>}
-          {page === "maintenance" && <MaintenancePage h={doc.health!} lc={doc.lifecycle} age={age} pm={pm} />}
+          {view === "maintenance" && <MaintenancePage h={doc.health!} lc={doc.lifecycle} age={age} pm={pm} />}
           {page === "quality" && <Quality doc={doc} t={t} />}
           {page === "alarms" && <Alarms doc={doc} />}
           {page === "engineering" && <Engineering doc={doc} />}
@@ -198,7 +215,7 @@ export function Dashboard() {
             <button className="ui-btn ghost" onClick={() => setPage("copilot")} title="Open the copilot's own page, with your history">Open full</button>
             <button className="ui-btn icon ghost" onClick={() => showAsk(false)} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
           </div>
-          <Chat key={page} page={page} go={(p) => { setPage(p as Page); }} age={age} pm={pm} compact />
+          <Chat key={view} page={view} go={(p) => { setPage(p as View); }} age={age} pm={pm} compact />
         </aside>
       )}
     </div>
