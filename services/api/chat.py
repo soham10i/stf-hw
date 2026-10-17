@@ -52,6 +52,7 @@ API = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateC
 TIMEOUT_S = 25
 TIMEOUT_OLLAMA_S = 120
 MAX_ROUNDS = 4
+MAX_OUTPUT_TOKENS = int(os.environ.get("COPILOT_MAX_TOKENS", "4096"))
 
 
 def correction(bad: list[str]) -> str:
@@ -236,7 +237,9 @@ def build_body(
         "systemInstruction": {"parts": [{"text": SYSTEM}]},
         "contents": contents,
         "tools": tools,
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 900},
+        # the newer models think before they answer, and the thinking counts against this: at 900
+        # a table could stop mid-row. COPILOT_MAX_TOKENS overrides it.
+        "generationConfig": {"temperature": 0.2, "maxOutputTokens": MAX_OUTPUT_TOKENS},
     }
 
 
@@ -251,6 +254,11 @@ def parse(data: dict) -> str:
         for p in (c.get("content") or {}).get("parts", [])
     ]
     text = "".join(texts).strip()
+    if text and (data.get("candidates") or [{}])[0].get("finishReason") == "MAX_TOKENS":
+        text += (
+            "\n\n_(The answer was cut short at the model's length limit. "
+            "Ask for the rest, or narrow the question.)_"
+        )
     return text or "The model returned no answer. Try again, or rephrase the question."
 
 

@@ -440,3 +440,18 @@ def test_switching_models_drops_the_old_models_thought_signatures():
     chat.post = fake
     out = ask(chat, {"question": "anything slow?"})
     assert out["model"] == "m-b" and "sig-a" not in json.dumps(sent[-1][1])
+
+
+def test_an_answer_cut_at_the_length_limit_says_so():
+    data = {
+        "candidates": [
+            {
+                "content": {"parts": [{"text": "| Item | Health |\n| --- | --- |\n| HBW belt |"}]},
+                "finishReason": "MAX_TOKENS",
+            }
+        ]
+    }
+    out = C.parse(data)
+    assert out.startswith("| Item |") and "cut short" in out
+    data["candidates"][0]["finishReason"] = "STOP"
+    assert "cut short" not in C.parse(data)
