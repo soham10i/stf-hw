@@ -16,11 +16,20 @@ import { CopilotMark, Icon } from "../shared/icons";
 
 const TABS: [api.Tab, string, string][] = [
   ["gemini", "Gemini", "cloud models, switching when one reaches its limit"],
+  ["groq", "Groq", "ultra-fast LPU inference (GroqCloud)"],
+  ["upb", "UPB", "Paderborn University AI Chat models"],
   ["local", "Local", "a model on this machine (Ollama), Gemini when it is not running"],
   ["voice", "Voice", "speak a question, hear the answer"],
 ];
-const PROVIDER: Record<api.Tab, string> = { gemini: "gemini", local: "ollama", voice: "auto" };
-const THINKING: Record<api.Tab, string> = { gemini: "Asking Gemini…", local: "Asking the local model…", voice: "Thinking…" };
+const PROVIDER: Record<api.Tab, string> = { gemini: "gemini", groq: "groq", upb: "upb", local: "ollama", voice: "auto" };
+const THINKING: Record<api.Tab, string> = { gemini: "Asking Gemini…", groq: "Asking Groq…", upb: "Asking UPB AI…", local: "Asking the local model…", voice: "Thinking…" };
+// where answers come from: the server decides (Auto, orchestrate.py), or the operator does
+const CHOICES: [api.Choice, string, string, string][] = [
+  ["auto", "spark", "Auto", "The server picks: the twin's data, its documents, or the web when they cannot answer - and says why"],
+  ["docs", "book", "Docs", "Only the twin's documents and tools: never the web"],
+  ["web", "globe", "Web", "Search the web; every claim linked to its page, each page graded trusted or unvetted"],
+  ["deep", "layers", "Deep", "Research: split into sub-questions, each searched, then written up together (slower, several searches)"],
+];
 const EMPTY: api.Session["context"] = { facts: [], tools: [], models: [], page: null };
 
 // The session's facts, grouped by where they came from (the tool's source), newest first:
@@ -81,6 +90,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
   const [showCtx, setShowCtx] = useState(false);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
+  const [choice, setChoice] = useState<api.Choice>(api.savedChoice.get());
   // the answer to read aloud by itself (a Voice question's): by its time, so it is spoken once,
   // not again when the list re-renders or the conversation is reopened
   const [speakNext, setSpeakNext] = useState<number | null>(null);
@@ -98,6 +108,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
   useEffect(() => { api.status().then(setStatus); open(sid); refreshList(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { end.current?.scrollIntoView({ block: "end", behavior: "smooth" }); }, [turns]);
   useEffect(() => { api.savedTab.set(tab); }, [tab]);
+  useEffect(() => { api.savedChoice.set(choice); }, [choice]);
 
   const ask = async (text: string, viaVoice = false) => {
     const t = text.trim();
@@ -113,9 +124,21 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
         const a = await offline(t, ctx);
         reply = { role: "assistant", text: a.text, t: now, model: "offline", sources: a.sources, links: a.link ? [a.link] : [], style: "answer" };
       } else {
-        const r = await api.ask({ question: t, page, provider: PROVIDER[tab], session_id: sid, age, pm });
+        // the route, each step and the model's thinking arrive while it works: shown in the
+        // pending answer, then folded above the answer itself
+        const live = (p: api.Progress) => setTurns((m) => {
+          const last = m[m.length - 1];
+          if (!last?.pending) return m;
+          const next = { ...last };
+          if (p.route) next.route = p.route;
+          if (p.step) next.steps = [...(next.steps ?? []), p.step];
+          if (p.thinking) next.thinking = next.thinking ? `${next.thinking}\n\n${p.thinking}` : p.thinking;
+          return [...m.slice(0, -1), next];
+        });
+        const r = await api.askStream({ question: t, page, provider: PROVIDER[tab], session_id: sid, age, pm, mode: choice }, live);
         reply = { role: "assistant", text: r.answer, t: now, model: r.model, style: r.style, sources: r.sources, links: r.links,
-          tools: r.tools, note: r.note, unverified: r.unverified, switched: r.switched, facts: r.facts, cites: r.cites };
+          tools: r.tools, note: r.note, unverified: r.unverified, switched: r.switched, facts: r.facts, cites: r.cites,
+          route: r.route, steps: r.steps, thinking: r.thinking };
         if (r.session) {
           setSid(r.session.id); api.currentSession.set(r.session.id); setTitle(r.session.title);
           api.session(r.session.id).then((s) => { if (s) { setContext(s.context); setMemory(s.memory ?? ""); } });
@@ -133,7 +156,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
     if (!viaVoice) input.current?.focus();
   };
 
-  const avail: Record<api.Tab, boolean | undefined> = { gemini: status.gemini, local: status.ollama, voice: true };
+  const avail: Record<api.Tab, boolean | undefined> = { gemini: status.gemini, groq: status.groq, upb: status.upb, local: status.ollama, voice: true };
   const examples = useMemo(() => (compact ? ["What does this page show?", ...EXAMPLES.slice(0, 3)] : EXAMPLES.slice(0, 6)), [compact]);
   const pageTitle = GUIDE[page]?.title;
 
@@ -225,8 +248,8 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
             </button>
           ))}
         </div>
-        {compact && HAS_API && (
-          <button className="cx-icon" onClick={() => { setShowList(!showList); refreshList(); }} title="History" aria-label="History">☰</button>
+        {HAS_API && (
+          <button className={`cx-icon ${compact ? "" : "cx-hist-btn"}`} onClick={() => { setShowList(!showList); refreshList(); }} title="History" aria-label="History">☰</button>
         )}
         {compact && turns.length > 0 && <button className="cx-icon" onClick={() => open(null)} title="New chat" aria-label="New chat">＋</button>}
         {!compact && (
@@ -236,7 +259,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
         )}
       </header>
       {!compact && showCtx && <div className="cx-pop right">{contextPanel}</div>}
-      {compact && showList && <div className="cx-pop">{history}</div>}
+      {showList && <div className={`cx-pop ${compact ? "" : "cx-pop-hist"}`}>{history}</div>}
       {!compact && title && <div className="cx-title">{title}</div>}
 
       <div className="cx-log">
@@ -253,6 +276,15 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
       </div>
 
       {tab === "voice" && <Voice busy={busy} onAsk={(t) => ask(t, true)} />}
+      {HAS_API && tab !== "voice" && (
+        <div className="cx-choice" role="radiogroup" aria-label="Where answers come from">
+          {CHOICES.map(([id, icon, label, tip]) => (
+            <button key={id} role="radio" aria-checked={choice === id} className={choice === id ? "on" : ""} title={tip} onClick={() => setChoice(id)}>
+              <Icon name={icon} size={13} />{label}
+            </button>
+          ))}
+        </div>
+      )}
       <form className="cx-composer" onSubmit={(e) => { e.preventDefault(); ask(q); }}>
         <textarea ref={input} value={q} rows={1} placeholder={tab === "voice" ? "…or type" : compact ? "Ask about this page…" : "Ask anything about the cell — Enter to send"}
           onChange={(e) => setQ(e.target.value)} aria-label="Question"
@@ -263,11 +295,14 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
   );
 
   if (compact) return <div className="cx compact">{body}</div>;
+  // one rail beside the conversation: the chats above (new chat first), the context below
   return (
     <div className="cx full">
-      <aside className="cx-side">{history}</aside>
+      <div className="cx-rail">
+        <aside className="cx-side">{history}</aside>
+        {contextPanel}
+      </div>
       {body}
-      {contextPanel}
     </div>
   );
 }

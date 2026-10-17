@@ -1,6 +1,9 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 // The API runs on :8000; proxy REST and the WebSocket so the browser talks to
 // a single origin and there are no CORS surprises.
@@ -89,7 +92,7 @@ export default defineConfig(({ mode }) => {
     preview: {
       port: 4173,
       host: "localhost",
-      allowedHosts: [".ngrok-free.dev", ".ngrok.app", ".ngrok.io"],
+      allowedHosts: true,
       headers: SECURITY_HEADERS,
       proxy: API_PROXY,
     },
@@ -97,12 +100,9 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       host: "localhost",
       proxy: API_PROXY,
-      // STF_TUNNEL_DEV=1 (launch config "web-tunnel"): the dev server behind ngrok, on request.
-      // It serves the source and HMR, so it is off by default; the shared build is 4173.
-      // No hmr.clientPort: the HMR socket then uses the page's own port (443 through ngrok,
-      // 5173 on localhost). A fixed 443 broke it on localhost, and Vite's client then kept
-      // reloading the page - which restarted the twin's orders.
-      ...(env.STF_TUNNEL_DEV === "1" ? { allowedHosts: [".ngrok-free.dev", ".ngrok.app", ".ngrok.io"] } : {}),
+      // Allow any ngrok or remote tunnel host
+      allowedHosts: true,
     },
   };
 });
+

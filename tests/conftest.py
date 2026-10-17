@@ -25,3 +25,15 @@ def layout() -> Layout:
 @pytest.fixture(scope="session")
 def all_slots(layout: Layout) -> list[str]:
     return layout.all_slots()
+
+
+@pytest.fixture(autouse=True)
+def _offline_env(monkeypatch, tmp_path):
+    """Every test runs against a throwaway SQLite database and no model keys, whatever the
+    repo's .env holds (the environment wins over .env): a test that loads the API never
+    writes guests to the configured Supabase project or calls a model."""
+    monkeypatch.setenv("STF_DB", "sqlite")
+    monkeypatch.setenv("STF_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("STF_SESSION_SECRET", "test-secret")
+    for k in ("GEMINI_API_KEY", "GROQ_API_KEY", "ELEVENLABS_API_KEY", "SUPABASE_URL"):
+        monkeypatch.setenv(k, "")

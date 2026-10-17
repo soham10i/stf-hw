@@ -459,3 +459,35 @@ def test_an_answer_cut_at_the_length_limit_says_so():
     assert out.startswith("| Item |") and "cut short" in out
     data["candidates"][0]["finishReason"] = "STOP"
     assert "cut short" not in C.parse(data)
+
+
+def test_groq_status_and_chat_call():
+    chat, _ = make(key=None)
+    chat.c.groq_key = "gsk_test_123"
+    chat.c.groq_model = "qwen/qwen3.8-27b"
+    st = chat.status()
+    assert st["enabled"] is True and st["groq"] is True
+    assert st["groq_model"] == "qwen/qwen3.8-27b"
+
+    groq_calls = []
+
+    def fake_groq(url, key, body):
+        groq_calls.append((url, key, body))
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": "The belt warns in 0.6 shifts [health model].",
+                    }
+                }
+            ]
+        }
+
+    chat.post_groq = fake_groq
+    out = ask(chat, {"question": "what needs service?", "provider": "groq"})
+    assert out["model"] == "groq qwen/qwen3.8-27b"
+    assert "0.6 shifts" in out["answer"]
+    assert len(groq_calls) == 1
+    assert groq_calls[0][1] == "gsk_test_123"
+    assert groq_calls[0][2]["model"] == "qwen/qwen3.8-27b"

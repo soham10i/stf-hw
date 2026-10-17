@@ -30,6 +30,7 @@ const P: Record<string, string> = {
   panel: "M3 4h18v16H3zM9 4v16",
   pin: "M9 3h6l-1 6 3 3v2H7v-2l3-3zM12 14v7",
   search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4",
+  globe: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9M12 3c-2.5 2.6-3.8 5.6-3.8 9s1.3 6.4 3.8 9",
   down: "m6 9 6 6 6-6",
   plus: "M12 5v14M5 12h14",
   chevron: "m9 6 6 6-6 6",

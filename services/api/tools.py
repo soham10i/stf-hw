@@ -466,7 +466,7 @@ def search_docs(args: dict, ctx: Ctx) -> Result:
     for h in hits:
         p = h["passage"]
         where = " > ".join(dict.fromkeys([p.doc, *[x for x in p.path if x]]))
-        facts.append([where, p.text[:900]])
+        facts.append([where, p.text[: 1400 if "$" in p.text else 900]])
         sources.append(where)
         cites.append(
             {
@@ -479,6 +479,42 @@ def search_docs(args: dict, ctx: Ctx) -> Result:
             }
         )
     return Result("search_docs", f"{len(hits)} passages match.", facts, sources, cites=cites)
+
+
+def equations(top: Result, budget: int = 7000) -> Result:
+    """For a question about the mathematics: the best-matching document's passages that hold
+    equations, in the document's order, added to the search's own - so the model is given the
+    whole chain (signal, law, smoothing, index, warnings), not only the passages that share the
+    question's words."""
+    if not top.cites:
+        return top
+    file = top.cites[0].get("file")
+    have = {c["label"] for c in top.cites}
+    rows = sorted(
+        (p for p in get_bm25().passages if p.file == file and "$$" in p.text),
+        key=lambda p: p.line,
+    )
+    facts, cites, used = list(top.facts), list(top.cites), 0
+    for p in rows:
+        where = " > ".join(dict.fromkeys([p.doc, *[x for x in p.path if x]]))
+        if where in have or used + len(p.text) > budget:
+            continue
+        used += len(p.text)
+        have.add(where)
+        facts.append([where, p.text[:1400]])
+        cites.append(
+            {
+                "label": where,
+                "file": p.file,
+                "line": p.line,
+                "anchor": p.anchor,
+                "score": 0.0,
+                "quote": p.text[:400],
+            }
+        )
+    return Result(
+        top.tool, f"{len(facts)} passages match.", facts, [f[0] for f in facts], cites=cites
+    )
 
 
 def page_guide(args: dict, ctx: Ctx) -> Result:
@@ -522,8 +558,18 @@ def live_state(args: dict, ctx: Ctx) -> Result:
     )
 
 
-# ------------------------------------------------------------------------ the copilot's own setup
-SETUP_PREFIXES = ("GEMINI_", "OLLAMA_", "TTS_", "ELEVENLABS_", "STF_")
+SETUP_PREFIXES = (
+    "GEMINI_",
+    "GROQ_",
+    "GROK_",
+    "XAI_",
+    "OLLAMA_",
+    "TTS_",
+    "ELEVENLABS_",
+    "STF_",
+    "SUPABASE_",
+    "UPB_",
+)
 
 
 def _env() -> dict[str, str]:
@@ -532,7 +578,10 @@ def _env() -> dict[str, str]:
     path = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
     try:
         for line in open(path, encoding="utf-8"):
-            k, sep, v = line.strip().partition("=")
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            k, sep, v = line.partition("=")
             if sep and k.strip().startswith(SETUP_PREFIXES):
                 env[k.strip()] = v.strip().strip('"').strip("'")
     except OSError:
@@ -542,8 +591,8 @@ def _env() -> dict[str, str]:
 
 
 def copilot_setup(args: dict, ctx: Ctx) -> Result:
-    """How this copilot itself is set up: the local text model, the Gemini chat and speech
-    models in their fallback order, the speech pipeline, and where its data lives."""
+    """How this copilot itself is set up: local text model, Groq LPU engine, Gemini chat
+    and speech models in fallback order, speech pipeline, and data directory."""
     from . import tts as tts_mod  # local import: tts imports chat, chat imports this module
 
     env = _env()
@@ -553,9 +602,19 @@ def copilot_setup(args: dict, ctx: Ctx) -> Result:
     chat_order = [first, *[m for m in chat if m != first]]
     tts = GP.models_from_env("GEMINI_TTS_MODELS", GP.TTS, env)
     stt = GP.models_from_env("GEMINI_STT_MODELS", tts_mod.STT_MODELS, env)
-    providers = [p.strip() for p in env.get("TTS_PROVIDERS", "elevenlabs,gemini,local").split(",")]
+    providers = [
+        p.strip() for p in env.get("TTS_PROVIDERS", "elevenlabs,groq,gemini,local").split(",")
+    ]
     providers = [p for p in providers if p]
+    groq_set = bool(env.get("GROQ_API_KEY") or env.get("GROK_API_KEY"))
+    supabase_set = bool(
+        env.get("SUPABASE_URL")
+        and (env.get("SUPABASE_SERVICE_KEY") or env.get("SUPABASE_SECRET_KEY"))
+    )
     facts = [
+        ["Groq API key", "set" if groq_set else "not set"],
+        ["Groq text model", env.get("GROQ_MODEL", "qwen/qwen3.8-27b")],
+        ["Groq STT model", env.get("GROQ_STT_MODEL", "whisper-large-v3-turbo")],
         ["local text model (Ollama)", env.get("OLLAMA_MODEL", "qwen2.5:7b-instruct")],
         ["Ollama URL", env.get("OLLAMA_URL", "http://127.0.0.1:11434")],
         ["Gemini chat models, fallback order", " -> ".join(chat_order)],
@@ -565,13 +624,19 @@ def copilot_setup(args: dict, ctx: Ctx) -> Result:
         ["Gemini API key", "set" if env.get("GEMINI_API_KEY") else "not set"],
         ["chat questions per day", env.get("GEMINI_DAILY_LIMIT", "300")],
         ["spoken answers per day", env.get("GEMINI_TTS_DAILY_LIMIT", "100")],
+        ["Supabase cloud store", "configured" if supabase_set else "local SQLite"],
         ["data directory", env.get("STF_DATA_DIR", os.path.join(repo, ".data"))],
     ]
+    groq_desc = (
+        f"Groq LPU acceleration is active ('{facts[1][1]}', STT '{facts[2][1]}'). "
+        if groq_set
+        else ""
+    )
     text = (
-        f"Local text generation runs '{facts[0][1]}' on Ollama at {facts[1][1]}; the copilot "
-        f"switches to it when every Gemini model is at its limit. Gemini answers in fallback "
-        f"order {', '.join(chat_order)}. Speech comes from {', '.join(providers)} (Gemini "
-        f"voices: {', '.join(tts)}; STT: {', '.join(stt)})."
+        f"{groq_desc}Local text generation runs '{facts[3][1]}' on Ollama at {facts[4][1]}; "
+        f"the copilot switches to it when every cloud model is at its limit. Gemini answers in "
+        f"fallback order {', '.join(chat_order)}. Speech comes from {', '.join(providers)} "
+        f"(Gemini voices: {', '.join(tts)}; STT: {', '.join(stt)})."
     )
     return Result("copilot_setup", text, facts, ["the copilot's own configuration (.env)"])
 
@@ -583,8 +648,14 @@ PAGE_MAX_BYTES = 512_000
 _PRIVATE_NETS = [
     ipaddress.ip_network(c)
     for c in (
-        "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16",
-        "169.254.0.0/16", "::1/128", "fc00::/7", "fe80::/10",
+        "127.0.0.0/8",
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "169.254.0.0/16",
+        "::1/128",
+        "fc00::/7",
+        "fe80::/10",
     )
 ]
 

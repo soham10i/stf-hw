@@ -37,7 +37,6 @@ OVEN_DOOR_RATE = 1.0 / 0.9
 OVEN_BAKE_SECONDS = 4.0
 
 
-
 @dataclass
 class Order:
     id: int
@@ -47,8 +46,13 @@ class Order:
     error: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
-        return {"id": self.id, "op": self.op, "slot": self.slot,
-                "status": self.status, "error": self.error}
+        return {
+            "id": self.id,
+            "op": self.op,
+            "slot": self.slot,
+            "status": self.status,
+            "error": self.error,
+        }
 
 
 @dataclass

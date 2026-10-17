@@ -251,7 +251,8 @@ class SupabaseDb:
 
 def db_from_env(env: dict) -> tuple[Any, str]:
     """The database and a note on why it is the one in use."""
-    url, key = env.get("SUPABASE_URL"), env.get("SUPABASE_SERVICE_KEY")
+    url = env.get("SUPABASE_URL")
+    key = env.get("SUPABASE_SERVICE_KEY") or env.get("SUPABASE_SECRET_KEY")
     want = (env.get("STF_DB") or "auto").lower()
     path = env.get("STF_DB_PATH") or os.path.join(env.get("STF_DATA_DIR") or ROOT, "stf.db")
     if want in ("auto", "supabase") and url and key:

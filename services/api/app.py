@@ -12,9 +12,12 @@ Endpoints:
                         (operator only, see security.py)
     GET  /chat/status   is the dashboard's LLM chat on (GEMINI_API_KEY set)?
     POST /chat          a question -> the copilot's answer, from the twin's tools (chat.py)
+    POST /chat/stream   the same, as server-sent events: the route, each step and the model's
+                        thinking as they happen, then the answer
     POST /twin/state    the open 3D twin's live snapshot, for the chat's live_state tool (live.py)
     GET  /chat/tts/status  the voice providers and which voice models have quota left
     POST /chat/tts      an answer read aloud: ElevenLabs, Gemini or the local voice (tts.py)
+    GET  /chat/stt/status  the transcription providers (ElevenLabs Scribe, Groq Whisper, Gemini)
     POST /chat/stt      a recorded question (audio/webm ...) -> its transcript (tts.py)
     GET  /guest         this visitor's guest session: since when, how many visits, which database
     DELETE /guest       forget this guest: its conversations and photos; a new one starts
@@ -33,6 +36,7 @@ socket reads from that single authoritative simulation.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 from contextlib import asynccontextmanager
@@ -40,7 +44,7 @@ from typing import Literal
 
 from fastapi import Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -89,6 +93,7 @@ app = FastAPI(title="STF Digital Twin", version="4.0.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(settings.allowed_origins),
+    allow_origin_regex=r"^https?://([a-zA-Z0-9-]+\.)*(ngrok-free\.dev|ngrok\.app|ngrok\.io|localhost|127\.0.0\.1)(:\d+)?$",
     allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Content-Type", "X-STF-Token", "X-STF-User"],
 )
@@ -207,6 +212,48 @@ async def chat_ask(req: ChatRequest, request: Request) -> dict:
     return await chat.ask(req, request)
 
 
+@app.post("/chat/stream")
+async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
+    """The copilot, streamed (text/event-stream): `route` (where the question goes and why),
+    `step` (each retrieval, tool, model and search), `thinking` (the model's reasoning), then
+    `answer` (the reply, as POST /chat returns it) or `error`."""
+    client = chat.admit(req, request)  # a refusal is an HTTP status, before the stream starts
+    loop = asyncio.get_running_loop()
+    queue: asyncio.Queue = asyncio.Queue()
+
+    def emit(kind: str, data) -> None:
+        # from any thread, and always this way: one FIFO, so the answer never overtakes a step
+        loop.call_soon_threadsafe(queue.put_nowait, (kind, data) if kind else None)
+
+    async def run() -> None:
+        try:
+            emit("answer", await chat.ask(req, request, emit=emit, admitted=client))
+        except Exception as e:  # noqa: BLE001 - the stream reports it instead of breaking
+            emit("error", {"detail": getattr(e, "detail", None) or "the copilot failed"})
+        emit("", None)
+
+    # started now, so it carries this request's guest (a contextvar) into the answer
+    task = asyncio.create_task(run())
+
+    async def events():
+        try:
+            while (item := await queue.get()) is not None:
+                kind, data = item
+                if kind == "route":
+                    data = json.loads(data)
+                payload = data if isinstance(data, dict) else {"text": data}
+                yield f"event: {kind}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+        finally:
+            if not task.done():
+                task.cancel()
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
 @app.get("/chat/tts/status")
 async def tts_status() -> dict:
     return tts.status()
@@ -216,6 +263,12 @@ async def tts_status() -> dict:
 async def tts_speak(req: TtsRequest, request: Request):
     """The answer read aloud: Gemini 2.5 Pro TTS, the flash voices when its quota is closed."""
     return await tts.speak(req, request)
+
+
+@app.get("/chat/stt/status")
+async def stt_status() -> dict:
+    """The transcription providers in order and which are ready (tts.py)."""
+    return stt.status()
 
 
 @app.post("/chat/stt")

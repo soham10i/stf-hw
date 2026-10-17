@@ -78,9 +78,7 @@ def test_open_page_quotes_a_fetched_page(monkeypatch):
 # ---------------------------------------------------------------------- context_text
 def test_context_text_ranks_question_facts():
     s = S.new("overview")
-    s["context"]["facts"] = [
-        [f"fact {i}", f"value {i}", "test source"] for i in range(14)
-    ]
+    s["context"]["facts"] = [[f"fact {i}", f"value {i}", "test source"] for i in range(14)]
     s["context"]["facts"][3] = ["belt", "warns in 12.5 shifts", "condition model"]
     out = S.context_text(s, "and the belt?")
     assert out.startswith(PREAMBLE)

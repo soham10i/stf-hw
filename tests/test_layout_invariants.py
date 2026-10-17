@@ -108,8 +108,7 @@ def test_no_hardcoded_geometry(repo_root: Path) -> None:
                 violations.append(f"{rel}: {token}")
 
     assert not violations, (
-        "geometry must live in factory.layout.yaml, not in source:\n  "
-        + "\n  ".join(violations)
+        "geometry must live in factory.layout.yaml, not in source:\n  " + "\n  ".join(violations)
     )
 
 

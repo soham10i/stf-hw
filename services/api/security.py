@@ -52,7 +52,7 @@ class Settings:
 
 def _host(header: str | None) -> str:
     h = (header or "").strip().lower()
-    if h.startswith("["):                      # [::1]:8000
+    if h.startswith("["):  # [::1]:8000
         return h[: h.find("]") + 1]
     return h.split(":")[0]
 
@@ -70,6 +70,7 @@ def token_ok(settings: Settings, presented: str | None) -> bool:
 @dataclass
 class RateLimiter:
     """Token bucket per client key."""
+
     rate: float
     burst: int
     _buckets: dict[str, tuple[float, float]] = field(default_factory=dict)
@@ -95,8 +96,11 @@ class CommandGuard:
     async def __call__(self, request: Request) -> None:
         # a browser page from a foreign origin may not command, even towards localhost (CSRF)
         origin = request.headers.get("origin")
-        if origin and origin not in self.settings.allowed_origins and \
-                _host(origin.split("://", 1)[-1]) != _host(request.headers.get("host")):
+        if (
+            origin
+            and origin not in self.settings.allowed_origins
+            and _host(origin.split("://", 1)[-1]) != _host(request.headers.get("host"))
+        ):
             note("command: foreign origin")
             raise HTTPException(status_code=403, detail="origin not allowed")
         # Host is what the client asked for; a DNS-rebinding page arrives with its own
@@ -108,7 +112,7 @@ class CommandGuard:
                 status_code=403, detail="commands need the operator's machine or an operator token"
             )
         client = request.client.host if request.client else "?"
-        if client in ("127.0.0.1", "::1"):          # behind the local web proxy: the real client
+        if client in ("127.0.0.1", "::1"):  # behind the local web proxy: the real client
             client = (request.headers.get("x-forwarded-for") or client).split(",")[0].strip()
         if not self.limiter.allow(client):
             note("command: rate limit")
@@ -118,7 +122,7 @@ class CommandGuard:
 def ws_origin_ok(settings: Settings, ws: WebSocket) -> bool:
     """Cross-site WebSocket hijacking guard: a browser always sends Origin."""
     origin = ws.headers.get("origin")
-    if origin is None:                          # not a browser (CLI tools, tests)
+    if origin is None:  # not a browser (CLI tools, tests)
         return True
     if origin in settings.allowed_origins:
         return True

@@ -11,6 +11,9 @@ model the format to answer in and tells the browser how to render it:
   status     what the cell is doing now: short labelled bullets          -> a status card
   list       several items ranked or listed: bullets, most important first
   explain    how or why something works: two short paragraphs at most, bullets for parts
+  derive     the mathematics of something: each step a sentence and its equation (LaTeX), a
+             worked example from the twin's numbers
+  research   a web or deep-research answer: what the sources say, linked, and what it means here
   answer     anything else: plain, short
 """
 
@@ -29,8 +32,22 @@ STYLES = {
     "status": "Answer with 3-6 short bullets, each '**label**: value'. No preamble.",
     "list": "Answer with bullets, most important first, each with its key figure in bold.",
     "explain": "Explain in at most two short paragraphs; use bullets for the parts of a mechanism.",
+    "derive": "Explain the calculation step by step as a numbered list - never a table. For "
+    "each step: one sentence on what it does and why, then its equation in LaTeX on a line of "
+    "its own ($$...$$), defining each "
+    "symbol once (inline $...$). Use the exact equations and numbers in CONTEXT, cite each step's "
+    "source, and end with a short worked example from CONTEXT's numbers. Code, if any, in a "
+    "fenced block with its language. Up to 450 words.",
+    "research": "Answer in short sections with ### headings: what the sources say (every claim "
+    "linked to its page), where they agree or differ, and what it means for this twin. Up to 350 "
+    "words.",
     "answer": "Answer plainly and briefly.",
 }
+DERIVE = re.compile(
+    r"\bmath|\bformula|\bequation|\bcalculat|\bderiv|\btheory behind|"
+    r"how (is|are) .{1,40}\b(computed|calculated|derived|estimated)",
+    re.I,
+)
 
 _RULES: list[tuple[str, re.Pattern]] = [
     (
@@ -71,6 +88,8 @@ def classify(question: str, tools: list[str] | None = None) -> str:
     q = question.strip()
     if GREETING.match(q):
         return "greeting"
+    if DERIVE.search(q):
+        return "derive"
     for style, rx in _RULES:
         if rx.search(q):
             return style

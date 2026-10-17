@@ -19,6 +19,7 @@ GOOD = {"op": "home"}
 def client(monkeypatch):
     monkeypatch.setenv("STF_API_TOKEN", "s3cret-token")
     import services.api.app as appmod
+
     appmod = importlib.reload(appmod)
     with TestClient(appmod.app) as c:
         yield c
@@ -68,7 +69,7 @@ def test_rate_limit():
     first = [lim.allow("a", now=0.0) for _ in range(4)]
     assert first == [True, True, True, False]
     assert lim.allow("a", now=1.5)
-    assert lim.allow("b", now=0.0)                 # per client
+    assert lim.allow("b", now=0.0)  # per client
 
 
 def test_ws_foreign_origin_closed(client):

@@ -1,10 +1,18 @@
 /* The copilot (Chat.tsx, copilot/*): history | conversation | context, and the Ask dock. */
 
 .cx { --cx-r: 16px; --cx-grad: var(--accent-fill); color: var(--text); }
-.cx.full { display: grid; grid-template-columns: 240px minmax(0, 1fr) 290px; gap: 14px; height: calc(100vh - 150px); min-height: 560px; }
+/* one rail (the chats above, the context below) beside a conversation that takes the rest */
+.cx.full { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 14px; height: calc(100dvh - 120px); min-height: 620px; }
+.cx-rail { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.cx-rail .cx-side { flex: 0 1 auto; max-height: 40%; }
+.cx-rail .cx-context { flex: 1 1 0; }
 .cx.compact { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-@media (max-width: 1180px) { .cx.full { grid-template-columns: 210px minmax(0, 1fr); } .cx.full .cx-context { display: none; } }
-@media (max-width: 760px) { .cx.full { grid-template-columns: 1fr; height: auto; } .cx.full .cx-side { display: none; } }
+.cx-icon.cx-hist-btn { display: none; }
+@media (max-width: 1000px) {
+  .cx.full { grid-template-columns: 1fr; height: calc(100dvh - 110px); min-height: 480px; }
+  .cx.full .cx-rail { display: none; }
+  .cx-icon.cx-hist-btn { display: inline-grid; }
+}
 
 /* ------------------------------------------------ panels */
 .cx-side, .cx-main, .cx-context { background: var(--surface); border: 1px solid var(--border); border-radius: var(--cx-r); min-height: 0; }
@@ -53,7 +61,8 @@
 .cx-bubble { font-size: var(--fs-body); line-height: 1.6; border-radius: 14px; max-width: 100%; min-width: 0; }
 .cx-bubble.user { max-width: 85%; padding: 9px 14px; border-radius: 16px 16px 4px 16px; background: var(--cx-grad); color: #fff; white-space: pre-wrap; }
 .cx-bubble.bot { flex: 1; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: 4px 16px 16px 16px; }
-.cx-bubble.pending { display: flex; align-items: center; gap: 10px; flex: 0 1 auto; color: var(--muted); }
+.cx-bubble.pending { display: flex; flex-direction: column; align-items: stretch; gap: 8px; flex: 1; color: var(--muted); }
+.cx-pending { display: flex; align-items: center; gap: 10px; }
 .cx-bubble.pending em { font-style: normal; font-size: var(--fs-body); }
 .cx-dots { display: inline-flex; gap: 4px; }
 .cx-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: cx-dot 1.1s ease-in-out infinite; }
@@ -67,6 +76,8 @@
 .cx-chip.model { background: var(--raised); color: var(--muted); font-family: var(--mono); }
 .cx-chip.model.rules { color: var(--faint); }
 .cx-chip.switch { background: var(--warn-weak); color: var(--warn); cursor: help; }
+.cx-chip.route { gap: 4px; background: var(--raised); color: var(--text); cursor: help; }
+.cx-chip.route.m-web, .cx-chip.route.m-deep { background: var(--accent-weak); color: var(--accent); }
 .cx-time { margin-left: auto; font: var(--fs-caption) var(--mono); color: var(--faint); }
 
 .cx-md p { margin: 0 0 8px; } .cx-md p:last-child { margin-bottom: 0; }
@@ -159,7 +170,7 @@
 .cx-ctx-btn.on { color: var(--accent); border-color: var(--accent); }
 .cx-pop.right { left: auto; width: min(320px, calc(100% - 16px)); max-height: calc(100% - 64px); padding: 0; }
 .cx-pop.right .cx-context { border: 0; display: block !important; }
-@media (max-width: 1180px) { .cx-ctx-btn { display: inline-flex; } }
+@media (max-width: 1000px) { .cx-ctx-btn { display: inline-flex; } }
 
 /* an answer's sources (Message.tsx): numbered as the text cites them; a document opens at the line */
 .cx-cite.n { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; margin: 0 2px; border: 0; border-radius: 5px;
@@ -206,3 +217,46 @@
 .cx-ctx-memory .cx-md { margin-top: 8px; font-size: var(--fs-callout); }
 .cx-ctx-memory .cx-md h4 { font-size: var(--fs-callout); margin: 0 0 4px; }
 .cx-context { min-width: 0; overflow-x: hidden; }
+
+/* ------------------------------------------------ thinking: the route, each step, the model's reasoning */
+.cx-think { margin: 0 0 8px; border-radius: 10px; border: 1px solid var(--border-soft); background: var(--surface); font-size: var(--fs-callout); color: var(--muted); }
+.cx-think > summary { display: flex; align-items: center; gap: 6px; padding: 6px 10px; cursor: pointer; list-style: none; user-select: none; }
+.cx-think > summary::-webkit-details-marker { display: none; }
+.cx-think > summary::after { content: ""; width: 6px; height: 6px; margin-left: auto; border: solid var(--faint); border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform .15s; }
+.cx-think[open] > summary::after { transform: rotate(45deg); }
+.cx-think.live > summary span:first-of-type { background: linear-gradient(90deg, var(--muted), var(--text), var(--muted)); background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent; animation: cx-shimmer 1.8s linear infinite; }
+@keyframes cx-shimmer { to { background-position: -200% 0; } }
+.cx-think-mode { display: inline-flex; align-items: center; gap: 4px; padding: 0 7px; height: 18px; border-radius: 99px; background: var(--raised); color: var(--muted); font-size: var(--fs-caption); }
+.cx-think-body { padding: 2px 12px 10px 28px; border-top: 1px dashed var(--border-soft); }
+.cx-think-why { margin: 8px 0 4px; line-height: 1.5; }
+.cx-think-steps { margin: 4px 0 6px; padding-left: 16px; font: var(--fs-caption)/1.7 var(--mono); color: var(--faint); }
+.cx-think-text { margin-top: 6px; padding-left: 10px; border-left: 2px solid var(--border); color: var(--muted); max-height: 320px; overflow-y: auto; }
+.cx-think-text p { margin: 0 0 6px; }
+
+/* ------------------------------------------------ math and code in answers */
+.cx-md .tex-display, .cx-tex { display: block; margin: 8px 0; padding: 8px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border-soft);
+  overflow-x: auto; overflow-y: hidden; }
+.cx-tex .tex-display { margin: 0; padding: 0; border: 0; background: none; }
+.cx-md .katex-display { margin: 0; }
+.cx-md .katex { font-size: 1.06em; color: var(--text); }
+.cx-md code { padding: 1px 5px; border-radius: 5px; background: var(--raised); font-size: .92em; }
+.cx-code { margin: 8px 0; border-radius: 10px; border: 1px solid var(--border-soft); background: var(--surface); overflow: hidden; }
+.cx-code-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 2px 12px; background: var(--raised); font: 500 var(--fs-caption) var(--mono); color: var(--muted); }
+.cx-code pre { margin: 0; padding: 10px 12px; overflow-x: auto; font: var(--fs-callout)/1.55 var(--mono); color: var(--text); }
+.cx-code pre code { padding: 0; background: none; font-size: inherit; }
+.cx-md hr { border: 0; border-top: 1px solid var(--border-soft); margin: 10px 0; }
+.cx-a { color: var(--accent); text-decoration: none; } .cx-a:hover { text-decoration: underline; }
+.cx-a sup { margin-left: 1px; font-size: 9px; }
+.cx-trust { display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 99px; background: var(--warn-weak); color: var(--warn); font: 600 10px/16px var(--font); text-transform: uppercase; letter-spacing: .04em; }
+.cx-trust.ok { background: var(--ok-weak); color: var(--ok); }
+
+/* ------------------------------------------------ where answers come from */
+.cx-choice { display: flex; gap: 4px; margin: 0 12px 6px; padding: 3px; width: fit-content; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border-soft); }
+.cx.compact .cx-choice { margin: 0 0 6px; }
+.cx-choice button { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: none;
+  color: var(--muted); font: 500 var(--fs-callout) var(--font); cursor: pointer; transition: background .15s, color .15s; }
+.cx-choice button:hover { color: var(--text); }
+.cx-choice button.on { background: var(--raised); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+.cx-more-src > summary { margin-top: 6px; font-size: var(--fs-caption); color: var(--faint); cursor: pointer; }
+.cx-pop.cx-pop-hist { right: auto; width: min(300px, calc(100% - 16px)); }

@@ -194,7 +194,8 @@ export function Dashboard() {
             </div>
           )}
         </div>
-        {GUIDE[view] && <p className="db-lede">{GUIDE[view].what}</p>}
+        {/* the copilot explains itself in its empty chat: its page gives the room to the conversation */}
+        {GUIDE[view] && view !== "copilot" && <p className="db-lede">{GUIDE[view].what}</p>}
         {page === "maintenance" && (
           <div className="ui-seg db-tabs" role="tablist" aria-label="Maintenance">
             <button role="tab" aria-selected={mtab === "plan"} className={mtab === "plan" ? "on" : ""} onClick={() => setMtab("plan")}>Service plan</button>

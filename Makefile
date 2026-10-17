@@ -118,8 +118,14 @@ mechanisms: ## The mechanisms' 3D views (drag chain, lift spindle drive, RFID he
 health-theory: ## Docs page "Hardware degradation": the health model in closed form, checked against its simulation
 	cd stf-cad/hbw && STF_VARIANT=up12 PYTHONPATH=. ../../$(PY) health_theory.py
 
+voice-check: ## the voice pipeline with the real providers: ElevenLabs speaks a sentence, Scribe (and Groq Whisper) transcribe it back; no keys printed
+	PYTHONPATH=packages $(PY) -m services.api.voice_check
+
 db-check: ## the API's database (SQLite, or Supabase when configured): a round trip, no keys printed
 	PYTHONPATH=packages $(PY) -m services.api.db_check
+
+maintenance-docs: ## docs/maintenance/: the preventive-maintenance mathematics, from the health model (then `make copilot`)
+	$(PY) docs/gen/maintenance_docs.py
 
 plc-docs: ## docs/plc/: the PLC reference, written from the program the twin runs (then `make copilot`)
 	$(PY) docs/gen/plc_docs.py

@@ -3,6 +3,7 @@
 // block and table row carries the source lines it came from, so a cited passage (file + line)
 // is found and highlighted exactly.
 import type { ReactNode } from "react";
+import { TeX, displayBlock, mathSplit } from "../../shared/tex";
 
 export type Block = (kind: string, arg: string) => ReactNode | null;
 
@@ -12,7 +13,14 @@ export function slug(h: string) {
     .replace(/[^a-z0-9 _-]/g, "").trim().replace(/\s+/g, "-");
 }
 
+/** A run of text: its LaTeX ($...$, $$...$$) drawn, the rest Markdown. */
 function inline(s: string, open: (href: string) => void, key = 0, src?: (path: string) => string): ReactNode[] {
+  return mathSplit(s).flatMap((g, i): ReactNode[] => g.kind === "text"
+    ? words(g.s, open, key * 100 + i, src)
+    : [<TeX key={`${key}-m${i}`} s={g.s} display={g.kind === "display"} />]);
+}
+
+function words(s: string, open: (href: string) => void, key = 0, src?: (path: string) => string): ReactNode[] {
   const parts = s.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*\s][^*]*\*|!?\[[^\]]*\]\([^)\s]+\))/g);
   return parts.map((p, i) => {
     const k = `${key}-${i}`;
@@ -51,6 +59,12 @@ export function Markdown({ src, hl, open, block, asset }: { src: string; hl?: nu
       out.push(drawn ? <div key={n} className="doc-figure" data-line={n}>{drawn}</div>
         : <pre key={n} className={mark(n, j + 1)} data-line={n}><code>{body}</code></pre>);
       i = j + 1;
+      continue;
+    }
+    const tex = displayBlock(lines, i);
+    if (tex) {
+      out.push(<div key={n} className={`doc-tex ${mark(n, tex[1] + 1) ?? ""}`} data-line={n}><TeX s={tex[0]} display /></div>);
+      i = tex[1] + 1;
       continue;
     }
     const h = /^(#{1,4})\s+(.*)$/.exec(line);
@@ -106,7 +120,7 @@ export function Markdown({ src, hl, open, block, asset }: { src: string; hl?: nu
     // a paragraph: until a blank line or another block
     let j = i;
     const para: string[] = [];
-    while (j < lines.length && lines[j].trim() && !/^(#{1,4}\s|```|\s*\||\s*([-*]|\d+[.)])\s)/.test(lines[j])) para.push(lines[j++]);
+    while (j < lines.length && lines[j].trim() && !/^(#{1,4}\s|```|\s*\||\s*([-*]|\d+[.)])\s)/.test(lines[j]) && !(j > i && displayBlock(lines, j))) para.push(lines[j++]);
     if (!para.length) { para.push(lines[j++]); }
     out.push(<p key={n} className={mark(n, j)} data-line={n}>{inline(para.join(" "), open, n, asset)}</p>);
     i = j;

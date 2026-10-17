@@ -96,6 +96,12 @@ class Pool:
                 self.out(m, cooldown_of(e), f"HTTP {e.code}")
                 if trace is not None:
                     trace.append((m, "at its limit" if e.code == 429 else f"HTTP {e.code}"))
+            except (urllib.error.URLError, TimeoutError):
+                # a model that times out is set aside, so the next question does not wait for it
+                self.out(m, 300.0, "no answer in time")
+                if trace is not None:
+                    trace.append((m, "no answer in time"))
+                raise
             except ValueError as e:
                 self.out(m, 60.0, f"unusable answer: {e}")
                 if trace is not None:

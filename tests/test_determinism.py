@@ -143,9 +143,7 @@ def test_tick_rate_does_not_change_the_wear_outcome(layout: Layout) -> None:
             kernel.step()
         results.append(kernel.backend.snapshot().motors["HBW_X"]["health_score"])
 
-    assert max(results) - min(results) < 1e-4, (
-        f"health after 30s varied with tick rate: {results}"
-    )
+    assert max(results) - min(results) < 1e-4, f"health after 30s varied with tick rate: {results}"
 
 
 def test_health_decay_matches_the_documented_rate(layout: Layout) -> None:

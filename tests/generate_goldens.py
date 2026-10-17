@@ -26,8 +26,10 @@ def main() -> int:
     print(f"layout fingerprint: {layout.fingerprint()}")
     print(f"travel speed:       {layout.joint('hbw.travel').drive.max_speed:.4f} mm/s")
     print()
-    print(f"{'trajectory':<18}{'plan (s)':>10}{'sim (s)':>10}{'segments':>10}{'pulses':>10}"
-          f"{'delta':>10}")
+    print(
+        f"{'trajectory':<18}{'plan (s)':>10}{'sim (s)':>10}{'segments':>10}{'pulses':>10}"
+        f"{'delta':>10}"
+    )
     print("-" * 68)
 
     changed = 0

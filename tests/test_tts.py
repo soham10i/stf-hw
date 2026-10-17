@@ -171,7 +171,46 @@ def test_status_lists_the_providers():
         key=KEY,
         models=["g"],
         daily_limit=10,
-        providers=["elevenlabs", "gemini"],
+        providers=["elevenlabs", "groq", "gemini"],
     )
     st = t.status()
-    assert [p["name"] for p in st["providers"]] == ["elevenlabs", "gemini"] and st["enabled"]
+    assert [p["name"] for p in st["providers"]] == ["elevenlabs", "groq", "gemini"] and st[
+        "enabled"
+    ]
+
+
+def test_groq_tts_provider():
+    t = V.Tts(
+        sec.Settings.from_env(),
+        key=None,
+        daily_limit=10,
+        providers=["groq", "local"],
+    )
+    grq = t.groq
+    grq.key = "gsk_test"
+    grq.speak = lambda text, voice: (b"RIFFwav", "audio/wav", "groq canopylabs/orpheus-v1-english")
+    r = speak(t)
+    assert r.headers["X-TTS-Provider"] == "groq"
+    assert r.headers["X-TTS-Model"] == "groq canopylabs/orpheus-v1-english"
+    assert r.body == b"RIFFwav"
+
+
+def test_groq_stt_transcription():
+    stt = V.Stt(sec.Settings.from_env(), key=None)
+    stt.groq_key = "gsk_test"
+    stt._groq_transcribe = lambda audio, mime: "What is the warehouse status?"
+
+    req_obj = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/chat/stt",
+            "headers": [(b"host", b"localhost:8000"), (b"content-type", b"audio/wav")],
+            "client": ("127.0.0.1", 5000),
+        }
+    )
+    # mock request.body
+    req_obj._body = b"RIFFmockwav"
+    res = asyncio.run(stt.transcribe(req_obj))
+    assert res["text"] == "What is the warehouse status?"
+    assert "groq" in res["model"]

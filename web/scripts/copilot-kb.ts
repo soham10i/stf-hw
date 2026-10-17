@@ -17,10 +17,14 @@ const MAX_WORDS = 140;
 type Passage = { id: number; doc: string; path: string[]; text: string; file: string; line: number; anchor: string };
 const passages: Passage[] = [];
 
-/** Markdown to plain text: no tables' pipes, links keep their text, no emphasis marks. */
+/** Markdown to plain text: no tables' pipes, links keep their text, no emphasis marks. LaTeX
+    ($...$, $$...$$) is kept as written, so an answer can quote an equation exactly. */
 function plain(md: string) {
-  return md.replace(/```[\s\S]*?```/g, " ").replace(/!\[([^\]]*)\]\([^)]+\)/g, "Figure: $1.").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[*_`>#]/g, "")
-    .replace(/\|/g, " ").replace(/^-{3,}$/gm, " ").replace(/^[ \t]*[-:| ]{3,}$/gm, " ").replace(/\s+/g, " ").trim();
+  const tex: string[] = [];
+  const kept = md.replace(/\$\$[\s\S]+?\$\$|\$[^$\n]+\$/g, (m) => `\u0000${tex.push(m.replace(/\s+/g, " ")) - 1}\u0000`);
+  return kept.replace(/```[\s\S]*?```/g, " ").replace(/!\[([^\]]*)\]\([^)]+\)/g, "Figure: $1.").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[*_`>#]/g, "")
+    .replace(/\|/g, " ").replace(/^-{3,}$/gm, " ").replace(/^[ \t]*[-:| ]{3,}$/gm, " ").replace(/\s+/g, " ").trim()
+    .replace(/\u0000(\d+)\u0000/g, (_, i) => tex[+i]);
 }
 /** A heading's anchor, as GitHub and the Docs page make it. */
 export function slug(h: string) {
@@ -31,7 +35,7 @@ const cells = (row: string) => row.trim().replace(/^\||\|$/g, "").split(/(?<!\\)
 const SKIP = new Set(["DASHBOARD_GUIDE.md", "README.md"]);
 const md = (dir: string, keepReadme = false) =>
   readdirSync(join(docs, dir)).filter((x) => x.endsWith(".md") && (keepReadme || !SKIP.has(x))).sort().map((f) => join(docs, dir, f));
-const files = [...md(""), ...md("plc", true), ...md("vision", true), ...md("assistant")];
+const files = [...md(""), ...md("plc", true), ...md("vision", true), ...md("maintenance", true), ...md("copilot", true), ...md("assistant")];
 const repo = join(docs, "..");
 const copyTo = dirname(out);
 
@@ -39,7 +43,7 @@ for (const file of files) {
   const src = readFileSync(file, "utf8");
   const rel = relative(repo, file);
   const title = /^#\s+(.+)$/m.exec(src)?.[1];
-  const doc = (file.includes("/assistant/") || file.includes("/plc/") || file.includes("/vision/")) && title ? plain(title) : file.split("/").pop()!.replace(/\.md$/, "");
+  const doc = (file.includes("/assistant/") || file.includes("/plc/") || file.includes("/vision/") || file.includes("/maintenance/") || file.includes("/copilot/")) && title ? plain(title) : file.split("/").pop()!.replace(/\.md$/, "");
   const path: string[] = [];
   let anchor = "", startLine = 1;
   let buf: { line: number; text: string }[] = [];

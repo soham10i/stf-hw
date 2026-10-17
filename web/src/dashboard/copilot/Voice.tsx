@@ -1,8 +1,10 @@
-// The Voice tab: press, speak, hear the answer. Speech becomes text in the browser where it can
-// (the Web Speech API: Chrome, Edge, Safari) and on the server otherwise (the recording goes to
-// POST /chat/stt); the question is then asked like any other, and the answer is read aloud.
+// The Voice tab: press, speak, hear the answer. Speech becomes text on the server when it has a
+// transcriber (the recording goes to POST /chat/stt: ElevenLabs Scribe first), else in the
+// browser (the Web Speech API: Chrome, Edge, Safari). The text is then asked like any other
+// question - a language model (Groq, Gemini, ...) writes the answer - and the answer is read
+// aloud (POST /chat/tts: ElevenLabs first). The voice services only listen and speak.
 import { useEffect, useRef, useState } from "react";
-import { transcribe } from "./api";
+import { sttStatus, transcribe } from "./api";
 
 type Rec = { start(): void; stop(): void; abort(): void; onresult: ((e: any) => void) | null; onend: (() => void) | null; onerror: ((e: any) => void) | null; interimResults: boolean; lang: string; continuous: boolean };
 const Recognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -11,9 +13,14 @@ export function Voice({ busy, onAsk }: { busy: boolean; onAsk: (text: string) =>
   const [state, setState] = useState<"idle" | "listening" | "transcribing">("idle");
   const [heard, setHeard] = useState("");
   const [err, setErr] = useState("");
+  const [server, setServer] = useState<string | null>(null);     // the server's first ready transcriber
+  const [by, setBy] = useState("");
   const rec = useRef<Rec | null>(null);
   const media = useRef<MediaRecorder | null>(null);
   useEffect(() => () => { rec.current?.abort(); media.current?.stop(); }, []);
+  useEffect(() => {
+    sttStatus().then((s) => { const p = s.providers.find((x) => x.ready); setServer(p ? `${p.name} ${p.model ?? ""}`.trim() : null); });
+  }, []);
 
   const finish = (text: string) => {
     setState("idle");
@@ -50,7 +57,7 @@ export function Voice({ busy, onAsk }: { busy: boolean; onAsk: (text: string) =>
     m.onstop = async () => {
       stream.getTracks().forEach((t) => t.stop());
       setState("transcribing");
-      try { const text = await transcribe(new Blob(chunks, { type: m.mimeType })); setHeard(text); finish(text); }
+      try { const t = await transcribe(new Blob(chunks, { type: m.mimeType })); setHeard(t.text); setBy(t.model); finish(t.text); }
       catch (e) { setErr((e as Error).message); setState("idle"); }
     };
     media.current = m;
@@ -64,7 +71,7 @@ export function Voice({ busy, onAsk }: { busy: boolean; onAsk: (text: string) =>
     if (state !== "idle" || busy) return;
     setHeard("");
     setState("listening");
-    try { if (Recognition) listenBrowser(); else await listenRecord(); }
+    try { if (server || !Recognition) await listenRecord(); else listenBrowser(); }
     catch { setErr("No microphone is available."); setState("idle"); }
   };
 
@@ -79,7 +86,10 @@ export function Voice({ busy, onAsk }: { busy: boolean; onAsk: (text: string) =>
       <b>{say}</b>
       {heard && <p className="cx-heard">“{heard}”</p>}
       {err && <p className="cx-note bad">{err}</p>}
-      <span className="cx-hint">{Recognition ? "speech recognition in your browser" : "recorded, transcribed on the server"} · answers are read aloud</span>
+      <span className="cx-hint">
+        {server ? `heard by ${by || server} on the server` : Recognition ? "speech recognition in your browser" : "recorded, transcribed on the server"}
+        {" · answers written by the language model, read aloud"}
+      </span>
     </div>
   );
 }

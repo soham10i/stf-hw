@@ -76,7 +76,7 @@ def score(case: dict, out: dict, evidence: str) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--provider", choices=["gemini", "ollama", "rules"], default="gemini")
+    ap.add_argument("--provider", choices=["gemini", "groq", "ollama", "rules"], default="gemini")
     ap.add_argument("--limit", type=int, default=0, help="first N cases only")
     ap.add_argument(
         "--pause", type=float, default=0.0, help="seconds between questions (rate limits)"

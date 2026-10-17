@@ -264,9 +264,7 @@ def test_retrieve_reaches_over_the_belt(layout: Layout) -> None:
     """
     traj = plan_retrieve(layout, "B2")
     segments = list(traj)
-    deposit_i = next(
-        i for i, s in enumerate(segments) if "onto the belt" in s.description
-    )
+    deposit_i = next(i for i, s in enumerate(segments) if "onto the belt" in s.description)
     fork_before = [s for s in segments[:deposit_i] if s.joint == FORK]
     assert fork_before, "a fork move must precede the deposit"
     assert fork_before[-1].target == pytest.approx(layout.joint(FORK).at("belt")), (

@@ -48,6 +48,7 @@ BROADCAST_HZ = 30.0
 #: physics by more than this in one wake, or a hiccup would teleport the crane.
 MAX_STEP_SECONDS = 0.1
 
+
 @dataclass
 class SimRuntime:
     """Real-time driver around the kernel plus a client fan-out."""
@@ -187,8 +188,11 @@ class SimRuntime:
         order = self._pending.popleft()
         try:
             if order.op == "cycle":
-                self._carrier = {"flavor": FLAVORS[self._flavor_i % len(FLAVORS)],
-                                 "holder": None, "slot": order.slot}
+                self._carrier = {
+                    "flavor": FLAVORS[self._flavor_i % len(FLAVORS)],
+                    "holder": None,
+                    "slot": order.slot,
+                }
                 self._flavor_i += 1
                 self._phases = self._build_cycle(order.slot)
                 self._phase_i = 0

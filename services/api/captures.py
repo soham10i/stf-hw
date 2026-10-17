@@ -202,7 +202,8 @@ class SupabaseCaptures:
 
 def store_from_env(env: dict | None = None) -> CaptureStore:
     env = env if env is not None else {**dotenv(), **os.environ}
-    url, key = env.get("SUPABASE_URL"), env.get("SUPABASE_SERVICE_KEY")
+    url = env.get("SUPABASE_URL")
+    key = env.get("SUPABASE_SERVICE_KEY") or env.get("SUPABASE_SECRET_KEY")
     if url and key:
         return SupabaseCaptures(url, key, env.get("SUPABASE_BUCKET") or "captures")
     root = env.get("STF_DATA_DIR") or ROOT

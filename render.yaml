@@ -57,8 +57,14 @@ services:
         value: "300"
       - key: GEMINI_TTS_DAILY_LIMIT  # spoken answers a day (Gemini TTS)
         value: "100"
-      - key: ELEVENLABS_API_KEY      # optional: the first voice when set (docs/TTS_PIPELINE.md)
+      - key: ELEVENLABS_API_KEY      # optional: speech to text and the first voice (docs/TTS_PIPELINE.md); never writes answers
         sync: false
+      - key: ELEVENLABS_VOICE_ID_01  # the voice used for every answer (ELEVENLABS_VOICE picks another)
+        sync: false
+      - key: ELEVENLABS_VOICE_ID_02  # a second voice, not used yet
+        sync: false
+      - key: ELEVENLABS_MODEL
+        value: eleven_multilingual_v2
       - key: OLLAMA_MODEL            # no local model on Render: Gemini models in turn, then the tools
         value: ""
       - key: SUPABASE_URL            # optional: keep guests, chats and photos in Supabase (docs/DATABASE.md)

@@ -16,13 +16,15 @@ export type DocTarget = { file: string; anchor?: string; line?: number };
 function group(f: string) {
   if (f.startsWith("docs/plc/")) return "PLC program";
   if (f.startsWith("docs/vision/")) return "Vision QC";
+  if (f.startsWith("docs/maintenance/")) return "Maintenance";
+  if (f.startsWith("docs/copilot/")) return "Copilot";
   if (f.startsWith("docs/assistant/machine")) return "The machine";
   if (f.startsWith("docs/assistant/panel") || f.startsWith("docs/assistant/twin")) return "The 3D twin";
   if (f.startsWith("docs/assistant/dashboard")) return "Dashboard pages";
   if (f.startsWith("docs/assistant/")) return "Operations";
   return "Project documents";
 }
-const ORDER = ["PLC program", "Vision QC", "The machine", "Operations", "The 3D twin", "Dashboard pages", "Project documents"];
+const ORDER = ["PLC program", "Vision QC", "Maintenance", "Copilot", "The machine", "Operations", "The 3D twin", "Dashboard pages", "Project documents"];
 
 function useText(file: string | undefined) {
   const [t, setT] = useState<{ file: string; text: string } | null>(null);
@@ -101,7 +103,7 @@ export function DocsPage({ doc, target, open }: { doc: CadDoc; target: DocTarget
     <div className="doc-layout">
       <nav className="doc-lib" aria-label="Documents">
         {lib.map(([g, fs]) => (
-          <details key={g} open={fs.includes(target.file) || g === "PLC program" || g === "Vision QC"}>
+          <details key={g} open={fs.includes(target.file) || g === "PLC program" || g === "Vision QC" || g === "Maintenance" || g === "Copilot"}>
             <summary>{g} <em>{fs.length}</em></summary>
             {fs.map((f) => (
               <button key={f} className={f === target.file ? "on" : ""} onClick={() => open({ file: f })}>{name(f)}</button>
