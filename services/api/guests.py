@@ -166,13 +166,20 @@ class SupabaseDb:
             raw = r.read()
         return json.loads(raw) if raw else None
 
-    def ready(self) -> bool:
+    def ready(self) -> str | None:
+        """None when both tables answer; else why not."""
         try:
             self._req("GET", "guests?select=id&limit=1")
             self._req("GET", "documents?select=id&limit=1")
-            return True
-        except (urllib.error.URLError, TimeoutError, ValueError):
-            return False
+            return None
+        except urllib.error.HTTPError as e:
+            if e.code in (401, 403):
+                return "Supabase rejected the service key (SUPABASE_SERVICE_KEY)"
+            if e.code == 404:
+                return "the Supabase tables are missing (supabase/migrations, docs/DATABASE.md)"
+            return f"Supabase answered {e.code}"
+        except (urllib.error.URLError, TimeoutError, ValueError) as e:
+            return f"Supabase is unreachable ({type(e).__name__})"
 
     @staticmethod
     def _eq(**kv: str) -> str:
@@ -249,9 +256,10 @@ def db_from_env(env: dict) -> tuple[Any, str]:
     path = env.get("STF_DB_PATH") or os.path.join(env.get("STF_DATA_DIR") or ROOT, "stf.db")
     if want in ("auto", "supabase") and url and key:
         db = SupabaseDb(url, key)
-        if db.ready():
+        why = db.ready()
+        if why is None:
             return db, "Supabase Postgres"
-        return SqliteDb(path), "SQLite: the Supabase tables are missing (docs/DATABASE.md)"
+        return SqliteDb(path), f"SQLite: {why}"
     return SqliteDb(path), "SQLite" + (
         "" if want == "sqlite" else ": no SUPABASE_URL / SUPABASE_SERVICE_KEY"
     )

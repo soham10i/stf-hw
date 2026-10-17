@@ -118,6 +118,9 @@ mechanisms: ## The mechanisms' 3D views (drag chain, lift spindle drive, RFID he
 health-theory: ## Docs page "Hardware degradation": the health model in closed form, checked against its simulation
 	cd stf-cad/hbw && STF_VARIANT=up12 PYTHONPATH=. ../../$(PY) health_theory.py
 
+db-check: ## the API's database (SQLite, or Supabase when configured): a round trip, no keys printed
+	PYTHONPATH=packages $(PY) -m services.api.db_check
+
 plc-docs: ## docs/plc/: the PLC reference, written from the program the twin runs (then `make copilot`)
 	$(PY) docs/gen/plc_docs.py
 
