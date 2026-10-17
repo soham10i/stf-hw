@@ -56,7 +56,8 @@ export function SortingModule({ doc, joints, onPhoto }: {
   const cone = useRef<THREE.Mesh>(null), ringMesh = useRef<THREE.Mesh>(null);
   const flash = useRef<THREE.PointLight>(null);
   // the camera's pose as markers in the line's own frame: the lens, the belt below it, and the
-  // belt's direction (the photo's "up"); their world positions place the photo camera
+  // direction across the belt (the photo's "up": the belt runs left to right, as in render.py's
+  // images); their world positions place the photo camera
   const lens = useRef<THREE.Group>(null), aim = useRef<THREE.Group>(null), ahead = useRef<THREE.Group>(null);
   const shot = useRef<Shot | null>(null);
   const { gl, scene } = useThree();

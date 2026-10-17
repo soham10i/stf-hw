@@ -166,7 +166,7 @@ function BeltStrip({
   return (
     <mesh position={centreOf(part)} castShadow receiveShadow>
       <boxGeometry args={[dx * MM, dz * MM, dy * MM]} />
-      <meshStandardMaterial map={map} color="#c8ccd2" roughness={0.85} />
+      <meshStandardMaterial map={map} roughness={0.85} />
     </mesh>
   );
 }
@@ -274,7 +274,8 @@ export function Cookie({
     <group position={v(x, y, z)}>
       <mesh position={[0, 10 * MM, 0]} castShadow>
         <cylinderGeometry args={[r, r, 20 * MM, 32]} />
-        <meshStandardMaterial ref={mat} color={colour} roughness={0.5} />
+        {/* baked dough is matte: no glare back into the inspection camera's lens */}
+        <meshStandardMaterial ref={mat} color={colour} roughness={0.9} />
       </mesh>
     </group>
   );
@@ -304,16 +305,18 @@ export function Mould({ x, y, z, doc }: { x: number; y: number; z: number; doc: 
   );
 }
 
-/** The ridged belt texture, shared by every belt. */
+/** The ridged belt texture, shared by every belt: the CAD's black rubber (detail_rich.RUBBER,
+    #1f2023 - also the belt the vision models were trained on, render.py BELT) with its lateral
+    ribs a shade lighter, so a running belt is seen to move. */
 export function useBeltTexture() {
   return useMemo(() => {
     const c = document.createElement("canvas");
     c.width = 8;
     c.height = 16;
     const g = c.getContext("2d")!;
-    g.fillStyle = "#4a4f57";
+    g.fillStyle = "#1f2023";
     g.fillRect(0, 0, 8, 16);
-    g.fillStyle = "#23272c";
+    g.fillStyle = "#33353a";
     g.fillRect(0, 0, 8, 5);
     const t = new THREE.CanvasTexture(c);
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
