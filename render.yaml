@@ -59,3 +59,7 @@ services:
         sync: false
       - key: OLLAMA_MODEL            # no local model on Render: Gemini models in turn, then the tools
         value: ""
+      - key: SUPABASE_URL            # optional: keep the camera's photos in Supabase (docs/CAPTURES.md)
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false

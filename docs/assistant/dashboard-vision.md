@@ -37,6 +37,10 @@ The autoencoder's error on normal-looking cookies against its training baseline;
 
 Where it is mounted in the colour hood, its lens and trigger, and the mount's checks against the model.
 
+### Photos from the camera
+
+Each baked cookie the 3D twin makes, photographed by this camera inside the hood as it passes the lens and kept by the server: the dataset for the vision models.
+
 ### The models, tested offline
 
 The CNN and the autoencoder on held-out images like training and on unseen conditions.

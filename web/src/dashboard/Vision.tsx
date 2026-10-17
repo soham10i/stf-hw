@@ -12,6 +12,7 @@ import { CHANNEL, LiveLine, SCENARIOS, drift, tally, type Frame, type Scenario }
 import { chw, rgba, type RenderParams } from "../vision/render";
 import { OnlineBn, decodeAdapt, forwardBn, verdictOf, type AdaptNet, type Domain } from "../vision/adapt";
 import { HBar } from "./Plot";
+import { HAS_API } from "../shared/mode";
 
 type Camera = { fov_mm: number; optics: { working_distance_mm: number; lens_angle_deg: number; trigger_delay_s: number; roi_mm: number };
                 checks: { check: string; ok: boolean; detail: string }[]; why_here: string };
@@ -324,6 +325,8 @@ export function VisionPage() {
           )}
         </section>
 
+        <Photos />
+
         <section className="db-card">
           <h3>The models, tested offline</h3>
           <Dumbbell xTitle="trained-like conditions vs unseen ones" a={{ name: "trained-like", color: "var(--ok)" }} b={{ name: "unseen", color: "var(--bad)" }}
@@ -338,5 +341,48 @@ export function VisionPage() {
         </section>
       </div>
     </>
+  );
+}
+
+type Capture = { id: string; t: number; flavour: string; n: number; source: string; w: number; h: number };
+
+/** The photos the camera in the colour hood took of the 3D twin's baked cookies, as the API
+    stored them (services/api/captures.py): the dataset that grows while the twin runs. */
+function Photos() {
+  const [d, setD] = useState<{ captures: Capture[]; store: string; enabled: boolean } | null>(null);
+  useEffect(() => {
+    if (!HAS_API) return;
+    let live = true;
+    const get = () => fetch("/vision/captures?limit=24").then((r) => (r.ok ? r.json() : null)).then((j) => { if (live && j) setD(j); }).catch(() => {});
+    get();
+    const id = window.setInterval(get, 10000);
+    return () => { live = false; window.clearInterval(id); };
+  }, []);
+  const when = (t: number) => new Date(t * 1000).toLocaleString([], { dateStyle: "short", timeStyle: "short" });
+  return (
+    <section className="db-card">
+      <h3>Photos from the camera</h3>
+      {!HAS_API ? (
+        <p className="db-muted small">The camera photographs every baked cookie in the 3D twin; storing the photos needs the live server.</p>
+      ) : !d ? (
+        <p className="db-muted small">Loading…</p>
+      ) : !d.enabled ? (
+        <p className="db-muted small">Photo capture is off on this server (STF_CAPTURES=0).</p>
+      ) : d.captures.length === 0 ? (
+        <p className="db-muted small">No photos yet: place an order in the 3D twin, and each baked cookie is photographed as it passes under the lens.</p>
+      ) : (
+        <>
+          <div className="vq-photos">
+            {d.captures.map((c) => (
+              <a key={c.id} href={`/vision/captures/${c.id}.jpg`} target="_blank" rel="noreferrer" title={`#${c.n} ${c.flavour}, ${when(c.t)}`}>
+                <img src={`/vision/captures/${c.id}.jpg`} alt={`${c.flavour} cookie, photo ${c.n}`} width={72} height={72} loading="lazy" />
+                <span>{c.flavour}</span>
+              </a>
+            ))}
+          </div>
+          <p className="db-muted small">The newest {d.captures.length}, {d.captures[0].w}×{d.captures[0].h} px, stored {d.store === "supabase" ? "in Supabase (private bucket)" : "on the server's disk"}.</p>
+        </>
+      )}
+    </section>
   );
 }

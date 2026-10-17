@@ -19,6 +19,8 @@ Endpoints:
     GET  /copilot/sessions        the user's chat history (header X-STF-User)
     GET  /copilot/sessions/{id}   one session: its turns and its context store
     DELETE /copilot/sessions/{id}
+    POST /vision/captures   a photo from the inspection camera in the colour hood (captures.py)
+    GET  /vision/captures   the newest photos' records;  GET /vision/captures/{id}.jpg  one photo
     WS   /ws            live world frames at ~30 Hz
     GET  /stf/...       the built web app, when STF_WEB_DIST points at it (one-service deploy,
                         see docs/DEPLOY.md); / redirects there
@@ -44,6 +46,7 @@ from stf_layout import get_layout
 
 from . import live, wire
 from . import security as sec
+from .captures import Captures
 from .chat import Chat, ChatRequest
 from .runtime import SimRuntime
 from .tts import Stt, Tts, TtsRequest
@@ -61,6 +64,7 @@ ws_clients = sec.ClientCounter(settings.max_ws_clients)
 chat = Chat(settings)
 tts = Tts(settings)
 stt = Stt(settings)
+captures = Captures(settings)
 WS_MAX_MSG = 1024  # bytes: the client only ever sends {"type": "resync"}
 
 
@@ -200,6 +204,22 @@ async def copilot_session(sid: str, request: Request) -> dict:
 @app.delete("/copilot/sessions/{sid}")
 async def copilot_forget(sid: str, request: Request) -> dict:
     return chat.forget(request, sid)
+
+
+@app.post("/vision/captures")
+async def vision_capture(request: Request) -> dict:
+    """A photo the inspection camera took of a baked cookie, for the dataset (captures.py)."""
+    return await captures.upload(request)
+
+
+@app.get("/vision/captures")
+async def vision_captures(limit: int = 48) -> dict:
+    return captures.list(limit)
+
+
+@app.get("/vision/captures/{cid}.jpg")
+async def vision_capture_image(cid: str):
+    return captures.image(cid)
 
 
 _state_limit = sec.RateLimiter(rate=2.0, burst=4)

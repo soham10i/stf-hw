@@ -16,6 +16,7 @@ const API_PROXY = {
   "/chat": API,
   "/twin": API,
   "/copilot": API,
+  "/vision/captures": API,
   "/ws": { target: "ws://127.0.0.1:8000", ws: true, changeOrigin: false, xfwd: true },
 };
 
