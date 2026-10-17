@@ -3,20 +3,33 @@
 // A renderer: the belt's travel, which ejector fires and how far, the ring light and the
 // camera's exposures all come from `joints` (written by engine/CellCoordinator.ts). When the
 // coordinator offers a capture (joints.camera.pending), this draws the photo from the camera's
-// pose - the one thing that needs the scene - and hands the JPEG to `onPhoto`.
+// pose - the one thing that needs the scene - and hands the JPEG to `onPhoto`. While a dashboard
+// watches (Vision QC), the same camera streams a live view to it, frame by frame, unstored.
 
 import { useFrame, useThree } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useJson } from "../shared/data";
 import type { CadPart, CadDoc } from "../shared/model";
 import type { CellJoints, Drive } from "./store/useCellStore";
 import { MM, v, Solid, useBeltTexture } from "./parts";
-import { photograph } from "../vision/photo";
+import { FEED_MS, INSPECT_LAYER, expose, jpeg, visionChannel } from "../vision/photo";
 
 /** the ring light's flash at the lens, candela: ~2 lx-equivalent on the cookie 27 mm below */
 const FLASH = 0.004;
-export type CameraDoc = { parts: CadPart[]; lens: [number, number, number]; optics: { roi_mm: number; lens_angle_deg: number } };
+/** the ring light as the inspection camera sees it: six LEDs on a 20 mm ring around the lens,
+    each lighting the field from 23° off the axis. Even light (a flat surface reads its own
+    colour, whatever its height: the grey target and the cookie see the same light, which is
+    what render.py assumes), and no glare straight back into the lens. */
+const LEDS = 6, LED_TILT = Math.atan(20 / 46.5);
+const LED_I = Math.PI / (LEDS * Math.cos(LED_TILT));
+/** the grey reference target render.py draws in the image's top-left corner: 7.5 mm square, 50 %
+    grey, on a bracket off the rear rail just upstream of the hood (the field's corners under the
+    hood fall inside its walls) - in the field's corner, where the cookie never reaches */
+const REF_MM = 7.5;
+export type CameraDoc = { parts: CadPart[]; lens: [number, number, number]; fov_mm: number; optics: { roi_mm: number; lens_angle_deg: number } };
+/** the parts under the lens that the inspection camera sees */
+const HOOD = new Set(["belt_web", "belt_rail_F", "belt_rail_B"]);
 export type SortJoints = Pick<CellJoints, "oven" | "sort" | "camera">;
 type Shot = { n: number; label: string };
 
@@ -48,27 +61,51 @@ export function SortingModule({ doc, joints, onPhoto }: {
   const shot = useRef<Shot | null>(null);
   const { gl, scene } = useThree();
   const W = useMemo(() => ({ eye: new THREE.Vector3(), at: new THREE.Vector3(), up: new THREE.Vector3() }), []);
+  // what the inspection camera sees: the belt and its rails under the lens (the cookie puts
+  // itself on the layer, FlowCookie), and the ring light, which lights only that
+  const refTarget = useRef<THREE.Group>(null);
+  const hood = useRef<THREE.Group>(null), leds = useRef<THREE.Group>(null);
+  useEffect(() => {
+    leds.current?.children.forEach((l) => {
+      l.layers.set(INSPECT_LAYER);
+      if (aim.current) (l as THREE.DirectionalLight).target = aim.current;
+    });
+  });
+  // the live feed: on while a dashboard says it watches (every 2 s), never stored
+  const feed = useRef({ until: 0, last: 0, busy: false });
+  useEffect(() => {
+    const ch = visionChannel();
+    if (!ch) return;
+    const on = (e: MessageEvent) => { if (e.data?.type === "watch") feed.current.until = Date.now() + 5000; };
+    ch.addEventListener("message", on);
+    return () => ch.removeEventListener("message", on);
+  }, []);
 
   useFrame(() => {
     const c = joints.camera;
+    const now = Date.now(), F = feed.current;
+    const live = now < F.until && !F.busy && now - F.last >= FEED_MS;
     // the photo of the cookie offered last frame (every part has moved to this frame's pose by
-    // now), lit by the ring light's flash
-    if (shot.current && cam && lens.current && aim.current && ahead.current) {
-      const s = shot.current;
-      shot.current = null;
+    // now), and the live view's next frame
+    if ((shot.current || live) && cam && lens.current && aim.current && ahead.current) {
       lens.current.getWorldPosition(W.eye);
       aim.current.getWorldPosition(W.at);
       ahead.current.getWorldPosition(W.up).sub(W.eye).normalize();
-      if (flash.current) flash.current.intensity = FLASH;
-      // the view cone and the ring light are drawn for the visitor, not seen by the camera
-      if (cone.current) cone.current.visible = false;
-      if (ringMesh.current) ringMesh.current.visible = false;
-      const photo = photograph(gl, scene, W.eye, W.at, cam.optics.lens_angle_deg, W.up);
-      if (cone.current) cone.current.visible = true;
-      if (ringMesh.current) ringMesh.current.visible = true;
-      photo
-        .then((b) => { if (b) onPhoto?.(b, s); })
-        .catch(() => { /* a lost photo is not worth an error */ });
+      hood.current?.traverse((o) => o.layers.enable(INSPECT_LAYER));
+      refTarget.current?.traverse((o) => o.layers.enable(INSPECT_LAYER));
+      const field = cam.fov_mm * MM;
+      const s = shot.current;
+      shot.current = null;
+      const img = expose(gl, scene, W.eye, W.at, W.up, field);
+      if (img && s) {
+        if (flash.current) flash.current.intensity = FLASH;
+        jpeg(img, 0.9).then((b) => { if (b) onPhoto?.(b, s); }).catch(() => { /* a lost photo is not worth an error */ });
+      } else if (img) {
+        F.last = now; F.busy = true;
+        // a frame of the live view: shown by the dashboard, then dropped
+        jpeg(img, 0.75).then((b) => { if (b) visionChannel()?.postMessage({ type: "frame", jpeg: b, t: now, lit: c.lit > 0 }); })
+          .catch(() => { /* a dropped frame */ }).finally(() => { F.busy = false; });
+      }
     }
     if (c.pending) shot.current = c.pending;
     if (ring.current) ring.current.emissiveIntensity = 0.15 + 3 * c.lit;
@@ -86,7 +123,8 @@ export function SortingModule({ doc, joints, onPhoto }: {
   const beltTop = belt ? belt.p[2] + (belt.s[2] as number) : 45;
   return (
     <group>
-      {byFrame.world.map(P)}
+      {byFrame.world.filter((p) => !HOOD.has(p.n)).map(P)}
+      <group ref={hood}>{byFrame.world.filter((p) => HOOD.has(p.n)).map(P)}</group>
       {cam && (
         <group>
           {cam.parts.filter((p) => p.n !== "cam_ring_light").map(P)}
@@ -97,10 +135,29 @@ export function SortingModule({ doc, joints, onPhoto }: {
           </mesh>
           {/* the ring light's flash: lights the inside of the hood for the exposure */}
           <pointLight ref={flash} position={v(cam.lens[0], cam.lens[1], cam.lens[2] - 4)} intensity={0} distance={0.25} decay={2} color="#eef4ff" />
+          {/* the ring light as the inspection camera sees it (its own layer: the visitor's view is untouched) */}
+          <group ref={leds}>
+            {Array.from({ length: LEDS }, (_, i) => {
+              const a = (2 * Math.PI * i) / LEDS;
+              return <directionalLight key={i} intensity={LED_I} color="#ffffff"
+                position={v(cam.lens[0] + 20 * Math.cos(a), cam.lens[1] + 20 * Math.sin(a), cam.lens[2] - 1)} />;
+            })}
+          </group>
+          {/* the grey reference target and its bracket */}
+          <group ref={refTarget}>
+            <mesh position={v(cam.lens[0] - cam.fov_mm / 2 + REF_MM / 2, cam.lens[1] + cam.fov_mm / 2 - REF_MM / 2, beltTop + 1.5)}>
+              <boxGeometry args={[REF_MM * MM, 1 * MM, REF_MM * MM]} />
+              <meshStandardMaterial color="#808080" roughness={1} metalness={0} />
+            </mesh>
+          </group>
+          <mesh position={v(cam.lens[0] - cam.fov_mm / 2 + REF_MM / 2, cam.lens[1] + 30 + (cam.fov_mm / 2 - 30) / 2 - 1, beltTop + 0.5)}>
+            <boxGeometry args={[REF_MM * MM, 1 * MM, (cam.fov_mm / 2 - 30 + 2) * MM]} />
+            <meshStandardMaterial color="#9aa3ac" roughness={0.5} metalness={0.6} />
+          </mesh>
           {/* the photo camera's pose: lens, the belt straight below it, the belt's direction */}
           <group ref={lens} position={v(cam.lens[0], cam.lens[1], cam.lens[2] - 0.5)} />
           <group ref={aim} position={v(cam.lens[0], cam.lens[1], beltTop)} />
-          <group ref={ahead} position={v(cam.lens[0] + 10, cam.lens[1], cam.lens[2])} />
+          <group ref={ahead} position={v(cam.lens[0], cam.lens[1] + 10, cam.lens[2])} />
           {/* what the camera sees: from the lens down to the inspected area on the belt */}
           <mesh ref={cone} position={v(cam.lens[0], cam.lens[1], (cam.lens[2] + beltTop) / 2)} rotation={[0, Math.PI / 4, 0]}>
             <cylinderGeometry args={[4 * MM, (cam.optics.roi_mm / Math.SQRT2) * MM, (cam.lens[2] - beltTop) * MM, 4, 1, true]} />

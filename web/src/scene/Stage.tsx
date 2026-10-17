@@ -57,14 +57,6 @@ function useCoordinator(doc: CadDoc, tours: Record<string, PlanKey[]> | null | u
   return coord;
 }
 
-let visionChannel: BroadcastChannel | null = null;
-/** Each capture is shown live in an open dashboard's inspection feed (Vision QC). */
-function useCaptureFeed(store: CellStore) {
-  useEffect(() => store.onCapture((c) => {
-    try { visionChannel ??= new BroadcastChannel("stf-vision"); visionChannel.postMessage(c); } catch { /* no BroadcastChannel */ }
-  }), [store]);
-}
-
 /** The white table, and on it each module's black fischertechnik base plate
     (perforated on the 15 mm ft grid), as in the booklet's cover photo. */
 function FactoryTable({ doc }: { doc: CadDoc }) {
@@ -230,7 +222,6 @@ export function HbwCadStage({ doc, showZones = false, netZones = false, showCove
   const tours = toursDoc ? toursDoc.tours : toursErr ? null : undefined;
   const store = useCellStore();
   const coord = useCoordinator(doc, tours, store);
-  useCaptureFeed(store);
   const J = store.joints;
   // the rack's meshes re-render only when the rack changes
   const rack = useCellModel((m) => m.rack);

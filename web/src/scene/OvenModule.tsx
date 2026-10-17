@@ -2,7 +2,7 @@
 
 
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 
@@ -17,6 +17,7 @@ import * as THREE from "three";
 import { type CadPart, type CadDoc, boxSize, cylSpec } from "../shared/model";
 import type { CellJoints, Drive } from "./store/useCellStore";
 import { AIM, MM, v, centreOf, Solid, Cookie, useBeltTexture } from "./parts";
+import { INSPECT_LAYER } from "../vision/photo";
 
 
 
@@ -278,6 +279,8 @@ function ControlPanel({ part, display, led }: {
     is, in whatever colour the bake has given it. */
 export function FlowCookie({ workpiece }: { workpiece: CellJoints["workpiece"] }) {
   const grp = useRef<THREE.Group>(null);
+  // the inspection camera in the colour hood sees the cookie (vision/photo.ts)
+  useEffect(() => { grp.current?.traverse((o) => o.layers.enable(INSPECT_LAYER)); });
   useFrame(() => {
     if (!grp.current) return;
     grp.current.visible = workpiece.visible;
