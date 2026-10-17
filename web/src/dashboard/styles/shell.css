@@ -142,26 +142,61 @@ details > summary { cursor: pointer; }
   .db-kpi { padding: 12px; } .db-kpi b { font-size: var(--fs-title2); }
   .db-nav { overflow-x: auto; flex-wrap: nowrap; }
 }
-/* ------------------------------------------------------------- the page guide (guide.ts) */
-.db-guide-btn.on { background: var(--accent-weak); color: var(--accent); border-color: var(--accent-weak); }
-.db-guide { margin: 0 0 16px; padding: 14px 16px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border-soft); }
-.db-guide-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.db-guide-h b { font-size: var(--fs-callout); font-weight: 600; color: var(--muted); }
-.db-guide-what { margin: 4px 0 8px; font-size: var(--fs-head); line-height: 1.5; color: var(--text); }
-.db-guide-more > summary { cursor: pointer; width: fit-content; font-size: var(--fs-callout); font-weight: 500; color: var(--accent); margin-bottom: 2px; }
-.db-guide-more[open] > summary { margin-bottom: 12px; }
-.db-guide-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 18px; }
-@media (max-width: 760px) { .db-guide-cols { grid-template-columns: 1fr; } }
-.db-guide h4 { margin: 0 0 6px; font-size: var(--fs-caption); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); }
-.db-guide ol { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: var(--fs-body); line-height: 1.5; color: var(--muted); }
-.db-guide dl { margin: 0; display: grid; gap: 5px; }
-.db-guide dl > div { display: grid; grid-template-columns: minmax(110px, 38%) 1fr; gap: 10px; font-size: var(--fs-body); line-height: 1.45; }
+/* ------------------------------------------------------------- the page guide (guide.ts)
+   The page's purpose is its lede, always shown under the title; how to read it is a popover
+   from the Guide button, so the figures start at the top of every page (popovers.md). */
+.db-lede { margin: -8px 0 20px; max-width: 86ch; font-size: var(--fs-head); line-height: 1.5; color: var(--muted); text-wrap: pretty; }
+.db-guide-btn.on, .db-ask-btn.on { background: var(--accent-weak); color: var(--accent); border-color: transparent; }
+.db-guide-anchor { position: relative; }
+.db-guide {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; width: min(640px, calc(100vw - 32px)); max-height: min(70vh, 620px);
+  overflow-y: auto; padding: 18px 20px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border);
+  box-shadow: 0 24px 60px -18px rgba(0, 0, 0, .45), 0 2px 8px rgba(0, 0, 0, .12); animation: db-pop .16s cubic-bezier(.2, .8, .2, 1);
+}
+@keyframes db-pop { from { opacity: 0; transform: translateY(-6px) scale(.985); } }
+.db-guide-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 22px; }
+@media (max-width: 760px) { .db-guide-cols { grid-template-columns: 1fr; } .db-guide { position: fixed; top: 64px; left: 16px; right: 16px; width: auto; } }
+.db-guide h4 { margin: 0 0 8px; font-size: var(--fs-caption); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); }
+.db-guide ol { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: var(--fs-body); line-height: 1.5; color: var(--muted); }
+.db-guide dl { margin: 0; display: grid; gap: 6px; }
+.db-guide dl > div { display: grid; grid-template-columns: minmax(100px, 34%) 1fr; gap: 10px; font-size: var(--fs-body); line-height: 1.45; }
 .db-guide dt { font-weight: 600; color: var(--text); }
 .db-guide dd { margin: 0; color: var(--muted); }
-.db-guide-terms { margin-top: 12px; }
-.db-guide-terms summary { cursor: pointer; font-size: var(--fs-callout); color: var(--accent); }
-.db-guide-terms dl { margin-top: 8px; }
-.db-guide-src { margin: 10px 0 0; font-size: var(--fs-callout); color: var(--faint); }
+.db-guide-terms { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
+.db-guide-src { margin: 14px 0 0; font-size: var(--fs-callout); color: var(--faint); }
+
+/* ------------------------------------------------------------- the copilot as an inspector
+   Asking about a page opens a column beside it, the way an inspector does on the Mac: the page
+   makes room instead of being covered, and the panel stays while people read and scroll. */
+.db.ask { grid-template-columns: 236px minmax(0, 1fr) 400px; }
+.db.ask.nav-min { grid-template-columns: 64px minmax(0, 1fr) 400px; }
+.db-inspector { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; min-width: 0; padding: 0 14px 14px;
+  background: var(--surface); border-left: 1px solid var(--border); animation: db-slide .22s cubic-bezier(.2, .8, .2, 1); }
+@keyframes db-slide { from { opacity: 0; transform: translateX(12px); } }
+.db-inspector-h { display: flex; align-items: center; gap: 10px; min-height: 64px; margin: 0 -14px 10px; padding: 0 10px 0 16px; border-bottom: 1px solid var(--border-soft); }
+.db-inspector-h > div { flex: 1; min-width: 0; }
+.db-inspector-h b { display: block; font-size: var(--fs-head); font-weight: 600; }
+.db-inspector-h span { display: block; font-size: var(--fs-callout); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-inspector-ico { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: var(--accent-weak); color: var(--accent); flex: none; }
+.db-inspector .ch { flex: 1; min-height: 0; }
+@media (max-width: 1200px) {
+  .db.ask { grid-template-columns: 236px minmax(0, 1fr); } .db.ask.nav-min { grid-template-columns: 64px minmax(0, 1fr); }
+  .db-inspector { position: fixed; right: 0; top: 0; bottom: 0; width: min(420px, 100vw); z-index: 40; box-shadow: -24px 0 60px -20px rgba(0, 0, 0, .45); }
+}
+@media (max-width: 900px) { .db.ask, .db.ask.nav-min { grid-template-columns: 1fr; } }
+
+/* the first moment: the dashboard reads the twin's export */
+.db-loading { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 6px; text-align: center; }
+.db-loading .brand-mark { width: 52px; height: 52px; border-radius: 13px; font-size: var(--fs-body); margin-bottom: 10px; }
+.db-loading b { font: 600 var(--fs-title3) var(--font-display); }
+.db-loading > span:not(.brand-mark) { font-size: var(--fs-body); color: var(--muted); }
+.db-loading i { width: 160px; height: 4px; margin-top: 10px; border-radius: 4px; background:
+  linear-gradient(90deg, transparent, var(--accent-fill), transparent) 0 0 / 50% 100% no-repeat, var(--raised); animation: db-load 1.2s ease-in-out infinite; }
+@keyframes db-load { from { background-position: -100% 0, 0 0; } to { background-position: 200% 0, 0 0; } }
+
+/* headline figures: labels in sentence case like every other label */
+.db-kpi > span::first-letter { text-transform: uppercase; }
+@media (prefers-reduced-motion: reduce) { .db-guide, .db-inspector { animation: none; } .db-loading i { animation: none; } }
 .db-help { display: inline-grid; place-items: center; width: 15px; height: 15px; margin-left: 6px; border-radius: 50%; font: 600 var(--fs-caption) var(--mono);
   font-style: normal; color: var(--muted); border: 1px solid var(--border); cursor: help; vertical-align: 1px; text-transform: none; }
 .db-help:hover { color: var(--accent); border-color: var(--accent); }
@@ -175,3 +210,21 @@ details > summary { cursor: pointer; }
 /* --------------------------------------------------------------- chat (Chat.tsx) */
 .ch { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 @media (max-width: 760px) { .db-top .hide-sm { display: none; } }
+
+/* the header: title and the global actions on one row; a page's own controls on a second */
+.db-top { row-gap: 10px; padding-bottom: 10px; }
+.db-tools { order: 10; flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: 10px; }
+.db-tools .db-ctl { height: 36px; background: var(--surface); }
+.db-tools .db-ctl input[type=range] { width: 170px; }
+@media (max-width: 900px) { .db-tools .db-ctl { width: auto; flex: 1 1 280px; height: auto; min-height: 36px; padding: 4px 6px 4px 12px; } }
+/* on a phone the navigation is a strip of labelled pages, scrolled sideways: icons alone don't say
+   which page is which (sidebars.md › Phone: a sidebar becomes a list of named destinations) */
+@media (max-width: 900px) {
+  .db.nav-min .db-nav { padding: 8px 10px; border-right: 0; border-bottom: 1px solid var(--border); scrollbar-width: none; }
+  .db.nav-min .db-brand { display: none; }
+  .db.nav-min .db-group { margin: 0; padding: 0; border: 0; }
+  .db.nav-min .db-nav button { width: auto; padding: 0 12px; flex: none; }
+  .db.nav-min .db-nav button span { display: inline; }
+}
+/* the header's popover stays above the page on a phone, where the header scrolls with it */
+@media (max-width: 900px) { .db-top { position: relative; z-index: 6; } }

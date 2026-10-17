@@ -1,23 +1,6 @@
 // The dashboard's shared widgets: headline figures, cards (with their guide hint), the page guide
 // and the simple horizontal bars.
-import { createContext, useContext } from "react";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import { createContext, useContext, useEffect, useRef } from "react";
 
 import { GUIDE, TERMS, cardHelp } from "./guide";
 
@@ -36,26 +19,33 @@ export function Card({ title, children, wide, extra }: { title: string; children
   );
 }
 
-/** The page's guide: what it is for, how to read it, its sections and the terms it uses. */
+/** The page's guide, as a popover from its button: how to read the page, what is on it, the
+    terms it uses and where its data comes from. The page's purpose is its lede, always shown;
+    this is the rest, on request (popovers.md; offering-help.md). */
 export function GuideBox({ page, onClose }: { page: string; onClose: () => void }) {
+  const box = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const away = (e: PointerEvent) => {
+      const t = e.target as HTMLElement;
+      if (!box.current?.contains(t) && !t.closest(".db-guide-btn")) onClose();
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("pointerdown", away);
+    window.addEventListener("keydown", esc);
+    return () => { window.removeEventListener("pointerdown", away); window.removeEventListener("keydown", esc); };
+  }, [onClose]);
   const g = GUIDE[page];
   if (!g) return null;
   const terms = g.terms.filter((k) => TERMS[k]).map((k) => [k, TERMS[k]] as const);
   return (
-    <aside className="db-guide" aria-label="Guide to this page">
-      <div className="db-guide-h"><b>Guide · {g.title}</b><button className="ui-btn ghost" onClick={onClose}>Hide</button></div>
-      <p className="db-guide-what">{g.what}</p>
-      {/* progressive disclosure: the page's purpose in one line; how to read it on request (layout.md) */}
-      <details className="db-guide-more">
-        <summary>How to read this page</summary>
-        <div className="db-guide-cols">
-          <div><h4>How to read it</h4><ol>{g.read.map((r) => <li key={r}>{r}</li>)}</ol></div>
-          <div><h4>On this page</h4><dl>{g.sections.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></div>
-        </div>
-      </details>
+    <aside className="db-guide" aria-label="Guide to this page" ref={box}>
+      <div className="db-guide-cols">
+        <div><h4>How to read it</h4><ol>{g.read.map((r) => <li key={r}>{r}</li>)}</ol></div>
+        <div><h4>On this page</h4><dl>{g.sections.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></div>
+      </div>
       {terms.length > 0 && (
-        <details className="db-guide-terms"><summary>Terms used here · {terms.length}</summary>
-          <dl>{terms.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></details>
+        <div className="db-guide-terms"><h4>Terms</h4>
+          <dl>{terms.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></div>
       )}
       <p className="db-guide-src">Data: {g.source}</p>
     </aside>

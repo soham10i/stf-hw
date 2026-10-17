@@ -91,15 +91,15 @@ export function TopBar({ views, view, onView, status, statusTip, theme, toggleTh
     <header className="topbar">
       <div className="brand">
         <span className="brand-mark">STF</span>
-        <div><b>Digital Twin</b><span>Smart Tabletop Factory</span></div>
+        <div><b>Smart Tabletop Factory</b><span>Digital twin</span></div>
       </div>
       <ViewMenu views={views} view={view} onView={onView} />
       <div className="top-actions">
-        <span className={`ui-chip ${CHIP[status][0]}`} title={[CHIP[status][2], statusTip].filter(Boolean).join("\n")}>
+        <span className={`ui-chip top-status ${CHIP[status][0]}`} title={[CHIP[status][2], statusTip].filter(Boolean).join("\n")}>
           <span className="ui-dot" />{CHIP[status][1]}
         </span>
-        {onOrder && <button className="ui-btn primary" onClick={onOrder} title="Open the order form"><Icon name="plus" size={15} />New order</button>}
-        <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html`}><Icon name="gauge" size={16} /><span className="hide-sm">Dashboard</span></a>
+        {onOrder && <button className="ui-btn primary" onClick={onOrder} title="Open the order form" aria-label="New order"><Icon name="plus" size={15} /><span className="hide-sm">New order</span></button>}
+        <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html`} aria-label="Dashboard"><Icon name="gauge" size={16} /><span className="hide-sm">Dashboard</span></a>
         <ThemeToggle theme={theme} toggle={toggleTheme} />
       </div>
     </header>

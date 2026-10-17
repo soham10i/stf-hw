@@ -204,7 +204,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
         {turns.length === 0 && (
           <div className="cx-hero">
             <div className="cx-orb">✦</div>
-            <b>{tab === "voice" ? "Ask by voice" : `Ask about ${pageTitle ? `“${pageTitle}”` : "the cell"}`}</b>
+            <b>{tab === "voice" ? "Ask by voice" : `Ask about ${pageTitle && page !== "copilot" ? `“${pageTitle}”` : "the cell"}`}</b>
             <span>Answers come from the twin's own tools and documents, with their sources. Numbers are checked before you see them.</span>
             {tab !== "voice" && <div className="cx-examples">{examples.map((e) => <button key={e} onClick={() => ask(e)}>{e}</button>)}</div>}
           </div>

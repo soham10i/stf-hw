@@ -152,18 +152,6 @@
 .cx-more { align-self: flex-start; border: 0; background: none; color: var(--accent); font: 600 var(--fs-callout) var(--font); cursor: pointer; padding: 2px 0; }
 .cx-more:hover { text-decoration: underline; }
 
-/* ------------------------------------------------ the Ask button and panel on every page */
-.ch-fab { position: fixed; right: 22px; bottom: 22px; z-index: 40; display: inline-flex; align-items: center; gap: 6px; padding: 11px 18px;
-  border-radius: 99px; border: 0; background: var(--accent-fill); color: #fff; font: 600 var(--fs-body) var(--font); cursor: pointer;
-  transition: transform .15s; }
-.ch-fab:hover { transform: translateY(-2px); }
-.ch-fab.on { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow); }
-.ch-dock { position: fixed; right: 22px; bottom: 78px; z-index: 40; width: min(460px, calc(100vw - 32px)); height: min(660px, calc(100vh - 120px));
-  display: flex; flex-direction: column; padding: 14px; border-radius: 20px; background: color-mix(in srgb, var(--surface) 94%, transparent);
-  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border: 1px solid var(--border); box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .45);
-  animation: cx-in .2s ease; }
-.ch-dock-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: var(--fs-body); }
-@media (max-width: 600px) { .ch-dock { right: 16px; bottom: 72px; } .ch-fab { right: 16px; bottom: 16px; } }
 /* the context as an overlay where there is no room for its column */
 .cx-ctx-btn { display: none; margin-left: auto; gap: 4px; font-size: var(--fs-callout); }
 .cx-ctx-btn span { font: 600 var(--fs-caption) var(--mono); }

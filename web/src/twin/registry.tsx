@@ -15,7 +15,7 @@ export type ViewKind = "machine" | "controller" | "component";
 export type View = { id: string; label: string; kind: ViewKind; group: string; about: string };
 
 export const MACHINE_VIEW: View = {
-  id: "factory", label: "Smart Tabletop Factory", kind: "machine", group: "Factory",
+  id: "factory", label: "Complete machine", kind: "machine", group: "Factory",
   about: "The complete machine: guarded, on remote I/O, run by the generated PLC program, "
     + "commissioned, monitored, hardened. Open the side panels for each layer.",
 };

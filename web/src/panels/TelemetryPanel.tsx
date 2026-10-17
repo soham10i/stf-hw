@@ -68,7 +68,7 @@ export function TelemetryPanel({ scene }: { scene: SceneDescriptor | null }) {
   const s = { twin, kernel: scene ? kernelRows(scene) : [], busy: hot.busy, t: hot.t };
 
   return (
-    <div className="panel">
+    <div className="panel tm">
       <h2>Telemetry <span className="tag run">{s.twin.cycle}</span></h2>
       <div className="sensors tm-sensors">
         {s.twin.sensors.map(([name, on]) => <span key={name} className={on ? "led on" : "led"}>{name}</span>)}

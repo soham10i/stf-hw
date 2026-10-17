@@ -5,8 +5,7 @@ import { Canvas } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
 
 import { HbwCadStage } from "../scene/Stage";
-import { useCellModel } from "../scene/store/useCellStore";
-import { RATE } from "../scene/timeline";
+import { setViewInset } from "../scene/focus";
 import { useCadDoc } from "../shared/model";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { Icon } from "../shared/icons";
@@ -21,6 +20,7 @@ import { SidePanel } from "./SidePanel";
 import { TopBar } from "./TopBar";
 import { useBackend } from "./useBackend";
 import { useLiveShare } from "./liveShare";
+import { CameraTip, CellStatus, FocusMenu, LoadingVeil } from "./ViewportChrome";
 
 export default function App() {
   const [theme, toggleTheme] = useTheme();
@@ -28,8 +28,6 @@ export default function App() {
   const machine = useCadDoc();
   const comps = useComponents();
   const ctl = useController();
-  // what the cell is doing, from the store (the coordinator writes it)
-  const phase = useCellModel((m) => m.step);
   // react-three-fiber measures its parent with a ResizeObserver, which some embedded
   // browsers never fire initially: the Canvas then stays empty. Nudge it once the machine
   // is loaded (a timeout, not rAF: rAF does not run in a hidden tab).
@@ -93,10 +91,14 @@ export default function App() {
   const inset = 72 + (panelOpen ? sideW + 10 : 0);
   const vars = {
     "--vp-left": panelOpen && pinned ? `${inset}px` : "0px",
-    "--tools-left": `${panelOpen && pinned ? 10 : inset}px`,
+    "--tools-left": `${inset}px`,
   } as React.CSSProperties;
-  const waiting = phase === "Waiting for an order";
   useLiveShare(machineView && !!machine.doc);
+  // the camera centres the machine in what the rail, a floating panel and the bars leave clear
+  useEffect(() => {
+    const narrow = window.innerWidth <= 900;
+    setViewInset(panelOpen && pinned && !narrow ? 0 : panelOpen && !narrow ? inset : 72, 120);
+  }, [panelOpen, pinned, inset]);
 
   return (
     <div className={`app ${machineView ? "immersive" : ""}`}>
@@ -118,6 +120,7 @@ export default function App() {
               {apiError && <div className="error">{apiError}</div>}
               {machine.err && <div className="error">{machine.err}</div>}
             </div>}
+            <LoadingVeil hasDoc={!!machine.doc} />
             {machine.doc && (
               <ErrorBoundary>
                 <Canvas shadows dpr={[1, 2]} gl={{ preserveDrawingBuffer: true }}>
@@ -128,25 +131,25 @@ export default function App() {
           </div>
           <div className="vp-dock">
             <div className="vp-bar">
-              <span className="vp-status" title={phase}>
-                <i className={waiting ? "idle" : "run"} /><b>{RATE}×</b><span className="vp-phase">{phase || "Loading the machine…"}</span>
-              </span>
+              <CellStatus doc={machine.doc} />
+              <span className="vp-sep" />
+              <FocusMenu />
               <span className="vp-sep" />
               {machine.doc?.safety && (
-                <button className={`vp-btn ${showCover ? "" : "off"}`} onClick={() => setShowCover(!showCover)} aria-pressed={showCover}
+                <button className={`vp-btn ${showCover ? "" : "off"}`} aria-label="Enclosure" onClick={() => setShowCover(!showCover)} aria-pressed={showCover}
                   title="Show or hide the enclosure: guard frame, polycarbonate panels and doors (C)">
-                  <Icon name="cube" size={15} />Enclosure
+                  <Icon name="cube" size={15} /><span className="vp-label">Enclosure</span>
                 </button>
               )}
               {machine.doc?.safety && !netZones && (
-                <button className={`vp-btn ${showZones ? "on" : ""}`} onClick={() => setShowZones(!showZones)}
+                <button className={`vp-btn ${showZones ? "on" : ""}`} aria-label="Hazard zones" onClick={() => setShowZones(!showZones)}
                   title="Show or hide the hazard zones: the swept envelopes of the moving arms" aria-pressed={showZones}>
-                  <Icon name={showZones ? "eye" : "eyeoff"} size={15} />Hazard zones
+                  <Icon name={showZones ? "eye" : "eyeoff"} size={15} /><span className="vp-label">Hazard zones</span>
                 </button>
               )}
               {machine.doc?.wiring?.roles && (
                 <details className="wire-legend">
-                  <summary className="vp-btn"><Icon name="zap" size={15} />Wiring</summary>
+                  <summary className="vp-btn" aria-label="Wiring legend"><Icon name="zap" size={15} /><span className="vp-label">Wiring</span></summary>
                   <ul>
                     {Object.entries(machine.doc.wiring.roles).map(([k, r]) => (
                       <li key={k}>
@@ -159,6 +162,7 @@ export default function App() {
                 </details>
               )}
             </div>
+            <CameraTip />
           </div>
         </div>
       )}

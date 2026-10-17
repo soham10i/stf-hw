@@ -576,3 +576,81 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .vp-btn.off { color: var(--faint); } .vp-btn.off svg { opacity: .5; }
 .vp-btn[aria-pressed="true"]:not(.on) { color: var(--text); }
 
+
+/* ---------------------------------------------------- second pass: the view's own chrome
+   One floating layer over the machine: the control bar (status · focus · layers), its menus and
+   one tip. Menus are solid, not glass: they sit over the bar's own glass, where a nested blur
+   samples nothing and the text behind would show through (materials.md › Standard materials). */
+.vp-dock { flex-direction: column; align-items: center; gap: 10px; }
+.vm-pop, .vp-pop { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* status: idle, or the running cookie with its step and a hairline of progress */
+.vp-status { position: relative; }
+.vp-job { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; flex: none; }
+.vp-job i { width: 9px; height: 9px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .3); animation: none; }
+.vp-status.running .vp-phase { color: var(--muted); }
+.vp-progress { position: absolute; left: 12px; right: 12px; bottom: 1px; height: 2px; border-radius: 2px; background: var(--glass-line); overflow: hidden; }
+.vp-progress i { display: block; height: 100%; width: 0; border-radius: 2px; background: var(--ok); box-shadow: none; animation: none; transition: width .3s linear; }
+
+/* the camera's focus: a pop-up button and its menu (pop-up-buttons.md, menus.md) */
+.vp-menu { position: relative; flex: none; }
+.vp-btn.open { background: var(--raised); color: var(--text); }
+.vp-btn svg:last-child:not(:first-child) { opacity: .6; margin-left: -2px; }
+.vp-pop { position: absolute; top: 44px; left: 0; z-index: 30; min-width: 196px; padding: 5px; border-radius: 12px;
+  border: 1px solid var(--glass-line); box-shadow: var(--float-shadow); animation: pop-in .14s var(--ease); display: grid; }
+.vp-pop button { display: flex; align-items: center; gap: 4px; height: 30px; padding: 0 10px 0 4px; border: 0; border-radius: 7px;
+  background: transparent; color: var(--text); font: 400 var(--fs-body) var(--font); text-align: left; cursor: pointer; }
+.vp-pop button:hover, .vp-pop button:focus-visible { background: var(--accent-fill); color: var(--on-accent); outline: none; }
+.vp-pop button.sep { margin-bottom: 5px; position: relative; }
+.vp-pop button.sep::after { content: ""; position: absolute; left: 6px; right: 6px; bottom: -3px; height: 1px; background: var(--border-soft); }
+.vp-check { width: 18px; text-align: center; font-size: var(--fs-callout); }
+
+/* the loading screen: the machine appears once, finished (loading.md › Showing progress) */
+.vp-veil { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; background: var(--plate), var(--viewport);
+  transition: opacity .45s var(--ease); }
+.vp-veil.out { opacity: 0; pointer-events: none; }
+.vp-veil-card { display: grid; justify-items: center; gap: 6px; text-align: center; }
+.vp-veil-card .brand-mark { width: 52px; height: 52px; border-radius: 13px; font-size: var(--fs-body); margin-bottom: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08), 0 10px 30px rgba(0, 0, 0, .3); }
+.vp-veil-card b { font: 600 var(--fs-title3) var(--font-display); letter-spacing: -.01em; }
+.vp-veil-card > span:not(.brand-mark) { font-size: var(--fs-body); color: var(--muted); font-variant-numeric: tabular-nums; }
+.vp-veil-bar { width: 220px; height: 4px; margin-top: 10px; border-radius: 4px; background: var(--raised); overflow: hidden; }
+.vp-veil-bar i { display: block; height: 100%; border-radius: 4px; background: var(--accent-fill); transition: width .3s var(--ease); }
+
+/* the one tip: under the bar it explains (offering-help.md › Creating tips) */
+.vp-tip { pointer-events: auto; display: flex; align-items: center; gap: 12px; max-width: min(520px, calc(100% - 24px)); padding: 10px 10px 10px 14px;
+  border-radius: 14px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-line); box-shadow: var(--float-shadow); animation: pop-in .3s var(--ease) .4s both; color: var(--accent); }
+.vp-tip p { margin: 0; flex: 1; font-size: var(--fs-callout); line-height: 1.45; color: var(--muted); }
+.vp-tip b { display: block; font-size: var(--fs-body); font-weight: 600; color: var(--text); }
+.vp-tip .ui-btn { flex: none; }
+
+/* the side panel's groups: one surface level - the panel is the container, its groups the cards */
+.side .side-body > .panel.ord, .side .side-body > .panel.tm { background: none; border: 0; padding: 0; margin: 0; box-shadow: none; border-radius: 0; }
+.side.float .ord-card, .side.float .tm-card { background: color-mix(in srgb, var(--surface) 72%, transparent); border-color: color-mix(in srgb, var(--text) 9%, transparent); }
+.ord-card { border-radius: 14px; padding: 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .vp-veil, .vp-progress i, .vp-veil-bar i { transition: none; }
+  .vp-tip, .vp-pop { animation: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .vp-tip { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .side.float .ord-card, .side.float .tm-card { background: var(--surface); }
+}
+@media (max-width: 900px) {
+  .vp-menu .vp-btn { padding: 0 8px; }
+  .vp-job { display: none; }
+}
+/* the bar's menus open over the tip below it */
+.vp-bar { position: relative; z-index: 2; }
+.vp-status .vp-phase { width: 210px; max-width: none; }
+@media (max-width: 1100px) { .vp-status .vp-phase { width: auto; max-width: 160px; } }
+/* a phone: one row of top bar (icons for the actions), the bar's toggles as icons */
+@media (max-width: 900px) {
+  .app.immersive .top-actions { grid-column: auto; }
+  .top-actions .top-status { display: none; }
+  .top-actions .ui-btn { padding: 0 9px; }
+  .vp-bar .vp-label { display: none; }
+  .vp-bar .vp-btn { padding: 0 9px; }
+}

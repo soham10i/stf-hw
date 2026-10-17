@@ -20,6 +20,8 @@ import { useCellModel, useCellStore, type CellStore, type Drive } from "./store/
 import { CellCoordinator } from "./engine/CellCoordinator";
 import { localPersistence } from "./engine/persistence";
 import { PLAYBACK } from "./timeline";
+import { FOCUS, getViewInset, useFocus, type FocusId } from "./focus";
+import { markStageReady } from "./stageReady";
 import { keep } from "../vision/photo";
 import type { CameraDoc } from "./SortingModule";
 
@@ -123,6 +125,101 @@ function camDir() {
     ? new THREE.Vector3(v[0], v[1], v[2]) : new THREE.Vector3(-0.78, 0.62, -0.62);
 }
 
+/** What a focus frames: the whole table, a module's rect on it, or a ?look= review point. */
+function frameOf(doc: CadDoc, id: FocusId) {
+  const [px, py] = doc.factory.plate;
+  // review aid: ?look=x,y,r frames a factory point (mm) at radius r
+  const lk = new URLSearchParams(window.location.search).get("look")?.split(",").map(Number);
+  if (id === "overview" && lk && lk.length === 3 && lk.every(Number.isFinite)) {
+    return { cx: lk[0] * MM, cy: lk[1] * MM, h: 0.4, w: lk[2] * MM, d: lk[2] * MM, k: 0.6, y: 0.3 };
+  }
+  const r = (doc.factory as unknown as Record<string, [number, number, number, number] | undefined>)[FOCUS.find((f) => f.id === id)?.rect ?? ""];
+  if (r) {
+    const [x, y, w, d] = r;
+    return { cx: (x + w / 2) * MM, cy: (y + d / 2) * MM, h: 3, w: w * MM, d: d * MM, k: 0.5, y: 1 };
+  }
+  return { cx: px * MM * 0.5, cy: py * MM * 0.5, h: 5.6, w: px * MM, d: py * MM, k: 0.52, y: 1.9 };
+}
+
+const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+const FLY_S = 0.8;
+
+/** The camera: it frames the focus in the part of the view the floating chrome leaves clear,
+    re-frames when the viewport resizes, and flies (in FLY_S, or at once under Reduce Motion)
+    when the focus changes. The clear part's centre is made the lens centre with a view offset,
+    eased as the panel opens and closes. Returns the orbit target the controls start from. */
+function useCameraRig(doc: CadDoc): [number, number, number] {
+  const [focus, seq] = useFocus();
+  const { camera, size, controls } = useThree();
+  const orbit = controls as unknown as { target: THREE.Vector3; update: () => void } | null;
+  const dir = useMemo(camDir, []);
+  const lens = useRef({ left: 0, top: 0, w: 0, h: 0 });
+  /** the lens centred on the clear part of a W x H view whose left/top px are covered */
+  const applyLens = (left: number, top: number) => {
+    const c = camera as THREE.PerspectiveCamera;
+    const { width: W, height: H } = size;
+    lens.current = { left, top, w: W, h: H };
+    c.aspect = (W + left) / Math.max(1, H + top);
+    c.setViewOffset(W + left, H + top, 0, 0, W, H);
+    c.updateProjectionMatrix();
+  };
+  // the pose for a focus at this viewport size
+  const pose = (id: FocusId) => {
+    const f = frameOf(doc, id);
+    const c = camera as THREE.PerspectiveCamera;
+    const { left, top } = getViewInset();
+    // Frame the envelope on BOTH axes of the clear part: it is much taller than it is wide once
+    // the panel is out, so fitting on vertical fov alone puts the camera inside the rack.
+    const centre = new THREE.Vector3(f.cx, f.h * 0.42, -f.cy);
+    const radius = f.k * Math.hypot(f.w, f.d, f.h);
+    const focal = (size.height + top) / 2 / Math.tan((c.fov * Math.PI) / 360);
+    const tanV = Math.max(40, size.height - top) / 2 / focal;
+    const tanH = Math.max(40, size.width - left) / 2 / focal;
+    const dist = 1.02 * Math.max(radius / tanV, radius / tanH);
+    return { pos: centre.addScaledVector(dir.clone().normalize(), dist), at: new THREE.Vector3(f.cx, f.y, -f.cy) };
+  };
+  const first = useMemo(() => frameOf(doc, "overview"), [doc]);
+  const fly = useRef<{ t: number; from: THREE.Vector3; fromAt: THREE.Vector3; to: THREE.Vector3; toAt: THREE.Vector3 } | null>(null);
+  const lastSeq = useRef(seq);
+  useEffect(() => {
+    const c = camera as THREE.PerspectiveCamera;
+    c.fov = 42; c.near = 0.05; c.far = 200;
+    const { left, top } = getViewInset();
+    applyLens(left, top);
+    const p = pose(focus);
+    const moved = seq !== lastSeq.current;
+    lastSeq.current = seq;
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (moved && orbit && !still) {
+      fly.current = { t: 0, from: c.position.clone(), fromAt: orbit.target.clone(), to: p.pos, toAt: p.at };
+      return;
+    }
+    fly.current = null;
+    c.position.copy(p.pos);
+    if (orbit) { orbit.target.copy(p.at); orbit.update(); } else c.lookAt(p.at);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [camera, orbit, doc, focus, seq, size.width, size.height]);
+  useFrame((_, dt) => {
+    // the lens follows the chrome: eased when the panel opens or closes
+    const want = getViewInset(), l = lens.current;
+    if (l.w !== size.width || l.h !== size.height) applyLens(l.left, l.top);
+    if (Math.abs(want.left - l.left) > 0.5 || Math.abs(want.top - l.top) > 0.5) {
+      const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      const k = still ? 1 : 1 - Math.exp(-dt * 12);
+      applyLens(l.left + (want.left - l.left) * k, l.top + (want.top - l.top) * k);
+    }
+    const f = fly.current;
+    if (!f || !orbit) return;
+    f.t = Math.min(1, f.t + dt / FLY_S);
+    const k = ease(f.t);
+    camera.position.lerpVectors(f.from, f.to, k);
+    orbit.target.lerpVectors(f.fromAt, f.toAt, k);
+    orbit.update();
+    if (f.t >= 1) fly.current = null;
+  });
+  return useMemo(() => [first.cx, first.y, -first.cy], [first]);
+}
+
 export function HbwCadStage({ doc, showZones = false, netZones = false, showCover = true }: {
   doc: CadDoc; showZones?: boolean; netZones?: boolean; showCover?: boolean;
 }) {
@@ -139,44 +236,9 @@ export function HbwCadStage({ doc, showZones = false, netZones = false, showCove
   const rack = useCellModel((m) => m.rack);
   const raw = useCellModel((m) => m.rawColour);
   const vgrDrive = useRef<Drive>({ travel: 0, lift: 0, fork: 0, belt: 0, plunge: 0, reach: 0, swivel: 0 });
-  // What the camera frames: the whole table (or a ?look= review point).
-  const frame = useMemo(() => {
-    // review aid: ?look=x,y,r frames a factory point (mm) at radius r
-    const lk = new URLSearchParams(window.location.search).get("look")?.split(",").map(Number);
-    if (lk && lk.length === 3 && lk.every(Number.isFinite)) {
-      return { cx: lk[0] * MM, cy: lk[1] * MM, h: 0.4, w: lk[2] * MM, d: lk[2] * MM, dir: camDir(), k: 0.6 };
-    }
-    return { cx: px * MM * 0.5, cy: py * MM * 0.5, h: 5.6, w: px * MM, d: py * MM,
-             dir: camDir(), k: 0.52 };
-  }, [px, py]);
-  // The whole stage below is built in "factory-as-three" coordinates, v(x,y,z)
-  // = (x, z, y). Swapping two axes is a REFLECTION, so without correction the
-  // twin rendered the mirror image of the CAD model and of the real machine.
-  // One mirror (scale z -1) around the stage undoes it; world z = -factory y.
-  const target: [number, number, number] = [frame.cx, frame.h === 0.4 ? 0.3 : 1.9, -frame.cy];
-  // Drive the Canvas' own camera rather than mounting a second one: the twin
-  // view owns a <PerspectiveCamera makeDefault>, and two of them in one Canvas
-  // race on mount and leave whichever lost pointing at the origin.
-  const { camera, size } = useThree();
-  useEffect(() => {
-    const c = camera as THREE.PerspectiveCamera;
-    c.fov = 42;
-    c.near = 0.05;
-    c.far = 200;
-    // Frame the chosen envelope on BOTH axes: the viewport is much taller than
-    // it is wide once the sidebar is out, so fitting on vertical fov alone puts
-    // the camera inside the rack.
-    const centre = new THREE.Vector3(frame.cx, frame.h * 0.42, -frame.cy);
-    const radius = frame.k * Math.hypot(frame.w, frame.d, frame.h);
-    const vFov = (c.fov * Math.PI) / 180;
-    const aspect = Math.max(0.2, size.width / Math.max(1, size.height));
-    const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
-    const dist = 1.02 * Math.max(radius / Math.tan(vFov / 2), radius / Math.tan(hFov / 2));
-    c.position.copy(centre).addScaledVector(frame.dir.clone().normalize(), dist);
-    c.lookAt(...target);
-    c.updateProjectionMatrix();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camera, frame, size.width, size.height]);
+  const target = useCameraRig(doc);
+  // the loading screen lifts once the precise meshes are in (or when there are none to wait for)
+  useEffect(() => { if (precise || !doc.upgrade) markStageReady(); }, [precise, doc.upgrade]);
   return (
     <>
       <OrbitControls makeDefault target={target} enableDamping />
