@@ -5,6 +5,7 @@
 // any hand-over between models, its sources, and links to the pages with the detail.
 import { useEffect, useRef, useState } from "react";
 import { speech, type Style, type Turn } from "./api";
+import { Icon } from "../../shared/icons";
 
 const STYLE_LABEL: Record<Style, string> = {
   greeting: "hello", quick: "quick answer", compare: "comparison", steps: "steps", status: "live status",
@@ -73,7 +74,7 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
       onClick={() => {
         navigator.clipboard?.writeText(text).then(() => { setDone(true); window.setTimeout(() => setDone(false), 1400); }).catch(() => undefined);
       }}>
-      {done ? "✓" : "⧉"}
+      <Icon name={done ? "copied" : "copy"} size={15} />
     </button>
   );
 }
@@ -130,7 +131,7 @@ export function Speak({ text, auto = false }: { text: string; auto?: boolean }) 
   return (
     <button className={`cx-icon speak ${state}`} onClick={play} title={state === "idle" ? "Read aloud" : `Stop${by ? ` (${by})` : ""}`}
       aria-label={state === "idle" ? "Read aloud" : "Stop reading"}>
-      {state === "loading" ? <span className="cx-spin" /> : state === "playing" ? "■" : "🔊"}
+      {state === "loading" ? <span className="cx-spin" /> : <Icon name={state === "playing" ? "stop" : "speaker"} size={15} />}
     </button>
   );
 }
