@@ -222,6 +222,9 @@ export function useReadout(w = 256, h = 96) {
     canvas.width = w; canvas.height = h;
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
+    // the stage is drawn inside one mirror (Stage.tsx: scale z -1), which mirrors the readout
+    // too: read the canvas right to left so the digits come out the right way round
+    tex.repeat.x = -1; tex.offset.x = 1;
     let last = "";
     const show = (text: string) => {
       if (text === last) return;

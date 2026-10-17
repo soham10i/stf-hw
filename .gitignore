@@ -93,3 +93,5 @@ stf-cad/line2/twin/node_modules/
 
 # Kimi Code agent context (local working notes, never pushed)
 kimi-code/
+
+skill-lock.json

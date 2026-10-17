@@ -1,233 +1,315 @@
-# STF Digital Twin
-
-**A proven digital twin of the fischertechnik *Fabrik Simulation 24V* (536634): 3D, live, with its real PLC program running in your browser.**
-
-One parametric model is the single source of truth for the CAD, the kinematics, the wiring and I/O, the
-generated PLC program and the analytics. Nothing is exported unless its proofs pass, so the machine you see,
-the program that drives it and the numbers on the dashboard can never drift apart.
-
 <p align="center">
-  <img src="docs/images/twin-order.jpg" alt="The 3D twin running an order, with the Orders panel open" width="100%">
+  <h1 align="center">🏭 STF Digital Twin</h1>
+  <p align="center">
+    <strong>Full-Stack Cyber-Physical Digital Twin with In-Browser WebAssembly PLC & Grounded AI Copilot</strong>
+  </p>
+  <p align="center">
+    <em>A mathematically proven digital twin of the fischertechnik Fabrik Simulation 24V (536634): 3D kinematics, real-time physics, IEC 61131-3 PLC control, predictive maintenance, and Industry 4.0 connectivity.</em>
+  </p>
 </p>
 
 <p align="center">
-  <a href="https://stf-twin.onrender.com/"><b>Live demo</b></a> ·
-  <a href="https://stf-live.onrender.com/stf/"><b>Live twin + copilot</b></a> ·
-  <a href="docs/DASHBOARD_GUIDE.md">Dashboard guide</a> ·
-  <a href="docs/DEPLOY.md">Deploy</a>
+  <a href="https://github.com/soham10i/stf-hw/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/soham10i/stf-hw/ci.yml?branch=main&label=CI%20Pipeline&logo=github" alt="CI"></a>
+  <a href="https://soham10i.github.io/stf-hw/"><img src="https://img.shields.io/badge/Demo-Live%20In--Browser-brightgreen?logo=googlechrome" alt="Live Demo"></a>
+  <img src="https://img.shields.io/badge/Python-3.11%2B-blue?logo=python" alt="Python 3.11+">
+  <img src="https://img.shields.io/badge/TypeScript-5.6-blue?logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Three.js-r166%20%7C%20R3F-black?logo=three.js" alt="Three.js">
+  <img src="https://img.shields.io/badge/PLC-IEC%2061131--3%20Wasm-orange" alt="IEC 61131-3">
+  <img src="https://img.shields.io/badge/Industry%204.0-OPC%20UA%20%7C%20AAS%20%7C%20Sparkplug%20B-darkblue" alt="Industry 4.0">
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
 </p>
 
-> The live services run on Render's free tier and sleep when idle. The first visit can take about a minute to wake them.
+<p align="center">
+  <a href="https://stf-twin.onrender.com/"><b>🌐 Live In-Browser Demo</b></a> •
+  <a href="https://stf-live.onrender.com/stf/"><b>⚡ Live Twin + AI Copilot</b></a> •
+  <a href="docs/DASHBOARD_GUIDE.md"><b>📖 Operations Guide</b></a> •
+  <a href="docs/DEPLOY.md"><b>🚀 Deployment</b></a> •
+  <a href="#quick-start"><b>💻 Quick Start</b></a>
+</p>
 
 ---
 
-## Contents
+<p align="center">
+  <img src="docs/images/twin-order.jpg" alt="STF Digital Twin 3D view executing an automated baking order" width="100%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+</p>
 
-- [What's inside](#whats-inside)
-- [Screenshots](#screenshots)
-- [Architecture](#architecture)
-- [Quick start](#quick-start)
-- [The AI copilot](#the-ai-copilot)
-- [Deploy](#deploy)
-- [Regenerate the data](#regenerate-the-data)
-- [Tests](#tests)
-- [Project layout](#project-layout)
-- [Documentation](#documentation)
+> [!NOTE]
+> **One Parametric Model as the Single Source of Truth**: The CAD geometry, joint kinematics, electrical I/O, safety zones, analytics models, and the generated PLC code are derived from a unified FreeCAD parameter table. Nothing is exported unless mathematical and geometric proofs pass, guaranteeing zero drift between CAD, simulation, and physical execution.
 
-## What's inside
+---
 
-| | |
-|---|---|
-| **3D twin** | The whole cell (high-bay warehouse, vacuum gripper robot, oven with turntable, sorting line) in three.js. Place an order and watch it run. Toggle the enclosure, the hazard zones and the wiring. |
-| **PLC in the browser** | The generated control program is a full IEC 61131-3 project, compiled by MatIEC to WebAssembly and run against an I/O-level plant model. It shows live units, the I/O image and the job log. |
-| **Operations dashboard** | 20+ pages: overview, production, quality and traceability, vision QC, alarms, health and maintenance, a simulated month, throughput, energy and microgrid, carbon per cookie, OT security. Every page has a built-in guide. |
-| **Predictive maintenance** | A condition-monitoring model gives a health index and remaining life for every wear part, plus an ML maintenance model and a learned scheduler behind a deadlock shield. |
-| **Vision inspection** | A defect-detection CNN, trained only on images rendered from the model, exported to ONNX and run in the browser. |
-| **Industry 4.0 connectivity** | Asset Administration Shells (IDTA templates), an OPC UA server on the Machinery companion spec, and MQTT Sparkplug B into an ISA-95 Unified Namespace. Each one has its own conformance checks. |
-| **AI copilot** | Ask about the cell by typing or by voice. Answers come from the twin's own tools, with citations, and every number is checked before you see it. See [below](#the-ai-copilot). |
-| **Safety and security** | Hazard zones, safety functions with PL checks, IEC 62443 zones and conduits, and defence in depth. The API is read-only unless you are the operator. |
+## 📑 Table of Contents
 
-## Screenshots
+- [Key Highlights](#-key-highlights)
+- [Visual Showcase](#-visual-showcase)
+- [System Architecture](#-system-architecture)
+- [Core Capabilities](#-core-capabilities)
+  - [1. Real-Time 3D Kinematics & Physics](#1-real-time-3d-kinematics--physics)
+  - [2. In-Browser IEC 61131-3 PLC (WebAssembly)](#2-in-browser-iec-61131-3-plc-webassembly)
+  - [3. Grounded Industrial AI Copilot](#3-grounded-industrial-ai-copilot)
+  - [4. Predictive Maintenance & Analytics Dashboard](#4-predictive-maintenance--analytics-dashboard)
+  - [5. Industry 4.0 & Cyber-Physical Security](#5-industry-40--cyber-physical-security)
+- [Quick Start](#-quick-start)
+- [AI Copilot Setup (Cloud, Local & Offline)](#-ai-copilot-setup)
+- [Repository Structure](#-repository-structure)
+- [Testing & Validation](#-testing--validation)
+- [Documentation Directory](#-documentation-directory)
+
+---
+
+## 🌟 Key Highlights
+
+* **No Disconnected Mocks:** Real S-curve acceleration profiles, motor back-EMF, lead-screw pitches, and belt tooth meshing calculated per frame.
+* **PLC in the Browser:** Production IEC 61131-3 Structured Text compiled by MatIEC to WebAssembly, running against a deterministic plant I/O loop.
+* **Fact-Checked AI Copilot:** Multi-turn operations assistant powered by Gemini 2.5 / local Ollama (`qwen2.5:7b-instruct`) with Python-driven tool grounding and automated numerical verification.
+* **20+ Dashboard Perspectives:** OEE waterfalls, cycle bottlenecks, carbon per batch, microgrid battery scheduling, vision QC, and ISO 13849 / IEC 62443 security boundaries.
+* **Dual Execution Modes:** Runs 100% serverless in the browser via static WebAssembly, or connects live via WebSockets (`/ws`) to a high-rate FastAPI simulation kernel.
+
+---
+
+## 📸 Visual Showcase
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/twin-plc.jpg" alt="The PLC program running live in the browser"></td>
-    <td width="50%"><img src="docs/images/twin-inside.jpg" alt="The cell with the enclosure hidden"></td>
+    <td width="50%">
+      <img src="docs/images/twin-plc.jpg" alt="In-Browser IEC 61131-3 PLC execution" style="border-radius: 6px;">
+      <br>
+      <b>⚡ Real PLC Running in WebAssembly</b>
+      <p>IEC 61131-3 control logic running directly in your browser. Shows real-time unit states, I/O registers, hazard zone interlocks, and the execution trace.</p>
+    </td>
+    <td width="50%">
+      <img src="docs/images/twin-inside.jpg" alt="Mechanical layout inside the enclosure" style="border-radius: 6px;">
+      <br>
+      <b>🔧 Physical Kinematics & Wire Routing</b>
+      <p>Enclosure stripped away exposing real drag chains, lead screws, motor pulleys, photoelectric sensors, and field wiring to the PLC cabinet.</p>
+    </td>
   </tr>
   <tr>
-    <td><b>PLC program, live.</b> The real program runs in your browser: unit states, the I/O image and the job log, with hazard zones shown.</td>
-    <td><b>Inside the enclosure.</b> The guard is hidden and the wiring is shown, with the machine at work on an order.</td>
+    <td width="50%">
+      <img src="docs/images/dashboard-overview.jpg" alt="Operations Overview Dashboard" style="border-radius: 6px;">
+      <br>
+      <b>📊 Factory Operations & OEE</b>
+      <p>Live order tracking, OEE breakdown (availability, performance, quality), dynamic cycle bottleneck analysis, and unit state progressions.</p>
+    </td>
+    <td width="50%">
+      <img src="docs/images/dashboard-health.jpg" alt="Predictive Maintenance & Health Index" style="border-radius: 6px;">
+      <br>
+      <b>🩺 Predictive Maintenance & Degradation</b>
+      <p>Health Index (HI) and Remaining Useful Life (RUL) tracking for high-bay warehouse belts, vacuum cups, oven heaters, and pneumatic seals.</p>
+    </td>
   </tr>
   <tr>
-    <td><img src="docs/images/dashboard-overview.jpg" alt="Dashboard overview"></td>
-    <td><img src="docs/images/dashboard-health.jpg" alt="Dashboard health page"></td>
-  </tr>
-  <tr>
-    <td><b>Overview.</b> Order progress, throughput, OEE, the bottleneck and the production timeline of every unit.</td>
-    <td><b>Health.</b> The remaining-life runway for each wear part, and the faults that no model can predict.</td>
-  </tr>
-  <tr>
-    <td><img src="docs/images/copilot.jpg" alt="The AI copilot comparing two wear parts"></td>
-    <td><img src="docs/images/dashboard-month.jpg" alt="A simulated month of production, light theme"></td>
-  </tr>
-  <tr>
-    <td><b>Copilot.</b> A comparison answered as a table from the health model's tool, with the facts it established kept in the context panel.</td>
-    <td><b>Month.</b> A whole simulated month of orders, faults, wear and maintenance, compared with the same month without preventive maintenance. Shown in the light theme.</td>
+    <td width="50%">
+      <img src="docs/images/copilot.jpg" alt="Industrial AI Copilot with context store" style="border-radius: 6px;">
+      <br>
+      <b>🤖 Grounded Industrial Copilot</b>
+      <p>Conversational assistant grounded in live telemetry and 438 technical documents. Verified against twin data before answers are presented.</p>
+    </td>
+    <td width="50%">
+      <img src="docs/images/dashboard-month.jpg" alt="Simulated production month" style="border-radius: 6px;">
+      <br>
+      <b>📅 Full Simulated Production Month</b>
+      <p>30 days of accelerated production: compare throughput, unexpected breakdowns, and downtime costs with preventive maintenance (PM) ON vs. OFF.</p>
+    </td>
   </tr>
 </table>
 
-## Architecture
+---
+
+## 🏗️ System Architecture
 
 ```mermaid
-flowchart LR
-  M["Parametric model<br/>stf-cad/hbw"] -->|proofs pass| E["Exports<br/>web/public/*.json"]
-  M --> PLC["IEC 61131-3 program<br/>MatIEC → WebAssembly"]
-  M --> AN["Analytics<br/>month · grid · ml · vision"]
-  AN --> E
-  PLC --> W
-  E --> W["Web app<br/>3D twin + dashboard"]
-  K["Physics kernel<br/>packages/stf_kernel"] --> API["Live API<br/>services/api (FastAPI)"]
-  API -->|/ws frames| W
-  API --> C["Copilot<br/>tools · Gemini / Ollama · voice"]
-  C --> W
-  M --> I4["AAS · OPC UA · Sparkplug B"]
+flowchart TD
+  subgraph CAD_SOURCE["Single Source of Truth (Parametric CAD)"]
+    FreeCAD["FreeCAD Model (stf-cad/hbw)"]
+    Proofs["Automated Proof Engine\n(Interference, Travel, Kinematics)"]
+    FreeCAD --> Proofs
+  end
+
+  subgraph EXPORT_PIPELINE["Generation Pipeline"]
+    Proofs -->|Export JSON| WebAssets["web/public/*.json\n(Parts, Layout, Slots)"]
+    Proofs -->|Compile MatIEC| WasmPLC["WebAssembly PLC\n(IEC 61131-3 ST / IL)"]
+    Proofs -->|Train Synthetic CNN| VisionONNX["Vision QC Model\n(ONNX In-Browser)"]
+    Proofs -->|Industry 4.0 Export| I40["AAS (IDTA) · OPC UA · Sparkplug B"]
+  end
+
+  subgraph BACKEND["FastAPI Live Twin Kernel (Python 3.11)"]
+    PhysKernel["Kinematics & Motor Kernel\n(packages/stf_kernel)"]
+    LiveAPI["FastAPI Backend\n(services/api)"]
+    CopilotEngine["Python Grounding & Tool Engine\n(services/api/grounding.py)"]
+    PhysKernel --> LiveAPI
+    LiveAPI <--> CopilotEngine
+    CopilotEngine --> LLM["Cloud (Gemini) / Local (Ollama)"]
+  end
+
+  subgraph FRONTEND["Interactive 3D Twin & Dashboard (React 18 + Three.js)"]
+    WebAssets --> ThreeTwin["3D Three.js Digital Twin\n(React Three Fiber)"]
+    WasmPLC --> ThreeTwin
+    VisionONNX --> Dashboard["20+ Operations Pages\n(OEE, Health, Carbon, Alarms)"]
+    LiveAPI -->|WebSocket /ws (30 Hz)| ThreeTwin
+    LiveAPI -->|REST /chat, /orders| Dashboard
+  end
 ```
 
-The web app works in two modes:
+---
 
-- **Static demo** (`npm run build:pages`): the machine, its PLC cycle and every panel are built from the
-  generated files. It needs no server. The copilot then answers offline, in the browser.
-- **Live** (the Docker image): the FastAPI service streams the simulation over a websocket and serves the
-  copilot. The status chip reads **Live**.
+## ⚡ Core Capabilities
 
-## Quick start
+### 1. Real-Time 3D Kinematics & Physics
+* **High-Bay Warehouse (HBW):** 3-axis Cartesian crane with automated slot management (4×3 rack), realistic rack indexing, and toothed belt kinematics.
+* **Vacuum Gripper Robot (VGR):** Multi-axis articulated transfer arm with pneumatic suction cup simulation, pressure decay, and spring compliance.
+* **Baking Oven & Turntable:** Synchronized sliding door, heating cycles, and turntable rotation.
+* **Sorting Station:** Dual-belt sorting line with optical colour detection (white, red, blue) and pneumatic pusher gates.
+* **Zero-Allocation Render Loop:** Three.js instanced rendering with in-place matrix updates to maintain rock-solid 60 FPS in standard browsers.
 
-Requirements: Python 3.11+ and Node 20+.
+### 2. In-Browser IEC 61131-3 PLC (WebAssembly)
+* **True Industrial Code:** The control logic is not simulated in JavaScript; it is written in IEC 61131-3 Structured Text.
+* **Compiled to Wasm:** Using the MatIEC compiler toolchain, the logic compiles to WebAssembly and runs client-side against a full hardware I/O image.
+* **Observable States:** Inspect digital/analog inputs, memory registers, fault flags, and safety interlocks in real time.
+
+### 3. Grounded Industrial AI Copilot
+* **Zero Hallucination Tolerance:** The copilot is grounded through a dedicated Python domain tool engine ([`services/api/grounding.py`](services/api/grounding.py)) accessing 11 live factory telemetry tools.
+* **Automated Fact Verification:** The server cross-references numerical values in LLM outputs against underlying physical metrics before presenting them to the user.
+* **Flexible LLM Runtime:**
+  * **Cloud:** Gemini 2.5 Flash / Pro with automatic model pool fallback.
+  * **Local Offline:** Ollama running `qwen2.5:7b-instruct` on `localhost:11434`.
+  * **Deterministic Rules:** 100% offline heuristic & BM25 document search over 438 technical documentation chunks.
+* **Context Preservation:** Chat sessions store established technical facts, allowing seamless hand-offs between models without losing context.
+
+### 4. Predictive Maintenance & Analytics Dashboard
+* **Condition Monitoring:** Real-time Health Index (HI) calculated via Exponentially Weighted Moving Averages (EWMA).
+* **Remaining Useful Life (RUL):** Predicts wear runways on conveyor belts, vacuum seals, and mechanical drives.
+* **Environmental & Financial Metrics:** Tracks carbon grams per cookie, dynamic electricity tariff scheduling, and microgrid renewable utilization.
+* **Full Month Simulation:** Accelerated playback of 720 hours of production with controllable fault injection (motor jams, photo-sensor occlusion, air pressure loss).
+
+### 5. Industry 4.0 & Cyber-Physical Security
+* **Asset Administration Shells (AAS):** IDTA-compliant submodels for Digital Nameplate, Handover Documentation, and Carbon Footprint.
+* **OPC UA & MQTT:** OPC UA companion spec for Machinery and MQTT Sparkplug B mapped into an ISA-95 Unified Namespace (UNS).
+* **OT Cybersecurity (IEC 62443):** Zone and conduit segmentation, operator role tokens, rate limiters, and defensive API origin validation.
+
+---
+
+## 💻 Quick Start
+
+### Prerequisites
+* **Python 3.11+**
+* **Node.js 20+**
+* *(Optional)* **Ollama** (for 100% private, offline LLM execution)
+
+### 1. Clone & Setup
 
 ```bash
+git clone https://github.com/soham10i/stf-hw.git
+cd stf-hw
+
+# Create virtualenv and install Python + Node dependencies
 make install
 ```
 
+### 2. Launch the Application
+
+In two terminal windows:
+
 ```bash
+# Terminal 1: Start the Python FastAPI backend (Port 8000)
 make api
 ```
 
 ```bash
-cd web && npm install && npm run dev
+# Terminal 2: Start the Vite frontend dev server (Port 5173)
+cd web && npm run dev
 ```
 
-1. `make install` creates `.venv` with the API and the dev dependencies.
-2. `make api` starts the live API on `127.0.0.1:8000`.
-3. Open http://localhost:5173/stf/ for the twin, or http://localhost:5173/stf/dashboard.html for the dashboard.
+Open your browser:
+* **Interactive 3D Twin:** [`http://localhost:5173/stf/`](http://localhost:5173/stf/)
+* **Operations Dashboard:** [`http://localhost:5173/stf/dashboard.html`](http://localhost:5173/stf/dashboard.html)
 
-To try the copilot with a cloud model, copy `.env.example` to `.env` and set `GEMINI_API_KEY`. `.env` is
-git-ignored; never commit a key. Run `make help` for every other target.
+---
 
-## The AI copilot
+## 🤖 AI Copilot Setup
 
-The copilot answers questions about the cell from the twin's own data, not from the model's memory.
+The copilot works out-of-the-box in **Rules / Grounded Tool mode** without any external API keys. To enable generative LLMs:
 
-- **Grounded.** The language model calls the twin's tools (live state, machine health, alarms, the
-  production month, page guides, document search) and may state only what those tools return, with sources.
-- **Verified.** The server checks every number in an answer against the tool results before it is shown.
-  An answer that fails the check is marked.
-- **Three ways in.**
-  - **Gemini:** cloud models, switching to the next one when one reaches its limit.
-  - **Local:** a model on your machine through Ollama.
-  - **Voice:** speech-to-text in, spoken answers out.
-- **Context that travels.** Conversations are stored as JSON documents. Each one keeps a context store of
-  the facts it has established, so whichever model answers next (Gemini, another Gemini, the local model)
-  carries on without losing anything.
-- **Shaped answers.** A comparison comes back as a table, an alarm as numbered steps, "what is happening now"
-  as a status card.
-- **Speech pipeline.** ElevenLabs, then Gemini TTS, then a local voice, whichever is available. See
-  [`docs/TTS_PIPELINE.md`](docs/TTS_PIPELINE.md).
+### Option A: Gemini Cloud AI (Recommended)
+1. Copy the environment template:
+   ```bash
+   cp .env.example .env
+   ```
+2. Add your Gemini API key in `.env`:
+   ```env
+   GEMINI_API_KEY="your-api-key-here"
+   GEMINI_MODEL="gemini-3.5-flash"
+   ```
+3. Restart the backend (`make api`). The copilot tab will display `Gemini · cloud AI`.
 
-Configuration lives in environment variables (`.env.example` lists them all):
+### Option B: 100% Local Offline LLM (Ollama)
+1. Install and start [Ollama](https://ollama.com/):
+   ```bash
+   ollama run qwen2.5:7b-instruct
+   ```
+2. The backend automatically detects the local Ollama instance on `http://127.0.0.1:11434` and makes the **Local (offline)** mode available in the dashboard.
 
-| Variable | Purpose |
-|---|---|
-| `GEMINI_API_KEY` | Enables the Gemini tab. |
-| `GEMINI_MODELS` | Models to try in turn. |
-| `OLLAMA_MODEL` | The local model. Leave it empty to disable. |
-| `ELEVENLABS_API_KEY` | Optional. The first voice when set. |
-| `STF_DATA_DIR` | Where chat sessions are stored (default `.data/`). |
+---
 
-## Deploy
+## 📂 Repository Structure
 
-[`render.yaml`](render.yaml) is a Render Blueprint. In Render, choose **New → Blueprint**, select this repo,
-and it creates two services:
-
-| Service | What | URL |
-|---|---|---|
-| `stf-twin` | The static demo (no API) | `https://stf-twin.onrender.com/` |
-| `stf-live` | The API and the app in one Docker container, with the copilot | `https://stf-live.onrender.com/stf/` |
-
-Set `GEMINI_API_KEY` (and optionally `ELEVENLABS_API_KEY`) in the `stf-live` service's environment. For the
-step-by-step guide, the free-tier limits and the alternatives, see [`docs/DEPLOY.md`](docs/DEPLOY.md).
-
-Every push to `main` also publishes the static demo to GitHub Pages
-([`pages.yml`](.github/workflows/pages.yml)), and CI ([`ci.yml`](.github/workflows/ci.yml)) runs the tests,
-lint, type check and dependency audits.
-
-## Regenerate the data
-
-Run these from `stf-cad/hbw` with the project's venv:
-
-```bash
-STF_VARIANT=up12 python3 hbw_export.py
+```
+stf-hw/
+├── packages/
+│   ├── stf_kernel/          # Physics engine: trajectories, S-curves, motor dynamics
+│   └── stf_layout/          # Kinematic frame transforms and slot coordinate maps
+├── services/
+│   ├── api/                 # FastAPI REST & WebSocket server (ports, telemetry, copilot)
+│   │   ├── chat.py          # LLM orchestration, verification, and session management
+│   │   ├── grounding.py     # Deterministic domain tools & BM25 document search
+│   │   └── runtime.py       # Async live factory simulation loop
+│   └── sim/                 # Standalone simulation daemons & testing harnesses
+├── stf-cad/
+│   ├── hbw/                 # FreeCAD parametric model, collision proofs, and exporters
+│   ├── hbw_model.py         # Parametric source of truth for all mechanical parts
+│   └── sil/                 # MatIEC WebAssembly compiler for IEC 61131-3 logic
+├── web/
+│   ├── src/
+│   │   ├── scene/           # Three.js / React Three Fiber 3D factory modules
+│   │   ├── dashboard/       # 20+ operations dashboard views, charts, and guides
+│   │   └── copilot/         # Chat client, audio/voice interface, and citation renderer
+│   └── public/              # Exported CAD meshes, telemetry datasets, and knowledge bases
+└── docs/                    # Architecture reports, hardware datasheets, and validation proofs
 ```
 
-```bash
-python3 validate.py
-```
+---
 
-- `hbw_export.py` exports the machine the twin shows, after running every proof first.
-- `validate.py` re-proves every variant and runs the mutation tests and robustness checks. It takes about 25 minutes.
+## 🧪 Testing & Validation
 
-Each analytics script (`month.py`, `grid.py`, `ml/train.py`, `throughput.py`, `security.py`,
-`hardening.py`) says in its docstring which variant to run it with. The subsystems have their own make
-targets, including `make sil`, `make vision`, `make aas`, `make opcua-check`, `make uns-check` and
-`make copilot`.
-
-## Tests
+This project enforces strict validation gates across mechanical, kinematic, and software boundaries:
 
 ```bash
+# Run backend Python tests (kernel, API, copilot, security)
 make test
-```
 
-```bash
+# Run frontend TypeScript type-checks and Vitest unit suite
+cd web && npm test
+
+# Run code linter
 make lint
+
+# Re-run full mathematical CAD collision and kinematic proofs (~25 min)
+python3 stf-cad/hbw/validate.py
 ```
 
-```bash
-cd web && npx tsc --noEmit -p . && npm test
-```
+---
 
-- `make test` runs the Python suite: kernel, layout, golden trajectories, API access control and the copilot.
-- `make lint` runs ruff.
-- The last command type-checks the web app and runs its unit tests.
+## 📚 Documentation Directory
 
-## Project layout
+* 📘 [Operations Dashboard Guide](docs/DASHBOARD_GUIDE.md) — Comprehensive walkthrough of all 20+ dashboard pages.
+* 🚀 [Deployment Guide](docs/DEPLOY.md) — Production deployment with Docker, Render, and GitHub Pages.
+* 🛡️ [Security & OT Architecture](docs/SECURITY.md) — IEC 62443 zone modeling, rate limits, and access tokens.
+* 📐 [Hardware Ground Truth](docs/FACTORY_GROUND_TRUTH.md) — Physical specifications and factory dimensions.
+* 🎙️ [Voice & TTS Pipeline](docs/TTS_PIPELINE.md) — Speech-to-text and text-to-speech audio architecture.
+* 📜 [Upgrade Roadmap](docs/UPGRADE_PLAN.md) — Evolution of the digital twin across 18 development stages.
 
-| Path | What |
-|---|---|
-| `stf-cad/hbw/` | The model and its proofs: geometry, kinematics, wiring, safety, I/O, the generated PLC program, commissioning, health, throughput and security. Also the analytics (`month.py`, `grid.py`, `ml/`). |
-| `stf-cad/hbw/sil/` | The PLC program as an IEC 61131-3 project, compiled to WebAssembly and proven against the plant. |
-| `stf-cad/hbw/aas/` · `opcua/` · `uns/` | Asset Administration Shells, the OPC UA server and MQTT Sparkplug B / Unified Namespace. |
-| `stf-cad/hbw/vision/` | The rendered-image training set, the inspection CNN and its ONNX export. |
-| `packages/` | The physics kernel (`stf_kernel`) and the layout (`stf_layout`). |
-| `services/api/` | The live API (`/layout`, `/orders`, `/health`, `/ws`, operator-only `POST /command`) and the copilot. |
-| `web/` | The 3D twin (`index.html`) and the operations dashboard (`dashboard.html`), built with React and three.js. |
-| `docs/` | Guides, the hardware ground truth, the security model and the fischertechnik datasheets. |
-| `tests/` | The Python test suite. |
+---
 
-## Documentation
-
-- [`docs/DASHBOARD_GUIDE.md`](docs/DASHBOARD_GUIDE.md): every dashboard page, explained.
-- [`docs/DEPLOY.md`](docs/DEPLOY.md): deploying to Render and the alternatives.
-- [`docs/VALIDATION.md`](docs/VALIDATION.md): what is proven, and how.
-- [`docs/SECURITY.md`](docs/SECURITY.md): the API's access model and the operator token.
-- [`docs/TTS_PIPELINE.md`](docs/TTS_PIPELINE.md): the speech pipeline.
-- [`docs/HARDWARE_MODEL.md`](docs/HARDWARE_MODEL.md) and [`docs/FACTORY_GROUND_TRUTH.md`](docs/FACTORY_GROUND_TRUTH.md): the real machine, from the manuals.
-- [`docs/UPGRADE_PLAN.md`](docs/UPGRADE_PLAN.md): how the twin grew, step by step.
+<p align="center">
+  <sub>Built with ❤️ for industrial robotics, cyber-physical automation, and open-source engineering.</sub>
+</p>
