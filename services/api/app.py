@@ -16,7 +16,9 @@ Endpoints:
     GET  /chat/tts/status  the voice providers and which voice models have quota left
     POST /chat/tts      an answer read aloud: ElevenLabs, Gemini or the local voice (tts.py)
     POST /chat/stt      a recorded question (audio/webm ...) -> its transcript (tts.py)
-    GET  /copilot/sessions        the user's chat history (header X-STF-User)
+    GET  /guest         this visitor's guest session: since when, how many visits, which database
+    DELETE /guest       forget this guest: its conversations and photos; a new one starts
+    GET  /copilot/sessions        the guest's chat history
     GET  /copilot/sessions/{id}   one session: its turns and its context store
     DELETE /copilot/sessions/{id}
     POST /vision/captures   a photo from the inspection camera in the colour hood (captures.py)
@@ -44,10 +46,11 @@ from pydantic import BaseModel, Field
 
 from stf_layout import get_layout
 
+from . import guests as G
 from . import live, wire
 from . import security as sec
 from .captures import Captures
-from .chat import Chat, ChatRequest
+from .chat import Chat, ChatRequest, dotenv
 from .runtime import SimRuntime
 from .tts import Stt, Tts, TtsRequest
 
@@ -61,7 +64,10 @@ runtime = SimRuntime(time_scale=_TIME_SCALE)
 settings = sec.Settings.from_env()
 command_guard = sec.CommandGuard(settings)
 ws_clients = sec.ClientCounter(settings.max_ws_clients)
-chat = Chat(settings)
+# each visitor is a guest of their own (guests.py); the database keeps the guests and their
+# copilot sessions
+guests = G.Guests({**dotenv(), **os.environ})
+chat = Chat(settings, store=guests.db)
 tts = Tts(settings)
 stt = Stt(settings)
 captures = Captures(settings)
@@ -111,6 +117,34 @@ SECURITY_HEADERS = {
     "Permissions-Policy": "camera=(), microphone=(self), geolocation=(), usb=(), serial=()",
     "Cross-Origin-Opener-Policy": "same-origin",
 }
+
+
+# the paths that serve a guest's own data
+GUEST_PATHS = ("/chat", "/copilot", "/vision", "/twin", "/guest")
+
+
+@app.middleware("http")
+async def guest_session(request: Request, call_next):
+    """The request's guest, from its signed cookie or new: bound for the rest of the API, and
+    put in place of any X-STF-User the browser sent (the server decides who a guest is)."""
+    if not request.url.path.startswith(GUEST_PATHS):
+        return await call_next(request)
+    client = request.client.host if request.client else "?"
+    gid, new = guests.resolve(request.cookies.get(G.COOKIE), client)
+    request.scope["headers"] = [(k, v) for k, v in request.scope["headers"] if k != b"x-stf-user"]
+    request.scope["headers"].append((b"x-stf-user", gid.encode()))
+    token = G.bind(gid)
+    try:
+        response = await call_next(request)
+    finally:
+        G.unbind(token)
+    if new and not (request.url.path == "/guest" and request.method == "DELETE"):
+        response.headers.append("set-cookie", guests.cookie(gid, _https(request)))
+    return response
+
+
+def _https(request: Request) -> bool:
+    return request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
 
 
 @app.middleware("http")
@@ -190,6 +224,26 @@ async def stt_transcribe(request: Request) -> dict:
     return await stt.transcribe(request)
 
 
+@app.get("/guest")
+async def guest_status() -> dict:
+    """This visitor's guest session (guests.py): no personal data, only when and how often."""
+    return guests.status(G.current())
+
+
+@app.delete("/guest")
+async def guest_forget(request: Request) -> JSONResponse:
+    """Forget this guest: its copilot sessions, its photos and its live twin; the next request
+    starts a new guest."""
+    gid = G.current()
+    if gid:
+        guests.db.forget(gid)
+        captures.forget(gid)
+        live.drop(gid)
+    r = JSONResponse(content={"forgotten": True})
+    r.headers.append("set-cookie", guests.clear_cookie(_https(request)))
+    return r
+
+
 @app.get("/copilot/sessions")
 async def copilot_sessions(request: Request) -> dict:
     """The user's chat history, newest first (sessions.py, store.py)."""
@@ -214,12 +268,13 @@ async def vision_capture(request: Request) -> dict:
 
 @app.get("/vision/captures")
 async def vision_captures(limit: int = 48) -> dict:
-    return captures.list(limit)
+    """The guest's own photos, newest first."""
+    return captures.list(limit, G.current())
 
 
 @app.get("/vision/captures/{cid}.jpg")
 async def vision_capture_image(cid: str):
-    return captures.image(cid)
+    return captures.image(cid, G.current())
 
 
 _state_limit = sec.RateLimiter(rate=2.0, burst=4)
@@ -238,6 +293,8 @@ async def twin_state(request: Request) -> JSONResponse:
     client = request.client.host if request.client else "?"
     if client in ("127.0.0.1", "::1"):
         client = (request.headers.get("x-forwarded-for") or client).split(",")[0].strip()
+    # kept for the guest, so two visitors behind one address each have their own twin
+    client = G.current() or client
     if not _state_limit.allow(client):
         return JSONResponse(status_code=429, content={"error": "too often"})
     raw = await request.body()

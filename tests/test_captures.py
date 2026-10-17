@@ -13,6 +13,7 @@ from fastapi import HTTPException  # noqa: E402
 from starlette.requests import Request  # noqa: E402
 
 from services.api import captures as C  # noqa: E402
+from services.api import guests as G  # noqa: E402
 from services.api import security as sec  # noqa: E402
 
 SETTINGS = sec.Settings(("http://localhost:5173",), None, 4)
@@ -64,8 +65,13 @@ def make(tmp_path, **kw):
     return c
 
 
-def up(c, body, **kw):
-    return asyncio.run(c.upload(req(body, **kw)))
+def up(c, body, guest="a" * 32, **kw):
+    """An upload by `guest` (the API's guest middleware binds it for the request)."""
+    token = G.bind(guest)
+    try:
+        return asyncio.run(c.upload(req(body, **kw)))
+    finally:
+        G.unbind(token)
 
 
 def test_jpeg_size_reads_the_frame_header():
@@ -77,9 +83,22 @@ def test_a_photo_is_stored_and_listed_and_served(tmp_path):
     c = make(tmp_path)
     rec = up(c, jpeg())
     assert rec["flavour"] == "chocolate" and rec["n"] == 3 and (rec["w"], rec["h"]) == (256, 256)
-    listed = c.list()["captures"]
+    listed = c.list(owner="a" * 32)["captures"]
     assert [r["id"] for r in listed] == [rec["id"]]
-    assert c.image(rec["id"]).body == jpeg()
+    assert "owner" not in listed[0]
+    assert c.image(rec["id"], "a" * 32).body == jpeg()
+
+
+def test_a_guest_sees_and_opens_only_their_own_photos(tmp_path):
+    c = make(tmp_path)
+    mine = up(c, jpeg(), guest="a" * 32)
+    up(c, jpeg(), guest="b" * 32, client="10.0.0.2")
+    assert [r["id"] for r in c.list(owner="a" * 32)["captures"]] == [mine["id"]]
+    assert c.list()["captures"] == []                     # no guest: nothing
+    with pytest.raises(HTTPException):
+        c.image(mine["id"], "b" * 32)
+    c.forget("a" * 32)
+    assert c.list(owner="a" * 32)["captures"] == [] and len(c.list(owner="b" * 32)["captures"]) == 1
 
 
 @pytest.mark.parametrize(
@@ -126,9 +145,9 @@ def test_rate_per_client_and_daily_budget(tmp_path):
 def test_the_local_store_keeps_only_the_newest(tmp_path):
     s = C.LocalCaptures(str(tmp_path), keep=2)
     for i in range(4):
-        s.save({"id": f"{i:032x}", "t": float(i), "flavour": "vanilla"}, jpeg())
-    assert [r["t"] for r in s.list(10)] == [3.0, 2.0]
-    assert s.get(f"{0:032x}") is None and s.get("../../etc/passwd") is None
+        s.save({"id": f"{i:032x}", "t": float(i), "flavour": "vanilla", "owner": "g"}, jpeg())
+    assert [r["t"] for r in s.list(10, "g")] == [3.0, 2.0]
+    assert s.get(f"{0:032x}", "g") is None and s.get("../../etc/passwd", "g") is None
 
 
 def test_the_supabase_store_uses_a_private_bucket_and_a_table():
@@ -144,8 +163,8 @@ def test_the_supabase_store_uses_a_private_bucket_and_a_table():
     assert calls[0][:2] == ("POST", f"/storage/v1/object/captures/{'b' * 32}.jpg")
     assert calls[0][2]["Content-Type"] == "image/jpeg"
     assert calls[1][:2] == ("POST", "/rest/v1/captures")
-    assert s.list(5) == [{"id": "a" * 32}]
-    assert calls[-1][1].startswith("/rest/v1/captures?select=")
+    assert s.list(5, "g") == [{"id": "a" * 32}]
+    assert calls[-1][1].startswith("/rest/v1/captures?select=") and "owner=eq.g" in calls[-1][1]
 
 
 def test_the_store_is_chosen_from_the_environment(tmp_path):

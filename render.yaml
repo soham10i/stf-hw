@@ -49,7 +49,9 @@ services:
         generateValue: true
       - key: STF_MAX_WS_CLIENTS
         value: "16"
-      - key: GEMINI_API_KEY        # the dashboard chat; set it in the Render dashboard (never in git)
+      - key: GROQ_API_KEY          # the copilot's first model, and fast speech (chat.py, tts.py): set it here, never in git
+        sync: false
+      - key: GEMINI_API_KEY        # the copilot's fallback models; set it in the Render dashboard (never in git)
         sync: false
       - key: GEMINI_DAILY_LIMIT
         value: "300"
@@ -59,7 +61,16 @@ services:
         sync: false
       - key: OLLAMA_MODEL            # no local model on Render: Gemini models in turn, then the tools
         value: ""
-      - key: SUPABASE_URL            # optional: keep the camera's photos in Supabase (docs/CAPTURES.md)
+      - key: SUPABASE_URL            # optional: keep guests, chats and photos in Supabase (docs/DATABASE.md)
         sync: false
       - key: SUPABASE_SERVICE_KEY
         sync: false
+      # guest sessions (services/api/guests.py): each visitor is a guest of their own, in a cookie
+      # signed with this secret; the guests and their chats live in Supabase when its tables exist,
+      # else in SQLite on the service's disk (until the next deploy)
+      - key: STF_SESSION_SECRET
+        generateValue: true
+      - key: STF_DB
+        value: auto
+      - key: STF_GUEST_DAYS
+        value: "30"

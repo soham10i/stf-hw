@@ -1,8 +1,9 @@
 """
 The twin's live state for the chat: the open 3D twin posts a small snapshot every few seconds
 (POST /twin/state); the copilot's live_state tool reads the latest. Kept in memory only, one
-snapshot per client (so on a shared deployment each visitor's chat sees their own twin, and
-nobody can feed another visitor's chat), at most MAX_CLIENTS. A snapshot older than STALE_S
+snapshot per guest (guests.py; per address where there is no guest), so on a shared deployment
+each visitor's chat sees their own twin and nobody can feed another visitor's chat, at most
+MAX_CLIENTS. A snapshot older than STALE_S
 means the twin is closed, and the tool says so.
 """
 
@@ -11,6 +12,8 @@ from __future__ import annotations
 import json
 import time
 from typing import Any
+
+from . import guests
 
 STALE_S = 15.0
 MAX_BYTES = 8000
@@ -43,6 +46,11 @@ def put(snap: dict[str, Any], client: str = "local") -> None:
 def latest(client: str = "local") -> tuple[dict[str, Any] | None, float]:
     """The client's latest snapshot and its age in seconds, or (None, inf) when its twin is not
     open."""
-    snap, at = _by.get(client, (None, 0.0))
+    snap, at = _by.get(guests.current() or client, (None, 0.0))
     age = time.time() - at
     return (snap, age) if snap is not None and age <= STALE_S else (None, float("inf"))
+
+
+def drop(client: str) -> None:
+    """Forget a guest's snapshot (DELETE /guest)."""
+    _by.pop(client, None)

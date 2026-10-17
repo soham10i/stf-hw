@@ -9,7 +9,8 @@ The 3D twin renders the photo from the camera's own pose and optics and posts it
   GET  /vision/captures                                     the newest photos' records
   GET  /vision/captures/{id}.jpg                            one photo
 
-A record is {"id", "t", "flavour", "n", "source", "bytes", "w", "h"}. Two stores keep them:
+A record is {"id", "t", "flavour", "n", "source", "bytes", "w", "h", "owner"}: the owner is the
+guest who took it (guests.py), and a guest sees and opens only their own. Two stores keep them:
 
   LocalCaptures     files under STF_DATA_DIR/captures (the default): <id>.jpg + <id>.json,
                     the oldest pruned past STF_CAPTURE_KEEP. A host with an ephemeral disk
@@ -38,6 +39,7 @@ from typing import Protocol
 from fastapi import HTTPException, Request
 from fastapi.responses import Response
 
+from . import guests
 from . import security as sec
 from .chat import DailyCap, dotenv
 from .store import ROOT
@@ -70,8 +72,9 @@ class CaptureStore(Protocol):
     name: str
 
     def save(self, rec: dict, jpeg: bytes) -> None: ...
-    def list(self, limit: int) -> list[dict]: ...
-    def get(self, id: str) -> bytes | None: ...
+    def list(self, limit: int, owner: str) -> list[dict]: ...
+    def get(self, id: str, owner: str) -> bytes | None: ...
+    def forget(self, owner: str) -> None: ...
 
 
 class LocalCaptures:
@@ -116,15 +119,27 @@ class LocalCaptures:
                 except (OSError, ValueError):
                     pass
 
-    def list(self, limit: int) -> list[dict]:
-        return self._records()[:limit]
+    def list(self, limit: int, owner: str) -> list[dict]:
+        return [r for r in self._records() if r.get("owner") == owner][:limit]
 
-    def get(self, id: str) -> bytes | None:
+    def get(self, id: str, owner: str) -> bytes | None:
         try:
+            with open(self._p(id, "json"), encoding="utf-8") as f:
+                if json.load(f).get("owner") != owner:
+                    return None
             with open(self._p(id, "jpg"), "rb") as f:
                 return f.read()
         except (OSError, ValueError):
             return None
+
+    def forget(self, owner: str) -> None:
+        for r in self._records():
+            if r.get("owner") == owner:
+                for ext in ("jpg", "json"):
+                    try:
+                        os.remove(self._p(r["id"], ext))
+                    except (OSError, ValueError):
+                        pass
 
 
 class SupabaseCaptures:
@@ -151,12 +166,17 @@ class SupabaseCaptures:
             {"Content-Type": "application/json", "Prefer": "return=minimal"},
         )
 
-    def list(self, limit: int) -> list[dict]:
-        q = urllib.parse.urlencode({"select": "*", "order": "t.desc", "limit": str(limit)})
+    def list(self, limit: int, owner: str) -> list[dict]:
+        q = urllib.parse.urlencode(
+            {"select": "*", "owner": f"eq.{owner}", "order": "t.desc", "limit": str(limit)}
+        )
         return json.loads(self._req("GET", f"/rest/v1/{self.table}?{q}") or b"[]")
 
-    def get(self, id: str) -> bytes | None:
+    def get(self, id: str, owner: str) -> bytes | None:
         if not ID.match(id):
+            return None
+        q = urllib.parse.urlencode({"select": "id", "id": f"eq.{id}", "owner": f"eq.{owner}"})
+        if not json.loads(self._req("GET", f"/rest/v1/{self.table}?{q}") or b"[]"):
             return None
         try:
             return self._req("GET", f"/storage/v1/object/{self.bucket}/{id}.jpg")
@@ -164,6 +184,20 @@ class SupabaseCaptures:
             if e.code in (400, 404):
                 return None
             raise
+
+    def forget(self, owner: str) -> None:
+        q = urllib.parse.urlencode({"select": "id", "owner": f"eq.{owner}"})
+        ids = [r["id"] for r in json.loads(self._req("GET", f"/rest/v1/{self.table}?{q}") or b"[]")]
+        if ids:
+            self._req(
+                "DELETE",
+                f"/storage/v1/object/{self.bucket}",
+                json.dumps({"prefixes": [f"{i}.jpg" for i in ids]}).encode(),
+                {"Content-Type": "application/json"},
+            )
+        self._req(
+            "DELETE", f"/rest/v1/{self.table}?{urllib.parse.urlencode({'owner': f'eq.{owner}'})}"
+        )
 
 
 def store_from_env(env: dict | None = None) -> CaptureStore:
@@ -233,6 +267,7 @@ class Captures:
             "bytes": len(body),
             "w": size[0],
             "h": size[1],
+            "owner": guests.current() or "",
         }
         try:
             self.store.save(rec, body)
@@ -242,18 +277,28 @@ class Captures:
             ) from None
         return rec
 
-    def list(self, limit: int = 48) -> dict:
+    def list(self, limit: int = 48, owner: str | None = None) -> dict:
+        """The guest's photos (no guest: none)."""
         try:
-            items = self.store.list(max(1, min(limit, 200)))
+            items = self.store.list(max(1, min(limit, 200)), owner) if owner else []
         except (OSError, urllib.error.URLError, TimeoutError, ValueError):
             items = []
-        return {"captures": items, **self.status()}
+        return {
+            "captures": [{k: v for k, v in r.items() if k != "owner"} for r in items],
+            **self.status(),
+        }
 
-    def image(self, id: str) -> Response:
-        if not ID.match(id):
+    def forget(self, owner: str) -> None:
+        try:
+            self.store.forget(owner)
+        except (OSError, urllib.error.URLError, TimeoutError, ValueError):
+            pass
+
+    def image(self, id: str, owner: str | None = None) -> Response:
+        if not ID.match(id) or not owner:
             raise HTTPException(status_code=404, detail="no such photo")
         try:
-            b = self.store.get(id)
+            b = self.store.get(id, owner)
         except (OSError, urllib.error.URLError, TimeoutError):
             b = None
         if not b:
@@ -261,5 +306,5 @@ class Captures:
         return Response(
             b,
             media_type="image/jpeg",
-            headers={"Cache-Control": "public, max-age=86400, immutable"},
+            headers={"Cache-Control": "private, max-age=86400, immutable"},
         )

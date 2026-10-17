@@ -14,8 +14,13 @@ the camera photographs every baked cookie at the moment the cookie passes under 
 | Route | What it does |
 |---|---|
 | `POST /vision/captures?flavour=chocolate&n=3&source=twin` | Stores one photo. The body is the JPEG (`Content-Type: image/jpeg`). |
-| `GET /vision/captures?limit=48` | Returns the newest photos' records: `id`, `t`, `flavour`, `n`, `source`, `bytes`, `w`, `h`. |
-| `GET /vision/captures/{id}.jpg` | Returns one photo. |
+| `GET /vision/captures?limit=48` | Returns the guest's newest photos' records: `id`, `t`, `flavour`, `n`, `source`, `bytes`, `w`, `h`. |
+| `GET /vision/captures/{id}.jpg` | Returns one of the guest's photos. |
+
+Each photo belongs to the guest whose twin took it ([DATABASE.md](DATABASE.md)): a visitor sees and opens
+only their own. A table made before guests existed needs the column:
+`alter table public.captures add column owner text not null default '';
+create index captures_owner on public.captures (owner, t desc);`
 
 Uploads come from visitors' browsers, so every upload is checked:
 
@@ -49,9 +54,11 @@ Set `STF_CAPTURES=0` to turn photo capture off.
      source  text not null default 'twin',
      bytes   integer not null,
      w       integer not null,
-     h       integer not null
+     h       integer not null,
+     owner   text not null default ''        -- the guest who took it (docs/DATABASE.md)
    );
    create index captures_t on public.captures (t desc);
+   create index captures_owner on public.captures (owner, t desc);
    -- row-level security on and no policies: only the server's service key can read or write
    alter table public.captures enable row level security;
    ```

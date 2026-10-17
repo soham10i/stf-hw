@@ -58,6 +58,10 @@ Every push to `main` redeploys both. To deploy only the demo, delete the `stf-li
   header. Its own `https://…onrender.com` origin is allowed automatically (`RENDER_EXTERNAL_URL`); the
   API sends the same security headers as `vite preview` (`services/api/app.py`). See `docs/SECURITY.md`.
 - WebSocket clients are capped (`STF_MAX_WS_CLIENTS`, 16 on Render) and commands are rate-limited.
+- **Every visitor is a guest of their own** (a signed, HttpOnly cookie): their copilot conversations,
+  inspection photos and live twin are theirs alone. Render generates `STF_SESSION_SECRET`; guests and
+  their chats are kept in SQLite until the next deploy, or in Supabase across deploys. See
+  [DATABASE.md](DATABASE.md).
 
 ### The dashboard chat (Gemini)
 
