@@ -2,9 +2,8 @@
 
 /* ------------------------------------------------------------- Vision QC (Vision.tsx) */
 .vq-pic { image-rendering: pixelated; border-radius: 8px; display: block; }
-.vq-now { display: grid; grid-template-columns: auto auto minmax(220px, 1fr); gap: 16px; align-items: start; }
-@media (max-width: 1100px) { .vq-now { grid-template-columns: auto auto; } .vq-facts { grid-column: 1 / -1; } }
-@media (max-width: 760px) { .vq-now { grid-template-columns: 1fr 1fr; } .vq-facts { grid-column: 1 / -1; } }
+.vq-now { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.vq-now .vq-facts { flex: 1 1 260px; }
 .vq-now figure { margin: 0; display: grid; gap: 4px; justify-items: center; }
 .vq-now figcaption { font-size: var(--fs-caption); color: var(--faint); }
 .vq-facts { margin: 0; display: grid; gap: 7px; font-size: var(--fs-body); }
@@ -57,3 +56,27 @@
 .vq-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; margin: 6px 0 8px; }
 .vq-photos a { display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--muted); font-size: var(--fs-caption); text-decoration: none; }
 .vq-photos img { width: 100%; height: auto; aspect-ratio: 1; border-radius: 6px; border: 1px solid var(--border); object-fit: cover; }
+
+/* the inspection camera: the twin's live view beside the last cookie judged */
+.vq-live h3 { flex-wrap: wrap; }
+.vq-src { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 99px; font-size: var(--fs-callout); font-weight: 500;
+  background: var(--raised); color: var(--muted); }
+.vq-src.twin { background: var(--ok-weak); color: var(--ok); }
+.vq-src.twin i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.vq-count { margin-left: auto; font-style: normal; font-size: var(--fs-callout); font-weight: 400; color: var(--muted); }
+.vq-cam { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 1100px) { .vq-cam { grid-template-columns: 1fr; } }
+.vq-feed { margin: 0; display: grid; gap: 6px; justify-items: center; }
+.vq-feed figcaption { font-size: var(--fs-caption); color: var(--faint); }
+.vq-feed-box { position: relative; width: 288px; height: 288px; border-radius: 12px; overflow: hidden; background: #000; }
+.vq-feed-box canvas { width: 100%; height: 100%; display: block; }
+.vq-feed-off { position: absolute; inset: 0; display: grid; align-content: center; justify-items: center; gap: 8px; padding: 22px; text-align: center;
+  background: var(--surface-2); border: 1px dashed var(--border); border-radius: 12px; }
+.vq-feed-off b { font-size: var(--fs-body); }
+.vq-feed-off span { font-size: var(--fs-callout); color: var(--muted); line-height: 1.45; }
+.vq-live-tag { position: absolute; top: 10px; left: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 6px;
+  background: rgba(0, 0, 0, .6); color: #fff; font: 600 var(--fs-caption) var(--font); letter-spacing: .06em; }
+.vq-live-tag i { width: 7px; height: 7px; border-radius: 50%; background: #ff453a; animation: vq-blink 1.2s infinite; }
+.vq-photo { border-radius: 8px; display: block; }
+.vq-thumb img { display: block; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) { .vq-live-tag i { animation: none; } }

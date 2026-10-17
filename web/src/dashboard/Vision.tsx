@@ -1,14 +1,17 @@
-// Vision QC: the inspection camera's live feed. Every cookie the line makes is photographed
-// (the camera in the colour hood, vision/mount.py), classified by the CNN, scored by the
-// autoencoder and checked against what the simulation knows - is the model still right?
-// With the 3D twin open in another tab, the feed photographs the twin's own cookies.
+// Vision QC: the inspection camera. Every cookie the line makes is photographed (the camera in
+// the colour hood, vision/mount.py), classified by the CNN, scored by the autoencoder and
+// checked against what the simulation knows - is the model still right?
+// With the 3D twin open, this is the twin's own camera: its live view, streamed while this page
+// is open and never stored, and its photo of each cookie, judged here and stored by the API.
+// Without it, a simulated line draws the images (vision/render.ts).
 import { Dumbbell, Plot } from "./Plot";
 import { roll } from "./Month";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { loadJson, useJson } from "../shared/data";
 import { decodeAe, type Ae } from "../vision/ae";
 import { decode, type Cnn } from "../vision/cnn";
-import { CHANNEL, LiveLine, SCENARIOS, drift, tally, type Frame, type Scenario } from "../vision/live";
+import { LiveLine, SCENARIOS, drift, tally, type Frame, type Scenario } from "../vision/live";
+import { prepare, useTwinCamera } from "../vision/twinCamera";
 import { chw, rgba, type RenderParams } from "../vision/render";
 import { OnlineBn, decodeAdapt, forwardBn, verdictOf, type AdaptNet, type Domain } from "../vision/adapt";
 import { HBar } from "./Plot";
@@ -167,6 +170,33 @@ function Adaptation({ ab, net, on, setOn, reset }: { ab: AB[]; net: AdaptNet; on
   );
 }
 
+const BASE = import.meta.env.BASE_URL;
+
+/** The twin camera's live view: the latest frame, drawn as it comes and then dropped. */
+function LiveView({ frame, fps }: { frame: { bmp: ImageBitmap; lit: boolean } | null; fps: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = ref.current;
+    if (c && frame) c.getContext("2d")?.drawImage(frame.bmp, 0, 0, c.width, c.height);
+  }, [frame]);
+  return (
+    <figure className="vq-feed">
+      <div className="vq-feed-box">
+        <canvas ref={ref} width={256} height={256} hidden={!frame} aria-label="The inspection camera's live view" />
+        {!frame && (
+          <div className="vq-feed-off">
+            <b>The twin's camera is not streaming</b>
+            <span>Open the 3D twin in a window beside this one: its camera in the colour hood shows here, live. A hidden tab pauses the twin, and the feed with it.</span>
+            <a className="ui-btn" href={BASE} target="stf-twin" rel="noopener">Open the 3D twin</a>
+          </div>
+        )}
+        {frame && <span className="vq-live-tag"><i />LIVE</span>}
+      </div>
+      <figcaption>{frame ? `live view · ${fps.toFixed(0)} fps · ${frame.lit ? "ring light strobing" : "waiting for a cookie"} · not recorded` : "live view · not recorded"}</figcaption>
+    </figure>
+  );
+}
+
 export function VisionPage() {
   const { m, err } = useModels();
   const { data: cam } = useJson<Camera>("vision/camera.json");
@@ -186,7 +216,11 @@ export function VisionPage() {
   const line = useMemo(() => (m ? new LiveLine(m.P, m.cnn, m.ae) : null), [m]);
   const opts = useRef({ scenario, defect, age, passP });
   opts.current = { scenario, defect, age, passP };
-  const push = (f: Frame) => setFrames((fs) => [...fs.slice(-(KEEP - 1)), f]);
+  const push = (f: Frame) => setFrames((fs) => {
+    // the photos held for display go with their frames
+    fs.slice(0, Math.max(0, fs.length - (KEEP - 1))).forEach((o) => o.photo && URL.revokeObjectURL(o.photo));
+    return [...fs.slice(-(KEEP - 1)), f];
+  });
 
   // the simulated line: a cookie every 60/rate s, flavours in turn - paused while the twin feeds us
   useEffect(() => {
@@ -198,18 +232,17 @@ export function VisionPage() {
     }, 60000 / rate);
     return () => window.clearInterval(id);
   }, [line, run, rate, twinAt, m]);
-  // the 3D twin's cookies, as its camera photographs them
-  useEffect(() => {
-    if (!line) return;
-    let ch: BroadcastChannel | null = null;
-    try { ch = new BroadcastChannel(CHANNEL); } catch { return; }
-    ch.onmessage = (e) => {
-      if (!run) return;
-      setTwinAt(Date.now());
-      push(line.capture(e.data.flavour, { ...opts.current, source: "twin" }));
-    };
-    return () => ch?.close();
-  }, [line, run]);
+  // the 3D twin's camera: its live view, and its photo of each cookie, judged by the models
+  const runRef = useRef(run);
+  runRef.current = run;
+  const { frame: liveFrame, fps } = useTwinCamera((p) => {
+    if (!line || !m || !runRef.current) return;
+    setTwinAt(Date.now());
+    prepare(p, m.P.N, m.P.REF)
+      .then(({ img }) => push({ ...line.inspect(img, p.flavour, opts.current.passP), photo: URL.createObjectURL(p.jpeg) }))
+      .catch(() => { /* a photo that would not decode */ });
+  });
+  useEffect(() => { if (liveFrame) setTwinAt(Date.now()); }, [liveFrame]);
 
   const ab = useAdaptation(frames, adaptOn, adaptNet, adaptEpoch);
   if (err) return <div className="db-err">{err}</div>;
@@ -236,25 +269,37 @@ export function VisionPage() {
 
       <div className="db-grid">
         <section className="db-card wide vq-live">
-          <h3>Live camera <span className={`vq-dot ${run ? "on" : ""}`} />{last ? `cookie #${last.n}` : "waiting for a cookie"}</h3>
-          {last ? (
-            <div className="vq-now">
-              <figure><Pic img={last.img} N={N} scale={3} /><figcaption>camera · {cam ? `${cam.fov_mm.toFixed(0)} mm field` : ""}</figcaption></figure>
-              <figure><Pic img={last.img} N={N} scale={3} err={last.ae.err} max={errMax} /><figcaption>autoencoder error</figcaption></figure>
-              <dl className="vq-facts">
-                <div><dt>truth (simulation)</dt><dd>{last.flavour} · <b>{last.truth}</b></dd></div>
-                <div><dt>CNN</dt><dd>{last.pred.flavour} · <b>{last.pred.condition}</b> ({pct(last.pred.pc)})</dd></div>
-                <div><dt>decision</dt><dd className={`vq-v ${last.pred.verdict}`}>{last.pred.verdict === "pass" ? "pass" : last.pred.verdict === "reject" ? "reject" : "to a person"}
-                  <span className={`vq-tag ${verdictCls(last)}`}>{{ right: "right", escape: "ESCAPE", false: "false reject", check: "unsure" }[verdictCls(last)]}</span></dd></div>
-                <div><dt>autoencoder</dt><dd>{last.ae.anomaly ? <b className="vq-bad">unusual</b> : "looks normal"} · score {(last.ae.score / m.ae.threshold).toFixed(2)}× threshold</dd></div>
-                <div><dt>source</dt><dd>{last.source === "twin" ? "a cookie the 3D twin baked" : "the simulated line"}</dd></div>
-              </dl>
-            </div>
-          ) : <p className="db-muted">The first cookie reaches the camera in a moment.</p>}
+          <h3>Inspection camera
+            {twin ? <span className="vq-src twin"><i />3D twin's camera</span> : <span className="vq-src">simulated line</span>}
+            <em className="vq-count">{last ? `cookie #${last.n}` : "waiting for a cookie"}</em></h3>
+          <div className="vq-cam">
+            <LiveView frame={liveFrame} fps={fps} />
+            {last ? (
+              <div className="vq-now">
+                <figure>
+                  {last.photo ? <img className="vq-photo" src={last.photo} alt={`Photo of cookie #${last.n}, ${last.flavour}`} width={N * 3} height={N * 3} />
+                    : <Pic img={last.img} N={N} scale={3} />}
+                  <figcaption>{last.photo ? "photo · stored" : "drawn image"} · {cam ? `${cam.fov_mm.toFixed(0)} mm field` : ""}</figcaption>
+                </figure>
+                {last.photo && (
+                  <figure><Pic img={last.img} N={N} scale={3} /><figcaption title="The cookie found against the empty hood; everything else set to the belt's colour, as in the training images">as the models see it</figcaption></figure>
+                )}
+                <figure><Pic img={last.img} N={N} scale={3} err={last.ae.err} max={errMax} /><figcaption>autoencoder error</figcaption></figure>
+                <dl className="vq-facts">
+                  <div><dt>truth (simulation)</dt><dd>{last.flavour} · <b>{last.truth}</b>{last.source === "twin" ? " (the twin bakes every cookie right)" : ""}</dd></div>
+                  <div><dt>CNN</dt><dd>{last.pred.flavour} · <b>{last.pred.condition}</b> ({pct(last.pred.pc)})</dd></div>
+                  <div><dt>decision</dt><dd className={`vq-v ${last.pred.verdict}`}>{last.pred.verdict === "pass" ? "pass" : last.pred.verdict === "reject" ? "reject" : "to a person"}
+                    <span className={`vq-tag ${verdictCls(last)}`}>{{ right: "right", escape: "ESCAPE", false: "false reject", check: "unsure" }[verdictCls(last)]}</span></dd></div>
+                  <div><dt>autoencoder</dt><dd>{last.ae.anomaly ? <b className="vq-bad">unusual</b> : "looks normal"} · score {(last.ae.score / m.ae.threshold).toFixed(2)}× threshold</dd></div>
+                  <div><dt>source</dt><dd>{last.source === "twin" ? "the 3D twin's camera, as the cookie passed the lens" : "the simulated line"}</dd></div>
+                </dl>
+              </div>
+            ) : <p className="db-muted">The first cookie reaches the camera in a moment.</p>}
+          </div>
           <div className="vq-strip">
             {frames.slice(-14).reverse().map((f) => (
               <div key={f.n} className={`vq-thumb ${verdictCls(f)}`} title={`#${f.n} ${f.flavour}: truth ${f.truth}, CNN ${f.pred.condition} → ${f.pred.verdict}${f.ae.anomaly ? ", autoencoder: unusual" : ""}`}>
-                <Pic img={f.img} N={N} scale={1} />
+                {f.photo ? <img src={f.photo} alt="" width={N} height={N} /> : <Pic img={f.img} N={N} scale={1} />}
               </div>
             ))}
           </div>
@@ -277,7 +322,8 @@ export function VisionPage() {
           <label className="vq-row"><span>Defect rate</span><input type="range" min={0} max={0.4} step={0.01} value={defect} onChange={(e) => setDefect(+e.target.value)} /><b>{pct(defect)}</b></label>
           <label className="vq-row" title="A cookie passes only if the CNN gives 'ok' at least this probability. Higher: fewer defects escape, more good cookies are thrown out."><span>Pass threshold</span><input type="range" min={0.5} max={0.99} step={0.01} value={passP} onChange={(e) => setPassP(+e.target.value)} /><b>{passP.toFixed(2)}</b></label>
           <label className="vq-row"><span>Cookies per minute</span><input type="range" min={6} max={120} step={2} value={rate} onChange={(e) => setRate(+e.target.value)} /><b>{rate}</b></label>
-          <p className="db-muted small">{twin ? "The 3D twin is open: its cookies are photographed as they pass the camera." : "Open the 3D twin in another tab and its cookies are photographed instead."}</p>
+          <p className="db-muted small">{twin ? "The 3D twin's camera is streaming: its cookies are judged here as it photographs them, and the simulated line waits."
+            : "Open the 3D twin beside this page and its camera takes over: its live view, and its photo of each cookie it bakes."}</p>
         </section>
 
         <section className="db-card">

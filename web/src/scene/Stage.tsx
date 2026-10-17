@@ -15,7 +15,8 @@ import { useJson } from "../shared/data";
 import { PreciseLibCtx, PreciseLoader, PreciseScope, type PreciseLib } from "./Precise";
 
 import type { CadDoc, PlanKey } from "../shared/model";
-import { MM, RackBadge, v } from "./parts";
+import { MM, RackBadge, TrimsCtx, v } from "./parts";
+import { jointTrims } from "./joints";
 import { useCellModel, useCellStore, type CellStore, type Drive } from "./store/useCellStore";
 import { CellCoordinator } from "./engine/CellCoordinator";
 import { localPersistence } from "./engine/persistence";
@@ -228,6 +229,9 @@ export function HbwCadStage({ doc, showZones = false, netZones = false, showCove
   const raw = useCellModel((m) => m.rawColour);
   const vgrDrive = useRef<Drive>({ travel: 0, lift: 0, fork: 0, belt: 0, plunge: 0, reach: 0, swivel: 0 });
   const target = useCameraRig(doc);
+  // each module's joints, drawn trimmed where one part is slotted into another (joints.ts)
+  const trims = useMemo(() => ({ hbw: jointTrims(doc.parts), vgr: jointTrims(doc.vgr.parts), oven: jointTrims(doc.oven.parts),
+    sorting: jointTrims(doc.sorting.parts) }), [doc]);
   // the loading screen lifts once the precise meshes are in (or when there are none to wait for)
   useEffect(() => { if (precise || !doc.upgrade) markStageReady(); }, [precise, doc.upgrade]);
   return (
@@ -259,7 +263,7 @@ export function HbwCadStage({ doc, showZones = false, netZones = false, showCove
       <group scale={[1, 1, -1]}>
       <FactoryTable doc={doc} />
       <group position={[doc.factory.vgr_at[0] * MM, 0, doc.factory.vgr_at[1] * MM]}>
-        <PreciseScope module="vgr"><VgrModule doc={doc} drive={vgrDrive} joints={J.vgr} /></PreciseScope>
+        <TrimsCtx.Provider value={trims.vgr}><PreciseScope module="vgr"><VgrModule doc={doc} drive={vgrDrive} joints={J.vgr} /></PreciseScope></TrimsCtx.Provider>
       </group>
       {/* the oven is rotated +90 about the factory Z like the sorting line:
           its Ofenschieber points back at the VGR, its belt runs to the front */}
@@ -267,7 +271,7 @@ export function HbwCadStage({ doc, showZones = false, netZones = false, showCove
         position={[doc.factory.oven_placement.translate[0] * MM, 0, doc.factory.oven_placement.translate[1] * MM]}
         rotation={[0, THREE.MathUtils.degToRad(-doc.factory.oven_placement.rotate_deg), 0]}
       >
-        <PreciseScope module="oven"><OvenModule doc={doc} joints={J.oven} /></PreciseScope>
+        <TrimsCtx.Provider value={trims.oven}><PreciseScope module="oven"><OvenModule doc={doc} joints={J.oven} /></PreciseScope></TrimsCtx.Provider>
       </group>
       <group
         position={[
@@ -276,9 +280,9 @@ export function HbwCadStage({ doc, showZones = false, netZones = false, showCove
         ]}
         rotation={[0, -Math.PI / 2, 0]}
       >
-        <PreciseScope module="sorting">
-          <SortingModule doc={doc} joints={J} onPhoto={(b, s) => void keep(b, s.label, s.n)} />
-        </PreciseScope>
+        <TrimsCtx.Provider value={trims.sorting}><PreciseScope module="sorting">
+          <SortingModule doc={doc} joints={J} onPhoto={(b, e, s) => void keep(b, e, s.label, s.n)} />
+        </PreciseScope></TrimsCtx.Provider>
       </group>
       <FlowCookie workpiece={J.workpiece} />
       <FlowBarriers doc={doc} workpiece={J.workpiece} />
@@ -301,7 +305,7 @@ export function HbwCadStage({ doc, showZones = false, netZones = false, showCove
       >
         {coord && (
           <>
-            <PreciseScope module="hbw"><HbwCad doc={doc} joints={J} slots={rack} /></PreciseScope>
+            <TrimsCtx.Provider value={trims.hbw}><PreciseScope module="hbw"><HbwCad doc={doc} joints={J} slots={rack} /></PreciseScope></TrimsCtx.Provider>
             <RackBadge doc={doc} rack={rack} raw={raw} />
           </>
         )}

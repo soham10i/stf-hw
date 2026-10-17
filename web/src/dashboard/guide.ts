@@ -100,15 +100,16 @@ export const GUIDE: Record<string, PageGuide> = {
   },
   vision: {
     title: "Vision QC",
-    what: "The inspection camera's live feed: every cookie photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.",
+    what: "The inspection camera: its live view, and every cookie photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.",
     read: [
-      "Watch the live camera: the image, the CNN's answer and decision, and the autoencoder's error map (hot = not as a good cookie looks).",
+      "Open the 3D twin in a window beside this page: its camera in the colour hood streams here live (never recorded), and the photo it takes of each cookie is judged here (and stored by the server).",
+      "For each cookie: the photo, the CNN's answer and decision, and the autoencoder's error map (hot = not as a good cookie looks).",
       "The KPIs and the confusion matrix say how right the CNN is over the last 50 cookies; escapes are defects it let through.",
       "Change the conditions (ageing light, a warmer lamp, a worn belt) and watch the drift chart rise before the CNN's answers go wrong.",
-      "With the 3D twin open in another tab, the feed photographs the twin's own cookies.",
+      "Without the twin, a simulated line draws the images, with the defects and conditions set under 'The line'.",
     ],
     sections: [
-      ["Live camera", "The latest cookie: camera image, autoencoder error map, truth, the CNN's answer and the line's decision, and a strip of recent cookies."],
+      ["Inspection camera", "The twin camera's live view (not recorded); the latest cookie's photo, its autoencoder error map, truth, the CNN's answer and the line's decision; and a strip of recent cookies."],
       ["The line", "Run or pause, the conditions, the defect rate the simulation injects and the line's speed."],
       ["Confusion (last 50)", "Truth against the CNN's answer for each condition: everything off the diagonal is a mistake."],
       ["Drift", "The autoencoder's error on normal-looking cookies against its training baseline; above ×2 the line no longer looks like training."],

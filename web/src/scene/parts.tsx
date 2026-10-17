@@ -3,7 +3,7 @@
 
 import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { VIEW } from "../coords";
 import { ThreadedRod } from "./ThreadedRod";
@@ -16,6 +16,7 @@ import { Suspense } from "react";
 import { MM_TO_SCENE, PreciseMesh, depthBias, usePrecise } from "./Precise";
 
 import { type CadPart, type CadDoc, boxSize, cylSpec } from "../shared/model";
+import { Trimmed, type Trim } from "./joints";
 import type { Drive, Tint } from "./store/useCellStore";
 
 
@@ -173,7 +174,19 @@ function BeltStrip({
 
 const BAND_MM = 10; // one texture band per 10 mm of belt
 
-export function Solid({ part, drive, pitch, tex, drumD }: {
+/** The trims of the parts drawn below (scene/joints.ts), by part name; each module provides its own. */
+export const TrimsCtx = createContext<Map<string, Trim[]> | null>(null);
+
+/** One exported part, drawn trimmed where it is slotted into another (scene/joints.ts). */
+export function Solid(props: {
+  part: CadPart; drive: React.MutableRefObject<Drive>; pitch: number; tex: THREE.Texture;
+  drumD?: number;
+}) {
+  const trims = useContext(TrimsCtx)?.get(props.part.n);
+  return trims ? <Trimmed trims={trims}><SolidBody {...props} /></Trimmed> : <SolidBody {...props} />;
+}
+
+function SolidBody({ part, drive, pitch, tex, drumD }: {
   part: CadPart; drive: React.MutableRefObject<Drive>; pitch: number; tex: THREE.Texture;
   drumD?: number;
 }) {
@@ -221,8 +234,34 @@ export function Solid({ part, drive, pitch, tex, drumD }: {
   );
 }
 
-/** The cookie: one 20 mm puck. z = its underside. Its colour can follow a hot
-    object, so the same mesh shows raw dough and then the baked flavour. */
+/** The cookie: 45 mm across, 20 mm high, its top a dome - the "shallow dome" the vision models
+    were trained on (stf-cad/hbw/vision/render.py shades the cookie 1 - k d^2 from its centre).
+    Under the hood's even ring light a surface's brightness is the cosine of its slope, so the
+    dome is the profile whose cosine is that shading, k = 0.3 (the least the trained models read
+    as a whole, good cookie: a flat top they call chipped): 16.6 mm of dome on a 3.4 mm wall.
+    z = its underside. */
+const COOKIE_R = 22.5, COOKIE_H = 20, DOME_K = 0.3;
+const DOME_GEO = (() => {
+  const n = 24, prof: THREE.Vector2[] = [];
+  // the dome's height below its crown at d = r / R, from its slope: tan = sqrt(1 - c^2) / c
+  const slope = (d: number) => { const c = (1 - DOME_K * d * d) ** 2.2; return Math.sqrt(1 - c * c) / c; };
+  const drop = [0];
+  for (let i = 1; i <= n; i++) {
+    const a = (i - 1) / n, b = i / n;
+    drop.push(drop[i - 1] + ((slope(a) + slope(b)) / 2) * (b - a) * COOKIE_R);
+  }
+  for (let i = 0; i <= n; i++) prof.push(new THREE.Vector2((i / n) * COOKIE_R * MM, (COOKIE_H - drop[i]) * MM));
+  // from the rim up to the crown, so the faces look outward; the wall is a mesh of its own, so
+  // the rim's normals are the dome's, not averaged with the wall's (that drew a dark ring)
+  return new THREE.LatheGeometry(prof.reverse(), 48);
+})();
+const WALL_H = 20 - (() => {
+  let d = 0;
+  const slope = (x: number) => { const c = (1 - DOME_K * x * x) ** 2.2; return Math.sqrt(1 - c * c) / c; };
+  for (let i = 1; i <= 24; i++) d += ((slope((i - 1) / 24) + slope(i / 24)) / 2) * (COOKIE_R / 24);
+  return d;
+})();
+const WALL_GEO = new THREE.CylinderGeometry(COOKIE_R * MM, COOKIE_R * MM, WALL_H * MM, 48).translate(0, (WALL_H / 2) * MM, 0);
 
 const DOUGH = "#D8B98C";
 
@@ -254,8 +293,10 @@ export function Cookie({
 }: {
   x: number; y: number; z: number; colour?: string; tint?: Tint;
 }) {
-  const r = 22.5 * MM;
-  const mat = useRef<THREE.MeshStandardMaterial>(null);
+  // baked dough is matte: no glare back into the inspection camera's lens
+  const material = useMemo(() => new THREE.MeshPhysicalMaterial({ roughness: 0.9, specularIntensity: 0 }), []);
+  useEffect(() => () => material.dispose(), [material]);
+  const mat = useRef(material);
   useFrame(() => {
     if (!tint || !mat.current) return;
     mat.current.color.copy(tint.color);
@@ -272,11 +313,8 @@ export function Cookie({
   });
   return (
     <group position={v(x, y, z)}>
-      <mesh position={[0, 10 * MM, 0]} castShadow>
-        <cylinderGeometry args={[r, r, 20 * MM, 32]} />
-        {/* baked dough is matte: no glare back into the inspection camera's lens */}
-        <meshStandardMaterial ref={mat} color={colour} roughness={0.9} />
-      </mesh>
+      <mesh geometry={DOME_GEO} material={material} castShadow />
+      <mesh geometry={WALL_GEO} material={material} castShadow />
     </group>
   );
 }

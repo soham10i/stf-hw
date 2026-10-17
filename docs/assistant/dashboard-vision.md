@@ -2,24 +2,25 @@
 
 Dashboard group: Operate. Page id: `vision`.
 
-The inspection camera's live feed: every cookie photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.
+The inspection camera: its live view, and every cookie photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.
 
 ## In brief
 
-The inspection camera's live feed: every cookie photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.
+The inspection camera: its live view, and every cookie photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.
 
 ## How to read it
 
-1. Watch the live camera: the image, the CNN's answer and decision, and the autoencoder's error map (hot = not as a good cookie looks).
-2. The KPIs and the confusion matrix say how right the CNN is over the last 50 cookies; escapes are defects it let through.
-3. Change the conditions (ageing light, a warmer lamp, a worn belt) and watch the drift chart rise before the CNN's answers go wrong.
-4. With the 3D twin open in another tab, the feed photographs the twin's own cookies.
+1. Open the 3D twin in a window beside this page: its camera in the colour hood streams here live (never recorded), and the photo it takes of each cookie is judged here (and stored by the server).
+2. For each cookie: the photo, the CNN's answer and decision, and the autoencoder's error map (hot = not as a good cookie looks).
+3. The KPIs and the confusion matrix say how right the CNN is over the last 50 cookies; escapes are defects it let through.
+4. Change the conditions (ageing light, a warmer lamp, a worn belt) and watch the drift chart rise before the CNN's answers go wrong.
+5. Without the twin, a simulated line draws the images, with the defects and conditions set under 'The line'.
 
 ## Sections
 
-### Live camera
+### Inspection camera
 
-The latest cookie: camera image, autoencoder error map, truth, the CNN's answer and the line's decision, and a strip of recent cookies.
+The twin camera's live view (not recorded); the latest cookie's photo, its autoencoder error map, truth, the CNN's answer and the line's decision; and a strip of recent cookies.
 
 ### The line
 

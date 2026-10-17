@@ -13,7 +13,7 @@ import { useJson } from "../shared/data";
 import type { CadPart, CadDoc } from "../shared/model";
 import type { CellJoints, Drive } from "./store/useCellStore";
 import { MM, v, Solid, useBeltTexture } from "./parts";
-import { FEED_MS, INSPECT_LAYER, expose, jpeg, visionChannel } from "../vision/photo";
+import { FEED_MS, INSPECT_LAYER, expose, inspected, jpeg, visionChannel } from "../vision/photo";
 
 /** the ring light's flash at the lens, candela: ~2 lx-equivalent on the cookie 27 mm below */
 const FLASH = 0.004;
@@ -36,7 +36,7 @@ type Shot = { n: number; label: string };
 /** The sorting line: colour sensor, three pneumatic ejectors, three Lagerstellen and the
     inspection camera in the colour hood. */
 export function SortingModule({ doc, joints, onPhoto }: {
-  doc: CadDoc; joints: SortJoints; onPhoto?: (jpeg: Blob, shot: Shot) => void;
+  doc: CadDoc; joints: SortJoints; onPhoto?: (jpeg: Blob, empty: Blob | null, shot: Shot) => void;
 }) {
   const pushes = [useRef<THREE.Group>(null), useRef<THREE.Group>(null), useRef<THREE.Group>(null)];
   const drive = useRef<Drive>({ travel: 0, lift: 0, fork: 0, belt: 0, plunge: 0, reach: 0, swivel: 0 });
@@ -65,6 +65,11 @@ export function SortingModule({ doc, joints, onPhoto }: {
   // what the inspection camera sees: the belt and its rails under the lens (the cookie puts
   // itself on the layer, FlowCookie), and the ring light, which lights only that
   const refTarget = useRef<THREE.Group>(null);
+  useEffect(() => {
+    const g = [hood.current, refTarget.current].filter((o): o is THREE.Group => !!o);
+    g.forEach((o) => inspected.add(o));
+    return () => g.forEach((o) => inspected.delete(o));
+  });
   const hood = useRef<THREE.Group>(null), leds = useRef<THREE.Group>(null);
   useEffect(() => {
     leds.current?.children.forEach((l) => {
@@ -92,15 +97,17 @@ export function SortingModule({ doc, joints, onPhoto }: {
       lens.current.getWorldPosition(W.eye);
       aim.current.getWorldPosition(W.at);
       ahead.current.getWorldPosition(W.up).sub(W.eye).normalize();
-      hood.current?.traverse((o) => o.layers.enable(INSPECT_LAYER));
-      refTarget.current?.traverse((o) => o.layers.enable(INSPECT_LAYER));
       const field = cam.fov_mm * MM;
       const s = shot.current;
       shot.current = null;
       const img = expose(gl, scene, W.eye, W.at, W.up, field);
       if (img && s) {
         if (flash.current) flash.current.intensity = FLASH;
-        jpeg(img, 0.9).then((b) => { if (b) onPhoto?.(b, s); }).catch(() => { /* a lost photo is not worth an error */ });
+        // the photo, then the empty hood at the same instant (the canvas is copied as each is encoded)
+        const photo = jpeg(img, 0.9);
+        const plate = expose(gl, scene, W.eye, W.at, W.up, field, true);
+        const empty = plate ? jpeg(plate, 0.9) : Promise.resolve(null);
+        Promise.all([photo, empty]).then(([b, e]) => { if (b) onPhoto?.(b, e, s); }).catch(() => { /* a lost photo is not worth an error */ });
       } else if (img) {
         F.last = now; F.busy = true;
         // a frame of the live view: shown by the dashboard, then dropped

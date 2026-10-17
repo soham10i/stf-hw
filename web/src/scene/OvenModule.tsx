@@ -17,7 +17,7 @@ import * as THREE from "three";
 import { type CadPart, type CadDoc, boxSize, cylSpec } from "../shared/model";
 import type { CellJoints, Drive } from "./store/useCellStore";
 import { AIM, MM, v, centreOf, Solid, Cookie, useBeltTexture } from "./parts";
-import { INSPECT_LAYER } from "../vision/photo";
+import { subjects } from "../vision/photo";
 
 
 
@@ -280,7 +280,12 @@ function ControlPanel({ part, display, led }: {
 export function FlowCookie({ workpiece }: { workpiece: CellJoints["workpiece"] }) {
   const grp = useRef<THREE.Group>(null);
   // the inspection camera in the colour hood sees the cookie (vision/photo.ts)
-  useEffect(() => { grp.current?.traverse((o) => o.layers.enable(INSPECT_LAYER)); });
+  useEffect(() => {
+    const g = grp.current;
+    if (!g) return;
+    subjects.add(g);
+    return () => { subjects.delete(g); };
+  }, []);
   useFrame(() => {
     if (!grp.current) return;
     grp.current.visible = workpiece.visible;

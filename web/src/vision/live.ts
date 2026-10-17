@@ -2,9 +2,11 @@
 // colour hood (vision/mount.py), classified by the CNN and scored by the autoencoder, and
 // compared with what the simulation knows to be true - the check that the models still work.
 //
-// No real camera: the images are drawn by the renderer (render.ts) from the cookie's flavour
-// and a condition the simulation injects at the chosen defect rate. The scenarios move the
-// conditions out of the training ranges, as a real line drifts.
+// Two sources of images. With the 3D twin open, its camera's PHOTOS: each cookie it bakes, as
+// the camera in its hood took it (vision/photo.ts) - the twin bakes every cookie right, so its
+// truth is "ok". Without it, the simulated line: images drawn by the renderer (render.ts) from
+// the cookie's flavour and a condition the simulation injects at the chosen defect rate; the
+// scenarios move the conditions out of the training ranges, as a real line drifts.
 
 import { aeScore, type Ae } from "./ae";
 import { forward, verdict, type Cnn, type Verdict } from "./cnn";
@@ -22,6 +24,8 @@ export type Scenario = keyof typeof SCENARIOS;
 export type Frame = {
   n: number; t: number; source: "twin" | "line"; scenario: Scenario;
   flavour: string; truth: string; img: Float32Array;
+  /** the twin camera's photo itself (an object URL), where the image is one */
+  photo?: string;
   pred: { flavour: string; condition: string; pf: number; pc: number; verdict: Verdict };
   ae: { score: number; mean: number; err: Float32Array; anomaly: boolean };
 };
@@ -46,14 +50,23 @@ export class LiveLine {
     const bad = P.conditions.filter((c) => c !== "ok");
     const truth = r.random() < o.defect ? bad[Math.floor(r.random() * bad.length)] : "ok";
     const img = render(P, flavour, truth, r, ranges(P, o.scenario, o.age));
-    const x = chw(img, P.N);
+    return this.judge(img, flavour, truth, o.source, o.scenario, o.passP);
+  }
+
+  /** Judge a photo the twin's camera took (N x N x 3, 0..1): a cookie of `flavour`, baked right. */
+  inspect(img: Float32Array, flavour: string, passP?: number): Frame {
+    return this.judge(img, flavour, "ok", "twin", "hood", passP);
+  }
+
+  private judge(img: Float32Array, flavour: string, truth: string, source: "twin" | "line", scenario: Scenario, passP?: number): Frame {
+    const x = chw(img, this.P.N);
     const c = forward(this.cnn, x);
     const fi = c.flavour.indexOf(Math.max(...c.flavour)), ci = c.condition.indexOf(Math.max(...c.condition));
     const a = aeScore(this.ae, x);
     return {
-      n: ++this.n, t: Date.now(), source: o.source, scenario: o.scenario, flavour, truth, img,
+      n: ++this.n, t: Date.now(), source, scenario, flavour, truth, img,
       pred: { flavour: this.cnn.classes.flavour[fi], condition: this.cnn.classes.condition[ci], pf: c.flavour[fi], pc: c.condition[ci],
-              verdict: verdict(o.passP ? { ...this.cnn, pass_p: o.passP } : this.cnn, c.condition) },
+              verdict: verdict(passP ? { ...this.cnn, pass_p: passP } : this.cnn, c.condition) },
       ae: { score: a.score, mean: a.mean, err: a.err, anomaly: a.score > this.ae.threshold },
     };
   }
@@ -87,6 +100,3 @@ export function drift(frames: Frame[], ae: Ae, window = 20) {
   if (!recent.length) return 1;
   return recent.reduce((a, f) => a + f.ae.mean, 0) / recent.length / ae.ok_mean_error;
 }
-
-/** The twin and the dashboard share captures across tabs: the twin says which cookie it baked. */
-export const CHANNEL = "stf-vision";
