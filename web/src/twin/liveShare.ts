@@ -1,34 +1,34 @@
 // The twin's live state for the dashboard's chat: while the 3D twin is open (and the API is
 // there), a small snapshot of what the cell is doing goes to POST /twin/state every few
 // seconds, so the copilot can answer "is the oven hot right now?" from the running twin.
-// Read imperatively from the hot state, never React; nothing is sent without the API.
+// Read from the cell store (scene/store/useCellStore.ts), never React; nothing is sent without
+// the API. The send is a heartbeat to the server, not a redraw, so it keeps its own timer.
 import { useEffect } from "react";
-import { hbwHot, ovenHot, twinOrders, vgrHot } from "../scene/hot";
+import { cellStore, type CellStore } from "../scene/store/useCellStore";
 import { HAS_API } from "../shared/mode";
 
 const EVERY_MS = 3000;
 const NAMES: Record<string, string> = { "#5C3A1E": "chocolate", "#F4A6BF": "strawberry", "#FBF8F1": "vanilla" };
 const flavourOf = (c: string | null | undefined) => (c ? NAMES[c.toUpperCase()] ?? NAMES[c] ?? "baked" : "empty");
 
-export function snapshot() {
-  const q = twinOrders.queue, cyc = twinOrders.cycle;
+export function snapshot(store: CellStore = cellStore) {
+  const m = store.model, J = store.joints, q = m.queue, cyc = m.cycle;
   const rack: Record<string, string> = {};
-  for (const [slot, c] of Object.entries(twinOrders.rack)) {
-    rack[slot] = c === null ? "empty mould" : c.toLowerCase() === twinOrders.rawColour.toLowerCase() ? "raw dough" : flavourOf(c);
+  for (const [slot, c] of Object.entries(m.rack)) {
+    rack[slot] = c === null ? "empty mould" : c.toLowerCase() === m.rawColour.toLowerCase() ? "raw dough" : flavourOf(c);
   }
   return {
-    running: !twinOrders.idle && q.some((o) => o.done < o.qty),
-    step: twinOrders.step || "waiting for an order",
+    running: !m.idle && q.some((o) => o.done < o.qty),
+    step: m.step || "waiting for an order",
     current_cookie: cyc.total > 0 ? `${cyc.flavour || "?"}, from ${cyc.from} to ${cyc.to}, ${Math.round((100 * cyc.t) / cyc.total)} % of its cycle` : "none",
     orders: q.map((o) => `${o.qty} x ${o.flavour}: ${o.done} done`),
-    raw_cookies_free: twinOrders.free(),
-    oven_temperature_C: Math.round(ovenHot.tempC),
-    oven_heating: ovenHot.heat > 0.5,
-    oven_at_temperature: ovenHot.tempC >= 170,
-    robot_vacuum_pct: Math.round(vgrHot.seal * 100),
-    robot_carrying: vgrHot.carry ?? "nothing",
-    light_barriers_broken: Object.entries(hbwHot.blocked).filter(([, b]) => b).map(([k]) => k),
-    bays: Object.fromEntries(Object.entries(twinOrders.bays).map(([b, cs]) => [b, cs.length])),
+    raw_cookies_free: store.free(),
+    oven_temperature_C: Math.round(J.oven.chamberC),
+    oven_heating: J.oven.element > 0.5,
+    oven_at_temperature: J.oven.chamberC >= 170,
+    robot_vacuum_pct: Math.round(J.vgr.seal * 100),
+    robot_carrying: J.vgr.carry ?? "nothing",
+    light_barriers_broken: Object.entries(J.beams).filter(([, b]) => b).map(([k]) => k),
     rack,
   };
 }

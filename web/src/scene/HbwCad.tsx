@@ -16,35 +16,23 @@
 //   belt            a belt strip - its surface scrolls with the belt
 // so the screws visibly drive the axes and the motor visibly drives the belt.
 //
-// The pose driver is a scripted cycle. It switches to the live kernel once
-// factory.layout.yaml is regenerated from the same table - today the backend
-// still speaks the old joint convention, and driving new geometry with old
-// joint values would render a lie.
-
+// This is a renderer only. It draws the joints it is given - the crane's axes, where the
+// circulating mould is, which light barrier is broken - and the rack's slots in the colours it
+// is given. What the cell does (orders, cycles, sensors) is decided by the headless coordinator
+// (engine/CellCoordinator.ts) and reaches here through the store (store/useCellStore.ts).
 
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 import * as THREE from "three";
-
-
-import { buildFlow } from "./OvenFlow";
-
-
-
 import { DragChain } from "./DragChain";
-
-
-
-import { type CadPart, type CadDoc, type PlanKey, boxSize, cylSpec } from "../shared/model";
-import { FROM, OrderLine, twinOrders, cycleHot, Rack, Drive, vgrHot, hbwCookieHot, hbwHot, sortHot, ovenHot } from "./hot";
-import { MM, v, AIM, Solid, RackBadge, Cookie, Mould } from "./parts";
-import { binColour, script, SPEED, BELT_SPEED, RATE, PLAYBACK } from "./timeline";
+import { type CadPart, type CadDoc, boxSize, cylSpec } from "../shared/model";
+import type { CellJoints, Drive, Rack } from "./store/useCellStore";
+import { MM, v, AIM, Solid, Cookie, Mould } from "./parts";
 import { HBW, RunningGear } from "./RunningGear";
-import { clearCell, loadCell, saveCell } from "./cellStore";
 
-
-
-
+/** What the warehouse draws from: its axes, the circulating mould, the slot that mould is out
+    of, and the light barriers. */
+export type HbwJoints = Pick<CellJoints, "hbw" | "load" | "out" | "beams">;
 
 /** Toothed drive belt wrapped round the motor pulley and the drum pulley, running
     at the pulleys' pitch-line speed. Drawn as a real loop: two tangent straights
@@ -58,40 +46,48 @@ function BeltLoop({ doc, drive }: { doc: CadDoc; drive: React.MutableRefObject<D
     if (!a || !b) return null;
     const [, len, dia] = cylSpec(a);
     const r = dia / 2 + 1.0;
-    const A = new THREE.Vector2(a.p[1], a.p[2]), B = new THREE.Vector2(b.p[1], b.p[2]);
-    const d = B.clone().sub(A).normalize();
-    const n = new THREE.Vector2(-d.y, d.x);
-    const L1 = A.distanceTo(B), arc = Math.PI * r, total = 2 * L1 + 2 * arc;
+    const ax = a.p[1], ay = a.p[2], bx = b.p[1], by = b.p[2];
+    const L1 = Math.hypot(bx - ax, by - ay), arc = Math.PI * r, total = 2 * L1 + 2 * arc;
+    const dx = (bx - ax) / L1, dy = (by - ay) / L1;   // along the straight, A -> B
     const count = Math.round(total / 3);
-    return { x: a.p[0] + len / 2, w: len - 1, r, A, B, d, n, L1, arc, total, count };
+    return { x: a.p[0] + len / 2, w: len - 1, r, ax, ay, bx, by, dx, dy, nx: -dy, ny: dx, L1, arc, total, count };
   }, [doc]);
   const dummy = useMemo(() => new THREE.Object3D(), []);
+  // a point on the loop and its tangent, written in place (no allocation per tooth per frame)
+  const pt = useMemo(() => ({ px: 0, py: 0, tx: 0, ty: 0 }), []);
+  const at = useMemo(() => (s0: number) => {
+    if (!g) return;
+    const s = ((s0 % g.total) + g.total) % g.total;
+    const { ax, ay, bx, by, dx, dy, nx, ny, r, L1, arc } = g;
+    if (s < L1) { pt.px = ax + nx * r + dx * s; pt.py = ay + ny * r + dy * s; pt.tx = dx; pt.ty = dy; return; }
+    if (s < L1 + arc) {
+      const th = (s - L1) / r, c = Math.cos(th), sn = Math.sin(th);
+      pt.px = bx + nx * r * c + dx * r * sn; pt.py = by + ny * r * c + dy * r * sn;
+      pt.tx = -nx * sn + dx * c; pt.ty = -ny * sn + dy * c;
+      return;
+    }
+    if (s < 2 * L1 + arc) {
+      const d = s - L1 - arc;
+      pt.px = bx - nx * r - dx * d; pt.py = by - ny * r - dy * d; pt.tx = -dx; pt.ty = -dy;
+      return;
+    }
+    const th = (s - 2 * L1 - arc) / r, c = Math.cos(th), sn = Math.sin(th);
+    pt.px = ax - nx * r * c - dx * r * sn; pt.py = ay - ny * r * c - dy * r * sn;
+    pt.tx = nx * sn - dx * c; pt.ty = ny * sn - dy * c;
+  }, [g, pt]);
   useFrame(() => {
     if (!g || !band.current || !teeth.current) return;
-    const at = (s0: number) => {
-      const s = ((s0 % g.total) + g.total) % g.total;
-      const { A, B, d, n, r, L1, arc } = g;
-      if (s < L1) return { p: A.clone().addScaledVector(n, r).addScaledVector(d, s), t: d.clone() };
-      if (s < L1 + arc) {
-        const th = (s - L1) / r;
-        return { p: B.clone().addScaledVector(n, r * Math.cos(th)).addScaledVector(d, r * Math.sin(th)),
-                 t: n.clone().multiplyScalar(-Math.sin(th)).addScaledVector(d, Math.cos(th)) };
-      }
-      if (s < 2 * L1 + arc)
-        return { p: B.clone().addScaledVector(n, -r).addScaledVector(d, -(s - L1 - arc)), t: d.clone().negate() };
-      const th = (s - 2 * L1 - arc) / r;
-      return { p: A.clone().addScaledVector(n, -r * Math.cos(th)).addScaledVector(d, -r * Math.sin(th)),
-               t: n.clone().multiplyScalar(Math.sin(th)).addScaledVector(d, -Math.cos(th)) };
-    };
     // the drum pulley shares the drum's axle, so the loop runs at the drum's
     // angular speed times the pulley radius
     const off = drive.current.belt * ((g.r - 1) / (doc.belt.pulley_d / 2));
     for (let i = 0; i < g.count; i++) {
       const s = (i * g.total) / g.count;
-      for (const [mesh, sh] of [[band.current, 0], [teeth.current, off]] as const) {
-        const { p, t } = at(s + sh);
-        dummy.position.copy(v(g.x, p.x, p.y));
-        dummy.rotation.set(Math.atan2(-t.y, t.x), 0, 0);
+      for (let k = 0; k < 2; k++) {
+        const mesh = k === 0 ? band.current : teeth.current;
+        at(k === 0 ? s : s + off);
+        // module (x, y, z) -> three (x, z, y), as v() does
+        dummy.position.set(g.x * MM, pt.py * MM, pt.px * MM);
+        dummy.rotation.set(Math.atan2(-pt.ty, pt.tx), 0, 0);
         dummy.updateMatrix();
         mesh.setMatrixAt(i, dummy.matrix);
       }
@@ -115,10 +111,12 @@ function BeltLoop({ doc, drive }: { doc: CadDoc; drive: React.MutableRefObject<D
   );
 }
 
+const BEAM_OK = new THREE.Color("#39d353"), BEAM_HIT = new THREE.Color("#ff3b30");
+
 /** Each end-of-belt light barrier: LED on one side rail, phototransistor on the
     other, and the beam between them at mould-rim height. Broken beam = the
     receiver's indicator blinks and the beam flickers. */
-function LightBarriers({ doc }: { doc: CadDoc }) {
+function LightBarriers({ doc, beams }: { doc: CadDoc; beams: Record<string, boolean> }) {
   const pairs = useMemo(
     () =>
       doc.parts
@@ -129,24 +127,24 @@ function LightBarriers({ doc }: { doc: CadDoc }) {
   );
   return (
     <group>
-      {pairs.map(({ rx, tx }) => <Barrier key={rx.n} rx={rx} tx={tx} />)}
+      {pairs.map(({ rx, tx }) => <Barrier key={rx.n} rx={rx} tx={tx} beams={beams} />)}
     </group>
   );
 }
 
-function Barrier({ rx, tx }: { rx: CadPart; tx: CadPart }) {
+function Barrier({ rx, tx, beams }: { rx: CadPart; tx: CadPart; beams: Record<string, boolean> }) {
   const beam = useRef<THREE.Mesh>(null);
   const led = useRef<THREE.MeshStandardMaterial>(null);
   const [sx, sy, sz] = boxSize(rx);
   const x0 = rx.p[0] + sx, x1 = tx.p[0];
   const yc = rx.p[1] + sy / 2, zc = rx.p[2] + sz / 2;
   useFrame(({ clock }) => {
-    const hit = !!hbwHot.blocked[rx.tag];
+    const hit = !!beams[rx.tag];
     const on = Math.floor(clock.getElapsedTime() * 8) % 2 === 0;
     if (beam.current) beam.current.visible = !hit || on;
     if (led.current) {
-      led.current.color.set(hit ? "#ff3b30" : "#39d353");
-      led.current.emissive.set(hit ? "#ff3b30" : "#39d353");
+      led.current.color.copy(hit ? BEAM_HIT : BEAM_OK);
+      led.current.emissive.copy(hit ? BEAM_HIT : BEAM_OK);
       led.current.emissiveIntensity = hit ? (on ? 3 : 0.2) : 0.9;
     }
   });
@@ -170,9 +168,9 @@ function Barrier({ rx, tx }: { rx: CadPart; tx: CadPart }) {
   );
 }
 
-export function HbwCad({ doc, onPhase, tours }: {
-  doc: CadDoc; onPhase?: (s: string) => void; tours?: Record<string, PlanKey[]> | null;
-}) {
+/** The warehouse: crane, rack, belt and light barriers, posed from `joints`; the rack's slots
+    drawn in the colours of `slots` (slot -> cookie colour, null = an empty mould). */
+export function HbwCad({ doc, joints, slots }: { doc: CadDoc; joints: HbwJoints; slots: Rack }) {
   const gTravel = useRef<THREE.Group>(null);
   const gLift = useRef<THREE.Group>(null);
   const gFork = useRef<THREE.Group>(null);
@@ -183,145 +181,21 @@ export function HbwCad({ doc, onPhase, tours }: {
   const gCookieBelt = useRef<THREE.Group>(null);
   const gCookieShelf = useRef<THREE.Group>(null);
   const stowRef = useRef<THREE.Group>(null);
+  // each slot's static mould + cookie; the slot whose mould is out is hidden (drawn as the load)
+  const slotG = useRef<Record<string, THREE.Group | null>>({});
   const drive = useRef<Drive>({
     travel: doc.home.travel, lift: doc.home.lift, fork: 0, belt: 0, plunge: 0, reach: 0, swivel: 0,
   });
 
-  // Each cycle bakes one ordered cookie: a raw cookie leaves its slot, is baked in the order's
-  // flavour and sorted into that flavour's Lagerstelle. The VGR waits for it there, carries it
-  // back to the belt and the crane stores it in the slot it came from. No order: the cell idles.
-  const planCycle = useMemo(() => {
-    const cache = new Map<string, ReturnType<typeof plan1>>();
-    function plan1(from: string, to: string, flavour: string, collect: string | null) {
-      const tour = tours?.[collect ?? "none"] ?? doc.vgr.plan.keys;
-      const keys = script(doc, from, to, tour, collect);
-      let t0 = 0;
-      const legs = keys.slice(1).map((b, i) => {
-        const a = keys[i];
-        const axes = Math.abs(b.t - a.t) + Math.abs(b.l - a.l) + Math.abs(b.f - a.f);
-        const belt = Math.abs(b.b - a.b);
-        // the VGR's own axes, swivel counted at ~2 mm of arc per degree
-        const vgr = Math.abs(b.vs - a.vs) * 2 + Math.abs(b.vr - a.vr) + Math.abs(b.vp - a.vp);
-        const pause = (a.cup !== b.cup ? 1.0 : 0) + (a.vc !== b.vc ? 0.5 : 0);
-        const dur = Math.max(0.4, (axes + vgr) / (SPEED * RATE) + belt / (BELT_SPEED * RATE) + pause);
-        const leg = { a, b, dur, start: t0 };
-        t0 += dur;
-        return leg;
-      });
-      // the bake cycle starts once the VGR is back at transit height, clear of the oven
-      const i0 = legs.findIndex((l) => l.a.ovenGo);
-      const tOvenGo = i0 >= 0 ? legs[i0].start : Infinity;
-      const flow = buildFlow(doc, flavour);
-      // The VGR collects THIS cookie from its Lagerstelle. While it bakes, the crane brings the
-      // empty mould back to the belt (timeline.ts); then the VGR holds clear until the cookie
-      // has been sorted and has come to rest, and fetches it.
-      // The VGR sets off for the Lagerstelle only once the cookie is at rest there.
-      const pick = legs.find((l) => !l.a.taken && l.b.taken === flow.bin);
-      const iH = Math.max(i0, legs.findIndex((l) => l.b.bayGo));
-      const wait = pick && i0 >= 0 ? Math.max(0, tOvenGo + flow.arrive + 0.5 - legs[iH].start) : 0;
-      if (wait > 0) {
-        const a = legs[iH].a;
-        const hold = { a, b: { ...a, say: "VGR: holds clear while the cookie is baked and sorted" }, dur: wait, start: legs[iH].start };
-        for (const l of legs.slice(iH)) l.start += wait;
-        legs.splice(iH, 0, hold);
-      }
-      const total = Math.max(legs.reduce((q, l) => q + l.dur, 0), tOvenGo + flow.total + 3);
-      const baked = doc.pipeline.flavours[flavour]?.colour ?? doc.pipeline.raw_colour;
-      return { from, to, legs, tOvenGo, flow, total, baked, flavour, collect,
-               collectColour: collect ? binColour(doc, collect) : null, bin: flow.bin as string };
-    }
-    return (from: string, to: string, flavour: string, collect: string | null) => {
-      const key = `${from}>${to}>${flavour}>${collect}`;
-      if (!cache.has(key)) cache.set(key, plan1(from, to, flavour, collect));
-      return cache.get(key)!;
-    };
-  }, [doc, tours]);
-  type Cycle = ReturnType<typeof planCycle> & { line: number };
-  const RAW = doc.pipeline.raw_colour;
-  // twelve slots, twelve moulds, twelve cookies of raw dough
-  const freshRack = useMemo(() => () => {
-    const r: Rack = {};
-    for (const q of Object.keys(doc.slots)) r[q] = RAW;
-    return r;
-  }, [doc, RAW]);
-  // the top shelf first (C, then B, then A), left to right: the baked cookies of an order are
-  // stored where the view sees them, not behind the crane's beam on the bottom shelf
-  const order = useMemo(() => Object.keys(doc.slots)
-    .sort((a, b) => b[0].localeCompare(a[0]) || Number(a.slice(1)) - Number(b.slice(1))), [doc]);
-  const rawIn = (r: Rack) => order.filter((q) => r[q] === RAW);
-  /** The next ordered cookie, if any: its flavour and its order line. */
-  const nextWork = () => {
-    const line = twinOrders.queue.find((o) => o.started < o.qty);
-    if (!line) return null;
-    line.started++;
-    return line;
-  };
-  /** Plan the next cycle: the first raw cookie goes out and comes back baked into the same slot. */
-  const begin = (r: Rack, line: OrderLine): { c: Cycle; r: Rack } => {
-    const from = rawIn(r)[0] ?? FROM;
-    const bin = doc.pipeline.flavours[line.flavour]?.bin ?? null;
-    return { c: { ...planCycle(from, from, line.flavour, bin), line: line.id }, r };
-  };
-  const start = useMemo(() => {
-    // no order is placed for the visitor: the cell rests until one is placed in the Orders panel
-    for (const c of doc.sorting.colours) twinOrders.bays[c] ??= [];
-    // The rack outlives this view (switching to a component and back remounts it): keep it.
-    // A cookie that was in the oven line goes back to dough in its slot and is baked again.
-    let saved = Object.keys(twinOrders.rack).length === Object.keys(doc.slots).length ? { ...twinOrders.rack } : null;
-    // ...and outlives a reload: the rack and the orders this browser saved (cellStore.ts)
-    if (!saved) {
-      const kept = loadCell(Object.keys(doc.slots));
-      if (kept) {
-        saved = kept.rack;
-        twinOrders.queue = kept.queue;
-        twinOrders.seq = Math.max(kept.seq, ...kept.queue.map((o) => o.id), 0);
-        twinOrders.delivered = kept.delivered;
-      }
-    }
-    for (const o of twinOrders.queue) o.started = o.done;
-    const r0 = saved ?? { ...freshRack() };
-    const line = nextWork();
-    twinOrders.idle = !line;
-    if (!line) {                                     // every order done: rest in the pose of a finished cycle
-      const from = rawIn(r0)[0] ?? FROM;
-      return { c: { ...planCycle(from, from, Object.keys(doc.pipeline.flavours)[0], null), line: -1 }, r: r0 };
-    }
-    return begin(r0, line);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, planCycle]);
-  const rackRef = useRef<Rack>(start.r);
-  const [rack, setRack] = useState<Rack>(rackRef.current);
-  const first = start.c;
-  const cyc = useRef<{ c: Cycle; t0: number }>({ c: first, t0: 0 });
-  const [cur, setCur] = useState<Cycle>(first);
-  twinOrders.raw = rawIn(rack);
-  twinOrders.rack = rack;
-  twinOrders.rawColour = RAW;
-  const { legs, tOvenGo, flow, total } = first;   // ?at= / ?t= review the first cycle
-
-  // The mould and cookie that circulate are drawn dynamically; hide the static
-  // copies of the slot they start in.
+  // every mould and cookie in the rack is drawn from `slots`, not from the part table
   const byFrame = useMemo(() => {
     const m: Record<string, CadPart[]> = { world: [], travel: [], lift: [], fork: [] };
     for (const p of doc.parts) {
-      // every mould and cookie in the rack is drawn from the live rack state
       if (/^(mould|wp)_[A-Z]\d+_/.test(p.n)) continue;
       m[p.f].push(p);
     }
     return m;
   }, [doc]);
-
-  // light-barrier beams: which belt stretch each one watches, and at what height
-  const beams = useMemo(
-    () =>
-      doc.parts
-        .filter((p) => p.mech === "beam:rx")
-        .map((p) => {
-          const [, sy, sz] = boxSize(p);
-          return { tag: p.tag, y0: p.p[1], y1: p.p[1] + sy, z: p.p[2] + sz / 2 };
-        }),
-    [doc],
-  );
 
   const tex = useMemo(() => {
     const c = document.createElement("canvas");
@@ -337,8 +211,7 @@ export function HbwCad({ doc, onPhase, tours }: {
     return t;
   }, []);
 
-  const [, md, mb] = doc.moulds.size;
-  const load = mb + doc.moulds.rim_h + 8; // mould plus the cookie standing above its rim
+  const mb = doc.moulds.size[2];
   // Where the load sits when it is on the fork, DERIVED from the fork table part
   // itself. This was a literal, and when the rail moved the carried mould stayed
   // 150 mm behind - drawn straight through the rack and the stored moulds.
@@ -348,167 +221,34 @@ export function HbwCad({ doc, onPhase, tours }: {
     const [, dy, dz] = boxSize(t);
     return { y: t.p[1] + dy / 2, z: t.p[2] + dz };
   }, [doc]);
-  const phase = useRef("");
-  // each rack slot's static mould + cookie; the slot whose mould is out on its cycle is hidden
-  // while the cycle runs (the circulating mould is drawn instead) and shown again at rest
-  const slotG = useRef<Record<string, THREE.Group | null>>({});
-  const saveAt = useRef(0);
 
-  // Review aid: ?at=<phrase>[&n=2] freezes the cycle at the END of the n-th step
-  // whose caption contains <phrase> (e.g. ?at=cup%20meets&n=2), so any single
-  // moment of the choreography can be inspected up close.
-  const frozen = useMemo(() => {
-    const q = new URLSearchParams(window.location.search);
-    const t = q.get("t");
-    if (t !== null && Number.isFinite(Number(t))) return Number(t) % total;
-    const at = q.get("at");
-    if (!at) return null;
-    const hits = legs.filter((l) => l.b.say.toLowerCase().includes(at.toLowerCase()));
-    const l = hits[Math.max(0, Number(q.get("n") ?? 1) - 1)];
-    if (l) return l.start + l.dur - 1e-3;
-    // ...or a step of the oven/sorting flow
-    const st = flow.steps.find((x) => x.say.toLowerCase().includes(at.toLowerCase()));
-    return st ? tOvenGo + st.t0 + st.d - 1e-3 : null;
-  }, [legs, total, flow, tOvenGo]);
+  useFrame(() => {
+    const h = joints.hbw, load = joints.load, d = drive.current;
+    d.travel = h.travel; d.lift = h.lift; d.fork = h.fork; d.belt = h.belt;
+    if (gTravel.current) gTravel.current.position.x = h.travel * MM;
+    if (gLift.current) gLift.current.position.y = h.lift * MM;
+    if (gFork.current) gFork.current.position.z = h.fork * MM;
 
-  useFrame(({ clock }) => {
-    const el = clock.getElapsedTime() * PLAYBACK;
-    if (twinOrders.reset && frozen === null) {
-      // the visitor reset the rack: twelve raw cookies, no orders, the cell at rest
-      twinOrders.reset = false;
-      for (const o of twinOrders.queue) o.started = o.done = o.qty;
-      twinOrders.queue = [];
-      twinOrders.delivered = 0;
-      twinOrders.restock = false;
-      const r = freshRack();
-      rackRef.current = r;
-      setRack(r);
-      twinOrders.raw = rawIn(r);
-      const from = rawIn(r)[0] ?? FROM;
-      const c = { ...planCycle(from, from, Object.keys(doc.pipeline.flavours)[0], null), line: -1 };
-      cyc.current = { c, t0: el };
-      setCur(c);
-      twinOrders.idle = true;
-      clearCell();
+    const held = load.held;
+    for (const q in slotG.current) {
+      const g = slotG.current[q];
+      if (g) g.visible = q !== joints.out;
     }
-    if (frozen === null && !twinOrders.idle && el - cyc.current.t0 >= cyc.current.c.total) {
-      // the cycle is complete: the cookie baked in it is back in its slot
-      const done = cyc.current.c;
-      const r: Rack = { ...rackRef.current };
-      r[done.to] = done.baked;
-      const line = twinOrders.queue.find((o) => o.id === done.line);
-      if (line) line.done++;
-      rackRef.current = r;
-      setRack(r);
-      twinOrders.idle = true;                      // until there is another cookie to make
-    }
-    if (twinOrders.idle && frozen === null && twinOrders.restock) {
-      // the finished cookies are delivered and their moulds refilled with fresh dough
-      const r: Rack = { ...rackRef.current };
-      for (const q of Object.keys(r)) if (r[q] !== RAW) { r[q] = RAW; twinOrders.delivered++; }
-      twinOrders.restock = false;
-      rackRef.current = r;
-      setRack(r);
-      twinOrders.raw = rawIn(r);
-    }
-    if (twinOrders.idle && frozen === null) {
-      const line = nextWork();
-      if (line) {
-        const nx = begin(rackRef.current, line);
-        if (nx.r !== rackRef.current) { rackRef.current = nx.r; setRack(nx.r); }
-        cyc.current = { c: nx.c, t0: el };
-        setCur(nx.c);
-        twinOrders.idle = false;
-      }
-    }
-    const C = cyc.current.c;
-    const legs = C.legs, flow = C.flow, tOvenGo = C.tOvenGo;
-    // idle: the cell rests in the pose its last cycle ended in
-    const tc = frozen ?? (twinOrders.idle ? C.total : el - cyc.current.t0);
-    cycleHot.from = C.from; cycleHot.to = C.to; cycleHot.bin = C.bin;
-    twinOrders.cycle = { from: C.from, to: C.to, total: C.total, t: tc, flavour: C.flavour, collect: C.collect ?? "" };
-    let leg = legs[legs.length - 1];
-    for (const l of legs) {
-      if (tc < l.start + l.dur) { leg = l; break; }
-    }
-    const s = THREE.MathUtils.smoothstep((tc - leg.start) / leg.dur, 0, 1);
-    const mix = (a: number, b: number) => a + (b - a) * s;
-    const d = drive.current;
-    d.travel = mix(leg.a.t, leg.b.t);
-    d.lift = mix(leg.a.l, leg.b.l);
-    d.fork = mix(leg.a.f, leg.b.f);
-    d.belt = mix(leg.a.b, leg.b.b);
-    const ax = hbwHot.axes;                          // in place: no allocation per frame
-    ax.travel = d.travel; ax.lift = d.lift; ax.fork = d.fork; ax.belt = d.belt;
-
-    // VGR: every axis rides the same interpolation, including the spring stem
-    vgrHot.swivel = mix(leg.a.vs, leg.b.vs);
-    vgrHot.reach = mix(leg.a.vr, leg.b.vr);
-    vgrHot.plunge = mix(leg.a.vp, leg.b.vp);
-    vgrHot.compress = mix(leg.a.vc, leg.b.vc);
-    vgrHot.cup = leg.a.cup;
-    // vacuum builds (or bleeds off) across the step where Q8 switches
-    vgrHot.seal = mix(leg.a.cup ? 1 : 0, leg.b.cup ? 1 : 0);
-    vgrHot.carry = leg.a.carry;
-    vgrHot.cupColour = leg.a.carry === "baked" ? (C.collectColour ?? RAW) : RAW;
-    hbwCookieHot.colour = leg.a.cc;
-    sortHot.taken = twinOrders.idle ? null : leg.a.taken;
-
-    // oven + sorting: idle and ready until the VGR has delivered and left, then
-    // the one cookie runs its whole journey (OvenFlow.ts)
-    let say = leg.b.say;
-    const f = flow.at(tc - tOvenGo);
-    ovenHot.s = f.s;
-    ovenHot.mode = f.mode;
-    // once the cycle is done, its cookie is part of the Lagerstelle's stock (SortingModule draws it)
-    // ...until the VGR lifts it out of its Lagerstelle
-    ovenHot.visible = !twinOrders.idle && (tc >= tOvenGo || leg.a.ovenIn) && !leg.a.taken;
-    ovenHot.pos = flow.pos(f.s, f.mode);
-    ovenHot.belts = flow.belts(f.s.ly);
-    ovenHot.colour = new THREE.Color(RAW).lerp(new THREE.Color(C.baked), f.s.baked).getStyle();
-    if (f.say) say = `${say}   ·   ${f.say}`;
-    if (twinOrders.idle && frozen === null) say = "Waiting for an order";
-
-    if (gTravel.current) gTravel.current.position.x = d.travel * MM;
-    if (gLift.current) gLift.current.position.y = d.lift * MM;
-    if (gFork.current) gFork.current.position.z = d.fork * MM;
-
-    // at rest every mould is in its slot and drawn from the rack; nothing circulates
-    const held = twinOrders.idle && frozen === null ? null : leg.a.held;
-    for (const [q, g] of Object.entries(slotG.current)) if (g) g.visible = q !== C.from || held === null;
     if (gOnFork.current) gOnFork.current.visible = held === "fork";
     if (gOnBelt.current) {
       gOnBelt.current.visible = held === "belt";
-      gOnBelt.current.position.z = d.belt * MM;
+      gOnBelt.current.position.z = h.belt * MM;
     }
     if (gStowed.current) gStowed.current.visible = held === "shelf";
-    if (frozen === null && el - saveAt.current > 1) {
-      saveAt.current = el;
-      saveCell({ rack: rackRef.current, queue: twinOrders.queue, seq: twinOrders.seq, delivered: twinOrders.delivered });
-    }
     if (stowRef.current && held === "shelf") {
-      const sp = doc.slots[leg.a.slot];
+      const sp = doc.slots[load.slot];
       stowRef.current.position.set(sp[0] * MM, sp[2] * MM, sp[1] * MM);
     }
-    const c = leg.a.cookie;
+    const c = load.cookie;
     if (gCookieFork.current) gCookieFork.current.visible = c && held === "fork";
     if (gCookieBelt.current) gCookieBelt.current.visible = c && held === "belt";
     if (gCookieShelf.current) gCookieShelf.current.visible = c && held === "shelf";
-
-    // light barriers: is the mould (or the cookie in it) across a beam?
-    let yc = NaN, zb = NaN;
-    if (held === "belt") { yc = d.belt; zb = doc.belt.surface; }
-    else if (held === "fork" && Math.abs(d.travel - doc.belt.x) < 5) { yc = seat.y + d.fork; zb = seat.z + d.lift; }
-    for (const bm of beams) {
-      hbwHot.blocked[bm.tag] = !Number.isNaN(yc)
-        && yc + md / 2 > bm.y0 && yc - md / 2 < bm.y1
-        && bm.z > zb && bm.z < zb + load;
-    }
-    if (phase.current !== say) { phase.current = say; twinOrders.step = say; onPhase?.(say); }
-    // priority -1: this timeline writes the shared "hot" state BEFORE the parts
-    // that read it (cookie colours) run their own frame callbacks - otherwise a
-    // cookie shows the previous cycle's colour for one frame
-  }, -1);
+  });
 
   const P = (p: CadPart) => <Solid key={p.n} part={p} drive={drive} pitch={doc.pitch_mm} tex={tex} drumD={doc.belt.pulley_d} />;
   const beltX = doc.stations.hbw_pick[0], beltZ = doc.stations.hbw_pick[2];
@@ -520,27 +260,26 @@ export function HbwCad({ doc, onPhase, tours }: {
       {doc.chains?.chains["hbw:travel"] && (
         <DragChain spec={doc.chains.chains["hbw:travel"]} joint={() => drive.current.travel} />
       )}
-      {/* the rack as it stands after every cycle so far - the circulating
-          mould's own slot is drawn by the stowed group below */}
-      {Object.entries(rack).map(([q, col]) => {
+      {/* the rack's slots: a mould each, and its cookie in the given colour */}
+      {Object.entries(slots).map(([q, col]) => {
         const sp = doc.slots[q];
         return (
-          <group key={q} ref={(g) => { slotG.current[q] = g; }} position={[sp[0] * MM, sp[2] * MM, sp[1] * MM]} visible={q !== cur.from}>
+          <group key={q} ref={(g) => { slotG.current[q] = g; }} position={[sp[0] * MM, sp[2] * MM, sp[1] * MM]}
+            visible={q !== joints.out}>
             <Mould x={0} y={0} z={0} doc={doc} />
             {col && <Cookie x={0} y={0} z={mb} colour={col} />}
           </group>
         );
       })}
-      <RackBadge doc={doc} rack={rack} raw={RAW} />
       <BeltLoop doc={doc} drive={drive} />
-      <LightBarriers doc={doc} />
+      <LightBarriers doc={doc} beams={joints.beams} />
 
       {/* the circulating mould, stowed in a slot */}
       <group ref={gStowed}>
         <group ref={stowRef}>
           <Mould x={0} y={0} z={0} doc={doc} />
           <group ref={gCookieShelf}>
-            <Cookie x={0} y={0} z={mb} hot={hbwCookieHot} />
+            <Cookie x={0} y={0} z={mb} tint={joints.load.tint} />
           </group>
         </group>
       </group>
@@ -549,7 +288,7 @@ export function HbwCad({ doc, onPhase, tours }: {
       <group ref={gOnBelt}>
         <Mould x={beltX} y={0} z={beltZ} doc={doc} />
         <group ref={gCookieBelt}>
-          <Cookie x={beltX} y={0} z={beltZ + mb} hot={hbwCookieHot} />
+          <Cookie x={beltX} y={0} z={beltZ + mb} tint={joints.load.tint} />
         </group>
       </group>
 
@@ -570,7 +309,7 @@ export function HbwCad({ doc, onPhase, tours }: {
             <group ref={gOnFork}>
               <Mould x={0} y={seat.y} z={seat.z} doc={doc} />
               <group ref={gCookieFork}>
-                <Cookie x={0} y={seat.y} z={seat.z + mb} hot={hbwCookieHot} />
+                <Cookie x={0} y={seat.y} z={seat.z + mb} tint={joints.load.tint} />
               </group>
             </group>
           </group>

@@ -16,7 +16,7 @@ import { Suspense } from "react";
 import { MM_TO_SCENE, PreciseMesh, depthBias, usePrecise } from "./Precise";
 
 import { type CadPart, type CadDoc, boxSize, cylSpec } from "../shared/model";
-import { Drive, vgrHot } from "./hot";
+import type { Drive, Tint } from "./store/useCellStore";
 
 
 
@@ -247,27 +247,29 @@ export function RackBadge({ doc, rack, raw }: { doc: CadDoc; rack: Record<string
 }
 
 /** A cookie. Raw dough is pale and matt; a BAKED one has its flavour colour with
-    a faint glow, so it still reads deep in a mould. */
+    a faint glow, so it still reads deep in a mould. A fixed `colour`, or a `tint`
+    the coordinator rewrites in place every frame (copied, never parsed). */
 export function Cookie({
-  x, y, z, colour = DOUGH, dynamic = false, hot,
+  x, y, z, colour = DOUGH, tint,
 }: {
-  x: number; y: number; z: number; colour?: string; dynamic?: boolean;
-  hot?: { colour: string };
+  x: number; y: number; z: number; colour?: string; tint?: Tint;
 }) {
   const r = 22.5 * MM;
   const mat = useRef<THREE.MeshStandardMaterial>(null);
-  const paint = (c: string) => {
-    if (!mat.current) return;
-    const baked = c.toLowerCase() !== DOUGH.toLowerCase();
-    mat.current.color.set(c);
-    mat.current.emissive.set(baked ? c : "#000000");
-    mat.current.emissiveIntensity = baked ? 0.18 : 0;
-  };
   useFrame(() => {
-    if (hot) paint(hot.colour);
-    else if (dynamic) paint(vgrHot.cupColour);
+    if (!tint || !mat.current) return;
+    mat.current.color.copy(tint.color);
+    if (tint.baked) mat.current.emissive.copy(tint.color);
+    else mat.current.emissive.setRGB(0, 0, 0);
+    mat.current.emissiveIntensity = tint.baked ? 0.18 : 0;
   });
-  useEffect(() => { if (!hot && !dynamic) paint(colour); });
+  useEffect(() => {
+    if (tint || !mat.current) return;
+    const baked = colour.toLowerCase() !== DOUGH.toLowerCase();
+    mat.current.color.set(colour);
+    mat.current.emissive.set(baked ? colour : "#000000");
+    mat.current.emissiveIntensity = baked ? 0.18 : 0;
+  });
   return (
     <group position={v(x, y, z)}>
       <mesh position={[0, 10 * MM, 0]} castShadow>

@@ -5,6 +5,7 @@ import { Canvas } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
 
 import { HbwCadStage } from "../scene/Stage";
+import { useCellModel } from "../scene/store/useCellStore";
 import { RATE } from "../scene/timeline";
 import { useCadDoc } from "../shared/model";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
@@ -27,7 +28,8 @@ export default function App() {
   const machine = useCadDoc();
   const comps = useComponents();
   const ctl = useController();
-  const [phase, setPhase] = useState("");
+  // what the cell is doing, from the store (the coordinator writes it)
+  const phase = useCellModel((m) => m.step);
   // react-three-fiber measures its parent with a ResizeObserver, which some embedded
   // browsers never fire initially: the Canvas then stays empty. Nudge it once the machine
   // is loaded (a timeout, not rAF: rAF does not run in a hidden tab).
@@ -119,7 +121,7 @@ export default function App() {
             {machine.doc && (
               <ErrorBoundary>
                 <Canvas shadows dpr={[1, 2]} gl={{ preserveDrawingBuffer: true }}>
-                  <HbwCadStage doc={machine.doc} onPhase={setPhase} showZones={showZones && !netZones} netZones={netZones} showCover={showCover} />
+                  <HbwCadStage doc={machine.doc} showZones={showZones && !netZones} netZones={netZones} showCover={showCover} />
                 </Canvas>
               </ErrorBoundary>
             )}

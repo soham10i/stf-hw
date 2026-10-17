@@ -15,19 +15,23 @@ import * as THREE from "three";
 
 
 import { type CadPart, type CadDoc, boxSize, cylSpec } from "../shared/model";
-import { twinOrders, Drive, sortHot, ovenHot } from "./hot";
+import type { CellJoints, Drive } from "./store/useCellStore";
 import { AIM, MM, v, centreOf, Solid, Cookie, useBeltTexture } from "./parts";
 
 
 
 
 
+const LAMP_ON = new THREE.Color("#ffb13b"), LAMP_OFF = new THREE.Color("#6f6a5e");
+const LED_OK = new THREE.Color("#39d353"), LED_HIT = new THREE.Color("#ff3b30");
+
 /** The oven station, rebuilt to Abb. 9: Ofenschieber (+X), Ofentuer (+Z),
     the station's own Sauger (+Y) with its one-stroke lowering cylinder (-Z),
-    the Drehtisch (Rz), the Saege and the Auswerfer (+Y). Every joint is read
-    from ovenHot, which the one shared timeline writes. The cookie itself is
-    drawn once, at factory level (FlowCookie), not per holder. */
-export function OvenModule({ doc }: { doc: CadDoc }) {
+    the Drehtisch (Rz), the Saege and the Auswerfer (+Y). Every joint, and the
+    heating's glow and chamber temperature, is read from `joints`, which the
+    coordinator writes. The cookie itself is drawn once, at factory level
+    (FlowCookie), not per holder. */
+export function OvenModule({ doc, joints }: { doc: CadDoc; joints: CellJoints["oven"] }) {
   const g = {
     slider: useRef<THREE.Group>(null), door: useRef<THREE.Group>(null),
     turn: useRef<THREE.Group>(null), sauger: useRef<THREE.Group>(null),
@@ -40,7 +44,6 @@ export function OvenModule({ doc }: { doc: CadDoc }) {
   const heaterMat = useMemo(() => new THREE.MeshStandardMaterial({
     color: "#6f7175", metalness: 0.75, roughness: 0.42, emissive: new THREE.Color("#ff4a0a"), emissiveIntensity: 0, toneMapped: false,
   }), []);
-  const thermo = useRef({ element: 0, chamber: 25 });
   const display = useReadout();
   const heatLed = useRef<THREE.MeshStandardMaterial>(null);
   const beltDrive = useRef<Drive>({ travel: 0, lift: 0, fork: 0, belt: 0, plunge: 0, reach: 0, swivel: 0 });
@@ -57,18 +60,15 @@ export function OvenModule({ doc }: { doc: CadDoc }) {
   const lampPart = doc.oven.parts.find((p) => p.n === "Q9_oven_lamp");
   const tex = useBeltTexture();
 
-  useFrame((_, dt) => {
-    const s = ovenHot.s;
-    if (!s) return;
-    // first-order lags: the sheath glows within seconds, the chamber air follows over a minute
-    // (time scaled with the twin's rate, so a bake shows the whole curve)
-    const on = s.lamp > 0.5 ? 1 : 0, h = thermo.current, k = Math.min(0.1, dt);
-    h.element += (on - h.element) * (1 - Math.exp(-k / 0.6));
-    h.chamber += ((on ? 182 : 25) - h.chamber) * (1 - Math.exp(-k / 2.5));
-    heaterMat.emissiveIntensity = 2.6 * h.element * h.element;
-    heaterMat.color.setRGB(0.44 + 0.3 * h.element, 0.44 - 0.12 * h.element, 0.46 - 0.2 * h.element);
-    ovenHot.tempC = h.chamber; ovenHot.heat = h.element;
-    display.show(`${Math.round(h.chamber)} °C`);
+  const shown = useRef(NaN);
+  useFrame(() => {
+    const s = joints;
+    const on = s.lamp > 0.5, el = s.element;
+    heaterMat.emissiveIntensity = 2.6 * el * el;
+    heaterMat.color.setRGB(0.44 + 0.3 * el, 0.44 - 0.12 * el, 0.46 - 0.2 * el);
+    // the display redraws (and builds its string) only when the reading changes
+    const deg = Math.round(s.chamberC);
+    if (deg !== shown.current) { shown.current = deg; display.show(`${deg} °C`); }
     if (heatLed.current) heatLed.current.emissiveIntensity = on ? 3 : 0.15;
     // module frame = factory axes: +X -> three x, +Y -> three z, +Z -> three y
     if (g.slider.current) g.slider.current.position.x = (s.slider - A.slider) * MM;
@@ -79,11 +79,11 @@ export function OvenModule({ doc }: { doc: CadDoc }) {
     if (g.push.current) g.push.current.position.z = (s.push - A.push) * MM;
     if (lamp.current) {
       lamp.current.emissiveIntensity = 0.05 + 4 * s.lamp;
-      lamp.current.color.set(s.lamp > 0.5 ? "#ffb13b" : "#6f6a5e");
+      lamp.current.color.copy(s.lamp > 0.5 ? LAMP_ON : LAMP_OFF);
     }
-    if (lampLight.current) lampLight.current.intensity = 1.2 * s.lamp + 4 * thermo.current.element;
+    if (lampLight.current) lampLight.current.intensity = 1.2 * s.lamp + 4 * el;
     if (cup.current) cup.current.emissiveIntensity = 0.6 * s.vac;
-    beltDrive.current.belt = ovenHot.belts.oven;
+    beltDrive.current.belt = s.beltOven;
     sawDrive.current.belt = s.saw * 20;
   });
 
@@ -273,27 +273,25 @@ function ControlPanel({ part, display, led }: {
 
 /** The one travelling cookie, in FACTORY coordinates: wherever the flow says it
     is, in whatever colour the bake has given it. */
-export function FlowCookie() {
+export function FlowCookie({ workpiece }: { workpiece: CellJoints["workpiece"] }) {
   const grp = useRef<THREE.Group>(null);
-  const hot = useMemo(() => ({ colour: "#D8B98C" }), []);
   useFrame(() => {
     if (!grp.current) return;
-    grp.current.visible = ovenHot.visible;
-    const [x, y, z] = ovenHot.pos;
-    grp.current.position.set(x * MM, z * MM, y * MM);
-    hot.colour = ovenHot.colour;
+    grp.current.visible = workpiece.visible;
+    const p = workpiece.pos;
+    grp.current.position.set(p[0] * MM, p[2] * MM, p[1] * MM);
   });
   return (
     <group ref={grp}>
-      <Cookie x={0} y={0} z={0} hot={hot} />
+      <Cookie x={0} y={0} z={0} tint={workpiece.tint} />
     </group>
   );
 }
 
 /** Light barriers on the oven and the sorting line: a beam from each LED to
-    its phototransistor; when the travelling cookie (or a cookie resting in a
+    its phototransistor; when the travelling cookie (also while it rests in a
     Lagerstelle) cuts it, the beam flickers and the receiver blinks red. */
-export function FlowBarriers({ doc }: { doc: CadDoc }) {
+export function FlowBarriers({ doc, workpiece }: { doc: CadDoc; workpiece: CellJoints["workpiece"] }) {
   const pairs = useMemo(() => {
     const [ox, oy] = doc.factory.oven_placement.translate;
     const [stx, sty] = doc.factory.sort_placement.translate;
@@ -318,48 +316,39 @@ export function FlowBarriers({ doc }: { doc: CadDoc }) {
     add(doc.sorting.parts, (x, y) => [-y + stx, x + sty]);
     return out;
   }, [doc]);
-  const stock = useMemo(() => {
-    const [stx, sty] = doc.factory.sort_placement.translate;
-    return Object.fromEntries(
-      Object.entries(doc.sorting.handovers).map(([c, h]) => [c, [-h[1] + stx, h[0] + sty] as [number, number]]),
-    );
-  }, [doc]);
   const beams = useRef<(THREE.Mesh | null)[]>([]);
   const leds = useRef<(THREE.MeshStandardMaterial | null)[]>([]);
   useFrame(({ clock }) => {
     const on = Math.floor(clock.getElapsedTime() * 8) % 2 === 0;
-    const cookies: [number, number][] = [];
-    if (ovenHot.visible) cookies.push([ovenHot.pos[0], ovenHot.pos[1]]);
-    for (const [c, xy] of Object.entries(stock)) {
-      if ((twinOrders.bays[c] ?? []).length - (sortHot.taken === c ? 1 : 0) > 0) cookies.push(xy);
-    }
-    pairs.forEach((pr, i) => {
-      // where along the beam (0 = receiver, 1 = LED) a cookie blocks it: the
-      // light from the LED stops at the cookie's near face, it never passes through
+    const cx = workpiece.pos[0], cy = workpiece.pos[1];
+    for (let i = 0; i < pairs.length; i++) {
+      const pr = pairs[i];
+      // where along the beam (0 = receiver, 1 = LED) the cookie blocks it: the light from
+      // the LED stops at the cookie's near face, it never passes through
       let stop = 0;
-      const ab = new THREE.Vector2(pr.b.x - pr.a.x, pr.b.y - pr.a.y);
-      const L = ab.length();
-      for (const [cx, cy] of cookies) {
-        const ac = new THREE.Vector2(cx - pr.a.x, cy - pr.a.y);
-        const u = ac.dot(ab) / (L * L);
-        const d = ac.clone().sub(ab.clone().multiplyScalar(u)).length();
-        if (u < 0 || u > 1 || d >= 22.5 || !(pr.a.z > 55 && pr.a.z < 85)) continue;
-        stop = Math.max(stop, u + Math.sqrt(22.5 * 22.5 - d * d) / L);
+      if (workpiece.visible && pr.a.z > 55 && pr.a.z < 85) {
+        const abx = pr.b.x - pr.a.x, aby = pr.b.y - pr.a.y, L = Math.hypot(abx, aby);
+        const acx = cx - pr.a.x, acy = cy - pr.a.y;
+        const u = (acx * abx + acy * aby) / (L * L);
+        const d = Math.hypot(acx - abx * u, acy - aby * u);
+        if (u >= 0 && u <= 1 && d < 22.5) stop = u + Math.sqrt(22.5 * 22.5 - d * d) / L;
       }
       const hit = stop > 0;
       const m = beams.current[i], l = leds.current[i];
       if (m) {
         const keep = Math.max(0.001, 1 - Math.min(1, stop));
         m.scale.set(1, keep, 1);
-        const p = pr.b.clone().lerp(pr.a, keep / 2);
-        m.position.copy(v(p.x, p.y, p.z));
+        // the beam's centre: from the LED (b) toward the receiver (a) by keep / 2; factory -> three
+        const k = keep / 2;
+        const x = pr.b.x + (pr.a.x - pr.b.x) * k, y = pr.b.y + (pr.a.y - pr.b.y) * k, z = pr.b.z + (pr.a.z - pr.b.z) * k;
+        m.position.set(x * MM, z * MM, y * MM);
       }
       if (l) {
-        l.color.set(hit ? "#ff3b30" : "#39d353");
-        l.emissive.set(hit ? "#ff3b30" : "#39d353");
+        l.color.copy(hit ? LED_HIT : LED_OK);
+        l.emissive.copy(hit ? LED_HIT : LED_OK);
         l.emissiveIntensity = hit ? (on ? 3 : 0.2) : 0.9;
       }
-    });
+    }
   });
   return (
     <group>

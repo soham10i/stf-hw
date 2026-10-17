@@ -1,7 +1,7 @@
 // The stage around the factory: the table, lights, camera, the precise meshes and the overlays.
 
 import { Grid, OrbitControls } from "@react-three/drei";
-import { useThree } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
@@ -15,13 +15,53 @@ import { useJson } from "../shared/data";
 import { PreciseLibCtx, PreciseLoader, PreciseScope, type PreciseLib } from "./Precise";
 
 import type { CadDoc, PlanKey } from "../shared/model";
-import { Drive } from "./hot";
-import { MM, v } from "./parts";
+import { MM, RackBadge, v } from "./parts";
+import { useCellModel, useCellStore, type CellStore, type Drive } from "./store/useCellStore";
+import { CellCoordinator } from "./engine/CellCoordinator";
+import { localPersistence } from "./engine/persistence";
+import { PLAYBACK } from "./timeline";
+import { keep } from "../vision/photo";
+import type { CameraDoc } from "./SortingModule";
 
 import { HbwCad } from "./HbwCad";
 import { VgrModule } from "./VgrModule";
 import { OvenModule, FlowCookie, FlowBarriers } from "./OvenModule";
 import { SortingModule } from "./SortingModule";
+
+/** The review aids in the URL: ?t=<s> or ?at=<step>[&n=2] freeze the first cycle. */
+function reviewFromUrl() {
+  const q = new URLSearchParams(window.location.search);
+  const t = q.get("t");
+  return { t: t !== null && Number.isFinite(Number(t)) ? Number(t) : null, at: q.get("at"), n: Number(q.get("n") ?? 1) };
+}
+
+/** The coordinator for this view: created once the machine and the VGR's tours are in, driven
+    by ONE frame callback that runs before every renderer's (priority -1), disposed with the view.
+    It keeps running the store's cell across a remount (the store outlives the view). */
+function useCoordinator(doc: CadDoc, tours: Record<string, PlanKey[]> | null | undefined, store: CellStore) {
+  const coord = useMemo(
+    () => (tours === undefined ? null : new CellCoordinator(doc, store, { tours, persistence: localPersistence(), review: reviewFromUrl() })),
+    [doc, tours, store],
+  );
+  useEffect(() => () => coord?.dispose(), [coord]);
+  // the inspection camera's lens, in the factory frame, arms its trigger
+  const { data: cam } = useJson<CameraDoc>("vision/camera.json");
+  useEffect(() => {
+    if (!coord || !cam) return;
+    const [tx, ty] = doc.factory.sort_placement.translate;
+    coord.setCamera([-cam.lens[1] + tx, cam.lens[0] + ty]);
+  }, [coord, cam, doc]);
+  useFrame(({ clock }, dt) => coord?.tick(clock.getElapsedTime() * PLAYBACK, dt), -1);
+  return coord;
+}
+
+let visionChannel: BroadcastChannel | null = null;
+/** Each capture is shown live in an open dashboard's inspection feed (Vision QC). */
+function useCaptureFeed(store: CellStore) {
+  useEffect(() => store.onCapture((c) => {
+    try { visionChannel ??= new BroadcastChannel("stf-vision"); visionChannel.postMessage(c); } catch { /* no BroadcastChannel */ }
+  }), [store]);
+}
 
 /** The white table, and on it each module's black fischertechnik base plate
     (perforated on the 15 mm ft grid), as in the booklet's cover photo. */
@@ -83,14 +123,21 @@ function camDir() {
     ? new THREE.Vector3(v[0], v[1], v[2]) : new THREE.Vector3(-0.78, 0.62, -0.62);
 }
 
-export function HbwCadStage({ doc, onPhase, showZones = false, netZones = false, showCover = true }: {
-  doc: CadDoc; onPhase: (s: string) => void; showZones?: boolean; netZones?: boolean; showCover?: boolean;
+export function HbwCadStage({ doc, showZones = false, netZones = false, showCover = true }: {
+  doc: CadDoc; showZones?: boolean; netZones?: boolean; showCover?: boolean;
 }) {
   const [px, py] = doc.factory.plate;
   const [precise, setPrecise] = useState<PreciseLib | null>(null);
   // the VGR's tours for order mode (stf-cad/hbw/twin_tours.py); without them, the exported demo tour
   const { data: toursDoc, error: toursErr } = useJson<{ tours: Record<string, PlanKey[]> }>("vgr_tours.json");
   const tours = toursDoc ? toursDoc.tours : toursErr ? null : undefined;
+  const store = useCellStore();
+  const coord = useCoordinator(doc, tours, store);
+  useCaptureFeed(store);
+  const J = store.joints;
+  // the rack's meshes re-render only when the rack changes
+  const rack = useCellModel((m) => m.rack);
+  const raw = useCellModel((m) => m.rawColour);
   const vgrDrive = useRef<Drive>({ travel: 0, lift: 0, fork: 0, belt: 0, plunge: 0, reach: 0, swivel: 0 });
   // What the camera frames: the whole table (or a ?look= review point).
   const frame = useMemo(() => {
@@ -159,7 +206,7 @@ export function HbwCadStage({ doc, onPhase, showZones = false, netZones = false,
       <group scale={[1, 1, -1]}>
       <FactoryTable doc={doc} />
       <group position={[doc.factory.vgr_at[0] * MM, 0, doc.factory.vgr_at[1] * MM]}>
-        <PreciseScope module="vgr"><VgrModule doc={doc} drive={vgrDrive} /></PreciseScope>
+        <PreciseScope module="vgr"><VgrModule doc={doc} drive={vgrDrive} joints={J.vgr} /></PreciseScope>
       </group>
       {/* the oven is rotated +90 about the factory Z like the sorting line:
           its Ofenschieber points back at the VGR, its belt runs to the front */}
@@ -167,7 +214,7 @@ export function HbwCadStage({ doc, onPhase, showZones = false, netZones = false,
         position={[doc.factory.oven_placement.translate[0] * MM, 0, doc.factory.oven_placement.translate[1] * MM]}
         rotation={[0, THREE.MathUtils.degToRad(-doc.factory.oven_placement.rotate_deg), 0]}
       >
-        <PreciseScope module="oven"><OvenModule doc={doc} /></PreciseScope>
+        <PreciseScope module="oven"><OvenModule doc={doc} joints={J.oven} /></PreciseScope>
       </group>
       <group
         position={[
@@ -176,10 +223,12 @@ export function HbwCadStage({ doc, onPhase, showZones = false, netZones = false,
         ]}
         rotation={[0, -Math.PI / 2, 0]}
       >
-        <PreciseScope module="sorting"><SortingModule doc={doc} /></PreciseScope>
+        <PreciseScope module="sorting">
+          <SortingModule doc={doc} joints={J} onPhoto={(b, s) => void keep(b, s.label, s.n)} />
+        </PreciseScope>
       </group>
-      <FlowCookie />
-      <FlowBarriers doc={doc} />
+      <FlowCookie workpiece={J.workpiece} />
+      <FlowBarriers doc={doc} workpiece={J.workpiece} />
       <PlcCabinet parts={doc.plc.parts as never} at={doc.plc.at} />
       {doc.upgrade && <PreciseScope module="upgrade"><UpgradeParts parts={doc.upgrade.parts as never} module="upgrade" /></PreciseScope>}
       {/* the enclosure: guard frame, panels, doors and what is mounted on them */}
@@ -197,7 +246,12 @@ export function HbwCadStage({ doc, onPhase, showZones = false, netZones = false,
         position={[doc.factory.placement.translate[0] * MM, 0, doc.factory.placement.translate[1] * MM]}
         rotation={[0, -Math.PI / 2, 0]}
       >
-        {tours !== undefined && <PreciseScope module="hbw"><HbwCad doc={doc} onPhase={onPhase} tours={tours} /></PreciseScope>}
+        {coord && (
+          <>
+            <PreciseScope module="hbw"><HbwCad doc={doc} joints={J} slots={rack} /></PreciseScope>
+            <RackBadge doc={doc} rack={rack} raw={raw} />
+          </>
+        )}
       </group>
       </group>
       </PreciseLibCtx.Provider>

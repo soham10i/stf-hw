@@ -1,13 +1,14 @@
-// Live readouts for the side panel, sampled at 8 Hz: the 3D loop runs at the frame
-// rate and must never wait on React, while a table of numbers updating 8 times a
-// second is smooth enough and costs almost nothing.
+// Live readouts for the side panel, at the store's telemetry rate (8 Hz): the 3D loop runs at
+// the frame rate and must never wait on React, while a table of numbers updating 8 times a
+// second is smooth enough and costs almost nothing. The store tells the panel when to redraw
+// (scene/store/useCellStore.ts); nothing polls.
 //
 // Two sources. The TWIN is the machine the 3D view animates - every axis, the
 // vacuum, the oven and the light barriers - and needs no server. The physics
 // KERNEL (services/api) streams its own simulation when the live API is there.
 
-import { useEffect, useState } from "react";
-import { hbwHot, ovenHot, twinOrders, vgrHot } from "../scene/hot";
+import { useState } from "react";
+import { useCell, type CellStore } from "../scene/store/useCellStore";
 import { hot } from "../store";
 import type { SceneDescriptor } from "../types";
 import { sendCommand } from "../socket";
@@ -17,25 +18,25 @@ type Row = [label: string, value: string, warn?: boolean];
 const mm = (v: number) => `${v.toFixed(1)} mm`;
 const pct = (v: number) => `${Math.round(v * 100)} %`;
 
-function twinRows(): { crane: Row[]; vgr: Row[]; oven: Row[]; sensors: [string, boolean][]; cycle: string } {
-  const a = hbwHot.axes, s = ovenHot.s, c = twinOrders.cycle;
+function twinRows(store: CellStore): { crane: Row[]; vgr: Row[]; oven: Row[]; sensors: [string, boolean][]; cycle: string } {
+  const J = store.joints, a = J.hbw, s = J.oven, c = store.model.cycle, vg = J.vgr;
   const crane: Row[] = [["travel", mm(a.travel)], ["lift", mm(a.lift)], ["fork", mm(a.fork)], ["belt", mm(a.belt)]];
   const vgr: Row[] = [
-    ["swivel", `${vgrHot.swivel.toFixed(1)}°`], ["reach", mm(vgrHot.reach)], ["plunge", mm(vgrHot.plunge)],
-    ["vacuum", pct(vgrHot.seal)], ["carrying", vgrHot.carry ?? "—"],
+    ["swivel", `${vg.swivel.toFixed(1)}°`], ["reach", mm(vg.reach)], ["plunge", mm(vg.plunge)],
+    ["vacuum", pct(vg.seal)], ["carrying", vg.carry ?? "—"],
   ];
-  const oven: Row[] = s
-    ? [["chamber temp", `${Math.round(ovenHot.tempC)} °C`, ovenHot.tempC > 240],
-       ["elements", ovenHot.heat > 0.5 ? "heating" : "off"],
-       ["oven slider", mm(s.slider)], ["oven door", mm(s.door)], ["oven sauger", mm(s.sauger)],
-       ["turntable", `${s.turn.toFixed(1)}°`], ["baked", pct(s.baked)], ["belt path", mm(s.ly)]]
-    : [];
+  const oven: Row[] = [
+    ["chamber temp", `${Math.round(s.chamberC)} °C`, s.chamberC > 240],
+    ["elements", s.element > 0.5 ? "heating" : "off"],
+    ["oven slider", mm(s.slider)], ["oven door", mm(s.door)], ["oven sauger", mm(s.sauger)],
+    ["turntable", `${s.turn.toFixed(1)}°`], ["baked", pct(s.baked)], ["belt path", mm(s.ly)],
+  ];
   const sensors: [string, boolean][] = [
-    ...Object.entries(hbwHot.blocked).map(([k, v]) => [`${k} light barrier`, v] as [string, boolean]),
-    ["VGR vacuum", vgrHot.seal > 0.5],
-    ["oven heating", !!s && s.lamp > 0.5],
-    ["oven at temperature", ovenHot.tempC >= 170],
-    ["sorting vacuum", !!s && s.vac > 0.5],
+    ...Object.entries(J.beams).map(([k, v]) => [`${k} light barrier`, v] as [string, boolean]),
+    ["VGR vacuum", vg.seal > 0.5],
+    ["oven heating", s.lamp > 0.5],
+    ["oven at temperature", s.chamberC >= 170],
+    ["sorting vacuum", s.vac > 0.5],
   ];
   const cycle = c.total > 0 ? `${c.from} → ${c.to} · ${Math.round((100 * c.t) / c.total)} %` : "starting";
   return { crane, vgr, oven, sensors, cycle };
@@ -62,12 +63,9 @@ function kernelRows(scene: SceneDescriptor): Row[] {
 }
 
 export function TelemetryPanel({ scene }: { scene: SceneDescriptor | null }) {
-  const sample = () => ({ twin: twinRows(), kernel: scene ? kernelRows(scene) : [], busy: hot.busy, t: hot.t });
-  const [s, setS] = useState(sample);
-  useEffect(() => {
-    const id = window.setInterval(() => setS(sample()), 125); // 8 Hz
-    return () => window.clearInterval(id);
-  }, [scene]);
+  // re-read at the store's telemetry rate; the kernel's values (socket.ts) are read alongside
+  const twin = useCell(twinRows);
+  const s = { twin, kernel: scene ? kernelRows(scene) : [], busy: hot.busy, t: hot.t };
 
   return (
     <div className="panel">

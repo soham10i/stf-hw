@@ -33,15 +33,29 @@ export interface FlowState {
 
 interface Step { d: number; say: string; to: Partial<FlowState>; mode: Mode }
 
+/** One sample of the flow, written in place by Flow.sample (no allocation per frame). */
+export interface FlowSample { s: FlowState; mode: Mode; say: string; pos: [number, number, number] }
+export const FLOW_KEYS = ["slider", "door", "turn", "sauger", "lower", "push", "lamp", "saw", "vac", "baked", "ly", "eject", "chute"] as const;
+export function newSample(): FlowSample {
+  const s = {} as FlowState;
+  for (const k of FLOW_KEYS) s[k] = 0;
+  return { s, mode: "tray", say: "", pos: [0, 0, 0] };
+}
+
 export interface Flow {
   steps: (Step & { t0: number; from: FlowState })[];
   total: number;
   arrive: number;           // time the cookie enters its Lagerstelle
   bin: string;
   binIndex: number;
+  /** The joints, the holder, the caption and the cookie's position at time t, written into
+      `out` - the 60 fps path: nothing is allocated. */
+  sample: (t: number, out: FlowSample) => FlowSample;
   at: (t: number) => { s: FlowState; mode: Mode; say: string };
   /** belt surface travel for each belt, from the path distance */
   belts: (ly: number) => { oven: number; sort: number };
+  beltOven: (ly: number) => number;
+  beltSort: (ly: number) => number;
   pos: (s: FlowState, mode: Mode) => [number, number, number];
 }
 
@@ -101,16 +115,6 @@ export function buildFlow(doc: CadDoc, flavour: string, bakeExtra = 0): Flow {
   const P5 = V2(fromSort(ejX, beltC));
   const path = [P0, P1, P2, P3, P4, P5];
   const cum = path.map((_, i) => path.slice(1, i + 1).reduce((a, p, j) => a + p.distanceTo(path[j]), 0));
-  const along = (d: number): [number, number] => {
-    for (let i = 1; i < path.length; i++) {
-      if (d <= cum[i] || i === path.length - 1) {
-        const u = Math.min(1, Math.max(0, (d - cum[i - 1]) / (cum[i] - cum[i - 1] || 1)));
-        const p = path[i - 1].clone().lerp(path[i], u);
-        return [p.x, p.y];
-      }
-    }
-    return [P5.x, P5.y];
-  };
   const bandY = 0;
   const pushedY = cum[1];
   const handY = cum[3];
@@ -165,45 +169,82 @@ export function buildFlow(doc: CadDoc, flavour: string, bakeExtra = 0): Flow {
   const slid = timed.find((st) => st.mode === "slide")!;
   const arrive = slid.t0 + slid.d;
 
-  const at = (t: number) => {
-    if (t <= 0) return { s: { ...s0 }, mode: "tray" as Mode, say: "" };
-    for (const st of timed) {
-      if (t < st.t0 + st.d) {
-        const u = THREE.MathUtils.smoothstep((t - st.t0) / st.d, 0, 1);
-        const s = { ...st.from };
-        for (const k of Object.keys(st.to) as (keyof FlowState)[]) {
-          s[k] = st.from[k] + ((st.to[k] as number) - st.from[k]) * u;
-        }
-        return { s, mode: st.mode, say: st.say };
-      }
-    }
-    return { s: { ...cur }, mode: "bay" as Mode, say: "" };
+  // the sorting frame -> factory frame, and the oven frame -> factory frame, into `out`
+  const sortTo = (x: number, y: number, z: number, out: [number, number, number]) => {
+    out[0] = -y + stx; out[1] = x + sty; out[2] = z;
   };
-
-  const pos = (s: FlowState, mode: Mode): [number, number, number] => {
+  const ovenTo = (x: number, y: number, z: number, out: [number, number, number]) => {
+    out[0] = -y + ox; out[1] = x + oy; out[2] = z;
+  };
+  const posInto = (s: FlowState, mode: Mode, out: [number, number, number]) => {
     switch (mode) {
-      case "tray": { const [x, y] = fromOven(s.slider + F.tray_w / 2, F.tray_y); return [x, y, F.z_w]; }
-      case "cup": { const [x, y] = fromOven(F.x_line, s.sauger); return [x, y, F.cup_up - s.lower - F.wp_h]; }
-      case "disc": { const [nx, ny] = nest(s.turn); const [x, y] = fromOven(nx, ny); return [x, y, F.z_w]; }
+      case "tray": ovenTo(s.slider + F.tray_w / 2, F.tray_y, F.z_w, out); return;
+      case "cup": ovenTo(F.x_line, s.sauger, F.cup_up - s.lower - F.wp_h, out); return;
+      case "disc": {
+        const t = THREE.MathUtils.degToRad(s.turn);
+        // the nest sits at (0, -tt_r) from the disc's centre, turned by `turn`
+        ovenTo(ttx + F.tt_r * Math.sin(t), tty - F.tt_r * Math.cos(t), F.z_w, out);
+        return;
+      }
       case "line": {
-        const [x, y] = along(s.ly);
+        // along the polyline P0..P5 by distance ly
+        const d = s.ly;
+        let i = 1;
+        while (i < path.length - 1 && d > cum[i]) i++;
+        const span = cum[i] - cum[i - 1] || 1;
+        const u = Math.min(1, Math.max(0, (d - cum[i - 1]) / span));
+        const a = path[i - 1], b = path[i];
         // off the nose: falls from the oven belt (z_w) onto the sorting belt
-        const u = Math.min(1, Math.max(0, (s.ly - cum[2] + 12) / 12));
-        return [x, y, F.z_w + (sortZ - F.z_w) * u * u];
+        const fall = Math.min(1, Math.max(0, (d - cum[2] + 12) / 12));
+        out[0] = a.x + (b.x - a.x) * u; out[1] = a.y + (b.y - a.y) * u; out[2] = F.z_w + (sortZ - F.z_w) * fall * fall;
+        return;
       }
-      case "eject": {
-        const [x, y] = fromSort(ejX, beltC + dir * Math.max(0, Math.min(bayEj, s.eject - gap)));
-        return [x, y, sortZ];
-      }
+      case "eject": sortTo(ejX, beltC + dir * Math.max(0, Math.min(bayEj, s.eject - gap)), sortZ, out); return;
       case "slide": {
         // decelerating as it runs out against the end stop
         const u = chute > 0 ? s.chute / chute : 1;
-        const [x, y] = fromSort(ejX, beltC + dir * (bayEj + chute * (1 - (1 - u) * (1 - u))));
-        return [x, y, sortZ];
+        sortTo(ejX, beltC + dir * (bayEj + chute * (1 - (1 - u) * (1 - u))), sortZ, out);
+        return;
       }
-      case "bay": { const [x, y] = fromSort(ejX, bayY); return [x, y, sortZ]; }
+      case "bay": sortTo(ejX, bayY, sortZ, out); return;
     }
   };
-  const belts = (ly: number) => ({ oven: Math.min(ly, cum[2]), sort: Math.max(0, ly - cum[2]) });
-  return { steps: timed, total, arrive, bin, binIndex, at, pos, belts };
+
+  const sample = (t: number, out: FlowSample) => {
+    const o = out.s;
+    if (t <= 0) {
+      for (const k of FLOW_KEYS) o[k] = s0[k];
+      out.mode = "tray"; out.say = "";
+    } else {
+      let hit = -1;
+      for (let i = 0; i < timed.length; i++) if (t < timed[i].t0 + timed[i].d) { hit = i; break; }
+      if (hit < 0) {
+        for (const k of FLOW_KEYS) o[k] = cur[k];
+        out.mode = "bay"; out.say = "";
+      } else {
+        const st = timed[hit];
+        const u = THREE.MathUtils.smoothstep((t - st.t0) / st.d, 0, 1);
+        for (const k of FLOW_KEYS) {
+          const to = st.to[k];
+          o[k] = to === undefined ? st.from[k] : st.from[k] + (to - st.from[k]) * u;
+        }
+        out.mode = st.mode; out.say = st.say;
+      }
+    }
+    posInto(o, out.mode, out.pos);
+    return out;
+  };
+  const at = (t: number) => {
+    const r = sample(t, newSample());
+    return { s: r.s, mode: r.mode, say: r.say };
+  };
+  const pos = (s: FlowState, mode: Mode): [number, number, number] => {
+    const out: [number, number, number] = [0, 0, 0];
+    posInto(s, mode, out);
+    return out;
+  };
+  const beltOven = (ly: number) => Math.min(ly, cum[2]);
+  const beltSort = (ly: number) => Math.max(0, ly - cum[2]);
+  const belts = (ly: number) => ({ oven: beltOven(ly), sort: beltSort(ly) });
+  return { steps: timed, total, arrive, bin, binIndex, sample, at, pos, belts, beltOven, beltSort };
 }

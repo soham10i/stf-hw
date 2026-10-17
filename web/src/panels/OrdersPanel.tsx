@@ -3,12 +3,16 @@
 // that: one cycle per cookie, each brought back into the slot it came from. When an order is
 // completed its cookies are all in the rack. "Deliver" hands the baked cookies over and
 // refills their moulds with fresh dough, so the count stays 12. The rack and the orders are kept
-// in this browser across reloads (scene/cellStore.ts) until "Reset rack" starts the cell afresh.
+// in this browser across reloads (scene/engine/persistence.ts) until "Reset rack" starts afresh.
+//
+// It reads the cell from the store (scene/store/useCellStore.ts), re-rendering when an order
+// moves on and a few times a second while a cookie is under way; its buttons are the store's
+// actions, which the coordinator carries out in step with the machine.
 //
 // The physics kernel's manual crane commands are in the Telemetry panel, beside the kernel.
 
-import { useEffect, useState } from "react";
-import { twinOrders, type OrderLine } from "../scene/hot";
+import { useState } from "react";
+import { useCell, type OrderLine } from "../scene/store/useCellStore";
 import { useCadDoc } from "../shared/model";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -23,17 +27,15 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
   const [flavour, setFlavour] = useState("chocolate");
   const [qty, setQty] = useState(3);
   const [msg, setMsg] = useState<{ text: string; tone: "ok" | "bad" } | null>(null);
-  // the queue and the cell move in the 3D loop; sample them a few times a second
-  const [, tick] = useState(0);
-  useEffect(() => { const id = window.setInterval(() => tick((x) => x + 1), 400); return () => window.clearInterval(id); }, []);
-
-  const rack = twinOrders.rack, raw = twinOrders.rawColour, cyc = twinOrders.cycle;
+  const store = useCell((s) => s);
+  const m = store.model;
+  const rack = m.rack, raw = m.rawColour, cyc = m.cycle;
   const all = slots ?? Object.keys(rack);
-  const busy = !twinOrders.idle;
+  const busy = !m.idle;
   const colour = (f: string) => flavours[f]?.colour ?? raw;
   const flavourOf = (c: string | null | undefined) => names.find((f) => flavours[f].colour.toLowerCase() === c?.toLowerCase());
-  const queue = twinOrders.queue;
-  const free = twinOrders.free();
+  const queue = m.queue;
+  const free = store.free();
   const current = queue.find((o) => o.started > o.done);
 
   // the twelve cookies, by state
@@ -55,17 +57,17 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
         : "No raw dough left. Deliver the baked cookies to refill the rack." });
       return;
     }
-    const wasIdle = twinOrders.idle && !queue.some((o) => o.done < o.qty);
-    twinOrders.place(flavour, qty);
+    const wasIdle = m.idle && !queue.some((o) => o.done < o.qty);
+    store.place(flavour, qty);
     setMsg({ tone: "ok", text: `Order placed: ${qty} × ${flavour}. ${wasIdle ? "The cell starts now." : "It is queued after the current order."}` });
   };
   const reset = () => {
     if (!window.confirm("Reset the rack? Every slot gets fresh dough and the order list is cleared.")) return;
-    twinOrders.reset = true;
+    store.reset();
     setMsg({ tone: "ok", text: "The rack is reset: 12 raw cookies, no orders." });
   };
   const deliver = () => {
-    twinOrders.restock = true;
+    store.deliver();
     setMsg({ tone: "ok", text: `${baked} baked cookie${baked === 1 ? "" : "s"} delivered; their moulds are refilled with fresh dough.` });
   };
 
@@ -114,7 +116,7 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
               <span>from slot {cyc.from}</span>
             </div>
             <div className="ord-bar"><i style={{ width: `${Math.min(100, (cyc.t / Math.max(1, cyc.total)) * 100)}%`, background: colour(cyc.flavour) }} /></div>
-            <div className="ord-now-foot"><span>{plain(twinOrders.step)}</span><b>{clock(Math.max(0, cyc.total - cyc.t))} left</b></div>
+            <div className="ord-now-foot"><span>{plain(m.step)}</span><b>{clock(Math.max(0, cyc.total - cyc.t))} left</b></div>
           </div>
         ) : (
           <p className="ord-hint">{queue.length ? "Every order is done." : "The cell is waiting."} Place an order above to start it.</p>

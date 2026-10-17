@@ -15,7 +15,7 @@ import { DragChain } from "./DragChain";
 
 
 import { type CadPart, type CadDoc, cylSpec } from "../shared/model";
-import { Drive, vgrHot } from "./hot";
+import type { CellJoints, Drive } from "./store/useCellStore";
 import { MM, v, Solid, Cookie } from "./parts";
 import { RunningGear, VGR } from "./RunningGear";
 
@@ -47,7 +47,9 @@ function Coil({ h, r }: { h: number; r: number }) {
     linear axes are spindles (4 mm lead) that turn with the axis they drive. The
     cup rides a spring stem: at contact the carriage over-travels, the spring
     closes, the cup stays on the cookie's top face and flattens as it seals. */
-export function VgrModule({ doc, drive }: { doc: CadDoc; drive: React.MutableRefObject<Drive> }) {
+export function VgrModule({ doc, drive, joints }: {
+  doc: CadDoc; drive: React.MutableRefObject<Drive>; joints: CellJoints["vgr"];
+}) {
   const gSwivel = useRef<THREE.Group>(null);
   const gPlunge = useRef<THREE.Group>(null);
   const gReach = useRef<THREE.Group>(null);
@@ -77,23 +79,23 @@ export function VgrModule({ doc, drive }: { doc: CadDoc; drive: React.MutableRef
   const tex = useMemo(() => new THREE.Texture(), []);
 
   useFrame(() => {
-    if (gSwivel.current) gSwivel.current.rotation.y = -THREE.MathUtils.degToRad(vgrHot.swivel);
+    if (gSwivel.current) gSwivel.current.rotation.y = -THREE.MathUtils.degToRad(joints.swivel);
     // parts are emitted at doc.vgr.authoring; the groups carry only the DELTA
-    if (gPlunge.current) gPlunge.current.position.y = (vgrHot.plunge - A.plunge) * MM;
-    if (gReach.current) gReach.current.position.z = -(vgrHot.reach - A.reach) * MM;
-    drive.current.plunge = vgrHot.plunge;
-    drive.current.reach = vgrHot.reach;
-    drive.current.swivel = vgrHot.swivel;
-    const c = vgrHot.compress;
+    if (gPlunge.current) gPlunge.current.position.y = (joints.plunge - A.plunge) * MM;
+    if (gReach.current) gReach.current.position.z = -(joints.reach - A.reach) * MM;
+    drive.current.plunge = joints.plunge;
+    drive.current.reach = joints.reach;
+    drive.current.swivel = joints.swivel;
+    const c = joints.compress;
     if (gCup.current) gCup.current.position.y = c * MM;
     if (gCoil.current) {
       gCoil.current.position.y = c * MM;
       gCoil.current.scale.y = (coilL - c) / coilL;
     }
     // the rubber cup flattens while it is sucked onto the cookie
-    const seal = vgrHot.seal * Math.min(1, c / over);
+    const seal = joints.seal * Math.min(1, c / over);
     if (gCupBody.current) gCupBody.current.scale.y = 1 - 0.3 * seal;
-    if (onCup.current) onCup.current.visible = vgrHot.carry !== null;
+    if (onCup.current) onCup.current.visible = joints.carry !== null;
   });
 
   const P = (p: CadPart) => <Solid key={p.n} part={p} drive={drive} pitch={doc.vgr.pitch_mm} tex={tex} />;
@@ -111,14 +113,14 @@ export function VgrModule({ doc, drive }: { doc: CadDoc; drive: React.MutableRef
             <RunningGear all={doc.vgr.parts} frame="swivel" axes={VGR} />
             {doc.chains?.chains["vgr:plunge"] && (
               <DragChain spec={doc.chains.chains["vgr:plunge"]}
-                joint={() => vgrHot.plunge + doc.chains!.chains["vgr:plunge"].M[2]} />
+                joint={() => joints.plunge + doc.chains!.chains["vgr:plunge"].M[2]} />
             )}
             <group ref={gPlunge}>
               {byFrame.plunge.map(P)}
               <RunningGear all={doc.vgr.parts} frame="plunge" axes={VGR} />
               {doc.chains?.chains["vgr:reach"] && (
                 <DragChain spec={doc.chains.chains["vgr:reach"]} zBase={A.plunge}
-                  joint={() => doc.chains!.chains["vgr:reach"].M[1] - vgrHot.reach} />
+                  joint={() => doc.chains!.chains["vgr:reach"].M[1] - joints.reach} />
               )}
               <group ref={gReach}>
                 {byFrame.reach.map(P)}
@@ -148,7 +150,7 @@ export function VgrModule({ doc, drive }: { doc: CadDoc; drive: React.MutableRef
                   </group>
                   {/* held cookie: its top face on the cup lip */}
                   <group ref={onCup}>
-                    <Cookie x={px} y={py} z={cupZ - 20} dynamic />
+                    <Cookie x={px} y={py} z={cupZ - 20} tint={joints.tint} />
                   </group>
                 </group>
               </group>
