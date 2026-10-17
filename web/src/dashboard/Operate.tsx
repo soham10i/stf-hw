@@ -120,20 +120,47 @@ export function Production({ doc, t }: { doc: CadDoc; t: number }) {
         <div className="db-legend">{Object.entries(JOB_COL).map(([j, col]) => <span key={j}><i style={{ background: col }} />{JOB_SAY[j]}</span>)}</div>
       </Card>
       <Card title="Units and their current step">
-        <table className="db-table"><tbody>
-          {now.map((u) => <tr key={u.unit}><td><span className={`hmi-led ${u.state.toLowerCase()}`} />{u.unit}<div className="db-muted">{u.label}</div></td>
-            <td>{u.job ? <><span style={{ color: JOB_COL[u.job] }}>{u.job}</span><div className="db-muted">{u.step}</div></> : <span className="db-muted">ready</span>}</td></tr>)}
-        </tbody></table>
+        {/* one lane per unit: its job as a bar in the job's colour, filled to now; what it does on hover */}
+        <div className="pr-units">{now.map((u) => {
+          const b = u.bar, frac = b ? Math.min(1, Math.max(0, (t - b.t0) / Math.max(0.1, b.t1 - b.t0))) : 0;
+          const col = u.job ? JOB_COL[u.job] : undefined;
+          return (
+            <div key={u.unit} className={`pr-unit ${u.state.toLowerCase()}`} title={`${u.unit}: ${u.label}${u.job ? `\n${JOB_SAY[u.job]}` : ""}`}>
+              <span className={`hmi-led ${u.state.toLowerCase()}`} />
+              <b>{u.unit}</b>
+              <span className="pr-track">{b && <i style={{ width: `${frac * 100}%`, background: col }} />}</span>
+              <em>{b ? `${fmtT(Math.max(0, b.t1 - t))}` : ""}</em>
+              <small>{u.job ? <><span style={{ color: col }}>{u.job.replace(/_/g, " ")}</span>{u.step ? ` · ${u.step}` : ""}</> : "ready"}</small>
+            </div>
+          );
+        })}</div>
       </Card>
       <Card title="Order by flavour">
-        <table className="db-table"><tbody>
+        {/* every cookie of the order, in its flavour: filled once sorted */}
+        <div className="pr-flav">
           {flav.map((f) => {
             const all = prod.filter((r) => r.flavour === f);
-            const d = all.filter((r) => (r.t.sorted ?? Infinity) <= t).length;
-            return <tr key={f}><td>{f}</td><td><div className="db-prog"><i style={{ width: `${(d / all.length) * 100}%` }} /></div></td><td className="num">{d}/{all.length}</td></tr>;
+            const done = all.filter((r) => (r.t.sorted ?? Infinity) <= t).length;
+            const col = doc.pipeline.flavours[f]?.colour ?? "#999";
+            return (
+              <div key={f}>
+                <span className="pr-flav-name">{f}</span>
+                <span className="pr-dots">{all.map((r, i) => <i key={r.id} className={i < done ? "on" : ""} style={{ ["--c" as string]: col }} title={`${r.id}: ${i < done ? "sorted" : "on its way"}`} />)}</span>
+                <b>{done}/{all.length}</b>
+              </div>
+            );
           })}
-          <tr><td>returned to rack</td><td /><td className="num">{ret.filter((r) => (r.t.stored ?? Infinity) <= t).length}/{ret.length}</td></tr>
-        </tbody></table>
+          {(() => {
+            const back = ret.filter((r) => (r.t.stored ?? Infinity) <= t).length;
+            return (
+              <div className="pr-flav-ret">
+                <span className="pr-flav-name">moulds back in the rack</span>
+                <span className="pr-dots">{ret.map((r, i) => <i key={r.id} className={i < back ? "on" : ""} style={{ ["--c" as string]: "var(--muted)" }} />)}</span>
+                <b>{back}/{ret.length}</b>
+              </div>
+            );
+          })()}
+        </div>
       </Card>
       <Card title="Dispatch policies (measured)">
         <HBar xTitle="order time (s) · hover for the rule" fmt={(v) => `${Math.round(v)}`}
