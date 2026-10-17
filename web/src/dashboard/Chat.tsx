@@ -10,8 +10,9 @@ import { HAS_API } from "../shared/mode";
 import { DATA, EXAMPLES, answer as offline, type Ctx, type DataKey } from "../copilot/copilot";
 import { GUIDE } from "./guide";
 import * as api from "./copilot/api";
-import { Message } from "./copilot/Message";
+import { Md, Message, openSource } from "./copilot/Message";
 import { Voice } from "./copilot/Voice";
+import { CopilotMark, Icon } from "../shared/icons";
 
 const TABS: [api.Tab, string, string][] = [
   ["gemini", "Gemini", "cloud models, switching when one reaches its limit"],
@@ -74,6 +75,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
   const [title, setTitle] = useState("");
   const [turns, setTurns] = useState<api.Turn[]>([]);
   const [context, setContext] = useState(EMPTY);
+  const [memory, setMemory] = useState("");
   const [list, setList] = useState<api.Summary[]>([]);
   const [showList, setShowList] = useState(false);
   const [showCtx, setShowCtx] = useState(false);
@@ -88,10 +90,10 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
   const refreshList = () => api.sessions().then(setList);
   const open = async (id: string | null) => {
     setSid(id); api.currentSession.set(id); setShowList(false); setSpeakNext(null);
-    if (!id) { setTurns([]); setContext(EMPTY); setTitle(""); return; }
+    if (!id) { setTurns([]); setContext(EMPTY); setMemory(""); setTitle(""); return; }
     const s = await api.session(id);
     if (!s) { setSid(null); api.currentSession.set(null); setTurns([]); setContext(EMPTY); return; }
-    setTurns(s.turns); setContext(s.context); setTitle(s.title);
+    setTurns(s.turns); setContext(s.context); setMemory(s.memory ?? ""); setTitle(s.title);
   };
   useEffect(() => { api.status().then(setStatus); open(sid); refreshList(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { end.current?.scrollIntoView({ block: "end", behavior: "smooth" }); }, [turns]);
@@ -116,7 +118,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
           tools: r.tools, note: r.note, unverified: r.unverified, switched: r.switched, facts: r.facts, cites: r.cites };
         if (r.session) {
           setSid(r.session.id); api.currentSession.set(r.session.id); setTitle(r.session.title);
-          api.session(r.session.id).then((s) => s && setContext(s.context));
+          api.session(r.session.id).then((s) => { if (s) { setContext(s.context); setMemory(s.memory ?? ""); } });
           refreshList();
         }
       }
@@ -151,28 +153,65 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
     </div>
   );
 
+  // the documents this conversation's answers were built from, each once, in the order cited
+  const docs = useMemo(() => {
+    const seen = new Map<string, api.Cite>();
+    for (const t of turns) for (const c of t.cites ?? []) if (c.kind !== "tool" && !seen.has(c.label)) seen.set(c.label, c);
+    return [...seen.values()];
+  }, [turns]);
+  const answers = turns.filter((t) => t.role === "assistant" && !t.pending).length;
   const contextPanel = (
     <aside className="cx-context">
       <h3>Context</h3>
       <p className="cx-muted">What this conversation has established. Whichever model answers next is given all of it.</p>
-      <div className="cx-ctx-block">
-        <span>Models that answered</span>
-        <div className="cx-chips">{context.models.length ? context.models.map((m) => <i key={m}>{m}</i>) : <em>none yet</em>}</div>
+      <div className="cx-ctx-stats">
+        <div><b>{context.facts.length}</b><span>facts</span></div>
+        <div><b>{docs.length}</b><span>documents</span></div>
+        <div><b>{answers}</b><span>answers</span></div>
       </div>
-      <div className="cx-ctx-block">
-        <span>Tools used</span>
-        <div className="cx-chips">{context.tools.length ? context.tools.map((m) => <i key={m} className="tool">{m.replace(/_/g, " ")}</i>) : <em>none yet</em>}</div>
-      </div>
-      <div className="cx-ctx-block">
-        <span>Known facts ({context.facts.length})</span>
-        {context.facts.length ? (
-          <CtxFacts facts={context.facts} />
-        ) : <em className="cx-muted">Ask a question: the facts the tools return are kept here.</em>}
-      </div>
-      <div className="cx-ctx-block">
-        <span>Page</span>
-        <div className="cx-chips"><i>{pageTitle ?? page}</i>{!compact && <i>machine age {age} shifts</i>}<i>PM {pm ? "on" : "off"}</i></div>
-      </div>
+      <section className="cx-ctx-sec">
+        <h4><Icon name="book" size={14} />Documents cited</h4>
+        {docs.length ? (
+          <ul className="cx-ctx-docs">
+            {docs.map((c) => (
+              <li key={c.label}>
+                <button onClick={() => openSource(c)} title={c.quote ?? c.label}>
+                  <b>{c.label.split(" > ").slice(-2).join(" › ")}</b>
+                  <em>{c.kind === "web" ? c.label : `${c.file}:${c.line}`}</em>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : <em className="cx-muted">The passages answers quote are listed here; each opens at its line.</em>}
+      </section>
+      <section className="cx-ctx-sec">
+        <h4><Icon name="checklist" size={14} />Facts established <span>{context.facts.length}</span></h4>
+        {context.facts.length ? <CtxFacts facts={context.facts} />
+          : <em className="cx-muted">The figures the twin's tools return are kept here, with where they came from.</em>}
+      </section>
+      <section className="cx-ctx-sec">
+        <h4><Icon name="cpu" size={14} />Models and tools</h4>
+        <div className="cx-chips">
+          {context.models.map((m) => <i key={m}>{m}</i>)}
+          {context.tools.map((m) => <i key={m} className="tool">{m.replace(/_/g, " ")}</i>)}
+          {!context.models.length && !context.tools.length && <em>none yet</em>}
+        </div>
+      </section>
+      <section className="cx-ctx-sec">
+        <h4><Icon name="overview" size={14} />This page</h4>
+        <dl className="cx-ctx-kv">
+          <div><dt>page</dt><dd>{pageTitle ?? page}</dd></div>
+          {!compact && <div><dt>machine age</dt><dd>{age} shifts</dd></div>}
+          <div><dt>preventive maintenance</dt><dd>{pm ? "on" : "off"}</dd></div>
+        </dl>
+      </section>
+      {memory && (
+        <details className="cx-ctx-sec cx-ctx-memory">
+          <summary><Icon name="copilot" size={14} />What the next model is given</summary>
+          <p className="cx-muted">This session's facts, as Markdown - added to the context of the next question, whichever model answers it.</p>
+          <div className="cx-md"><Md text={memory} /></div>
+        </details>
+      )}
     </aside>
   );
 
@@ -203,7 +242,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
       <div className="cx-log">
         {turns.length === 0 && (
           <div className="cx-hero">
-            <div className="cx-orb">✦</div>
+            <div className="cx-orb"><CopilotMark size={30} /></div>
             <b>{tab === "voice" ? "Ask by voice" : `Ask about ${pageTitle && page !== "copilot" ? `“${pageTitle}”` : "the cell"}`}</b>
             <span>Answers come from the twin's own tools and documents, with their sources. Numbers are checked before you see them.</span>
             {tab !== "voice" && <div className="cx-examples">{examples.map((e) => <button key={e} onClick={() => ask(e)}>{e}</button>)}</div>}

@@ -97,7 +97,9 @@ def test_grounding_reaches_the_model_and_the_key_stays_in_the_header():
     url, key, body = calls[0]
     assert KEY not in url and key == KEY
     prompt = body["contents"][-1]["parts"][0]["text"]
-    assert "HBW belt: warns in 0.6 sh" in prompt and "QUESTION: what needs service?" in prompt
+    # the model's context is Markdown: the grounding's facts as a table, then the question
+    assert "| HBW belt | warns in 0.6 sh |" in prompt
+    assert "# QUESTION\n\nwhat needs service?" in prompt
     assert "ONLY the facts" in body["systemInstruction"]["parts"][0]["text"]
     assert body["generationConfig"]["temperature"] <= 0.3
 
@@ -183,7 +185,7 @@ def test_ollama_ask():
     assert out["answer"] == "Ollama says hello." and out["model"] == "qwen2.5:7b-instruct"
     assert calls[0][1]["tools"], "the tools are declared to the local model"
     assert calls[0][1]["model"] == "qwen2.5:7b-instruct"
-    assert "QUESTION: what needs service?" in calls[0][1]["messages"][-1]["content"]
+    assert "# QUESTION\n\nwhat needs service?" in calls[0][1]["messages"][-1]["content"]
 
 
 def test_backend_auto_grounding():
@@ -253,9 +255,11 @@ def test_gemini_calls_tools_and_gets_their_results():
     assert {"machine_health", "alarm_lookup", "search_docs", "page_guide", "live_state"} <= names
     replies = bodies[1]["contents"][-1]["parts"]
     got = {p["functionResponse"]["name"]: p["functionResponse"]["response"] for p in replies}
-    assert "remote I/O node lost" in got["alarm_lookup"]["text"]
+    # a tool's result goes back to the model as a Markdown section
+    assert "remote I/O node lost" in got["alarm_lookup"]["content"]
     assert (
-        "HBW belt" in got["machine_health"]["text"] and "spindle" in got["machine_health"]["text"]
+        "HBW belt" in got["machine_health"]["content"]
+        and "spindle" in got["machine_health"]["content"]
     )
     assert {"page": "alarms", "label": "Alarms"} in out["links"]
 
@@ -292,7 +296,7 @@ def test_page_question_gets_the_page_guide():
     chat, calls = make()
     ask(chat, {"question": "what does this page show?", "page": "health"})
     prompt = calls[0][2]["contents"][-1]["parts"][0]["text"]
-    assert "[page_guide] # Dashboard: Health" in prompt
+    assert "### Tool `page_guide`" in prompt and "# Dashboard: Health" in prompt
 
 
 def test_live_state_reaches_the_model():
@@ -302,7 +306,7 @@ def test_live_state_reaches_the_model():
     chat, calls = make()
     ask(chat, {"question": "is the oven hot right now?"})
     prompt = calls[0][2]["contents"][-1]["parts"][0]["text"]
-    assert "oven_temp_C: 178" in prompt
+    assert "| oven_temp_C | 178 |" in prompt
     other, calls2 = make()
     ask(other, {"question": "is the oven hot right now?"}, request=req(client="10.9.9.9"))
     assert "oven_temp_C" not in calls2[0][2]["contents"][-1]["parts"][0]["text"], (

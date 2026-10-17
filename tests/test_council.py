@@ -20,7 +20,7 @@ from services.api import tools as T  # noqa: E402
 from tests.test_sessions import ask, make  # noqa: E402
 
 CTX = T.Ctx()
-PREAMBLE = "Established earlier in this session (still valid unless a tool says otherwise):\n"
+PREAMBLE = "## Established earlier in this session\n"
 
 
 # ---------------------------------------------------------------------- copilot_setup
@@ -84,8 +84,9 @@ def test_context_text_ranks_question_facts():
     s["context"]["facts"][3] = ["belt", "warns in 12.5 shifts", "condition model"]
     out = S.context_text(s, "and the belt?")
     assert out.startswith(PREAMBLE)
-    assert "- belt: warns in 12.5 shifts [condition model]" in out
-    assert len(out.split("\n")) - 1 <= 14  # at most the capped facts
+    assert "| belt | warns in 12.5 shifts | [condition model] |" in out
+    rows = [x for x in out.split("\n") if x.startswith("| ") and not x.startswith("| Fact")]
+    assert len(rows) <= 14  # at most the capped facts
 
 
 def test_context_text_without_question_keeps_preamble():

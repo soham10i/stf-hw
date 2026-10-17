@@ -55,6 +55,29 @@ class Result:
     def as_dict(self) -> dict:
         return {k: v for k, v in asdict(self).items() if v not in (None, [], "")}
 
+    def as_markdown(self) -> str:
+        """The result as a model reads it: a Markdown section - the tool's answer, its facts as a
+        table, a document passage as a quote under its source and exact place, its sources."""
+        out = [f"### Tool `{self.tool}`", "", self.text]
+        if self.tool == "search_docs":
+            where = {c["label"]: c for c in self.cites}
+            for label, text in self.facts:
+                c = where.get(label, {})
+                at = f"*{c['file']}, line {c['line']}*" if c.get("file") else ""
+                out += ["", f"#### [{label}]", at, "", "> " + str(text).replace("\n", " ")]
+        elif self.facts:
+            out += ["", "| Fact | Value |", "|---|---|"]
+            out += [f"| {_md_cell(k)} | {_md_cell(v)} |" for k, v in self.facts]
+        if self.sources:
+            out += ["", "Sources: " + "; ".join(f"[{x}]" for x in self.sources)]
+        if self.link:
+            out += [f"Dashboard page: {self.link.get('label', self.link.get('page', ''))}"]
+        return "\n".join(x for x in out if x is not None).strip()
+
+
+def _md_cell(v: object) -> str:
+    return str(v).replace("|", "\\|").replace("\n", " ")
+
 
 def pct(x: float, d: int = 0) -> str:
     return f"{x * 100:.{d}f} %"

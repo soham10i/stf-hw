@@ -110,9 +110,19 @@ def context_text(s: dict, question: str = "") -> str:
         head = _rank_facts(facts, question, 10)
         tail = [f for f in facts if f not in head][-4:]
         facts = head + [f for f in tail if f not in head]
-    lines = [f"- {k}: {v} [{src}]" for k, v, src in facts[-14:]]
-    head = "Established earlier in this session (still valid unless a tool says otherwise):\n"
-    return head + "\n".join(lines)
+    def cell(x: object) -> str:
+        return str(x).replace("|", "\\|").replace("\n", " ")
+
+    rows = [f"| {cell(k)} | {cell(v)} | [{cell(src)}] |" for k, v, src in facts[-14:]]
+    head = [
+        "## Established earlier in this session",
+        "",
+        "Still valid unless a tool says otherwise.",
+        "",
+        "| Fact | Value | Source |",
+        "|---|---|---|",
+    ]
+    return "\n".join(head + rows)
 
 
 def add_turn(s: dict, role: str, text: str, **meta) -> None:
@@ -136,4 +146,5 @@ def save(store: DocStore, user: str, s: dict) -> None:
 def public(s: dict) -> dict:
     """The session as the browser sees it."""
     keys = ("id", "title", "created", "updated", "n_turns", "last_model", "turns", "context")
-    return {k: s.get(k) for k in keys}
+    # what the next model is given from this session, as it is given (Markdown)
+    return {**{k: s.get(k) for k in keys}, "memory": context_text(s)}

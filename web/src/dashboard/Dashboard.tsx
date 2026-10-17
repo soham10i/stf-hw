@@ -19,7 +19,7 @@ import { CarbonPage } from "./Carbon";
 import { SchedulerPage } from "./Scheduler";
 import { CopilotPage } from "./Copilot";
 import { Chat } from "./Chat";
-import { Icon, ThemeMenu } from "../shared/icons";
+import { CopilotMark, Icon, ThemeMenu } from "../shared/icons";
 import { useTheme } from "../shared/theme";
 import { GUIDE, cardHelp } from "./guide";
 import { DocsPage, type DocTarget } from "./docs/DocsPage";
@@ -31,7 +31,7 @@ const DegradationPage = lazy(() => import("./Degradation").then((m) => ({ defaul
 const BASE = import.meta.env.BASE_URL;
 const PAGES = [
   ["overview", "Overview", "overview", "Operate"], ["production", "Production", "factory", "Operate"],
-  ["quality", "Quality & trace", "seal", "Operate"], ["vision", "Vision QC", "viewfinder", "Operate"], ["alarms", "Alarms", "bell", "Operate"], ["copilot", "Copilot", "spark", "Operate"],
+  ["quality", "Quality & trace", "seal", "Operate"], ["vision", "Vision QC", "viewfinder", "Operate"], ["alarms", "Alarms", "bell", "Operate"], ["copilot", "Copilot", "copilot", "Operate"],
   ["health", "Health", "pulse", "Maintain"], ["maintenance", "Maintenance", "wrench", "Maintain"],
   ["month", "Month", "calendar", "Analyse"], ["throughput", "Throughput", "gauge", "Analyse"], ["scheduler", "Learned scheduler", "shuffle", "Analyse"],
   ["energy", "Energy & grid", "bolt", "Analyse"], ["carbon", "Carbon per cookie", "leaf", "Analyse"], ["security", "OT security", "shieldlock", "Analyse"],
@@ -169,7 +169,7 @@ export function Dashboard() {
           </div>
           {page !== "copilot" && (
             <button className={`ui-btn db-ask-btn ${askOpen ? "on" : ""}`} onClick={() => showAsk(!askOpen)} aria-expanded={askOpen}
-              title="Ask the copilot about this page"><Icon name="spark" size={15} />Ask</button>
+              title="Ask the copilot about this page"><Icon name="copilot" size={15} />Ask</button>
           )}
           <ThemeMenu theme={theme} setTheme={setTheme} />
           {(CLOCK_PAGES.includes(view) || AGE_PAGES.includes(view)) && (
@@ -231,7 +231,7 @@ export function Dashboard() {
       {askOpen && page !== "copilot" && (
         <aside className="db-inspector" aria-label="Ask about this page">
           <div className="db-inspector-h">
-            <span className="db-inspector-ico"><Icon name="spark" size={15} /></span>
+            <span className="db-inspector-ico"><CopilotMark size={17} /></span>
             <div><b>Ask</b><span>about {cur[1]}</span></div>
             <button className="ui-btn ghost" onClick={() => setPage("copilot")} title="Open the copilot's own page, with your history">Open full</button>
             <button className="ui-btn icon ghost" onClick={() => showAsk(false)} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>

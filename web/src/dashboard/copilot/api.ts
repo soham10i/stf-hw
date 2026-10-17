@@ -21,6 +21,8 @@ export type Fact = [name: string, value: string, source: string];
 export type Session = {
   id: string; title: string; created: number; updated: number; n_turns: number; last_model: string | null;
   turns: Turn[]; context: { facts: Fact[]; tools: string[]; models: string[]; page: string | null };
+  /** what the next model is given from this session, as it is given (Markdown; sessions.py) */
+  memory?: string;
 };
 export type Summary = Pick<Session, "id" | "title" | "updated" | "n_turns" | "last_model">;
 export type Status = {

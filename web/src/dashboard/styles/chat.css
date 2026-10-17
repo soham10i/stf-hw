@@ -179,3 +179,30 @@
 .cx-trace summary:hover { color: var(--accent); }
 .cx-trace ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 3px; }
 .cx-trace b { color: var(--text); font-weight: 600; margin-right: 4px; }
+
+/* the context panel (Chat.tsx): a summary, then what the conversation used and established */
+.cx-ctx-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 12px 0 4px; }
+.cx-ctx-stats div { padding: 8px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border-soft); }
+.cx-ctx-stats b { display: block; font: 600 var(--fs-title3) var(--font-display); font-variant-numeric: tabular-nums; }
+.cx-ctx-stats span { font-size: var(--fs-caption); color: var(--faint); }
+.cx-ctx-sec { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-soft); }
+.cx-ctx-sec h4, .cx-ctx-memory summary { display: flex; align-items: center; gap: 7px; margin: 0 0 8px; font-size: var(--fs-callout); font-weight: 600; color: var(--text); }
+.cx-ctx-sec h4 svg, .cx-ctx-memory summary svg { color: var(--accent); }
+.cx-ctx-sec h4 span { margin-left: auto; font: 500 var(--fs-caption) var(--mono); color: var(--faint); }
+.cx-ctx-sec > em { font-style: normal; font-size: var(--fs-callout); color: var(--faint); line-height: 1.45; display: block; }
+.cx-ctx-docs { min-width: 0; list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.cx-ctx-docs button { display: block; box-sizing: border-box; width: 100%; min-width: 0; text-align: left; border: 1px solid var(--border-soft); border-radius: 9px; background: var(--surface-2);
+  padding: 7px 9px; cursor: pointer; color: inherit; font: inherit; }
+.cx-ctx-docs button:hover { border-color: var(--accent); }
+.cx-ctx-docs b { display: block; font-size: var(--fs-callout); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cx-ctx-docs em { display: block; font: var(--fs-caption) var(--mono); font-style: normal; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cx-ctx-kv { margin: 0; display: grid; gap: 4px; font-size: var(--fs-callout); }
+.cx-ctx-kv div { display: flex; justify-content: space-between; gap: 8px; }
+.cx-ctx-kv dt { color: var(--muted); } .cx-ctx-kv dd { margin: 0; font-weight: 500; text-align: right; }
+.cx-ctx-memory summary { cursor: pointer; list-style: none; margin: 0; }
+.cx-ctx-memory summary::-webkit-details-marker { display: none; }
+.cx-ctx-memory summary::after { content: "›"; margin-left: auto; color: var(--faint); transition: transform .15s; }
+.cx-ctx-memory[open] summary::after { transform: rotate(90deg); }
+.cx-ctx-memory .cx-md { margin-top: 8px; font-size: var(--fs-callout); }
+.cx-ctx-memory .cx-md h4 { font-size: var(--fs-callout); margin: 0 0 4px; }
+.cx-context { min-width: 0; overflow-x: hidden; }

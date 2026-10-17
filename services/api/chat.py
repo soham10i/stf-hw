@@ -184,42 +184,42 @@ class DailyCap:
 
 # --------------------------------------------------------------------- context
 def _result_block(r: T.Result) -> str:
-    out = [f"[{r.tool}] {r.text}"]
-    out += [f"- {k}: {v}" for k, v in r.facts]
-    if r.sources:
-        out.append("source: " + "; ".join(r.sources))
-    return "\n".join(out)
+    return r.as_markdown()
 
 
 def context_block(g: Grounding, page: str | None, results: list[T.Result] | None = None) -> str:
-    """Everything known before the model is asked: the client's grounding (if any) and the
-    results of the tool calls the question obviously needs."""
+    """Everything known before the model is asked, as one Markdown document: where the operator
+    is, the client's grounding (if any), the passages it retrieved, and the results of the tool
+    calls the question obviously needs - each a section with its sources."""
     out = []
     if page:
-        out.append(f"The operator is on the dashboard page: {page}")
+        out += ["## Where the operator is", "", f"Dashboard page: `{page}`", ""]
     if g.tool not in ("none", "") or g.text:
-        out.append(
-            f"Computed by the twin's tool '{g.tool}': {g.text}"
-            if g.tool not in ("none", "")
-            else f"Best-matching document passage: {g.text}"
-        )
-    for f in g.facts:
-        if len(f) == 2:
-            out.append(f"- {f[0]}: {f[1]}")
-    for i, p in enumerate(g.passages):
-        out.append(f"Passage {i + 1}: {p}")
+        computed = g.tool not in ("none", "")
+        title = f"## Computed by the tool `{g.tool}`" if computed else "## Best-matching passage"
+        out += [title, "", g.text, ""]
+    facts = [f for f in g.facts if len(f) == 2]
+    if facts:
+        rows = [f"| {T._md_cell(f[0])} | {T._md_cell(f[1])} |" for f in facts]
+        out += ["| Fact | Value |", "|---|---|", *rows, ""]
+    if g.passages:
+        out += ["## Retrieved passages", ""]
+        for i, p in enumerate(g.passages):
+            out += [f"### Passage {i + 1}", "", f"> {p}", ""]
     if g.sources:
-        out.append("Sources: " + "; ".join(g.sources))
-    for r in results or []:
-        out.append(_result_block(r))
-    return "\n".join(out) or "(no facts yet: call a tool)"
+        out += ["Sources: " + "; ".join(f"[{x}]" for x in g.sources), ""]
+    if results:
+        out += ["## Tool results", ""]
+        out += [_result_block(r) + "\n" for r in results]
+    return "\n".join(out).strip() or "(no facts yet: call a tool)"
 
 
 def _prompt(req: ChatRequest, results: list[T.Result], extra: str = "") -> str:
     """CONTEXT (the session's remembered facts, the client's grounding, the pre-fetched tool
     results), then the format for this kind of question, then the question."""
     ctx = context_block(req.grounding, req.page, results)
-    return f"CONTEXT:\n{ctx}\n\n{extra}\n\nQUESTION: {req.question}".replace("\n\n\n\n", "\n\n")
+    md = f"# CONTEXT\n\n{ctx}\n\n{extra}\n\n# QUESTION\n\n{req.question}"
+    return md.replace("\n\n\n\n", "\n\n")
 
 
 def build_body(
@@ -458,7 +458,12 @@ class Chat:
                 results.append(r)
                 called.append(r.tool)
                 parts.append(
-                    {"functionResponse": {"name": fc.get("name", ""), "response": r.as_dict()}}
+                    {
+                        "functionResponse": {
+                            "name": fc.get("name", ""),
+                            "response": {"content": r.as_markdown()},
+                        }
+                    }
                 )
             body["contents"].append({"role": "user", "parts": parts})
         body.pop("tools", None)  # last round: answer with what it has
@@ -509,7 +514,7 @@ class Chat:
                 r = T.call(fn.get("name", ""), args, ctx)
                 results.append(r)
                 called.append(r.tool)
-                body["messages"].append({"role": "tool", "content": json.dumps(r.as_dict())})
+                body["messages"].append({"role": "tool", "content": r.as_markdown()})
         body.pop("tools", None)
         text = parse_ollama(self.post_ollama(self.c.ollama_url, body))
         return text, check(text)

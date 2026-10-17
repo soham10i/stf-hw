@@ -5,7 +5,7 @@
 // any hand-over between models, its sources, and links to the pages with the detail.
 import { useEffect, useRef, useState } from "react";
 import { speech, type Cite as Source, type Style, type Turn } from "./api";
-import { Icon } from "../../shared/icons";
+import { CopilotMark, Icon } from "../../shared/icons";
 
 const STYLE_LABEL: Record<Style, string> = {
   greeting: "hello", quick: "quick answer", compare: "comparison", steps: "steps", status: "live status",
@@ -208,7 +208,7 @@ export function Message({ turn, go, autoSpeak = false }: { turn: Turn; go: (p: s
   if (turn.pending) {
     return (
       <div className="cx-row bot">
-        <div className="cx-avatar">✦</div>
+        <div className="cx-avatar"><CopilotMark size={18} /></div>
         <div className="cx-bubble bot pending"><span className="cx-dots"><i /><i /><i /></span><em>{turn.text}</em></div>
       </div>
     );
@@ -218,7 +218,7 @@ export function Message({ turn, go, autoSpeak = false }: { turn: Turn; go: (p: s
   const switched = (turn.switched ?? []).filter((s) => s.to !== "next" || s.why);
   return (
     <div className="cx-row bot">
-      <div className={`cx-avatar ${turn.model === "rules" ? "rules" : ""}`}>✦</div>
+      <div className={`cx-avatar ${turn.model === "rules" ? "rules" : ""}`} title={turn.model === "rules" ? "Answered by the twin's tools alone" : "The copilot"}><CopilotMark size={18} /></div>
       <div className={`cx-bubble bot s-${style}`}>
         <div className="cx-meta">
           <span className="cx-chip style">{STYLE_LABEL[style]}</span>
