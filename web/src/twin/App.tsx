@@ -131,7 +131,6 @@ export default function App() {
               <span className="vp-status" title={phase}>
                 <i className={waiting ? "idle" : "run"} /><b>{RATE}×</b><span className="vp-phase">{phase || "Loading the machine…"}</span>
               </span>
-              {waiting && ctx && <button className="vp-cta" onClick={order}><Icon name="plus" size={14} />Place an order</button>}
               <span className="vp-sep" />
               {machine.doc?.safety && (
                 <button className={`vp-btn ${showCover ? "" : "off"}`} onClick={() => setShowCover(!showCover)} aria-pressed={showCover}

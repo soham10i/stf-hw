@@ -121,7 +121,6 @@ export function Dashboard() {
           </div>
         ))}
         <div className="db-nav-foot">
-          <a className="db-twin" href={BASE} title="Open the 3D twin"><Icon name="cube" size={17} /><span>3D twin</span><Icon name="external" size={13} /></a>
           <div className="db-src" title={doc.fingerprint}>{doc.fingerprint}</div>
         </div>
       </nav>
@@ -144,6 +143,8 @@ export function Dashboard() {
               <div className="ui-seg"><button className={pm ? "on" : ""} onClick={() => setPm(true)}>PM on</button><button className={!pm ? "on" : ""} onClick={() => setPm(false)}>off</button></div>
             </div>
           )}
+          {/* the way back to the machine sits in the header, not at the sidebar's bottom edge (sidebars.md) */}
+          <a className="ui-btn" href={BASE} title="Open the 3D twin"><Icon name="cube" size={15} /><span className="hide-sm">3D twin</span></a>
           <button className={`ui-btn db-guide-btn ${guide ? "on" : ""}`} onClick={() => showGuide(!guide)} aria-pressed={guide}
             title="What this page shows and how to read it"><Icon name="info" size={15} /> Guide</button>
           <ThemeToggle theme={theme} toggle={toggleTheme} />

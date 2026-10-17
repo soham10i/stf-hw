@@ -26,7 +26,7 @@ header {
 }
 
 header h1 {
-  font-size: 15px;
+  font-size: var(--fs-head);
   font-weight: 600;
   margin: 0;
   letter-spacing: 0.3px;
@@ -36,7 +36,7 @@ header h1 {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--fs-callout);
   color: var(--muted);
 }
 
@@ -102,7 +102,7 @@ header h1 {
 }
 
 .panel h2 {
-  font-size: 13px;
+  font-size: var(--fs-body);
   margin: 0 0 12px;
   display: flex;
   align-items: center;
@@ -113,7 +113,7 @@ header h1 {
 }
 
 .panel h3 {
-  font-size: 11px;
+  font-size: var(--fs-caption);
   margin: 14px 0 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -134,7 +134,7 @@ header h1 {
   color: var(--text);
   border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--fs-body);
   transition: all 0.12s;
 }
 .slot:hover {
@@ -158,7 +158,7 @@ header h1 {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--fs-callout);
   font-weight: 600;
   color: var(--on-accent);
 }
@@ -171,7 +171,7 @@ header h1 {
 .op.cycle {
   width: 100%;
   margin-top: 6px;
-  background: linear-gradient(90deg, var(--accent), var(--warn));
+  background: var(--accent-fill);
   color: var(--on-accent);
 }
 .op.home {
@@ -185,7 +185,7 @@ header h1 {
 }
 
 .msg {
-  font-size: 11px;
+  font-size: var(--fs-caption);
   color: var(--muted);
   margin: 10px 0 0;
   font-family: ui-monospace, monospace;
@@ -193,13 +193,13 @@ header h1 {
 
 .clock {
   font-family: ui-monospace, monospace;
-  font-size: 12px;
+  font-size: var(--fs-callout);
   color: var(--muted);
   margin: 0 0 10px;
 }
 
 .tag {
-  font-size: 10px;
+  font-size: var(--fs-caption);
   padding: 2px 7px;
   border-radius: 10px;
 }
@@ -215,7 +215,7 @@ header h1 {
 .tbl {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11px;
+  font-size: var(--fs-caption);
 }
 .tbl th {
   text-align: left;
@@ -236,7 +236,7 @@ header h1 {
 }
 .phase {
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--fs-caption);
 }
 .health {
   color: var(--ok);
@@ -248,7 +248,7 @@ header h1 {
   gap: 6px;
 }
 .led {
-  font-size: 10px;
+  font-size: var(--fs-caption);
   font-family: ui-monospace, monospace;
   padding: 3px 8px;
   border-radius: 5px;
@@ -266,82 +266,82 @@ header h1 {
 nav.views { display: flex; gap: 4px; margin-left: 18px; }
 nav.views button {
   background: transparent; border: 1px solid var(--rule, #33383d);
-  color: inherit; padding: 4px 11px; font: inherit; font-size: 12px;
+  color: inherit; padding: 4px 11px; font: inherit; font-size: var(--fs-callout);
   cursor: pointer; border-radius: 3px; opacity: 0.62;
 }
 nav.views button.on { opacity: 1; border-color: #cf3a2f; color: var(--bad); }
 nav.views button:focus-visible { outline: 2px solid #cf3a2f; outline-offset: 2px; }
-ul.safety { margin: 6px 0 0; padding-left: 16px; font-size: 12px; line-height: 1.5; opacity: 0.75; }
+ul.safety { margin: 6px 0 0; padding-left: 16px; font-size: var(--fs-callout); line-height: 1.5; opacity: 0.75; }
 ul.safety li { margin: 4px 0; }
-.kv td.muted { opacity: 0.6; font-size: 11px; }
+.kv td.muted { opacity: 0.6; font-size: var(--fs-caption); }
 
 /* ---- component tabs + viewer ---------------------------------------- */
 nav.comp-tabs button.on { border-color: var(--accent); background: var(--accent-weak); }
-nav.comp-tabs .warn { font-size: 12px; align-self: center; }
+nav.comp-tabs .warn { font-size: var(--fs-callout); align-self: center; }
 .comp-viewport { position: relative; }
 .comp-toolbar {
   position: absolute; top: 10px; left: 12px; z-index: 2;
   display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
   background: rgba(13, 18, 24, 0.85); border: 1px solid var(--border);
-  border-radius: 8px; padding: 6px 12px; font-size: 12px;
+  border-radius: 8px; padding: 6px 12px; font-size: var(--fs-callout);
 }
 .comp-toolbar label { display: flex; gap: 5px; align-items: center; cursor: pointer; }
-.comp-hint { color: var(--muted); font-size: 11px; }
+.comp-hint { color: var(--muted); font-size: var(--fs-caption); }
 .dim-label {
   background: rgba(10, 16, 22, 0.88); color: #bfe6f7; border: 1px solid #2d5c74;
-  border-radius: 4px; padding: 1px 6px; font: 11px ui-monospace, monospace;
+  border-radius: 4px; padding: 1px 6px; font: var(--fs-caption) ui-monospace, monospace;
   white-space: nowrap; pointer-events: none;
 }
 .src-filter { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
 .src-filter button {
   background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
-  border-radius: 10px; padding: 2px 8px; font-size: 11px; cursor: pointer;
+  border-radius: 10px; padding: 2px 8px; font-size: var(--fs-caption); cursor: pointer;
 }
 .src-filter button.on { color: var(--text); border-color: var(--accent); }
-.src { font-size: 10px; padding: 1px 6px; border-radius: 8px; white-space: nowrap; }
+.src { font-size: var(--fs-caption); padding: 1px 6px; border-radius: 8px; white-space: nowrap; }
 .tag.warn { background: var(--bad-weak); color: var(--bad); }
-.comp-files a { color: var(--accent); font-size: 12px; }
+.comp-files a { color: var(--accent); font-size: var(--fs-callout); }
 
 /* ---- operable mini switch ------------------------------------------- */
 .tick-toggle {
   display: inline-flex; align-items: center; gap: 7px;
   background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
-  border-radius: 7px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+  border-radius: 7px; padding: 4px 10px; font-size: var(--fs-callout); cursor: pointer;
 }
 .tick-toggle.on { border-color: var(--ok); background: var(--ok-weak); }
 .tick-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tick-toggle .tick-box {
   width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--muted);
-  display: inline-grid; place-items: center; font-size: 12px; line-height: 1; color: #fff;
+  display: inline-grid; place-items: center; font-size: var(--fs-callout); line-height: 1; color: #fff;
 }
 .tick-toggle.on .tick-box { background: var(--ok); border-color: var(--ok); }
-.tick-toggle.big { width: 100%; justify-content: center; padding: 9px; font-size: 13px; margin-bottom: 8px; }
+.tick-toggle.big { width: 100%; justify-content: center; padding: 9px; font-size: var(--fs-body); margin-bottom: 8px; }
 .switch-schematic { width: 100%; max-width: 240px; display: block; margin: 4px auto 8px; }
 .switch-schematic .wire { stroke: #5d6f80; stroke-width: 2.5; }
 .switch-schematic .wire.live { stroke: #3fbf6f; }
 .switch-schematic .blade { stroke: #cfe0f0; stroke-width: 3; stroke-linecap: round; transition: all 0.15s; }
 .switch-schematic .blade.on { stroke: #3fbf6f; }
 .switch-schematic .node { fill: #0f1720; stroke: #cfe0f0; stroke-width: 2; }
-.switch-schematic text { fill: var(--muted); font: 10px ui-monospace, monospace; }
+.switch-schematic text { fill: var(--muted); font: var(--fs-caption) ui-monospace, monospace; }
 .tbl td.ok { color: var(--ok); }
 
 /* ---- controller board tab ------------------------------------------- */
 .ctl-main { overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
 .ctl-modules { display: flex; gap: 6px; flex-wrap: wrap; }
 .ctl-modules button { background: var(--surface); border: 1px solid var(--border); color: var(--text);
-  border-radius: 7px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
-.ctl-modules button span { color: var(--muted); font-size: 11px; margin-left: 4px; }
+  border-radius: 7px; padding: 6px 12px; font-size: var(--fs-callout); cursor: pointer; }
+.ctl-modules button span { color: var(--muted); font-size: var(--fs-caption); margin-left: 4px; }
 .ctl-modules button.on { border-color: var(--accent); background: var(--accent-weak); }
-.ctl-title { font-size: 15px; margin: 0; }
+.ctl-title { font-size: var(--fs-head); margin: 0; }
 .ctl-title .clock { font-weight: 400; margin-left: 8px; }
 svg.pcb { width: 100%; max-width: 980px; background: #0d141c; border: 1px solid var(--border); border-radius: 10px; }
 .pcb .board { fill: #17402a; stroke: #2e6b47; stroke-width: 2; }
 .pcb .hole { fill: #0d141c; stroke: #c9a24a; stroke-width: 2; }
 .pcb .hdr { fill: #1b1f24; stroke: #555d66; }
-.pcb .lbl { fill: #cfe0f0; font: 8px ui-monospace, monospace; pointer-events: none; }
-.pcb .lbl.strong { font-size: 11px; font-weight: 700; }
-.pcb .lbl.role { fill: #9fd6b5; font-size: 8px; }
-.pcb .lbl.sig { fill: #9fb4c6; font-size: 6.5px; }
+.pcb .lbl { fill: #cfe0f0; font: var(--fs-caption) ui-monospace, monospace; pointer-events: none; }
+.pcb .lbl.strong { font-size: var(--fs-caption); font-weight: 700; }
+.pcb .lbl.role { fill: #9fd6b5; font-size: var(--fs-caption); }
+.pcb .lbl.sig { fill: #9fb4c6; font-size: var(--fs-caption); }
 .pcb .pin { stroke: #0006; cursor: pointer; }
 .pcb .k-in { fill: #3b7fb0; } .pcb .k-out { fill: #c7702f; } .pcb .k-cnt { fill: #8c62c9; }
 .pcb .k-ana { fill: #d4a93a; } .pcb .k-pwr { fill: #c43a3a; } .pcb .k-gnd { fill: #6b7580; }
@@ -364,30 +364,30 @@ svg.pcb { width: 100%; max-width: 980px; background: #0d141c; border: 1px solid 
 .pcb .valve.lvl rect { fill: #2f7a4d; stroke: #47e07f; }
 .pcb .valve.unused { opacity: 0.35; }
 .pcb .valve.hl rect { stroke: #fff; stroke-width: 2.5; }
-.ctl-info { font-size: 12px; min-height: 18px; }
+.ctl-info { font-size: var(--fs-callout); min-height: 18px; }
 .ctl-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 1100px) { .ctl-cols { grid-template-columns: 1fr; } }
-.sigchip { font: 10px ui-monospace, monospace; padding: 1px 5px; border-radius: 6px; background: #2a3139; }
+.sigchip { font: var(--fs-caption) ui-monospace, monospace; padding: 1px 5px; border-radius: 6px; background: #2a3139; }
 .sigchip.k-in { background: #1d4e73; } .sigchip.k-out { background: #7a4118; } .sigchip.k-cnt { background: #4d3570; }
 .sigchip.k-ana { background: #7a6120; } .sigchip.k-pwr { background: #7a1f1f; } .sigchip.k-gnd { background: #3a4148; }
 tr.hl-row td { background: #1c3346; }
 .io-grid { display: grid; grid-template-columns: 1fr; gap: 4px; margin-bottom: 6px; }
 button.io { display: flex; gap: 6px; align-items: baseline; text-align: left; background: var(--surface-2);
-  border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer; }
+  border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; font-size: var(--fs-caption); cursor: pointer; }
 button.io span { color: var(--muted); flex: 1; }
 button.io em { font-style: normal; color: var(--muted); font-family: ui-monospace, monospace; }
 button.io.on { border-color: #47e07f; background: var(--ok-weak); }
 button.io.on em { color: #47e07f; }
 .motor-row { border: 1px solid var(--border); border-radius: 7px; padding: 6px; margin-bottom: 6px; }
-.motor-head { font-size: 12px; margin-bottom: 4px; }
+.motor-head { font-size: var(--fs-callout); margin-bottom: 4px; }
 .motor-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-.motor-state { font-size: 11px; margin-top: 4px; color: #9fd6b5; }
+.motor-state { font-size: var(--fs-caption); margin-top: 4px; color: #9fd6b5; }
 .motor-state.warn { color: #f0b25a; }
 svg.scope { width: 120px; height: 30px; vertical-align: middle; margin-left: 6px; background: #0b1117; border-radius: 3px; }
 svg.scope path { fill: none; stroke: #47e07f; stroke-width: 1.4; }
-label.ana { display: flex; gap: 8px; align-items: center; font-size: 12px; }
+label.ana { display: flex; gap: 8px; align-items: center; font-size: var(--fs-callout); }
 label.ana input { flex: 1; accent-color: #d4a93a; }
-.disc { font-size: 11.5px; margin-bottom: 10px; line-height: 1.45; }
+.disc { font-size: var(--fs-callout); margin-bottom: 10px; line-height: 1.45; }
 svg.circuit { width: 100%; max-width: 640px; background: #0b1117; border-radius: 8px; }
 svg.circuit .w { fill: none; stroke: #47a36d; stroke-width: 2; }
 svg.circuit .blade { fill: none; stroke: #cfe0f0; stroke-width: 2; }
@@ -396,7 +396,7 @@ svg.circuit .dio { fill: none; stroke: #e05a4f; stroke-width: 2; }
 svg.circuit .box, svg.circuit .lamp { fill: none; stroke: #e05a4f; stroke-width: 2; }
 svg.circuit .tbox { fill: none; stroke: #e05a4f; stroke-width: 2; }
 svg.circuit .net { fill: #1b1f24; stroke: #e05a4f; }
-svg.circuit .note { fill: #cfe0f0; font: 10px ui-monospace, monospace; }
+svg.circuit .note { fill: #cfe0f0; font: var(--fs-caption) ui-monospace, monospace; }
 /* flex children must not shrink: an SVG with only a viewBox collapses to 0 height */
 .ctl-main > * { flex-shrink: 0; }
 svg.pcb { height: auto; aspect-ratio: 570 / 372; }
@@ -412,15 +412,15 @@ svg.circuit { height: auto; aspect-ratio: 520 / 170; }
 .valve-svg .pipe.dead { stroke: #3a4652; }
 .valve-svg .flow { fill: none; stroke: #7fd0ff; stroke-width: 2.5; stroke-dasharray: 5 4; animation: flowdash .8s linear infinite; }
 .valve-svg .arrowhead { fill: #7fd0ff; }
-.valve-svg text { fill: currentColor; font-size: 10px; }
+.valve-svg text { fill: currentColor; font-size: var(--fs-caption); }
 @keyframes flowdash { to { stroke-dashoffset: -18; } }
-.pump-steps { margin: 4px 0 8px 18px; padding: 0; font-size: 13px; line-height: 1.45; }
+.pump-steps { margin: 4px 0 8px 18px; padding: 0; font-size: var(--fs-body); line-height: 1.45; }
 .pump-steps li { margin-bottom: 4px; }
-.track-slider { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.track-slider { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-body); }
 
 /* ---- oven blueprint ---- */
 .bp-view { width: 100%; height: auto; display: block; }
-.bp-small { fill: var(--bp-dim); font: 6px ui-monospace, monospace; }
+.bp-small { fill: var(--bp-dim); font: var(--fs-caption) ui-monospace, monospace; }
 .bp-part.io { stroke-width: .7; }
 .bp-part.on { stroke: #ffd24a; stroke-width: 1.4; fill-opacity: .6; }
 .bp-table tr.on td, .bp-bom tr.on td { background: rgba(255, 210, 74, .18); }
@@ -430,7 +430,7 @@ svg.circuit { height: auto; aspect-ratio: 520 / 170; }
 .wire-legend {
   position: absolute; right: 12px; top: 12px; z-index: 5; max-width: 250px;
   background: rgba(13, 17, 23, .88); border: 1px solid #2b3440; border-radius: 8px;
-  padding: 6px 10px; font-size: 11.5px; color: #d7dde4;
+  padding: 6px 10px; font-size: var(--fs-callout); color: #d7dde4;
 }
 .wire-legend summary { cursor: pointer; font-weight: 600; letter-spacing: .04em; }
 .wire-legend ul { list-style: none; margin: 6px 0 2px; padding: 0; }
@@ -442,34 +442,34 @@ svg.circuit { height: auto; aspect-ratio: 520 / 170; }
 
 /* Upgrade 1 report */
 .panel.upgrade { border-color: rgba(120, 200, 150, .45); }
-.up-table thead td { opacity: .6; font-size: 11px; }
+.up-table thead td { opacity: .6; font-size: var(--fs-caption); }
 .up-table td.up-good { color: var(--ok); }
 .up-table td.up-cost { color: var(--warn); }
-.muted.small, .small { font-size: 11px; line-height: 1.45; }
-.up-proofs { margin: 4px 0 0; padding-left: 16px; font-size: 11px; line-height: 1.5; opacity: .85; }
-.panel.upgrade p, .panel.upgrade td { font-size: 12px; line-height: 1.45; }
-.panel.upgrade .small { font-size: 11px; }
+.muted.small, .small { font-size: var(--fs-caption); line-height: 1.45; }
+.up-proofs { margin: 4px 0 0; padding-left: 16px; font-size: var(--fs-caption); line-height: 1.5; opacity: .85; }
+.panel.upgrade p, .panel.upgrade td { font-size: var(--fs-callout); line-height: 1.45; }
+.panel.upgrade .small { font-size: var(--fs-caption); }
 .panel.upgrade td.num { white-space: nowrap; }
 
 /* Orders: 12 compact slot buttons (twin rack A1-C4) */
-.panel.orders .slot { font-size: 11.5px; }   /* sizes and spacing: twin/twin.css (glass controls) */
-.panel.orders .msg { font-size: 11px; }
+.panel.orders .slot { font-size: var(--fs-callout); }   /* sizes and spacing: twin/twin.css (glass controls) */
+.panel.orders .msg { font-size: var(--fs-caption); }
 
 /* Upgrade 1 blueprint */
 .bp-toolbar button.on { background: #0d3560; border-color: #7fb2e6; }
 .u1-lbl.new { fill: #0d3560; }
 .bp-sheet .up-proofs { color: var(--bp-ink); }
-.u1-layout .bp-small { font-size: 24px; }
+.u1-layout .bp-small { font-size: var(--fs-title1); }
 .plr { font-weight: 700; }
 .panel.safety { border-color: rgba(239, 68, 68, .5); }
 
 /* Upgrade 2 blueprint */
 .u2-sch.dashed polyline { stroke-dasharray: 5 4; stroke: var(--bp-dim); }
-.u2-schem .bp-small { font-size: 9px; }
-.u2-schem .bp-title { font-size: 11px; }
+.u2-schem .bp-small { font-size: var(--fs-caption); }
+.u2-schem .bp-title { font-size: var(--fs-caption); }
 /* Upgrade 3 */
 .panel.io3 { border-color: rgba(16, 185, 129, .5); }
-.u3-chain .bp-small { font-size: 10px; }
+.u3-chain .bp-small { font-size: var(--fs-caption); }
 
 /* ---------------------------------------------------------- Upgrade 4 */
 .hmi-clock { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
@@ -480,15 +480,15 @@ svg.circuit { height: auto; aspect-ratio: 520 / 170; }
 .hmi-led.held { background: #eab308; }
 .hmi-led.ready { background: #64748b; }
 .hmi-units td { vertical-align: top; }
-.hmi-order { display: flex; gap: 14px; font-size: 12.5px; }
-.hmi-alarm { margin-top: 6px; padding: 6px 8px; border-left: 3px solid var(--bad); background: rgba(224, 80, 58, .08); font-size: 12px; }
+.hmi-order { display: flex; gap: 14px; font-size: var(--fs-body); }
+.hmi-alarm { margin-top: 6px; padding: 6px 8px; border-left: 3px solid var(--bad); background: rgba(224, 80, 58, .08); font-size: var(--fs-callout); }
 .hmi-alarm div { margin-top: 3px; }
-.hmi-alarm span { display: inline-block; min-width: 66px; opacity: .6; text-transform: uppercase; font-size: 9.5px; letter-spacing: .06em; }
+.hmi-alarm span { display: inline-block; min-width: 66px; opacity: .6; text-transform: uppercase; font-size: var(--fs-caption); letter-spacing: .06em; }
 .panel.hmi select { width: 100%; margin: 4px 0; }
 .u4-step.dwell { fill: rgba(255, 255, 255, .04); stroke: var(--bp-dim); }
 .u4-step.init { fill: rgba(34, 197, 94, .14); stroke: #22c55e; stroke-width: 1.6; }
 .u4-grid { stroke: rgba(160, 200, 240, .15); stroke-width: .6; }
-.u4-sfc .bp-small { font-size: 9px; }
+.u4-sfc .bp-small { font-size: var(--fs-caption); }
 .u4-units button.on { background: rgba(80, 160, 255, .3); }
 .u4-key.dwell { background: rgba(255, 255, 255, .06); }
 /* on-canvas switch for the hazard zones */
@@ -501,7 +501,7 @@ svg.circuit { height: auto; aspect-ratio: 520 / 170; }
 .ops-box.wide { grid-column: span 2; }
 .ops-health { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; }
 .ops-health.compact { grid-template-columns: 1fr 1fr; }
-.ops-card { border: 1px solid rgba(34, 197, 94, .5); padding: 5px 7px; font-size: 11.5px; background: rgba(34, 197, 94, .05); }
+.ops-card { border: 1px solid rgba(34, 197, 94, .5); padding: 5px 7px; font-size: var(--fs-callout); background: rgba(34, 197, 94, .05); }
 .ops-card.warn { border-color: var(--warn); background: rgba(224, 160, 42, .1); }
 .ops-card.fail { border-color: var(--bad); background: rgba(224, 80, 58, .14); }
 .ops-card-h { display: flex; justify-content: space-between; gap: 4px; }
@@ -509,15 +509,15 @@ svg.circuit { height: auto; aspect-ratio: 520 / 170; }
 .ops-hi { position: relative; height: 10px; background: rgba(255, 255, 255, .08); margin: 4px 0; }
 .ops-hi i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ok); }
 .ops-card.warn .ops-hi i { background: var(--warn); } .ops-card.fail .ops-hi i { background: var(--bad); }
-.ops-hi b { position: absolute; right: 3px; top: -2px; font: 10px ui-monospace, monospace; }
+.ops-hi b { position: absolute; right: 3px; top: -2px; font: var(--fs-caption) ui-monospace, monospace; }
 .ops-spark { width: 100%; height: 26px; }
 .ops-spark path { fill: none; stroke: var(--sky); stroke-width: 1.2; }
-.ops-card-f { display: flex; justify-content: space-between; opacity: .7; font-size: 10.5px; }
+.ops-card-f { display: flex; justify-content: space-between; opacity: .7; font-size: var(--fs-caption); }
 tr.warn td { color: var(--warn); } tr.fail td { color: var(--bad); }
-.mono { font-family: ui-monospace, monospace; font-size: 11px; }
+.mono { font-family: ui-monospace, monospace; font-size: var(--fs-caption); }
 .u6-line { fill: none; stroke: #9fd0ff; stroke-width: 1.4; }
 .u6-soft { stroke: #e0a02a; stroke-width: 1; stroke-dasharray: 4 3; }
 .u6-fail { stroke: #e0503a; stroke-width: 1.2; }
-.u6-curve .bp-small { font-size: 8px; }
+.u6-curve .bp-small { font-size: var(--fs-caption); }
 .u7-reach i.far { background: #e0503a; }
 @media (max-width: 1100px) { .ops-grid { grid-template-columns: 1fr; } .ops-box.wide { grid-column: auto; } }

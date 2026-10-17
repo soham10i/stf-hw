@@ -45,10 +45,14 @@ export function GuideBox({ page, onClose }: { page: string; onClose: () => void 
     <aside className="db-guide" aria-label="Guide to this page">
       <div className="db-guide-h"><b>Guide · {g.title}</b><button className="ui-btn ghost" onClick={onClose}>Hide</button></div>
       <p className="db-guide-what">{g.what}</p>
-      <div className="db-guide-cols">
-        <div><h4>How to read it</h4><ol>{g.read.map((r) => <li key={r}>{r}</li>)}</ol></div>
-        <div><h4>On this page</h4><dl>{g.sections.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></div>
-      </div>
+      {/* progressive disclosure: the page's purpose in one line; how to read it on request (layout.md) */}
+      <details className="db-guide-more">
+        <summary>How to read this page</summary>
+        <div className="db-guide-cols">
+          <div><h4>How to read it</h4><ol>{g.read.map((r) => <li key={r}>{r}</li>)}</ol></div>
+          <div><h4>On this page</h4><dl>{g.sections.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></div>
+        </div>
+      </details>
       {terms.length > 0 && (
         <details className="db-guide-terms"><summary>Terms used here · {terms.length}</summary>
           <dl>{terms.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></details>

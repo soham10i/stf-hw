@@ -98,7 +98,7 @@ export function TopBar({ views, view, onView, status, statusTip, theme, toggleTh
         <span className={`ui-chip ${CHIP[status][0]}`} title={[CHIP[status][2], statusTip].filter(Boolean).join("\n")}>
           <span className="ui-dot" />{CHIP[status][1]}
         </span>
-        {onOrder && <button className="ui-btn" onClick={onOrder} title="Open the order form"><Icon name="plus" size={15} />New order</button>}
+        {onOrder && <button className="ui-btn primary" onClick={onOrder} title="Open the order form"><Icon name="plus" size={15} />New order</button>}
         <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html`}><Icon name="gauge" size={16} /><span className="hide-sm">Dashboard</span></a>
         <ThemeToggle theme={theme} toggle={toggleTheme} />
       </div>

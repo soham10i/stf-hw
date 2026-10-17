@@ -94,8 +94,8 @@ SECURITY_HEADERS = {
         [
             "default-src 'self'",
             "script-src 'self' 'wasm-unsafe-eval'",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-            "font-src 'self' https://fonts.gstatic.com",
+            "style-src 'self' 'unsafe-inline'",
+            "font-src 'self'",
             "img-src 'self' data: blob:",
             "connect-src 'self' blob: data: ws: wss:",
             "worker-src 'self' blob:",
