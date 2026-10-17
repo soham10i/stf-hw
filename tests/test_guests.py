@@ -67,12 +67,14 @@ def test_a_guest_sees_only_their_own_copilot_sessions_whatever_the_browser_claim
     b.get("/guest")
     # b claims a's id in the old header: the server's guest wins
     assert b.get("/copilot/sessions", headers={"X-STF-User": gid}).json()["sessions"] == []
-    assert b.get(f"/copilot/sessions/{s['id']}", headers={"X-STF-User": gid}).json().get("turns") in (None, [])
+    other = b.get(f"/copilot/sessions/{s['id']}", headers={"X-STF-User": gid}).json()
+    assert other.get("turns") in (None, [])
 
 
 def test_photos_are_the_guests_and_forgetting_takes_them_all(app):
     a, b = visitor(app), visitor(app)
-    up = a.post("/vision/captures?flavour=vanilla&n=1", content=jpeg(), headers={"content-type": "image/jpeg"})
+    jpg = {"content-type": "image/jpeg"}
+    up = a.post("/vision/captures?flavour=vanilla&n=1", content=jpeg(), headers=jpg)
     assert up.status_code == 200, up.text
     pid = up.json()["id"]
     assert [r["id"] for r in a.get("/vision/captures").json()["captures"]] == [pid]

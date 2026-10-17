@@ -22,6 +22,7 @@ import { Chat } from "./Chat";
 import { Icon, ThemeMenu } from "../shared/icons";
 import { useTheme } from "../shared/theme";
 import { GUIDE, cardHelp } from "./guide";
+import { DocsPage, type DocTarget } from "./docs/DocsPage";
 
 
 // the docs pages carry KaTeX: loaded when opened
@@ -36,7 +37,7 @@ const PAGES = [
   ["energy", "Energy & grid", "bolt", "Analyse"], ["carbon", "Carbon per cookie", "leaf", "Analyse"], ["security", "OT security", "shieldlock", "Analyse"],
   ["hardening", "Defence in depth", "layers", "Analyse"],
   ["engineering", "Engineering", "cog", "Engineer"], ["validation", "Validation", "checklist", "Engineer"], ["data", "Data", "database", "Engineer"],
-  ["docs-degradation", "Hardware degradation", "book", "Docs"],
+  ["docs", "Documentation", "book", "Docs"], ["docs-degradation", "Hardware degradation", "pulse", "Docs"],
 ] as const;
 const CLOCK_PAGES = ["overview", "production", "quality"];
 const AGE_PAGES = ["overview", "health", "maintenance"];
@@ -68,6 +69,17 @@ export function Dashboard() {
     setPageOnly(p);
   };
   const view: View = page === "maintenance" && mtab === "ai" ? "ai" : page;
+  // the Docs page's document, heading or cited line (?p=docs&f=docs/plc/README.md&a=...&l=...);
+  // an answer's source opens it from anywhere (the copilot's citations send stf:open-doc)
+  const q0 = new URLSearchParams(location.search);
+  const [docAt, setDocAt] = useState<DocTarget>(() => ({ file: q0.get("f") || "docs/plc/README.md", anchor: q0.get("a") || undefined,
+    line: q0.get("l") ? Number(q0.get("l")) : undefined }));
+  const openDoc = (t: DocTarget) => { setDocAt(t); setPageOnly("docs"); };
+  useEffect(() => {
+    const on = (e: Event) => openDoc((e as CustomEvent<DocTarget>).detail);
+    window.addEventListener("stf:open-doc", on);
+    return () => window.removeEventListener("stf:open-doc", on);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [t, setT] = useState(0);
   const [play, setPlay] = useState(true);
   const [age, setAge] = useState(0);
@@ -85,7 +97,15 @@ export function Dashboard() {
     const id = window.setInterval(() => setT((x) => (x + 2 >= T ? 0 : x + 2)), 100);
     return () => window.clearInterval(id);
   }, [play, T, doc]);
-  useEffect(() => { history.replaceState(null, "", `?p=${view}`); }, [view]);
+  useEffect(() => {
+    const q = new URLSearchParams({ p: view });
+    if (view === "docs") {
+      q.set("f", docAt.file);
+      if (docAt.anchor) q.set("a", docAt.anchor);
+      if (docAt.line) q.set("l", String(docAt.line));
+    }
+    history.replaceState(null, "", `?${q}`);
+  }, [view, docAt]);
   // the pages that build their own sections (Month, AI, Energy, Throughput, Security, Assurance)
   // get the same i-hint on each section title as Card gives, as their data loads
   useEffect(() => {
@@ -197,6 +217,7 @@ export function Dashboard() {
           {page === "overview" && <Overview doc={doc} t={t} age={age} pm={pm} go={(p) => setPage(p as View)} />}
           {page === "production" && <Production doc={doc} t={t} />}
           {page === "health" && <HealthPage h={doc.health!} age={age} pm={pm} go={(p) => setPage(p as View)} />}
+          {page === "docs" && <DocsPage doc={doc} target={docAt} open={openDoc} />}
           {page === "docs-degradation" && <Suspense fallback={<div className="db-err">loading…</div>}><DegradationPage h={doc.health!} /></Suspense>}
           {view === "maintenance" && <MaintenancePage h={doc.health!} lc={doc.lifecycle} age={age} pm={pm} />}
           {page === "quality" && <Quality doc={doc} t={t} />}

@@ -7,11 +7,15 @@ import { HAS_API } from "../../shared/mode";
 export type Tab = "gemini" | "local" | "voice";
 export type Style = "greeting" | "quick" | "compare" | "steps" | "status" | "list" | "explain" | "answer";
 export type Switch = { from: string; to: string | null; why: string };
+/** Where a source is, exactly (services/api/chat.py _cites): a document passage (its file, line,
+    heading anchor, match score and text), a tool that computed facts, or a web page. */
+export type Cite = { kind: "doc" | "tool" | "web"; tool: string; label: string; file?: string; line?: number;
+  anchor?: string; score?: number; quote?: string };
 export type Turn = {
   role: "user" | "assistant"; text: string; t: number;
   model?: string; style?: Style; sources?: string[]; links?: { page: string; label: string }[];
   tools?: string[]; note?: string; unverified?: string[]; switched?: Switch[]; facts?: [string, string][];
-  ms?: number; pending?: boolean;
+  cites?: Cite[]; ms?: number; pending?: boolean;
 };
 export type Fact = [name: string, value: string, source: string];
 export type Session = {
@@ -57,7 +61,7 @@ export async function ask(body: { question: string; page: string; provider: stri
   return j as {
     answer: string; model: string; style: Style; sources: string[]; links: { page: string; label: string }[];
     tools: string[]; facts: [string, string][]; note?: string; unverified?: string[]; switched?: Switch[];
-    session?: { id: string; title: string; facts: number; models: string[] };
+    cites?: Cite[]; session?: { id: string; title: string; facts: number; models: string[] };
   };
 }
 

@@ -57,6 +57,9 @@ class Passage:
     doc: str
     path: list[str]
     text: str
+    file: str = ""  # repo-relative, e.g. docs/plc/03-units.md
+    line: int = 0  # where the passage starts in it
+    anchor: str = ""  # its heading's anchor
 
 
 class BM25:
@@ -141,7 +144,13 @@ def get_bm25() -> BM25:
     kb = load_json("copilot/kb.json") or {}
     passages = [
         Passage(
-            id=p.get("id", i), doc=p.get("doc", ""), path=p.get("path", []), text=p.get("text", "")
+            id=p.get("id", i),
+            doc=p.get("doc", ""),
+            path=p.get("path", []),
+            text=p.get("text", ""),
+            file=p.get("file", ""),
+            line=p.get("line", 0),
+            anchor=p.get("anchor", ""),
         )
         for i, p in enumerate(kb.get("passages", []))
     ]

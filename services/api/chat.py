@@ -326,6 +326,24 @@ def _cite(results: list[T.Result]) -> tuple[list[str], list[dict]]:
     return sources[:8], links[:4]
 
 
+def _cites(results: list[T.Result]) -> list[dict]:
+    """Where the answer's sources are, exactly: each document passage the tools retrieved (its
+    file, line, anchor, match score and text), and each tool that computed facts."""
+    out: list[dict] = []
+    seen: set[str] = set()
+    for r in results:
+        for c in r.cites:
+            if c["label"] not in seen:
+                seen.add(c["label"])
+                out.append({"kind": "doc", "tool": r.tool, **c})
+        for s in r.sources:
+            if s not in seen and r.tool != "search_docs":
+                seen.add(s)
+                kind = "web" if s.startswith("http") else "tool"
+                out.append({"kind": kind, "tool": r.tool, "label": s})
+    return out[:10]
+
+
 class ModelError(Exception):
     """The model could not answer; the message is safe to show (it never holds the key)."""
 
@@ -569,6 +587,7 @@ class Chat:
                 "tools": called,
                 "style": style,
                 "facts": [f for r in results if r.tool != "search_docs" for f in r.facts][:8],
+                "cites": _cites(results),
             }
             if note:
                 out["note"] = note
@@ -585,6 +604,7 @@ class Chat:
                     model=model,
                     style=style,
                     sources=sources,
+                    cites=out["cites"],
                     links=links,
                     tools=called,
                     note=note,

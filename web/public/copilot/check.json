@@ -161,7 +161,7 @@
   {
    "q": "what is IEC 62443",
    "want": "doc:security",
-   "got": "doc:Dashboard: OT security › Dashboard: OT security › Terms",
+   "got": "doc:Dashboard: OT security › Dashboard: OT security › In brief",
    "ok": true
   },
   {

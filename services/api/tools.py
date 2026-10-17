@@ -49,6 +49,8 @@ class Result:
     facts: list[list[str]] = field(default_factory=list)
     sources: list[str] = field(default_factory=list)
     link: dict[str, str] | None = None
+    # where each source is, exactly: label (as in sources), file, line, anchor, score, quote
+    cites: list[dict] = field(default_factory=list)
 
     def as_dict(self) -> dict:
         return {k: v for k, v in asdict(self).items() if v not in (None, [], "")}
@@ -437,13 +439,23 @@ def search_docs(args: dict, ctx: Ctx) -> Result:
     hits = [h for h in get_bm25().search(q, top_k=int(args.get("k") or 4)) if h["score"] >= 2.0]
     if not hits:
         return Result("search_docs", f"No document covers '{q}'.")
-    facts, sources = [], []
+    facts, sources, cites = [], [], []
     for h in hits:
         p = h["passage"]
         where = " > ".join(dict.fromkeys([p.doc, *[x for x in p.path if x]]))
         facts.append([where, p.text[:900]])
         sources.append(where)
-    return Result("search_docs", f"{len(hits)} passages match.", facts, sources)
+        cites.append(
+            {
+                "label": where,
+                "file": p.file,
+                "line": p.line,
+                "anchor": p.anchor,
+                "score": round(float(h["score"]), 2),
+                "quote": p.text[:400],
+            }
+        )
+    return Result("search_docs", f"{len(hits)} passages match.", facts, sources, cites=cites)
 
 
 def page_guide(args: dict, ctx: Ctx) -> Result:

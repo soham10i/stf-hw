@@ -451,6 +451,8 @@ The theory behind the Health page: how wear is modelled, measured, smoothed and 
 
 | Term | Meaning |
 |---|---|
+| SFC | Sequential function chart (IEC 61131-3): a program drawn as steps, each with its outputs, and the transitions between them, each with its condition. |
+| PLC | Programmable logic controller: the industrial computer that reads the sensors and drives the motors, scan after scan (here every 5 ms). |
 | OEE | Overall equipment effectiveness = availability × performance × quality. 100 % means making only good parts, as fast as possible, with no stops. |
 | Order time (makespan) | How long the whole 12-cookie order takes from the first move to the last cookie stored. |
 | Shift | 8 hours of production. Machine age and remaining life are counted in shifts. |

@@ -118,6 +118,9 @@ mechanisms: ## The mechanisms' 3D views (drag chain, lift spindle drive, RFID he
 health-theory: ## Docs page "Hardware degradation": the health model in closed form, checked against its simulation
 	cd stf-cad/hbw && STF_VARIANT=up12 PYTHONPATH=. ../../$(PY) health_theory.py
 
+plc-docs: ## docs/plc/: the PLC reference, written from the program the twin runs (then `make copilot`)
+	$(PY) docs/gen/plc_docs.py
+
 guide: ## docs/DASHBOARD_GUIDE.md from the dashboard's guide (web/src/dashboard/guide.ts)
 	cd web && npx esbuild scripts/guide-md.ts --bundle --platform=node --format=esm --outfile=../.cache/guide-md/guide-md.mjs --log-level=warning && node ../.cache/guide-md/guide-md.mjs
 

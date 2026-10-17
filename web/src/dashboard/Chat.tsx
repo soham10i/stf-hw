@@ -113,7 +113,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
       } else {
         const r = await api.ask({ question: t, page, provider: PROVIDER[tab], session_id: sid, age, pm });
         reply = { role: "assistant", text: r.answer, t: now, model: r.model, style: r.style, sources: r.sources, links: r.links,
-          tools: r.tools, note: r.note, unverified: r.unverified, switched: r.switched, facts: r.facts };
+          tools: r.tools, note: r.note, unverified: r.unverified, switched: r.switched, facts: r.facts, cites: r.cites };
         if (r.session) {
           setSid(r.session.id); api.currentSession.set(r.session.id); setTitle(r.session.title);
           api.session(r.session.id).then((s) => s && setContext(s.context));

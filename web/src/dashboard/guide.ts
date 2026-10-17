@@ -17,6 +17,8 @@ export type PageGuide = {
 };
 
 export const TERMS: Record<string, string> = {
+  SFC: "Sequential function chart (IEC 61131-3): a program drawn as steps, each with its outputs, and the transitions between them, each with its condition.",
+  PLC: "Programmable logic controller: the industrial computer that reads the sensors and drives the motors, scan after scan (here every 5 ms).",
   "OEE": "Overall equipment effectiveness = availability × performance × quality. 100 % means making only good parts, as fast as possible, with no stops.",
   "Order time (makespan)": "How long the whole 12-cookie order takes from the first move to the last cookie stored.",
   "Shift": "8 hours of production. Machine age and remaining life are counted in shifts.",
@@ -48,6 +50,22 @@ export const TERMS: Record<string, string> = {
 };
 
 export const GUIDE: Record<string, PageGuide> = {
+  docs: {
+    title: "Documentation",
+    what: "The documents the copilot answers from, in full: the PLC program, the machine, the twin and the dashboard. An answer's source opens here, at the line it quotes.",
+    read: [
+      "Pick a document on the left; jump to a section from 'On this page'.",
+      "A cited line is highlighted: that is the passage the answer was built from.",
+      "The PLC chapters are written from the program the twin compiles and runs: their tables and diagrams are its own.",
+    ],
+    sections: [
+      ["Documents", "The knowledge base, grouped: the PLC program, the machine, operations, the 3D twin, the dashboard pages and the project documents."],
+      ["The document", "Its text with its tables and diagrams; its file and a link to the line on GitHub at the top."],
+      ["On this page", "The document's sections."],
+    ],
+    terms: ["SFC", "PLC"],
+    source: "docs/ (the PLC chapters from docs/gen/plc_docs.py), indexed by web/scripts/copilot-kb.ts",
+  },
   overview: {
     title: "Overview",
     what: "The cell at a glance: order progress, what each unit is doing, where efficiency is lost and what needs service next.",

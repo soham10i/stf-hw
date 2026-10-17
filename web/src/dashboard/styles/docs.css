@@ -1,0 +1,71 @@
+/* The Docs page (docs/DocsPage.tsx): the library, the document, its sections. */
+.doc-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr) 210px; gap: 18px; align-items: start; }
+@media (max-width: 1280px) { .doc-layout { grid-template-columns: 220px minmax(0, 1fr); } .doc-toc { display: none; } }
+@media (max-width: 900px) { .doc-layout { grid-template-columns: 1fr; } .doc-lib { position: static; max-height: none; } }
+.doc-lib, .doc-toc { position: sticky; top: 132px; max-height: calc(100vh - 150px); overflow-y: auto; display: grid; gap: 2px; }
+.doc-lib details { margin-bottom: 6px; }
+.doc-lib summary { cursor: pointer; list-style: none; padding: 6px 8px; font-size: var(--fs-caption); font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--faint); display: flex; justify-content: space-between; }
+.doc-lib summary::-webkit-details-marker { display: none; }
+.doc-lib summary em { font-style: normal; font-weight: 500; }
+.doc-lib button, .doc-toc button { display: block; width: 100%; text-align: left; border: 0; background: none; color: var(--muted);
+  font: 400 var(--fs-body) var(--font); padding: 6px 10px; border-radius: 7px; cursor: pointer; line-height: 1.35; }
+.doc-lib button:hover, .doc-toc button:hover { background: var(--raised); color: var(--text); }
+.doc-lib button.on { background: var(--accent-weak); color: var(--accent); font-weight: 500; }
+.doc-toc > em { font-style: normal; font-size: var(--fs-caption); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); padding: 6px 10px; }
+.doc-toc button { font-size: var(--fs-callout); padding: 4px 10px; }
+.doc-toc button.l3 { padding-left: 22px; }
+.doc-toc button.on { color: var(--accent); }
+
+.doc-body { padding: 24px 32px 32px; max-width: 980px; overflow: visible; font-size: var(--fs-head); line-height: 1.6; }
+.doc-src { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: -6px 0 14px; font-size: var(--fs-callout); color: var(--faint); }
+.doc-src a { color: var(--accent); text-decoration: none; }
+.doc-body h2 { font: 600 var(--fs-title1) var(--font-display); letter-spacing: -.01em; margin: 4px 0 14px; }
+.doc-body h3 { font: 600 var(--fs-title3) var(--font-display); margin: 30px 0 10px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
+.doc-body h4 { font: 600 var(--fs-head) var(--font); margin: 22px 0 8px; }
+.doc-body p, .doc-body li { color: var(--text); }
+.doc-body p { margin: 0 0 12px; max-width: 78ch; }
+.doc-body ul, .doc-body ol { margin: 0 0 14px; padding-left: 22px; max-width: 78ch; }
+.doc-body li { margin-bottom: 4px; }
+.doc-body code { font: var(--fs-callout) var(--mono); background: var(--raised); padding: 1px 5px; border-radius: 5px; }
+.doc-body pre { background: var(--inset); color: #e8eaed; padding: 12px 14px; border-radius: 10px; overflow-x: auto; font: var(--fs-callout)/1.5 var(--mono); }
+.doc-body pre code { background: none; padding: 0; color: inherit; }
+.doc-body a { color: var(--accent); }
+.doc-body em { color: var(--muted); }
+.doc-table { overflow-x: auto; margin: 0 0 16px; border: 1px solid var(--border-soft); border-radius: 10px; }
+.doc-table table { border-collapse: collapse; width: 100%; font-size: var(--fs-callout); line-height: 1.45; }
+.doc-table th { text-align: left; font-weight: 600; color: var(--muted); background: var(--surface-2); padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.doc-table td { padding: 7px 10px; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
+.doc-table tr:last-child td { border-bottom: 0; }
+/* the cited passage */
+.doc-hl, .doc-table tr.doc-hl td { background: color-mix(in srgb, var(--warn) 18%, transparent); }
+.doc-body p.doc-hl, .doc-body li.doc-hl, .doc-body h3.doc-hl, .doc-body h4.doc-hl { box-shadow: -10px 0 0 color-mix(in srgb, var(--warn) 18%, transparent), 10px 0 0 color-mix(in srgb, var(--warn) 18%, transparent);
+  border-radius: 2px; outline: 2px solid color-mix(in srgb, var(--warn) 55%, transparent); outline-offset: 6px; }
+.doc-muted { color: var(--muted); }
+.doc-figure { margin: 6px 0 18px; }
+
+/* the PLC figures (docs/PlcDiagrams.tsx) */
+.sfc-wrap { overflow-x: auto; border: 1px solid var(--border-soft); border-radius: 12px; background: var(--surface-2); padding: 8px; }
+.sfc text, .arch text { font-family: var(--font); fill: var(--text); }
+.sfc-col { font-size: 12px; font-weight: 600; text-anchor: middle; fill: var(--muted) !important; text-transform: uppercase; letter-spacing: .05em; }
+.sfc-from { font-size: 11px; text-anchor: middle; fill: var(--faint) !important; }
+.sfc-step { fill: var(--surface); stroke: var(--border); stroke-width: 1.2; }
+.sfc-step.watched { stroke: var(--accent); stroke-width: 1.8; }
+.sfc-step.init { stroke: var(--text); stroke-width: 1.4; }
+.sfc-step-inner { fill: none; stroke: var(--text); stroke-width: 1; }
+.sfc-id { font-size: 12px; font-weight: 600; font-family: var(--mono) !important; }
+.sfc-out { font-size: 11px; font-family: var(--mono) !important; fill: var(--ok) !important; }
+.sfc-say { font-size: 11px; fill: var(--muted) !important; }
+.sfc-trans line { stroke: var(--grid-strong); stroke-width: 1.5; }
+.sfc-trans text { font-size: 10.5px; fill: var(--faint) !important; font-family: var(--mono) !important; }
+.sfc-note { font-size: 11px; fill: var(--faint) !important; }
+.arch-main { fill: var(--accent-weak); stroke: var(--accent); }
+.arch-fb { fill: var(--surface); stroke: var(--border); }
+.arch-fb.m-hbw { stroke: #4f8fd6; } .arch-fb.m-vgr { stroke: #b07ad6; } .arch-fb.m-oven { stroke: #e0a02a; } .arch-fb.m-sorting { stroke: #3fa37a; }
+.arch-io, .arch-cab { fill: var(--surface-2); stroke: var(--border); stroke-dasharray: 4 3; }
+.arch-cab.soft { stroke-dasharray: none; stroke: var(--border-soft); }
+.arch-safe { fill: var(--bad-weak); stroke: var(--bad); }
+.arch-link { fill: none; stroke: var(--grid-strong); stroke-width: 1.4; }
+.arch-t { font-size: 12.5px; font-weight: 600; text-anchor: middle; }
+.arch-s { font-size: 11px; text-anchor: middle; fill: var(--muted) !important; }
+.arch .mono { font-family: var(--mono) !important; }

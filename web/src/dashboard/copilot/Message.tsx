@@ -4,7 +4,7 @@
 // steps. Every message can be copied; an answer can be read aloud and shows which model wrote it,
 // any hand-over between models, its sources, and links to the pages with the detail.
 import { useEffect, useRef, useState } from "react";
-import { speech, type Style, type Turn } from "./api";
+import { speech, type Cite as Source, type Style, type Turn } from "./api";
 import { Icon } from "../../shared/icons";
 
 const STYLE_LABEL: Record<Style, string> = {
@@ -12,17 +12,74 @@ const STYLE_LABEL: Record<Style, string> = {
   list: "list", explain: "explanation", answer: "answer",
 };
 
-/** A citation as a small chip: the source's short name, the whole of it on hover. */
-function Cite({ src }: { src: string }) {
+const norm = (s: string) => s.toLowerCase().replace(/[›>]/g, ">").replace(/\s+/g, " ").trim();
+/** The source an inline [citation] names: the same label, or one that starts with it. */
+function findSource(src: string, cites: Source[] = []) {
+  const n = norm(src);
+  const i = cites.findIndex((c) => { const l = norm(c.label); return l === n || l.startsWith(n) || n.startsWith(l); });
+  return i < 0 ? null : { i, c: cites[i] };
+}
+/** Open a document passage in the Docs page (the dashboard listens). */
+export function openSource(c: Source) {
+  if (c.kind === "doc" && c.file) window.dispatchEvent(new CustomEvent("stf:open-doc", { detail: { file: c.file, anchor: c.anchor, line: c.line } }));
+  else if (c.kind === "web") window.open(c.label, "_blank", "noopener,noreferrer");
+}
+
+/** A citation: a numbered link to its source when the answer has it, else a small chip. */
+function Cite({ src, cites }: { src: string; cites?: Source[] }) {
+  const hit = findSource(src, cites);
   const short = src.split(/[>,(]/)[0].trim().replace(/ model$/, "");
-  return <span className="cx-cite" title={src}>{short.length > 28 ? short.slice(0, 26) + "…" : short}</span>;
+  if (hit && (hit.c.kind === "doc" || hit.c.kind === "web"))
+    return <button className="cx-cite n" title={`${hit.c.label}${hit.c.file ? `\n${hit.c.file}:${hit.c.line}` : ""}`} onClick={() => openSource(hit.c)}>{hit.i + 1}</button>;
+  return <span className="cx-cite" title={src}>{hit ? `${hit.i + 1} ` : ""}{short.length > 28 ? short.slice(0, 26) + "…" : short}</span>;
+}
+
+/** The answer's sources, numbered as the text cites them; a document opens at the cited line. */
+function Sources({ cites }: { cites: Source[] }) {
+  return (
+    <ol className="cx-sources">
+      {cites.map((c, i) => (
+        <li key={i} className={c.kind}>
+          <span className="cx-src-n">{i + 1}</span>
+          {c.kind === "doc" ? (
+            <button onClick={() => openSource(c)} title={c.quote}>
+              <b>{c.label.split(" > ").slice(-2).join(" › ")}</b>
+              <em>{c.file}:{c.line}{c.score !== undefined ? ` · match ${c.score.toFixed(1)}` : ""}</em>
+            </button>
+          ) : c.kind === "web" ? (
+            <a href={c.label} target="_blank" rel="noopener noreferrer"><b>{new URL(c.label).hostname}</b><em>{c.label}</em></a>
+          ) : (
+            <span><b>{c.label}</b><em>computed by the twin's tool {c.tool.replace(/_/g, " ")}</em></span>
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** How the answer was made: what was retrieved and how well it matched, which tools computed
+    facts, which model wrote it, and whether every number was found in the evidence. */
+function Trace({ turn }: { turn: Turn }) {
+  const docs = (turn.cites ?? []).filter((c) => c.kind === "doc");
+  const tools = (turn.tools ?? []).filter((t) => t !== "search_docs");
+  return (
+    <details className="cx-trace">
+      <summary>How this answer was made</summary>
+      <ol>
+        <li><b>Retrieved</b> {docs.length ? `${docs.length} passage${docs.length === 1 ? "" : "s"} from the documents (BM25 ranking; best match ${Math.max(...docs.map((d) => d.score ?? 0)).toFixed(1)})` : "no document passage"}</li>
+        <li><b>Computed</b> {tools.length ? tools.map((t) => t.replace(/_/g, " ")).join(", ") : "no tool"}</li>
+        <li><b>Written by</b> {turn.model === "rules" ? "the twin's tools alone (no language model)" : turn.model ?? "?"}{turn.switched?.length ? `, after ${turn.switched.length} hand-over${turn.switched.length > 1 ? "s" : ""}` : ""}</li>
+        <li><b>Checked</b> {turn.unverified?.length ? `${turn.unverified.length} figure${turn.unverified.length > 1 ? "s" : ""} not found in the evidence: ${turn.unverified.join(", ")}` : "every number found in the evidence it was given"}</li>
+      </ol>
+    </details>
+  );
 }
 
 /** Markdown for model answers: paragraphs, headings, lists (numbered too), tables, **bold**, [citations]. */
-export function Md({ text }: { text: string }) {
+export function Md({ text, cites }: { text: string; cites?: Source[] }) {
   const inline = (s: string, k = 0) => s.split(/(\*\*[^*]+\*\*|\[[^\]]{1,140}\])/g).map((p, i) =>
     p.startsWith("**") ? <b key={`${k}-${i}`}>{p.slice(2, -2)}</b>
-      : p.startsWith("[") && p.endsWith("]") ? <Cite key={`${k}-${i}`} src={p.slice(1, -1)} /> : p);
+      : p.startsWith("[") && p.endsWith("]") ? <Cite key={`${k}-${i}`} src={p.slice(1, -1)} cites={cites} /> : p);
   const out: JSX.Element[] = [];
   const lines = text.split("\n");
   let list: { ordered: boolean; items: string[] } | null = null;
@@ -177,11 +234,13 @@ export function Message({ turn, go, autoSpeak = false }: { turn: Turn; go: (p: s
         {style === "status" && turn.facts && turn.facts.length > 0 && !/\*\*[^*]+\*\*:/.test(turn.text) ? (
           <div className="cx-grid">{turn.facts.slice(0, 6).map(([k, v]) => <div key={k}><span>{k}</span><b>{v}</b></div>)}</div>
         ) : null}
-        <div className="cx-md"><Md text={fig ? turn.text.replace(`**${fig}**`, fig) : turn.text} /></div>
+        <div className="cx-md"><Md text={fig ? turn.text.replace(`**${fig}**`, fig) : turn.text} cites={turn.cites} /></div>
         {turn.note && <p className={`cx-note ${turn.unverified?.length ? "bad" : ""}`}>{turn.unverified?.length ? "⚠ " : "ⓘ "}{turn.note}</p>}
+        {turn.cites && turn.cites.length > 0 && <Sources cites={turn.cites} />}
+        {turn.cites && <Trace turn={turn} />}
         <div className="cx-foot">
           {turn.links?.map((l) => <button key={l.page} className="cx-link" onClick={() => go(l.page)}>{l.label} →</button>)}
-          {turn.sources && turn.sources.length > 0 && <span className="cx-src" title={turn.sources.join("\n")}>
+          {!turn.cites && turn.sources && turn.sources.length > 0 && <span className="cx-src" title={turn.sources.join("\n")}>
             {turn.sources[0]}{turn.sources.length > 1 ? ` +${turn.sources.length - 1}` : ""}</span>}
           <span className="cx-actions"><CopyButton text={turn.text} label="Copy the answer" /><Speak text={turn.text} auto={autoSpeak} /></span>
         </div>

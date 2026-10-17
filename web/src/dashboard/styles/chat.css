@@ -160,3 +160,22 @@
 .cx-pop.right { left: auto; width: min(320px, calc(100% - 16px)); max-height: calc(100% - 64px); padding: 0; }
 .cx-pop.right .cx-context { border: 0; display: block !important; }
 @media (max-width: 1180px) { .cx-ctx-btn { display: inline-flex; } }
+
+/* an answer's sources (Message.tsx): numbered as the text cites them; a document opens at the line */
+.cx-cite.n { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; margin: 0 2px; border: 0; border-radius: 5px;
+  background: var(--accent-weak); color: var(--accent); font: 600 var(--fs-caption) var(--font); vertical-align: 1px; cursor: pointer; }
+.cx-cite.n:hover { background: var(--accent-fill); color: var(--on-accent); }
+.cx-sources { list-style: none; margin: 10px 0 0; padding: 10px 0 0; border-top: 1px dashed var(--border-soft); display: grid; gap: 4px; }
+.cx-sources li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; align-items: start; }
+.cx-src-n { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 5px; background: var(--raised); color: var(--muted); font: 600 var(--fs-caption) var(--font); margin-top: 2px; }
+.cx-sources li.doc .cx-src-n { background: var(--accent-weak); color: var(--accent); }
+.cx-sources button, .cx-sources a, .cx-sources span:not(.cx-src-n) { display: block; text-align: left; border: 0; background: none; padding: 1px 0; color: inherit; font: inherit; min-width: 0; text-decoration: none; }
+.cx-sources button { cursor: pointer; }
+.cx-sources b { display: block; font-size: var(--fs-callout); font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cx-sources button:hover b, .cx-sources a:hover b { color: var(--accent); }
+.cx-sources em { display: block; font-style: normal; font: var(--fs-caption) var(--mono); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cx-trace { margin-top: 8px; font-size: var(--fs-callout); color: var(--muted); }
+.cx-trace summary { cursor: pointer; color: var(--faint); width: fit-content; }
+.cx-trace summary:hover { color: var(--accent); }
+.cx-trace ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 3px; }
+.cx-trace b { color: var(--text); font-weight: 600; margin-right: 4px; }
