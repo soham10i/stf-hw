@@ -65,7 +65,11 @@ services:
         sync: false
       - key: ELEVENLABS_MODEL
         value: eleven_multilingual_v2
-      - key: OLLAMA_MODEL            # no local model on Render: Gemini models in turn, then the tools
+      - key: UPB_AI_KEY              # the university's AI chat: the last hosted model (Gemini -> Groq -> UPB -> tools)
+        sync: false
+      - key: UPB_AI_URL
+        value: https://ai-chat.uni-paderborn.de
+      - key: OLLAMA_MODEL            # no local model on Render: Gemini, Groq, UPB in turn, then the tools
         value: ""
       - key: SUPABASE_URL            # optional: keep guests, chats and photos in Supabase (docs/DATABASE.md)
         sync: false

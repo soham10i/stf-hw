@@ -80,3 +80,12 @@
 .vq-photo { border-radius: 8px; display: block; }
 .vq-thumb img { display: block; border-radius: 4px; }
 @media (prefers-reduced-motion: reduce) { .vq-live-tag i { animation: none; } }
+
+/* ten sample photos from the process */
+.vq-samples { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+.vq-samples figure { margin: 0; padding: 8px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border-soft); text-align: center; }
+.vq-samples figure.wrong { border-color: var(--bad); }
+.vq-samples img { width: 96px; height: 96px; border-radius: 8px; image-rendering: auto; }
+.vq-samples figcaption { display: grid; gap: 2px; margin-top: 6px; font-size: var(--fs-caption); color: var(--muted); }
+.vq-samples figcaption b { color: var(--text); font-size: var(--fs-callout); text-transform: capitalize; }
+.vq-samples figcaption em { font-style: normal; }

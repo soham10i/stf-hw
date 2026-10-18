@@ -246,7 +246,8 @@ function Thinking({ turn, live = false }: { turn: Turn; live?: boolean }) {
       <div className="cx-think-body">
         {turn.route && <p className="cx-think-why"><b>Route.</b> {turn.route.why.join("; ")}.</p>}
         {steps.length > 0 && <ol className="cx-think-steps">{steps.map((s, i) => <li key={i}>{s}</li>)}</ol>}
-        {turn.thinking && <div className="cx-think-text"><Md text={turn.thinking} /></div>}
+        {/* the model's own notes, as written: raw text, not Markdown (its "*" is a multiplication) */}
+        {turn.thinking && <div className="cx-think-text plain">{turn.thinking}</div>}
         {live && !turn.thinking && <p className="cx-muted">The model's reasoning appears here when it returns it.</p>}
       </div>
     </details>

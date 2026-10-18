@@ -7,7 +7,7 @@ import { GUIDE, TERMS } from "../src/dashboard/guide";
 const GROUPS: [string, string[]][] = [
   ["Operate", ["overview", "production", "quality", "vision", "alarms", "copilot"]],
   ["Maintain", ["health", "maintenance", "ai"]],
-  ["Analyse", ["month", "throughput", "scheduler", "energy", "carbon", "security", "hardening"]],
+  ["Analyse", ["month", "throughput", "process", "scheduler", "energy", "carbon", "security", "hardening"]],
   ["Engineer", ["engineering", "validation", "data"]],
   ["Docs", ["docs-degradation"]],
 ];

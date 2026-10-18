@@ -65,30 +65,30 @@ It does not start a second stack.
 ```mermaid
 flowchart LR
   subgraph Gen["Generated (offline, proven)"]
-    LM[line_model.py] --> CAD[FCStd / STEP]
-    LM --> IO[plc/io_list.csv + GVL_IO]
-    LM --> ST[plc/*.st TwinCAT]
-    LM --> OV[oven/control.json]
-    CAD --> USD[scene.usd / .usdz / .glb]
+    LM["line_model.py"] --> CAD["FCStd / STEP"]
+    LM --> IO["plc/io_list.csv + GVL_IO"]
+    LM --> ST["plc/*.st TwinCAT"]
+    LM --> OV["oven/control.json"]
+    CAD --> USD["scene.usd / .usdz / .glb"]
   end
   subgraph RT["Runtime on the Mac (virtual time, lockstep)"]
-    PLC[PLC: portable IEC 61131-3 via MatIEC, 10 ms scan]
-    PLANT[Plant service: motion, band, oven, product, AMR, safety]
-    PHYS[MuJoCo: contact steps, on demand]
-    PLC <-- I/O image by tag --> PLANT
+    PLC["PLC: portable IEC 61131-3 via MatIEC, 10 ms scan"]
+    PLANT["Plant service: motion, band, oven, product, AMR, safety"]
+    PHYS["MuJoCo: contact steps, on demand"]
+    PLC <-->|"I/O image by tag"| PLANT
     PLANT -.-> PHYS
   end
   ST --> PLC
   IO --> PLC
   IO --> PLANT
   OV --> PLANT
-  PLANT --> BUS[State bus: WebSocket frames]
-  PLC --> OPC[OPC UA server: asyncua]
-  PLC --> SPB[Sparkplug B edge -> Mosquitto -> UNS]
-  BUS --> WEB[Web twin: React + three.js, GLB]
-  BUS --> BL[Blender: renders, synthetic images]
-  SPB --> TS[(DuckDB / InfluxDB, SQLite events)]
-  TS --> DASH[Dashboard: KPIs, oven, alarms, bake log]
+  PLANT --> BUS["State bus: WebSocket frames"]
+  PLC --> OPC["OPC UA server: asyncua"]
+  PLC --> SPB["Sparkplug B edge -> Mosquitto -> UNS"]
+  BUS --> WEB["Web twin: React + three.js, GLB"]
+  BUS --> BL["Blender: renders, synthetic images"]
+  SPB --> TS[("DuckDB / InfluxDB, SQLite events")]
+  TS --> DASH["Dashboard: KPIs, oven, alarms, bake log"]
 ```
 
 ## Omniverse on this Mac: the short answer

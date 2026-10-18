@@ -39,6 +39,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import time
 from contextlib import asynccontextmanager
 from typing import Literal
 
@@ -55,6 +56,7 @@ from . import live, wire
 from . import security as sec
 from .captures import Captures
 from .chat import Chat, ChatRequest, dotenv
+from .factory_db import factory_from
 from .runtime import SimRuntime
 from .tts import Stt, Tts, TtsRequest
 
@@ -72,6 +74,8 @@ ws_clients = sec.ClientCounter(settings.max_ws_clients)
 # copilot sessions
 guests = G.Guests({**dotenv(), **os.environ})
 chat = Chat(settings, store=guests.db)
+# the factory's data beside the guests' (factory_db.py): the month, and what each guest's twin bakes
+factory = factory_from(guests.db)
 tts = Tts(settings)
 stt = Stt(settings)
 captures = Captures(settings)
@@ -331,6 +335,81 @@ async def vision_capture_image(cid: str):
 
 
 _state_limit = sec.RateLimiter(rate=2.0, burst=4)
+
+
+class TwinInspection(BaseModel):
+    """One cookie the twin's camera judged (vision/inspect.ts), as the database keeps it."""
+
+    n: int = Field(ge=0, le=10**6)
+    flavour: Literal["chocolate", "strawberry", "vanilla"]
+    truth: Literal["ok", "burnt", "underbaked", "cracked"]
+    condition: str = Field(max_length=24)
+    p: float = Field(ge=0, le=1)
+    verdict: Literal["pass", "reject", "check"]
+    ae: float = Field(ge=0, le=1000)
+    unusual: bool
+
+
+class TwinOrder(BaseModel):
+    """An order line the twin finished: what it baked, kept, and threw out."""
+
+    flavour: Literal["chocolate", "strawberry", "vanilla"]
+    qty: int = Field(ge=1, le=12)
+    baked: int = Field(ge=0, le=48)
+    good: int = Field(ge=0, le=12)
+    scrap: int = Field(ge=0, le=36)
+    qc_fault: Literal["", "burnt", "underbaked", "cracked"] = ""
+
+
+def _same_site(request: Request) -> bool:
+    origin = request.headers.get("origin")
+    return not (
+        origin
+        and origin not in settings.allowed_origins
+        and sec._host(origin.split("://", 1)[-1]) != sec._host(request.headers.get("host"))
+    )
+
+
+@app.post("/twin/inspection")
+async def twin_inspection(rec: TwinInspection, request: Request) -> JSONResponse:
+    """Store a cookie the twin's camera judged, as this guest's (factory_db.py)."""
+    if not _same_site(request):
+        return JSONResponse(status_code=403, content={"error": "origin not allowed"})
+    row = {
+        **rec.model_dump(),
+        "source": "twin",
+        "owner": G.current() or "",
+        "t": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
+        "capture_id": None,
+    }
+    await asyncio.to_thread(factory.insert, "inspections", [row])
+    return JSONResponse(content={"stored": True})
+
+
+@app.post("/twin/order")
+async def twin_order(rec: TwinOrder, request: Request) -> JSONResponse:
+    """Store an order line the twin finished, as this guest's (factory_db.py)."""
+    if not _same_site(request):
+        return JSONResponse(status_code=403, content={"error": "origin not allowed"})
+    row = {
+        **rec.model_dump(),
+        "source": "twin",
+        "owner": G.current() or "",
+        "t": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
+    }
+    await asyncio.to_thread(factory.insert, "orders", [row])
+    return JSONResponse(content={"stored": True})
+
+
+@app.get("/twin/records")
+async def twin_records() -> dict:
+    """This guest's own twin records: the orders it finished and the cookies it inspected."""
+    gid = G.current() or ""
+    orders, ins = await asyncio.gather(
+        asyncio.to_thread(factory.recent, "orders", gid, 50),
+        asyncio.to_thread(factory.recent, "inspections", gid, 100),
+    )
+    return {"database": factory.name, "orders": orders, "inspections": ins}
 
 
 @app.post("/twin/state")

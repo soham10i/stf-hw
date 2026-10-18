@@ -12,7 +12,7 @@ title says what the card shows.
 
 - **Operate**: [Overview](#overview) · [Production](#production) · [Quality & trace](#quality-trace) · [Vision QC](#vision-qc) · [Alarms](#alarms) · [Copilot](#copilot)
 - **Maintain**: [Health](#health) · [Maintenance](#maintenance) · [Maintenance · AI predictions](#maintenance-ai-predictions)
-- **Analyse**: [Month](#month) · [Throughput](#throughput) · [Learned scheduler](#learned-scheduler) · [Energy & grid](#energy-grid) · [Carbon per cookie](#carbon-per-cookie) · [OT security](#ot-security) · [Defence in depth](#defence-in-depth)
+- **Analyse**: [Month](#month) · [Throughput](#throughput) · [Oven process](#oven-process) · [Learned scheduler](#learned-scheduler) · [Energy & grid](#energy-grid) · [Carbon per cookie](#carbon-per-cookie) · [OT security](#ot-security) · [Defence in depth](#defence-in-depth)
 - **Engineer**: [Engineering](#engineering) · [Validation](#validation) · [Data](#data)
 - **Docs**: [Hardware degradation](#hardware-degradation)
 
@@ -77,32 +77,26 @@ Every cookie's record: which mould carried it, where the RFID heads read it, its
 
 ### Vision QC
 
-The inspection camera: its live view, and every cookie photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.
+The inspection camera on the process: its live view, and every cookie the 3D twin bakes, photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.
 
 **How to read it**
 
 1. Open the 3D twin in a window beside this page: its camera in the colour hood streams here live (never recorded), and the photo it takes of each cookie is judged here (and stored by the server).
-2. For each cookie: the photo, the CNN's answer and decision, and the autoencoder's error map (hot = not as a good cookie looks).
-3. The KPIs and the confusion matrix say how right the CNN is over the last 50 cookies; escapes are defects it let through.
-4. Change the conditions (ageing light, a warmer lamp, a worn belt) and watch the drift chart rise before the CNN's answers go wrong.
-5. Without the twin, a simulated line draws the images, with the defects and conditions set under 'The line'.
+2. For each cookie: the photo, what the models see, the autoencoder's error map (hot = not as a good cookie looks), the truth and the decision.
+3. One cookie in every 12 is damaged on purpose (QC testing, the Orders panel): each rack tests the inspection.
+4. The KPIs and the confusion matrix count the cookies inspected since the page opened; escapes are damaged cookies let through.
 
 | Section | What it shows |
 |---|---|
-| Inspection camera | The twin camera's live view (not recorded); the latest cookie's photo, its autoencoder error map, truth, the CNN's answer and the line's decision; and a strip of recent cookies. |
-| The line | Run or pause, the conditions, the defect rate the simulation injects and the line's speed. |
-| Confusion (last 50) | Truth against the CNN's answer for each condition: everything off the diagonal is a mistake. |
-| Drift | The autoencoder's error on normal-looking cookies against its training baseline; above ×2 the line no longer looks like training. |
+| Inspection camera | The twin camera's live view (not recorded); the latest cookie's photo, what the models see, its autoencoder error map, truth, the CNN's answer and the decision; and a strip of recent cookies. |
+| The decision | The pass threshold, and what pass, reject and 'to a person' mean for the cookie. |
+| Confusion | Truth against the CNN's answer for each condition: everything off the diagonal is a mistake. |
+| Ten photos from the process | Ten cookies the camera photographed while the twin baked an order, the QC test's damaged one among them, with what the CNN decided. |
+| Drift | The autoencoder's error on normal-looking cookies against its training baseline; above ×2 the line no longer looks like what the models learnt. |
 | The camera | Where it is mounted in the colour hood, its lens and trigger, and the mount's checks against the model. |
-| Photos from the camera | Each baked cookie the 3D twin makes, photographed by this camera inside the hood as it passes the lens and kept by the server: the dataset for the vision models. |
-| The models, tested offline | The CNN and the autoencoder on held-out images like training and on unseen conditions. |
-| When the drift alarm rings | Every adaptation method on the changed line: right, good cookies rejected, defects passed, and whether the old line still works. |
-| The pass threshold | Each threshold as a point: defects passed against good cookies thrown out. Set it live with 'Pass threshold'. |
-| How many labels are worth it | Defects passed after tuning the final layers on a few labelled frames, against doing nothing and retraining. |
-| The safeguard | Once the alarm rings, what the autoencoder finds unusual goes to a person: fewer defects passed, more cookies checked by hand. |
-| Experiment: label-free adaptation | The same cookies classified twice, with and without online AdaBN. Switch it on under unseen conditions to watch it fail. |
+| Photos stored by the server | Each cookie your own twin photographed, as the server keeps it. |
 
-*Data:* The camera mount (vision/mount.py), the CNN (vision/train.py) and the autoencoder (vision/autoencoder.py), run in the browser on images drawn by the renderer port.
+*Data:* The camera mount (vision/mount.py), and the CNN and autoencoder run in the browser on the 3D twin's own photos.
 
 ### Alarms
 
@@ -259,6 +253,30 @@ How the same machine was made faster by changing only its program, and what each
 | Proofs the faster program still passes | Deadlock freedom and fault recovery, re-run for the new program. |
 
 *Data:* The throughput study, measured by virtual commissioning.
+
+### Oven process
+
+The bake as heat and water: the oven heating and holding, a cookie baking through its thickness, four ways to end a bake, and what a real bake does to capacity and energy.
+
+**How to read it**
+
+1. The headline figures: cookies right first time with the best way of ending a bake, cookies an hour with a real bake, the heat per cookie.
+2. One cookie in the oven: the centre waits near 100 °C while the water boils off; the colour comes last and fast.
+3. Four ways to end a bake, run over the same shifts: compare how many cookies come out right, and which dough each one gets wrong.
+
+| Section | What it shows |
+|---|---|
+| What the model found | The findings in short: quality, capacity, energy and the microgrid. |
+| One cookie in the oven | Surface, centre and bottom temperatures, the water left and the browning index of a nominal cookie, with when it is done and when it reaches its colour. |
+| The oven heating up | From switch-on to 180 °C: the elements, the air, the thermocouple and the walls, and the heater's duty. |
+| Four ways to end a bake | A fixed timer, the PLC's model of the cookie (soft sensor), the camera correcting the colour, and dough sensors: cookies right, underbaked and burnt. |
+| Each cookie of one shift | Every cookie's browning against the right band, per policy, with the dough lots marked. |
+| The oven through a shift | The chamber air and the cookie through the door openings of a shift. |
+| What a real bake does to capacity | The 12-cookie order with the 2 s lamp and with a real bake, and how many ovens the rest of the cell could feed. |
+| Where the heat goes | One shift's heat: walls, door, vent, the open mouth, the tray outside and the steam. |
+| Checks | The model's proofs, the faults they catch, and every parameter with its source. |
+
+*Data:* The oven and cookie model of Upgrade 19 (stf-cad/hbw/bake.py), from the oven's parts (oven_model.py) and the order's door openings (control.py).
 
 ### Learned scheduler
 
@@ -451,6 +469,9 @@ The theory behind the Health page: how wear is modelled, measured, smoothed and 
 
 | Term | Meaning |
 |---|---|
+| Soft sensor | A quantity no sensor measures, computed from a model fed by the sensors there are: here the cookie's centre temperature, water and colour, from a model of the oven run on the thermocouple. |
+| Run-to-run control | Correcting the next run from how the last one came out: here the camera's colour reading moves the next cookie's colour target. |
+| Browning index | 0 = raw dough, 1 = as dark as it gets. It grows faster the hotter and drier the surface (Maillard reactions); 0.35-0.65 is the right colour. |
 | SFC | Sequential function chart (IEC 61131-3): a program drawn as steps, each with its outputs, and the transitions between them, each with its condition. |
 | PLC | Programmable logic controller: the industrial computer that reads the sensors and drives the motors, scan after scan (here every 5 ms). |
 | OEE | Overall equipment effectiveness = availability × performance × quality. 100 % means making only good parts, as fast as possible, with no stops. |

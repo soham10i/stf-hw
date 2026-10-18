@@ -24,7 +24,7 @@ export type Ctx = {
 export type DataKey = "cad" | "month" | "carbon" | "sched" | "ai" | "vision" | "adapt" | "grid" | "security" | "kb";
 export const DATA: Record<DataKey, string> = {
   cad: "hbw_parts_up12.json", month: "month/month.json", carbon: "carbon/carbon.json", sched: "sched/rl.json",
-  ai: "ml/results.json", vision: "vision/results.json", adapt: "vision/adapt.json", grid: "grid/grid.json",
+  ai: "ml/results.json", vision: "vision/samples/samples.json", adapt: "vision/camera.json", grid: "grid/grid.json",
   security: "security/security.json", kb: "copilot/kb.json",
 };
 
@@ -187,11 +187,11 @@ const TOOLS: Tool[] = [
     id: "vision",
     score: (q) => has(q, /vision|camera|inspection|cnn|defect|escape|false reject|chipped|cracked|burnt|drift/) * 3,
     run: async (_q, c) => {
-      const v = await c.get<{ results: Record<"in_domain" | "shifted", { condition_acc: number; escape_rate: number; false_reject: number }> }>("vision");
-      const i = v.results.in_domain, s = v.results.shifted;
-      return { tool: "vision", text: `Under the conditions it was trained for, the inspection is right ${pct(i.condition_acc, 1)} of the time; under unseen light it drops to ${pct(s.condition_acc, 1)} and rejects ${pct(s.false_reject)} of good cookies. The drift alarm catches that; retraining with images of the new conditions fixes it.`,
-               facts: [["trained conditions: escapes", pct(i.escape_rate, 1)], ["unseen: false rejects", pct(s.false_reject, 1)], ["unseen: escapes", pct(s.escape_rate, 1)]],
-               link: { page: "vision", label: "Vision QC" }, sources: ["vision/train.py and vision/adapt.py"] };
+      const v = await c.get<{ samples: { n: number; flavour: string; truth: string; condition: string; verdict: string }[] }>("vision");
+      const S = v.samples, right = S.filter((x) => (x.truth === "ok") === (x.verdict === "pass")).length, bad = S.filter((x) => x.truth !== "ok");
+      return { tool: "vision", text: `The camera in the colour hood photographs every cookie and the CNN decides pass or reject; one cookie in every 12 is damaged on purpose to test it. Of ${S.length} sample photos from the process, ${right} were decided right, and ${bad.filter((x) => x.verdict !== "pass").length} of ${bad.length} damaged ${bad.length === 1 ? "cookie was" : "cookies were"} caught.`,
+               facts: S.slice(0, 6).map((x) => [`sample ${x.n}: ${x.flavour}`, `truth ${x.truth}, CNN ${x.condition} → ${x.verdict}`] as [string, string]),
+               link: { page: "vision", label: "Vision QC" }, sources: ["the inspection camera's photos of the 3D twin's cookies"] };
     },
   },
   {

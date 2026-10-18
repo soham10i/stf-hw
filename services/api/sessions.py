@@ -110,6 +110,7 @@ def context_text(s: dict, question: str = "") -> str:
         head = _rank_facts(facts, question, 10)
         tail = [f for f in facts if f not in head][-4:]
         facts = head + [f for f in tail if f not in head]
+
     def cell(x: object) -> str:
         return str(x).replace("|", "\\|").replace("\n", " ")
 

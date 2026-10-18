@@ -34,7 +34,9 @@ export type Held = "shelf" | "fork" | "belt";
 /** slot -> colour of the cookie in its mould (null = an empty mould). */
 export type Rack = Record<string, string | null>;
 /** One line of an order: `started` cookies have left the rack for it, `done` are back baked. */
-export type OrderLine = { id: number; flavour: string; qty: number; started: number; done: number };
+export type OrderLine = { id: number; flavour: string; qty: number; started: number; done: number;
+  /** cookies the inspection rejected for this line (made again), and the fault seen, if any */
+  rejected?: number; fault?: Defect | "" };
 
 /** A spindle-driven solid's axis values (parts.tsx turns screws and drums from these). */
 export interface Drive {
@@ -90,10 +92,17 @@ export interface CellModel {
   /** the running cycle: its slot, its flavour, its Lagerstelle; t of total seconds */
   cycle: { from: string; to: string; total: number; t: number; flavour: string; collect: string };
   /** the inspection: the defect for the next cookie, the last decisions, the counts */
-  inspect: { next: Defect | null; recent: Inspected[]; passed: number; rejected: number };
+  inspect: { next: Defect | null; recent: Inspected[]; passed: number; rejected: number;
+    /** QC testing: one cookie in every 12 started gets a random fault (the cookie and the fault
+        drawn when the 12 begin), so the inspection is exercised every cycle */
+    auto: boolean; batch: { pos: number; pick: number; fault: Defect } };
 }
 
 export type Capture = { n: number; flavour: string; truth: string };
+/** What the twin did, for the database (the API's /twin/inspection and /twin/order). */
+export type TwinRecord =
+  | { kind: "inspection"; n: number; flavour: string; truth: string; condition: string; p: number; verdict: string; ae: number; unusual: boolean }
+  | { kind: "order"; flavour: string; qty: number; baked: number; good: number; scrap: number; qc_fault: string };
 
 function newJoints(): CellJoints {
   const oven = { beltOven: 0, beltSort: 0, element: 0, chamberC: 25 } as CellJoints["oven"];
@@ -116,7 +125,7 @@ export class CellStore {
   readonly model: CellModel = {
     rack: {}, rawColour: "#D8B98C", queue: [], seq: 0, delivered: 0, idle: true, step: "",
     cycle: { from: "", to: "", total: 0, t: 0, flavour: "", collect: "" },
-    inspect: { next: null, recent: [], passed: 0, rejected: 0 },
+    inspect: { next: null, recent: [], passed: 0, rejected: 0, auto: true, batch: { pos: 0, pick: -1, fault: "burnt" } },
   };
   /** requests the coordinator carries out on its next tick, in step with the machine */
   readonly requests = { restock: false, reset: false };
@@ -129,11 +138,13 @@ export class CellStore {
   private subs = new Set<() => void>();
   private modelSubs = new Set<(material: boolean) => void>();
   private captureSubs = new Set<(c: Capture) => void>();
+  private recordSubs = new Set<(r: TwinRecord) => void>();
 
   // ---- subscriptions (arrow functions: stable references for useSyncExternalStore) ----
   subscribe = (fn: () => void) => { this.subs.add(fn); return () => { this.subs.delete(fn); }; };
   subscribeModel = (fn: (material: boolean) => void) => { this.modelSubs.add(fn); return () => { this.modelSubs.delete(fn); }; };
   onCapture = (fn: (c: Capture) => void) => { this.captureSubs.add(fn); return () => { this.captureSubs.delete(fn); }; };
+  onRecord = (fn: (r: TwinRecord) => void) => { this.recordSubs.add(fn); return () => { this.recordSubs.delete(fn); }; };
   subscribeModelChange = (fn: () => void) => this.subscribeModel(() => fn());
   getVersion = () => this.version;
   getModelVersion = () => this.modelVersion;
@@ -153,6 +164,7 @@ export class CellStore {
     this.subs.forEach((f) => f());
   }
   emitCapture(c: Capture) { this.captureSubs.forEach((f) => f(c)); }
+  emitRecord(r: TwinRecord) { this.recordSubs.forEach((f) => f(r)); }
 
   // ---- queries ----
   /** raw cookies in the rack not yet promised to an order */
@@ -176,6 +188,8 @@ export class CellStore {
   deliver() { this.requests.restock = true; }
   /** Give the next cookie a fault, for the inspection to catch (null: a good one). */
   injectDefect(d: Defect | null) { this.model.inspect.next = d; this.commit(false); }
+  /** QC testing on or off: one damaged cookie in every 12. */
+  autoDefects(on: boolean) { this.model.inspect.auto = on; this.commit(false); }
   /** The inspection decided on camera shot `v.n` (vision/inspect.ts, after the photo). */
   decide(v: Verdict) { this.verdicts.set(v.n, v); }
   /** Twelve raw cookies, no orders, at once. */

@@ -1,0 +1,96 @@
+{
+ "taken": "2026-10-18, one order of 10 cookies, QC testing on",
+ "camera": "colour hood, 80 mm field, 256 x 256 px",
+ "samples": [
+  {
+   "file": "sample-01.jpg",
+   "n": 1,
+   "flavour": "chocolate",
+   "truth": "ok",
+   "condition": "ok",
+   "verdict": "pass",
+   "unusual": false
+  },
+  {
+   "file": "sample-02.jpg",
+   "n": 2,
+   "flavour": "chocolate",
+   "truth": "ok",
+   "condition": "ok",
+   "verdict": "pass",
+   "unusual": false
+  },
+  {
+   "file": "sample-03.jpg",
+   "n": 3,
+   "flavour": "chocolate",
+   "truth": "ok",
+   "condition": "ok",
+   "verdict": "pass",
+   "unusual": false
+  },
+  {
+   "file": "sample-04.jpg",
+   "n": 4,
+   "flavour": "chocolate",
+   "truth": "ok",
+   "condition": "ok",
+   "verdict": "pass",
+   "unusual": false
+  },
+  {
+   "file": "sample-05.jpg",
+   "n": 5,
+   "flavour": "strawberry",
+   "truth": "ok",
+   "condition": "ok",
+   "verdict": "pass",
+   "unusual": false
+  },
+  {
+   "file": "sample-06.jpg",
+   "n": 6,
+   "flavour": "strawberry",
+   "truth": "ok",
+   "condition": "ok",
+   "verdict": "pass",
+   "unusual": false
+  },
+  {
+   "file": "sample-07.jpg",
+   "n": 7,
+   "flavour": "strawberry",
+   "truth": "ok",
+   "condition": "ok",
+   "verdict": "pass",
+   "unusual": false
+  },
+  {
+   "file": "sample-08.jpg",
+   "n": 8,
+   "flavour": "vanilla",
+   "truth": "burnt",
+   "condition": "burnt",
+   "verdict": "reject",
+   "unusual": false
+  },
+  {
+   "file": "sample-09.jpg",
+   "n": 9,
+   "flavour": "vanilla",
+   "truth": "ok",
+   "condition": "ok",
+   "verdict": "pass",
+   "unusual": false
+  },
+  {
+   "file": "sample-10.jpg",
+   "n": 10,
+   "flavour": "vanilla",
+   "truth": "ok",
+   "condition": "ok",
+   "verdict": "pass",
+   "unusual": false
+  }
+ ]
+}

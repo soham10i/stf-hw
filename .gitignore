@@ -95,3 +95,5 @@ stf-cad/line2/twin/node_modules/
 kimi-code/
 
 skill-lock.json
+# papers/: open-access PDFs, read locally, not redistributed (papers/README.md)
+papers/*.pdf

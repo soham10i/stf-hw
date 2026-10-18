@@ -78,6 +78,11 @@ FAIL = {
 }
 FAIL_DEFAULT = (1.0, 0, "watchdog trip; part replaced")
 # random faults per 100 running hours, and the U5 matrix row that prices them (ASSUMED rates)
+# QC testing (as in the 3D twin, CellCoordinator BATCH): in every 12 cookies one is damaged on
+# purpose - burnt, underbaked or cracked - so the inspection is exercised every order; the camera
+# rejects it and the cell bakes it again, one cookie cycle more
+QC_TEST = True
+QC_FAULTS = ("burnt", "underbaked", "cracked")
 RATES = {"F7": 0.8, "F1": 0.4, "F3": 0.25, "F2": 0.2, "F5": 0.15, "F6": 0.1}
 FAULT_NAME = {"F1": "stuck switch", "F2": "motor stall", "F3": "cylinder never arrives", "F4": "lost vacuum",
               "F5": "air pressure drop", "F6": "lost bus node", "F7": "E-stop"}
@@ -144,6 +149,7 @@ class Month:
         self.days = days
         self.rnd = random.Random(seed)
         self.skip = set(skip_pm)
+        self.qc_rnd = random.Random(seed + 19)     # QC testing's own draws
         self.w = {k: self.scen[k]["w0"] for k in COMP}
         self.ew = {k: 1.0 for k in COMP}
         self.hist = {k: [] for k in COMP}
@@ -248,6 +254,10 @@ class Month:
             self._ev(t, "fault", "VGR-V01 lost vacuum while carrying (cup seal)", code="VGR-V01", lost_s=round(lost))
             t = self._stop(t, lost, "F4 lost vacuum", {"arm"})
         dur = (T0 + extra) * (1 + self.rnd.gauss(0, 0.008))
+        qc = None
+        if QC_TEST:
+            qc = QC_FAULTS[self.qc_rnd.randrange(len(QC_FAULTS))]
+            dur += T0 / 9                     # the rejected cookie, made again
         # random faults during the order
         for fid, rate in RATES.items():
             if self.rnd.random() < rate / 100 * dur / 3600:
@@ -275,8 +285,10 @@ class Month:
         self.raw["air_duty"].append(round(COMP["air"]["base"] * self._r("air", t_h), 4))
         self.feat.append([r_obs[k] for k in COMP] + [temperature(t_h), self.raw["i_hbw"][-1], self.raw["air_duty"][-1],
                           a4["vanilla"], a4["strawberry"], a4["chocolate"], vac, dur / T0])
+        rej = 1 if qc else 0
         self.orders.append({"t": round(t_h, 4), "day": day, "shift": shift, "dur": round(dur, 1), "good": good,
-                            "scrap": 9 - good, "returned": 3, "temp": round(temperature(t_h), 1)})
+                            "scrap": 9 + rej - good, "returned": 3, "temp": round(temperature(t_h), 1),
+                            "baked": 9 + rej, "qc_fault": qc or ""})
         return t + dur
 
     def _maintenance(self, t, when):
@@ -339,12 +351,12 @@ def analytics(m, cf=None):
     planned = DAYS * len(SHIFTS) * 8 * 3600.0
     n = len(m.orders)
     good = sum(o["good"] for o in m.orders)
-    made = 9 * n
+    made = sum(o.get("baked", 9) for o in m.orders)
     run = sum(o["dur"] for o in m.orders)
     unplanned = sum(v for k, v in m.down.items() if k.startswith(("F", "failure")))
     maint = m.down.get("planned maintenance (line stopped)", 0.0)
     A = run / planned
-    P = (n * T0) / run
+    P = (made * T0 / 9) / run          # the ideal time for every cookie baked, over the run time
     Q = good / made if made else 0
     faults = [e for e in m.events if e["kind"] in ("fault", "failure")]
     mtbf = run / 3600 / max(1, len(faults))
@@ -354,11 +366,12 @@ def analytics(m, cf=None):
         od = [o for o in m.orders if o["day"] == d]
         rd = sum(o["dur"] for o in od)
         g = sum(o["good"] for o in od)
+        bk = sum(o.get("baked", 9) for o in od)
         ev = [e for e in m.events if int(e["t"] // 24) == d]
         day_planned = len(SHIFTS) * 8 * 3600.0
-        a, p, q = rd / day_planned, (len(od) * T0 / rd if rd else 0), (g / (9 * len(od)) if od else 0)
+        a, p, q = rd / day_planned, (bk * T0 / 9 / rd if rd else 0), (g / bk if od else 0)
         daily.append({"day": d + 1, "date": (START + timedelta(days=d)).strftime("%a %d %b"), "orders": len(od),
-                      "baked": 9 * len(od), "good": g, "scrap": 9 * len(od) - g, "run_h": round(rd / 3600, 2),
+                      "baked": bk, "good": g, "scrap": bk - g, "run_h": round(rd / 3600, 2),
                       "faults": sum(1 for e in ev if e["kind"] == "fault"),
                       "maint": sum(1 for e in ev if e["kind"] == "maintenance"),
                       "failures": sum(1 for e in ev if e["kind"] == "failure"),
@@ -478,7 +491,8 @@ def main():
     ts = lambda h: (START + timedelta(hours=h)).isoformat(timespec="minutes")
     doc = {
         "meta": {"start": START.isoformat(), "days": DAYS, "shifts": [f"{a:02d}-{b:02d}" for a, b in SHIFTS],
-                 "batch": "12 cookies per order (9 baked and sorted, 3 returned to the rack)",
+                 "batch": "12 cookies per order (9 baked and sorted, 3 returned to the rack); QC testing: one more baked "
+                          "damaged on purpose, rejected by the camera and made again",
                  "order_s_commissioned": T0, "changeover_s": CHANGEOVER, "seed": SEED, "machine": "Upgrade 7",
                  "assumed": "starting ages and disturbances (SCENARIO), maintenance durations, failure consequences, "
                             "random fault rates per 100 h, operator response 60-240 s, changeover 120 s, the hall "
@@ -507,7 +521,7 @@ def main():
     with open(os.path.join(OUT, "month.json"), "w") as fh:
         json.dump(doc, fh, separators=(",", ":"))
     _csv(os.path.join(OUT, "orders.csv"), [{**o, "time": ts(o["t"])} for o in m.orders],
-         ["time", "day", "shift", "dur", "good", "scrap", "returned", "temp"])
+         ["time", "day", "shift", "dur", "baked", "good", "scrap", "qc_fault", "returned", "temp"])
     _csv(os.path.join(OUT, "sensors.csv"),
          [{"time": ts(s[0]), "component": k, "observed": s[1], "ewma_r": s[2], "health_index": s[3], "rul_shifts": s[4]}
           for k, v in m.sensors.items() for s in v],

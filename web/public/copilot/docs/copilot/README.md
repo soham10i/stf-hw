@@ -48,19 +48,33 @@ is answered from the documents and the answer says so.
 
 ## Which model writes it
 
-The tab above the conversation picks the first model; when it cannot answer, the next takes
-over, and the answer says so (**switched**):
+One fallback chain, the same locally and in production (`chat.ORDER`):
 
-- **Groq**: `openai/gpt-oss-120b` first, which returns its reasoning; then `qwen/qwen3.8-27b`
-  and `openai/gpt-oss-20b`. Each has its own per-minute limit, so one at its limit hands over to
-  the next. If all are limited and Groq asks for a wait of 12 s or less, the server waits once.
-- **Gemini**: the pool of Gemini models, each with its own daily quota. A model that does not
-  answer in time is set aside for five minutes.
-- **Local**: a model on this machine through Ollama.
+1. **Gemini**: the pool of Gemini models, each with its own daily quota.
+2. **Groq**: `openai/gpt-oss-120b` first, which returns its reasoning; then `qwen/qwen3.8-27b` and
+   `openai/gpt-oss-20b`. Each has its own per-minute limit, so one at its limit hands over to the
+   next. If all are limited and Groq asks for a wait of 12 s or less, the server waits once.
+3. **UPB AI**: the university's AI chat (`UPB_AI_KEY`, a fixed credit), the last hosted model.
+4. **Local**: a model on this machine through Ollama (not on Render).
+5. **The twin's tools**: when none can answer. For a question about how something works, they
+   quote the documents' passages, equations included, rather than a one-line status.
 
-The hand-over stops after 75 s, including a local model that is still answering. The twin's
-tools then answer. For a question about how something works, that answer quotes the documents'
-passages, equations included, rather than a one-line status.
+The tab above the conversation puts its provider first; the rest follow in this order.
+
+**Availability is remembered.** A provider that fails is set aside for a while and tried last
+until then, so a limit costs one question, not every one:
+
+| Failure | Set aside for |
+|---|---|
+| At its rate limit | as long as it asks, else 60 s |
+| Credit used up, or the key refused | an hour |
+| No answer in time | 2 min |
+
+A provider that answers is first in line again. `GET /chat/status` shows the chain as it stands
+(`order`: each provider, ready or back in so many seconds), and `make model-check` asks each one a
+tiny question and prints which answer, without printing a key.
+
+The hand-over stops after 75 s, including a local model that is still answering.
 
 ## While it works: the thinking
 

@@ -33,6 +33,7 @@ maintainability), not industrial size. The twin stays at its 2× structural scal
 | 13 | Software-in-the-loop PLC | **built**: twin panel "PLC program (live)" |
 | 14 | Industry 4.0 standards: AAS (step 1 of 3 built), OPC UA and Sparkplug B next | **AAS built**: twin panel "Asset Administration Shells" |
 | 15 | Vision inspection, trained on rendered images | **built**: twin panel "Vision inspection" |
+| 19 | The bake as a process | **built**: dashboard "Oven process" |
 
 **The app shows one machine: Upgrade 12**, which contains every level. Each upgrade is a side panel of that view, not
 a view of its own (2026-10-01). The intermediate variants still build and are re-proven by `validate.py`; they
@@ -1183,8 +1184,74 @@ energy manager.
 
 ---
 
+## Upgrade 19: the bake as a process (BUILT)
+
+**Question.** The oven waited a fixed time and every cookie came out right. What happens when the bake is
+heat and water, as in a real oven, and what should the PLC and the hardware do about it?
+
+**As built:** `stf-cad/hbw/bake.py` (`make bake`), the "Oven process" dashboard page, the chapter
+`docs/process/README.md` (generated) and the copilot's `oven_process` tool.
+
+- **The oven** from its own parts (oven_model.py): three thermal nodes (the grill element, the bottom
+  elements, the liner and walls), the tray, and the air as a balance. Elements radiate and convect, the
+  walls lose through the ceramic fibre, and the shut door, the steam vent and the open mouth (buoyant
+  exchange) lose to the hall. A PI controller on the thermocouple drives Q9; the fan stops and the
+  integral holds while the door is open.
+- **The cookie** in 16 layers: conduction, radiation from the grill and the liner, contact with the tray.
+  Each layer dries at a rate following water's vapour pressure and takes its latent heat; this is solved
+  implicitly, so the evaporation cools the layer and slows itself. The surface browns with Arrhenius
+  kinetics once dry. Done means 95 C at the centre and at most 6 % water; colour 0.35-0.65.
+- **The order's real door openings** (control.py's step table), and the disturbances of a shift: the
+  hall's daily temperature, aged elements, the robot's waits, and dough lots from the bench or the fridge.
+- **Four ways to end a bake**, on the same 20 shifts (960 cookies each): a fixed timer; a soft sensor
+  (the PLC runs its own model of the oven and the cookie, corrected by the thermocouple, and learns the
+  elements' ageing); + the camera correcting the colour target cookie by cookie, starting again at each
+  lot; + dough sensors (an infrared thermometer and a laser distance sensor over the presented tray).
+
+**Results.**
+
+| Way to end a bake | Right first time | Fridge dough right |
+|---|---|---|
+| fixed timer (600 s) | 79.6 % | 73.9 % |
+| soft sensor | 88.9 % | 83.7 % |
+| + camera, run to run | 97.1 % | 94.3 % |
+| + dough sensors | 99.1 % | 98.5 % |
+
+| | Order of 12 | Cookies an hour |
+|---|---|---|
+| demo bake (lamp, 2 s) | 7.1 min | 76.1 |
+| real bake (~10 min) | 98 min | 5.5 |
+
+**Found.**
+- **The oven is the bottleneck.** With a real bake the cell makes 5.5 cookies an hour; the rest of the cell
+  could feed 14 such ovens. Capacity now means baking many cookies at once (a tunnel oven: STF-2), not a
+  faster crane.
+- **A timer is wrong one cookie in five.** Most of those are dough from the fridge. A model of the cookie
+  fixes half of that; the camera most of the rest. Two cheap sensors reading the dough before it goes in
+  make it right 99 times in 100: the hardware this upgrade asks for.
+- **The energy figures change.** About 51 Wh of heat per cookie and 266 W to hold 180 C: some 138 kWh a
+  month on two shifts, three times the rest of the cell. The Upgrade 9 microgrid was sized for the 5 W
+  lamp; its 600 W inverter cannot run 1 300 W of elements, so Upgrade 9 and Upgrade 18 need re-running
+  with the oven.
+- **Door openings overshoot.** After each one the air reaches at most 199 C, 51 K below the cutout.
+
+**Proofs.** The energy ledger closes on every shift (to machine precision). The heat-up (296 s) matches
+oven_model.py's ~6 min, the elements peak at 731 C (sheath 800 C), and the hold power lies within its loss
+bounds. 16 layers at 0.5 s agree with 32 at 0.1 s within 2 %, and an unstable step is refused before it runs.
+Thicker or colder dough bakes longer, a hotter oven shorter, and weaker elements heat up more slowly. The wet
+centre holds near 100 C. Each policy is at least as good as the one before, and the best reaches 97 %.
+Four mutations are each caught: the steam off the ledger, an 8 s step, browning that slows with heat,
+and doors that lose no heat.
+
+**Limits.** Every material value and disturbance is assumed; the drying and browning rates are calibrated so
+a nominal 8 mm cookie reaches its colour in about 10 min at 180 C. One measured bake (a thermocouple in a
+dough piece, a colour reading) replaces the calibration. The cookie is one-dimensional (no edge browning),
+and it does not rise or spread.
+
+---
+
 ## Order and dependencies
 
-Upgrades 1-18 are built. Each builds on the model of the ones before: the program (U4) on the safety and I/O (U2-U3),
+Upgrades 1-19 are built. Each builds on the model of the ones before: the program (U4) on the safety and I/O (U2-U3),
 commissioning (U5) on the program, the analytics (U6-U10, U15-U18) on commissioning, the security (U11-U12) on the
 I/O and the standards (U14) on all of them.

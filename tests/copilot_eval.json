@@ -19,7 +19,7 @@
     {"q": "does the battery pay off?", "tools": ["energy_month"]},
     {"q": "how many grams of CO2 per cookie?", "tools": ["carbon_per_cookie"], "facts": ["g"]},
     {"q": "is the learned scheduler faster than the PLC?", "tools": ["scheduler_benchmark"]},
-    {"q": "how good is the camera inspection?", "tools": ["vision_inspection"], "facts": ["%"]},
+    {"q": "how good is the camera inspection?", "tools": ["vision_inspection"], "facts": ["damaged"]},
     {"q": "can someone write coils over the network?", "tools": ["security_attacks"]},
     {"q": "what does this page show?", "page": "health", "tools": ["page_guide"], "facts": ["health"]},
     {"q": "how do I read this page?", "page": "month", "tools": ["page_guide"]},

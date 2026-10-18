@@ -33,9 +33,10 @@ CAD model does not have: the belt simply runs on to its end.
 
 ## Trying it
 
-In the 3D twin, open **Orders**. Under **Quality inspection**, choose a fault for the next cookie
-(burnt, underbaked or cracked), place an order, and watch the cookie pass the camera, skip its
-ejector and stop at the end of the line. The card lists each decision: what the cookie really was,
+In the 3D twin, open **Orders** and place an order. **QC testing** is on by default: in every 12
+cookies one, drawn at random, is burnt, underbaked or cracked, so every rack tests the inspection.
+Under **Quality inspection** you can also choose a fault for the next cookie yourself. Watch the
+damaged cookie pass the camera, skip its ejector and stop at the end of the line. The card lists each decision: what the cookie really was,
 what the CNN saw and how sure it was, the autoencoder's score, and whether the call was right, a
 catch, an escape or a false reject.
 
@@ -43,7 +44,10 @@ catch, an escape or a false reject.
 
 The dashboard's **Vision QC** page shows the same camera live (streamed while the page is open,
 never stored), each photo next to the image the models were given and the autoencoder's error
-map, and the running confusion matrix.
+map, the confusion matrix of the cookies inspected since the page opened, and ten sample photos
+from the process.
+
+![The Vision QC page: the twin's cookies judged as they are photographed](../images/vision-qc.jpg)
 
 ## The camera
 
@@ -55,7 +59,7 @@ map, and the running confusion matrix.
 | Light | six LEDs on a 20 mm ring around the lens, 23 degrees off the axis | `web/src/scene/SortingModule.tsx` |
 | Reference | a 50 % grey target, 7.5 mm square, in the image's top-left corner | `stf-cad/hbw/vision/render.py` |
 
-![What the camera sees: good cookies of each flavour (bottom) and a burnt, a cracked and an underbaked one (top)](../images/docs/camera-photos.jpg)
+![Ten photos the camera took while the twin baked an order, the QC test's burnt vanilla among them, with what the CNN decided](../images/docs/camera-photos.jpg)
 
 ### Why a telecentric view
 
@@ -95,18 +99,8 @@ autoencoder at 0.2-0.35 times its threshold.
 | Decision | pass only if the condition head says *ok* with p >= 0.5; if no class reaches 0.6 the cookie goes to a person |
 | Deployed as | ONNX (max abs error 6e-6 against PyTorch) and JSON weights for the browser (max abs error 3e-5) |
 
-**Tested once**, on 3,000 images like training and 3,000 drawn outside the training ranges
-(darker and brighter light, a warmer lamp, motion blur, more noise, a worn belt):
-
-| | Like training | Unseen conditions |
-|---|---|---|
-| Condition right | 98.8 % | 67.3 % |
-| Flavour right | 98.6 % | 92.6 % |
-| Defects passed as good (escapes) | 0.4 % | 1.7 % |
-| Good cookies rejected | 0.7 % | 29.8 % |
-
-Under unseen light the network fails *safe*: it throws good cookies out rather than letting faulty
-ones through. *Source: `web/public/vision/results.json`, `stf-cad/hbw/vision/train.py`.*
+**On the process.** The ten sample photos in the dashboard (an order of ten, QC testing on):
+every one decided right, the burnt cookie caught. *Source: `web/public/vision/samples/samples.json`.*
 
 ## The autoencoder
 

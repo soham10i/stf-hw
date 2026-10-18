@@ -578,7 +578,21 @@ def fallback(rules_text: str, results: list[T.Result], style: str) -> str:
 
 
 class ModelError(Exception):
-    """The model could not answer; the message is safe to show (it never holds the key)."""
+    """The model could not answer; the message is safe to show (it never holds the key).
+    `cool`: seconds to leave this provider out of the next questions' chains (a limit, credit
+    used up, a refused key, a timeout); 0 = try it again next time."""
+
+    def __init__(self, msg: str, cool: float = 0.0):
+        super().__init__(msg)
+        self.cool = cool
+
+
+# the fallback order, the same locally and in production: the cloud models in turn, the
+# university's AI chat (UPB, a fixed credit) last of the hosted ones, then a local model
+ORDER = ("gemini", "groq", "upb", "ollama")
+# how long a provider stays out after it fails: by HTTP status, else a timeout
+COOL = {429: 60.0, 503: 60.0, 401: 3600.0, 402: 3600.0, 403: 3600.0}
+COOL_TIMEOUT = 120.0
 
 
 # --------------------------------------------------------------------- the chat
@@ -603,6 +617,7 @@ class Chat:
         # identical session-less questions reuse the last answer briefly (see ask())
         self.cache: dict[tuple, tuple[float, dict]] = {}
         self.cache_ttl_s = 90.0
+        self.out: dict[str, float] = {}  # provider -> when it may be tried first again
 
     def _post_ollama_bounded(self, url: str, body: dict) -> dict:
         """A local model is slow: a request may take no longer than the question has left."""
@@ -660,6 +675,21 @@ class Chat:
                 ollama_model=self.c.ollama_model if ollama_on else None,
                 grounding=self.c.grounding if gemini_on else False,
             )
+        # the fallback chain as it stands now: which provider answers first, which are resting
+        now = time.time()
+        if enabled:
+            out["order"] = [
+                {
+                    "name": p,
+                    "ready": self.out.get(p, 0.0) <= now,
+                    **(
+                        {"back_in_s": round(self.out[p] - now)}
+                        if self.out.get(p, 0.0) > now
+                        else {}
+                    ),
+                }
+                for p in self._provider(None)
+            ]
         return out
 
     def _gemini_post(self, body: dict, meta: dict) -> dict:
@@ -682,7 +712,10 @@ class Chat:
                 meta["emit"]("step", f"asked {meta['model']}")
             return data
         except GP.AllBusy as e:
-            raise ModelError(f"Gemini's rate limits: {e}") from None
+            m = re.search(r"free again in (\d+) s", str(e))
+            raise ModelError(
+                f"Gemini's rate limits: {e}", float(m.group(1)) if m else 60.0
+            ) from None
         except urllib.error.HTTPError as e:
             raise ModelError(
                 {
@@ -691,7 +724,7 @@ class Chat:
                 }.get(e.code, f"Gemini answered HTTP {e.code}")
             ) from None
         except (urllib.error.URLError, TimeoutError):
-            raise ModelError("Gemini did not answer in time") from None
+            raise ModelError("Gemini did not answer in time", COOL_TIMEOUT) from None
 
     def _gemini(
         self,
@@ -826,7 +859,9 @@ class Chat:
                     except Exception:
                         why = ""
                     if e.code not in (429, 404, 413, 498, 500, 503):
-                        raise ModelError(f"Groq answered {why or f'HTTP {e.code}'}") from None
+                        raise ModelError(
+                            f"Groq answered {why or f'HTTP {e.code}'}", COOL.get(e.code, 0.0)
+                        ) from None
                     meta["groq_out"].add(model)
                     short = "at its limit" if e.code in (429, 413) else f"HTTP {e.code}"
                     meta.setdefault("skipped", []).append((f"groq {model}", short))
@@ -835,13 +870,15 @@ class Chat:
                     if w is not None and e.code == 429:
                         waits.append(w)
                 except (urllib.error.URLError, TimeoutError):
-                    raise ModelError("Groq did not answer in time") from None
+                    raise ModelError("Groq did not answer in time", COOL_TIMEOUT) from None
             if attempt or not waits or min(waits) > 12:
                 break
             say("step", f"every Groq model at its limit: waiting {min(waits):.0f} s")
             time.sleep(min(waits) + 0.5)
             meta["groq_out"] = set()
-        raise ModelError("every Groq model is at its per-minute limit")
+        raise ModelError(
+            "every Groq model is at its per-minute limit", min(waits) if waits else 60.0
+        )
 
     def _groq(
         self,
@@ -914,9 +951,15 @@ class Chat:
         try:
             return self.post_groq(self.c.upb_url, self.c.upb_key, body)
         except urllib.error.HTTPError as e:
-            raise ModelError(f"UPB answered HTTP {e.code}") from None
+            why = {
+                401: "the key was refused",
+                402: "the credit is used up",
+                403: "the key was refused",
+                429: "at its rate limit",
+            }.get(e.code, f"HTTP {e.code}")
+            raise ModelError(f"UPB AI: {why}", COOL.get(e.code, 0.0)) from None
         except (urllib.error.URLError, TimeoutError):
-            raise ModelError("UPB did not answer in time") from None
+            raise ModelError("UPB did not answer in time", COOL_TIMEOUT) from None
 
     def _upb(
         self,
@@ -930,9 +973,7 @@ class Chat:
         if not self.c.upb_key:
             raise ModelError("no UPB API key configured")
         say = meta.get("emit") or (lambda *_: None)
-        body = build_groq_body(
-            req, self.c.upb_model, results, meta.get("extra", "")
-        )
+        body = build_groq_body(req, self.c.upb_model, results, meta.get("extra", ""))
         retried = False
         for _ in range(MAX_ROUNDS + 1):
             data = self._upb_post(body, meta)
@@ -976,52 +1017,24 @@ class Chat:
         return text, check(text)
 
     def _provider(self, wanted: str | None) -> list[str]:
-        """The order models are tried in for the tab the operator chose: the chosen one first,
-        the other kind next, so a limit never stops the conversation; the tools come last."""
-        gem = bool(self.c.key)
-        grq = bool(self.c.groq_key)
-        upb = bool(self.c.upb_key)
-        loc = bool(self.c.ollama_model)
+        """The order models are tried in: the tab the operator chose first, then ORDER (Gemini,
+        Groq, UPB, the local model), skipping any without a key. A provider that failed lately
+        (self.out) goes to the end, so a limit costs one question, not every one; the twin's
+        tools answer when none can."""
         if wanted == "rules":
             return []
-        if wanted in ("groq", "grok"):
-            return [
-                *(["groq"] if grq else []),
-                *(["upb"] if upb else []),
-                *(["gemini"] if gem else []),
-                *(["ollama"] if loc else []),
-            ]
-        if wanted == "upb":
-            return [
-                *(["upb"] if upb else []),
-                *(["groq"] if grq else []),
-                *(["gemini"] if gem else []),
-                *(["ollama"] if loc else []),
-            ]
-        if wanted == "ollama":
-            return [
-                *(["ollama"] if loc else []),
-                *(["groq"] if grq else []),
-                *(["upb"] if upb else []),
-                *(["gemini"] if gem else []),
-            ]
-        if wanted == "gemini":
-            return [
-                *(["gemini"] if gem else []),
-                *(["groq"] if grq else []),
-                *(["upb"] if upb else []),
-                *(["ollama"] if loc else []),
-            ]
-        order = []
-        if grq:
-            order.append("groq")
-        if upb:
-            order.append("upb")
-        if gem:
-            order.append("gemini")
-        if loc:
-            order.append("ollama")
-        return order
+        have = {
+            "gemini": bool(self.c.key),
+            "groq": bool(self.c.groq_key),
+            "upb": bool(self.c.upb_key),
+            "ollama": bool(self.c.ollama_model),
+        }
+        first = {"grok": "groq", "local": "ollama"}.get(wanted or "", wanted)
+        chain = [p for p in ((first,) if first in have else ()) + ORDER if have.get(p)]
+        chain = list(dict.fromkeys(chain))
+        now = time.time()
+        ready = [p for p in chain if self.out.get(p, 0.0) <= now]
+        return ready + [p for p in chain if p not in ready]
 
     def admit(self, req: ChatRequest, request: Request) -> str:
         """The checks before a question is taken: its origin and the client's rate. Returns the
@@ -1264,9 +1277,7 @@ class Chat:
                 self._gemini
                 if prov == "gemini"
                 else (
-                    self._groq
-                    if prov == "groq"
-                    else (self._upb if prov == "upb" else self._ollama)
+                    self._groq if prov == "groq" else (self._upb if prov == "upb" else self._ollama)
                 )
             )
             deep = plan.mode == "deep" or style == "derive"
@@ -1282,6 +1293,8 @@ class Chat:
             try:
                 answer, bad = await asyncio.to_thread(run, req, ctx, results, called, check, meta)
             except ModelError as e:
+                if e.cool:
+                    self.out[prov] = time.time() + e.cool
                 who = (
                     "Gemini"
                     if prov == "gemini"
@@ -1310,6 +1323,7 @@ class Chat:
                         }
                     )
                 continue
+            self.out.pop(prov, None)
             for m, why in meta.get("skipped", []):
                 switched.append({"from": m, "to": meta.get("model"), "why": why})
             if meta.get("web_sources"):  # Gemini's Google Search grounding

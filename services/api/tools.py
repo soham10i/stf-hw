@@ -382,43 +382,45 @@ def scheduler_benchmark(args: dict, ctx: Ctx) -> Result:
 
 
 def vision_inspection(args: dict, ctx: Ctx) -> Result:
-    """The camera inspection: accuracy, escapes and false rejects, on the line it was trained
-    for and after a lighting shift."""
-    v = load_json("vision/results.json")
-    a = load_json("vision/adapt.json") or {}
-    if not v:
-        return Result("vision_inspection", "The vision results are not available.")
-    i, s = v["results"]["in_domain"], v["results"]["shifted"]
+    """The camera inspection on the process: where the camera is, what the models decide, how
+    one damaged cookie in every 12 is caught (QC testing), and ten sample photos' verdicts."""
+    sm = load_json("vision/samples/samples.json")
+    cam = load_json("vision/camera.json") or {}
+    if not sm:
+        return Result("vision_inspection", "The vision samples are not available.")
+    S = sm["samples"]
+    right = sum((x["truth"] == "ok") == (x["verdict"] == "pass") for x in S)
+    bad = [x for x in S if x["truth"] != "ok"]
+    caught = sum(x["verdict"] != "pass" for x in bad)
     text = (
-        f"On the line it was trained for, the inspection is {pct(i['condition_acc'], 1)} accurate "
-        f"with {pct(i['escape_rate'], 1)} escapes. "
-        f"After a lighting shift it falls to {pct(s['condition_acc'], 1)} with "
-        f"{pct(s['false_reject'], 1)} false rejects. "
-        "Label-free adaptation did not fix it - the line's mix of good and bad cookies differs "
-        "from training - "
-        "so the autoencoder's job is to raise the drift alarm and route doubtful cookies to a "
-        "person."
+        f"The camera in the colour hood photographs every cookie; the CNN decides pass, reject or "
+        f"'to a person', and a rejected cookie is held at the end of the line and made again. In "
+        f"every 12 cookies one is damaged on purpose (QC testing). Of {len(S)} sample photos from "
+        f"the process, {right} were decided right, and {caught} of {len(bad)} damaged "
+        f"{'cookie was' if len(bad) == 1 else 'cookies were'} caught."
     )
     facts = [
-        ["trained line: escapes", pct(i["escape_rate"], 2)],
-        ["trained line: false rejects", pct(i["false_reject"], 2)],
-        ["shifted: accuracy", pct(s["condition_acc"], 1)],
-        ["shifted: false rejects", pct(s["false_reject"], 1)],
+        [
+            f"sample {x['n']}: {x['flavour']}",
+            f"truth {x['truth']}, CNN {x['condition']} -> {x['verdict']}",
+        ]
+        for x in S
     ]
-    g = (a.get("guard") or {}).get("source", {})
-    if g:
+    if cam:
         facts.append(
             [
-                "escapes, CNN alone -> with autoencoder",
-                f"{pct(g['CNN alone']['escapes'], 1)} -> "
-                f"{pct(g['CNN + autoencoder']['escapes'], 1)}",
+                "camera",
+                f"{cam.get('fov_mm', 0):.0f} mm field, in the colour hood before the colour sensor",
             ]
         )
+    facts.append(
+        ["QC testing", "one cookie in every 12, drawn at random, burnt, underbaked or cracked"]
+    )
     return Result(
         "vision_inspection",
         text,
-        facts,
-        ["vision benchmark (vision/train.py, vision/adapt.py)"],
+        facts[:12],
+        ["the inspection camera's photos of the 3D twin's cookies (vision/samples)"],
         {"page": "vision", "label": "Vision QC"},
     )
 
@@ -451,6 +453,58 @@ def security_attacks(args: dict, ctx: Ctx) -> Result:
         facts,
         ["OT security assessment (security.py), a model, not a penetration test"],
         {"page": "security", "label": "OT security"},
+    )
+
+
+# ------------------------------------------------------------------------ the bake as a process
+def oven_process(args: dict, ctx: Ctx) -> Result:
+    """The bake as a process (Upgrade 19): how the oven heats and holds, how long a real bake
+    takes, how many cookies come out right with each way of ending a bake, what a real bake does
+    to capacity, and the heat per cookie."""
+    d = load_json("bake/process.json")
+    if not d:
+        return Result("oven_process", "The oven process model is not available (make bake).")
+    pol = d["policies"]
+    best, timer = pol[-1], pol[0]
+    demo, real = d["throughput"]["rows"]
+    h, e = d["heatup"], d["energy"]
+    facts = [
+        [
+            f"right first time: {p['name']}",
+            f"{p['ok_pct']} % ({p['underbaked']} underbaked, {p['burnt']} burnt "
+            f"of {p['cookies']}; fridge dough {p['ok_pct_fridge']} %)",
+        ]
+        for p in pol
+    ]
+    facts += [
+        ["bake time (best policy)", f"{best['bake_mean']:.0f} s ± {best['bake_sd']:.0f} s"],
+        [
+            "cookies an hour",
+            f"{real['cookies_h']} with a real bake, {demo['cookies_h']} with the 2 s lamp",
+        ],
+        [
+            "one oven's limit",
+            f"{d['throughput']['oven_limit_h']} cookies an hour; the cell could feed "
+            f"{d['throughput']['ovens_to_match']} ovens",
+        ],
+        ["heat-up to 180 C", f"{h['t180']:.0f} s; holding 180 C takes {h['hold_w']:.0f} W"],
+        [
+            "heat per cookie",
+            f"{e['wh_per_cookie']:.0f} Wh; about {e['oven_month_kwh']} kWh a month on two shifts",
+        ],
+    ]
+    text = (
+        f"With a real bake (about {best['bake_mean'] / 60:.0f} min at 180 C) the oven makes "
+        f"{real['cookies_h']} cookies an hour against {demo['cookies_h']} with the 2 s lamp. "
+        f"A fixed timer gets {timer['ok_pct']} % of cookies right; {best['name']} gets "
+        f"{best['ok_pct']} %."
+    )
+    return Result(
+        "oven_process",
+        text,
+        facts,
+        ["the bake-as-a-process model (Upgrade 19, stf-cad/hbw/bake.py), simulated"],
+        {"page": "process", "label": "Oven process"},
     )
 
 
@@ -796,6 +850,7 @@ TOOLS: dict[str, Tool] = {
         Tool("carbon_per_cookie", carbon_per_cookie, _obj({})),
         Tool("scheduler_benchmark", scheduler_benchmark, _obj({})),
         Tool("vision_inspection", vision_inspection, _obj({})),
+        Tool("oven_process", oven_process, _obj({})),
         Tool(
             "security_attacks",
             security_attacks,
@@ -926,6 +981,12 @@ def route(q: str, ctx: Ctx, lean: bool = False) -> list[tuple[str, dict]]:
         calls.append(("energy_month", {}))
     if re.search(r"schedul|dispatch|deadlock|reinforcement|\brl\b", s):
         calls.append(("scheduler_benchmark", {}))
+    if re.search(
+        r"\bbak(e|es|ing|ed)\b|oven (temperature|process|energy|heat)|underbak|soft sensor|"
+        r"heat per cookie|preheat|how long .{0,20}(bake|in the oven)|browning|dough",
+        s,
+    ):
+        calls.append(("oven_process", {}))
     if re.search(
         r"vision|camera|inspection|\bcnn\b|defect|escape|false reject|chipped|cracked|burnt", s
     ):

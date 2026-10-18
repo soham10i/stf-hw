@@ -22,7 +22,7 @@ import * as THREE from "three";
 import { boxSize, type CadDoc, type PlanKey } from "../../shared/model";
 import { buildFlow, newSample, type FlowSample } from "../OvenFlow";
 import { binColour, script, SPEED, BELT_SPEED, RATE } from "../timeline";
-import { FROM, type CellStore, type Defect, type OrderLine, type Rack, type Verdict } from "../store/useCellStore";
+import { DEFECTS, FROM, type CellStore, type Defect, type OrderLine, type Rack, type Verdict } from "../store/useCellStore";
 import type { CellPersistence } from "./persistence";
 
 type Key = ReturnType<typeof script>[number];
@@ -33,6 +33,20 @@ type Plan = {
   /** the same journey for a cookie the inspection rejects: to the end of the line, held there */
   rflow: ReturnType<typeof buildFlow>;
 };
+/** QC testing: one damaged cookie in every BATCH started (a rack's worth). */
+export const BATCH = 12;
+/** A small seeded generator (mulberry32): the same seed, the same draws. */
+function rng(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 /** A cycle: its plan, its order line, and its cookie's inspection - the fault the simulation gave
     it, the camera shot that photographed it, and the verdict on that photo once it is in. */
 type Cycle = Plan & { line: number; defect: Defect | null; seed: number; shot: number; verdict: Verdict | null };
@@ -79,6 +93,8 @@ export class CellCoordinator {
   private thermo = { element: 0, chamber: 25 };
   /** a running count, so each faulty cookie's fault falls somewhere else */
   private seeds = 0;
+  /** QC testing's draws: a fixed seed, so a run (and a test) is repeatable */
+  private qcSeed = 1912;
 
   constructor(doc: CadDoc, store: CellStore, opts: CoordinatorOptions) {
     this.doc = doc;
@@ -196,8 +212,16 @@ export class CellCoordinator {
   private begin(r: Rack, line: OrderLine): Cycle {
     const from = this.rawIn(r)[0] ?? FROM;
     const bin = this.doc.pipeline.flavours[line.flavour]?.bin ?? null;
-    // the fault asked for the next cookie (the Orders panel) goes to this one
-    const ins = this.store.model.inspect, defect = ins.next;
+    // the fault asked for the next cookie (the Orders panel) goes to this one; otherwise, QC
+    // testing: in every 12 cookies started, one drawn at random gets a random fault
+    const ins = this.store.model.inspect, b = ins.batch;
+    if (b.pos % BATCH === 0) {
+      const r = rng(this.qcSeed + b.pos);
+      b.pick = Math.floor(r() * BATCH);
+      b.fault = DEFECTS[Math.floor(r() * DEFECTS.length)];
+    }
+    const defect = ins.next ?? (ins.auto && b.pos % BATCH === b.pick ? b.fault : null);
+    b.pos++;
     ins.next = null;
     this.seeds++;
     return { ...this.plan(from, from, line.flavour, bin), line: line.id, defect, seed: this.seeds, shot: 0, verdict: null };
@@ -301,6 +325,8 @@ export class CellCoordinator {
         const ins = m.inspect;
         ins.recent = [{ ...v, truth: C.defect ?? "ok", cookieFlavour: C.flavour }, ...ins.recent].slice(0, 8);
         if (v.verdict === "pass") ins.passed++; else ins.rejected++;
+        store.emitRecord({ kind: "inspection", n: v.n, flavour: C.flavour, truth: C.defect ?? "ok", condition: v.condition,
+          p: v.p, verdict: v.verdict, ae: v.ae, unusual: v.anomaly });
         store.commit(false);
       }
     }
@@ -364,10 +390,21 @@ export class CellCoordinator {
     if (done.verdict && done.verdict.verdict !== "pass") {
       // rejected: its mould came home empty, and the order makes this cookie again
       m.rack = { ...m.rack, [done.to]: null };
-      if (line) line.started--;
+      if (line) {
+        line.started--;
+        line.rejected = (line.rejected ?? 0) + 1;
+        if (done.defect) line.fault = done.defect;
+      }
     } else {
       m.rack = { ...m.rack, [done.to]: done.baked };
-      if (line) line.done++;
+      if (line) {
+        line.done++;
+        if (line.done === line.qty) {
+          const rej = line.rejected ?? 0;
+          this.store.emitRecord({ kind: "order", flavour: line.flavour, qty: line.qty, baked: line.qty + rej, good: line.qty,
+            scrap: rej, qc_fault: line.fault ?? "" });
+        }
+      }
     }
     m.idle = true;
     this.store.commit();

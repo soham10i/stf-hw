@@ -17,8 +17,9 @@ const STRAW = doc.pipeline.flavours.strawberry.colour as string;
 const RAW = doc.pipeline.raw_colour as string;
 const DT = 1 / 30;
 
-function cell(persistence = memoryPersistence(), speed = 1) {
+function cell(persistence = memoryPersistence(), speed = 1, qc = false) {
   const store = new CellStore();
+  store.model.inspect.auto = qc;          // QC testing's random fault only where a test asks for it
   const coord = new CellCoordinator(doc, store, { tours, persistence });
   let t = 0;
   /** run the twin for `s` seconds, or until `until` holds */
@@ -234,6 +235,27 @@ describe("the inspection steers the line", () => {
     expect(store.model.inspect.recent.map((r) => r.truth)).toEqual(["ok", "burnt"]);
     expect(ejectorFired).toBe(false);
     expect(heldAtEnd).toBe(true);
+  });
+
+  it("QC testing: in every 12 cookies started, exactly one gets a fault", () => {
+    const { store, coord, run, done } = cell(memoryPersistence(), 8, true);
+    coord.setCamera(lensOf());
+    judgeByTruth(store);
+    const truths: string[] = [];
+    store.onCapture((c) => truths.push(c.truth));
+    const records: { kind: string }[] = [];
+    store.onRecord((r) => records.push(r));
+    store.place("chocolate", 11);
+    // the rejected cookie is made again: 11 good ones need 12 cookies, one rack's worth
+    expect(run(12 * 3600, done)).toBe(true);
+    expect(truths).toHaveLength(12);
+    expect(truths.filter((t) => t !== "ok")).toHaveLength(1);
+    expect(store.model.inspect).toMatchObject({ passed: 11, rejected: 1 });
+    expect(store.model.queue[0].done).toBe(11);
+    // what goes to the database: every judged cookie, and the finished line with its QC fault
+    expect(records.filter((r) => r.kind === "inspection")).toHaveLength(12);
+    expect(records.filter((r) => r.kind === "order")).toEqual([
+      expect.objectContaining({ kind: "order", flavour: "chocolate", qty: 11, baked: 12, good: 11, scrap: 1 })]);
   });
 
   it("a good cookie passes to its Lagerstelle as before", () => {

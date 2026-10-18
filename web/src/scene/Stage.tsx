@@ -1,5 +1,6 @@
 // The stage around the factory: the table, lights, camera, the precise meshes and the overlays.
 
+import { postRecord } from "../shared/records";
 import { Grid, OrbitControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -224,6 +225,8 @@ export function HbwCadStage({ doc, showZones = false, netZones = false, showCove
   const tours = toursDoc ? toursDoc.tours : toursErr ? null : undefined;
   const store = useCellStore();
   const coord = useCoordinator(doc, tours, store);
+  // what the twin does goes to the database, as this visitor's (shared/records.ts)
+  useEffect(() => store.onRecord(postRecord), [store]);
   const J = store.joints;
   // the rack's meshes re-render only when the rack changes
   const rack = useCellModel((m) => m.rack);
@@ -237,7 +240,9 @@ export function HbwCadStage({ doc, showZones = false, netZones = false, showCove
   useEffect(() => { if (precise || !doc.upgrade) markStageReady(); }, [precise, doc.upgrade]);
   return (
     <>
-      <OrbitControls makeDefault target={target} enableDamping />
+      {/* the camera stays above the table: from below, the parts that reach through the plates
+          showed through it, and no one inspects a machine from under its table */}
+      <OrbitControls makeDefault target={target} enableDamping maxPolarAngle={Math.PI / 2 - 0.06} />
       <hemisphereLight args={["#dfe6ea", "#4a4a4a", 1.2]} />
       {/* studio light panels for the physically based component materials */}
       <Environment resolution={256}>

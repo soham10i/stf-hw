@@ -672,3 +672,7 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .ord-ins li.caught .ord-call { color: var(--ok); font-weight: 600; }
 .ord-cell.empty { border-style: dashed; }
 .ord-cell.empty i { box-shadow: inset 0 0 0 1.5px var(--bad); }
+
+.ord-auto { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0 10px; font-size: var(--fs-callout); color: var(--muted); cursor: pointer; }
+.ord-auto input { margin-top: 3px; accent-color: var(--accent); }
+.ord-auto b { color: var(--text); font-weight: 600; }

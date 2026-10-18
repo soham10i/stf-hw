@@ -1,8 +1,8 @@
 {
  "meta": {
   "days": 30,
-  "good_cookies": 19647,
-  "orders": 2183,
+  "good_cookies": 18000,
+  "orders": 2000,
   "cookies_per_order": 9.0,
   "sleep_after_h": 0.5,
   "sleep_w": 13.3,
@@ -14,96 +14,96 @@
  },
  "levers": {
   "grid only": {
-   "co2_kg": 12.95,
-   "g_per_cookie": 0.659,
-   "load_kwh": 45.98,
-   "import_kwh": 45.98,
-   "cost_eur": 14.37,
-   "wh_per_cookie": 2.34
+   "co2_kg": 12.94,
+   "g_per_cookie": 0.719,
+   "load_kwh": 45.94,
+   "import_kwh": 45.94,
+   "cost_eur": 14.36,
+   "wh_per_cookie": 2.55
   },
   "as built: PV + battery": {
-   "co2_kg": 7.2,
-   "g_per_cookie": 0.366,
-   "load_kwh": 45.98,
-   "import_kwh": 24.12,
-   "cost_eur": 6.16,
-   "wh_per_cookie": 2.34
+   "co2_kg": 7.18,
+   "g_per_cookie": 0.399,
+   "load_kwh": 45.94,
+   "import_kwh": 24.03,
+   "cost_eur": 6.14,
+   "wh_per_cookie": 2.55
   },
   "+ sleep when idle": {
-   "co2_kg": 6.27,
-   "g_per_cookie": 0.319,
-   "load_kwh": 40.72,
-   "import_kwh": 21.24,
-   "cost_eur": 5.15,
-   "wh_per_cookie": 2.07
+   "co2_kg": 6.26,
+   "g_per_cookie": 0.348,
+   "load_kwh": 40.66,
+   "import_kwh": 21.18,
+   "cost_eur": 5.14,
+   "wh_per_cookie": 2.26
   },
   "+ carbon-aware battery": {
-   "co2_kg": 6.27,
-   "g_per_cookie": 0.319,
-   "load_kwh": 40.72,
-   "import_kwh": 21.25,
-   "cost_eur": 6.0,
-   "wh_per_cookie": 2.07
+   "co2_kg": 6.25,
+   "g_per_cookie": 0.347,
+   "load_kwh": 40.66,
+   "import_kwh": 21.18,
+   "cost_eur": 5.99,
+   "wh_per_cookie": 2.26
   },
   "+ U10 throughput (estimate)": {
    "co2_kg": null,
-   "g_per_cookie": 0.252,
+   "g_per_cookie": 0.274,
    "estimate": true,
    "note": "standing load shared by 1.48x the cookies in the same shifts"
   }
  },
  "breakdown_g_per_cookie": {
-  "controller, I/O and sensors (standing)": 0.2066,
-  "inverter (standing)": 0.0451,
-  "compressor": 0.0425,
-  "lamp and valves": 0.0226,
-  "motor: arm": 0.013,
-  "motor: crane": 0.0109,
-  "motor: door": 0.0075,
-  "motor: belt": 0.0047,
-  "motor: line": 0.0044,
-  "motor: sauger": 0.0034,
-  "motor: turntable": 0.0033,
-  "motor: ovenbelt": 0.0025
+  "controller, I/O and sensors (standing)": 0.2253,
+  "inverter (standing)": 0.0492,
+  "compressor": 0.0445,
+  "lamp and valves": 0.025,
+  "motor: arm": 0.0143,
+  "motor: crane": 0.012,
+  "motor: door": 0.0083,
+  "motor: belt": 0.0051,
+  "motor: line": 0.0049,
+  "motor: sauger": 0.0038,
+  "motor: turntable": 0.0037,
+  "motor: ovenbelt": 0.0028
  },
- "standing_share": 0.687,
+ "standing_share": 0.688,
  "hours": [
   {
    "h": 0,
    "intensity": 300.0,
-   "import_w": 73.1,
-   "grid_only_w": 74.0,
-   "pv_w": 0.0,
-   "load_w": 74.0
-  },
-  {
-   "h": 1,
-   "intensity": 300.0,
-   "import_w": 72.6,
-   "grid_only_w": 73.0,
-   "pv_w": 0.0,
-   "load_w": 73.0
-  },
-  {
-   "h": 2,
-   "intensity": 300.0,
-   "import_w": 72.1,
-   "grid_only_w": 73.5,
-   "pv_w": 0.0,
-   "load_w": 73.5
-  },
-  {
-   "h": 3,
-   "intensity": 300.0,
-   "import_w": 72.3,
+   "import_w": 72.7,
    "grid_only_w": 73.6,
    "pv_w": 0.0,
    "load_w": 73.6
   },
   {
+   "h": 1,
+   "intensity": 300.0,
+   "import_w": 72.7,
+   "grid_only_w": 73.4,
+   "pv_w": 0.0,
+   "load_w": 73.4
+  },
+  {
+   "h": 2,
+   "intensity": 300.0,
+   "import_w": 72.1,
+   "grid_only_w": 73.4,
+   "pv_w": 0.0,
+   "load_w": 73.4
+  },
+  {
+   "h": 3,
+   "intensity": 300.0,
+   "import_w": 72.0,
+   "grid_only_w": 73.3,
+   "pv_w": 0.0,
+   "load_w": 73.3
+  },
+  {
    "h": 4,
    "intensity": 300.0,
-   "import_w": 72.2,
+   "import_w": 72.3,
    "grid_only_w": 73.5,
    "pv_w": 0.0,
    "load_w": 73.5
@@ -120,54 +120,54 @@
    "h": 6,
    "intensity": 300.0,
    "import_w": 71.4,
-   "grid_only_w": 73.8,
+   "grid_only_w": 73.7,
    "pv_w": 0.0,
-   "load_w": 73.8
+   "load_w": 73.7
   },
   {
    "h": 7,
    "intensity": 288.3,
-   "import_w": 62.4,
-   "grid_only_w": 70.0,
+   "import_w": 62.3,
+   "grid_only_w": 69.7,
    "pv_w": 6.4,
-   "load_w": 70.0
+   "load_w": 69.7
   },
   {
    "h": 8,
    "intensity": 265.7,
-   "import_w": 37.3,
-   "grid_only_w": 74.7,
+   "import_w": 36.7,
+   "grid_only_w": 74.2,
    "pv_w": 38.5,
-   "load_w": 74.7
+   "load_w": 74.2
   },
   {
    "h": 9,
    "intensity": 245.4,
-   "import_w": 13.4,
-   "grid_only_w": 73.7,
+   "import_w": 13.3,
+   "grid_only_w": 74.2,
    "pv_w": 79.6,
-   "load_w": 73.7
+   "load_w": 74.2
   },
   {
    "h": 10,
    "intensity": 228.8,
-   "import_w": 7.9,
-   "grid_only_w": 74.4,
+   "import_w": 7.5,
+   "grid_only_w": 74.0,
    "pv_w": 117.1,
-   "load_w": 74.4
+   "load_w": 74.0
   },
   {
    "h": 11,
    "intensity": 217.1,
    "import_w": 5.9,
-   "grid_only_w": 74.1,
+   "grid_only_w": 73.8,
    "pv_w": 147.9,
-   "load_w": 74.1
+   "load_w": 73.8
   },
   {
    "h": 12,
    "intensity": 211.0,
-   "import_w": 5.2,
+   "import_w": 4.9,
    "grid_only_w": 74.1,
    "pv_w": 165.6,
    "load_w": 74.1
@@ -175,31 +175,31 @@
   {
    "h": 13,
    "intensity": 211.0,
-   "import_w": 6.0,
-   "grid_only_w": 74.5,
+   "import_w": 5.9,
+   "grid_only_w": 74.2,
    "pv_w": 167.0,
-   "load_w": 74.5
+   "load_w": 74.2
   },
   {
    "h": 14,
    "intensity": 217.1,
-   "import_w": 6.0,
-   "grid_only_w": 74.2,
+   "import_w": 5.7,
+   "grid_only_w": 74.3,
    "pv_w": 155.1,
-   "load_w": 74.2
+   "load_w": 74.3
   },
   {
    "h": 15,
    "intensity": 228.8,
-   "import_w": 8.0,
-   "grid_only_w": 70.5,
+   "import_w": 7.4,
+   "grid_only_w": 70.6,
    "pv_w": 132.2,
-   "load_w": 70.5
+   "load_w": 70.6
   },
   {
    "h": 16,
    "intensity": 245.4,
-   "import_w": 5.3,
+   "import_w": 5.4,
    "grid_only_w": 44.7,
    "pv_w": 95.7,
    "load_w": 44.7
@@ -215,7 +215,7 @@
   {
    "h": 18,
    "intensity": 398.3,
-   "import_w": 8.5,
+   "import_w": 8.8,
    "grid_only_w": 44.7,
    "pv_w": 17.4,
    "load_w": 44.7
@@ -223,7 +223,7 @@
   {
    "h": 19,
    "intensity": 410.0,
-   "import_w": 14.7,
+   "import_w": 14.4,
    "grid_only_w": 44.7,
    "pv_w": 0.8,
    "load_w": 44.7
@@ -255,7 +255,7 @@
   {
    "h": 23,
    "intensity": 300.0,
-   "import_w": 36.7,
+   "import_w": 36.5,
    "grid_only_w": 44.7,
    "pv_w": 0.0,
    "load_w": 44.7
@@ -264,147 +264,147 @@
  "daily": [
   {
    "day": 1,
-   "g_per_cookie": 0.168,
+   "g_per_cookie": 0.185,
    "weather": "clear"
   },
   {
    "day": 2,
-   "g_per_cookie": 0.298,
-   "weather": "clear"
-  },
-  {
-   "day": 3,
-   "g_per_cookie": 0.314,
-   "weather": "partly"
-  },
-  {
-   "day": 4,
-   "g_per_cookie": 0.319,
-   "weather": "partly"
-  },
-  {
-   "day": 5,
-   "g_per_cookie": 0.291,
-   "weather": "partly"
-  },
-  {
-   "day": 6,
-   "g_per_cookie": 0.329,
-   "weather": "partly"
-  },
-  {
-   "day": 7,
-   "g_per_cookie": 0.34,
-   "weather": "partly"
-  },
-  {
-   "day": 8,
-   "g_per_cookie": 0.54,
-   "weather": "rain"
-  },
-  {
-   "day": 9,
-   "g_per_cookie": 0.488,
-   "weather": "overcast"
-  },
-  {
-   "day": 10,
-   "g_per_cookie": 0.339,
-   "weather": "clear"
-  },
-  {
-   "day": 11,
-   "g_per_cookie": 0.343,
-   "weather": "clear"
-  },
-  {
-   "day": 12,
-   "g_per_cookie": 0.334,
-   "weather": "clear"
-  },
-  {
-   "day": 13,
-   "g_per_cookie": 0.53,
-   "weather": "overcast"
-  },
-  {
-   "day": 14,
-   "g_per_cookie": 0.3,
-   "weather": "clear"
-  },
-  {
-   "day": 15,
-   "g_per_cookie": 0.304,
-   "weather": "partly"
-  },
-  {
-   "day": 16,
-   "g_per_cookie": 0.494,
-   "weather": "rain"
-  },
-  {
-   "day": 17,
-   "g_per_cookie": 0.433,
-   "weather": "overcast"
-  },
-  {
-   "day": 18,
-   "g_per_cookie": 0.286,
-   "weather": "partly"
-  },
-  {
-   "day": 19,
-   "g_per_cookie": 0.459,
-   "weather": "overcast"
-  },
-  {
-   "day": 20,
-   "g_per_cookie": 0.318,
-   "weather": "clear"
-  },
-  {
-   "day": 21,
-   "g_per_cookie": 0.47,
-   "weather": "overcast"
-  },
-  {
-   "day": 22,
    "g_per_cookie": 0.326,
    "weather": "clear"
   },
   {
+   "day": 3,
+   "g_per_cookie": 0.345,
+   "weather": "partly"
+  },
+  {
+   "day": 4,
+   "g_per_cookie": 0.348,
+   "weather": "partly"
+  },
+  {
+   "day": 5,
+   "g_per_cookie": 0.314,
+   "weather": "partly"
+  },
+  {
+   "day": 6,
+   "g_per_cookie": 0.361,
+   "weather": "partly"
+  },
+  {
+   "day": 7,
+   "g_per_cookie": 0.372,
+   "weather": "partly"
+  },
+  {
+   "day": 8,
+   "g_per_cookie": 0.587,
+   "weather": "rain"
+  },
+  {
+   "day": 9,
+   "g_per_cookie": 0.521,
+   "weather": "overcast"
+  },
+  {
+   "day": 10,
+   "g_per_cookie": 0.362,
+   "weather": "clear"
+  },
+  {
+   "day": 11,
+   "g_per_cookie": 0.375,
+   "weather": "clear"
+  },
+  {
+   "day": 12,
+   "g_per_cookie": 0.36,
+   "weather": "clear"
+  },
+  {
+   "day": 13,
+   "g_per_cookie": 0.569,
+   "weather": "overcast"
+  },
+  {
+   "day": 14,
+   "g_per_cookie": 0.401,
+   "weather": "clear"
+  },
+  {
+   "day": 15,
+   "g_per_cookie": 0.335,
+   "weather": "partly"
+  },
+  {
+   "day": 16,
+   "g_per_cookie": 0.553,
+   "weather": "rain"
+  },
+  {
+   "day": 17,
+   "g_per_cookie": 0.469,
+   "weather": "overcast"
+  },
+  {
+   "day": 18,
+   "g_per_cookie": 0.309,
+   "weather": "partly"
+  },
+  {
+   "day": 19,
+   "g_per_cookie": 0.485,
+   "weather": "overcast"
+  },
+  {
+   "day": 20,
+   "g_per_cookie": 0.344,
+   "weather": "clear"
+  },
+  {
+   "day": 21,
+   "g_per_cookie": 0.523,
+   "weather": "overcast"
+  },
+  {
+   "day": 22,
+   "g_per_cookie": 0.359,
+   "weather": "clear"
+  },
+  {
    "day": 23,
-   "g_per_cookie": 0.337,
+   "g_per_cookie": 0.358,
    "weather": "partly"
   },
   {
    "day": 24,
-   "g_per_cookie": 0.336,
+   "g_per_cookie": 0.356,
    "weather": "clear"
   },
   {
    "day": 25,
-   "g_per_cookie": 0.343,
+   "g_per_cookie": 0.377,
    "weather": "partly"
   },
   {
    "day": 26,
-   "g_per_cookie": 0.557,
+   "g_per_cookie": 0.59,
    "weather": "rain"
   },
   {
    "day": 27,
-   "g_per_cookie": 0.349,
+   "g_per_cookie": 0.372,
    "weather": "clear"
   },
   {
    "day": 28,
-   "g_per_cookie": 0.315,
+   "g_per_cookie": 0.331,
    "weather": "clear"
   },
   {
    "day": 29,
-   "g_per_cookie": 0.371,
+   "g_per_cookie": 0.393,
    "weather": "partly"
   },
   {

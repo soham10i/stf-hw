@@ -16,6 +16,7 @@ import { SecurityPage } from "./Security";
 import { HardeningPage, ValidationPage } from "./Assurance";
 import { VisionPage } from "./Vision";
 import { CarbonPage } from "./Carbon";
+import { ProcessPage } from "./Process";
 import { SchedulerPage } from "./Scheduler";
 import { CopilotPage } from "./Copilot";
 import { Chat } from "./Chat";
@@ -33,7 +34,7 @@ const PAGES = [
   ["overview", "Overview", "overview", "Operate"], ["production", "Production", "factory", "Operate"],
   ["quality", "Quality & trace", "seal", "Operate"], ["vision", "Vision QC", "viewfinder", "Operate"], ["alarms", "Alarms", "bell", "Operate"], ["copilot", "Copilot", "copilot", "Operate"],
   ["health", "Health", "pulse", "Maintain"], ["maintenance", "Maintenance", "wrench", "Maintain"],
-  ["month", "Month", "calendar", "Analyse"], ["throughput", "Throughput", "gauge", "Analyse"], ["scheduler", "Learned scheduler", "shuffle", "Analyse"],
+  ["month", "Month", "calendar", "Analyse"], ["throughput", "Throughput", "gauge", "Analyse"], ["process", "Oven process", "zap", "Analyse"], ["scheduler", "Learned scheduler", "shuffle", "Analyse"],
   ["energy", "Energy & grid", "bolt", "Analyse"], ["carbon", "Carbon per cookie", "leaf", "Analyse"], ["security", "OT security", "shieldlock", "Analyse"],
   ["hardening", "Defence in depth", "layers", "Analyse"],
   ["engineering", "Engineering", "cog", "Engineer"], ["validation", "Validation", "checklist", "Engineer"], ["data", "Data", "database", "Engineer"],
@@ -209,6 +210,7 @@ export function Dashboard() {
           {view === "ai" && <AiPage />}
           {page === "energy" && <GridPage />}
           {page === "carbon" && <CarbonPage />}
+          {page === "process" && <ProcessPage />}
           {page === "scheduler" && <SchedulerPage />}
           {page === "copilot" && <CopilotPage go={(p) => setPage(p as View)} />}
           {page === "throughput" && <ThroughputPage />}

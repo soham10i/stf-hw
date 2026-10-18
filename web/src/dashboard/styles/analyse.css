@@ -99,3 +99,7 @@
 .sec-h4 { margin: 12px 0 6px; font-size: var(--fs-body); color: var(--muted); }
 .gr-four.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 1100px) { .gr-four.three { grid-template-columns: 1fr; } }
+
+/* the oven process page */
+.pr-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
+.pr-params { margin-top: 10px; } .pr-params summary { cursor: pointer; color: var(--accent); font-size: var(--fs-callout); }

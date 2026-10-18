@@ -2,73 +2,52 @@
 
 Dashboard group: Operate. Page id: `vision`.
 
-The inspection camera: its live view, and every cookie photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.
+The inspection camera on the process: its live view, and every cookie the 3D twin bakes, photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.
 
 ## In brief
 
-The inspection camera: its live view, and every cookie photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.
+The inspection camera on the process: its live view, and every cookie the 3D twin bakes, photographed, judged by the CNN and the autoencoder, and checked against the truth the simulation knows.
 
 ## How to read it
 
 1. Open the 3D twin in a window beside this page: its camera in the colour hood streams here live (never recorded), and the photo it takes of each cookie is judged here (and stored by the server).
-2. For each cookie: the photo, the CNN's answer and decision, and the autoencoder's error map (hot = not as a good cookie looks).
-3. The KPIs and the confusion matrix say how right the CNN is over the last 50 cookies; escapes are defects it let through.
-4. Change the conditions (ageing light, a warmer lamp, a worn belt) and watch the drift chart rise before the CNN's answers go wrong.
-5. Without the twin, a simulated line draws the images, with the defects and conditions set under 'The line'.
+2. For each cookie: the photo, what the models see, the autoencoder's error map (hot = not as a good cookie looks), the truth and the decision.
+3. One cookie in every 12 is damaged on purpose (QC testing, the Orders panel): each rack tests the inspection.
+4. The KPIs and the confusion matrix count the cookies inspected since the page opened; escapes are damaged cookies let through.
 
 ## Sections
 
 ### Inspection camera
 
-The twin camera's live view (not recorded); the latest cookie's photo, its autoencoder error map, truth, the CNN's answer and the line's decision; and a strip of recent cookies.
+The twin camera's live view (not recorded); the latest cookie's photo, what the models see, its autoencoder error map, truth, the CNN's answer and the decision; and a strip of recent cookies.
 
-### The line
+### The decision
 
-Run or pause, the conditions, the defect rate the simulation injects and the line's speed.
+The pass threshold, and what pass, reject and 'to a person' mean for the cookie.
 
-### Confusion (last 50)
+### Confusion
 
 Truth against the CNN's answer for each condition: everything off the diagonal is a mistake.
 
+### Ten photos from the process
+
+Ten cookies the camera photographed while the twin baked an order, the QC test's damaged one among them, with what the CNN decided.
+
 ### Drift
 
-The autoencoder's error on normal-looking cookies against its training baseline; above ×2 the line no longer looks like training.
+The autoencoder's error on normal-looking cookies against its training baseline; above ×2 the line no longer looks like what the models learnt.
 
 ### The camera
 
 Where it is mounted in the colour hood, its lens and trigger, and the mount's checks against the model.
 
-### Photos from the camera
+### Photos stored by the server
 
-Each baked cookie the 3D twin makes, photographed by this camera inside the hood as it passes the lens and kept by the server: the dataset for the vision models.
-
-### The models, tested offline
-
-The CNN and the autoencoder on held-out images like training and on unseen conditions.
-
-### When the drift alarm rings
-
-Every adaptation method on the changed line: right, good cookies rejected, defects passed, and whether the old line still works.
-
-### The pass threshold
-
-Each threshold as a point: defects passed against good cookies thrown out. Set it live with 'Pass threshold'.
-
-### How many labels are worth it
-
-Defects passed after tuning the final layers on a few labelled frames, against doing nothing and retraining.
-
-### The safeguard
-
-Once the alarm rings, what the autoencoder finds unusual goes to a person: fewer defects passed, more cookies checked by hand.
-
-### Experiment: label-free adaptation
-
-The same cookies classified twice, with and without online AdaBN. Switch it on under unseen conditions to watch it fail.
+Each cookie your own twin photographed, as the server keeps it.
 
 ## Where the numbers come from
 
-The camera mount (vision/mount.py), the CNN (vision/train.py) and the autoencoder (vision/autoencoder.py), run in the browser on images drawn by the renderer port.
+The camera mount (vision/mount.py), and the CNN and autoencoder run in the browser on the 3D twin's own photos.
 
 Every number is simulated from the twin's models, not measured on a real machine.
 

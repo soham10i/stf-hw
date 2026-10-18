@@ -88,6 +88,7 @@ DATA_TOOLS = {
     "carbon_per_cookie",
     "scheduler_benchmark",
     "vision_inspection",
+    "oven_process",
     "security_attacks",
     "live_state",
     "copilot_setup",

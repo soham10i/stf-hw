@@ -2,7 +2,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas opcua opcua-check uns uns-check mechanisms guide health-theory vision-live vision-adapt sched carbon copilot audit clean
+.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas opcua opcua-check uns uns-check mechanisms guide health-theory bake vision-live vision-adapt sched carbon copilot audit clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -115,11 +115,20 @@ carbon: ## Upgrade 18: grams of CO2e per cookie from the microgrid month, and th
 mechanisms: ## The mechanisms' 3D views (drag chain, lift spindle drive, RFID head) - needs FreeCAD
 	cd stf-cad/hbw && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd -c "import sys; p='$(CURDIR)/stf-cad/hbw/mechanisms_cad.py'; sys.argv=[p]; exec(compile(open(p).read(), p, 'exec'), {'__file__': p, '__name__': '__main__'})"
 
+bake: ## Upgrade 19: the bake as a process - oven, cookie, three ways to end a bake, capacity and energy (web/public/bake, docs/process)
+	cd stf-cad/hbw && STF_VARIANT=up12 PYTHONPATH=. ../../$(PY) bake.py
+
 health-theory: ## Docs page "Hardware degradation": the health model in closed form, checked against its simulation
 	cd stf-cad/hbw && STF_VARIANT=up12 PYTHONPATH=. ../../$(PY) health_theory.py
 
+model-check: ## the copilot's language models in fallback order (Gemini, Groq, UPB, local): one tiny question each, no keys printed
+	PYTHONPATH=packages $(PY) -m services.api.model_check
+
 voice-check: ## the voice pipeline with the real providers: ElevenLabs speaks a sentence, Scribe (and Groq Whisper) transcribe it back; no keys printed
 	PYTHONPATH=packages $(PY) -m services.api.voice_check
+
+db-seed: ## load the factory's data (month, energy, bakes, ten sample photos) into the API's database; RESET=1 first forgets every guest, chat and photo
+	PYTHONPATH=packages $(PY) -m services.api.db_seed $(if $(RESET),--reset,)
 
 db-check: ## the API's database (SQLite, or Supabase when configured): a round trip, no keys printed
 	PYTHONPATH=packages $(PY) -m services.api.db_check

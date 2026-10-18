@@ -1,25 +1,22 @@
-// Vision QC: the inspection camera. Every cookie the line makes is photographed (the camera in
-// the colour hood, vision/mount.py), classified by the CNN, scored by the autoencoder and
-// checked against what the simulation knows - is the model still right?
-// With the 3D twin open, this is the twin's own camera: its live view, streamed while this page
-// is open and never stored, and its photo of each cookie, judged here and stored by the API.
-// Without it, a simulated line draws the images (vision/render.ts).
-import { Dumbbell, Plot } from "./Plot";
-import { roll } from "./Month";
+// Vision QC: the inspection camera on the process. Every cookie the 3D twin bakes is
+// photographed by the camera in the colour hood (vision/mount.py), classified by the CNN, scored
+// by the autoencoder and checked against what the simulation knows - is the model right? The
+// live view is streamed while this page is open and never stored; each cookie's photo is judged
+// here and stored by the API. One cookie in every 12 is damaged on purpose (QC testing).
+// Ten sample photos from the process stay with the page (public/vision/samples): no training
+// or test images, no rendered or augmented ones.
+import { Plot } from "./Plot";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { loadJson, useJson } from "../shared/data";
 import { decodeAe, type Ae } from "../vision/ae";
 import { decode, type Cnn } from "../vision/cnn";
-import { LiveLine, SCENARIOS, drift, tally, type Frame, type Scenario } from "../vision/live";
+import { LiveLine, drift, tally, type Frame } from "../vision/live";
 import { prepare, useTwinCamera } from "../vision/twinCamera";
-import { chw, rgba, type RenderParams } from "../vision/render";
-import { OnlineBn, decodeAdapt, forwardBn, verdictOf, type AdaptNet, type Domain } from "../vision/adapt";
-import { HBar } from "./Plot";
+import { rgba, type RenderParams } from "../vision/render";
 import { HAS_API } from "../shared/mode";
 
 type Camera = { fov_mm: number; optics: { working_distance_mm: number; lens_angle_deg: number; trigger_delay_s: number; roi_mm: number };
                 checks: { check: string; ok: boolean; detail: string }[]; why_here: string };
-type CnnRes = { results: Record<"in_domain" | "shifted", { condition_acc: number; escape_rate: number; false_reject: number }> };
 const pct = (x: number, d = 0) => `${(100 * x).toFixed(d)} %`;
 const KEEP = 400;
 
@@ -55,121 +52,6 @@ function Pic({ img, N, scale, err, max }: { img: Float32Array; N: number; scale:
   return <canvas ref={ref} width={N} height={N} className="vq-pic" style={{ width: N * scale, height: N * scale }} />;
 }
 
-type Arm = { right: boolean; verdict: "pass" | "reject" | "check" };
-type AB = { n: number; truth: string; scenario: Scenario; src: Arm; ada: Arm; shift: number };
-
-/** Every frame classified twice: with the training statistics, and with statistics adapted
-    online from the frames themselves (AdaBN, no labels). */
-function useAdaptation(frames: Frame[], on: boolean, net: AdaptNet | null, epoch: number) {
-  const [ab, setAb] = useState<AB[]>([]);
-  const est = useRef<OnlineBn | null>(null);
-  const seen = useRef(0);
-  useEffect(() => { est.current = net ? new OnlineBn(net) : null; setAb([]); }, [net, epoch]);
-  useEffect(() => {
-    const f = frames[frames.length - 1];
-    if (!net || !est.current || !f || f.n <= seen.current) return;
-    seen.current = f.n;
-    const x = chw(f.img, net.size), ci = net.classes.condition;
-    const arm = (o: ReturnType<typeof forwardBn>): Arm => ({ right: ci[o.condition.indexOf(Math.max(...o.condition))] === f.truth, verdict: verdictOf(net, o.condition) });
-    const s = forwardBn(net, x, net.bn.map((b) => ({ mean: b.mean, var: b.var })));
-    const a = forwardBn(net, x, est.current.stats());
-    if (on) est.current.add(a.moments);                          // classify first, then learn from the frame
-    setAb((v) => [...v.slice(-(KEEP - 1)), { n: f.n, truth: f.truth, scenario: f.scenario, src: arm(s), ada: arm(on ? a : s), shift: est.current!.shift() }]);
-  }, [frames, net, on]);
-  return ab;
-}
-
-function rate(ab: AB[], k: "src" | "ada") {
-  const good = ab.filter((x) => x.truth === "ok");
-  return { right: ab.filter((x) => x[k].right).length / Math.max(1, ab.length), fr: good.filter((x) => x[k].verdict === "reject").length / Math.max(1, good.length) };
-}
-
-const MNAME: Record<string, string> = { deployed: "as deployed", source: "settled statistics", adabn: "AdaBN (no labels)", "adabn, balanced": "AdaBN, balanced (no labels)",
-  tent: "TENT (no labels)", "self-training": "self-training (no labels)", "few labels": "10 labels per condition", retrained: "retrained with new data" };
-const MCOL = (k: string) => (k === "deployed" ? "#9aa7b4" : k === "source" ? "#6c7884" : k === "retrained" ? "#b07ad6" : k === "few labels" ? "#4f8fd6" : "#e0a02a");
-
-function Adaptation({ ab, net, on, setOn, reset }: { ab: AB[]; net: AdaptNet; on: boolean; setOn: (v: boolean) => void; reset: () => void }) {
-  const W50 = ab.slice(-50), s = rate(W50, "src"), a = rate(W50, "ada");
-  const R = net.results, D: Domain = "new line, as delivered", OLD: Domain = "old line";
-  const keys = ["deployed", "source", "adabn", "adabn, balanced", "tent", "self-training", "few labels", "retrained"].filter((k) => R[k]);
-  const src = R.source[D], ret = R.retrained[D], dep = R.deployed[D], G = net.guard;
-  const chip = R.source["new line"].recall.chipped;
-  return (
-    <>
-      <section className="db-card wide"><h3>When the drift alarm rings: what actually helps</h3>
-        <div className="vq-find four">
-          <div><b>The deployed network fails safe.</b> On the new line it rejects {pct(dep.false_reject)} of good cookies but passes only {pct(dep.escape_rate)} of defects.
-            With its statistics settled it is perfect on the old line, yet passes {pct(src.escape_rate)} of defects here: it fails unsafe.</div>
-          <div><b>Adapting without labels hurts.</b> The line delivers {Math.round((1 - net.meta.defect_rate) * 100)} % good cookies; training was balanced.
-            Statistics re-estimated on the line absorb that change of mix, and good cookies get rejected.</div>
-          <div><b>The weak spot is one defect.</b> Only {pct(chip)} of chipped cookies are caught under the new conditions: blur and a lighter belt hide the edge.
-            Labelled chips fix it (retrained: {pct(R.retrained["new line"].recall.chipped)}); no label-free method can.</div>
-          <div><b>Until labels arrive: a safeguard.</b> What the autoencoder finds unusual goes to a person. Escapes {pct(G.source["CNN alone"].escapes, 1)} → {pct(G.source["CNN + autoencoder"].escapes, 1)}
-            {" "}for {pct(G.source["CNN + autoencoder"].good_to_person)} of good cookies checked by hand.</div>
-        </div>
-        <div className="gr-four">
-          <div><h4>new line, as delivered: right (%)</h4>
-            <HBar xTitle="" x1={100} fmt={(v) => `${v.toFixed(1)}`} refs={[{ v: dep.condition_acc * 100, label: "as deployed", color: "#9aa7b4" }]}
-              rows={keys.map((k) => ({ label: MNAME[k], v: R[k][D].condition_acc * 100, color: MCOL(k), on: k === "deployed", tip: net.meta.methods[k] }))} /></div>
-          <div><h4>good cookies thrown out (%)</h4>
-            <HBar xTitle="" fmt={(v) => `${v.toFixed(1)}`} rows={keys.map((k) => ({ label: MNAME[k], v: R[k][D].false_reject * 100, color: MCOL(k), on: k === "deployed" }))} /></div>
-          <div><h4>defects passed as good (%)</h4>
-            <HBar xTitle="" fmt={(v) => `${v.toFixed(1)}`} rows={keys.map((k) => ({ label: MNAME[k], v: R[k][D].escape_rate * 100, color: MCOL(k), on: k === "deployed" }))} /></div>
-          <div><h4>old line still right (%)</h4>
-            <HBar xTitle="" x1={100} fmt={(v) => `${v.toFixed(1)}`} rows={keys.map((k) => ({ label: MNAME[k], v: R[k][OLD].condition_acc * 100, color: MCOL(k), on: k === "deployed" }))} /></div>
-        </div>
-        <p className="hl-cap">Held-out rendered images of the changed line, in the mix the line delivers. Hover a method for what it does.</p>
-      </section>
-      <section className="db-card hl-span2"><h3>The pass threshold: escapes against false rejects</h3>
-        <Plot h={250} xTitle="good cookies thrown out (%)" yTitle="defects passed (%)" yMin={0} xMin={0} yFmt={(v) => v.toFixed(0)} xFmt={(v) => v.toFixed(0)}
-          series={(["deployed", "source", "retrained"] as const).map((k) => ({ name: MNAME[k], x: net.tradeoff[k].map((t) => t.false_rejects * 100), y: net.tradeoff[k].map((t) => t.escapes * 100),
-            color: MCOL(k), width: 2.4, fmt: (v: number) => `${v.toFixed(1)} %` }))}
-          tipTitle={(x) => { const t = net.tradeoff.source.reduce((p, q) => (Math.abs(q.false_rejects * 100 - x) < Math.abs(p.false_rejects * 100 - x) ? q : p)); return `pass if p(ok) ≥ ${t.p}`; }} />
-        <p className="hl-cap">Each point is a pass threshold from {net.tradeoff.source[0].p} to {net.tradeoff.source[net.tradeoff.source.length - 1].p}. Set it live above (“Pass threshold”). Retraining with new data moves the whole curve down.</p>
-      </section>
-      <section className="db-card"><h3>How many labels are worth it</h3>
-        <Plot h={250} xTitle="labelled frames of the new line" yTitle="defects passed (%)" yMin={0} yFmt={(v) => v.toFixed(0)}
-          series={[{ name: "final layers tuned", x: net.curve.map((c) => c.labels), y: net.curve.map((c) => c[D].escape_rate * 100), color: "#4f8fd6", width: 2.6, fmt: (v) => `${v.toFixed(1)} %` }]}
-          hlines={[{ y: src.escape_rate * 100, color: "#6c7884", label: "settled, no labels" }, { y: ret.escape_rate * 100, color: "#b07ad6", label: "retrained" }]}
-          tipExtra={(x) => { const c = net.curve.find((q) => q.labels === x); return c ? [["right", pct(c[D].condition_acc, 1)], ["false rejects", pct(c[D].false_reject, 1)], ["old line right", pct(c[OLD].condition_acc, 1)]] : []; }} legend={false} />
-        <p className="hl-cap">Tuning only the final layers is safe for the old line, but a few labels cannot teach the feature extractor to see a blurred chip.</p>
-      </section>
-      <section className="db-card wide"><h3>The safeguard: unusual cookies to a person once the alarm rings</h3>
-        {(() => {
-          const rows = (["deployed", "source"] as const).flatMap((k) => (["CNN alone", "CNN + autoencoder"] as const).map((r) => ({ k, r, g: G[k][r] })));
-          const chart = (title: string, get: (g: (typeof rows)[0]["g"]) => number, col: string) => (
-            <div><h4>{title}</h4>
-              <HBar xTitle="" fmt={(v) => `${v.toFixed(1)}`} rows={rows.map(({ k, r, g }) => ({ label: `${MNAME[k]} · ${r === "CNN alone" ? "alone" : "+ autoencoder"}`, v: get(g) * 100, color: col, on: r !== "CNN alone" }))} /></div>);
-          return <div className="gr-four three">
-            {chart("defects passed (% of defects)", (g) => g.escapes, "var(--bad)")}
-            {chart("checked by a person (% of all cookies)", (g) => g.to_person, "var(--warn)")}
-            {chart("good cookies rejected (% of good)", (g) => g.false_rejects, "#6c7884")}
-          </div>;
-        })()}
-        <p className="hl-cap">New line, as delivered. The person sees a share of all cookies (amber) and decides; the autoencoder never saw a defect, so this needs no labels.</p>
-      </section>
-      <section className="db-card wide">
-        <h3>Experiment: label-free adaptation, live
-          <div className="ui-seg db-mini-seg"><button className={on ? "on" : ""} onClick={() => setOn(true)}>on</button><button className={!on ? "on" : ""} onClick={() => setOn(false)}>off</button></div>
-          <button className="ui-btn" onClick={reset}>Reset</button></h3>
-        <div className="vq-ab">
-          <div><span>settled network</span><b>{pct(s.right)}</b><em>right · false rejects {pct(s.fr)}</em></div>
-          <div className={on ? "on" : ""}><span>adapted online (AdaBN)</span><b>{on ? pct(a.right) : "off"}</b><em>{on ? `right · false rejects ${pct(a.fr)}` : "switch on to try it"}</em></div>
-          <div><span>statistics moved</span><b>{ab.length ? ab[ab.length - 1].shift.toFixed(2) : "–"}</b><em>first layer, training σ units</em></div>
-        </div>
-        {ab.length > 2 && (
-          <Plot h={210} xTitle="cookie number" yTitle="right, 30-cookie mean (%)" yMin={0} yMax={100} yFmt={(v) => `${Math.round(v)}`}
-            series={[{ name: "settled network", x: ab.map((x) => x.n), y: roll(ab.map((x) => (x.src.right ? 100 : 0)), 30), color: "#6c7884", width: 2.2, fmt: (v) => `${v.toFixed(0)} %` },
-                     ...(on ? [{ name: "adapted online", x: ab.map((x) => x.n), y: roll(ab.map((x) => (x.ada.right ? 100 : 0)), 30), color: "#e0a02a", width: 2.4, fmt: (v: number) => `${v.toFixed(0)} %` }] : [])]}
-            vmarks={ab.filter((x, i) => i > 0 && x.scenario !== ab[i - 1].scenario).map((x) => ({ x: x.n, color: "var(--muted)", label: SCENARIOS[x.scenario].label }))}
-            tipTitle={(x) => `cookie #${Math.round(x)}`} />
-        )}
-        <p className="hl-cap">The same cookies, classified twice; the adapted network re-estimates its statistics cookie by cookie, without labels. Switch it on and watch it reject good cookies: the line's mix is not the training mix. Kept as a demonstration, not deployed.</p>
-      </section>
-    </>
-  );
-}
-
 const BASE = import.meta.env.BASE_URL;
 
 /** The twin camera's live view: the latest frame, drawn as it comes and then dropped. */
@@ -200,43 +82,20 @@ function LiveView({ frame, fps }: { frame: { bmp: ImageBitmap; lit: boolean } | 
 export function VisionPage() {
   const { m, err } = useModels();
   const { data: cam } = useJson<Camera>("vision/camera.json");
-  const { data: cnnRes } = useJson<CnnRes>("vision/results.json");
-  const { data: adaptRaw } = useJson<unknown>("vision/adapt.json");
-  const adaptNet = useMemo(() => (adaptRaw ? decodeAdapt(adaptRaw) : null), [adaptRaw]);
-  const [adaptOn, setAdaptOn] = useState(false);
   const [passP, setPassP] = useState(0.5);
-  const [adaptEpoch, setAdaptEpoch] = useState(0);
-  const [run, setRun] = useState(true);
-  const [rate, setRate] = useState(40);            // cookies per minute
-  const [defect, setDefect] = useState(0.1);
-  const [scenario, setScenario] = useState<Scenario>("hood");
-  const [age, setAge] = useState(0.5);
   const [frames, setFrames] = useState<Frame[]>([]);
   const [twinAt, setTwinAt] = useState(0);
   const line = useMemo(() => (m ? new LiveLine(m.P, m.cnn, m.ae) : null), [m]);
-  const opts = useRef({ scenario, defect, age, passP });
-  opts.current = { scenario, defect, age, passP };
+  const opts = useRef({ passP });
+  opts.current = { passP };
   const push = (f: Frame) => setFrames((fs) => {
     // the photos held for display go with their frames
     fs.slice(0, Math.max(0, fs.length - (KEEP - 1))).forEach((o) => o.photo && URL.revokeObjectURL(o.photo));
     return [...fs.slice(-(KEEP - 1)), f];
   });
-
-  // the simulated line: a cookie every 60/rate s, flavours in turn - paused while the twin feeds us
-  useEffect(() => {
-    if (!line || !run) return;
-    let k = 0;
-    const id = window.setInterval(() => {
-      if (Date.now() - twinAt < 30000) return;
-      push(line.capture(m!.P.flavours[k++ % m!.P.flavours.length], { ...opts.current, source: "line" }));
-    }, 60000 / rate);
-    return () => window.clearInterval(id);
-  }, [line, run, rate, twinAt, m]);
   // the 3D twin's camera: its live view, and its photo of each cookie, judged by the models
-  const runRef = useRef(run);
-  runRef.current = run;
   const { frame: liveFrame, fps } = useTwinCamera((p) => {
-    if (!line || !m || !runRef.current) return;
+    if (!line || !m) return;
     setTwinAt(Date.now());
     prepare(p, m.P.N, m.P.REF)
       .then(({ img }) => push({ ...line.inspect(img, p.flavour, opts.current.passP, p.truth ?? "ok"), photo: URL.createObjectURL(p.jpeg) }))
@@ -244,33 +103,32 @@ export function VisionPage() {
   });
   useEffect(() => { if (liveFrame) setTwinAt(Date.now()); }, [liveFrame]);
 
-  const ab = useAdaptation(frames, adaptOn, adaptNet, adaptEpoch);
   if (err) return <div className="db-err">{err}</div>;
   if (!m) return <div className="db-err">loading the camera's models…</div>;
   const N = m.P.N;
   const last = frames[frames.length - 1];
-  const window50 = frames.slice(-50);
-  const T = tally(window50, m.P.conditions), all = tally(frames, m.P.conditions);
+  const all = tally(frames, m.P.conditions);
   const dr = drift(frames, m.ae);
   const twin = Date.now() - twinAt < 30000;
   const verdictCls = (f: Frame) => (f.truth !== "ok" && f.pred.verdict === "pass" ? "escape"
     : f.truth === "ok" && f.pred.verdict === "reject" ? "false" : f.pred.verdict === "check" ? "check" : "right");
   const errMax = m.ae.threshold * 3;
+  const none = frames.length === 0;
 
   return (
     <>
       <div className="db-kpis">
-        <div className="db-kpi"><span>inspected</span><b>{all.n}</b><em>{twin ? "the 3D twin's cookies" : "simulated line"} · {SCENARIOS[scenario].label}</em></div>
-        <div className={`db-kpi ${T.accuracy < 0.9 ? "warn" : "ok"}`}><span>CNN right (last 50)</span><b>{pct(T.accuracy)}</b><em>condition · flavour {pct(T.flavourAcc)}</em></div>
-        <div className={`db-kpi ${T.escape > 0.05 ? "fail" : "ok"}`}><span>escapes</span><b>{pct(T.escape)}</b><em>defects passed as good (last 50)</em></div>
-        <div className={`db-kpi ${T.falseReject > 0.1 ? "warn" : "ok"}`}><span>false rejects</span><b>{pct(T.falseReject)}</b><em>good cookies thrown out (last 50)</em></div>
-        <div className={`db-kpi ${dr > 2 ? "fail" : dr > 1.5 ? "warn" : "ok"}`}><span>drift</span><b>×{dr.toFixed(2)}</b><em>{dr > 2 ? "the line has changed: retrain" : "autoencoder error vs training"}</em></div>
+        <div className="db-kpi"><span>inspected</span><b>{all.n}</b><em>{twin ? "the 3D twin's cookies, live" : "open the 3D twin to start"}</em></div>
+        <div className={`db-kpi ${!none && all.accuracy < 0.9 ? "warn" : "ok"}`}><span>CNN right</span><b>{none ? "–" : pct(all.accuracy)}</b><em>condition · flavour {none ? "–" : pct(all.flavourAcc)}</em></div>
+        <div className={`db-kpi ${all.escape > 0.05 ? "fail" : "ok"}`}><span>escapes</span><b>{none ? "–" : pct(all.escape)}</b><em>damaged cookies passed as good</em></div>
+        <div className={`db-kpi ${all.falseReject > 0.1 ? "warn" : "ok"}`}><span>false rejects</span><b>{none ? "–" : pct(all.falseReject)}</b><em>good cookies thrown out</em></div>
+        <div className={`db-kpi ${dr > 2 ? "fail" : dr > 1.5 ? "warn" : "ok"}`}><span>drift</span><b>{none ? "–" : `×${dr.toFixed(2)}`}</b><em>{dr > 2 ? "the line has changed: retrain" : "autoencoder error vs training"}</em></div>
       </div>
 
       <div className="db-grid">
         <section className="db-card wide vq-live">
           <h3>Inspection camera
-            {twin ? <span className="vq-src twin"><i />3D twin's camera</span> : <span className="vq-src">simulated line</span>}
+            {twin ? <span className="vq-src twin"><i />3D twin's camera</span> : <span className="vq-src">waiting for the twin</span>}
             <em className="vq-count">{last ? `cookie #${last.n}` : "waiting for a cookie"}</em></h3>
           <div className="vq-cam">
             <LiveView frame={liveFrame} fps={fps} />
@@ -279,22 +137,19 @@ export function VisionPage() {
                 <figure>
                   {last.photo ? <img className="vq-photo" src={last.photo} alt={`Photo of cookie #${last.n}, ${last.flavour}`} width={N * 3} height={N * 3} />
                     : <Pic img={last.img} N={N} scale={3} />}
-                  <figcaption>{last.photo ? "photo · stored" : "drawn image"} · {cam ? `${cam.fov_mm.toFixed(0)} mm field` : ""}</figcaption>
+                  <figcaption>photo · stored · {cam ? `${cam.fov_mm.toFixed(0)} mm field` : ""}</figcaption>
                 </figure>
-                {last.photo && (
-                  <figure><Pic img={last.img} N={N} scale={3} /><figcaption title="The cookie found against the empty hood; everything else set to the belt's colour, as in the training images">as the models see it</figcaption></figure>
-                )}
+                <figure><Pic img={last.img} N={N} scale={3} /><figcaption title="The cookie found against the empty hood; everything else set to the belt's colour">as the models see it</figcaption></figure>
                 <figure><Pic img={last.img} N={N} scale={3} err={last.ae.err} max={errMax} /><figcaption>autoencoder error</figcaption></figure>
                 <dl className="vq-facts">
-                  <div><dt>truth (simulation)</dt><dd>{last.flavour} · <b>{last.truth}</b>{last.source === "twin" ? (last.truth === "ok" ? " (baked right)" : " (fault injected in the twin)") : ""}</dd></div>
+                  <div><dt>truth (simulation)</dt><dd>{last.flavour} · <b>{last.truth}</b>{last.truth === "ok" ? " (baked right)" : " (damaged for QC testing)"}</dd></div>
                   <div><dt>CNN</dt><dd>{last.pred.flavour} · <b>{last.pred.condition}</b> ({pct(last.pred.pc)})</dd></div>
                   <div><dt>decision</dt><dd className={`vq-v ${last.pred.verdict}`}>{last.pred.verdict === "pass" ? "pass" : last.pred.verdict === "reject" ? "reject" : "to a person"}
                     <span className={`vq-tag ${verdictCls(last)}`}>{{ right: "right", escape: "ESCAPE", false: "false reject", check: "unsure" }[verdictCls(last)]}</span></dd></div>
                   <div><dt>autoencoder</dt><dd>{last.ae.anomaly ? <b className="vq-bad">unusual</b> : "looks normal"} · score {(last.ae.score / m.ae.threshold).toFixed(2)}× threshold</dd></div>
-                  <div><dt>source</dt><dd>{last.source === "twin" ? "the 3D twin's camera, as the cookie passed the lens" : "the simulated line"}</dd></div>
                 </dl>
               </div>
-            ) : <p className="db-muted">The first cookie reaches the camera in a moment.</p>}
+            ) : <p className="db-muted">No cookie yet: place an order in the 3D twin, and each cookie is photographed as it passes under the lens.</p>}
           </div>
           <div className="vq-strip">
             {frames.slice(-14).reverse().map((f) => (
@@ -306,40 +161,32 @@ export function VisionPage() {
         </section>
 
         <section className="db-card">
-          <h3>The line</h3>
-          <div className="vq-ctl">
-            <button className="ui-btn" onClick={() => setRun(!run)}>{run ? "Pause" : "Run"}</button>
-            <button className="ui-btn ghost" onClick={() => setFrames([])}>Reset</button>
-          </div>
-          <label className="vq-row"><span>Conditions</span>
-            <select className="ui-select" value={scenario} onChange={(e) => setScenario(e.target.value as Scenario)}>
-              {Object.entries(SCENARIOS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-            </select></label>
-          <p className="db-muted small">{SCENARIOS[scenario].say}</p>
-          {scenario === "lamp" && (
-            <label className="vq-row"><span>Light's age</span><input type="range" min={0} max={1} step={0.05} value={age} onChange={(e) => setAge(+e.target.value)} /><b>{pct(age)}</b></label>
-          )}
-          <label className="vq-row"><span>Defect rate</span><input type="range" min={0} max={0.4} step={0.01} value={defect} onChange={(e) => setDefect(+e.target.value)} /><b>{pct(defect)}</b></label>
-          <label className="vq-row" title="A cookie passes only if the CNN gives 'ok' at least this probability. Higher: fewer defects escape, more good cookies are thrown out."><span>Pass threshold</span><input type="range" min={0.5} max={0.99} step={0.01} value={passP} onChange={(e) => setPassP(+e.target.value)} /><b>{passP.toFixed(2)}</b></label>
-          <label className="vq-row"><span>Cookies per minute</span><input type="range" min={6} max={120} step={2} value={rate} onChange={(e) => setRate(+e.target.value)} /><b>{rate}</b></label>
-          <p className="db-muted small">{twin ? "The 3D twin's camera is streaming: its cookies are judged here as it photographs them, and the simulated line waits."
-            : "Open the 3D twin beside this page and its camera takes over: its live view, and its photo of each cookie it bakes."}</p>
+          <h3>The decision</h3>
+          <label className="vq-row" title="A cookie passes only if the CNN gives 'ok' at least this probability. Higher: fewer damaged cookies pass, more good ones are thrown out."><span>Pass threshold</span><input type="range" min={0.5} max={0.99} step={0.01} value={passP} onChange={(e) => setPassP(+e.target.value)} /><b>{passP.toFixed(2)}</b></label>
+          <ul className="ai-verdict">
+            <li><b>Pass</b>: the CNN says <i>ok</i> with at least this probability: the cookie goes to its Lagerstelle.</li>
+            <li><b>Reject</b>: it does not: the cookie is held at the end of the line and the order makes it again.</li>
+            <li><b>To a person</b>: no condition is sure enough (below 0.6).</li>
+          </ul>
+          <p className="db-muted small">QC testing: in every 12 cookies the twin bakes, one drawn at random is burnt, underbaked or cracked (Orders panel), so every rack tests the inspection.</p>
         </section>
 
         <section className="db-card">
-          <h3>Confusion (last 50)</h3>
+          <h3>Confusion</h3>
           <table className="db-table vq-cm">
             <thead><tr><td>truth ↓ / CNN →</td>{m.P.conditions.map((c) => <td key={c} className="num">{c.slice(0, 5)}</td>)}</tr></thead>
             <tbody>{m.P.conditions.map((c, i) => (
-              <tr key={c}><td>{c}</td>{T.cm[i].map((v, j) => {
-                const top = Math.max(1, ...T.cm.flat());
+              <tr key={c}><td>{c}</td>{all.cm[i].map((v, j) => {
+                const top = Math.max(1, ...all.cm.flat());
                 return <td key={j} className={`num ${v ? (i === j ? "ok" : "fail") : "vq-zero"}`}
                   style={v ? { background: `color-mix(in srgb, ${i === j ? "var(--ok)" : "var(--bad)"} ${Math.round(12 + 50 * v / top)}%, transparent)` } : undefined}>{v}</td>;
               })}</tr>
             ))}</tbody>
           </table>
-          <p className="db-muted small">Diagonal = right. {T.toPerson > 0 ? `${pct(T.toPerson)} sent to a person (unsure).` : ""}</p>
+          <p className="db-muted small">The cookies inspected since this page opened. Diagonal = right. {all.toPerson > 0 ? `${pct(all.toPerson)} sent to a person (unsure).` : ""}</p>
         </section>
+
+        <Samples />
 
         <section className="db-card wide">
           <h3>Drift: the autoencoder's error on normal-looking cookies</h3>
@@ -354,10 +201,9 @@ export function VisionPage() {
               hlines={[{ y: 1, color: "var(--muted)", label: "training" }, { y: 2, color: "var(--bad)", label: "drift alarm" }]}
               tipTitle={(x) => `cookie #${Math.round(x)}`} />;
           })()}
-          <p className="hl-cap">Switch the conditions above: the line rises past ×2 before the CNN's answers go wrong — the cue to collect images and retrain. Autoencoder here: caught {pct(all.aeDetect)} of defects, {pct(all.aeFalse)} false alarms.</p>
+          <p className="hl-cap">A rise past ×2 means the line no longer looks like what the models learnt (light, belt, dough): the cue to collect photos from the line and retrain. Autoencoder on the process so far: caught {pct(all.aeDetect)} of damaged cookies, {pct(all.aeFalse)} false alarms.</p>
         </section>
 
-        {adaptNet && <Adaptation ab={ab} net={adaptNet} on={adaptOn} setOn={setAdaptOn} reset={() => setAdaptEpoch((e) => e + 1)} />}
         <section className="db-card">
           <h3>The camera</h3>
           {cam && (
@@ -372,21 +218,38 @@ export function VisionPage() {
         </section>
 
         <Photos />
-
-        <section className="db-card">
-          <h3>The models, tested offline</h3>
-          <Dumbbell xTitle="trained-like conditions vs unseen ones" a={{ name: "trained-like", color: "var(--ok)" }} b={{ name: "unseen", color: "var(--bad)" }}
-            fmt={(v) => `${Math.round(v * 100)}`}
-            rows={[...(cnnRes ? [{ label: "CNN right (%)", a: cnnRes.results.in_domain.condition_acc, b: cnnRes.results.shifted.condition_acc },
-                                 { label: "CNN false rejects (%)", a: cnnRes.results.in_domain.false_reject, b: cnnRes.results.shifted.false_reject }] : []),
-                   { label: "autoencoder AUROC (×100)", a: m.ae.meta.results.in_domain.auroc, b: m.ae.meta.results.shifted.auroc },
-                   { label: "autoencoder false alarms (%)", a: m.ae.meta.results.in_domain.false_alarm, b: m.ae.meta.results.shifted.false_alarm }]} />
-          <p className="hl-cap">Under unseen light the CNN's false rejects jump; the autoencoder's good-cookie error rises ×{m.ae.meta.drift_ratio.toFixed(1)} — the drift signal.</p>
-          <p className="db-muted small">The CNN was taught five conditions; the autoencoder only ever saw good cookies and needs no labels. Both are trained
-            on rendered images: this shows the method, not the accuracy on a real camera.</p>
-        </section>
       </div>
     </>
+  );
+}
+
+type Sample = { file: string; n: number; flavour: string; truth: string; condition: string; verdict: string; unusual: boolean };
+
+/** Ten photos the camera took of the 3D twin's cookies in the process, with what the models
+    decided: the page's examples, kept with it (public/vision/samples). */
+function Samples() {
+  const { data } = useJson<{ taken: string; samples: Sample[] }>("vision/samples/samples.json");
+  if (!data) return null;
+  return (
+    <section className="db-card wide">
+      <h3>Ten photos from the process</h3>
+      <div className="vq-samples">
+        {data.samples.map((s) => {
+          const right = (s.truth === "ok") === (s.verdict === "pass");
+          return (
+            <figure key={s.file} className={right ? "right" : "wrong"}>
+              <img src={`${BASE}vision/samples/${s.file}`} alt={`${s.flavour} cookie, ${s.truth}`} width={96} height={96} loading="lazy" />
+              <figcaption>
+                <b>{s.flavour}</b>
+                <span className={s.truth === "ok" ? "" : "vq-bad"}>{s.truth === "ok" ? "good" : s.truth}</span>
+                <em className={`vq-v ${s.verdict}`}>CNN {s.condition} → {s.verdict === "pass" ? "pass" : s.verdict === "reject" ? "reject" : "to a person"}</em>
+              </figcaption>
+            </figure>
+          );
+        })}
+      </div>
+      <p className="db-muted small">Taken by the camera in the colour hood as the 3D twin baked an order ({data.taken}); the damaged one is QC testing's. Each shows the truth and what the CNN decided.</p>
+    </section>
   );
 }
 
@@ -407,7 +270,7 @@ function Photos() {
   const when = (t: number) => new Date(t * 1000).toLocaleString([], { dateStyle: "short", timeStyle: "short" });
   return (
     <section className="db-card">
-      <h3>Photos from the camera</h3>
+      <h3>Photos stored by the server</h3>
       {!HAS_API ? (
         <p className="db-muted small">The camera photographs every baked cookie in the 3D twin; storing the photos needs the live server.</p>
       ) : !d ? (

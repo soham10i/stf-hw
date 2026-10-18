@@ -105,6 +105,36 @@ The blueprint (`render.yaml`) sets the guest settings for the `stf-live` service
 The static `stf-twin` site has no server: everything runs in the visitor's browser, so there is
 nothing to share between visitors.
 
+## The factory's data
+
+The database also holds what the dashboard shows and what each guest's 3D twin does
+(`supabase/migrations/20261018030000_stf_factory_data.sql`; the same tables in SQLite for a local run,
+`services/api/factory_db.py`). Only the API server reaches them.
+
+| Table | Rows | From |
+|---|---|---|
+| `orders` | one per 12-cookie order: time, shift, duration, cookies baked, good, scrap, the QC test's fault, the hall's temperature | the simulated month (`month/orders.csv`), and each order line a guest's twin finishes (`source = twin`, `owner` = the guest) |
+| `events` | faults, warnings, work orders, maintenance, failures | the month (`month/events.csv`) |
+| `sensor_readings` | every wear part's signal, smoothed signal, health index and remaining life, per order | the month (`month/sensors.csv`), Upgrade 6 |
+| `signals` | the hall, the colour sensor's three readings, the crane's current, the compressor's duty, per order | the month (`month/raw.csv`) |
+| `daily_kpis` | the month day by day: orders, cookies, stops, availability, performance, quality, OEE | the month (`month/daily.csv`) |
+| `energy_15min` | load, PV, grid, battery, state of charge, price and carbon, every 15 min | the microgrid month (`grid/grid_15min.csv`), Upgrade 9 |
+| `bakes` | one shift's cookies for each way of ending a bake: dough, bake time, colour, water, verdict | the bake process (`bake/process.json`), Upgrade 19 |
+| `inspections` | the camera's decisions: truth, the CNN's condition, the verdict, the autoencoder | the ten sample photos (`source = sample`), and every cookie a guest's twin photographs (`source = twin`) |
+
+**QC testing.** In every 12 cookies one is damaged on purpose (burnt, underbaked or cracked), in the twin
+and in the month alike: the camera rejects it and the cell bakes it again. So every order in `orders`
+has a `qc_fault`, bakes one cookie more than it delivers, and the month's quality is 90 %.
+
+**Loading it.** `make db-seed` empties the factory tables and loads them from the files the dashboard
+reads, then stores the ten sample photos (their records in `captures`, the JPEGs in the bucket) with
+their decisions in `inspections`. `make db-seed RESET=1` first forgets every guest, conversation and
+photo. Run it again whenever the simulations change, and the database matches the dashboard again.
+
+**The twin.** `POST /twin/inspection` (each judged cookie) and `POST /twin/order` (each finished
+order line) store the guest's own rows; `GET /twin/records` returns them. The twin sends them as it
+runs (`web/src/shared/records.ts`); the public demo, with no API, sends nothing.
+
 ## When sign-in arrives
 
 A signed-in user replaces the guest as the owner. `guests.current()` is the one place the API asks

@@ -286,3 +286,31 @@ def test_gpt_oss_citation_marks_become_the_copilots():
     assert C.tidy("HI = 52 【Maintenance > Health index】 and 【4†L56-L59】.") == (
         "HI = 52 [Maintenance > Health index] and ."
     )
+
+
+def test_a_question_about_the_bake_reaches_the_oven_model():
+    called = [
+        n for n, _ in T.route("how long does a cookie bake, and how many come out right?", T.Ctx())
+    ]
+    assert "oven_process" in called
+    r = T.call("oven_process", {}, T.Ctx())
+    if "not available" in r.text:
+        pytest.skip("make bake has not been run")
+    assert "cookies an hour" in r.text and r.link == {"page": "process", "label": "Oven process"}
+    assert any(k.startswith("right first time") for k, _ in r.facts)
+    assert O.decide("how long does a cookie bake?", called).mode == "twin"
+
+
+def test_the_fallback_order_and_a_resting_provider():
+    chat = C.Chat(
+        sec.Settings.from_env(),
+        C.ChatSettings(key="g", model="m", daily_limit=9, groq_key="q", upb_key="u"),
+    )
+    chat.c.ollama_model = "local"
+    assert chat._provider(None) == ["gemini", "groq", "upb", "ollama"]
+    assert chat._provider("upb") == ["upb", "gemini", "groq", "ollama"]
+    assert chat._provider("local") == ["ollama", "gemini", "groq", "upb"]
+    import time as _t
+
+    chat.out["gemini"] = _t.time() + 60  # at its limit: tried last, not first
+    assert chat._provider(None) == ["groq", "upb", "ollama", "gemini"]

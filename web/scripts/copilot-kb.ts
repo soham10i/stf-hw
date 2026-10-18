@@ -35,7 +35,7 @@ const cells = (row: string) => row.trim().replace(/^\||\|$/g, "").split(/(?<!\\)
 const SKIP = new Set(["DASHBOARD_GUIDE.md", "README.md"]);
 const md = (dir: string, keepReadme = false) =>
   readdirSync(join(docs, dir)).filter((x) => x.endsWith(".md") && (keepReadme || !SKIP.has(x))).sort().map((f) => join(docs, dir, f));
-const files = [...md(""), ...md("plc", true), ...md("vision", true), ...md("maintenance", true), ...md("copilot", true), ...md("assistant")];
+const files = [...md(""), ...md("plc", true), ...md("vision", true), ...md("maintenance", true), ...md("copilot", true), ...md("process", true), ...md("assistant")];
 const repo = join(docs, "..");
 const copyTo = dirname(out);
 
@@ -43,7 +43,7 @@ for (const file of files) {
   const src = readFileSync(file, "utf8");
   const rel = relative(repo, file);
   const title = /^#\s+(.+)$/m.exec(src)?.[1];
-  const doc = (file.includes("/assistant/") || file.includes("/plc/") || file.includes("/vision/") || file.includes("/maintenance/") || file.includes("/copilot/")) && title ? plain(title) : file.split("/").pop()!.replace(/\.md$/, "");
+  const doc = (file.includes("/assistant/") || file.includes("/plc/") || file.includes("/vision/") || file.includes("/maintenance/") || file.includes("/copilot/") || file.includes("/process/")) && title ? plain(title) : file.split("/").pop()!.replace(/\.md$/, "");
   const path: string[] = [];
   let anchor = "", startLine = 1;
   let buf: { line: number; text: string }[] = [];

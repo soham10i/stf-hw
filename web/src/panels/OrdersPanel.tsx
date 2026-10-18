@@ -129,6 +129,10 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
         <div className="ord-head"><h3>Quality inspection</h3>
           <span className="ord-total">{ins.passed} passed · {ins.rejected} rejected</span></div>
         <p className="ord-hint">The camera in the colour hood photographs every cookie; the CNN decides, and the sorting line acts on it - a cookie that does not pass is not ejected to its Lagerstelle but held at the end of the line, and the order makes it again.</p>
+        <label className="ord-auto">
+          <input type="checkbox" checked={ins.auto} onChange={(e) => store.autoDefects(e.target.checked)} />
+          <span><b>QC testing</b>: one cookie in every 12, drawn at random, gets a random fault</span>
+        </label>
         <div className="ord-label">Next cookie</div>
         <div className="ui-seg ord-defects" role="radiogroup" aria-label="Fault for the next cookie">
           {([null, ...DEFECTS] as (Defect | null)[]).map((d) => (
