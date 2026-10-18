@@ -40,19 +40,25 @@ import urllib.request
 from typing import Any
 
 from . import security as sec
+from .logging_config import get_logger
 from .store import ROOT
+
+logger = get_logger(__name__)
 
 COOKIE = "stf_guest"
 ID_HEX = 32
 TIMEOUT_S = 10
-#: last_seen is written at most this often per guest (a page load makes many requests)
 TOUCH_EVERY_S = 300
 
 _current: contextvars.ContextVar[str | None] = contextvars.ContextVar("stf_guest", default=None)
 
 
 def current() -> str | None:
-    """The guest of the request being served, if any."""
+    """Return the guest ID associated with the current asynchronous request context.
+
+    Returns:
+        str | None: 32-character hexadecimal guest ID, or None if no guest is bound.
+    """
     return _current.get()
 
 
@@ -62,9 +68,21 @@ def _valid_id(s: str) -> bool:
 
 # ----------------------------------------------------------------------------- the databases
 class SqliteDb:
+    """SQLite-backed database adapter for guest sessions and copilot documents.
+
+    Attributes:
+        name: Backend identifier string ('sqlite').
+        path: Filesystem path to the SQLite database file.
+    """
+
     name = "sqlite"
 
     def __init__(self, path: str) -> None:
+        """Initialize SQLite database, enabling WAL journal mode and creating tables.
+
+        Args:
+            path: Target database file path.
+        """
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         self.path = path
         self._lock = threading.Lock()
@@ -81,49 +99,75 @@ class SqliteDb:
             CREATE INDEX IF NOT EXISTS documents_owner ON documents (col, owner, t DESC);
             """
         )
+        logger.debug("Initialized SqliteDb at '%s'", path)
 
     def _q(self, sql: str, args: tuple = ()) -> list[tuple]:
-        with self._lock:
-            return self._db.execute(sql, args).fetchall()
+        """Execute a SQL query inside a thread-safe lock.
+
+        Args:
+            sql: Query string.
+            args: Query parameter tuple.
+
+        Returns:
+            list[tuple]: Query result rows.
+
+        Raises:
+            sqlite3.Error: If query execution fails.
+        """
+        try:
+            with self._lock:
+                return self._db.execute(sql, args).fetchall()
+        except sqlite3.Error as e:
+            logger.error("SqliteDb query failed: %s with args %s: %s", sql, args, e)
+            raise
 
     # guests
     def guest(self, id: str) -> dict | None:
+        """Fetch guest metadata record by ID."""
         r = self._q("SELECT id, created, last_seen, visits FROM guests WHERE id = ?", (id,))
         return dict(zip(("id", "created", "last_seen", "visits"), r[0], strict=True)) if r else None
 
     def add_guest(self, id: str, now: float) -> None:
+        """Insert a newly issued guest record."""
         self._q("INSERT OR IGNORE INTO guests VALUES (?, ?, ?, 1)", (id, now, now))
 
     def touch(self, id: str, now: float) -> None:
+        """Update a returning guest's last_seen timestamp and increment visit counter."""
         self._q("UPDATE guests SET last_seen = ?, visits = visits + 1 WHERE id = ?", (now, id))
 
     def forget(self, id: str) -> None:
+        """Delete a guest's record and all associated documents."""
         self._q("DELETE FROM documents WHERE owner = ?", (id,))
         self._q("DELETE FROM guests WHERE id = ?", (id,))
 
     def lapse(self, before: float) -> int:
+        """Purge inactive guests not seen since before timestamp."""
         old = [r[0] for r in self._q("SELECT id FROM guests WHERE last_seen < ?", (before,))]
         for g in old:
             self.forget(g)
         return len(old)
 
     def guests(self) -> int:
+        """Return the total count of registered guests."""
         return self._q("SELECT COUNT(*) FROM guests")[0][0]
 
     # documents (store.DocStore)
     def get(self, col: str, owner: str, id: str) -> dict | None:
+        """Retrieve a stored JSON document."""
         r = self._q(
             "SELECT doc FROM documents WHERE col = ? AND owner = ? AND id = ?", (col, owner, id)
         )
         return json.loads(r[0][0]) if r else None
 
     def put(self, col: str, owner: str, id: str, doc: dict) -> None:
+        """Persist or replace a document record."""
         self._q(
             "INSERT OR REPLACE INTO documents VALUES (?, ?, ?, ?, ?)",
             (col, owner, id, json.dumps(doc, ensure_ascii=False), time.time()),
         )
 
     def delete(self, col: str, owner: str, id: str) -> bool:
+        """Delete a single document record."""
         with self._lock:
             n = self._db.execute(
                 "DELETE FROM documents WHERE col = ? AND owner = ? AND id = ?", (col, owner, id)
@@ -131,6 +175,7 @@ class SqliteDb:
         return n > 0
 
     def list(self, col: str, owner: str, fields: tuple[str, ...], limit: int = 100) -> list[dict]:
+        """List documents belonging to an owner, newest first, projecting requested summary fields."""
         rows = self._q(
             "SELECT id, doc FROM documents WHERE col = ? AND owner = ? ORDER BY t DESC LIMIT ?",
             (col, owner, limit),

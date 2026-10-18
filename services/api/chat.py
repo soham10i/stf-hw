@@ -49,7 +49,10 @@ from . import sessions as S
 from . import tools as T
 from . import verify as V
 from . import websearch as W
+from .logging_config import get_logger
 from .store import DocStore, default_store
+
+logger = get_logger(__name__)
 
 API = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 TIMEOUT_S = 25
@@ -1063,6 +1066,14 @@ class Chat:
         started = time.monotonic()
         steps: list[str] = []
         thinking: list[str] = []
+        logger.info(
+            "Chat request: question=%r (page=%s, provider=%s, mode=%s, client=%s)",
+            req.question[:80],
+            req.page,
+            req.provider,
+            req.mode,
+            client,
+        )
 
         def say(kind: str, text: str) -> None:
             if kind == "step":
@@ -1089,6 +1100,7 @@ class Chat:
         if session is None and "live_state" not in called:
             hit = self.cache.get(cache_key)
             if hit and time.time() - hit[0] < self.cache_ttl_s:
+                logger.info("Chat cache hit for question: %r", req.question[:60])
                 return hit[1]
 
         # the route: decided here by rules, not by a model (orchestrate.py)
@@ -1195,6 +1207,7 @@ class Chat:
                     for old in sorted(self.cache, key=lambda k: self.cache[k][0])[:32]:
                         self.cache.pop(old, None)
                 self.cache[cache_key] = (time.time(), out)
+            logger.info("Chat replied: model=%s, elapsed=%dms, tools=%s", model, out["ms"], called)
             return out
 
         chain = self._provider(req.provider)
@@ -1252,6 +1265,7 @@ class Chat:
                     return reply(found.text, f"groq {found.model} + web search", note, bad)
                 extra += "\n\n" + R.instruction("research")
             except RuntimeError as e:
+                logger.warning("Web search failed for question %r: %s", req.question[:60], e)
                 notes.append(f"the web search failed ({e})")
                 web_failed = True
                 say(
@@ -1293,6 +1307,7 @@ class Chat:
             try:
                 answer, bad = await asyncio.to_thread(run, req, ctx, results, called, check, meta)
             except ModelError as e:
+                logger.warning("LLM provider '%s' failed for question %r: %s", prov, req.question[:60], e)
                 if e.cool:
                     self.out[prov] = time.time() + e.cool
                 who = (

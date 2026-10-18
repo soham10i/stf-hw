@@ -13,13 +13,18 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from .logging_config import get_logger
 from .names import clean_deep
+
+logger = get_logger(__name__)
 
 
 def _public_dir() -> str:
-    """Where the twin's exports are: STF_PUBLIC_DIR if set; web/public in a checkout; else the
-    built web app the server serves (STF_WEB_DIST) - the Docker image ships only that, and the
-    build copies web/public into it."""
+    """Resolve the directory holding the twin's public assets and documentation.
+
+    Returns:
+        str: Absolute path to the directory containing public exports and documents.
+    """
     if os.environ.get("STF_PUBLIC_DIR"):
         return os.environ["STF_PUBLIC_DIR"]
     src = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "web", "public"))
@@ -39,12 +44,20 @@ STOP_WORDS = set(
 
 
 def tokenize(s: str) -> list[str]:
+    """Tokenize a string into normalized, stemmed search tokens with stop words removed.
+
+    Args:
+        s: Raw input text.
+
+    Returns:
+        list[str]: Filtered and stemmed tokens.
+    """
     clean = re.sub(r"[^a-z0-9äöüß ]+", " ", s.lower())
     words = clean.split()
     tokens = []
     for w in words:
         if len(w) > 1 and w not in STOP_WORDS:
-            # simple stemming for common suffixes
+            # Rule-based suffix stemming for common English variants
             w = re.sub(r"ies$", "y", w)
             w = re.sub(r"(?<=[a-z]{3})(s|ed|ing)$", "", w)
             tokens.append(w)
@@ -53,17 +66,44 @@ def tokenize(s: str) -> list[str]:
 
 @dataclass
 class Passage:
+    """A single document passage indexed for search retrieval.
+
+    Attributes:
+        id: Unique identifier for the passage.
+        doc: Document title or section identifier.
+        path: Hierarchy of section headers leading to the passage.
+        text: Passage body text.
+        file: Repository-relative source file path.
+        line: Starting line number in the source file.
+        anchor: Heading anchor for deep linking in documentation.
+    """
+
     id: int
     doc: str
     path: list[str]
     text: str
-    file: str = ""  # repo-relative, e.g. docs/plc/03-units.md
-    line: int = 0  # where the passage starts in it
-    anchor: str = ""  # its heading's anchor
+    file: str = ""
+    line: int = 0
+    anchor: str = ""
 
 
 class BM25:
+    """Okapi BM25 ranked retrieval model over document passages.
+
+    Attributes:
+        passages: List of Passage records indexed.
+        k1: BM25 term frequency saturation parameter.
+        b: BM25 document length normalization parameter.
+    """
+
     def __init__(self, passages: list[Passage], k1: float = 1.4, b: float = 0.75) -> None:
+        """Initialize the BM25 index with a collection of passages.
+
+        Args:
+            passages: List of passages to index.
+            k1: Term frequency saturation tuning parameter (default 1.4).
+            b: Document length normalization tuning parameter (default 0.75).
+        """
         self.passages = passages
         self.k1 = k1
         self.b = b
@@ -85,6 +125,15 @@ class BM25:
         self.avg_dl = sum(self.doc_lens) / max(1, len(self.doc_lens))
 
     def search(self, query: str, top_k: int = 3) -> list[dict[str, Any]]:
+        """Search the indexed passages for the given query.
+
+        Args:
+            query: User search query string.
+            top_k: Maximum number of top-ranking results to return.
+
+        Returns:
+            list[dict[str, Any]]: Ranked results containing passage, score, and token cover.
+        """
         qt = list(set(tokenize(query)))
         if not qt:
             return []
@@ -118,31 +167,49 @@ class BM25:
         return scored[:top_k]
 
 
-# Global cached data
+# Global cache for loaded static JSON files and the singleton BM25 index
 _cache: dict[str, Any] = {}
 _bm25_index: BM25 | None = None
 
 
 def load_json(rel_path: str) -> Any:
+    """Load and parse a JSON file relative to the public assets directory.
+
+    Caches successfully loaded results in memory to avoid redundant disk I/O.
+
+    Args:
+        rel_path: Path to the JSON file relative to PUBLIC_DIR.
+
+    Returns:
+        Any: Parsed JSON data structure, or None if the file is missing or unparseable.
+    """
     if rel_path in _cache:
         return _cache[rel_path]
     full = os.path.join(PUBLIC_DIR, rel_path)
     if not os.path.exists(full):
+        logger.debug("Static asset not found: %s", full)
         return None
     try:
         with open(full, encoding="utf-8") as f:
             data = clean_deep(json.load(f))
             _cache[rel_path] = data
             return data
-    except Exception:
+    except (OSError, json.JSONDecodeError) as e:
+        logger.warning("Failed to load JSON asset '%s': %s", full, e)
         return None
 
 
 def get_bm25() -> BM25:
+    """Retrieve or initialize the singleton BM25 search index for copilot documents.
+
+    Returns:
+        BM25: The initialized BM25 search engine instance.
+    """
     global _bm25_index
     if _bm25_index is not None:
         return _bm25_index
     kb = load_json("copilot/kb.json") or {}
+    raw_passages = kb.get("passages", [])
     passages = [
         Passage(
             id=p.get("id", i),
@@ -153,7 +220,8 @@ def get_bm25() -> BM25:
             line=p.get("line", 0),
             anchor=p.get("anchor", ""),
         )
-        for i, p in enumerate(kb.get("passages", []))
+        for i, p in enumerate(raw_passages)
     ]
     _bm25_index = BM25(passages)
+    logger.info("Initialized BM25 index with %d passages", len(passages))
     return _bm25_index

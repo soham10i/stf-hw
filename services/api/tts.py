@@ -38,6 +38,9 @@ from pydantic import BaseModel, Field
 from . import gemini_pool as GP
 from . import security as sec
 from .chat import DailyCap, dotenv
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 MAX_CHARS = 1200
 VOICES = {"Kore", "Puck", "Charon", "Fenrir", "Aoede", "Leda", "Orus", "Zephyr"}
@@ -356,7 +359,9 @@ class Tts:
         why = []
         for p in ready:
             try:
+                logger.debug("Attempting TTS synthesis via provider '%s' (voice='%s')", p.name, req.voice)
                 audio, mime, model = await asyncio.to_thread(p.speak, text, req.voice)
+                logger.info("Synthesized speech via provider '%s' (%s, %d bytes)", p.name, model, len(audio))
                 return Response(
                     audio,
                     media_type=mime,
@@ -367,8 +372,10 @@ class Tts:
                     },
                 )
             except Unavailable as e:
+                logger.warning("TTS provider '%s' unavailable: %s", p.name, e)
                 why.append(str(e))
             except urllib.error.HTTPError as e:
+                logger.warning("TTS provider '%s' HTTP error %d", p.name, e.code)
                 why.append(f"{p.name} answered HTTP {e.code}")
             except (
                 urllib.error.URLError,
@@ -376,8 +383,10 @@ class Tts:
                 ValueError,
                 subprocess.SubprocessError,
                 OSError,
-            ):
+            ) as e:
+                logger.warning("TTS provider '%s' failed: %s", p.name, e)
                 why.append(f"{p.name} did not answer")
+        logger.error("All ready TTS providers failed to synthesize speech: %s", "; ".join(why))
         raise HTTPException(status_code=503, detail="no voice could speak: " + "; ".join(why))
 
 
@@ -540,22 +549,29 @@ class Stt:
         for prov in self.order:
             if prov == "elevenlabs" and self.eleven.ready():
                 try:
+                    logger.debug("Attempting STT transcription via ElevenLabs Scribe")
                     text, model = await asyncio.to_thread(self.eleven.transcribe, audio, mime)
                     if text:
+                        logger.info("Transcribed audio via ElevenLabs (%s): %r", model, text[:60])
                         return {"text": text[:500], "model": model}
                     why.append("elevenlabs heard nothing")
                 except (Unavailable, urllib.error.URLError, TimeoutError, OSError) as e:
+                    logger.warning("ElevenLabs STT failed: %s", e)
                     why.append(str(e) or "elevenlabs did not answer")
             elif prov == "groq" and self.groq_key:
                 try:
+                    logger.debug("Attempting STT transcription via Groq Whisper (%s)", self.groq_model)
                     text = await asyncio.to_thread(self._groq_transcribe, audio, mime)
                     if text:
+                        logger.info("Transcribed audio via Groq (%s): %r", self.groq_model, text[:60])
                         return {"text": text[:500], "model": f"groq {self.groq_model}"}
-                except Exception:
+                except Exception as e:
+                    logger.warning("Groq STT failed: %s", e)
                     why.append("groq did not transcribe")
             elif prov == "gemini" and self.key:
                 break  # the Gemini pool below
         if not self.key or "gemini" not in self.order:
+            logger.error("STT transcription failed on all primary providers: %s", "; ".join(why))
             raise HTTPException(
                 status_code=503, detail="transcription failed: " + ("; ".join(why) or "no provider")
             )
@@ -592,17 +608,23 @@ class Stt:
             return t
 
         try:
+            logger.debug("Attempting STT transcription via Gemini pool")
             data, model = await asyncio.to_thread(
                 self.pool.call, lambda url, b: self.post(url, self.key, b), body, accept=text_of
             )
+            transcript = text_of(data)
+            logger.info("Transcribed audio via Gemini (%s): %r", model, transcript[:60])
+            return {"text": transcript[:500], "model": model}
         except GP.AllBusy as e:
+            logger.warning("All Gemini transcription models busy: %s", e)
             raise HTTPException(
                 status_code=503, detail=f"every transcription model is at its limit: {e}"
             ) from None
         except urllib.error.HTTPError as e:
+            logger.error("Gemini transcription HTTP error %d", e.code)
             raise HTTPException(
                 status_code=502, detail=f"transcription answered HTTP {e.code}"
             ) from None
-        except (urllib.error.URLError, TimeoutError):
+        except (urllib.error.URLError, TimeoutError) as e:
+            logger.error("Gemini transcription connection error: %s", e)
             raise HTTPException(status_code=504, detail="transcription did not answer") from None
-        return {"text": text_of(data)[:500], "model": model}

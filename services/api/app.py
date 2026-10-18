@@ -43,7 +43,7 @@ import time
 from contextlib import asynccontextmanager
 from typing import Literal
 
-from fastapi import Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -57,8 +57,11 @@ from . import security as sec
 from .captures import Captures
 from .chat import Chat, ChatRequest, dotenv
 from .factory_db import factory_from
+from .logging_config import get_logger
 from .runtime import SimRuntime
 from .tts import Stt, Tts, TtsRequest
+
+logger = get_logger(__name__)
 
 # STF_TIME_SCALE speeds up (or slows) the DEMO only - it multiplies how much sim
 # time each real second advances. The physics is unchanged; a move still takes
@@ -70,28 +73,53 @@ runtime = SimRuntime(time_scale=_TIME_SCALE)
 settings = sec.Settings.from_env()
 command_guard = sec.CommandGuard(settings)
 ws_clients = sec.ClientCounter(settings.max_ws_clients)
-# each visitor is a guest of their own (guests.py); the database keeps the guests and their
-# copilot sessions
 guests = G.Guests({**dotenv(), **os.environ})
 chat = Chat(settings, store=guests.db)
-# the factory's data beside the guests' (factory_db.py): the month, and what each guest's twin bakes
 factory = factory_from(guests.db)
 tts = Tts(settings)
 stt = Stt(settings)
 captures = Captures(settings)
-WS_MAX_MSG = 1024  # bytes: the client only ever sends {"type": "resync"}
+WS_MAX_MSG = 1024
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Manage application startup and shutdown lifecycle tasks."""
+    logger.info("Starting STF Digital Twin API (version=4.0.0, time_scale=%.1f, database=%s)", _TIME_SCALE, factory.name)
     await runtime.start()
     try:
         yield
     finally:
+        logger.info("Shutting down STF Digital Twin API")
         await runtime.stop()
 
 
 app = FastAPI(title="STF Digital Twin", version="4.0.0", lifespan=lifespan)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Global catch-all exception handler logging unexpected 500 errors with full tracebacks."""
+    logger.error("Unhandled exception processing %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"error": "internal_server_error", "detail": "An unexpected error occurred processing your request."},
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """Global HTTP exception handler logging client and server errors with contextual detail."""
+    if exc.status_code >= 500:
+        logger.error("HTTP error %d on %s %s: %s", exc.status_code, request.method, request.url.path, exc.detail)
+    else:
+        logger.warning("HTTP %d on %s %s: %s", exc.status_code, request.method, request.url.path, exc.detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": exc.detail},
+        headers=getattr(exc, "headers", None),
+    )
+
 
 # Only the web app's own origins may call the API from a browser (STF_ALLOWED_ORIGINS).
 app.add_middleware(
@@ -199,22 +227,33 @@ async def orders() -> dict:
 
 @app.post("/command", dependencies=[Depends(command_guard)])
 async def command(req: CommandRequest) -> JSONResponse:
+    """Queue an operational order (retrieve, store, home, cycle) for the factory crane."""
+    logger.info("Command received: op=%s, slot=%s", req.op, req.slot)
     try:
         order = runtime.submit(req.op, req.slot)
+        logger.info("Command accepted: order #%d (%s, slot=%s)", order.id, req.op, req.slot)
+        return JSONResponse(content={"accepted": True, "order": order.as_dict()})
     except ValueError as exc:
+        logger.warning("Command validation rejected: %s", exc)
         return JSONResponse(status_code=400, content={"error": str(exc)})
-    return JSONResponse(content={"accepted": True, "order": order.as_dict()})
 
 
 @app.get("/chat/status")
 async def chat_status() -> dict:
+    """Check the status and availability of the copilot LLM chat providers."""
     return chat.status()
 
 
 @app.post("/chat")
 async def chat_ask(req: ChatRequest, request: Request) -> dict:
     """The copilot: a language model answering from the twin's tools (chat.py)."""
-    return await chat.ask(req, request)
+    try:
+        return await chat.ask(req, request)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("POST /chat error for question %r: %s", req.question[:60], e, exc_info=True)
+        raise HTTPException(status_code=500, detail="The copilot encountered an unexpected error")
 
 
 @app.post("/chat/stream")
@@ -233,7 +272,8 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     async def run() -> None:
         try:
             emit("answer", await chat.ask(req, request, emit=emit, admitted=client))
-        except Exception as e:  # noqa: BLE001 - the stream reports it instead of breaking
+        except Exception as e:
+            logger.error("POST /chat/stream failed for question %r: %s", req.question[:80], e, exc_info=True)
             emit("error", {"detail": getattr(e, "detail", None) or "the copilot failed"})
         emit("", None)
 
@@ -383,8 +423,12 @@ async def twin_inspection(rec: TwinInspection, request: Request) -> JSONResponse
         "t": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
         "capture_id": None,
     }
-    await asyncio.to_thread(factory.insert, "inspections", [row])
-    return JSONResponse(content={"stored": True})
+    try:
+        await asyncio.to_thread(factory.insert, "inspections", [row])
+        return JSONResponse(content={"stored": True})
+    except Exception as e:
+        logger.error("Failed to store twin inspection: %s", e, exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "failed to store inspection"})
 
 
 @app.post("/twin/order")
@@ -398,8 +442,12 @@ async def twin_order(rec: TwinOrder, request: Request) -> JSONResponse:
         "owner": G.current() or "",
         "t": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
     }
-    await asyncio.to_thread(factory.insert, "orders", [row])
-    return JSONResponse(content={"stored": True})
+    try:
+        await asyncio.to_thread(factory.insert, "orders", [row])
+        return JSONResponse(content={"stored": True})
+    except Exception as e:
+        logger.error("Failed to store twin order: %s", e, exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "failed to store order"})
 
 
 @app.get("/twin/records")
@@ -445,17 +493,22 @@ async def twin_state(request: Request) -> JSONResponse:
 
 @app.websocket("/ws")
 async def ws(websocket: WebSocket) -> None:
+    """Stream live physics world frames at ~30 Hz to connected front-end clients."""
     if not sec.ws_origin_ok(settings, websocket):
         sec.note("ws: foreign origin")
+        logger.warning("WebSocket rejected: unauthorized foreign origin")
         await websocket.close(code=1008)
         return
     if not ws_clients.try_add():
         sec.note("ws: too many clients")
+        logger.warning("WebSocket rejected: client limit reached (%d)", settings.max_ws_clients)
         await websocket.close(code=1013)
         return
     try:
         await websocket.accept()
-    except Exception:
+        logger.debug("WebSocket client accepted successfully")
+    except Exception as e:
+        logger.warning("WebSocket accept failed: %s", e)
         ws_clients.remove()
         raise
     # Greet with the layout fingerprint so a client holding a stale scene graph
@@ -481,7 +534,9 @@ async def ws(websocket: WebSocket) -> None:
             if isinstance(msg, dict) and msg.get("type") == "resync":
                 await websocket.send_json(runtime.latest_frame())
     except WebSocketDisconnect:
-        pass
+        logger.debug("WebSocket client disconnected normally")
+    except Exception as e:
+        logger.warning("WebSocket client encountered unexpected error: %s", e, exc_info=True)
     finally:
         runtime.remove_client(websocket)
         ws_clients.remove()

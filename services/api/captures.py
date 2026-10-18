@@ -42,7 +42,10 @@ from fastapi.responses import Response
 from . import guests
 from . import security as sec
 from .chat import DailyCap, dotenv
+from .logging_config import get_logger
 from .store import ROOT
+
+logger = get_logger(__name__)
 
 MAX_BYTES = 200_000  # a 256 px JPEG is ~10-30 kB
 MIN_BYTES = 500
@@ -53,7 +56,16 @@ TIMEOUT_S = 15
 
 
 def jpeg_size(b: bytes) -> tuple[int, int] | None:
-    """(width, height) of a baseline or progressive JPEG, or None when it is not one."""
+    """Parse image dimensions (width, height) directly from JPEG frame headers.
+
+    Supports baseline (SOF0) and progressive (SOF2) JPEG formats.
+
+    Args:
+        b: Raw bytes of the image file.
+
+    Returns:
+        tuple[int, int] | None: (width, height) in pixels, or None if the bytes do not form a valid JPEG.
+    """
     if len(b) < 4 or b[:2] != b"\xff\xd8":
         return None
     i = 2
@@ -62,13 +74,15 @@ def jpeg_size(b: bytes) -> tuple[int, int] | None:
             return None
         marker = b[i + 1]
         size = int.from_bytes(b[i + 2 : i + 4], "big")
-        if marker in (0xC0, 0xC1, 0xC2):  # start of frame: height, width
+        if marker in (0xC0, 0xC1, 0xC2):
             return int.from_bytes(b[i + 7 : i + 9], "big"), int.from_bytes(b[i + 5 : i + 7], "big")
         i += 2 + size
     return None
 
 
 class CaptureStore(Protocol):
+    """Protocol defining the storage interface for camera capture records and images."""
+
     name: str
 
     def save(self, rec: dict, jpeg: bytes) -> None: ...
@@ -78,26 +92,70 @@ class CaptureStore(Protocol):
 
 
 class LocalCaptures:
+    """Local filesystem storage for inspection camera captures.
+
+    Stores pairs of `<id>.jpg` and `<id>.json` files under `<root>/captures/`.
+    Automatically prunes oldest captures when exceeding `keep` limit.
+
+    Attributes:
+        name: Backend identifier string ('local').
+        dir: Directory path where captures are saved.
+        keep: Maximum count of recent captures to retain.
+    """
+
     name = "local"
 
     def __init__(self, root: str, keep: int = 2000) -> None:
+        """Initialize local captures store.
+
+        Args:
+            root: Base directory path.
+            keep: Maximum number of capture records to preserve.
+        """
         self.dir = os.path.join(root, "captures")
         self.keep = keep
 
     def _p(self, id: str, ext: str) -> str:
+        """Build path for a capture file of given extension.
+
+        Args:
+            id: 32-character hexadecimal capture ID.
+            ext: File extension ('jpg' or 'json').
+
+        Returns:
+            str: Normalized filesystem path.
+
+        Raises:
+            ValueError: If the ID does not match hexadecimal format.
+        """
         if not ID.match(id):
             raise ValueError("bad id")
         return os.path.join(self.dir, f"{id}.{ext}")
 
     def save(self, rec: dict, jpeg: bytes) -> None:
+        """Save a new capture record and its JPEG image to disk.
+
+        Args:
+            rec: Metadata record dictionary.
+            jpeg: Raw JPEG image bytes.
+
+        Raises:
+            OSError: If writing either file fails.
+        """
         os.makedirs(self.dir, exist_ok=True)
-        with open(self._p(rec["id"], "jpg"), "wb") as f:
-            f.write(jpeg)
-        with open(self._p(rec["id"], "json"), "w", encoding="utf-8") as f:
-            json.dump(rec, f)
+        try:
+            with open(self._p(rec["id"], "jpg"), "wb") as f:
+                f.write(jpeg)
+            with open(self._p(rec["id"], "json"), "w", encoding="utf-8") as f:
+                json.dump(rec, f)
+            logger.debug("Saved local capture %s (%d bytes)", rec["id"], len(jpeg))
+        except OSError as e:
+            logger.error("Failed to save local capture %s: %s", rec.get("id"), e)
+            raise
         self._prune()
 
     def _records(self) -> list[dict]:
+        """Read and parse all capture metadata JSON files, sorted newest first."""
         try:
             names = [n for n in os.listdir(self.dir) if n.endswith(".json")]
         except OSError:
@@ -112,6 +170,7 @@ class LocalCaptures:
         return sorted(out, key=lambda r: r.get("t", 0), reverse=True)
 
     def _prune(self) -> None:
+        """Remove captures that exceed the configured retention limit."""
         for r in self._records()[self.keep :]:
             for ext in ("jpg", "json"):
                 try:
@@ -120,9 +179,27 @@ class LocalCaptures:
                     pass
 
     def list(self, limit: int, owner: str) -> list[dict]:
+        """List capture records owned by a specific guest.
+
+        Args:
+            limit: Maximum number of records to return.
+            owner: Guest ID of the owner.
+
+        Returns:
+            list[dict]: Matching capture records.
+        """
         return [r for r in self._records() if r.get("owner") == owner][:limit]
 
     def get(self, id: str, owner: str) -> bytes | None:
+        """Retrieve raw JPEG image bytes for a capture if owned by the specified guest.
+
+        Args:
+            id: Capture ID.
+            owner: Guest ID of the requester.
+
+        Returns:
+            bytes | None: JPEG bytes if found and owned, otherwise None.
+        """
         try:
             with open(self._p(id, "json"), encoding="utf-8") as f:
                 if json.load(f).get("owner") != owner:
@@ -133,6 +210,11 @@ class LocalCaptures:
             return None
 
     def forget(self, owner: str) -> None:
+        """Delete all captures belonging to the specified guest.
+
+        Args:
+            owner: Guest ID whose photos are to be purged.
+        """
         for r in self._records():
             if r.get("owner") == owner:
                 for ext in ("jpg", "json"):
@@ -272,17 +354,28 @@ class Captures:
         }
         try:
             self.store.save(rec, body)
+            logger.info("Inspection capture uploaded: %s (%s, %dx%d, %d bytes)", rec["id"], flavour, size[0], size[1], len(body))
         except (OSError, urllib.error.URLError, TimeoutError) as e:
+            logger.error("Failed to store inspection capture %s: %s", rec["id"], e)
             raise HTTPException(
                 status_code=502, detail=f"the photo store did not answer ({type(e).__name__})"
             ) from None
         return rec
 
     def list(self, limit: int = 48, owner: str | None = None) -> dict:
-        """The guest's photos (no guest: none)."""
+        """List the caller's inspection photos, newest first.
+
+        Args:
+            limit: Maximum number of captures to retrieve.
+            owner: Guest ID of the photo owner.
+
+        Returns:
+            dict: Dictionary with 'captures' list and status metadata.
+        """
         try:
             items = self.store.list(max(1, min(limit, 200)), owner) if owner else []
-        except (OSError, urllib.error.URLError, TimeoutError, ValueError):
+        except (OSError, urllib.error.URLError, TimeoutError, ValueError) as e:
+            logger.warning("Failed to list captures for owner '%s': %s", owner, e)
             items = []
         return {
             "captures": [{k: v for k, v in r.items() if k != "owner"} for r in items],
@@ -290,17 +383,36 @@ class Captures:
         }
 
     def forget(self, owner: str) -> None:
+        """Purge all captures associated with the specified owner.
+
+        Args:
+            owner: Guest ID whose photos are to be forgotten.
+        """
         try:
             self.store.forget(owner)
-        except (OSError, urllib.error.URLError, TimeoutError, ValueError):
-            pass
+            logger.debug("Purged captures for owner '%s'", owner)
+        except (OSError, urllib.error.URLError, TimeoutError, ValueError) as e:
+            logger.warning("Error purging captures for owner '%s': %s", owner, e)
 
     def image(self, id: str, owner: str | None = None) -> Response:
+        """Serve a single JPEG image by capture ID, verifying owner authorization.
+
+        Args:
+            id: Hexadecimal capture identifier.
+            owner: Guest ID of the requester.
+
+        Returns:
+            Response: Raw image/jpeg HTTP response with cache control headers.
+
+        Raises:
+            HTTPException: 404 if the photo does not exist or owner does not match.
+        """
         if not ID.match(id) or not owner:
             raise HTTPException(status_code=404, detail="no such photo")
         try:
             b = self.store.get(id, owner)
-        except (OSError, urllib.error.URLError, TimeoutError):
+        except (OSError, urllib.error.URLError, TimeoutError) as e:
+            logger.warning("Failed to retrieve capture image %s: %s", id, e)
             b = None
         if not b:
             raise HTTPException(status_code=404, detail="no such photo")

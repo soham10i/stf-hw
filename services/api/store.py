@@ -20,6 +20,10 @@ import tempfile
 import threading
 from typing import Any, Protocol
 
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
+
 ROOT = os.environ.get("STF_DATA_DIR") or os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", ".data")
 )
@@ -27,6 +31,8 @@ ID = re.compile(r"^[a-zA-Z0-9_-]{8,64}$")
 
 
 class DocStore(Protocol):
+    """Protocol defining the repository contract for document storage."""
+
     def get(self, col: str, owner: str, id: str) -> dict | None: ...
     def put(self, col: str, owner: str, id: str, doc: dict) -> None: ...
     def delete(self, col: str, owner: str, id: str) -> bool: ...
@@ -36,11 +42,38 @@ class DocStore(Protocol):
 
 
 class JsonStore:
+    """Filesystem-backed atomic JSON document store.
+
+    Stores documents in partitioned directories: `<root>/<collection>/<owner>/<id>.json`.
+    Writes are performed atomically via temporary files and renames to prevent partial reads.
+
+    Attributes:
+        root: Root directory path for document storage.
+    """
+
     def __init__(self, root: str = ROOT) -> None:
+        """Initialize JsonStore with the target storage root directory.
+
+        Args:
+            root: Absolute or relative directory path.
+        """
         self.root = root
         self._lock = threading.Lock()
 
     def _path(self, col: str, owner: str, id: str | None = None) -> str:
+        """Construct and validate a filesystem path for a collection, owner, and optional doc ID.
+
+        Args:
+            col: Collection name.
+            owner: Document owner identifier.
+            id: Optional document identifier.
+
+        Returns:
+            str: Normalized filesystem path.
+
+        Raises:
+            ValueError: If collection, owner, or ID fail alphanumeric validation.
+        """
         for part in (col, owner, *([id] if id else [])):
             if not ID.match(part):
                 raise ValueError("bad id")
@@ -48,34 +81,91 @@ class JsonStore:
         return os.path.join(d, f"{id}.json") if id else d
 
     def get(self, col: str, owner: str, id: str) -> dict | None:
+        """Retrieve and parse a stored JSON document.
+
+        Args:
+            col: Collection name.
+            owner: Document owner.
+            id: Document ID.
+
+        Returns:
+            dict | None: The document data, or None if not found or corrupted.
+        """
         try:
             with open(self._path(col, owner, id), encoding="utf-8") as f:
                 return json.load(f)
-        except (OSError, ValueError):
+        except FileNotFoundError:
+            return None
+        except (OSError, json.JSONDecodeError) as e:
+            logger.warning("Failed to read document [%s/%s/%s]: %s", col, owner, id, e)
             return None
 
     def put(self, col: str, owner: str, id: str, doc: dict) -> None:
+        """Atomically persist a document to disk.
+
+        Args:
+            col: Collection name.
+            owner: Document owner.
+            id: Document ID.
+            doc: Document dictionary to serialize.
+
+        Raises:
+            OSError: If directory creation or file writing fails.
+        """
         path = self._path(col, owner, id)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with self._lock:
-            fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), suffix=".tmp")
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                json.dump(doc, f, ensure_ascii=False)
-            os.replace(tmp, path)
+        target_dir = os.path.dirname(path)
+        os.makedirs(target_dir, exist_ok=True)
+        try:
+            with self._lock:
+                fd, tmp = tempfile.mkstemp(dir=target_dir, suffix=".tmp")
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump(doc, f, ensure_ascii=False)
+                os.replace(tmp, path)
+            logger.debug("Persisted document [%s/%s/%s]", col, owner, id)
+        except OSError as e:
+            logger.error("Failed to write document [%s/%s/%s]: %s", col, owner, id, e)
+            raise
 
     def delete(self, col: str, owner: str, id: str) -> bool:
+        """Delete a stored document from disk.
+
+        Args:
+            col: Collection name.
+            owner: Document owner.
+            id: Document ID.
+
+        Returns:
+            bool: True if deleted, False if document did not exist or failed to remove.
+        """
         try:
             os.remove(self._path(col, owner, id))
+            logger.debug("Deleted document [%s/%s/%s]", col, owner, id)
             return True
-        except OSError:
+        except FileNotFoundError:
+            return False
+        except OSError as e:
+            logger.warning("Error deleting document [%s/%s/%s]: %s", col, owner, id, e)
             return False
 
     def list(self, col: str, owner: str, fields: tuple[str, ...], limit: int = 100) -> list[dict]:
-        """The owner's documents, newest first, as their summary fields only."""
+        """List documents for an owner, sorted newest first, projecting requested summary fields.
+
+        Args:
+            col: Collection name.
+            owner: Document owner.
+            fields: Tuple of field names to extract from each document.
+            limit: Maximum count of documents to return.
+
+        Returns:
+            list[dict]: List of document summaries with extracted fields and document IDs.
+        """
         try:
             d = self._path(col, owner)
             names = [n for n in os.listdir(d) if n.endswith(".json")]
-        except (OSError, ValueError):
+        except FileNotFoundError:
+            return []
+        except (OSError, ValueError) as e:
+            logger.warning("Failed to list documents for [%s/%s]: %s", col, owner, e)
             return []
         names.sort(key=lambda n: os.path.getmtime(os.path.join(d, n)), reverse=True)
         out = []
@@ -87,4 +177,9 @@ class JsonStore:
 
 
 def default_store() -> Any:
+    """Return the default document store implementation.
+
+    Returns:
+        DocStore: Initialized JsonStore instance.
+    """
     return JsonStore()

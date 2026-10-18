@@ -39,6 +39,9 @@ from .cycle import (
     build_cycle,
     simple_plan,
 )
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 #: How often a world frame is pushed to browsers. The kernel integrates far
 #: faster (100 Hz); 30 Hz is plenty for the eye and keeps bandwidth modest.
@@ -51,13 +54,20 @@ MAX_STEP_SECONDS = 0.1
 
 @dataclass
 class SimRuntime:
-    """Real-time driver around the kernel plus a client fan-out."""
+    """Real-time simulation runtime driving the physics kernel and WebSocket broadcasting.
+
+    Attributes:
+        layout: Factory layout defining machine boundaries and rack geometries.
+        seed: Random seed for simulation physics and deterministic behavior.
+        time_scale: Speed multiplier applied to simulated time elapsed per wall-clock second.
+    """
 
     layout: Layout = field(default_factory=get_layout)
     seed: int = 42
     time_scale: float = 1.0
 
     def __post_init__(self) -> None:
+        """Initialize simulation components, queues, and oven state."""
         self.kernel = Kernel(self.layout, seed=self.seed)
         self._clients: set[Any] = set()
         self._pending: deque[Order] = deque()
@@ -66,9 +76,6 @@ class SimRuntime:
         self._phases: list[Phase] = []
         self._phase_i = 0
         self._carrier: dict[str, Any] = {"flavor": None, "holder": None, "slot": None}
-        # Brennofen state: Ofenschieber (1.0 = ausgefahren/out, 0.0 = inside the
-        # chamber), Ofentuer (1.0 = open, 0.0 = closed), oven lamp. The machine
-        # idles ready to receive: slider out, door open, lamp off.
         self._oven: dict[str, Any] = {"slider": 1.0, "door": 1.0, "lamp": False}
         self._oven_target = {"slider": 1.0, "door": 1.0}
         self._flavor_i = 0
@@ -80,20 +87,35 @@ class SimRuntime:
     # -- lifecycle ---------------------------------------------------------
 
     async def start(self) -> None:
+        """Start the background simulation loop task."""
         if self._running:
             return
         self._running = True
         self._task = asyncio.create_task(self._run(), name="sim-loop")
+        logger.info("Simulation runtime started (time_scale=%.1fx, broadcast=%.0fHz)", self.time_scale, BROADCAST_HZ)
 
     async def stop(self) -> None:
+        """Stop the background simulation loop and cancel running tasks."""
         self._running = False
         if self._task:
             await asyncio.gather(self._task, return_exceptions=True)
+            logger.info("Simulation runtime stopped")
 
     # -- orders ------------------------------------------------------------
 
     def submit(self, op: str, slot: str | None) -> Order:
-        """Queue an order. Planning happens when the machine is free."""
+        """Queue a factory machine order for execution.
+
+        Args:
+            op: Operation name ('retrieve', 'store', 'home', or 'cycle').
+            slot: Rack slot target (e.g. 'A1'..'C4'), required for retrieve, store, and cycle.
+
+        Returns:
+            Order: The newly created and queued order record.
+
+        Raises:
+            ValueError: If op is unknown or the target slot is invalid.
+        """
         if op not in ("retrieve", "store", "home", "cycle"):
             raise ValueError(f"unknown op {op!r}; use retrieve, store, home or cycle")
         if op in ("retrieve", "store", "cycle"):
@@ -119,24 +141,42 @@ class SimRuntime:
     # -- client fan-out ----------------------------------------------------
 
     def add_client(self, ws: Any) -> None:
+        """Register a connected WebSocket client to receive world state frames.
+
+        Args:
+            ws: Connected FastAPI WebSocket instance.
+        """
         self._clients.add(ws)
+        logger.debug("Added WebSocket client; total active: %d", len(self._clients))
 
     def remove_client(self, ws: Any) -> None:
+        """Unregister a disconnected WebSocket client.
+
+        Args:
+            ws: Disconnected WebSocket instance.
+        """
         self._clients.discard(ws)
+        logger.debug("Removed WebSocket client; total active: %d", len(self._clients))
 
     @property
     def client_count(self) -> int:
+        """Return the current number of connected WebSocket clients."""
         return len(self._clients)
 
     async def _broadcast(self, message: dict[str, Any]) -> None:
-        """Push to every client, evicting any that cannot keep up in time."""
+        """Broadcast a message to all connected clients, evicting clients that timeout or disconnect.
+
+        Args:
+            message: JSON-serializable message dictionary to broadcast.
+        """
         if not self._clients:
             return
         dead = []
         for ws in list(self._clients):
             try:
                 await asyncio.wait_for(ws.send_json(message), timeout=0.5)
-            except Exception:
+            except Exception as e:
+                logger.debug("Evicting disconnected or timed out WebSocket client: %s", e)
                 dead.append(ws)
         for ws in dead:
             self._clients.discard(ws)
@@ -173,16 +213,19 @@ class SimRuntime:
     # -- order + phase servicing ------------------------------------------
 
     def _service(self) -> None:
+        """Service pending or active orders, advancing multi-phase cycles or completing jobs."""
         if self._active is None:
             self._start_next()
             return
         if self._phases:
             self._step_phase()
         elif not self.kernel.backend.busy:
+            logger.info("Order #%d (%s) completed", self._active.id, self._active.op)
             self._active.status = "completed"
             self._active = None
 
     def _start_next(self) -> None:
+        """Attempt to plan and execute the next queued order."""
         if not self._pending:
             return
         order = self._pending.popleft()
@@ -200,20 +243,22 @@ class SimRuntime:
                 self._phases = []
                 self.kernel.load(self._simple_plan(order))
         except PlanError as exc:
+            logger.warning("Order #%d (%s, slot=%s) planning failed: %s", order.id, order.op, order.slot, exc)
             order.status = "failed"
             order.error = str(exc)
             return
+        logger.info("Order #%d (%s, slot=%s) started", order.id, order.op, order.slot)
         order.status = "running"
         self._active = order
 
     def _step_phase(self) -> None:
+        """Advance the active cycle through its sequence of material-flow phases."""
         if self._phase_i >= len(self._phases):
             self._phases = []
             if self._active:
+                logger.info("Order #%d (%s) cycle completed all phases", self._active.id, self._active.op)
                 self._active.status = "completed"
             self._active = None
-            # The delivered carrier stays visible on the pad; the next cycle
-            # replaces it when it seeds a fresh carrier in the bay.
             return
 
         phase = self._phases[self._phase_i]

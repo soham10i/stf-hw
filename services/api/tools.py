@@ -29,6 +29,9 @@ from . import gemini_pool as GP
 from . import live
 from . import security as sec
 from .grounding import get_bm25, load_json
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 DOCS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "docs", "assistant"))
 MACHINE = "hbw_parts_up12.json"
@@ -946,12 +949,24 @@ def declarations() -> list[dict]:
 
 
 def call(name: str, args: dict | None, ctx: Ctx) -> Result:
+    """Execute a registered copilot tool by name with provided arguments and context.
+
+    Args:
+        name: Registered tool name.
+        args: Dictionary of tool argument parameters.
+        ctx: Execution context containing machine age, PM state, client host, and active page.
+
+    Returns:
+        Result: Tool execution result containing text, structured facts, sources, and cites.
+    """
     t = TOOLS.get(name)
     if not t:
+        logger.warning("Tool not found: '%s'", name)
         return Result(name, f"There is no tool '{name}'.")
     try:
         return t.fn(dict(args or {}), ctx)
-    except Exception as e:  # a tool must never take the chat down
+    except Exception as e:
+        logger.error("Tool '%s' failed execution with args %s: %s", name, args, e, exc_info=True)
         return Result(name, f"The tool failed: {type(e).__name__}.")
 
 
