@@ -72,7 +72,8 @@ class BM25:
         self.doc_tfs: list[dict[str, int]] = []
 
         for p in passages:
-            tokens = tokenize(f"{' '.join(p.path)} {' '.join(p.path)} {p.text}")
+            path_str = " ".join(str(x) for x in (p.path or []) if x)
+            tokens = tokenize(f"{path_str} {path_str} {p.text}")
             tf: dict[str, int] = {}
             for t in tokens:
                 tf[t] = tf.get(t, 0) + 1
@@ -146,7 +147,7 @@ def get_bm25() -> BM25:
         Passage(
             id=p.get("id", i),
             doc=p.get("doc", ""),
-            path=p.get("path", []),
+            path=[str(x) for x in p.get("path", []) if x],
             text=p.get("text", ""),
             file=p.get("file", ""),
             line=p.get("line", 0),

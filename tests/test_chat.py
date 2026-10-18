@@ -178,6 +178,7 @@ def test_ollama_ask():
         ),
     )
     calls = []
+    chat._ollama_alive = lambda: True
     chat.post_ollama = lambda url, body: (
         calls.append((url, body)) or {"message": {"content": "Ollama says hello."}}
     )
@@ -283,6 +284,7 @@ def test_ollama_tool_calls_loop():
             }
         return {"message": {"content": "The crane is the bottleneck [virtual commissioning]."}}
 
+    chat._ollama_alive = lambda: True
     chat.post_ollama = fake
     out = ask(chat, {"question": "anything slow?", "provider": "ollama"})
     assert "crane" in out["answer"] and "oee_bottleneck" in out["tools"]
