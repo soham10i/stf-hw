@@ -779,7 +779,7 @@ def policy_table(runs: dict) -> list[dict]:
 def cell_month_kwh() -> float | None:
     try:
         g = json.load(open(os.path.join(ROOT, "web", "public", "grid", "grid.json")))
-        return g["scenarios"]["pv+battery"]["load_kwh"]
+        return g["oven_supply"]["cell_only"]["load_kwh"]          # the cell without this oven
     except (OSError, KeyError, ValueError):
         return None
 

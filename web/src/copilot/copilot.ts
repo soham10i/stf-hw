@@ -167,9 +167,11 @@ const TOOLS: Tool[] = [
     id: "energy",
     score: (q) => has(q, /energy|electric|power bill|kwh|solar|\bpv\b|battery|grid|cost/) * 3 - has(q, /co2|carbon/) * 4,
     run: async (_q, c) => {
-      const g = await c.get<{ scenarios: Record<string, { load_kwh: number; total_eur: number; self_sufficiency: number; import_kwh: number }> }>("grid");
-      const b = g.scenarios["pv+battery"], o = g.scenarios.grid;
-      return { tool: "energy", text: `The cell used ${b.load_kwh} kWh this month; PV and the battery covered ${pct(b.self_sufficiency)} of it, for €${b.total_eur} instead of €${o.total_eur} from the grid alone.`,
+      const g = await c.get<{ scenarios: Record<string, { load_kwh: number; total_eur: number; self_sufficiency: number; import_kwh: number }>;
+                              oven_supply?: { oven: { month_kwh: number; share_of_load: number }; cell_only: { load_kwh: number } } }>("grid");
+      const b = g.scenarios["pv+battery"], o = g.scenarios.grid, ov = g.oven_supply;
+      const oven = ov ? ` The oven, held at 180 °C on its own circuit, is ${ov.oven.month_kwh} kWh of it (${pct(ov.oven.share_of_load)}); the cell alone uses ${ov.cell_only.load_kwh} kWh.` : "";
+      return { tool: "energy", text: `The site used ${b.load_kwh} kWh this month; PV and the battery covered ${pct(b.self_sufficiency)} of it, for €${b.total_eur} instead of €${o.total_eur} from the grid alone.${oven}`,
                facts: [["imported", `${b.import_kwh} kWh`], ["self-sufficiency", pct(b.self_sufficiency)], ["cost", `€${b.total_eur}`]], link: { page: "energy", label: "Energy & grid" }, sources: ["the microgrid month (grid.py)"] };
     },
   },

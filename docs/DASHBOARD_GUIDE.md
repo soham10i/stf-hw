@@ -300,24 +300,26 @@ Whether a learning scheduler finds a faster order than the PLC's priority list w
 
 ### Energy & grid
 
-The cell behind a small microgrid - solar panels, a battery and an energy manager - over the simulated month.
+The cell behind a small microgrid - solar panels, a battery and an energy manager - and the real oven on its own circuit, over the simulated month.
 
 **How to read it**
 
 1. Pick a day to see its power flows hour by hour.
-2. Compare the three ways of powering the cell on cost, grid use and outages survived.
+2. Compare the three ways of powering the site on cost, grid use and outages survived.
+3. The oven's supply compares the oven on its own circuit with a microgrid big enough to carry it.
 
 | Section | What it shows |
 |---|---|
 | What the month says | The results: energy, cost, outages ridden through. |
 | Power flows on day | Solar, battery, grid and load for one day; hover to read every flow. |
-| Three ways to power the cell | Grid only, PV only and PV + battery + energy manager on cost, CO₂, peak import and self-sufficiency. |
+| Three ways to power the site | Grid only, PV only and PV + battery + energy manager on cost, CO₂, peak import and self-sufficiency. |
 | Energy per day | PV, load and grid import for each day: import rises on dull days. |
-| Power quality | Every mains event and whether the cell rides through; hover a result for why. |
+| Power quality | Every mains event, whether the cell rides through and whether the oven goes cold; hover a result for why. |
 | Power-asset health | The power supply's capacitors and the cabinet air filter, which wear with heat and dust. |
 | PV soiling | Panel performance against the irradiance sensor, and the cleanings. |
 | Battery and contactors | Battery ageing and contactor switching at this month's rate. |
 | Economics, honestly | Capital cost by item, payback and production protected. |
+| The oven's supply | The 1 300 W oven on its own 230 V circuit against a resized microgrid that carries it: outages, demand response, bill and payback. |
 | Standards the design follows | The norms the microgrid design is checked against. |
 
 *Data:* The microgrid model (grid.py), simulated, not measured.
@@ -328,13 +330,13 @@ How many grams of CO₂e each good cookie costs, where they come from, and what 
 
 **How to read it**
 
-1. The headline figures: grams per cookie and per order, and how much of it is the cell standing idle.
+1. The headline figures: grams per cookie and per order, how much of it is the oven and the cell standing idle, and an estimate with a real bake.
 2. The levers re-run the same month through the same energy manager, one change at a time.
 3. Hover the hourly chart to see the grid's carbon intensity at each hour.
 
 | Section | What it shows |
 |---|---|
-| Where a cookie's carbon comes from | The month's emissions shared out over what drew the power; red is drawn whether or not a cookie is made. |
+| Where a cookie's carbon comes from | The month's emissions shared out over what drew the power; red is drawn whether or not a cookie is made, amber is the oven held hot. |
 | What each lever does | Grams per cookie with each change added: PV and battery, sleep when idle, a carbon-aware battery, the faster program. |
 | The day, hour by hour | Load, PV and grid import through an average day, and the grid's carbon intensity by hour. |
 | Per day | Grams per cookie each day, coloured by the weather. |

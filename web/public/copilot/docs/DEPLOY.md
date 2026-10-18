@@ -4,11 +4,12 @@ Two things can be deployed. Both are free.
 
 | | What it is | Needs a server? | Free host | Sleeps? |
 |---|---|---|---|---|
-| **The public demo** (`stf-twin`) | The standalone twin. The 3D cell, the orders, the compiled PLC program, the vision CNN, the AAS and OPC UA browsers all run in the visitor's browser. | No: static files (`web/dist-pages`) | Render Static Site, or GitHub Pages | Never |
-| **The live twin** (`stf-live`) | The Python physics kernel (`services/api`) streaming the machine over a WebSocket, with the web app served by the same process. | Yes: one container (`Dockerfile`) | Render free web service | After 15 min idle; wakes in about a minute |
+| **The public demo** (`stf-twin`) | The standalone twin. The 3D cell, the orders, the compiled PLC program, the vision CNN, the AAS and OPC UA browsers all run in the visitor's browser. | No: static files (`web/dist-pages`) | Render Static Site, GitHub Pages, Firebase | Never |
+| **The live twin** (`stf-live`) | The Python physics kernel (`services/api`) streaming the machine over a WebSocket, with the web app served by the same process. | Yes: one container (`Dockerfile`) | **Google Cloud Run** (see [GCP_DEPLOY.md](GCP_DEPLOY.md)), Render | Scales to 0 / wakes in seconds |
 
 For a portfolio link, use the public demo: it is always on and costs nothing at any traffic level.
-The live twin is optional, to show the server side.
+The live twin can be hosted for free on **Google Cloud Run** or Render to demonstrate live server-side kinematics and WebSockets.
+
 
 ## 1. Push the project to GitHub
 

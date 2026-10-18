@@ -337,7 +337,7 @@ python3 stf-cad/hbw/validate.py
 ## 📚 Documentation Directory
 
 * 📘 [Operations Dashboard Guide](docs/DASHBOARD_GUIDE.md) — Comprehensive walkthrough of all 20+ dashboard pages.
-* 🚀 [Deployment Guide](docs/DEPLOY.md) — Production deployment with Docker, Render, and GitHub Pages.
+* 🚀 [Deployment Guide](docs/DEPLOY.md) — Production deployment with Docker, Google Cloud Run, Render, and GitHub Pages.
 * 🛡️ [Security & OT Architecture](docs/SECURITY.md) — IEC 62443 zone modeling, rate limits, and access tokens.
 * 📐 [Hardware Ground Truth](docs/FACTORY_GROUND_TRUTH.md) — Physical specifications and factory dimensions.
 * 🎙️ [Voice & TTS Pipeline](docs/TTS_PIPELINE.md) — Speech-to-text and text-to-speech audio architecture.

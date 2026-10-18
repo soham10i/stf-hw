@@ -47,8 +47,22 @@ def test_sqlite_keeps_the_rows(tmp_path):
     assert db.count("inspections") == 1
     assert db.recent("inspections", "a" * 32)[0]["truth"] == "burnt"
     assert db.recent("inspections", "b" * 32) == []
-    db.clear("inspections")
-    assert db.count("inspections") == 0
+    db.insert(
+        "inspections",
+        [
+            {
+                "source": "sample",
+                "t": "2026-10-18T00:00:00+00:00",
+                "n": 1,
+                "flavour": "vanilla",
+                "truth": "ok",
+                "verdict": "pass",
+            }
+        ],
+    )
+    db.clear("inspections")  # a re-seed replaces the samples and keeps the guests' twin rows
+    assert db.count("inspections") == 1
+    assert db.recent("inspections", "a" * 32)[0]["truth"] == "burnt"
 
 
 def test_the_twin_stores_its_cookies_and_orders_as_the_guests():

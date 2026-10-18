@@ -188,13 +188,21 @@ def main():
                  "the swivel stays guarded by the swept-path proof and the program."},
         {"title": f"{len(rej)} rules stay in software, for a reason each",
          "text": "; ".join(f"{r['id']}: {r['reason']}" for r in rej)},
-        {"title": ("Holding the reserve costs nothing this month" if E["U12"] == {**E["U9"], "floor": E["U12"]["floor"]}
-                   else "The demand-response trade-off, counted"),
-         "text": f"The month's real DR events never took the battery below {round(100 * (E['U9']['lowest_soc_in_dr'] or 0))} %, so "
-                 f"the new floor changes nothing in them: demand response {'met' if E['U12']['dr_met'] else 'NOT met'}, bill "
-                 f"€{E['U12']['total_eur']}, ride-through {E['U12']['ride_through']}/{E['U12']['events']} either way. It bites only on a "
-                 f"longer event - or a forged one, which under U9 could drain the battery to 10 % and now leaves the full "
-                 f"{E['forged']['reserve_wh']} Wh reserve."},
+        ({"title": "Holding the reserve costs nothing this month",
+          "text": f"The month's real DR events never took the battery below {round(100 * (E['U9']['lowest_soc_in_dr'] or 0))} %, so "
+                  f"the new floor changes nothing in them: demand response {'met' if E['U12']['dr_met'] else 'NOT met'}, bill "
+                  f"€{E['U12']['total_eur']}, ride-through {E['U12']['ride_through']}/{E['U12']['events']} either way. It bites only on a "
+                  f"longer event - or a forged one, which under U9 could drain the battery to 10 % and now leaves the full "
+                  f"{E['forged']['reserve_wh']} Wh reserve."}
+         if E["U12"] == {**E["U9"], "floor": E["U12"]["floor"]} else
+         {"title": "The demand-response trade-off, counted",
+          "text": f"With the oven held hot through the evening, a DR window takes the battery down to "
+                  f"{round(100 * (E['U9']['lowest_soc_in_dr'] or 0))} % under U9's floor. Stopping at the "
+                  f"{round(100 * E['U12']['floor'])} % reserve instead imports {E['U12']['dr_import_wh']} Wh over the cap "
+                  f"(U9: {E['U9']['dr_import_wh']} Wh) - demand response {'met' if E['U12']['dr_met'] else 'missed'} - and the "
+                  f"bill is €{E['U12']['total_eur']} (U9: €{E['U9']['total_eur']}), ride-through {E['U12']['ride_through']}/"
+                  f"{E['U12']['events']}. In exchange a forged DR window, which under U9 could drain the battery to 10 %, now "
+                  f"leaves the full {E['forged']['reserve_wh']} Wh reserve for an outage."}),
         {"title": "No new sensors: five relays and one monitor",
          "text": f"{sum(len(v) for v in relays.values())} interface relays on the node rails and one standstill monitor K8 in the "
                  "cabinet; the nodes were re-placed and re-cleared with the relays on them."},

@@ -10,12 +10,14 @@ const BASE = import.meta.env.BASE_URL;
 type Kpi = { load_kwh: number; pv_kwh: number; import_kwh: number; export_kwh: number; energy_cost_eur: number; peak_w: number;
              demand_charge_eur: number; total_eur: number; co2_kg: number; self_sufficiency: number; self_consumption: number | null;
              dr_met: boolean; dr_import_wh: number };
-type Outcome = { survives: boolean; why: string; lost_s?: number; need_wh?: number; have_wh?: number; producing?: boolean };
+type Outcome = { survives: boolean; why: string; lost_s?: number; need_wh?: number; have_wh?: number; producing?: boolean; oven?: string | null };
+type SupplyOption = { name: string; inverter_w: number; battery_wh: number; pv_wp: number; carries_oven: boolean; inverter_ok: boolean; kpi: Kpi;
+                      capex_total: number | null; payback_years?: number; ride_through: number; oven_kept_hot: number };
 type GridDoc = {
   meta: { days: number; step_h: number; machine: string; assets: Record<string, number>; tariff: string; standards: string[];
-          assumed: string; load_model: { standby_w: number; production_w: number; compressor_w: number } };
+          assumed: string; load_model: { standby_w: number; production_w: number; compressor_w: number; oven_shift_w?: number; oven_rated_w?: number } };
   scenarios: Record<string, Kpi>;
-  series: { t_h: number[]; load: number[]; pv: number[]; grid: number[]; batt: number[]; soc: number[]; price: number[];
+  series: { t_h: number[]; load: number[]; cell?: number[]; oven?: number[]; pv: number[]; grid: number[]; batt: number[]; soc: number[]; price: number[];
             co2: number[]; dr: number[]; irr: number[]; pv_expected: number[]; grid_only: number[] };
   weather: { day: number; kind: string }[];
   power_quality: { kind: string; day: number; h: number; depth?: number; dur_s: number; with_ups: Outcome; grid_only: Outcome }[];
@@ -25,6 +27,8 @@ type GridDoc = {
             battery: { equivalent_full_cycles: number; soh_start: number; soh_end: number; years_to_80pct: number };
             contactors: { operations_month: number; electrical_life_ops: number; years_to_life: number } };
   pv_cleaning: { day: number; what: string }[];
+  oven_supply?: { oven: { rated_w: number; shift_w: number; preheat_kwh: number; month_kwh: number; share_of_load: number; useful_share: number };
+                  options: SupplyOption[]; cell_only: Kpi; outages: number };
   findings: { title: string; text: string }[];
   economics: { capex_eur: Record<string, number>; capex_total: number; saving_eur_month: number; payback_years: number;
                outage_cost_avoided_s: number; note: string };
@@ -49,10 +53,11 @@ export function GridPage() {
     return { load: a(S.load), pv: a(S.pv), imp: a(S.grid) };
   });
   const cab = g.health.cabinet;
+  const ov = g.oven_supply;
   return (
     <>
       <div className="db-kpis">
-        <div className="db-kpi"><span>energy this month</span><b>{best.load_kwh} kWh</b><em>{g.meta.load_model.standby_w} W standing + production</em></div>
+        <div className="db-kpi"><span>energy this month</span><b>{best.load_kwh} kWh</b><em>{ov ? `oven ${ov.oven.month_kwh} kWh · cell ${ov.cell_only.load_kwh} kWh` : `${g.meta.load_model.standby_w} W standing + production`}</em></div>
         <div className="db-kpi ok"><span>self-sufficiency</span><b>{Math.round(best.self_sufficiency * 100)} %</b><em>PV {best.pv_kwh} kWh</em></div>
         <div className="db-kpi"><span>cost</span><b>€{best.total_eur}</b><em>grid only €{base.total_eur}</em></div>
         <div className="db-kpi"><span>peak import</span><b>{best.peak_w} W</b><em>cap {g.meta.assets.peak_cap_w} W (grid only {base.peak_w} W)</em></div>
@@ -67,7 +72,8 @@ export function GridPage() {
           <input type="range" min={1} max={g.meta.days} value={day} onChange={(e) => setDay(+e.target.value)} style={{ width: 240 }} /> {day}
           <span className="db-muted">({g.weather[day - 1].kind}{sl(S.dr).some(Boolean) ? " · demand-response event" : ""})</span></h3>
           <Chart days={false} xLabel="hour of the day" yLabel="power (W)" xMax={24}
-            lines={[{ name: "cell load", x: hx, y: sl(S.load), color: "#e6f0ff", width: 1.6 }, { name: "PV", x: hx, y: sl(S.pv), color: "#f2c230" },
+            lines={[{ name: S.oven ? "site load (cell + oven)" : "cell load", x: hx, y: sl(S.load), color: "#e6f0ff", width: 1.6 },
+                    ...(S.oven ? [{ name: "oven", x: hx, y: sl(S.oven), color: "#e0703a" }] : []), { name: "PV", x: hx, y: sl(S.pv), color: "#f2c230" },
                     { name: "grid (+ import, − export)", x: hx, y: sl(S.grid), color: "#4f8fd6", width: 1.6 },
                     { name: "battery (+ charge)", x: hx, y: sl(S.batt), color: "#22c55e" },
                     { name: "grid only (no PV, no battery)", x: hx, y: sl(S.grid_only), color: "#e0503a", dash: true }]}
@@ -81,7 +87,7 @@ export function GridPage() {
             against the forecast; in real time it trims charging to hold the peak cap and covers any forecast miss inside a
             demand-response window. It never discharges into the {Math.round(g.meta.assets.reserve * 100)} % reserve kept for outages.</p>
         </section>
-        <section className="db-card wide"><h3>Three ways to power the cell, this month</h3>
+        <section className="db-card wide"><h3>Three ways to power the site, this month</h3>
           <div className="gr-four">{([["cost (€)", (v: Sc) => v.total_eur, (x: number) => `€${x.toFixed(2)}`],
                                       ["CO₂ (kg)", (v: Sc) => v.co2_kg, (x: number) => `${x.toFixed(1)}`],
                                       ["peak import (W)", (v: Sc) => v.peak_w, (x: number) => `${Math.round(x)}`],
@@ -96,7 +102,7 @@ export function GridPage() {
         <section className="db-card wide"><h3>Energy per day</h3>
           <Plot h={220} xTitle="day of the month" yTitle="energy (kWh)" xMin={1} xMax={g.meta.days} yMin={0} yFmt={(v) => v.toFixed(1)}
             series={[{ name: "PV generated", x: dailyE.map((_, d) => d + 1), y: dailyE.map((e) => e.pv), color: "#f2c230", kind: "area", width: 1.8, fmt: (v) => `${v.toFixed(2)} kWh` },
-                     { name: "cell load", x: dailyE.map((_, d) => d + 1), y: dailyE.map((e) => e.load), color: "#9fd0ff", width: 2, fmt: (v) => `${v.toFixed(2)} kWh` },
+                     { name: S.oven ? "site load" : "cell load", x: dailyE.map((_, d) => d + 1), y: dailyE.map((e) => e.load), color: "#9fd0ff", width: 2, fmt: (v) => `${v.toFixed(2)} kWh` },
                      { name: "grid import", x: dailyE.map((_, d) => d + 1), y: dailyE.map((e) => e.imp), color: "#4f8fd6", dash: true, width: 1.6, fmt: (v) => `${v.toFixed(2)} kWh` }]}
             tipTitle={(x) => `day ${Math.round(x)} · ${g.weather[Math.round(x) - 1]?.kind ?? ""}`} />
           <p className="hl-cap">{g.weather.filter((w) => w.kind === "rain" || w.kind === "overcast").length} dull days: import rises where PV falls.</p>
@@ -106,7 +112,8 @@ export function GridPage() {
             <tbody>{pq.map((p, i) => (
               <tr key={i}><td className="mono">day {p.day} {String(Math.floor(p.h)).padStart(2, "0")}:{String(Math.round((p.h % 1) * 60)).padStart(2, "0")}</td>
                 <td>{p.kind === "outage" ? `outage, ${Math.round(p.dur_s / 60)} min` : `sag to ${Math.round((p.depth ?? 0) * 100)} %, ${p.dur_s * 1000} ms`}</td>
-                <td><span className={`gr-pill ${p.with_ups.survives ? "ok" : "fail"}`} title={p.with_ups.why}>{p.with_ups.survives ? "✓ rides through" : "✗ stops"}</span></td>
+                <td><span className={`gr-pill ${p.with_ups.survives ? "ok" : "fail"}`} title={p.with_ups.why}>{p.with_ups.survives ? "✓ rides through" : "✗ stops"}</span>
+                  {p.with_ups.oven && <span className="gr-pill fail" title={p.with_ups.oven}>oven goes cold</span>}</td>
                 <td><span className={`gr-pill ${p.grid_only.survives ? "ok" : "fail"}`} title={p.grid_only.why}>{p.grid_only.survives ? "✓ rides through" : `✗ stops${p.grid_only.lost_s ? ` · −${p.grid_only.lost_s} s` : ""}`}</span></td></tr>
             ))}</tbody></table>
         </section>
@@ -141,6 +148,22 @@ export function GridPage() {
           </div>
           <p className="db-note">{g.economics.note}.</p>
         </section>
+        {ov && <section className="db-card wide"><h3>The oven's supply: its own circuit, or a microgrid that carries it</h3>
+          <table className="db-table"><thead><tr><td></td>{ov.options.map((o) => <td key={o.name}>{o.name}</td>)}</tr></thead>
+            <tbody>
+              <tr><td>inverter · battery · PV</td>{ov.options.map((o) => <td key={o.name} className="num">{o.inverter_w} W · {o.battery_wh / 1000} kWh · {o.pv_wp} Wp</td>)}</tr>
+              <tr><td>the oven on the UPS</td>{ov.options.map((o) => <td key={o.name} className="num">{o.carries_oven ? "yes" : `no: ${ov.oven.rated_w} W > ${o.inverter_w} W`}</td>)}</tr>
+              <tr><td>outages the oven stays hot</td>{ov.options.map((o) => <td key={o.name} className="num">{o.oven_kept_hot}/{ov.outages}</td>)}</tr>
+              <tr><td>self-sufficiency</td>{ov.options.map((o) => <td key={o.name} className="num">{Math.round(o.kpi.self_sufficiency * 100)} %</td>)}</tr>
+              <tr><td>demand response met</td>{ov.options.map((o) => <td key={o.name} className="num">{o.kpi.dr_met ? "yes" : `no (${o.kpi.dr_import_wh} Wh over)`}</td>)}</tr>
+              <tr><td>bill this month</td>{ov.options.map((o) => <td key={o.name} className="num">€{o.kpi.total_eur}</td>)}</tr>
+              <tr><td>CO₂ this month</td>{ov.options.map((o) => <td key={o.name} className="num">{o.kpi.co2_kg} kg</td>)}</tr>
+              <tr><td>capital · payback</td>{ov.options.map((o) => <td key={o.name} className="num">{o.capex_total ? `€${o.capex_total} · ${o.payback_years} years` : `€${g.economics.capex_total} · ${g.economics.payback_years} years`}</td>)}</tr>
+            </tbody></table>
+          <p className="db-note">The oven ({ov.oven.rated_w} W of elements, Upgrade 19) is preheated once a day ({Math.round(ov.oven.preheat_kwh * 1000)} Wh) and held
+            at 180 °C through both shifts on {ov.oven.shift_w} W on average: {ov.oven.month_kwh} kWh a month, {Math.round(ov.oven.share_of_load * 100)} % of the site's energy.
+            Only {Math.round(ov.oven.useful_share * 100)} % of its heat goes into the cookies. The cell alone uses {ov.cell_only.load_kwh} kWh.</p>
+        </section>}
         <section className="db-card wide"><h3>Standards the design follows</h3>
           <ul className="gr-std">{g.meta.standards.map((s) => <li key={s}>{s}</li>)}</ul>
           <div className="mo-dl"><a href={`${BASE}grid/grid_15min.csv`} download>grid_15min.csv</a><a href={`${BASE}grid/grid.json`} download>grid.json</a></div>

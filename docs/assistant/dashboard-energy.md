@@ -2,16 +2,17 @@
 
 Dashboard group: Analyse. Page id: `energy`.
 
-The cell behind a small microgrid - solar panels, a battery and an energy manager - over the simulated month.
+The cell behind a small microgrid - solar panels, a battery and an energy manager - and the real oven on its own circuit, over the simulated month.
 
 ## In brief
 
-The cell behind a small microgrid - solar panels, a battery and an energy manager - over the simulated month.
+The cell behind a small microgrid - solar panels, a battery and an energy manager - and the real oven on its own circuit, over the simulated month.
 
 ## How to read it
 
 1. Pick a day to see its power flows hour by hour.
-2. Compare the three ways of powering the cell on cost, grid use and outages survived.
+2. Compare the three ways of powering the site on cost, grid use and outages survived.
+3. The oven's supply compares the oven on its own circuit with a microgrid big enough to carry it.
 
 ## Sections
 
@@ -23,7 +24,7 @@ The results: energy, cost, outages ridden through.
 
 Solar, battery, grid and load for one day; hover to read every flow.
 
-### Three ways to power the cell
+### Three ways to power the site
 
 Grid only, PV only and PV + battery + energy manager on cost, CO₂, peak import and self-sufficiency.
 
@@ -33,7 +34,7 @@ PV, load and grid import for each day: import rises on dull days.
 
 ### Power quality
 
-Every mains event and whether the cell rides through; hover a result for why.
+Every mains event, whether the cell rides through and whether the oven goes cold; hover a result for why.
 
 ### Power-asset health
 
@@ -50,6 +51,10 @@ Battery ageing and contactor switching at this month's rate.
 ### Economics, honestly
 
 Capital cost by item, payback and production protected.
+
+### The oven's supply
+
+The 1 300 W oven on its own 230 V circuit against a resized microgrid that carries it: outages, demand response, bill and payback.
 
 ### Standards the design follows
 

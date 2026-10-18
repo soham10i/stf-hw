@@ -12,8 +12,8 @@
   "up11": "f83568a8d7290ee1",
   "up12": "bb0fe5697678867a"
  },
- "month_json": "f2ea4c5120bed073",
- "note": "base..up7 recorded when each upgrade shipped; up10/up11 at their first export (2026-09-30). 2026-10-06: every variant re-recorded after the wiring fix (wiring.py: no cable through a belt's mould lane or a carrier's path, checked on every cable). Every variant passed its own proof gates; only the exported wiring changed. The earlier fingerprints are kept under previous_fingerprints.",
+ "month_json": "6d412cb05d705c30",
+ "note": "base..up7 recorded when each upgrade shipped; up10/up11 at their first export (2026-09-30). 2026-10-06: every variant re-recorded after the wiring fix (wiring.py: no cable through a belt's mould lane or a carrier's path, checked on every cable). Every variant passed its own proof gates; only the exported wiring changed. The earlier fingerprints are kept under previous_fingerprints. 2026-10-18: month.json re-recorded after QC testing (month.py QC_TEST: one cookie in every 12 is damaged on purpose and baked again, as in the 3D twin); the earlier hash is kept under previous_month_json.",
  "previous_fingerprints": {
   "base": "824c457c8189eb7b",
   "up1": "000b366fd15909cd",
@@ -26,5 +26,8 @@
   "up10": "9b8e41238bbb3f40",
   "up11": "4c776f070fa29158",
   "up12": "c2be57a44db3b6b6"
- }
+ },
+ "previous_month_json": [
+  "f2ea4c5120bed073"
+ ]
 }

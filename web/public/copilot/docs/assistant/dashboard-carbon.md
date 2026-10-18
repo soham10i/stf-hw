@@ -10,7 +10,7 @@ How many grams of CO₂e each good cookie costs, where they come from, and what 
 
 ## How to read it
 
-1. The headline figures: grams per cookie and per order, and how much of it is the cell standing idle.
+1. The headline figures: grams per cookie and per order, how much of it is the oven and the cell standing idle, and an estimate with a real bake.
 2. The levers re-run the same month through the same energy manager, one change at a time.
 3. Hover the hourly chart to see the grid's carbon intensity at each hour.
 
@@ -18,7 +18,7 @@ How many grams of CO₂e each good cookie costs, where they come from, and what 
 
 ### Where a cookie's carbon comes from
 
-The month's emissions shared out over what drew the power; red is drawn whether or not a cookie is made.
+The month's emissions shared out over what drew the power; red is drawn whether or not a cookie is made, amber is the oven held hot.
 
 ### What each lever does
 

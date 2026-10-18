@@ -126,8 +126,8 @@ The database also holds what the dashboard shows and what each guest's 3D twin d
 and in the month alike: the camera rejects it and the cell bakes it again. So every order in `orders`
 has a `qc_fault`, bakes one cookie more than it delivers, and the month's quality is 90 %.
 
-**Loading it.** `make db-seed` empties the factory tables and loads them from the files the dashboard
-reads, then stores the ten sample photos (their records in `captures`, the JPEGs in the bucket) with
+**Loading it.** `make db-seed` removes the rows it loaded last time (the guests' own `twin` orders and
+inspections stay) and loads the factory tables again from the files the dashboard reads, then stores the ten sample photos (their records in `captures`, the JPEGs in the bucket) with
 their decisions in `inspections`. `make db-seed RESET=1` first forgets every guest, conversation and
 photo. Run it again whenever the simulations change, and the database matches the dashboard again.
 

@@ -5,7 +5,7 @@ the bake process, and the camera's inspections - the same tables on Supabase (Po
 service key) or, for a local run, in the API's SQLite file. guests.py chooses which.
 
   FactoryDb.insert(table, rows)            add rows (in batches)
-  FactoryDb.clear(table)                   empty a table
+  FactoryDb.clear(table)                   remove the seeded rows (a guest's twin rows stay)
   FactoryDb.count(table)                   how many rows
   FactoryDb.recent(table, owner, limit)    a guest's newest rows (inspections, orders)
 """
@@ -160,8 +160,8 @@ class SupabaseFactory:
         return len(rows)
 
     def clear(self, table: str) -> None:
-        col = TABLES[table][1]
-        self._req("DELETE", f"{table}?{col}=not.is.null", prefer="return=minimal")
+        q = "source=neq.twin" if "source" in TABLES[table][0] else f"{TABLES[table][1]}=not.is.null"
+        self._req("DELETE", f"{table}?{q}", prefer="return=minimal")
 
     def count(self, table: str) -> int:
         _, h = self._req("GET", f"{table}?select={TABLES[table][1]}&limit=1", prefer="count=exact")
@@ -195,8 +195,9 @@ class SqliteFactory:
         return len(rows)
 
     def clear(self, table: str) -> None:
+        keep = " where source != 'twin'" if "source" in TABLES[table][0] else ""
         with self.lock, self.db:
-            self.db.execute(f"delete from {table}")
+            self.db.execute(f"delete from {table}{keep}")
 
     def count(self, table: str) -> int:
         with self.lock:

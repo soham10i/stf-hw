@@ -304,17 +304,38 @@ def energy_month(args: dict, ctx: Ctx) -> Result:
         return Result("energy_month", "The energy simulation is not available.")
     sc = g.get("scenarios", {})
     b, o = sc.get("pv+battery", {}), sc.get("grid", {})
+    ov = g.get("oven_supply", {})
+    oven = ov.get("oven", {})
     text = (
-        f"The cell used {b.get('load_kwh', 0)} kWh in the simulated month; PV and battery covered "
+        f"The site used {b.get('load_kwh', 0)} kWh in the simulated month; PV and battery covered "
         f"{pct(b.get('self_sufficiency', 0))}, costing €{b.get('total_eur', 0)} against "
         f"€{o.get('total_eur', 0)} on grid power alone."
     )
+    if oven:
+        text += (
+            f" The oven, held at 180 C through both shifts on its own 230 V circuit, is "
+            f"{oven.get('month_kwh', 0)} kWh of it ({pct(oven.get('share_of_load', 0))}); "
+            "the cell alone uses "
+            f"{ov.get('cell_only', {}).get('load_kwh', 0)} kWh."
+        )
     facts = [
         ["grid import", f"{b.get('import_kwh', 0)} kWh"],
         ["self-sufficiency", pct(b.get("self_sufficiency", 0))],
         ["cost with PV + battery", f"€{b.get('total_eur', 0)}"],
         ["cost, grid only", f"€{o.get('total_eur', 0)}"],
+        [
+            "demand response met",
+            "yes" if b.get("dr_met") else f"no ({b.get('dr_import_wh', 0)} Wh over)",
+        ],
     ]
+    for opt in ov.get("options", [])[1:]:
+        facts.append(
+            [
+                "resized microgrid (oven on the UPS)",
+                f"€{opt.get('capex_total')}, {opt.get('payback_years')} years payback, "
+                f"self-sufficiency {pct(opt.get('kpi', {}).get('self_sufficiency', 0))}",
+            ]
+        )
     return Result(
         "energy_month",
         text,
@@ -333,10 +354,18 @@ def carbon_per_cookie(args: dict, ctx: Ctx) -> Result:
     built = lev.get("as built: PV + battery", {}).get("g_per_cookie", 0)
     best = min(lev.items(), key=lambda kv: kv[1].get("g_per_cookie", 1e9)) if lev else ("", {})
     text = (
-        f"{built:.3f} g CO2e per good cookie as built; {pct(c.get('standing_share', 0))} of it "
-        "comes from the cell "
-        f"standing idle. The lowest lever is '{best[0]}' at {best[1].get('g_per_cookie', 0):.3f} g."
+        f"{built:.3f} g CO2e per good cookie as built; "
+        f"{pct(c.get('meta', {}).get('oven_share', 0))} of it "
+        f"is the oven held at 180 C and {pct(c.get('standing_share', 0))} the cell standing idle. "
+        f"The lowest lever is '{best[0]}' at {best[1].get('g_per_cookie', 0):.3f} g."
     )
+    rb = c.get("real_bake")
+    if rb:
+        text += (
+            f" With a real 10-minute bake the oven caps the cell at {rb['cookies_h']} "
+            "cookies an hour, "
+            f"about {rb['g_per_cookie']:.1f} g a cookie (an estimate)."
+        )
     facts = [
         [k, f"{v.get('g_per_cookie', 0):.3f} g" + (" (estimate)" if v.get("estimate") else "")]
         for k, v in lev.items()

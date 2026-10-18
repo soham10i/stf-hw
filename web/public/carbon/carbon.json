@@ -4,74 +4,84 @@
   "good_cookies": 18000,
   "orders": 2000,
   "cookies_per_order": 9.0,
+  "oven_share": 0.614,
+  "real_bake_ratio": 0.0723,
   "sleep_after_h": 0.5,
   "sleep_w": 13.3,
   "awake_w": 36.7,
   "inverter_w": 8.0,
   "u10_gain": 1.481,
   "scope": "operational, location-based (scope 2); no credit for exported PV",
-  "assumed": "the grid's carbon-intensity profile, every power rating, the sleep figures; U10 as an estimate"
+  "assumed": "the grid's carbon-intensity profile, every power rating, the sleep figures; the oven held at 180 C through both shifts while the cell runs the twin's 2 s demo bake; U10 and the real bake as estimates"
  },
  "levers": {
   "grid only": {
-   "co2_kg": 12.94,
-   "g_per_cookie": 0.719,
-   "load_kwh": 45.94,
-   "import_kwh": 45.94,
-   "cost_eur": 14.36,
-   "wh_per_cookie": 2.55
+   "co2_kg": 52.24,
+   "g_per_cookie": 2.902,
+   "load_kwh": 183.91,
+   "import_kwh": 183.91,
+   "cost_eur": 64.1,
+   "wh_per_cookie": 10.22
   },
   "as built: PV + battery": {
-   "co2_kg": 7.18,
-   "g_per_cookie": 0.399,
-   "load_kwh": 45.94,
-   "import_kwh": 24.03,
-   "cost_eur": 6.14,
-   "wh_per_cookie": 2.55
+   "co2_kg": 43.6,
+   "g_per_cookie": 2.422,
+   "load_kwh": 183.91,
+   "import_kwh": 150.44,
+   "cost_eur": 49.05,
+   "wh_per_cookie": 10.22
   },
   "+ sleep when idle": {
-   "co2_kg": 6.26,
-   "g_per_cookie": 0.348,
-   "load_kwh": 40.66,
-   "import_kwh": 21.18,
-   "cost_eur": 5.14,
-   "wh_per_cookie": 2.26
+   "co2_kg": 41.76,
+   "g_per_cookie": 2.32,
+   "load_kwh": 178.63,
+   "import_kwh": 145.17,
+   "cost_eur": 47.09,
+   "wh_per_cookie": 9.92
   },
   "+ carbon-aware battery": {
-   "co2_kg": 6.25,
-   "g_per_cookie": 0.347,
-   "load_kwh": 40.66,
-   "import_kwh": 21.18,
-   "cost_eur": 5.99,
-   "wh_per_cookie": 2.26
+   "co2_kg": 40.44,
+   "g_per_cookie": 2.247,
+   "load_kwh": 178.63,
+   "import_kwh": 145.25,
+   "cost_eur": 48.34,
+   "wh_per_cookie": 9.92
   },
   "+ U10 throughput (estimate)": {
    "co2_kg": null,
-   "g_per_cookie": 0.274,
+   "g_per_cookie": 1.594,
    "estimate": true,
-   "note": "standing load shared by 1.48x the cookies in the same shifts"
+   "note": "standing load and held oven shared by 1.48x the cookies in the same shifts"
   }
  },
- "breakdown_g_per_cookie": {
-  "controller, I/O and sensors (standing)": 0.2253,
-  "inverter (standing)": 0.0492,
-  "compressor": 0.0445,
-  "lamp and valves": 0.025,
-  "motor: arm": 0.0143,
-  "motor: crane": 0.012,
-  "motor: door": 0.0083,
-  "motor: belt": 0.0051,
-  "motor: line": 0.0049,
-  "motor: sauger": 0.0038,
-  "motor: turntable": 0.0037,
-  "motor: ovenbelt": 0.0028
+ "real_bake": {
+  "g_per_cookie": 29.625,
+  "estimate": true,
+  "cookies_h": 5.5,
+  "demo_cookies_h": 76.1,
+  "note": "the oven caps the cell at 5.5 cookies an hour instead of 76.1: 7 % of the cookies share the standing load and the held oven"
  },
- "standing_share": 0.688,
+ "breakdown_g_per_cookie": {
+  "oven (held at 180 C)": 1.4867,
+  "controller, I/O and sensors (standing)": 0.5192,
+  "inverter (standing)": 0.1133,
+  "compressor": 0.1085,
+  "lamp and valves": 0.0609,
+  "motor: arm": 0.0349,
+  "motor: crane": 0.0293,
+  "motor: door": 0.0201,
+  "motor: belt": 0.0125,
+  "motor: line": 0.0119,
+  "motor: sauger": 0.0091,
+  "motor: turntable": 0.009,
+  "motor: ovenbelt": 0.0067
+ },
+ "standing_share": 0.261,
  "hours": [
   {
    "h": 0,
    "intensity": 300.0,
-   "import_w": 72.7,
+   "import_w": 284.1,
    "grid_only_w": 73.6,
    "pv_w": 0.0,
    "load_w": 73.6
@@ -79,7 +89,7 @@
   {
    "h": 1,
    "intensity": 300.0,
-   "import_w": 72.7,
+   "import_w": 284.0,
    "grid_only_w": 73.4,
    "pv_w": 0.0,
    "load_w": 73.4
@@ -87,7 +97,7 @@
   {
    "h": 2,
    "intensity": 300.0,
-   "import_w": 72.1,
+   "import_w": 276.9,
    "grid_only_w": 73.4,
    "pv_w": 0.0,
    "load_w": 73.4
@@ -95,7 +105,7 @@
   {
    "h": 3,
    "intensity": 300.0,
-   "import_w": 72.0,
+   "import_w": 174.3,
    "grid_only_w": 73.3,
    "pv_w": 0.0,
    "load_w": 73.3
@@ -103,7 +113,7 @@
   {
    "h": 4,
    "intensity": 300.0,
-   "import_w": 72.3,
+   "import_w": 73.5,
    "grid_only_w": 73.5,
    "pv_w": 0.0,
    "load_w": 73.5
@@ -111,143 +121,143 @@
   {
    "h": 5,
    "intensity": 300.0,
-   "import_w": 72.4,
-   "grid_only_w": 73.7,
+   "import_w": 122.9,
+   "grid_only_w": 160.7,
    "pv_w": 0.0,
-   "load_w": 73.7
+   "load_w": 160.7
   },
   {
    "h": 6,
    "intensity": 300.0,
-   "import_w": 71.4,
-   "grid_only_w": 73.7,
+   "import_w": 280.3,
+   "grid_only_w": 355.7,
    "pv_w": 0.0,
-   "load_w": 73.7
+   "load_w": 355.7
   },
   {
    "h": 7,
    "intensity": 288.3,
-   "import_w": 62.3,
-   "grid_only_w": 69.7,
+   "import_w": 280.1,
+   "grid_only_w": 351.7,
    "pv_w": 6.4,
-   "load_w": 69.7
+   "load_w": 351.7
   },
   {
    "h": 8,
    "intensity": 265.7,
-   "import_w": 36.7,
-   "grid_only_w": 74.2,
+   "import_w": 279.8,
+   "grid_only_w": 356.2,
    "pv_w": 38.5,
-   "load_w": 74.2
+   "load_w": 356.2
   },
   {
    "h": 9,
    "intensity": 245.4,
-   "import_w": 13.3,
-   "grid_only_w": 74.2,
+   "import_w": 263.8,
+   "grid_only_w": 356.2,
    "pv_w": 79.6,
-   "load_w": 74.2
+   "load_w": 356.2
   },
   {
    "h": 10,
    "intensity": 228.8,
-   "import_w": 7.5,
-   "grid_only_w": 74.0,
+   "import_w": 230.5,
+   "grid_only_w": 356.0,
    "pv_w": 117.1,
-   "load_w": 74.0
+   "load_w": 356.0
   },
   {
    "h": 11,
    "intensity": 217.1,
-   "import_w": 5.9,
-   "grid_only_w": 73.8,
+   "import_w": 204.2,
+   "grid_only_w": 355.8,
    "pv_w": 147.9,
-   "load_w": 73.8
+   "load_w": 355.8
   },
   {
    "h": 12,
    "intensity": 211.0,
-   "import_w": 4.9,
-   "grid_only_w": 74.1,
+   "import_w": 187.7,
+   "grid_only_w": 356.1,
    "pv_w": 165.6,
-   "load_w": 74.1
+   "load_w": 356.1
   },
   {
    "h": 13,
    "intensity": 211.0,
-   "import_w": 5.9,
-   "grid_only_w": 74.2,
+   "import_w": 188.8,
+   "grid_only_w": 356.2,
    "pv_w": 167.0,
-   "load_w": 74.2
+   "load_w": 356.2
   },
   {
    "h": 14,
    "intensity": 217.1,
-   "import_w": 5.7,
-   "grid_only_w": 74.3,
+   "import_w": 201.7,
+   "grid_only_w": 356.3,
    "pv_w": 155.1,
-   "load_w": 74.3
+   "load_w": 356.3
   },
   {
    "h": 15,
    "intensity": 228.8,
-   "import_w": 7.4,
-   "grid_only_w": 70.6,
+   "import_w": 219.9,
+   "grid_only_w": 352.6,
    "pv_w": 132.2,
-   "load_w": 70.6
+   "load_w": 352.6
   },
   {
    "h": 16,
    "intensity": 245.4,
-   "import_w": 5.4,
-   "grid_only_w": 44.7,
+   "import_w": 233.6,
+   "grid_only_w": 326.7,
    "pv_w": 95.7,
-   "load_w": 44.7
+   "load_w": 326.7
   },
   {
    "h": 17,
    "intensity": 375.7,
-   "import_w": 6.7,
-   "grid_only_w": 44.7,
+   "import_w": 67.1,
+   "grid_only_w": 326.7,
    "pv_w": 55.6,
-   "load_w": 44.7
+   "load_w": 326.7
   },
   {
    "h": 18,
    "intensity": 398.3,
-   "import_w": 8.8,
-   "grid_only_w": 44.7,
+   "import_w": 202.5,
+   "grid_only_w": 326.7,
    "pv_w": 17.4,
-   "load_w": 44.7
+   "load_w": 326.7
   },
   {
    "h": 19,
    "intensity": 410.0,
-   "import_w": 14.4,
-   "grid_only_w": 44.7,
+   "import_w": 279.5,
+   "grid_only_w": 326.7,
    "pv_w": 0.8,
-   "load_w": 44.7
+   "load_w": 326.7
   },
   {
    "h": 20,
    "intensity": 410.0,
-   "import_w": 16.6,
-   "grid_only_w": 44.7,
+   "import_w": 290.4,
+   "grid_only_w": 326.7,
    "pv_w": 0.0,
-   "load_w": 44.7
+   "load_w": 326.7
   },
   {
    "h": 21,
    "intensity": 300.0,
-   "import_w": 16.8,
-   "grid_only_w": 44.7,
+   "import_w": 292.7,
+   "grid_only_w": 326.7,
    "pv_w": 0.0,
-   "load_w": 44.7
+   "load_w": 326.7
   },
   {
    "h": 22,
    "intensity": 300.0,
-   "import_w": 40.6,
+   "import_w": 51.7,
    "grid_only_w": 44.7,
    "pv_w": 0.0,
    "load_w": 44.7
@@ -255,7 +265,7 @@
   {
    "h": 23,
    "intensity": 300.0,
-   "import_w": 36.5,
+   "import_w": 44.7,
    "grid_only_w": 44.7,
    "pv_w": 0.0,
    "load_w": 44.7
@@ -264,147 +274,147 @@
  "daily": [
   {
    "day": 1,
-   "g_per_cookie": 0.185,
+   "g_per_cookie": 1.914,
    "weather": "clear"
   },
   {
    "day": 2,
-   "g_per_cookie": 0.326,
+   "g_per_cookie": 2.084,
    "weather": "clear"
   },
   {
    "day": 3,
-   "g_per_cookie": 0.345,
+   "g_per_cookie": 2.388,
    "weather": "partly"
   },
   {
    "day": 4,
-   "g_per_cookie": 0.348,
+   "g_per_cookie": 2.4,
    "weather": "partly"
   },
   {
    "day": 5,
-   "g_per_cookie": 0.314,
+   "g_per_cookie": 2.422,
    "weather": "partly"
   },
   {
    "day": 6,
-   "g_per_cookie": 0.361,
+   "g_per_cookie": 2.435,
    "weather": "partly"
   },
   {
    "day": 7,
-   "g_per_cookie": 0.372,
+   "g_per_cookie": 2.434,
    "weather": "partly"
   },
   {
    "day": 8,
-   "g_per_cookie": 0.587,
+   "g_per_cookie": 2.799,
    "weather": "rain"
   },
   {
    "day": 9,
-   "g_per_cookie": 0.521,
+   "g_per_cookie": 2.745,
    "weather": "overcast"
   },
   {
    "day": 10,
-   "g_per_cookie": 0.362,
+   "g_per_cookie": 2.194,
    "weather": "clear"
   },
   {
    "day": 11,
-   "g_per_cookie": 0.375,
+   "g_per_cookie": 2.239,
    "weather": "clear"
   },
   {
    "day": 12,
-   "g_per_cookie": 0.36,
+   "g_per_cookie": 2.257,
    "weather": "clear"
   },
   {
    "day": 13,
-   "g_per_cookie": 0.569,
+   "g_per_cookie": 2.806,
    "weather": "overcast"
   },
   {
    "day": 14,
-   "g_per_cookie": 0.401,
+   "g_per_cookie": 2.302,
    "weather": "clear"
   },
   {
    "day": 15,
-   "g_per_cookie": 0.335,
+   "g_per_cookie": 2.354,
    "weather": "partly"
   },
   {
    "day": 16,
-   "g_per_cookie": 0.553,
+   "g_per_cookie": 2.8,
    "weather": "rain"
   },
   {
    "day": 17,
-   "g_per_cookie": 0.469,
+   "g_per_cookie": 2.617,
    "weather": "overcast"
   },
   {
    "day": 18,
-   "g_per_cookie": 0.309,
+   "g_per_cookie": 2.363,
    "weather": "partly"
   },
   {
    "day": 19,
-   "g_per_cookie": 0.485,
+   "g_per_cookie": 2.646,
    "weather": "overcast"
   },
   {
    "day": 20,
-   "g_per_cookie": 0.344,
+   "g_per_cookie": 2.239,
    "weather": "clear"
   },
   {
    "day": 21,
-   "g_per_cookie": 0.523,
+   "g_per_cookie": 2.775,
    "weather": "overcast"
   },
   {
    "day": 22,
-   "g_per_cookie": 0.359,
+   "g_per_cookie": 2.201,
    "weather": "clear"
   },
   {
    "day": 23,
-   "g_per_cookie": 0.358,
+   "g_per_cookie": 2.478,
    "weather": "partly"
   },
   {
    "day": 24,
-   "g_per_cookie": 0.356,
+   "g_per_cookie": 2.237,
    "weather": "clear"
   },
   {
    "day": 25,
-   "g_per_cookie": 0.377,
+   "g_per_cookie": 2.51,
    "weather": "partly"
   },
   {
    "day": 26,
-   "g_per_cookie": 0.59,
+   "g_per_cookie": 2.776,
    "weather": "rain"
   },
   {
    "day": 27,
-   "g_per_cookie": 0.372,
+   "g_per_cookie": 2.244,
    "weather": "clear"
   },
   {
    "day": 28,
-   "g_per_cookie": 0.331,
+   "g_per_cookie": 2.25,
    "weather": "clear"
   },
   {
    "day": 29,
-   "g_per_cookie": 0.393,
+   "g_per_cookie": 2.48,
    "weather": "partly"
   },
   {

@@ -11,12 +11,16 @@ come from, and re-runs the same month through the same energy manager with each 
   ALLOCATION  each 15-min step's emissions (grid import x that hour's intensity) are shared
               between what drew the power in that step: standing load (controller, I/O,
               switch, sensors, inverter), the motors by unit, the lamp and valves, the
-              compressor. Whole-month totals divided by the good cookies.
+              compressor, and Upgrade 19's oven held at 180 C through the shifts.
+              Whole-month totals divided by the good cookies.
   LEVERS      grid only (no PV, no battery) | as built (PV + battery + EMS) | + SLEEP: the
               I/O nodes, RFID heads and sensors switched off when the cell is idle for more
               than SLEEP_AFTER_H | + CARBON-AWARE: the EMS plans the battery against the
               grid's carbon intensity instead of the price | + U10: the faster program
               makes more cookies in the same shifts, so the standing load is shared by more
+  REAL BAKE   the same month's energy if every bake were Upgrade 19's 10-minute bake: the
+              oven caps the cell at a fraction of the cookies, which share the standing
+              load and the held oven (an estimate, like U10)
 Operational (scope 2, location-based) emissions only, no credit for exported PV; the
 intensity profile, the ratings and the sleep figures are ASSUMED (grid.py lists them).
 Writes web/public/carbon/carbon.json.
@@ -33,6 +37,7 @@ OUT = os.path.join(PUB, "carbon", "carbon.json")
 SLEEP_AFTER_H = 0.5
 AWAKE_W = {"RevPi Core 3": 4.0, "Ethernet switch": 3.0, "safety relay + contactors": 3.0, "electronic breaker": 2.0}
 U10_GAIN = None          # filled from throughput.json: cookies per hour, U10 / U7
+OVEN = "oven (held at 180 C)"
 
 
 def breakdown(m, s, lp):
@@ -46,13 +51,16 @@ def breakdown(m, s, lp):
     comp = G.COMPRESSOR_W * duty
     prod_parts = {**{f"motor: {u}": w for u, w in motors.items()}, "lamp and valves": lamp_valves, "compressor": comp}
     prod_tot = sum(prod_parts.values())
-    out = {"controller, I/O and sensors (standing)": 0.0, "inverter (standing)": 0.0, **{k: 0.0 for k in prod_parts}}
-    for L, g, c in zip(s["load"], s["grid"], s["co2"], strict=True):
+    out = {"controller, I/O and sensors (standing)": 0.0, "inverter (standing)": 0.0, OVEN: 0.0,
+           **{k: 0.0 for k in prod_parts}}
+    for L, ov, g, c in zip(s["load"], s["oven"], s["grid"], s["co2"], strict=True):
         e = max(0.0, g) * G.STEP_H / 1000 * c                     # g CO2e in this step
         if e <= 0 or L <= 0:
             continue
-        stand = min(L, standby + inv)
-        prod = max(0.0, L - stand)
+        out[OVEN] += e * ov / L
+        cell = L - ov
+        stand = min(cell, standby + inv)
+        prod = max(0.0, cell - stand)
         out["controller, I/O and sensors (standing)"] += e * min(standby, stand) / L
         out["inverter (standing)"] += e * max(0.0, stand - standby) / L
         for k, w in prod_parts.items():
@@ -103,6 +111,8 @@ def main():
     res, series = {}, {}
     for name, kw in cases:
         s, lp = run(m, weath, **kw)
+        if kw.get("carbon"):              # planned against carbon, billed at the real prices (the same day-ahead draw)
+            s = {**s, "price": series["as built: PV + battery"][0]["price"]}
         k = G.kpis(s, M.DAYS)
         res[name] = {"co2_kg": k["co2_kg"], "g_per_cookie": round(1000 * k["co2_kg"] / good, 3),
                      "load_kwh": k["load_kwh"], "import_kwh": k["import_kwh"], "cost_eur": k["total_eur"],
@@ -113,10 +123,20 @@ def main():
     # motion per cookie is unchanged). Applied to the last case's split, stated as an estimate.
     s_last, lp_last = series["+ carbon-aware battery"]
     b_last = breakdown(m, s_last, lp_last)
-    stand_last = sum(v for k, v in b_last.items() if "standing" in k)
-    u10 = (last["co2_kg"] * 1000 - stand_last + stand_last / gain) / good
+    fixed_last = sum(v for k, v in b_last.items() if "standing" in k or k == OVEN)
+    u10 = (last["co2_kg"] * 1000 - fixed_last + fixed_last / gain) / good
     res["+ U10 throughput (estimate)"] = {"co2_kg": None, "g_per_cookie": round(u10, 3), "estimate": True,
-                                         "note": f"standing load shared by {gain:.2f}x the cookies in the same shifts"}
+                                         "note": f"standing load and held oven shared by {gain:.2f}x the cookies in the same shifts"}
+    # Upgrade 19: the same shifts with a real bake make only the oven's share of the cookies
+    tpb = json.load(open(os.path.join(PUB, "bake", "process.json")))["throughput"]["rows"]
+    real = tpb[1]["cookies_h"] / tpb[0]["cookies_h"]
+    b_built = breakdown(m, *series["as built: PV + battery"])
+    fixed = sum(v for k, v in b_built.items() if "standing" in k or k == OVEN)
+    rb = (res["as built: PV + battery"]["co2_kg"] * 1000 - fixed + fixed / real) / good
+    real_bake = {
+        "g_per_cookie": round(rb, 3), "estimate": True, "cookies_h": tpb[1]["cookies_h"], "demo_cookies_h": tpb[0]["cookies_h"],
+        "note": f"the oven caps the cell at {tpb[1]['cookies_h']} cookies an hour instead of {tpb[0]['cookies_h']}: "
+                f"{100 * real:.0f} % of the cookies share the standing load and the held oven"}
     s0, lp0 = series["as built: PV + battery"]
     b0 = breakdown(m, s0, lp0)
     # the hour of the day: intensity, the cell's import and when it produces
@@ -138,12 +158,16 @@ def main():
         g_d = sum(o["good"] for o in m.orders if o["day"] == d + 1)
         daily.append({"day": d + 1, "g_per_cookie": round(e / g_d, 3) if g_d else None, "weather": weath[d]["kind"]})
     tot = sum(b0.values())
+    oven_share = b0[OVEN] / tot
     out = {"meta": {"days": M.DAYS, "good_cookies": good, "orders": orders, "cookies_per_order": round(good / orders, 2),
+                    "oven_share": round(oven_share, 3), "real_bake_ratio": round(real, 4),
                     "sleep_after_h": SLEEP_AFTER_H, "sleep_w": round(sum(AWAKE_W.values()) / G.PSU_EFF, 1),
                     "awake_w": round(sum(G.STANDBY_W.values()) / G.PSU_EFF, 1), "inverter_w": G.INV_STANDBY,
                     "u10_gain": round(gain, 3), "scope": "operational, location-based (scope 2); no credit for exported PV",
-                    "assumed": "the grid's carbon-intensity profile, every power rating, the sleep figures; U10 as an estimate"},
-           "levers": res,
+                    "assumed": "the grid's carbon-intensity profile, every power rating, the sleep figures; the oven held "
+                               "at 180 C through both shifts while the cell runs the twin's 2 s demo bake; U10 and the "
+                               "real bake as estimates"},
+           "levers": res, "real_bake": real_bake,
            "breakdown_g_per_cookie": {k: round(v / good, 4) for k, v in sorted(b0.items(), key=lambda kv: -kv[1])},
            "standing_share": round(sum(v for k, v in b0.items() if "standing" in k) / tot, 3),
            "hours": hours, "daily": daily}
@@ -151,7 +175,8 @@ def main():
     json.dump(out, open(OUT, "w"), indent=1)
     for k, v in res.items():
         print(f"  {k:30s} {v['g_per_cookie']:.3f} g CO2e per cookie")
-    print(f"  standing load: {out['standing_share']:.0%} of the as-built footprint")
+    print(f"  {'with a real bake (estimate)':30s} {rb:.3f} g CO2e per cookie")
+    print(f"  standing load: {out['standing_share']:.0%} of the as-built footprint, the oven {oven_share:.0%}")
     for k, v in out["breakdown_g_per_cookie"].items():
         print(f"    {k:42s} {v:.4f} g")
     fails = []

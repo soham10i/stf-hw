@@ -3,101 +3,101 @@
   "base": {
    "variant": "base",
    "ok": true,
-   "fingerprint": "711384cae7050657",
-   "s": 90,
+   "fingerprint": "da9412ff4f126dbf",
+   "s": 44,
    "tail": [],
    "baseline": "711384cae7050657",
-   "match": true
+   "match": false
   },
   "up1": {
    "variant": "up1",
    "ok": true,
-   "fingerprint": "3a557419cd2f4a15",
-   "s": 349,
+   "fingerprint": "8a3222d27dff8ff7",
+   "s": 227,
    "tail": [],
    "baseline": "3a557419cd2f4a15",
-   "match": true
+   "match": false
   },
   "up2": {
    "variant": "up2",
    "ok": true,
-   "fingerprint": "b4d644ba341b40a9",
-   "s": 353,
+   "fingerprint": "b9aa72488538b2d0",
+   "s": 229,
    "tail": [],
    "baseline": "b4d644ba341b40a9",
-   "match": true
+   "match": false
   },
   "up3": {
    "variant": "up3",
    "ok": true,
-   "fingerprint": "2971fec0a424fbdd",
-   "s": 451,
+   "fingerprint": "d79df348f159b09f",
+   "s": 318,
    "tail": [],
    "baseline": "2971fec0a424fbdd",
-   "match": true
+   "match": false
   },
   "up4": {
    "variant": "up4",
    "ok": true,
-   "fingerprint": "eddb8092a85f09d2",
-   "s": 944,
+   "fingerprint": "70b614b9745014fc",
+   "s": 633,
    "tail": [],
    "baseline": "eddb8092a85f09d2",
-   "match": true
-  },
-  "up10": {
-   "variant": "up10",
-   "ok": true,
-   "fingerprint": "06e82bb098ca27ac",
-   "s": 1225,
-   "tail": [],
-   "baseline": "06e82bb098ca27ac",
-   "match": true
+   "match": false
   },
   "up5": {
    "variant": "up5",
    "ok": true,
-   "fingerprint": "91a5151430b1369e",
-   "s": 1373,
+   "fingerprint": "edac0d10831c6e31",
+   "s": 1078,
    "tail": [],
    "baseline": "91a5151430b1369e",
-   "match": true
+   "match": false
   },
   "up6": {
    "variant": "up6",
    "ok": true,
-   "fingerprint": "6aa7bba7c3157f14",
-   "s": 1375,
+   "fingerprint": "35270c8b32a645a1",
+   "s": 1081,
    "tail": [],
    "baseline": "6aa7bba7c3157f14",
-   "match": true
+   "match": false
   },
   "up7": {
    "variant": "up7",
    "ok": true,
-   "fingerprint": "3472ba2584d4ad82",
-   "s": 1395,
+   "fingerprint": "ebdd5ab5eaa81e31",
+   "s": 1082,
    "tail": [],
    "baseline": "3472ba2584d4ad82",
-   "match": true
+   "match": false
   },
   "up12": {
    "variant": "up12",
    "ok": true,
-   "fingerprint": "bb0fe5697678867a",
-   "s": 1081,
+   "fingerprint": "af23193285c05d49",
+   "s": 917,
    "tail": [],
    "baseline": "bb0fe5697678867a",
-   "match": true
+   "match": false
+  },
+  "up10": {
+   "variant": "up10",
+   "ok": true,
+   "fingerprint": "08fafd7bb7802412",
+   "s": 1824,
+   "tail": [],
+   "baseline": "06e82bb098ca27ac",
+   "match": false
   },
   "up11": {
    "variant": "up11",
    "ok": true,
-   "fingerprint": "f83568a8d7290ee1",
-   "s": 1090,
+   "fingerprint": "5f6e8d7af114d606",
+   "s": 1642,
    "tail": [],
    "baseline": "f83568a8d7290ee1",
-   "match": true
+   "match": false
   }
  },
  "jobs": {
@@ -113,14 +113,14 @@
     "sorting.Q2"
    ],
    "denied_pairs": 20,
-   "s": 35
+   "s": 257
   },
   "throughput": {
    "fails": [],
    "before": 644.5,
    "after": 425.7,
    "states": 1787,
-   "s": 41
+   "s": 44
   },
   "mc": {
    "fails": [],
@@ -140,7 +140,15 @@
     "false_trips": 0,
     "worst_watchdog_use": 0.794
    },
-   "s": 44
+   "s": 42
+  },
+  "ml": {
+   "fails": [],
+   "checked_windows": 600,
+   "pytorch_vs_stored": 0.000488,
+   "onnx_vs_pytorch": 0.0,
+   "json_vs_pytorch": 3.2e-05,
+   "s": 42
   },
   "mutants": {
    "fails": [],
@@ -209,25 +217,32 @@
      "how": "SUNSPEC MinRsvPct is writable by the EMS"
     }
    ],
-   "s": 173
-  },
-  "ml": {
-   "fails": [],
-   "checked_windows": 600,
-   "pytorch_vs_stored": 0.000488,
-   "onnx_vs_pytorch": 0.0,
-   "json_vs_pytorch": 3.2e-05,
-   "s": 76
+   "s": 418
   },
   "data": {
-   "fails": [],
-   "month_json": "f2ea4c5120bed073",
-   "grid_json": "f2b1af7de4e1da07",
-   "pytest": "............................                                             [100%]",
+   "fails": [
+    "pytest: FAILED tests/test_sessions.py::test_the_answer_says_its_style - TypeError: se..."
+   ],
+   "month_json": "6d412cb05d705c30",
+   "grid_json": "b96a35c6ca6396c9",
+   "pytest": "FAILED tests/test_sessions.py::test_the_answer_says_its_style - TypeError: se...",
    "web_build": "ok"
   }
  },
- "fails": [],
- "minutes": 24.8,
- "date": "2026-10-06 10:30"
+ "fails": [
+  "export base: fingerprint da9412ff4f126dbf != 711384cae7050657",
+  "export up1: fingerprint 8a3222d27dff8ff7 != 3a557419cd2f4a15",
+  "export up2: fingerprint b9aa72488538b2d0 != b4d644ba341b40a9",
+  "export up3: fingerprint d79df348f159b09f != 2971fec0a424fbdd",
+  "export up4: fingerprint 70b614b9745014fc != eddb8092a85f09d2",
+  "export up5: fingerprint edac0d10831c6e31 != 91a5151430b1369e",
+  "export up6: fingerprint 35270c8b32a645a1 != 6aa7bba7c3157f14",
+  "export up7: fingerprint ebdd5ab5eaa81e31 != 3472ba2584d4ad82",
+  "export up12: fingerprint af23193285c05d49 != bb0fe5697678867a",
+  "export up10: fingerprint 08fafd7bb7802412 != 06e82bb098ca27ac",
+  "export up11: fingerprint 5f6e8d7af114d606 != f83568a8d7290ee1",
+  "data: pytest: FAILED tests/test_sessions.py::test_the_answer_says_its_style - TypeError: se..."
+ ],
+ "minutes": 32.1,
+ "date": "2026-10-18 15:32"
 }

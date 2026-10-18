@@ -34,6 +34,7 @@ Output: web/public/aas/stf.aas.json, stf.aasx and index.json (for the twin's AAS
 """
 import datetime as dt
 import json
+import math
 import os
 
 import aas_core3.jsonization as jsz
@@ -217,7 +218,10 @@ def part_shells():
 
 # ------------------------------------------------------------- the AI models
 def ai_shells():
-    ml, vis = jload("ml/results.json"), jload("vision/results.json")
+    ml = jload("ml/results.json")
+    w, rd, smp = jload("vision/weights.json"), jload("vision/render.json"), jload("vision/samples/samples.json")["samples"]
+    n_params = sum(math.prod(v["shape"]) + v["shape"][0] for v in w["layers"].values())    # weights + biases
+    right = sum(1 for c in smp if (c["verdict"] == "pass") == (c["truth"] == "ok"))
     out = []
     specs = [
         ("ai-predictive-maintenance", "Predictive-maintenance network (Upgrade 8)", site("ml/stf_pm_tcn.onnx"), {
@@ -235,14 +239,14 @@ def ai_shells():
         ("ai-vision-inspection", "Vision inspection network (Upgrade 15)", site("vision/stf_vision_cnn.onnx"), {
             "KindOfLearning": "supervised, on rendered images only (domain randomisation)",
             "Inputs": {"KindOfInput": "image",
-                       "DimensionN": [{"_idShort": "Image", "Size": f"3x{vis['data']['size_px']}x{vis['data']['size_px']}",
-                                       "Information": f"RGB, 0..1, {vis['data']['fov_mm']:g} mm field of view, grey reference in the corner"}]},
+                       "DimensionN": [{"_idShort": "Image", "Size": f"3x{w['size']}x{w['size']}",
+                                       "Information": f"RGB, 0..1, {rd['MM']:g} mm field of view, grey reference in the corner"}]},
             "Outputs": {"DimensionN": [{"_idShort": "Flavour", "Size": "3", "Result": "chocolate / strawberry / vanilla"},
                                        {"_idShort": "Condition", "Size": "5", "Result": "ok / underbaked / burnt / cracked / chipped"}]},
-            "TrainingResults": {"ExampleResult": f"unseen conditions: {vis['results']['shifted']['false_reject']:.0%} false rejects, "
-                                                 f"{vis['results']['shifted']['escape_rate']:.1%} escapes; see {PAGES}vision/results.json"},
+            "TrainingResults": {"ExampleResult": f"{right} of {len(smp)} photos taken in the process judged right; "
+                                                 f"see {PAGES}vision/samples/samples.json"},
             "Type": "convolutional neural network",
-            "params": vis["model"]["params"]}),
+            "params": n_params}),
     ]
     for slug, name, fl, s in specs:
         FILES.append(fl)

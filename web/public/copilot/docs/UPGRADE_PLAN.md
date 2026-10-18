@@ -540,22 +540,40 @@ U6-04 maintenance plan · U6-05 structure and dynamics report.
 - **Energy management.** A day-ahead dynamic programme over the battery's charge (10 Wh steps, 15 minutes) against time-of-use
   and day-ahead prices, with a battery-wear cost. A real-time guard holds the peak cap and covers forecast misses during
   demand-response windows. It never discharges into the 30 % ride-through reserve.
-- **Month results.**
+- **The real oven (re-run 2026-10-18).** Upgrade 19's oven is in the month: 1 300 W of elements, preheated once a day
+  (87 Wh) and held at 180 °C through both shifts on 282 W on average, all read from `web/public/bake/process.json`. It is
+  more than twice the 600 W inverter, so it runs on its own 230 V circuit behind the same meter: the battery and PV offset
+  it behind the meter, but it is not on the UPS. The peak-shaving target is now the site's, 300 W.
+- **Month results** (the site: the cell and the oven).
 
   | | Grid only | PV only | PV + battery + EMS |
   |---|---|---|---|
-  | Cost | €14.37 | €7.08 | €6.16 |
-  | CO₂ | 12.95 kg | 8.53 kg | 7.2 kg |
-  | Self-sufficiency | 0 % | 40 % | 48 % |
+  | Cost | €64.10 | €52.81 | €49.05 |
+  | CO₂ | 52.2 kg | 44.0 kg | 43.6 kg |
+  | Self-sufficiency | 0 % | 19 % | 18 % |
 
-  - All 3 demand-response events were met with the battery.
-  - 10/10 mains events were ridden through, against
-    1/10 without the inverter.
+  - The oven is 138 kWh of the site's 184 kWh (75 %); the cell alone uses 46 kWh. Only 7 % of the oven's heat goes into
+    the cookies.
+  - 10/10 mains events were ridden through by the cell, against 1/10 without the inverter. The oven goes cold in both
+    outages, and the cookie in it is scrapped.
+  - Demand response is now missed once: on day 8 the held oven empties the battery at 18:45, and the site imports 93 Wh
+    over the 15 W cap (1 960 Wh without the battery). The cell alone met every event.
+- **Supply options, compared** (`oven_supply` in grid.json):
+
+  | | As built: the oven on its own circuit | Resized: the oven on the UPS |
+  |---|---|---|
+  | Inverter, battery, PV | 600 W, 1 kWh, 400 Wp | 2 kW, 3 kWh, 1.2 kWp |
+  | Outages the oven stays hot | 0 of 2 | 2 of 2 |
+  | Self-sufficiency | 18 % | 52 % |
+  | Demand response | missed once | met |
+  | Bill | €49.05 | €28.82 |
+  | Capital, payback | €1 365, 7.6 years | €3 215, 7.6 years |
+
 - **Findings.**
-  - The ride-through reserve beats peak shaving: the demand peak stays at 83.9 W against a 70 W cap,
-    because on dull mornings the battery sits at its reserve.
-  - The energy bill alone pays back in 13.9 years. The case rests on ride-through, demand response
-    and the data.
+  - The ride-through reserve beats peak shaving: the import peaks at 327 W against the 300 W cap, on the evening
+    the battery sits at its reserve.
+  - The energy bill alone pays back in 7.6 years. With a 10-minute bake an outage costs one cookie, so a resized
+    microgrid is justified by ride-through and demand response, not by the bill.
 - **Power-asset maintenance.**
   - A cabinet sensor sees the air filter clogging, and the filter is changed in the night gap. Without that, the PSU's capacitors
     (Arrhenius) would lose 31 % of their life.
@@ -1163,24 +1181,28 @@ API and could invent answers.
 (grid.py) is allocated per 15-minute step to what drew the power; each lever re-runs the same month through the same
 energy manager.
 
-**Results** (operational, location-based; no credit for exported PV):
+**Results** (operational, location-based; no credit for exported PV; re-run 2026-10-18 with Upgrade 19's oven held
+at 180 °C through the shifts):
 
 | | g CO2e per good cookie |
 |---|---|
-| grid only | 0.659 |
-| as built: PV + battery | 0.366 |
-| + sleep when idle | 0.319 |
-| + carbon-aware battery | 0.319 |
-| + U10 throughput (estimate) | 0.252 |
+| grid only | 2.902 |
+| as built: PV + battery | 2.422 |
+| + sleep when idle | 2.320 |
+| + carbon-aware battery | 2.247 |
+| + U10 throughput (estimate) | 1.594 |
+| with a real 10-minute bake (estimate) | 29.6 |
 
 **Found.**
-- 69 % of the footprint is the cell standing idle: controller, I/O, sensors and the inverter, drawn
-  whether or not a cookie is made. The motors that move cookies are a few percent.
+- 61 % of the footprint is the oven, held hot whether or not it bakes; 26 % is the cell standing idle
+  (controller, I/O, sensors and the inverter). The motors that move cookies are a few percent.
 - Sleeping when idle (36.7 to 13.3 W after 30 min) cuts the footprint and the bill.
-- Planning the battery on carbon instead of price gains nothing here: the price already peaks when the grid is
-  dirtiest, so the cost plan is the carbon plan - and it costs more.
+- Planning the battery on carbon instead of price now gains 3 %: it moves part of the held oven's draw out of the
+  dirtiest evening hours, for €1.25 a month more.
+- The month runs the twin's 2 s demo bake. With the real bake the oven caps the cell at 5.5 cookies an hour instead
+  of 76.1, and the same standing load and held oven are shared by 7 % of the cookies: about 30 g a cookie.
 
-**Limits.** The intensity profile, the ratings and the sleep figures are assumed; the U10 figure is an estimate.
+**Limits.** The intensity profile, the ratings and the sleep figures are assumed; the U10 and real-bake figures are estimates.
 
 ---
 

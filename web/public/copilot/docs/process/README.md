@@ -142,7 +142,7 @@ oven - the STF-2 redesign.
 
 About 51 Wh of heat per cookie and 266 W to hold 180 C; two shifts a
 day come to about 138 kWh a month. The rest of the cell uses
-45.98 kWh a month. The cell's microgrid was sized for the 5 W lamp; its 600 W
+45.94 kWh a month. The cell's microgrid was sized for the 5 W lamp; its 600 W
 inverter cannot run 1 300 W of elements.
 
 ## Checks
