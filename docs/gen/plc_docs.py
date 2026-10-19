@@ -68,7 +68,7 @@ def st_lines(src: str) -> dict[str, tuple[int, int]]:
 
 
 def sources(*items: str) -> str:
-    return "\n*Sources: " + "; ".join(f"`{s}`" for s in items) + ".*\n"
+    return "\n<!-- Sources: " + "; ".join(f"`{s}`" for s in items) + ". -->\n"
 
 
 def esc(s) -> str:
@@ -84,7 +84,7 @@ def table(head: list[str], rows: list[list]) -> str:
 def write(name: str, text: str) -> None:
     with open(os.path.join(OUT, name), "w", encoding="utf-8") as f:
         f.write(
-            text.rstrip() + f"\n\n*Generated from the twin's exports by `{GEN}`; do not edit.*\n"
+            text.rstrip() + f"\n\n<!-- Generated from the twin's exports by `{GEN}`; do not edit. -->\n"
         )
 
 

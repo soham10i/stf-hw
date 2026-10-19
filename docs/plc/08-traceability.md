@@ -77,6 +77,6 @@ Geometry: {"y": [440.0, 580.0], "pick_hbw": 325.0, "pick_vgr": 580.0, "reach_y":
 
 Assumed values: speeds as motion.py (HBW 150 mm/s, VGR 60 deg/s, 120 mm/s); belts 50 mm/s; RFID read 0.3 s; vacuum 0.5 s; the booklet's 2 s demo bake; reference-switch directions.
 
-*Sources: `web/public/hbw_parts_up12.json (control.moulds, control.read_points, control.rfid, control.bands, control.trace)`.*
+<!-- Sources: `web/public/hbw_parts_up12.json (control.moulds, control.read_points, control.rfid, control.bands, control.trace)`. -->
 
-*Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit.*
+<!-- Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit. -->

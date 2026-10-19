@@ -47,7 +47,10 @@ class Notifier:
         self.smtp_port = int(env.get("STF_SMTP_PORT") or "465")
         self.smtp_user = (env.get("STF_SMTP_USER") or "").strip()
         raw_pass = (env.get("STF_SMTP_PASS") or "").strip()
-        self.smtp_pass = raw_pass.replace(" ", "") if "gmail.com" in self.smtp_host.lower() else raw_pass
+        # Gmail app passwords are displayed in 4-character groups ("xxxx xxxx xxxx xxxx");
+        # SMTP wants them concatenated. Only gmail.com is treated this way.
+        is_gmail = "gmail.com" in self.smtp_host.lower()
+        self.smtp_pass = raw_pass.replace(" ", "") if is_gmail else raw_pass
         self.webhook = (env.get("STF_NOTIFY_WEBHOOK") or "").strip()
         self.every_s = float(env.get("STF_NOTIFY_EVERY_HOURS") or "12") * 3600.0
         self.geo = geo

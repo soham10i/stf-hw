@@ -50,6 +50,12 @@ export function Markdown({ src, hl, open, block, asset }: { src: string; hl?: nu
   let i = 0;
   while (i < lines.length) {
     const line = lines[i], n = i + 1;
+    if (/^\s*<!--/.test(line)) {
+      let j = i;
+      while (j < lines.length && !/-->/.test(lines[j])) j++;
+      i = j + 1;
+      continue;
+    }
     const fence = /^```\s*([\w-]*)\s*(.*)$/.exec(line);
     if (fence) {
       let j = i + 1;
@@ -120,9 +126,14 @@ export function Markdown({ src, hl, open, block, asset }: { src: string; hl?: nu
     // a paragraph: until a blank line or another block
     let j = i;
     const para: string[] = [];
-    while (j < lines.length && lines[j].trim() && !/^(#{1,4}\s|```|\s*\||\s*([-*]|\d+[.)])\s)/.test(lines[j]) && !(j > i && displayBlock(lines, j))) para.push(lines[j++]);
+    while (j < lines.length && lines[j].trim() && !/^(#{1,4}\s|```|\s*<!--|\s*\||\s*([-*]|\d+[.)])\s)/.test(lines[j]) && !(j > i && displayBlock(lines, j))) para.push(lines[j++]);
     if (!para.length) { para.push(lines[j++]); }
-    out.push(<p key={n} className={mark(n, j)} data-line={n}>{inline(para.join(" "), open, n, asset)}</p>);
+    const joined = para.join(" ").trim();
+    if (/^<!--[\s\S]*?-->$/.test(joined) || /^\*?(Sources:\s*`|Generated from the twin's exports)/i.test(joined)) {
+      i = j;
+      continue;
+    }
+    out.push(<p key={n} className={mark(n, j)} data-line={n}>{inline(joined, open, n, asset)}</p>);
     i = j;
   }
   return <>{out}</>;

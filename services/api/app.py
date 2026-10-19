@@ -446,10 +446,12 @@ async def notify_test() -> dict:
     """Send the owner a test notice (notify.py). Operator-only, like /command: from the
     operator's machine or with X-STF-Token. Use the dashboard's bell button."""
     if not notify.on:
-        raise HTTPException(status_code=409, detail="owner notifications are not configured (STF_NOTIFY_*)")
+        detail = "owner notifications are not configured (STF_NOTIFY_*)"
+        raise HTTPException(status_code=409, detail=detail)
     sent = await asyncio.to_thread(notify.test)
     if not sent:
-        raise HTTPException(status_code=502, detail="the notice could not be sent - check the SMTP/webhook settings and the service log")
+        detail = "the notice could not be sent - check the SMTP/webhook settings and the log"
+        raise HTTPException(status_code=502, detail=detail)
     return {"sent": True, "channels": notify.channels}
 
 

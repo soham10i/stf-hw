@@ -85,7 +85,7 @@ Function block `FB_Crane`, lines 13-336 of the source.
 Recovery: `FAULT` -> `ESTOP` when NOT Enable; `FAULT` -> `H:fork` when Ack AND Enable; `ESTOP` -> `INIT` when Reset (S3) AND Enable.
 
 
-*Sources: `web/public/hbw_parts_up12.json (control.units.crane)`; `web/public/sil/stf_plc.st#L13-L336`.*
+<!-- Sources: `web/public/hbw_parts_up12.json (control.units.crane)`; `web/public/sil/stf_plc.st#L13-L336`. -->
 
 ## belt: HBW belt and the two RFID read points
 
@@ -110,7 +110,7 @@ Function block `FB_Belt`, lines 337-410 of the source.
 Recovery: `FAULT` -> `ESTOP` when NOT Enable; `FAULT` -> `H:check` when Ack AND Enable; `ESTOP` -> `INIT` when Reset (S3) AND Enable.
 
 
-*Sources: `web/public/hbw_parts_up12.json (control.units.belt)`; `web/public/sil/stf_plc.st#L337-L410`.*
+<!-- Sources: `web/public/hbw_parts_up12.json (control.units.belt)`; `web/public/sil/stf_plc.st#L337-L410`. -->
 
 ## arm: VGR arm and vacuum
 
@@ -206,7 +206,7 @@ Function block `FB_Arm`, lines 411-754 of the source.
 Recovery: `FAULT` -> `ESTOP` when NOT Enable; `FAULT` -> `H:plunge` when Ack AND Enable; `ESTOP` -> `INIT` when Reset (S3) AND Enable.
 
 
-*Sources: `web/public/hbw_parts_up12.json (control.units.arm)`; `web/public/sil/stf_plc.st#L411-L754`.*
+<!-- Sources: `web/public/hbw_parts_up12.json (control.units.arm)`; `web/public/sil/stf_plc.st#L411-L754`. -->
 
 ## door: oven door, Ofenschieber and lamp
 
@@ -238,7 +238,7 @@ Function block `FB_Door`, lines 755-854 of the source.
 Recovery: `FAULT` -> `ESTOP` when NOT Enable; `FAULT` -> `H:open` when Ack AND Enable; `ESTOP` -> `INIT` when Reset (S3) AND Enable.
 
 
-*Sources: `web/public/hbw_parts_up12.json (control.units.door)`; `web/public/sil/stf_plc.st#L755-L854`.*
+<!-- Sources: `web/public/hbw_parts_up12.json (control.units.door)`; `web/public/sil/stf_plc.st#L755-L854`. -->
 
 ## sauger: oven Sauggreifer
 
@@ -266,7 +266,7 @@ Function block `FB_Sauger`, lines 855-938 of the source.
 Recovery: `FAULT` -> `ESTOP` when NOT Enable; `FAULT` -> `H:up` when Ack AND Enable; `ESTOP` -> `INIT` when Reset (S3) AND Enable.
 
 
-*Sources: `web/public/hbw_parts_up12.json (control.units.sauger)`; `web/public/sil/stf_plc.st#L855-L938`.*
+<!-- Sources: `web/public/hbw_parts_up12.json (control.units.sauger)`; `web/public/sil/stf_plc.st#L855-L938`. -->
 
 ## turntable: Drehtisch, Saege and Auswerfer
 
@@ -294,7 +294,7 @@ Function block `FB_Turntable`, lines 939-1023 of the source.
 Recovery: `FAULT` -> `ESTOP` when NOT Enable; `FAULT` -> `H:push` when Ack AND Enable; `ESTOP` -> `INIT` when Reset (S3) AND Enable.
 
 
-*Sources: `web/public/hbw_parts_up12.json (control.units.turntable)`; `web/public/sil/stf_plc.st#L939-L1023`.*
+<!-- Sources: `web/public/hbw_parts_up12.json (control.units.turntable)`; `web/public/sil/stf_plc.st#L939-L1023`. -->
 
 ## ovenbelt: oven belt
 
@@ -315,7 +315,7 @@ Function block `FB_Ovenbelt`, lines 1024-1075 of the source.
 Recovery: `FAULT` -> `ESTOP` when NOT Enable; `FAULT` -> `READY` when Ack AND Enable; `ESTOP` -> `INIT` when Reset (S3) AND Enable.
 
 
-*Sources: `web/public/hbw_parts_up12.json (control.units.ovenbelt)`; `web/public/sil/stf_plc.st#L1024-L1075`.*
+<!-- Sources: `web/public/hbw_parts_up12.json (control.units.ovenbelt)`; `web/public/sil/stf_plc.st#L1024-L1075`. -->
 
 ## line: sorting line and ejectors
 
@@ -340,6 +340,6 @@ Function block `FB_Line`, lines 1076-1166 of the source.
 Recovery: `FAULT` -> `ESTOP` when NOT Enable; `FAULT` -> `READY` when Ack AND Enable; `ESTOP` -> `INIT` when Reset (S3) AND Enable.
 
 
-*Sources: `web/public/hbw_parts_up12.json (control.units.line)`; `web/public/sil/stf_plc.st#L1076-L1166`.*
+<!-- Sources: `web/public/hbw_parts_up12.json (control.units.line)`; `web/public/sil/stf_plc.st#L1076-L1166`. -->
 
-*Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit.*
+<!-- Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit. -->

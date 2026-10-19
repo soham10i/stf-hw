@@ -44,6 +44,6 @@ the machine is:
 
 Retired outputs (driven by nothing, after the upgrades replaced their actuators): vacuum gripper robot: Q7; multi-processing oven: Q10; sorting line: Q2.
 
-*Sources: `web/public/hbw_parts_up12.json (control.units edges, control.jog, interlocks, control.retired)`; `web/public/hbw_parts_up12.json (plc.parts: safety_relay_K0, contactor_K1, contactor_K2)`.*
+<!-- Sources: `web/public/hbw_parts_up12.json (control.units edges, control.jog, interlocks, control.retired)`; `web/public/hbw_parts_up12.json (plc.parts: safety_relay_K0, contactor_K1, contactor_K2)`. -->
 
-*Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit.*
+<!-- Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit. -->

@@ -8,6 +8,32 @@ title says what the card shows.
 > Every number is simulated from the twin's models, not measured on a real machine. Values the models only assume
 > are marked *assumed* on the blueprint sheets.
 
+## Header toolbar controls
+
+The persistent header toolbar provides instant navigation, assistance, and operator tools:
+
+- **3D twin**: Jumps directly to the interactive 3D factory simulation view.
+- **Guide**: Toggles this field guide inside a portaled, frosted glassmorphism modal with background blur.
+- **Ask**: Opens the grounded Industrial Copilot sidebar for instant telemetry and documentation Q&A.
+- **🔔 Owner Notifications**: Displays live email/webhook dispatch status (`on · email` or `off`), allows testing email delivery in one click, and saves an operator token (`STF_API_TOKEN`) for protected endpoints.
+- **🎨 Theme**: Switches between dark modes and color palettes (Slate, Obsidian, Titanium, Aurora).
+
+<p align="center">
+  <img src="images/notify-alerts.jpg" alt="Owner Notifications Menu" width="85%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+</p>
+
+### Privacy & Consent-Gated Analytics
+
+The frontend operates with strict privacy-by-design standards:
+
+<p align="center">
+  <img src="images/consent-banner.jpg" alt="Privacy & Consent Banner" width="85%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+</p>
+
+- **Signed Session Cookies**: Keeps each visitor's simulated orders, camera snapshots, and copilot chats strictly isolated without exposing raw user IDs.
+- **Zero Fingerprinting**: No canvas hashing, device serials, or invasive trackers.
+- **Consent-Gated Telemetry**: Page beacons and coarse geo-location (country/city) are only dispatched if the visitor explicitly accepts the banner.
+
 ## Pages
 
 - **Operate**: [Overview](#overview) · [Production](#production) · [Quality & trace](#quality-trace) · [Vision QC](#vision-qc) · [Alarms](#alarms) · [Copilot](#copilot)

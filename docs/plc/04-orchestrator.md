@@ -55,6 +55,6 @@ and the policies converge.
 | 120.0 | 1388.8 | 1345.3 | 1345.3 |
 
 
-*Sources: `web/public/hbw_parts_up12.json (control.policies, control.study)`; `web/public/sil/plc.json (jobs, job_units, layout)`; `web/public/sil/stf_plc.st#L1167-L1923`.*
+<!-- Sources: `web/public/hbw_parts_up12.json (control.policies, control.study)`; `web/public/sil/plc.json (jobs, job_units, layout)`; `web/public/sil/stf_plc.st#L1167-L1923`. -->
 
-*Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit.*
+<!-- Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit. -->

@@ -14,7 +14,7 @@ a run of the compiled program against the simulated plant (software in the loop)
 3. Every cookie's trace record is complete, and its flavour is confirmed by the colour sensor.
 
 
-*Sources: `stf-cad/hbw/control.py (module docstring: PROOFS)`.*
+<!-- Sources: `stf-cad/hbw/control.py (module docstring: PROOFS)`. -->
 
 ## Compiling and running it
 
@@ -58,6 +58,6 @@ Deliberate faults put into the program; each must be caught by the run:
 | SM3 | slot A1's travel target set to the next column | caught | the order did not complete in 3600 s (states {'crane': 100, 'belt': 910, 'arm': 100, 'door': 100, 'sauger': 100, 'turntable': 100, 'ovenbelt': 100, 'line': 100}) |
 
 
-*Sources: `web/public/sil/sil.json`; `stf-cad/hbw/sil/iec.py (module docstring)`.*
+<!-- Sources: `web/public/sil/sil.json`; `stf-cad/hbw/sil/iec.py (module docstring)`. -->
 
-*Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit.*
+<!-- Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit. -->

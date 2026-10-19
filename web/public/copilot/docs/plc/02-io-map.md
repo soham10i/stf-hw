@@ -192,6 +192,6 @@ Written by the program every scan for the operator screen and the twin's PLC pan
 | %MW108 | mon_line_n | line: jobs it has started (a job ending and the next starting in one scan) |
 
 
-*Sources: `web/public/sil/plc.json (io)`; `web/public/sil/stf_plc.st`.*
+<!-- Sources: `web/public/sil/plc.json (io)`; `web/public/sil/stf_plc.st`. -->
 
-*Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit.*
+<!-- Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit. -->

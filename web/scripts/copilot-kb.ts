@@ -22,7 +22,7 @@ const passages: Passage[] = [];
 function plain(md: string) {
   const tex: string[] = [];
   const kept = md.replace(/\$\$[\s\S]+?\$\$|\$[^$\n]+\$/g, (m) => `\u0000${tex.push(m.replace(/\s+/g, " ")) - 1}\u0000`);
-  return kept.replace(/```[\s\S]*?```/g, " ").replace(/!\[([^\]]*)\]\([^)]+\)/g, "Figure: $1.").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[*_`>#]/g, "")
+  return kept.replace(/<!--[\s\S]*?-->/g, " ").replace(/```[\s\S]*?```/g, " ").replace(/!\[([^\]]*)\]\([^)]+\)/g, "Figure: $1.").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[*_`>#]/g, "")
     .replace(/\|/g, " ").replace(/^-{3,}$/gm, " ").replace(/^[ \t]*[-:| ]{3,}$/gm, " ").replace(/\s+/g, " ").trim()
     .replace(/\u0000(\d+)\u0000/g, (_, i) => tex[+i]);
 }

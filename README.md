@@ -66,6 +66,8 @@
 * **Vision QC on the Process:** One cookie in every 12 is damaged on purpose (QC testing), and the camera's CNN catches it. The rejected cookie is held at the end of the line and made again.
 * **One Dataset:** The month, energy, bake and inspection data the dashboard shows live in Supabase (SQLite locally); each visitor's twin adds its own orders and inspections.
 * **20+ Dashboard Perspectives:** OEE waterfalls, cycle bottlenecks, carbon per batch, microgrid battery scheduling, vision QC, and ISO 13849 / IEC 62443 security boundaries.
+* **Owner Notifications & Diagnostics:** Dedicated bell toolbar menu with live SMTP self-testing and throttled arrival alerts via Gmail or webhooks.
+* **Privacy by Design:** Liquid glassmorphism UI with signed session isolation, zero canvas/fingerprint tracking, and consent-gated telemetry.
 * **Dual Execution Modes:** Runs 100% serverless in the browser via static WebAssembly, or connects live via WebSockets (`/ws`) to a high-rate FastAPI simulation kernel.
 
 ---
@@ -127,6 +129,20 @@
       <br>
       <b>🔥 The Bake as a Process</b>
       <p>The oven heating, a cookie drying and browning through its thickness, four ways to end a bake, and what a real bake does to capacity and energy.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/images/notify-alerts.jpg" alt="Real-time owner notifications and SMTP test" style="border-radius: 6px;">
+      <br>
+      <b>🔔 Real-Time Owner Notifications</b>
+      <p>Instant alerts when visitors interact with the live factory twin. Includes live SMTP test triggers, per-guest throttling (max 1 email/12h), and token-guarded API delivery.</p>
+    </td>
+    <td width="50%">
+      <img src="docs/images/consent-banner.jpg" alt="Privacy-preserving consent banner and tracking" style="border-radius: 6px;">
+      <br>
+      <b>🛡️ Consent-Gated Privacy & Analytics</b>
+      <p>Clean liquid glassmorphism design with strict privacy guarantees: zero canvas/fingerprint tracking, encrypted session isolation, and consent-gated telemetry stored in Supabase or SQLite.</p>
     </td>
   </tr>
 </table>

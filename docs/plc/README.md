@@ -65,6 +65,6 @@ program drives an output.
 
 4 modules: high-bay warehouse (crane, belt); vacuum gripper robot (arm); multi-processing oven (door, sauger, turntable, ovenbelt); sorting line (line).
 
-*Sources: `web/public/sil/stf_plc.st`; `web/public/hbw_parts_up12.json (control)`; `web/public/sil/plc.json`; `web/public/sil/sil.json`.*
+<!-- Sources: `web/public/sil/stf_plc.st`; `web/public/hbw_parts_up12.json (control)`; `web/public/sil/plc.json`; `web/public/sil/sil.json`. -->
 
-*Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit.*
+<!-- Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit. -->

@@ -171,6 +171,10 @@ export function Md({ text, cites }: { text: string; cites?: Source[] }) {
   };
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    if (/^\s*<!--/.test(line)) {
+      while (i < lines.length && !/-->/.test(lines[i])) i++;
+      continue;
+    }
     const fence = /^\s*```\s*([\w+#.-]*)\s*$/.exec(line);
     if (fence) {                                              // a fenced code block
       flush();
@@ -217,7 +221,7 @@ export function Md({ text, cites }: { text: string; cites?: Source[] }) {
       list.items.push(ol ? ol[2] : ul![1]);
     } else if (/^\s{2,}\S/.test(line) && list) {             // a list item's continuation line
       list.items[list.items.length - 1] += "\n" + line.trim();
-    } else { flush(); if (line.trim()) out.push(<p key={out.length}>{inline(line, i)}</p>); }
+    } else { flush(); if (line.trim() && !/^\*?(Sources:\s*`|Generated from the twin's exports)/i.test(line.trim())) out.push(<p key={out.length}>{inline(line, i)}</p>); }
   }
   flush();
   return <>{out}</>;

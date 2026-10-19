@@ -27,6 +27,7 @@ var API_PROXY = {
     "/twin": API,
     "/copilot": API,
     "/guest": API,
+    "/notify": API,
     "/vision/captures": API,
     "/ws": { target: "ws://127.0.0.1:8000", ws: true, changeOrigin: false, xfwd: true },
 };

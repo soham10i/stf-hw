@@ -32,7 +32,7 @@ fischertechnik 24 V sensors and actuators, wired to the node through the adaptor
 | cable_duct | signal duct: Ethernet to the four nodes, safety circuit, controller I/O |
 
 
-*Sources: `web/public/hbw_parts_up12.json (plc.parts)`.*
+<!-- Sources: `web/public/hbw_parts_up12.json (plc.parts)`. -->
 
 ## Remote I/O nodes
 
@@ -47,7 +47,7 @@ Slice sizes: 750-series-like, ASSUMED: coupler 51x100x72, slice 12x100x68. Every
 | sorting line | own plate | DI1 (DI) DO1 (DO) AI1 (AI) | 11 of 18 |
 
 
-*Sources: `web/public/hbw_parts_up12.json (io3)`.*
+<!-- Sources: `web/public/hbw_parts_up12.json (io3)`. -->
 
 ## Electrical conventions (24 V)
 
@@ -84,6 +84,6 @@ datasheet and flags the difference:
 | Oven turntable Q1 direction | English 'counterclockwise' for BOTH Q1 and Q2 (Belegungsplan) | German 'im Uhrzeigersinn' (clockwise) for Q1 | Q1 = clockwise is used here |
 
 
-*Sources: `web/public/controller.json`; `536634-Factory-simulation-24V-extended-description.pdf`.*
+<!-- Sources: `web/public/controller.json`; `536634-Factory-simulation-24V-extended-description.pdf`. -->
 
-*Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit.*
+<!-- Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit. -->

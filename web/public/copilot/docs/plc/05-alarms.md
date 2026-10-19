@@ -95,6 +95,6 @@ Every alarm the program can raise. On an alarm the unit drops its outputs and go
 | SEC-04 | the cell firewall dropped a packet on a conduit | a device outside its allow-list: scan, misconfiguration or an attack | none on the machine: logged and shown | review the log entry |
 
 
-*Sources: `web/public/hbw_parts_up12.json (control.alarms)`.*
+<!-- Sources: `web/public/hbw_parts_up12.json (control.alarms)`. -->
 
-*Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit.*
+<!-- Generated from the twin's exports by `docs/gen/plc_docs.py`; do not edit. -->
