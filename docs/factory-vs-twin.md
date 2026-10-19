@@ -10,7 +10,7 @@ The renders below are the design ground truth of the physical cell — what the 
 
 ![The whole production cell as designed: warehouse on the left, vacuum gripper robot and oven in the middle, sorting line on the right](images/docs/warehouse.jpg)
 
-![The same cell running in the web twin, mid-order: the stacker crane serving the rack, the vacuum robot over the oven, the sorting line hood to the right](images/twin-order.jpg)
+![The same cell running in the web twin, mid-order: the stacker crane serving the rack, the vacuum robot over the oven, the sorting line hood to the right](assets/twin-order.jpg)
 
 ## Module by module
 

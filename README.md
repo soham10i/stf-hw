@@ -9,8 +9,14 @@
 </p>
 
 <p align="center">
+  <a href="https://stf-live-500754517962.europe-west1.run.app/stf/">
+    <img src="https://img.shields.io/badge/🚀%20LIVE%20DEMO-stf--live--500754517962.europe--west1.run.app%2Fstf%2F-success?style=for-the-badge&logo=googlecloud&logoColor=white&labelColor=0d1117" alt="Live Cloud Demo Badge">
+  </a>
+</p>
+
+<p align="center">
   <a href="https://github.com/soham10i/stf-hw/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/soham10i/stf-hw/ci.yml?branch=main&label=CI%20Pipeline&logo=github" alt="CI"></a>
-  <a href="https://soham10i.github.io/stf-hw/"><img src="https://img.shields.io/badge/Demo-Live%20In--Browser-brightgreen?logo=googlechrome" alt="Live Demo"></a>
+  <a href="https://stf-live-500754517962.europe-west1.run.app/stf/"><img src="https://img.shields.io/badge/Live%20Twin%20%2B%20Copilot-Google%20Cloud%20Run-brightgreen?logo=googlecloud" alt="Live Demo"></a>
   <img src="https://img.shields.io/badge/Python-3.11%2B-blue?logo=python" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/TypeScript-5.6-blue?logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/Three.js-r166%20%7C%20R3F-black?logo=three.js" alt="Three.js">
@@ -20,8 +26,8 @@
 </p>
 
 <p align="center">
-  <a href="https://stf-twin.onrender.com/"><b>🌐 Live In-Browser Demo</b></a> •
-  <a href="https://stf-live.onrender.com/stf/"><b>⚡ Live Twin + AI Copilot</b></a> •
+  <a href="https://stf-live-500754517962.europe-west1.run.app/stf/"><b>🚀 Live Production Twin + AI Copilot</b></a> •
+  <a href="https://stf-twin.onrender.com/"><b>🌐 In-Browser Demo</b></a> •
   <a href="docs/DASHBOARD_GUIDE.md"><b>📖 Operations Guide</b></a> •
   <a href="docs/DEPLOY.md"><b>🚀 Deployment</b></a> •
   <a href="#quick-start"><b>💻 Quick Start</b></a>
@@ -29,8 +35,18 @@
 
 ---
 
+### 🔬 Physical-to-Digital Pipeline (For Physical AI & Robotics Researchers)
+
+| Core Question | System Architecture & Research Ground Truth |
+| :--- | :--- |
+| **What is the physical system?** | **Fischertechnik 24V Smart Training Factory / High-Bay Warehouse (Model 536634)** — an industrial cyber-physical automation testbed equipped with 24V bidirectional encoder motors, precision phototransistor light barriers, pneumatic vacuum suction grippers, and analog color sensors across 4 integrated workcells (High-Bay Warehouse, Multi-Processing Oven, Vacuum Gripper Robot, and Sorting Line with Vision QC). |
+| **How does the data flow?** | **PLC / Microcontroller $\rightarrow$ MQTT / WebSockets $\rightarrow$ Live 3D State & Health Monitoring Twin** — Deterministic real-time sensor/actuator telemetry streams from physical field controllers over MQTT and bidirectional WebSockets directly into an in-browser 60 FPS Three.js physics & kinematics engine, an IEC 61131-3 WebAssembly execution runtime, and online predictive maintenance degradation estimators. |
+| **Where is the live demo?** | **[https://stf-live-500754517962.europe-west1.run.app/stf/](https://stf-live-500754517962.europe-west1.run.app/stf/)** — Zero-install live cloud deployment featuring the full 3D interactive twin, physical factory simulation loop, WebAssembly PLC, multi-turn AI copilot, and all 20+ operations dashboards. |
+
+---
+
 <p align="center">
-  <img src="docs/images/twin-order.jpg" alt="STF Digital Twin 3D view executing an automated baking order" width="100%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+  <img src="docs/assets/twin-order.jpg" alt="STF Digital Twin 3D view executing an automated baking order" width="100%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
 </p>
 
 > [!NOTE]
@@ -40,6 +56,7 @@
 
 ## 📑 Table of Contents
 
+- [Physical-to-Digital Pipeline](#-physical-to-digital-pipeline-for-physical-ai--robotics-researchers)
 - [Key Highlights](#-key-highlights)
 - [Visual Showcase](#-visual-showcase)
 - [System Architecture](#-system-architecture)
@@ -77,13 +94,13 @@
 <table>
   <tr>
     <td width="50%">
-      <img src="docs/images/twin-plc.jpg" alt="In-Browser IEC 61131-3 PLC execution" style="border-radius: 6px;">
+      <img src="docs/assets/twin-plc.jpg" alt="In-Browser IEC 61131-3 PLC execution" style="border-radius: 6px;">
       <br>
       <b>⚡ Real PLC Running in WebAssembly</b>
       <p>IEC 61131-3 control logic running directly in your browser. Shows real-time unit states, I/O registers, hazard zone interlocks, and the execution trace.</p>
     </td>
     <td width="50%">
-      <img src="docs/images/twin-inside.jpg" alt="Mechanical layout inside the enclosure" style="border-radius: 6px;">
+      <img src="docs/assets/twin-inside.jpg" alt="Mechanical layout inside the enclosure" style="border-radius: 6px;">
       <br>
       <b>🔧 Physical Kinematics & Wire Routing</b>
       <p>Enclosure stripped away exposing real drag chains, lead screws, motor pulleys, photoelectric sensors, and field wiring to the PLC cabinet.</p>
@@ -91,13 +108,13 @@
   </tr>
   <tr>
     <td width="50%">
-      <img src="docs/images/dashboard-overview.jpg" alt="Operations Overview Dashboard" style="border-radius: 6px;">
+      <img src="docs/assets/dashboard-overview.jpg" alt="Operations Overview Dashboard" style="border-radius: 6px;">
       <br>
       <b>📊 Factory Operations & OEE</b>
       <p>Live order tracking, OEE breakdown (availability, performance, quality), dynamic cycle bottleneck analysis, and unit state progressions.</p>
     </td>
     <td width="50%">
-      <img src="docs/images/dashboard-health.jpg" alt="Predictive Maintenance & Health Index" style="border-radius: 6px;">
+      <img src="docs/assets/dashboard-health.jpg" alt="Predictive Maintenance & Health Index" style="border-radius: 6px;">
       <br>
       <b>🩺 Predictive Maintenance & Degradation</b>
       <p>Health Index (HI) and Remaining Useful Life (RUL) tracking for high-bay warehouse belts, vacuum cups, oven heaters, and pneumatic seals.</p>
@@ -105,13 +122,13 @@
   </tr>
   <tr>
     <td width="50%">
-      <img src="docs/images/copilot.jpg" alt="Industrial AI Copilot with context store" style="border-radius: 6px;">
+      <img src="docs/assets/copilot.jpg" alt="Industrial AI Copilot with context store" style="border-radius: 6px;">
       <br>
       <b>🤖 Grounded Industrial Copilot</b>
       <p>Conversational assistant grounded in live telemetry and 438 technical documents. Verified against twin data before answers are presented.</p>
     </td>
     <td width="50%">
-      <img src="docs/images/dashboard-month.jpg" alt="Simulated production month" style="border-radius: 6px;">
+      <img src="docs/assets/dashboard-month.jpg" alt="Simulated production month" style="border-radius: 6px;">
       <br>
       <b>📅 Full Simulated Production Month</b>
       <p>30 days of accelerated production: compare throughput, unexpected breakdowns, and downtime costs with preventive maintenance (PM) ON vs. OFF.</p>
@@ -119,13 +136,13 @@
   </tr>
   <tr>
     <td width="50%">
-      <img src="docs/images/vision-qc.jpg" alt="Vision QC on the 3D twin's cookies" style="border-radius: 6px;">
+      <img src="docs/assets/vision-qc.jpg" alt="Vision QC on the 3D twin's cookies" style="border-radius: 6px;">
       <br>
       <b>📷 Vision QC on the Process</b>
       <p>The camera in the colour hood photographs every cookie the twin bakes; the CNN and the autoencoder judge it, and one damaged cookie in every 12 tests them.</p>
     </td>
     <td width="50%">
-      <img src="docs/images/oven-process.jpg" alt="The bake as a process" style="border-radius: 6px;">
+      <img src="docs/assets/oven-process.jpg" alt="The bake as a process" style="border-radius: 6px;">
       <br>
       <b>🔥 The Bake as a Process</b>
       <p>The oven heating, a cookie drying and browning through its thickness, four ways to end a bake, and what a real bake does to capacity and energy.</p>
@@ -133,13 +150,13 @@
   </tr>
   <tr>
     <td width="50%">
-      <img src="docs/images/notify-alerts.jpg" alt="Real-time owner notifications and SMTP test" style="border-radius: 6px;">
+      <img src="docs/assets/notify-alerts.jpg" alt="Real-time owner notifications and SMTP test" style="border-radius: 6px;">
       <br>
       <b>🔔 Real-Time Owner Notifications</b>
       <p>Instant alerts when visitors interact with the live factory twin. Includes live SMTP test triggers, per-guest throttling (max 1 email/12h), and token-guarded API delivery.</p>
     </td>
     <td width="50%">
-      <img src="docs/images/consent-banner.jpg" alt="Privacy-preserving consent banner and tracking" style="border-radius: 6px;">
+      <img src="docs/assets/consent-banner.jpg" alt="Privacy-preserving consent banner and tracking" style="border-radius: 6px;">
       <br>
       <b>🛡️ Consent-Gated Privacy & Analytics</b>
       <p>Clean liquid glassmorphism design with strict privacy guarantees: zero canvas/fingerprint tracking, encrypted session isolation, and consent-gated telemetry stored in Supabase or SQLite.</p>
