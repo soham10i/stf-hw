@@ -9,7 +9,7 @@ export const FEATURE: Record<number, string> = {
   16: "scheduler", 17: "copilot", 18: "carbon model",
 };
 
-const REF = String.raw`(?:Upgrades?\s|U)`;
+const REF = String.raw`(?:Upgrades?\s|U|up)`;
 const name = (n: string) => FEATURE[+n] ?? `step ${n}`;
 const RULES: [RegExp, string | ((...m: string[]) => string)][] = [
   // phrasings the generic rules would make clumsy
@@ -27,7 +27,7 @@ const RULES: [RegExp, string | ((...m: string[]) => string)][] = [
   // "Upgrades 5 and 7"
   [/\bUpgrades (\d{1,2}) and (\d{1,2})\b/g, (_m, a, b) => `${name(a)} and ${name(b)}`],
   // anything else: the feature's name
-  [/(?<![-\w.])(?:Upgrade |U)(\d{1,2})(?![-\d])/g, (_m, n) => name(n)],
+  [/(?<![-\w.])(?:Upgrade |U|up)(\d{1,2})(?![-\d])/gi, (_m, n) => name(n)],
 ];
 
 /** One string with its design-step references replaced by feature names. */

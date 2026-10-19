@@ -1,22 +1,22 @@
 # Validation of Upgrades 1-11
 
-Run 2026-10-06 10:30 by `stf-cad/hbw/validate.py` in 24.8 min. **All checks pass.**
+Run 2026-10-18 15:32 by `stf-cad/hbw/validate.py` in 32.1 min. **12 checks fail** (listed at the end).
 
 ## A. Regression: every variant re-exported through its own proof gates
 
 | Variant | Proof gates | Fingerprint | Baseline |
 |---|---|---|---|
-| base | pass | `711384cae7050657` | same |
-| up1 | pass | `3a557419cd2f4a15` | same |
-| up2 | pass | `b4d644ba341b40a9` | same |
-| up3 | pass | `2971fec0a424fbdd` | same |
-| up4 | pass | `eddb8092a85f09d2` | same |
-| up5 | pass | `91a5151430b1369e` | same |
-| up6 | pass | `6aa7bba7c3157f14` | same |
-| up7 | pass | `3472ba2584d4ad82` | same |
-| up10 | pass | `06e82bb098ca27ac` | same |
-| up11 | pass | `f83568a8d7290ee1` | same |
-| up12 | pass | `bb0fe5697678867a` | same |
+| base | pass | `da9412ff4f126dbf` | CHANGED |
+| up1 | pass | `8a3222d27dff8ff7` | CHANGED |
+| up2 | pass | `b9aa72488538b2d0` | CHANGED |
+| up3 | pass | `d79df348f159b09f` | CHANGED |
+| up4 | pass | `70b614b9745014fc` | CHANGED |
+| up5 | pass | `edac0d10831c6e31` | CHANGED |
+| up6 | pass | `35270c8b32a645a1` | CHANGED |
+| up7 | pass | `ebdd5ab5eaa81e31` | CHANGED |
+| up10 | pass | `08fafd7bb7802412` | CHANGED |
+| up11 | pass | `5f6e8d7af114d606` | CHANGED |
+| up12 | pass | `af23193285c05d49` | CHANGED |
 
 ## B. Proofs without an export of their own
 
@@ -46,8 +46,22 @@ Run 2026-10-06 10:30 by `stf-cad/hbw/validate.py` in 24.8 min. **All checks pass
 
 ## E. Data products
 
-- **Month data:** month.json `f2ea4c5120bed073` (baseline).
-- **Grid:** re-run gives the same grid.json `f2b1af7de4e1da07`.
+- **Month data:** month.json `6d412cb05d705c30` (baseline).
+- **Grid:** re-run gives the same grid.json `b96a35c6ca6396c9`.
 - **Network deployments** over 600 windows: PyTorch vs stored 0.0005, ONNX vs PyTorch 0.000000, browser JSON weights vs PyTorch 0.000032 orders.
-- **pytest:** ............................                                             [100%]. **Web build:** ok.
+- **pytest:** FAILED tests/test_sessions.py::test_the_answer_says_its_style - TypeError: se.... **Web build:** ok.
 
+## Failing checks
+
+- export base: fingerprint da9412ff4f126dbf != 711384cae7050657
+- export up1: fingerprint 8a3222d27dff8ff7 != 3a557419cd2f4a15
+- export up2: fingerprint b9aa72488538b2d0 != b4d644ba341b40a9
+- export up3: fingerprint d79df348f159b09f != 2971fec0a424fbdd
+- export up4: fingerprint 70b614b9745014fc != eddb8092a85f09d2
+- export up5: fingerprint edac0d10831c6e31 != 91a5151430b1369e
+- export up6: fingerprint 35270c8b32a645a1 != 6aa7bba7c3157f14
+- export up7: fingerprint ebdd5ab5eaa81e31 != 3472ba2584d4ad82
+- export up12: fingerprint af23193285c05d49 != bb0fe5697678867a
+- export up10: fingerprint 08fafd7bb7802412 != 06e82bb098ca27ac
+- export up11: fingerprint 5f6e8d7af114d606 != f83568a8d7290ee1
+- data: pytest: FAILED tests/test_sessions.py::test_the_answer_says_its_style - TypeError: se...

@@ -9,6 +9,7 @@ import "./styles/maintain.css";
 import "./styles/vision.css";
 import "./styles/chat.css";
 import "./styles/docs.css";
+import "./styles/consent.css";
 import { Dashboard } from "./Dashboard";
 import { applyTheme } from "../shared/theme";
 

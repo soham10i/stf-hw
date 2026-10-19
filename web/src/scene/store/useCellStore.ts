@@ -87,6 +87,9 @@ export interface CellModel {
   delivered: number;
   /** nothing to make: the cell rests */
   idle: boolean;
+  /** a rejected cookie's mould is refilled with dough at once, so twelve cookies are always in the
+      factory; off: the slot stays empty until a restock */
+  dough: boolean;
   /** what the cell is doing, in words */
   step: string;
   /** the running cycle: its slot, its flavour, its Lagerstelle; t of total seconds */
@@ -123,7 +126,7 @@ function newJoints(): CellJoints {
 export class CellStore {
   readonly joints: CellJoints = newJoints();
   readonly model: CellModel = {
-    rack: {}, rawColour: "#D8B98C", queue: [], seq: 0, delivered: 0, idle: true, step: "",
+    rack: {}, rawColour: "#D8B98C", queue: [], seq: 0, delivered: 0, idle: true, dough: true, step: "",
     cycle: { from: "", to: "", total: 0, t: 0, flavour: "", collect: "" },
     inspect: { next: null, recent: [], passed: 0, rejected: 0, auto: true, batch: { pos: 0, pick: -1, fault: "burnt" } },
   };
@@ -176,10 +179,12 @@ export class CellStore {
   }
 
   // ---- actions (the Orders panel) ----
-  /** Queue an order line; false when the rack has too few raw cookies for it. */
+  /** The order book holds at most this many lines; a further order is rejected. */
+  static readonly MAX_ORDERS = 12;
+  /** Queue an order line; false when the rack has too few raw cookies for it or the book is full. */
   place(flavour: string, qty: number) {
     const n = Math.max(1, Math.min(12, Math.round(qty)));
-    if (n > this.free()) return false;
+    if (this.model.queue.length >= CellStore.MAX_ORDERS || n > this.free()) return false;
     this.model.queue.push({ id: ++this.model.seq, flavour, qty: n, started: 0, done: 0 });
     this.commit();
     return true;

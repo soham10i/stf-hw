@@ -27,6 +27,10 @@ from dataclasses import dataclass, field
 
 from fastapi import HTTPException, Request, WebSocket
 
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
+
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "[::1]", "::1"}
 
 
@@ -87,14 +91,27 @@ class RateLimiter:
 
 
 class CommandGuard:
-    """FastAPI dependency: may this request command the machine?"""
+    """FastAPI security dependency enforcing origin verification, local host / token auth, and rate limits."""
 
     def __init__(self, settings: Settings) -> None:
+        """Initialize the guard with API settings and a token bucket rate limiter.
+
+        Args:
+            settings: Security configuration containing allowed origins, API token, and limits.
+        """
         self.settings = settings
         self.limiter = RateLimiter(settings.commands_per_second, settings.command_burst)
 
     async def __call__(self, request: Request) -> None:
-        # a browser page from a foreign origin may not command, even towards localhost (CSRF)
+        """Authorize an incoming machine command request.
+
+        Args:
+            request: The incoming FastAPI HTTP request.
+
+        Raises:
+            HTTPException: 403 Forbidden if origin is untrusted or host lacks authentication.
+            HTTPException: 429 Too Many Requests if the client rate limit is exceeded.
+        """
         origin = request.headers.get("origin")
         if (
             origin
@@ -103,8 +120,6 @@ class CommandGuard:
         ):
             note("command: foreign origin")
             raise HTTPException(status_code=403, detail="origin not allowed")
-        # Host is what the client asked for; a DNS-rebinding page arrives with its own
-        # name, not localhost
         local = is_local(request.headers.get("host"))
         if not (local or token_ok(self.settings, request.headers.get("x-stf-token"))):
             note("command: not local, no token")
@@ -112,7 +127,7 @@ class CommandGuard:
                 status_code=403, detail="commands need the operator's machine or an operator token"
             )
         client = request.client.host if request.client else "?"
-        if client in ("127.0.0.1", "::1"):  # behind the local web proxy: the real client
+        if client in ("127.0.0.1", "::1"):
             client = (request.headers.get("x-forwarded-for") or client).split(",")[0].strip()
         if not self.limiter.allow(client):
             note("command: rate limit")
@@ -120,36 +135,65 @@ class CommandGuard:
 
 
 def ws_origin_ok(settings: Settings, ws: WebSocket) -> bool:
-    """Cross-site WebSocket hijacking guard: a browser always sends Origin."""
+    """Validate whether an incoming WebSocket connection origin is authorized.
+
+    Cross-site WebSocket hijacking guard: standard browsers always send Origin.
+
+    Args:
+        settings: Security settings containing allowed origins.
+        ws: Incoming WebSocket connection.
+
+    Returns:
+        bool: True if authorized, False otherwise.
+    """
     origin = ws.headers.get("origin")
-    if origin is None:  # not a browser (CLI tools, tests)
+    if origin is None:  # not a browser (e.g. CLI tools, test suites)
         return True
     if origin in settings.allowed_origins:
         return True
-    # the page's own origin, when the web app is served through a tunnel/proxy
+    # The page's own origin, when the web app is served through a tunnel/proxy
     return _host(origin.split("://", 1)[-1]) == _host(ws.headers.get("host"))
 
 
 class ClientCounter:
+    """Thread-safe connection counter enforcing max concurrent active client limits."""
+
     def __init__(self, limit: int) -> None:
+        """Initialize client counter with concurrency limit.
+
+        Args:
+            limit: Maximum allowed concurrent active clients.
+        """
         self.limit = limit
         self.n = 0
 
     def try_add(self) -> bool:
+        """Attempt to register an additional active client.
+
+        Returns:
+            bool: True if admitted within limit, False if capacity reached.
+        """
         if self.n >= self.limit:
             return False
         self.n += 1
         return True
 
     def remove(self) -> None:
+        """Decrement active client count when a client disconnects."""
         self.n = max(0, self.n - 1)
 
 
-# recent rejected requests, for /health (no secrets, just counts)
+# Recent rejected requests for health check reporting (no secrets, just counts)
 REJECTED: deque[tuple[float, str]] = deque(maxlen=200)
 COUNTS: dict[str, int] = defaultdict(int)
 
 
 def note(kind: str) -> None:
+    """Record a rejected security check for audit logging and health diagnostic metrics.
+
+    Args:
+        kind: String identifier describing the security rejection reason.
+    """
     REJECTED.append((time.time(), kind))
     COUNTS[kind] += 1
+    logger.warning("Security check rejected: %s", kind)

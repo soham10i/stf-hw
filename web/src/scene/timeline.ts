@@ -54,8 +54,13 @@ export function binColour(doc: CadDoc, bin: string | null) {
 }
 
 /** One cycle's choreography. `plan` is the VGR's tour (vgr_tours.json: belt -> oven, then the
-    oldest finished cookie's Lagerstelle -> belt, or nothing); `collect` is that Lagerstelle. */
-export function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[], collect: string | null): Key[] {
+    oldest finished cookie's Lagerstelle -> belt, or nothing); `collect` is that Lagerstelle.
+    `rest` (a rack slot) short-circuits the park detour: after the empty mould is stowed the
+    crane travels straight to that slot's bay and rests there, because the next order's pick is
+    known — the shortest path between jobs, and the next cycle then starts `fromRest` (already at
+    its pick bay, so its head skips the park-and-travel keys). */
+export function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[], collect: string | null,
+                       rest: string | null = null, fromRest = false): Key[] {
   const T = doc.joints.travel.stops, L = doc.joints.lift.stops, F = doc.joints.fork.stops;
   const hb = doc.stations.hbw_pick[1], vg = doc.stations.vgr_pick[1];
   const RAW = doc.pipeline.raw_colour;
@@ -80,8 +85,14 @@ export function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[],
                   taken: st.taken, ovenIn: st.ovenIn, ovenGo: st.ovenGo, say });
 
   // ---- warehouse -> belt -> VGR point (raw cookie) ----
-  k(T.conveyor, L.transit, F.retracted, hb, "shelf", FROM, V0, "park at the conveyor");
-  k(TF, L.transit, F.retracted, hb, "shelf", FROM, V0, `travel to bay column ${fc}`);
+  if (fromRest) {
+    // the previous cycle stowed the empty mould and came straight here to rest: the pick starts
+    // at once, no park detour
+    k(TF, L.transit, F.retracted, hb, "shelf", FROM, V0, `resting at ${FROM} — the next order's pick, brought here by the last job`);
+  } else {
+    k(T.conveyor, L.transit, F.retracted, hb, "shelf", FROM, V0, "park at the conveyor");
+    k(TF, L.transit, F.retracted, hb, "shelf", FROM, V0, `travel to bay column ${fc}`);
+  }
   k(TF, LFu, F.retracted, hb, "shelf", FROM, V0, `lift spindle: drop 10 mm below shelf ${fr}`);
   k(TF, LFu, F.bay, hb, "shelf", FROM, V0, `Ausleger into ${FROM}, under the mould`);
   k(TF, LFl, F.bay, hb, "fork", FROM, V0, "lift 10 mm — mould off the brackets");
@@ -97,7 +108,7 @@ export function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[],
 
   // ---- the empty mould: back into its slot, and out again for the baked cookie ----
   // The VGR holds its pose (vv) while the crane works; nothing else moves.
-  const stowEmpty = (vv: VV) => {
+  const stowEmpty = (vv: VV, rest: string | null) => {
     k(T.conveyor, L.transit, F.retracted, hb, "belt", FROM, vv, "Q2 belt reverse — the empty mould rides back to the crane");
     k(T.conveyor, L.belt_under, F.retracted, hb, "belt", FROM, vv, "descend below the empty mould");
     k(T.conveyor, L.belt_under, F.conveyor, hb, "belt", FROM, vv, "Ausleger under the empty mould");
@@ -110,7 +121,14 @@ export function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[],
     k(TF, LFu, F.bay, hb, "shelf", FROM, vv, `lower — the empty mould waits in ${FROM} while the cookie bakes`);
     k(TF, LFu, F.retracted, hb, "shelf", FROM, vv, "retract");
     k(TF, L.transit, F.retracted, hb, "shelf", FROM, vv, "raise to transit");
-    k(T.conveyor, L.transit, F.retracted, hb, "shelf", FROM, vv, "return to park");
+    if (rest) {
+      // the next order's pick is known: go straight to its bay and rest there — the shortest
+      // path between jobs, no detour to the conveyor
+      const rc = rest.slice(1), TRr = T[`bay${rc}`];
+      k(TRr, L.transit, F.retracted, hb, "shelf", FROM, vv, `next order waiting: rest at ${rest} — the crane's next pick, on the shortest path`);
+    } else {
+      k(T.conveyor, L.transit, F.retracted, hb, "shelf", FROM, vv, "return to park");
+    }
   };
   const fetchEmpty = (vv: VV) => {
     k(TF, L.transit, F.retracted, hb, "shelf", FROM, vv, `travel to bay column ${fc} — fetch the empty mould for the baked cookie`);
@@ -135,7 +153,7 @@ export function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[],
     const picked = !q.carry && !!p.carry, placed = !!q.carry && !p.carry;
     const vq = { vs: q.sw, vr: q.rr, vp: q.pz, vc: q.compress, cup: q.cup, carry: q.carry };
     // the VGR has left the belt with the raw cookie: the empty mould goes home
-    if (!stowed && !st.cookie && p.station !== "belt") { stowEmpty(vq); stowed = true; }
+    if (!stowed && !st.cookie && p.station !== "belt") { stowEmpty(vq, collect ? rest : null); stowed = true; }
     // the cookie is baking and the VGR is clear of the oven: the crane brings the mould back
     if (collect && stowed && !fetched && st.ovenGo && p.station !== "oven") { fetchEmpty(vq); fetched = true; }
     if (p.station === "belt" && picked) st.cookie = false;
@@ -154,7 +172,7 @@ export function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[],
   }
   // no cookie comes back (no order): the empty mould is already home
   if (!collect) {
-    if (!stowed) stowEmpty(V0);
+    if (!stowed) stowEmpty(V0, null);
     return out;
   }
 
@@ -181,3 +199,6 @@ export const BELT_SPEED = 25; // mm/s - slowed so the hand-over reads clearly
 export const RATE = 4; // playback speedup
 /** Review aid: ?speed=N plays the cell N times faster still (e.g. to watch a whole order). */
 export const PLAYBACK = Math.max(0.1, Math.min(50, Number(new URLSearchParams(typeof window === "undefined" ? "" : window.location.search).get("speed")) || 1));
+/** Fast-forward, set live by the control in the twin's chrome: the clock runs PLAYBACK × this
+    faster, so 2×/4×/8× watch a whole order without waiting on every motion. */
+export const FF = { value: 1 };

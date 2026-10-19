@@ -24,6 +24,11 @@ browser reaches the API, and the browser keeps it in a cookie.
   not carry it), `Secure` over HTTPS, `Path=/`, kept for `STF_GUEST_DAYS` (default 30).
 - **No personal data.** A guest record is its id, when it was made, when it was last seen and how many
   visits. No IP address, no browser fingerprint.
+- **Visible in the twin.** The top bar shows the session id and which database holds its data
+  (`web/src/twin/TopBar.tsx`); the Orders panel's *Session history* section reads `GET /twin/records`
+  back: the order lines this visitor's twin finished and the cookies its camera judged, newest first
+  (`web/src/shared/session.ts`, `web/src/shared/records.ts`). Two visitors on the deployed site are
+  two guests: neither sees the other's rows.
 - **Lapses on its own.** A guest unseen for `STF_GUEST_DAYS` is removed with its conversations.
 - **Forget me.** `DELETE /guest` removes the guest's conversations, photos and live twin at once, and
   clears the cookie. `GET /guest` shows the guest's record and which database is in use.
@@ -126,8 +131,8 @@ The database also holds what the dashboard shows and what each guest's 3D twin d
 and in the month alike: the camera rejects it and the cell bakes it again. So every order in `orders`
 has a `qc_fault`, bakes one cookie more than it delivers, and the month's quality is 90 %.
 
-**Loading it.** `make db-seed` empties the factory tables and loads them from the files the dashboard
-reads, then stores the ten sample photos (their records in `captures`, the JPEGs in the bucket) with
+**Loading it.** `make db-seed` removes the rows it loaded last time (the guests' own `twin` orders and
+inspections stay) and loads the factory tables again from the files the dashboard reads, then stores the ten sample photos (their records in `captures`, the JPEGs in the bucket) with
 their decisions in `inspections`. `make db-seed RESET=1` first forgets every guest, conversation and
 photo. Run it again whenever the simulations change, and the database matches the dashboard again.
 

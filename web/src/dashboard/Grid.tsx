@@ -160,7 +160,7 @@ export function GridPage() {
               <tr><td>CO₂ this month</td>{ov.options.map((o) => <td key={o.name} className="num">{o.kpi.co2_kg} kg</td>)}</tr>
               <tr><td>capital · payback</td>{ov.options.map((o) => <td key={o.name} className="num">{o.capex_total ? `€${o.capex_total} · ${o.payback_years} years` : `€${g.economics.capex_total} · ${g.economics.payback_years} years`}</td>)}</tr>
             </tbody></table>
-          <p className="db-note">The oven ({ov.oven.rated_w} W of elements, Upgrade 19) is preheated once a day ({Math.round(ov.oven.preheat_kwh * 1000)} Wh) and held
+          <p className="db-note">The oven ({ov.oven.rated_w} W of elements) is preheated once a day ({Math.round(ov.oven.preheat_kwh * 1000)} Wh) and held
             at 180 °C through both shifts on {ov.oven.shift_w} W on average: {ov.oven.month_kwh} kWh a month, {Math.round(ov.oven.share_of_load * 100)} % of the site's energy.
             Only {Math.round(ov.oven.useful_share * 100)} % of its heat goes into the cookies. The cell alone uses {ov.cell_only.load_kwh} kWh.</p>
         </section>}

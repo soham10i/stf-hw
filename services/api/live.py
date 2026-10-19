@@ -14,6 +14,9 @@ import time
 from typing import Any
 
 from . import guests
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 STALE_S = 15.0
 MAX_BYTES = 8000
@@ -22,8 +25,15 @@ _by: dict[str, tuple[dict[str, Any], float]] = {}
 
 
 def put(snap: dict[str, Any], client: str = "local") -> None:
-    """Store a client's snapshot: flat values, small dicts and lists only, at most MAX_BYTES of
-    JSON."""
+    """Sanitize and cache a client twin's live telemetry snapshot in memory.
+
+    Args:
+        snap: Raw dictionary containing simulation telemetry.
+        client: Client or guest identifier.
+
+    Raises:
+        ValueError: If serialized snapshot exceeds MAX_BYTES.
+    """
     clean: dict[str, Any] = {}
     for k, v in list(snap.items())[:40]:
         if isinstance(v, (str, int, float, bool)) or v is None:
@@ -44,13 +54,24 @@ def put(snap: dict[str, Any], client: str = "local") -> None:
 
 
 def latest(client: str = "local") -> tuple[dict[str, Any] | None, float]:
-    """The client's latest snapshot and its age in seconds, or (None, inf) when its twin is not
-    open."""
+    """Retrieve the client's latest live telemetry snapshot and its age in seconds.
+
+    Args:
+        client: Client or guest identifier.
+
+    Returns:
+        tuple[dict[str, Any] | None, float]: (Snapshot dictionary, age_in_seconds), or (None, inf) if stale/absent.
+    """
     snap, at = _by.get(guests.current() or client, (None, 0.0))
     age = time.time() - at
     return (snap, age) if snap is not None and age <= STALE_S else (None, float("inf"))
 
 
 def drop(client: str) -> None:
-    """Forget a guest's snapshot (DELETE /guest)."""
+    """Evict cached live state snapshot for a given client (called on guest deletion).
+
+    Args:
+        client: Client or guest identifier.
+    """
+    logger.debug("Evicting cached live state snapshot for client %s", client)
     _by.pop(client, None)

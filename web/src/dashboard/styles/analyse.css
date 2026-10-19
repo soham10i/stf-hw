@@ -103,3 +103,30 @@
 /* the oven process page */
 .pr-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
 .pr-params { margin-top: 10px; } .pr-params summary { cursor: pointer; color: var(--accent); font-size: var(--fs-callout); }
+
+/* oven process: the two-card row ("heating up" + "four ways") */
+.db-pair { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; align-items: stretch; }
+@media (max-width: 900px) { .db-pair { grid-template-columns: 1fr; } }
+.pol-cmp { margin-top: 10px; }
+.pol-cmp th, .pol-cmp td { white-space: nowrap; }
+.pol-cmp th:nth-child(n+2), .pol-cmp td:nth-child(n+2) { text-align: right; }
+.pol-cmp th:last-child, .pol-cmp td:last-child { padding-right: 14px; }
+
+/* OT security: the allow-list as node cards - a table wasted the space with mostly-empty node
+   cells; each node is now a card whose rules read as compact chips (FC · function · addr·count) */
+.sec-rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.sec-node-card { padding: 10px 12px 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border-soft); min-width: 0; }
+.sec-node-h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; min-width: 0; }
+.sec-node-h b { font-size: var(--fs-body); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sec-node-h span { font-size: var(--fs-caption); color: var(--faint); }
+.sec-node-h em { margin-left: auto; font-style: normal; font-size: var(--fs-caption); color: var(--muted); flex: none; }
+.sec-node-rules { display: flex; flex-wrap: wrap; gap: 4px; }
+.sec-rule { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 7px; background: var(--surface); border: 1px solid var(--border-soft); font-size: var(--fs-caption); white-space: nowrap; }
+.sec-rule b { color: var(--accent); font-size: var(--fs-caption); }
+.sec-rule-fn { color: var(--muted); }
+.sec-rule-addr { color: var(--faint); }
+/* the signed manifest: hashes in balanced columns instead of one long table */
+.sec-manifest { columns: 3 220px; column-gap: 24px; margin-bottom: 8px; }
+.sec-hash { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--border-soft); font-size: var(--fs-caption); break-inside: avoid; }
+.sec-hash span:first-child { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sec-hash-h { color: var(--faint); flex: none; }

@@ -92,7 +92,11 @@ class SimRuntime:
             return
         self._running = True
         self._task = asyncio.create_task(self._run(), name="sim-loop")
-        logger.info("Simulation runtime started (time_scale=%.1fx, broadcast=%.0fHz)", self.time_scale, BROADCAST_HZ)
+        logger.info(
+            "Simulation runtime started (time_scale=%.1fx, broadcast=%.0fHz)",
+            self.time_scale,
+            BROADCAST_HZ,
+        )
 
     async def stop(self) -> None:
         """Stop the background simulation loop and cancel running tasks."""
@@ -164,7 +168,8 @@ class SimRuntime:
         return len(self._clients)
 
     async def _broadcast(self, message: dict[str, Any]) -> None:
-        """Broadcast a message to all connected clients, evicting clients that timeout or disconnect.
+        """Broadcast a message to all connected clients, evicting clients that time out or
+disconnect.
 
         Args:
             message: JSON-serializable message dictionary to broadcast.
@@ -243,7 +248,13 @@ class SimRuntime:
                 self._phases = []
                 self.kernel.load(self._simple_plan(order))
         except PlanError as exc:
-            logger.warning("Order #%d (%s, slot=%s) planning failed: %s", order.id, order.op, order.slot, exc)
+            logger.warning(
+                "Order #%d (%s, slot=%s) planning failed: %s",
+                order.id,
+                order.op,
+                order.slot,
+                exc,
+            )
             order.status = "failed"
             order.error = str(exc)
             return
@@ -256,7 +267,11 @@ class SimRuntime:
         if self._phase_i >= len(self._phases):
             self._phases = []
             if self._active:
-                logger.info("Order #%d (%s) cycle completed all phases", self._active.id, self._active.op)
+                logger.info(
+                    "Order #%d (%s) cycle completed all phases",
+                    self._active.id,
+                    self._active.op,
+                )
                 self._active.status = "completed"
             self._active = None
             return

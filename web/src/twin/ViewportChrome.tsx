@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { FOCUS, setFocus, useFocus } from "../scene/focus";
 import { useStageReady } from "../scene/stageReady";
 import { useCell } from "../scene/store/useCellStore";
-import { RATE } from "../scene/timeline";
+import { RATE, FF } from "../scene/timeline";
 import type { CadDoc } from "../shared/model";
 import { Icon } from "../shared/icons";
 
@@ -22,7 +22,7 @@ export function CellStatus({ doc }: { doc: CadDoc | null }) {
   return (
     <span className={`vp-status ${running ? "running" : ""}`} title={m.step} role="status">
       <i className={running ? "run" : "idle"} />
-      <b title="Playback speed">{RATE}×</b>
+      <b title="Playback speed">{RATE * FF.value}×</b>
       {running && (
         <span className="vp-job">
           <i style={{ background: colour }} />
@@ -35,8 +35,26 @@ export function CellStatus({ doc }: { doc: CadDoc | null }) {
   );
 }
 
+/** Fast-forward: 1×/2×/4×/8× on top of the base rate, to watch a whole order without waiting
+    on every motion. The multiplier lives on the module (FF), read by the frame loop each tick. */
+export function SpeedControl() {
+  const [x, setX] = useState(FF.value);
+  const pick = (n: number) => { FF.value = n; setX(n); };
+  return (
+    <div className="vp-speed ui-seg" role="radiogroup" aria-label="Simulation speed" title="Fast-forward the simulation">
+      {[1, 2, 4, 8].map((n) => (
+        <button key={n} role="radio" aria-checked={x === n} className={x === n ? "on" : ""} onClick={() => pick(n)}
+          title={n === 1 ? "Normal speed" : `Fast-forward ${n}×`}>
+          {n}×
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /** A pop-up button: the camera's current focus; choosing another flies the camera to it. */
 export function FocusMenu() {
+
   const [focus] = useFocus();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);

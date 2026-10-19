@@ -288,7 +288,8 @@ class SqliteFactory:
         try:
             with self.lock, self.db:
                 self.db.executemany(
-                    f"insert into {table} ({', '.join(cols)}) values ({', '.join('?' * len(cols))})",
+                    f"insert into {table} ({', '.join(cols)}) values ("
+                    f"{', '.join('?' * len(cols))})",
                     [tuple(r.get(c) for c in cols) for r in rows],
                 )
         except sqlite3.Error as e:
@@ -341,7 +342,8 @@ class SqliteFactory:
         try:
             with self.lock:
                 cur = self.db.execute(
-                    f"select {', '.join(cols)} from {table} where owner = ? order by t desc limit ?",
+                    f"select {', '.join(cols)} from {table} "
+                    "where owner = ? order by t desc limit ?",
                     (owner, int(limit)),
                 )
                 return [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]

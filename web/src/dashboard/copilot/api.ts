@@ -4,7 +4,9 @@
 // conversation continues wherever it is picked up.
 import { HAS_API } from "../../shared/mode";
 
-export type Tab = "gemini" | "groq" | "upb" | "local" | "voice";
+export type Tab = "chat" | "voice";
+/** One merged model control: "auto" walks the chain below in order; the rest pin one provider. */
+export type Model = "auto" | "gemini" | "groq" | "upb" | "local";
 export type Style = "greeting" | "quick" | "compare" | "steps" | "status" | "list" | "explain" | "derive" | "research" | "answer";
 /** Where the server sent a question, and why (services/api/orchestrate.py). */
 export type Mode = "chat" | "twin" | "docs" | "web" | "deep";
@@ -35,6 +37,8 @@ export type Status = {
   enabled: boolean; model: string | null; gemini?: boolean; groq?: boolean; upb?: boolean; ollama?: boolean;
   gemini_model?: string | null; groq_model?: string | null; upb_model?: string | null; ollama_model?: string | null;
   gemini_pool?: { model: string; free: boolean; back_in_s?: number }[] | null;
+  /** the providers in try-order, with readiness (services/api/chat.py ORDER) */
+  order?: { name: string; ready: boolean }[];
 };
 
 const store = {
@@ -53,7 +57,13 @@ export function userId() {
 }
 export const currentSession = { get: () => store.get("stf.copilot.session"), set: (id: string | null) => store.set("stf.copilot.session", id) };
 export const savedChoice = { get: () => (store.get("stf.copilot.choice") as Choice | null) ?? "auto", set: (c: Choice) => store.set("stf.copilot.choice", c) };
-export const savedTab = { get: () => (store.get("stf.copilot.tab") as Tab | null) ?? "gemini", set: (t: Tab) => store.set("stf.copilot.tab", t) };
+// tabs used to name a provider (gemini/groq/…); those all fold into the chat tab now
+export const savedTab = { get: (): Tab => (store.get("stf.copilot.tab") === "voice" ? "voice" : "chat"), set: (t: Tab) => store.set("stf.copilot.tab", t) };
+// the UI offers only Auto and Local: a saved pin to a cloud provider (an earlier version)
+// falls back to Auto; the chain itself stays a server detail
+export const savedModel = { get: (): Model => { const m = store.get("stf.copilot.model") as Model | null; return m === "local" ? "local" : "auto"; }, set: (m: Model) => store.set("stf.copilot.model", m) };
+/** What the server calls each model choice; "auto" sends none, so the server walks its chain. */
+export const providerOf = (m: Model): string | undefined => ({ auto: undefined, gemini: "gemini", groq: "groq", upb: "upb", local: "ollama" })[m];
 
 const H = () => ({ "Content-Type": "application/json", "X-STF-User": userId() });
 
@@ -63,7 +73,7 @@ export async function status(): Promise<Status> {
   return { enabled: false, model: null };
 }
 
-type AskBody = { question: string; page: string; provider: string; session_id?: string | null; age?: number; pm?: boolean; mode?: Choice };
+type AskBody = { question: string; page: string; provider?: string; session_id?: string | null; age?: number; pm?: boolean; mode?: Choice };
 export type Reply = {
   answer: string; model: string; style: Style; sources: string[]; links: { page: string; label: string }[];
   tools: string[]; facts: [string, string][]; note?: string; unverified?: string[]; switched?: Switch[];
@@ -135,6 +145,48 @@ export async function speech(text: string): Promise<{ url: string; by: string } 
     const by = [r.headers.get("X-TTS-Provider"), r.headers.get("X-TTS-Model")].filter(Boolean).join(" · ");
     return { url: URL.createObjectURL(await r.blob()), by };
   } catch { return null; }
+}
+
+/** What the stream starts with: raw PCM at this sample rate, or one container file (wav/mp3). */
+export type SpeakMeta = { kind: "pcm"; rate: number; by: string } | { kind: "file"; mime: string; by: string };
+export type SpeakEvent =
+  | { type: "meta"; meta: SpeakMeta }
+  | { type: "chunk"; b64: string }
+  | { type: "end" };
+
+/** The answer read aloud as it is synthesised: POST /chat/tts/stream's SSE events (services/api/
+    tts.py). Returns false where the endpoint is not served, so the caller falls back to the
+    whole-file speech() below. Throws on a served failure. */
+export async function speechStream(text: string, on: (e: SpeakEvent) => void): Promise<boolean> {
+  if (!HAS_API) return false;
+  const r = await fetch("/chat/tts/stream", { method: "POST", headers: H(), body: JSON.stringify({ text }) });
+  if (r.status === 404 || r.status === 405) return false;
+  if (!r.ok || !r.body) {
+    const j = await r.json().catch(() => ({}));
+    throw new Error(j.detail ?? `HTTP ${r.status}`);
+  }
+  const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buf = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += value;
+    let k: number;
+    while ((k = buf.indexOf("\n\n")) >= 0) {
+      const block = buf.slice(0, k);
+      buf = buf.slice(k + 2);
+      const ev = /^event: (.+)$/m.exec(block)?.[1];
+      const data = /^data: (.*)$/m.exec(block)?.[1];
+      if (!ev || data === undefined) continue;
+      const j = JSON.parse(data);
+      if (ev === "meta") on({ type: "meta", meta: j as SpeakMeta });
+      else if (ev === "chunk") on({ type: "chunk", b64: j.b64 as string });
+      else if (ev === "end") { on({ type: "end" }); return true; }
+      else if (ev === "error") throw new Error(j.detail ?? "the voice failed");
+    }
+  }
+  on({ type: "end" });   // the stream closed without an end event: play what arrived
+  return true;
 }
 
 /** A recorded question as text, by the server (for browsers without speech recognition). */

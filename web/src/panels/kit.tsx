@@ -19,10 +19,10 @@ export function Empty({ text }: { text: string }) {
 }
 
 /** A panel's title, the upgrade it belongs to, and one line saying what it shows. */
-export function Title({ children, up, lead }: { children: React.ReactNode; up?: string; lead?: React.ReactNode }) {
+export function Title({ children, up: _up, lead }: { children: React.ReactNode; up?: string; lead?: React.ReactNode }) {
   return (
     <>
-      <h2 className="np-title">{children}{up && <span className="np-up">{up}</span>}</h2>
+      <h2 className="np-title">{children}</h2>
       {lead && <p className="np-lead">{lead}</p>}
     </>
   );

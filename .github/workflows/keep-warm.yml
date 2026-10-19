@@ -1,0 +1,32 @@
+# Keep the Cloud Run service warm: ping /health every 5 minutes so the
+# instance never scales to zero and visitors never wait on a cold start.
+#
+# Setup (one-time, in the GitHub repo): Settings -> Secrets and variables ->
+# Actions -> Variables -> New repository variable:
+#   STF_LIVE_URL = https://stf-live-<hash>-<region>.a.run.app
+name: keep-warm
+
+on:
+  schedule:
+    # Every 5 minutes. GitHub may delay scheduled runs under heavy load;
+    # a Cloud Scheduler job (docs/GCP_DEPLOY.md) is the stricter option.
+    - cron: "2-59/5 * * * *"
+  workflow_dispatch: # manual trigger from the Actions tab
+
+permissions:
+  contents: none
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping the live API so Cloud Run stays warm
+        run: |
+          url="${STF_LIVE_URL%/}/health"
+          code=$(curl -sS -o /tmp/warm.json -w "%{http_code}" --max-time 25 "$url")
+          echo "GET $url -> HTTP $code"
+          cat /tmp/warm.json
+          [ "$code" = "200" ]
+        env:
+          STF_LIVE_URL: ${{ vars.STF_LIVE_URL }}

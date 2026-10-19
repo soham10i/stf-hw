@@ -28,7 +28,14 @@ def _axis(ax) -> dict:
 
 
 def scene_descriptor(layout: Layout) -> dict:
-    """Everything the front end needs to build the scene, once."""
+    """Serialize the complete static scene graph and kinematics configuration from a Layout.
+
+    Args:
+        layout: Validated STF factory layout specification.
+
+    Returns:
+        dict: Complete scene descriptor JSON structure consumed by 3D renderers.
+    """
     rack = layout.main_rack
     return {
         "fingerprint": layout.fingerprint(),
@@ -84,7 +91,15 @@ def scene_descriptor(layout: Layout) -> dict:
 
 
 def frame(state: WorldState, seq: int) -> dict:
-    """The live hot state for one broadcast tick."""
+    """Serialize dynamic kinematic and sensor telemetry frame for WebSocket streaming.
+
+    Args:
+        state: Instantaneous physics and kinematic state of the simulated factory.
+        seq: Monotonically increasing broadcast sequence number.
+
+    Returns:
+        dict: Telemetry frame dictionary for transmission over WebSocket.
+    """
     return {
         "type": "frame",
         "seq": seq,

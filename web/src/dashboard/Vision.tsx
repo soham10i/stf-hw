@@ -289,7 +289,7 @@ function Photos() {
               </a>
             ))}
           </div>
-          <p className="db-muted small">The newest {d.captures.length}, {d.captures[0].w}×{d.captures[0].h} px, stored {d.store === "supabase" ? "in Supabase (private bucket)" : "on the server's disk"}.</p>
+          <p className="db-muted small">The newest {d.captures.length}, {d.captures[0].w}×{d.captures[0].h} px, stored {d.store === "supabase" ? "in cloud storage" : "on the server's disk"}.</p>
         </>
       )}
     </section>

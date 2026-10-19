@@ -1,11 +1,20 @@
 // Layer 2 - the headless cell coordinator: the one place that decides what the cell does.
 //
-// It runs the orders (queue, cycles, restock, reset), plays each cycle's choreography -
+// It runs the orders (queue, cycles, restock, reset) and plays each cookie's choreography -
 // the crane's script (timeline.ts) with the VGR's proven tour and the oven/sorting flow
-// (OvenFlow.ts) - and writes every station's joints into the store (store/useCellStore.ts),
+// (OvenFlow.ts) - writing every station's joints into the store (store/useCellStore.ts),
 // in place, once per tick. It also derives what the machine's sensors see (the warehouse's
 // light barriers, the camera's trigger) and the oven's heating, and saves the material state
 // through a CellPersistence when it changes.
+//
+// Pipelining: the cell works TWO cookies at once. While cookie k rides the oven flow and the
+// VGR collects it, the crane already delivers raw cookie k+1 to the belt, the VGR picks it,
+// and the crane stows the empty mould - so the next cookie is staged before the current one
+// is even collected. Each cookie's legs are split into segments (deliver / pick / stow /
+// oven-tour / fetch / collect / retrieve) that are scheduled on three resources (the crane,
+// the VGR, the oven line) with a small greedy scheduler. The invariant: 12 cookies are always
+// in the factory - every rack slot always holds dough or a cookie, and a rejected cookie's
+// mould is refilled automatically (store.model.dough; off = the slot stays empty).
 //
 // It is a plain class: no React, no three.js scene, no WebGL. The twin drives it from one
 // useFrame (Stage.tsx); a test drives it by calling tick() (CellCoordinator.test.ts).
@@ -27,11 +36,32 @@ import type { CellPersistence } from "./persistence";
 
 type Key = ReturnType<typeof script>[number];
 type Leg = { a: Key; b: Key; dur: number; start: number };
+/** A segment template: a contiguous run of a plan's legs with one set of resource owners. */
+type SegT = {
+  kind: "a" | "p" | "s" | "c" | "f" | "g" | "e" | "all";
+  legs: Leg[];
+  /** cumulative durations, one longer than legs: cum[i] is legs[i]'s start within the segment */
+  cum: number[];
+  dur: number;
+  /** owns the crane's axes + belt */
+  c: boolean;
+  /** owns the VGR's axes */
+  v: boolean;
+  /** the circulating mould is visible in this segment (J.load / J.out follow it) */
+  mould: boolean;
+  /** the segment's first leg's start in the plan's cycle time (flow offsets are relative to it) */
+  cStart: number;
+};
+/** A scheduled instance of a segment in one flight. */
+type Seg = SegT & { abs0: number; li: number; fl: Flight | null };
 type Plan = {
   from: string; to: string; legs: Leg[]; tOvenGo: number; flow: ReturnType<typeof buildFlow>; total: number;
   baked: string; flavour: string; collect: string | null; collectColour: string | null; bin: string;
   /** the same journey for a cookie the inspection rejects: to the end of the line, held there */
   rflow: ReturnType<typeof buildFlow>;
+  segs: SegT[];
+  /** time from the g segment's start until the VGR has the baked cookie in its cup (bay travel) */
+  bayDur: number;
 };
 /** QC testing: one damaged cookie in every BATCH started (a rack's worth). */
 export const BATCH = 12;
@@ -49,7 +79,27 @@ function rng(seed: number) {
 
 /** A cycle: its plan, its order line, and its cookie's inspection - the fault the simulation gave
     it, the camera shot that photographed it, and the verdict on that photo once it is in. */
-type Cycle = Plan & { line: number; defect: Defect | null; seed: number; shot: number; verdict: Verdict | null };
+type Cycle = Plan & { line: number; defect: Defect | null; seed: number; shot: number; verdict: Verdict | null;
+  /** the slot whose bay this cycle leaves the crane resting at (the next cycle's pick), or null */
+  restAt: string | null };
+
+/** One cookie in flight: its cycle and its segments, scheduled on the cell's resources. */
+interface Flight {
+  cyc: Cycle;
+  segs: Seg[];
+  /** next segment to start (segments are chronological per flight) */
+  idx: number;
+  /** the flow's absolute start (set when the c segment is scheduled); -1 until then */
+  flowAbs0: number;
+  /** end times of scheduled segments, by kind */
+  ends: Partial<Record<SegT["kind"], number>>;
+  /** kinds already queued or scheduled (a segment is scheduled exactly once) */
+  queued: Set<SegT["kind"]>;
+  /** the rejected flow is playing (the verdict came in) */
+  rejected: boolean;
+  /** the VGR has taken the baked cookie off the line (the workpiece hides) */
+  wpTaken: boolean;
+}
 
 export interface CoordinatorOptions {
   /** the VGR's tours per Lagerstelle (vgr_tours.json); null: the exported demo tour */
@@ -60,6 +110,7 @@ export interface CoordinatorOptions {
 }
 
 const smooth = (u: number) => THREE.MathUtils.smoothstep(u, 0, 1);
+const HOLD_SAY = "VGR: holds clear while the cookie is baked and sorted";
 
 export class CellCoordinator {
   private readonly doc: CadDoc;
@@ -81,15 +132,32 @@ export class CellCoordinator {
   private readonly frozen: number | null;
   private readonly unsubscribe: () => void;
 
-  private cyc: { c: Cycle; t0: number };
-  private lens: [number, number] | null = null;
+  /** the cookie(s) in flight, oldest first; at most two (one staged, one in the oven) */
+  private flights: Flight[] = [];
+  /** crane / VGR job queues, in priority order (oldest flight first) */
+  private craneQ: Seg[] = [];
+  private vgrQ: Seg[] = [];
+  /** when each resource is free next */
+  private craneAt = 0;
+  private vgrAt = 0;
+  private lineAt = 0;
+  /** raw slots already promised to a flight (their rack slot stays RAW until the flight ends) */
+  private readonly claimed = new Set<string>();
+  /** the pose the cell rests in: a finished cycle with no cookie to fetch */
+  private restCyc: Cycle;
+  /** review aid: one synthetic flight over the first cycle's whole leg array */
+  private readonly frozenFlight: Flight | null = null;
+  /** the cycle the review aid freezes (built without claiming anything) */
+  private frozenCyc: Cycle | null = null;
+  /** ticks where the crane and the VGR worked on different cookies (the pipeline, for tests) */
+  overlapped = 0;
   /** the travelling cookie's position along the belt relative to the lens's axis, last tick */
   private along = NaN;
+  /** the flight the camera last looked at (its along-axis must reset when the flight changes) */
+  private alongFlight: Flight | null = null;
   /** the first tick announces the restored cell (the constructor runs inside a React render,
       where notifying other components is not allowed) */
   private announced = false;
-  private legIdx = -1;
-  private flowSay = "";
   private thermo = { element: 0, chamber: 25 };
   /** a running count, so each faulty cookie's fault falls somewhere else */
   private seeds = 0;
@@ -123,8 +191,10 @@ export class CellCoordinator {
     this.mouldD = md;
     this.loadH = mb + doc.moulds.rim_h + 8; // the mould plus the cookie standing above its rim
 
-    this.cyc = { c: this.start(), t0: 0 };
+    this.start();
+    this.restCyc = this.rest(this.store.model.rack);
     this.frozen = this.review(opts.review);
+    if (this.frozen !== null && this.frozenCyc) this.frozenFlight = this.wholeFlight(this.frozenCyc);
     this.unsubscribe = store.subscribeModel((material) => {
       if (!material || !this.persistence) return;
       const m = store.model;
@@ -136,6 +206,7 @@ export class CellCoordinator {
 
   /** The inspection camera's lens axis in the factory frame (mm), once vision/camera.json is in. */
   setCamera(lens: [number, number] | null) { this.lens = lens; }
+  private lens: [number, number] | null = null;
 
   // ------------------------------------------------------------------ planning
   private colour(hex: string) {
@@ -145,15 +216,64 @@ export class CellCoordinator {
     return c;
   }
 
+  /** One cycle's choreography split into schedulable segments, by the script's own markers:
+      the deliver's hood run, the VGR's pick, the empty mould's stow, the oven tour, the fetch,
+      the collect (hold + bay + place) and the retrieve. A plan without a fetch (no Lagerstelle:
+      the rest pose) is one serial segment. */
+  private segments(legs: Leg[]): { segs: SegT[]; bayDur: number } {
+    const mk = (kind: SegT["kind"], from: number, to: number, c: boolean, v: boolean, mould: boolean): SegT => {
+      const part = legs.slice(from, to + 1);
+      const cum: number[] = [0];
+      for (const l of part) cum.push(cum[cum.length - 1] + l.dur);
+      return { kind, legs: part, cum, dur: cum[cum.length - 1], c, v, mould, cStart: part[0]?.start ?? 0 };
+    };
+    const iHood = legs.findIndex((l) => l.b.say.includes("through the hood"));
+    const iStow = legs.findIndex((l) => l.b.say.includes("empty mould rides back"));
+    // the crane's rest after stowing: the park key, or the rest-at-bay key when the next pick is known
+    const iPark = legs.findIndex((l) => l.b.say === "return to park" || l.b.say.startsWith("next order waiting: rest at"));
+    const iFetch = legs.findIndex((l) => l.b.say.includes("fetch the empty mould"));
+    const iWait = legs.findIndex((l) => l.b.say.includes("waits at the VGR point"));
+    const iFinal = legs.findIndex((l) => l.b.say.includes("the finished cookie"));
+    if (iHood < 0 || iStow < 0 || iPark < 0 || iFetch < 0 || iWait < 0 || iFinal < 0 || iStow <= iHood + 1 || iFinal <= iWait + 1)
+      return { segs: [mk("all", 0, legs.length - 1, true, true, true)], bayDur: 0 };
+    const segs = [
+      mk("a", 0, iHood, true, false, true),                    // crane delivers the raw mould to the belt's VGR point
+      mk("p", iHood + 1, iStow - 1, false, true, true),        // the VGR lifts the raw cookie off the mould
+      mk("s", iStow, iPark, true, false, true),                // the belt returns the empty mould; the crane stows it
+      mk("c", iPark + 1, iFetch - 1, false, true, false),      // the VGR's tour to the oven; the cookie is inserted
+      mk("f", iFetch, iWait, true, false, true),               // the crane brings the empty mould back to the VGR point
+      // the collect: the VGR waits for the baked cookie, fetches it from its Lagerstelle and sets
+      // it into the mould; the scheduler re-times the wait, so the script's own hold leg is dropped
+      (() => {
+        const part = legs.slice(iWait + 1, iFinal).filter((l) => l.b.say !== HOLD_SAY);
+        const cum: number[] = [0];
+        for (const l of part) cum.push(cum[cum.length - 1] + l.dur);
+        return { kind: "g" as const, legs: part, cum, dur: cum[cum.length - 1], c: false, v: true, mould: true,
+                 cStart: part[0]?.start ?? 0 };
+      })(),
+      mk("e", iFinal, legs.length - 1, true, true, true),      // the belt returns the mould; the crane stows it
+    ];
+    // how long from the collect's start until the VGR holds the baked cookie (for its timing)
+    const g = segs[5];
+    let bayDur = g.dur;
+    for (let i = 0; i < g.legs.length; i++) {
+      if (g.legs[i].b.taken) { bayDur = g.cum[i + 1]; break; }
+    }
+    return { segs, bayDur };
+  }
+
   /** One cycle: the crane's script with the VGR's tour, timed; the oven/sorting flow; the VGR's
-      wait for its cookie. Cached per (slot, flavour, Lagerstelle). */
-  private plan(from: string, to: string, flavour: string, collect: string | null): Plan {
-    const key = `${from}>${to}>${flavour}>${collect}`;
+      wait for its cookie. Cached per (slot, flavour, Lagerstelle, rest, fromRest). `rest`: the
+      slot whose bay the crane rests at after stowing the empty mould (the next order's pick,
+      when known — else it parks at the conveyor). `fromRest`: this cycle's crane starts already
+      resting at `from`'s bay (the previous cycle brought it there). */
+  private plan(from: string, to: string, flavour: string, collect: string | null, rest: string | null = null, fromRest = false): Plan {
+    const key = `${fromRest ? "r" : "p"}:${rest ?? ""}:${from}>${to}>${flavour}>${collect}`;
     const hit = this.plans.get(key);
     if (hit) return hit;
     const doc = this.doc;
     const tour = this.tours?.[collect ?? "none"] ?? doc.vgr.plan.keys;
-    const keys = script(doc, from, to, tour, collect);
+    const keys = script(doc, from, to, tour, collect, rest, fromRest);
     let t0 = 0;
     const legs: Leg[] = keys.slice(1).map((b, i) => {
       const a = keys[i];
@@ -178,7 +298,7 @@ export class CellCoordinator {
     const wait = pick && i0 >= 0 ? Math.max(0, tOvenGo + flow.arrive + 0.5 - legs[iH].start) : 0;
     if (wait > 0) {
       const a = legs[iH].a;
-      const hold = { a, b: { ...a, say: "VGR: holds clear while the cookie is baked and sorted" }, dur: wait, start: legs[iH].start };
+      const hold = { a, b: { ...a, say: HOLD_SAY }, dur: wait, start: legs[iH].start };
       for (const l of legs.slice(iH)) l.start += wait;
       legs.splice(iH, 0, hold);
     }
@@ -188,7 +308,8 @@ export class CellCoordinator {
     const collectColour = collect ? binColour(doc, collect) : null;
     if (collectColour) this.colour(collectColour);
     const rflow = buildFlow(doc, flavour, 0, true);
-    const p: Plan = { from, to, legs, tOvenGo, flow, rflow, total, baked, flavour, collect, collectColour, bin: flow.bin };
+    const { segs, bayDur } = this.segments(legs);
+    const p: Plan = { from, to, legs, tOvenGo, flow, rflow, total, baked, flavour, collect, collectColour, bin: flow.bin, segs, bayDur };
     this.plans.set(key, p);
     return p;
   }
@@ -208,9 +329,45 @@ export class CellCoordinator {
     line.started++;
     return line;
   }
-  /** The first raw cookie goes out and comes back baked into the same slot. */
-  private begin(r: Rack, line: OrderLine): Cycle {
-    const from = this.rawIn(r)[0] ?? FROM;
+  /** A slot's raw dough no order has claimed yet. */
+  private freeRaw(r: Rack): string {
+    return this.rawIn(r).find((q) => !this.claimed.has(q)) ?? FROM;
+  }
+  /** True when another cookie could start: an unfinished line and unclaimed raw dough. */
+  private workPending() {
+    return !!this.store.model.queue.find((o) => o.started < o.qty) &&
+      this.rawIn(this.store.model.rack).some((q) => !this.claimed.has(q));
+  }
+  /** One cookie's flight: its plan's segments as scheduled instances, unscheduled. */
+  private wholeFlight(cyc: Cycle): Flight {
+    return {
+      cyc,
+      segs: cyc.segs.map((s) => ({ ...s, abs0: -1, li: 0, fl: null })),
+      idx: 0, flowAbs0: -1, ends: {}, queued: new Set(), rejected: false, wpTaken: false,
+    };
+  }
+
+  /** Restore the cell's material state; the scheduler begins the first flight on the first tick. */
+  private start() {
+    const m = this.store.model, slots = Object.keys(this.doc.slots);
+    m.rawColour = this.RAW;
+    if (Object.keys(m.rack).length !== slots.length) {
+      const kept = this.persistence?.load(slots) ?? null;
+      if (kept) {
+        m.rack = kept.rack;
+        m.queue = kept.queue;
+        m.seq = Math.max(kept.seq, ...kept.queue.map((o) => o.id), 0);
+        m.delivered = kept.delivered;
+      } else m.rack = this.freshRack();
+    }
+    for (const o of m.queue) o.started = o.done;
+    m.idle = !this.workPending();
+  }
+
+  /** Begin a cookie in an already-chosen, already-claimed slot (the chaining lives in
+      beginFlights): draw its fault, build its flight. The cookie comes back baked into the
+      same slot. */
+  private begin(line: OrderLine, from: string, rest: string | null, fromRest: boolean): Cycle {
     const bin = this.doc.pipeline.flavours[line.flavour]?.bin ?? null;
     // the fault asked for the next cookie (the Orders panel) goes to this one; otherwise, QC
     // testing: in every 12 cookies started, one drawn at random gets a random fault
@@ -224,37 +381,28 @@ export class CellCoordinator {
     b.pos++;
     ins.next = null;
     this.seeds++;
-    return { ...this.plan(from, from, line.flavour, bin), line: line.id, defect, seed: this.seeds, shot: 0, verdict: null };
+    return { ...this.plan(from, from, line.flavour, bin, rest, fromRest), line: line.id, defect, seed: this.seeds,
+             shot: 0, verdict: null, restAt: rest };
   }
   /** The pose the cell rests in: a finished cycle with no cookie to fetch. */
   private rest(r: Rack): Cycle {
     const from = this.rawIn(r)[0] ?? FROM;
-    return { ...this.plan(from, from, Object.keys(this.doc.pipeline.flavours)[0], null), line: -1, defect: null, seed: 0, shot: 0, verdict: null };
+    return { ...this.plan(from, from, Object.keys(this.doc.pipeline.flavours)[0], null), line: -1, defect: null,
+             seed: 0, shot: 0, verdict: null, restAt: null };
   }
 
-  /** The cell as it was: the store's (a remounted view) or the saved one (a reload), else fresh.
-      A cookie that was out on its cycle is dough in its slot again and is baked again. */
-  private start(): Cycle {
-    const m = this.store.model, slots = Object.keys(this.doc.slots);
-    m.rawColour = this.RAW;
-    if (Object.keys(m.rack).length !== slots.length) {
-      const kept = this.persistence?.load(slots) ?? null;
-      if (kept) {
-        m.rack = kept.rack;
-        m.queue = kept.queue;
-        m.seq = Math.max(kept.seq, ...kept.queue.map((o) => o.id), 0);
-        m.delivered = kept.delivered;
-      } else m.rack = this.freshRack();
-    }
-    for (const o of m.queue) o.started = o.done;
-    const line = this.nextWork();
-    m.idle = !line;
-    return line ? this.begin(m.rack, line) : this.rest(m.rack);
-  }
-
+  /** The review aid's cycle: the first pending order's plan (nothing claimed), else the rest pose. */
   private review(r: CoordinatorOptions["review"]): number | null {
     if (!r) return null;
-    const { legs, total, flow, tOvenGo } = this.cyc.c;
+    const m = this.store.model;
+    const line = m.queue.find((o) => o.started < o.qty);
+    const from = this.rawIn(m.rack)[0] ?? FROM;
+    const cyc: Cycle = line
+      ? { ...this.plan(from, from, line.flavour, this.doc.pipeline.flavours[line.flavour]?.bin ?? null),
+          line: line.id, defect: null, seed: 0, shot: 0, verdict: null, restAt: null }
+      : this.rest(m.rack);
+    this.frozenCyc = cyc;
+    const { legs, total, flow, tOvenGo } = cyc;
     if (r.t != null && Number.isFinite(r.t)) return r.t % total;
     if (!r.at) return null;
     const at = r.at.toLowerCase();
@@ -265,131 +413,130 @@ export class CellCoordinator {
     return st ? tOvenGo + st.t0 + st.d - 1e-3 : null;
   }
 
-  // ------------------------------------------------------------------ the tick
-  /** Advance to twin time `t` (s, playback-scaled); `dt` is the wall-clock frame time (s). */
-  tick(t: number, dt: number) {
-    const store = this.store, m = store.model, J = store.joints;
-    const live = this.frozen === null;
-    if (!this.announced) { this.announced = true; store.commit(false); }
-
-    if (store.requests.reset && live) this.doReset(t);
-    if (live && !m.idle && t - this.cyc.t0 >= this.cyc.c.total) this.complete();
-    if (live && m.idle && store.requests.restock) this.restock();
-    if (live && m.idle) {
-      const line = this.nextWork();
-      if (line) {
-        this.cyc = { c: this.begin(m.rack, line), t0: t };
-        m.idle = false;
-        this.legIdx = -1;
-        store.commit();
-      }
-    }
-
-    const C = this.cyc.c;
-    const resting = m.idle && live;
-    const tc = this.frozen ?? (m.idle ? C.total : t - this.cyc.t0);
-    const cy = m.cycle;
-    cy.from = C.from; cy.to = C.to; cy.total = C.total; cy.t = tc; cy.flavour = C.flavour; cy.collect = C.collect ?? "";
-
-    // the leg of the script at tc, and how far along it (eased)
-    const legs = C.legs;
-    let li = legs.length - 1;
-    for (let i = 0; i < legs.length; i++) if (tc < legs[i].start + legs[i].dur) { li = i; break; }
-    const leg = legs[li];
-    const s = smooth((tc - leg.start) / leg.dur);
-    const a = leg.a, b = leg.b;
-
-    // the warehouse crane and its belt
-    const h = J.hbw;
-    h.travel = a.t + (b.t - a.t) * s;
-    h.lift = a.l + (b.l - a.l) * s;
-    h.fork = a.f + (b.f - a.f) * s;
-    h.belt = a.b + (b.b - a.b) * s;
-    // the circulating mould: at rest every mould is in its slot, drawn from the rack
-    const held = resting ? null : a.held;
-    J.load.held = held;
-    J.load.slot = a.slot;
-    J.load.cookie = a.cookie;
-    J.load.tint.color.copy(this.colour(a.cc));
-    J.load.tint.baked = a.cc.toLowerCase() !== this.RAW.toLowerCase();
-    J.out = resting ? null : C.from;
-
-    // the inspection's verdict on this cycle's cookie, once its photo has been judged; a cookie
-    // that does not pass is not ejected to its Lagerstelle: it stays on the belt to the end of the
-    // line, the VGR finds its bay empty, and its mould goes home empty
-    if (C.shot && !C.verdict && live) {
-      const v = store.verdicts.get(C.shot);
-      if (v) {
-        store.verdicts.delete(C.shot);
-        C.verdict = v;
-        const ins = m.inspect;
-        ins.recent = [{ ...v, truth: C.defect ?? "ok", cookieFlavour: C.flavour }, ...ins.recent].slice(0, 8);
-        if (v.verdict === "pass") ins.passed++; else ins.rejected++;
-        store.emitRecord({ kind: "inspection", n: v.n, flavour: C.flavour, truth: C.defect ?? "ok", condition: v.condition,
-          p: v.p, verdict: v.verdict, ae: v.ae, unusual: v.anomaly });
-        store.commit(false);
-      }
-    }
-    const rejected = !!C.verdict && C.verdict.verdict !== "pass";
-    if (rejected && a.cc.toLowerCase() !== this.RAW.toLowerCase()) J.load.cookie = false;
-
-    // the VGR: every axis rides the same interpolation, the spring stem included
-    const vg = J.vgr;
-    vg.swivel = a.vs + (b.vs - a.vs) * s;
-    vg.reach = a.vr + (b.vr - a.vr) * s;
-    vg.plunge = a.vp + (b.vp - a.vp) * s;
-    vg.compress = a.vc + (b.vc - a.vc) * s;
-    // vacuum builds (or bleeds off) across the step where Q8 switches
-    vg.seal = (a.cup ? 1 : 0) + ((b.cup ? 1 : 0) - (a.cup ? 1 : 0)) * s;
-    vg.carry = rejected && a.carry === "baked" ? null : a.carry;
-    const cupHex = a.carry === "baked" ? (C.collectColour ?? this.RAW) : this.RAW;
-    vg.tint.color.copy(this.colour(cupHex));
-    vg.tint.baked = a.carry === "baked";
-
-    // the oven and the sorting line: idle until the VGR has delivered and left, then the one
-    // cookie runs its whole journey (OvenFlow.ts)
-    const flow = rejected ? C.rflow : C.flow;
-    const f = flow.sample(tc - C.tOvenGo, this.flow);
-    const o = J.oven;
-    const fs = f.s;
-    o.slider = fs.slider; o.door = fs.door; o.turn = fs.turn; o.sauger = fs.sauger; o.lower = fs.lower;
-    o.push = fs.push; o.lamp = fs.lamp; o.saw = fs.saw; o.vac = fs.vac; o.baked = fs.baked;
-    o.ly = fs.ly; o.eject = fs.eject; o.chute = fs.chute;
-    o.beltOven = flow.beltOven(fs.ly);
-    o.beltSort = flow.beltSort(fs.ly);
-    this.heat(fs.lamp > 0.5, dt);
-    J.sort.ejector = rejected ? -1 : this.colours.indexOf(C.bin);
-    const wp = J.workpiece;
-    // a rejected cookie stays where the line left it, at its end, until the cycle is over
-    wp.visible = !m.idle && (tc >= C.tOvenGo || a.ovenIn) && (rejected || !a.taken);
-    wp.pos[0] = f.pos[0]; wp.pos[1] = f.pos[1]; wp.pos[2] = f.pos[2];
-    // its fault shows as it bakes: underbaked takes only part of its colour, burnt goes dark
-    wp.tint.color.lerpColors(this.rawColor, this.colour(C.baked), fs.baked * (C.defect === "underbaked" ? 0.3 : 1));
-    if (C.defect === "burnt") wp.tint.color.multiplyScalar(1 - 0.55 * fs.baked);
-    wp.tint.baked = fs.baked > 0.5;
-    wp.defect = C.defect;
-    wp.seed = C.seed;
-
-    this.sensors(held);
-    this.camera(dt, C.flavour);
-
-    // the caption: rebuilt only when the step changes
-    if (li !== this.legIdx || f.say !== this.flowSay || (resting && m.step !== WAITING)) {
-      this.legIdx = li;
-      this.flowSay = f.say;
-      const say = resting ? WAITING : f.say ? `${b.say}   ·   ${f.say}` : b.say;
-      if (say !== m.step) { m.step = say; store.commit(false); }
-    }
-    store.publishFrame(t);
+  // ------------------------------------------------------------------ scheduling
+  /** Enqueue a flight's segment on its resource. */
+  private enqueue(f: Flight, kind: SegT["kind"]) {
+    const seg = f.segs.find((s) => s.kind === kind)!;
+    seg.fl = f;
+    f.queued.add(kind);
+    (seg.c && !seg.v ? this.craneQ : seg.v && !seg.c ? this.vgrQ : null)?.push(seg) ??
+      (seg.c ? this.craneQ : this.vgrQ).push(seg);
   }
 
-  /** The cycle is done: its cookie is back in its slot, baked. */
-  private complete() {
-    const m = this.store.model, done = this.cyc.c;
+  /** A segment's earliest start, from its dependencies. */
+  private readyAt(seg: Seg): number {
+    const f = seg.fl!, e = f.ends;
+    const i = this.flights.indexOf(f);
+    switch (seg.kind) {
+      case "a": {
+        // the previous cookie's mould is home (stowed) and its slot of the belt point is free
+        const prev = this.flights[i - 1];
+        return prev ? (prev.ends.s ?? Infinity) : 0;
+      }
+      case "p": return e.a ?? Infinity;
+      case "s": return e.p ?? Infinity;
+      case "c": return Math.max(e.p ?? Infinity, this.lineAt);
+      case "f": {
+        // the mould fetches to the VGR point once the next mould has left it (stowed home);
+        // a last cookie fetches its own once its empty mould is home
+        const next = this.flights[i + 1];
+        return next ? (next.ends.s ?? Infinity) : (e.s ?? Infinity);
+      }
+      case "g": {
+        const flow = f.rejected ? f.cyc.rflow : f.cyc.flow;
+        return Math.max(e.f ?? Infinity, this.vgrAt, f.flowAbs0 + flow.arrive - f.cyc.bayDur);
+      }
+      case "e": return e.g ?? Infinity;
+      default: return 0;
+    }
+  }
+
+  /** Assign start times to queued jobs whose dependencies are met, oldest first. */
+  private schedule(t: number) {
+    for (;;) {
+      const cq = this.craneQ[0];
+      if (cq && this.readyAt(cq) <= t) {
+        this.craneQ.shift();
+        cq.abs0 = Math.max(this.readyAt(cq), this.craneAt, t);
+        this.craneAt = cq.abs0 + cq.dur;
+        cq.fl!.ends[cq.kind] = this.craneAt;
+        this.onScheduled(cq);
+        continue;
+      }
+      const vq = this.vgrQ[0];
+      if (vq && this.readyAt(vq) <= t) {
+        this.vgrQ.shift();
+        vq.abs0 = Math.max(this.readyAt(vq), this.vgrAt, t);
+        this.vgrAt = vq.abs0 + vq.dur;
+        vq.fl!.ends[vq.kind] = this.vgrAt;
+        this.onScheduled(vq);
+        continue;
+      }
+      break;
+    }
+  }
+
+  /** Queue the segments that a scheduled segment unlocks. */
+  private onScheduled(seg: Seg) {
+    const f = seg.fl!, k = seg.kind, at = f.ends[k]!;
+    const i = this.flights.indexOf(f);
+    if (k === "a") this.enqueue(f, "p");
+    else if (k === "p") {
+      this.enqueue(f, "s");
+      this.enqueue(f, "c");
+      // the pipeline: the next cookie starts while this one is still in the oven
+      this.beginFlights(at);
+    } else if (k === "s") {
+      const prev = this.flights[i - 1];
+      if (prev && !prev.queued.has("f")) this.enqueue(prev, "f");
+      if (!this.flights[i + 1] && !this.workPending() && !f.queued.has("f")) this.enqueue(f, "f");
+    } else if (k === "c") {
+      f.flowAbs0 = seg.abs0 + (f.cyc.tOvenGo - seg.cStart);
+      this.lineAt = f.flowAbs0 + f.cyc.flow.total;
+    } else if (k === "f") this.enqueue(f, "g");
+    else if (k === "g") this.enqueue(f, "e");
+  }
+
+  /** Start a flight for the next ordered cookie while the pipeline has room for it. The next one
+      may go once this one's mould is delivered and picked (its p segment has a start time), so the
+      belt point holds exactly one waiting mould. The crane chains: when a further cookie is
+      waiting, this cycle rests at that one's pick bay after stowing (the previous cycle may
+      already have brought the crane there), so the crane travels the shortest path between
+      jobs instead of detouring to the conveyor each time. */
+  private beginFlights(_t: number) {
+    for (;;) {
+      const last = this.flights[this.flights.length - 1];
+      const pSeg = last?.segs.find((s) => s.kind === "p");
+      if (this.flights.length >= 2 || (last && (!pSeg || pSeg.abs0 < 0))) break;
+      const line = this.nextWork();
+      if (!line) break;
+      const rack = this.store.model.rack;
+      // the slot: the previous cycle's rest bay when it picked ahead, else the first free raw
+      const from = last?.cyc.restAt ?? this.freeRaw(rack);
+      const fromRest = !!last?.cyc.restAt;
+      // and where this cycle leaves the crane: at the next order's pick bay, when one is waiting
+      this.claimed.add(from);
+      const freeRaw = this.rawIn(rack).filter((q) => !this.claimed.has(q));
+      const rest = this.store.model.queue.some((o) => o.started < o.qty) && freeRaw.length > 0 ? freeRaw[0] : null;
+      const cyc = this.begin(line, from, rest, fromRest);
+      const f = this.wholeFlight(cyc);
+      this.flights.push(f);
+      this.enqueue(f, "a");
+      this.store.model.idle = false;
+      this.store.commit();
+      if (this.flights.length >= 2) break;
+    }
+  }
+
+  /** The flight is done: its cookie is back in its slot, baked - or its mould refilled with dough. */
+  private complete(f: Flight) {
+    const m = this.store.model, done = f.cyc;
+    this.claimed.delete(done.from);
     const line = m.queue.find((q) => q.id === done.line);
     if (done.verdict && done.verdict.verdict !== "pass") {
-      // rejected: its mould came home empty, and the order makes this cookie again
-      m.rack = { ...m.rack, [done.to]: null };
+      // rejected: its mould came home empty, and the order makes this cookie again; the slot is
+      // refilled with dough at once, so twelve cookies are always in the factory
+      m.rack = { ...m.rack, [done.to]: m.dough ? this.RAW : null };
       if (line) {
         line.started--;
         line.rejected = (line.rejected ?? 0) + 1;
@@ -406,7 +553,6 @@ export class CellCoordinator {
         }
       }
     }
-    m.idle = true;
     this.store.commit();
   }
 
@@ -415,6 +561,7 @@ export class CellCoordinator {
     const m = this.store.model, r = { ...m.rack };
     for (const q of Object.keys(r)) if (r[q] !== this.RAW) { if (r[q] !== null) m.delivered++; r[q] = this.RAW; }
     m.rack = r;
+    m.queue = m.queue.filter((o) => o.done < o.qty);
     this.store.requests.restock = false;
     this.store.commit();
   }
@@ -428,10 +575,282 @@ export class CellCoordinator {
     m.delivered = 0;
     m.rack = this.freshRack();
     m.idle = true;
-    this.cyc = { c: this.rest(m.rack), t0: t };
-    this.legIdx = -1;
+    this.flights = [];
+    this.craneQ = [];
+    this.vgrQ = [];
+    this.craneAt = this.vgrAt = this.lineAt = t;
+    this.claimed.clear();
+    this.overlapped = 0;
+    this.restCyc = this.rest(m.rack);
     this.persistence?.clear();
     store.commit();
+  }
+
+  // ------------------------------------------------------------------ the tick
+  /** Advance to twin time `t` (s, playback-scaled); `dt` is the wall-clock frame time (s). */
+  tick(t: number, dt: number) {
+    const store = this.store, m = store.model;
+    const live = this.frozen === null;
+    if (!this.announced) { this.announced = true; store.commit(false); }
+
+    if (live && store.requests.reset) this.doReset(t);
+    if (live) {
+      // retire finished segments, oldest flight first; a flight ends with its e segment
+      for (const f of this.flights) {
+        let seg = f.segs[f.idx];
+        while (seg && seg.abs0 >= 0 && t >= seg.abs0 + seg.dur - 1e-9) {
+          f.ends[seg.kind] = seg.abs0 + seg.dur;
+          f.idx++;
+          if (seg.kind === "e") this.retire.push(f);
+          seg = f.segs[f.idx];
+        }
+      }
+      for (const f of this.retire) {
+        this.flights.splice(this.flights.indexOf(f), 1);
+        this.complete(f);
+      }
+      this.retire.length = 0;
+      this.schedule(t);
+      if (!this.flights.length && store.requests.restock &&
+          m.queue.every((o) => o.done === o.qty)) this.restock();
+      this.beginFlights(t);
+      this.pollVerdicts();
+    }
+
+    if (this.frozen !== null && this.frozenFlight) {
+      // the frozen flight's flow starts at its plan's own oven-go
+      if (this.frozenFlight.flowAbs0 < 0 && Number.isFinite(this.frozenFlight.cyc.tOvenGo))
+        this.frozenFlight.flowAbs0 = this.frozenFlight.cyc.tOvenGo;
+      this.renderAll(this.frozen, dt, [this.frozenFlight]);
+      const C = this.frozenFlight.cyc, cy = m.cycle;
+      cy.from = C.from; cy.to = C.to; cy.total = C.total; cy.t = this.frozen;
+      cy.flavour = C.flavour; cy.collect = C.collect ?? "";
+    } else if (this.flights.length) {
+      this.renderAll(t, dt, this.flights);
+      // the panel follows the oldest flight: its cookie is closest to done
+      const panel = this.flights[0], C = panel.cyc, cy = m.cycle, a0 = panel.segs[0].abs0;
+      cy.from = C.from; cy.to = C.to; cy.total = C.total;
+      cy.t = a0 >= 0 ? Math.max(0, Math.min(C.total, t - a0)) : 0;
+      cy.flavour = C.flavour; cy.collect = C.collect ?? "";
+      if (live) {
+        // count the ticks where the crane and the VGR served different cookies
+        const cf = this.owner(t, "c"), vf = this.owner(t, "v");
+        if (cf && vf && cf !== vf) this.overlapped++;
+      }
+      m.idle = false;
+    } else {
+      m.idle = true;
+      this.renderRest(t, dt);
+    }
+    this.caption(t, dt);
+    store.publishFrame(t);
+  }
+  private retire: Flight[] = [];
+
+  /** The flight whose segment owns a resource (crane / VGR) at time t. */
+  private owner(t: number, res: "c" | "v"): Flight | null {
+    for (const f of this.flights) {
+      for (let i = f.idx; i < f.segs.length; i++) {
+        const seg = f.segs[i];
+        if (seg.abs0 < 0) break;
+        if (seg.abs0 <= t && t < seg.abs0 + seg.dur && seg[res]) return f;
+      }
+    }
+    return null;
+  }
+
+  /** The inspection's verdict on a flight's cookie, once its photo has been judged; a cookie
+      that does not pass is not ejected to its Lagerstelle: it stays on the belt to the end of the
+      line, the VGR finds its bay empty, and its mould goes home empty. */
+  private pollVerdicts() {
+    for (const f of this.flights) {
+      const C = f.cyc;
+      if (!C.shot || C.verdict) continue;
+      const v = this.store.verdicts.get(C.shot);
+      if (!v) continue;
+      this.store.verdicts.delete(C.shot);
+      C.verdict = v;
+      const m = this.store.model, ins = m.inspect;
+      ins.recent = [{ ...v, truth: C.defect ?? "ok", cookieFlavour: C.flavour }, ...ins.recent].slice(0, 8);
+      if (v.verdict === "pass") ins.passed++; else ins.rejected++;
+      this.store.emitRecord({ kind: "inspection", n: v.n, flavour: C.flavour, truth: C.defect ?? "ok", condition: v.condition,
+        p: v.p, verdict: v.verdict, ae: v.ae, unusual: v.anomaly });
+      this.store.commit(false);
+    }
+  }
+
+  // ------------------------------------------------------------------ rendering
+  /** The leg of a segment at local time lt, and the eased fraction along it, written into `out`
+      (nothing is allocated per frame). */
+  private legAt(seg: Seg, lt: number, out: { a: Key; b: Key; u: number }) {
+    const n = seg.legs.length;
+    let i = seg.li;
+    if (i > n - 1) i = n - 1;
+    while (i < n - 1 && lt >= seg.cum[i + 1]) i++;
+    seg.li = i;
+    const leg = seg.legs[i];
+    out.a = leg.a; out.b = leg.b;
+    out.u = smooth(Math.min(1, Math.max(0, (lt - seg.cum[i]) / leg.dur)));
+  }
+  private readonly poseC = { a: null as unknown as Key, b: null as unknown as Key, u: 0 };
+  private readonly poseV = { a: null as unknown as Key, b: null as unknown as Key, u: 0 };
+  private readonly poseM = { a: null as unknown as Key, b: null as unknown as Key, u: 0 };
+
+  /** Write every station's joints for time t: the segments active at t, on every flight. Only
+      the axes a segment owns are written; every other joint keeps its pose, so a resource that
+      is between jobs waits frozen - and two cookies are on the floor at once. */
+  private renderAll(t: number, dt: number, flights: Flight[]) {
+    const J = this.store.joints;
+    let crane: Seg | null = null, vgr: Seg | null = null, mould: Seg | null = null, mouldF: Flight | null = null;
+    let flowF: Flight | null = null;
+    for (const f of flights) {
+      for (let i = f.idx; i < f.segs.length; i++) {
+        const seg = f.segs[i];
+        if (seg.abs0 < 0) break;
+        if (t < seg.abs0 || t >= seg.abs0 + seg.dur) continue;
+        if (seg.c && !crane) crane = seg;
+        if (seg.v && !vgr) {
+          vgr = seg;
+          // remember the tour's taken flag, so the workpiece hides once the VGR has the cookie
+          this.legAt(seg, t - seg.abs0, this.poseV);
+          if (this.poseV.a.taken) f.wpTaken = true;
+        }
+        if (seg.mould && !mould) { mould = seg; mouldF = f; }
+      }
+      if (f.flowAbs0 >= 0 && f.flowAbs0 <= t && (!flowF || f.flowAbs0 > flowF.flowAbs0)) flowF = f;
+      f.rejected = !!f.cyc.verdict && f.cyc.verdict.verdict !== "pass";
+    }
+    this.mouldHeld = null;
+
+    // the warehouse crane and its belt
+    if (crane) {
+      this.legAt(crane, t - crane.abs0, this.poseC);
+      const { a, b, u } = this.poseC;
+      const h = J.hbw;
+      h.travel = a.t + (b.t - a.t) * u;
+      h.lift = a.l + (b.l - a.l) * u;
+      h.fork = a.f + (b.f - a.f) * u;
+      h.belt = a.b + (b.b - a.b) * u;
+    }
+    // the circulating mould: at rest every mould is in its slot, drawn from the rack
+    if (mould && mouldF) {
+      this.legAt(mould, t - mould.abs0, this.poseM);
+      const { a } = this.poseM;
+      J.load.held = a.held;
+      J.load.slot = a.slot;
+      J.load.cookie = a.cookie;
+      if (mouldF.rejected && a.cc.toLowerCase() !== this.RAW.toLowerCase()) J.load.cookie = false;
+      J.load.tint.color.copy(this.colour(a.cc));
+      J.load.tint.baked = a.cc.toLowerCase() !== this.RAW.toLowerCase();
+      J.out = mouldF.cyc.from;
+      this.mouldHeld = a.held;
+    } else {
+      J.out = null;
+      J.load.held = null;
+    }
+
+    // the VGR: every axis rides the same interpolation, the spring stem included
+    if (vgr) {
+      const { a, b, u } = this.poseV;
+      const vg = J.vgr, vf = vgr.fl!;
+      vg.swivel = a.vs + (b.vs - a.vs) * u;
+      vg.reach = a.vr + (b.vr - a.vr) * u;
+      vg.plunge = a.vp + (b.vp - a.vp) * u;
+      vg.compress = a.vc + (b.vc - a.vc) * u;
+      // vacuum builds (or bleeds off) across the step where Q8 switches
+      vg.seal = (a.cup ? 1 : 0) + ((b.cup ? 1 : 0) - (a.cup ? 1 : 0)) * u;
+      vg.carry = vf.rejected && a.carry === "baked" ? null : a.carry;
+      const cupHex = a.carry === "baked" ? (vf.cyc.collectColour ?? this.RAW) : this.RAW;
+      vg.tint.color.copy(this.colour(cupHex));
+      vg.tint.baked = a.carry === "baked";
+    }
+
+    // the oven and the sorting line: one cookie runs its whole journey (OvenFlow.ts); the newest
+    // flow under way wins the workpiece - an older cookie waits at its Lagerstelle, still drawn
+    this.flowFlight = flowF;
+    if (flowF) this.renderFlow(flowF, t, dt, false);
+  }
+
+  /** The flow's share of the joints for its flight: oven, belts, ejector, the workpiece. */
+  private renderFlow(f: Flight, t: number, dt: number, frozen: boolean) {
+    const J = this.store.joints;
+    const flow = f.rejected ? f.cyc.rflow : f.cyc.flow;
+    const ft = Math.min(Math.max(0, t - f.flowAbs0), flow.total);
+    const fs = flow.sample(ft, this.flow).s;
+    const o = J.oven;
+    o.slider = fs.slider; o.door = fs.door; o.turn = fs.turn; o.sauger = fs.sauger; o.lower = fs.lower;
+    o.push = fs.push; o.lamp = fs.lamp; o.saw = fs.saw; o.vac = fs.vac; o.baked = fs.baked;
+    o.ly = fs.ly; o.eject = fs.eject; o.chute = fs.chute;
+    o.beltOven = flow.beltOven(fs.ly);
+    o.beltSort = flow.beltSort(fs.ly);
+    this.heat(fs.lamp > 0.5, dt);
+    J.sort.ejector = f.rejected ? -1 : this.colours.indexOf(f.cyc.bin);
+    const wp = J.workpiece;
+    // a rejected cookie stays where the line left it, at its end, until the cycle is over
+    wp.visible = frozen || f.rejected || !f.wpTaken;
+    wp.pos[0] = this.flow.pos[0]; wp.pos[1] = this.flow.pos[1]; wp.pos[2] = this.flow.pos[2];
+    // its fault shows as it bakes: underbaked takes only part of its colour, burnt goes dark
+    wp.tint.color.lerpColors(this.rawColor, this.colour(f.cyc.baked), fs.baked * (f.cyc.defect === "underbaked" ? 0.3 : 1));
+    if (f.cyc.defect === "burnt") wp.tint.color.multiplyScalar(1 - 0.55 * fs.baked);
+    wp.tint.baked = fs.baked > 0.5;
+    wp.defect = f.cyc.defect;
+    wp.seed = f.cyc.seed;
+  }
+  private mouldHeld: string | null = null;
+  private flowFlight: Flight | null = null;
+
+  /** The rest pose: the finished cycle's last key, the flow at rest, nothing circulating. */
+  private renderRest(_t: number, dt: number) {
+    const C = this.restCyc;
+    const cy = this.store.model.cycle;
+    cy.from = C.from; cy.to = C.to; cy.total = C.total; cy.t = C.total;
+    cy.flavour = C.flavour; cy.collect = C.collect ?? "";
+    const legs = C.legs;
+    const leg = legs[legs.length - 1];
+    const h = this.store.joints.hbw;
+    h.travel = leg.b.t; h.lift = leg.b.l; h.fork = leg.b.f; h.belt = leg.b.b;
+    this.store.joints.load.held = null;
+    this.store.joints.out = null;
+    this.mouldHeld = null;
+    const fs = C.flow.sample(C.total, this.flow).s;
+    const o = this.store.joints.oven;
+    o.slider = fs.slider; o.door = fs.door; o.turn = fs.turn; o.sauger = fs.sauger; o.lower = fs.lower;
+    o.push = fs.push; o.lamp = fs.lamp; o.saw = fs.saw; o.vac = fs.vac; o.baked = fs.baked;
+    o.ly = fs.ly; o.eject = fs.eject; o.chute = fs.chute;
+    o.beltOven = C.flow.beltOven(fs.ly);
+    o.beltSort = C.flow.beltSort(fs.ly);
+    this.heat(fs.lamp > 0.5, dt);
+    const vg = this.store.joints.vgr;
+    vg.swivel = leg.b.vs; vg.reach = leg.b.vr; vg.plunge = leg.b.vp; vg.compress = leg.b.vc;
+    vg.seal = leg.b.cup ? 1 : 0;
+    vg.carry = null;
+    this.store.joints.workpiece.visible = false;
+    this.flowFlight = null;
+  }
+
+  /** The caption: the active segments' current step (the VGR's first - it is the show), with the
+      flow's when it runs; the sensors and the camera ride along. */
+  private caption(t: number, dt: number) {
+    const store = this.store, m = store.model;
+    const list = this.flights.length ? this.flights : this.frozen !== null && this.frozenFlight ? [this.frozenFlight] : [];
+    const resting = !list.length && this.frozen === null;
+    let segSay = "", vgrSay = "";
+    for (const f of list) {
+      for (let i = f.idx; i < f.segs.length; i++) {
+        const seg = f.segs[i];
+        if (seg.abs0 < 0 || t < seg.abs0 || t >= seg.abs0 + seg.dur) continue;
+        const lt = t - seg.abs0;
+        let li = 0;
+        while (li < seg.legs.length - 1 && lt >= seg.cum[li + 1]) li++;
+        if (!vgrSay && seg.v) vgrSay = seg.legs[li].b.say;
+        if (!segSay) segSay = seg.legs[li].b.say;
+      }
+    }
+    const say = vgrSay || segSay;
+    const want = resting ? WAITING : this.flow.say ? `${say}   ·   ${this.flow.say}` : say;
+    if (want && want !== m.step) { m.step = want; store.commit(false); }
+    this.sensors();
+    this.camera(dt);
   }
 
   /** The heating: first-order lags - the sheath glows within seconds, the chamber air follows
@@ -445,8 +864,9 @@ export class CellCoordinator {
   }
 
   /** The warehouse's light barriers: is the mould (or the cookie in it) across a beam? */
-  private sensors(held: string | null) {
+  private sensors() {
     const J = this.store.joints, h = J.hbw, doc = this.doc;
+    const held = this.mouldHeld;
     let yc = NaN, zb = NaN;
     if (held === "belt") { yc = h.belt; zb = doc.belt.surface; }
     else if (held === "fork" && Math.abs(h.travel - doc.belt.x) < 5) { yc = this.seat.y + h.fork; zb = this.seat.z + h.lift; }
@@ -460,20 +880,23 @@ export class CellCoordinator {
   /** The inspection camera fires as the travelling cookie CROSSES its lens's axis - a change of
       side between two ticks, so a fast playback that steps over the axis still triggers it. A
       capture is offered to the renderer for exactly one tick (camera.pending), and to listeners. */
-  private camera(dt: number, flavour: string) {
+  private camera(dt: number) {
     const cam = this.store.joints.camera, wp = this.store.joints.workpiece;
     cam.pending = null;
     cam.lit = Math.max(0, cam.lit - dt * 4);
-    if (!this.lens) return;
+    if (this.flowFlight !== this.alongFlight) { this.alongFlight = this.flowFlight; this.along = NaN; }
+    const f = this.flowFlight;
+    if (!f || !this.lens) return;
+    const flavour = f.cyc.flavour;
     // the sorting belt runs along the factory's +Y here; across it, the cookie must be under the lens
     const on = wp.visible && Math.abs(wp.pos[0] - this.lens[0]) < 15;
     const along = on ? wp.pos[1] - this.lens[1] : NaN;
     if (along >= 0 && this.along < 0) {
       cam.shots++;
       cam.lit = 1;
-      const truth = this.cyc.c.defect ?? "ok";
+      const truth = f.cyc.defect ?? "ok";
       cam.pending = { n: cam.shots, label: flavour, truth };
-      if (!this.cyc.c.shot) this.cyc.c.shot = cam.shots;
+      if (!f.cyc.shot) f.cyc.shot = cam.shots;
       this.store.emitCapture({ n: cam.shots, flavour, truth });
     }
     this.along = along;

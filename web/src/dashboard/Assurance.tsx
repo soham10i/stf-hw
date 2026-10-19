@@ -1,6 +1,7 @@
 // Upgrade 12 (stf-cad/hbw/hardening.py) and the validation of U1-U12
 // (stf-cad/hbw/validate.py): what is hardwired now, and whether every proof still holds.
 import { useJson } from "../shared/data";
+import { clean } from "../shared/names";
 import { Dumbbell, HBar } from "./Plot";
 
 function useDoc<T>(path: string, hint: string) {
@@ -92,17 +93,24 @@ export function ValidationPage() {
     <>
       <div className="db-kpis">
         <div className={`db-kpi ${d.fails.length ? "fail" : "ok"}`}><span>result</span><b>{d.fails.length ? `${d.fails.length} fail` : "all pass"}</b><em>{d.date} · {d.minutes} min</em></div>
-        <div className="db-kpi ok"><span>variants re-proven</span><b>{ex.filter((e) => e.ok && e.match).length} / {ex.length}</b><em>fingerprint = baseline</em></div>
+        <div className="db-kpi ok"><span>variants re-proven</span><b>{ex.filter((e) => e.ok && e.match).length} / {ex.length}</b><em>matches baseline</em></div>
         <div className="db-kpi ok"><span>mutants caught</span><b>{caught} / {J.mutants.rows.length}</b><em>planted defects</em></div>
         <div className="db-kpi ok"><span>false trips at ±20 %</span><b>{J.mc.before.false_trips + J.mc.after.false_trips}</b><em>{J.mc.before.runs + J.mc.after.runs} randomised runs</em></div>
         <div className="db-kpi ok"><span>network parity</span><b>{Math.max(J.ml.onnx_vs_pytorch, J.ml.json_vs_pytorch).toFixed(4)}</b><em>orders, worst of 3 deployments</em></div>
       </div>
       <div className="db-grid">
         <section className="db-card hl-span2"><h3>Regression: every variant re-exported and re-proven</h3>
-          <HBar xTitle="export and proof time (min) · hover for the fingerprint" fmt={(v) => `${Math.round(v)}`}
-            rows={ex.sort((a, b) => a.variant.localeCompare(b.variant, undefined, { numeric: true })).map((e) => ({ label: e.variant, v: e.s / 60,
-              color: e.ok && e.match ? "var(--ok)" : "var(--bad)", tip: `${e.variant}: gates ${e.ok ? "pass" : "FAIL"} · fingerprint ${e.fingerprint}${e.match ? " = baseline" : ` ≠ baseline ${e.baseline}`} · ${Math.round(e.s / 60)} min` }))} />
-          <p className="hl-cap">Green = every gate passed and the fingerprint equals the recorded baseline.</p>
+          <HBar xTitle="export and proof time (min) · hover for details" fmt={(v) => `${Math.round(v)}`}
+            rows={ex.sort((a, b) => a.variant.localeCompare(b.variant, undefined, { numeric: true })).map((e) => {
+              const vName = clean(e.variant);
+              return {
+                label: vName,
+                v: e.s / 60,
+                color: e.ok && e.match ? "var(--ok)" : "var(--bad)",
+                tip: `${vName}: gates ${e.ok ? "pass" : "FAIL"}${e.match ? " · matches baseline" : " · diff from baseline"} · ${Math.round(e.s / 60)} min`
+              };
+            })} />
+          <p className="hl-cap">Green = every gate passed and verified against the recorded baseline.</p>
         </section>
         <section className="db-card"><h3>Robustness: ±20 % on every plant step</h3>
           <Dumbbell xTitle="order time over 25 random plants (s)" max={Math.max(J.mc.before.max, J.mc.after.max) * 1.08} fmt={(v) => `${Math.round(v)}`}

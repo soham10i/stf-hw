@@ -21,7 +21,7 @@ import { jointTrims } from "./joints";
 import { useCellModel, useCellStore, type CellStore, type Drive } from "./store/useCellStore";
 import { CellCoordinator } from "./engine/CellCoordinator";
 import { localPersistence } from "./engine/persistence";
-import { PLAYBACK } from "./timeline";
+import { PLAYBACK, FF } from "./timeline";
 import { FOCUS, getViewInset, useFocus, type FocusId } from "./focus";
 import { markStageReady } from "./stageReady";
 import { keep } from "../vision/photo";
@@ -56,7 +56,7 @@ function useCoordinator(doc: CadDoc, tours: Record<string, PlanKey[]> | null | u
     const [tx, ty] = doc.factory.sort_placement.translate;
     coord.setCamera([-cam.lens[1] + tx, cam.lens[0] + ty]);
   }, [coord, cam, doc]);
-  useFrame(({ clock }, dt) => coord?.tick(clock.getElapsedTime() * PLAYBACK, dt), -1);
+  useFrame(({ clock }, dt) => coord?.tick(clock.getElapsedTime() * PLAYBACK * FF.value, dt), -1);
   return coord;
 }
 

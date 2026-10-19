@@ -1,7 +1,8 @@
 // The Operate pages built from the twin's export: Overview, Production, Quality & trace, Alarms -
 // and the PLC Gantt chart they share.
 import { useState } from "react";
-import { type CadDoc } from "../shared/model";
+import { motion } from "motion/react";
+import { type CadDoc, type TraceRec } from "../shared/model";
 import { JOB_COL, JOB_SAY, fmtT, makespan, unitsAt } from "../shared/hmi";
 import { compAt } from "../shared/health";
 
@@ -172,32 +173,104 @@ export function Production({ doc, t }: { doc: CadDoc; t: number }) {
   );
 }
 
+const FLAV_DOT: Record<string, string> = { vanilla: "#f2efe6", strawberry: "#f4a6bf", chocolate: "#b0773f" };
+const CLASS_DOT: Record<string, string> = { weiss: "#f2efe6", rot: "#c8233c", blau: "#3b2112" };
+
+// one journey step: done (green), now (lit), or still ahead (faint)
+type Step = { label: string; done: boolean; now: boolean };
+function journey(r: TraceRec, t: number): { steps: Step[]; label: string; tone: "ok" | "live" | "wait" } {
+  if (r.kind === "return") {
+    const home = (r.t.stored ?? Infinity) <= t;
+    return {
+      steps: [{ label: "bay", done: true, now: !home }, { label: r.slot_to ?? "rack", done: home, now: home }],
+      label: home ? `in ${r.slot_to}` : "bay", tone: home ? "ok" : "wait",
+    };
+  }
+  const sorted = (r.t.sorted ?? Infinity) <= t;
+  const oven = !sorted && (r.t.bake_start ?? Infinity) <= t;
+  const belt = !sorted && !oven && (r.t.retrieved ?? Infinity) <= t;
+  return {
+    steps: [
+      { label: r.slot_from ?? "rack", done: belt || oven || sorted, now: !belt && !oven && !sorted },
+      { label: "belt", done: oven || sorted, now: belt },
+      { label: "oven", done: sorted, now: oven },
+      { label: r.bin ?? "bin", done: sorted, now: sorted },
+    ],
+    label: sorted ? `bin ${r.bin}` : oven ? "in process" : belt ? "on the belt" : `rack ${r.slot_from}`,
+    tone: sorted ? "ok" : oven ? "live" : "wait",
+  };
+}
+
 export function Quality({ doc, t }: { doc: CadDoc; t: number }) {
   const c = doc.control!;
   const [q, setQ] = useState("");
   const rows = c.trace.filter((r) => !q || [r.id, r.mould, r.flavour, r.slot_from, r.slot_to, r.bin].some((v) => v && String(v).toLowerCase().includes(q.toLowerCase())));
   const made = c.trace.filter((r) => r.kind === "production");
   const ok = made.filter((r) => r.verified).length;
+  const rps = Object.keys(c.read_points);
+  // the bake column is one shared time axis across the visible rows: bar position = when, bar
+  // length = how long; the header says the axis' range
+  const bakes = rows.filter((r) => r.t.bake_start !== undefined && r.t.bake_end !== undefined);
+  const bt0 = bakes.length ? Math.min(...bakes.map((r) => r.t.bake_start)) : 0;
+  const bt1 = bakes.length ? Math.max(...bakes.map((r) => r.t.bake_end)) : 0;
+  const span = bt1 - bt0 || 1;
   return (
     <div className="db-grid">
       <div className="db-kpis wide">
         <Kpi label="made" value={`${made.length}`} />
         <Kpi label="A4-verified" value={`${ok}/${made.length}`} tone={ok === made.length ? "ok" : "fail"} />
-        <Kpi label="read points" value={Object.keys(c.read_points).join(" · ")} sub="RFID under the HBW belt" />
+        <Kpi label="read points" value={rps.join(" · ")} sub="RFID under the HBW belt" />
       </div>
-      <Card title="Records" wide extra={<input className="db-search" placeholder="search cookie, mould, flavour, slot, bin…" value={q} onChange={(e) => setQ(e.target.value)} />}>
-        <table className="db-table">
-          <thead><tr><td>id</td><td>flavour</td><td>mould</td><td>from → to</td><td>reads</td><td>bake</td><td>A4</td><td className="num">state now</td></tr></thead>
+      <Card title="Records" wide extra={<span className="rc-filter"><span className="rc-count">{rows.length} of {c.trace.length}</span>
+        <input className="db-search" placeholder="search cookie, mould, flavour, slot, bin…" value={q} onChange={(e) => setQ(e.target.value)} /></span>}>
+        <table className="db-table db-rec">
+          <thead><tr><td>cookie</td><td>mould</td><td>route</td>
+            <td>reads<span className="rc-th-sub"> · {rps.join(" · ")}</span></td>
+            <td>bake{bakes.length > 0 && <span className="rc-th-sub"> · {bt0}–{bt1} s</span>}</td>
+            <td className="num">A4<span className="rc-th-sub"> · mV</span></td><td>state</td></tr></thead>
           <tbody>{rows.map((r) => {
-            const now = r.kind === "return" ? ((r.t.stored ?? Infinity) <= t ? `in ${r.slot_to}` : "bay") :
-              (r.t.sorted ?? Infinity) <= t ? `bin ${r.bin}` : (r.t.bake_start ?? Infinity) <= t ? "in process" : (r.t.retrieved ?? Infinity) <= t ? "on the belt" : `rack ${r.slot_from}`;
+            const j = journey(r, t);
             return (
-              <tr key={r.id}><td>{r.id}</td><td>{r.flavour}</td><td className="mono">{r.mould}</td><td>{r.slot_from ?? "bay"} → {r.bin ?? r.slot_to}</td>
-                <td className="mono">{r.reads.map(([rp, , tt]) => `${rp}@${tt}`).join(" ")}</td>
-                <td className="mono">{r.t.bake_start !== undefined ? `${r.t.bake_start}–${r.t.bake_end}` : "–"}</td>
-                <td>{r.colour_mV !== undefined ? `${r.colour_mV} mV ${r.verified ? "✓" : "✗"}` : "–"}</td><td className="num">{now}</td></tr>
+              <tr key={r.id}>
+                <td className="rc-cookie"><b>{r.id}</b><i className="rc-sw" style={{ background: FLAV_DOT[r.flavour] ?? "var(--faint)" }} />{r.flavour}</td>
+                <td className="mono">{r.mould}</td>
+                <td className="rc-route">{r.slot_from ?? "bay"} <i>→</i> {r.bin ?? r.slot_to}</td>
+                <td className="rc-reads">{rps.map((rp) => {
+                  // read_points say RF1/RF2, the trace's reads say RP1/RP2: match on the digits
+                  const hit = r.reads.find((x) => x[0].replace(/\D/g, "") === rp.replace(/\D/g, ""));
+                  return (
+                    <span key={rp} className={`rc-rp${hit ? "" : " off"}`} title={hit ? `${rp} — ${c.read_points[rp]}: mould ${hit[1]} at ${hit[2]} s` : `${rp} — ${c.read_points[rp]}: not read yet`}>
+                      <b>{rp}</b>{hit ? <span className="mono">{hit[2]}s</span> : <span>–</span>}
+                    </span>
+                  );
+                })}</td>
+                <td className="rc-bake">{r.t.bake_start !== undefined ? (
+                  <span className="rc-track" title={`bake ${r.t.bake_start}–${r.t.bake_end} s`}>
+                    <span className="rc-bar" style={{ left: `${((r.t.bake_start - bt0) / span) * 100}%`,
+                      width: `${Math.max(4, ((r.t.bake_end - r.t.bake_start) / span) * 100)}%` }} />
+                  </span>
+                ) : <span className="rc-dash">–</span>}{r.t.bake_end !== undefined && <span className="rc-bake-s mono">{+((r.t.bake_end - r.t.bake_start).toFixed(1))} s</span>}</td>
+                <td className="num rc-a4">{r.colour_mV !== undefined ? (<>
+                  <i className="rc-sw" style={{ background: CLASS_DOT[r.class ?? ""] ?? "var(--faint)" }} title={r.class} />
+                  <span className="mono">{r.colour_mV}</span> mV
+                  <span className={`rc-badge ${r.verified ? "ok" : "bad"}`} title={r.verified ? "colour matches the order" : "colour does not match the order"}>{r.verified ? "✓" : "✗"}</span>
+                </>) : <span className="rc-dash">–</span>}</td>
+                <td className="rc-state">
+                  <span className="rc-journey" title={`${j.label} · t = ${t} s`}>
+                    {j.steps.map((s, i) => (
+                      <span key={i} style={{ display: "inline-flex", alignItems: "center" }}>
+                        {i > 0 && <i className={`rc-link${s.done ? " on" : ""}`} />}
+                        <i className={`rc-dot${s.done ? " done" : ""}${s.now ? " now" : ""}`} />
+                      </span>
+                    ))}
+                  </span>
+                  <span className={`rc-now ${j.tone}`}>{j.label}</span>
+                </td>
+              </tr>
             );
-          })}</tbody>
+          })}
+          {rows.length === 0 && <tr><td colSpan={7} className="db-muted">No cookies match “{q}”.</td></tr>}
+          </tbody>
         </table>
       </Card>
     </div>
@@ -207,6 +280,7 @@ export function Quality({ doc, t }: { doc: CadDoc; t: number }) {
 export function Alarms({ doc }: { doc: CadDoc }) {
   const c = doc.control!, vc = doc.vc!;
   const [f, setF] = useState("");
+  const [open, setOpen] = useState<string | null>(null);
   const al = c.alarms.filter((a) => !f || (a.code + a.text + a.unit).toLowerCase().includes(f.toLowerCase()));
   const mttr = vc.matrix.reduce((s, r) => s + r.lost_s, 0) / vc.matrix.length;
   return (
@@ -232,11 +306,28 @@ export function Alarms({ doc }: { doc: CadDoc }) {
             <td className="num">{r.latency_s} s</td><td>{r.reaction}</td><td>{r.recovery}</td><td className="num">{r.lost_s} s</td></tr>)}</tbody>
         </table>
       </Card>
-      <Card title="Alarm list" wide extra={<input className="db-search" placeholder="filter…" value={f} onChange={(e) => setF(e.target.value)} />}>
-        <table className="db-table">
-          <thead><tr><td>code</td><td>alarm</td><td>cause</td><td>recovery</td></tr></thead>
-          <tbody>{al.map((a) => <tr key={a.code}><td className="mono">{a.code}</td><td>{a.text}</td><td>{a.cause}</td><td>{a.recovery}</td></tr>)}</tbody>
-        </table>
+      <Card title="Alarm list" wide extra={<input className="db-search" placeholder="filter by code, text or unit…" value={f} onChange={(e) => setF(e.target.value)} />}>
+        {/* one line per alarm; the cause and the recovery open where they are needed, in the row */}
+        <div className="al-list">
+          {al.map((a) => (
+            <div key={a.code} className={`al-item ${open === a.code ? "open" : ""}`}>
+              <button className="al-row" onClick={() => setOpen(open === a.code ? null : a.code)}
+                aria-expanded={open === a.code} title={open === a.code ? "Close the details" : "Cause and recovery"}>
+                <span className="al-code">{a.code}</span>
+                <span className="al-text">{a.text}</span>
+                <span className="ui-chip">{a.unit}</span>
+                <i className="al-chev" aria-hidden="true">›</i>
+              </button>
+              {open === a.code && (
+                <motion.div className="al-detail" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: "easeOut" }}>
+                  <div><b>Cause</b><p>{a.cause}</p></div>
+                  <div><b>Recovery</b><p>{a.recovery}</p></div>
+                </motion.div>
+              )}
+            </div>
+          ))}
+          {al.length === 0 && <p className="db-muted">No alarms match the filter.</p>}
+        </div>
       </Card>
     </div>
   );

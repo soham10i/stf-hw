@@ -128,7 +128,9 @@ class ChatRequest(BaseModel):
     history: list[Turn] = Field(default_factory=list, max_length=8)
     grounding: Grounding = Field(default_factory=Grounding)
     page: str | None = Field(default=None, max_length=40, pattern=r"^[a-z0-9-]*$")
-    provider: str | None = Field(default=None, pattern="^(gemini|groq|grok|upb|ollama|rules|auto)$")
+    provider: str | None = Field(
+        default=None, pattern="^(gemini|groq|grok|upb|openai|ollama|rules|auto)$"
+    )
     age: float = Field(default=140.0, ge=0, le=2000)
     pm: bool = Field(default=True)
     session_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
@@ -152,6 +154,12 @@ class ChatSettings:
     upb_model: str = "gwdg.latest-basemodel"
     ollama_url: str = "http://127.0.0.1:11434"
     ollama_model: str | None = None
+    # an OpenAI-compatible server of your own: vLLM or Ollama serving an open model on Azure
+    # Container Apps / Cloud Run (docs/GCP_DEPLOY.md, kimi-code/OPEN_LLM_DEPLOY.md). Off unless
+    # OPENAI_URL is set; without a key the header is simply omitted (local servers don't need one)
+    openai_url: str | None = None
+    openai_key: str | None = None
+    openai_model: str = "Qwen/Qwen2.5-7B-Instruct"
     models: list[str] = field(default_factory=list)  # the fallback order after `model`
     grounding: bool = False  # Gemini's built-in Google Search, on with GEMINI_GROUNDING=1
 
@@ -201,6 +209,9 @@ class ChatSettings:
             upb_model=upb_model,
             ollama_url=env.get("OLLAMA_URL", "http://127.0.0.1:11434"),
             ollama_model=env.get("OLLAMA_MODEL", "qwen2.5:7b-instruct"),
+            openai_url=env.get("OPENAI_URL") or None,
+            openai_key=env.get("OPENAI_API_KEY") or env.get("OPENAI_KEY") or None,
+            openai_model=env.get("OPENAI_MODEL", "Qwen/Qwen2.5-7B-Instruct"),
             grounding=env.get("GEMINI_GROUNDING", "").lower() in ("1", "true", "yes"),
         )
 
@@ -592,7 +603,7 @@ class ModelError(Exception):
 
 # the fallback order, the same locally and in production: the cloud models in turn, the
 # university's AI chat (UPB, a fixed credit) last of the hosted ones, then a local model
-ORDER = ("gemini", "groq", "upb", "ollama")
+ORDER = ("gemini", "groq", "upb", "openai", "ollama")
 # how long a provider stays out after it fails: by HTTP status, else a timeout
 COOL = {429: 60.0, 503: 60.0, 401: 3600.0, 402: 3600.0, 403: 3600.0}
 COOL_TIMEOUT = 120.0
@@ -645,7 +656,8 @@ class Chat:
         groq_on = bool(self.c.groq_key)
         upb_on = bool(self.c.upb_key)
         ollama_on = bool(self.c.ollama_model and self._ollama_alive())
-        enabled = gemini_on or groq_on or upb_on or ollama_on
+        openai_on = bool(self.c.openai_url)
+        enabled = gemini_on or groq_on or upb_on or openai_on or ollama_on
         primary_model = (
             self.c.model
             if gemini_on
@@ -655,7 +667,11 @@ class Chat:
                 else (
                     f"upb {self.c.upb_model}"
                     if upb_on
-                    else (self.c.ollama_model if ollama_on else None)
+                    else (
+                        self.c.openai_model
+                        if openai_on
+                        else (self.c.ollama_model if ollama_on else None)
+                    )
                 )
             )
         )
@@ -669,12 +685,15 @@ class Chat:
             out["groq"] = True
         if upb_on:
             out["upb"] = True
+        if openai_on:
+            out["openai"] = True
         if enabled:
             out.update(
                 gemini_model=(self.pool.available() or [self.c.model])[0] if gemini_on else None,
                 gemini_pool=self.pool.status() if gemini_on else None,
                 groq_model=self.c.groq_model if groq_on else None,
                 upb_model=self.c.upb_model if upb_on else None,
+                openai_model=self.c.openai_model if openai_on else None,
                 ollama_model=self.c.ollama_model if ollama_on else None,
                 grounding=self.c.grounding if gemini_on else False,
             )
@@ -1019,6 +1038,108 @@ class Chat:
         text = parse_groq(self._upb_post(body, meta))
         return text, check(text)
 
+    def _openai_post(self, body: dict, meta: dict) -> dict:
+        """One request to the operator's own OpenAI-compatible server (vLLM, Ollama, an
+        inferencing endpoint on Azure or Google Cloud)."""
+        if not self.c.openai_url:
+            raise ModelError("no OpenAI-compatible endpoint configured")
+        say = meta.get("emit") or (lambda *_: None)
+        say("step", f"asked the open model ({self.c.openai_model})")
+        meta["model"] = self.c.openai_model
+        try:
+            return self.post_groq(self.c.openai_url, self.c.openai_key or "", body)
+        except urllib.error.HTTPError as e:
+            why = {
+                401: "the key was refused",
+                402: "the credit is used up",
+                403: "the key was refused",
+                404: "the model is not served",
+                429: "at its rate limit",
+            }.get(e.code, f"HTTP {e.code}")
+            raise ModelError(f"the open model: {why}", COOL.get(e.code, 0.0)) from None
+        except (urllib.error.URLError, TimeoutError):
+            raise ModelError("the open model did not answer in time", COOL_TIMEOUT) from None
+
+    def _openai(
+        self,
+        req: ChatRequest,
+        ctx: T.Ctx,
+        results: list[T.Result],
+        called: list[str],
+        check,
+        meta: dict,
+    ) -> tuple[str, list[str]]:
+        if not self.c.openai_url:
+            raise ModelError("no OpenAI-compatible endpoint configured")
+        say = meta.get("emit") or (lambda *_: None)
+        body = build_groq_body(req, self.c.openai_model, results, meta.get("extra", ""))
+        retried = False
+        for _ in range(MAX_ROUNDS + 1):
+            data = self._openai_post(body, meta)
+            think = groq_thinking(data)
+            if think:
+                meta.setdefault("thinking", []).append(think)
+                say("thinking", think)
+            choice = (data.get("choices") or [{}])[0]
+            msg = choice.get("message") or {}
+            tcs = msg.get("tool_calls") or []
+            if not tcs:
+                text = parse_groq(data)
+                bad = check(text)
+                if not bad or retried:
+                    return text, bad
+                retried = True
+                say("step", f"checking: {', '.join(bad)} not in the evidence - asked to rewrite")
+                body["messages"].append({"role": "assistant", "content": text})
+                body["messages"].append({"role": "user", "content": correction(bad)})
+                continue
+            body["messages"].append(
+                {k: v for k, v in msg.items() if k not in ("reasoning", "executed_tools")}
+            )
+            for tc in tcs:
+                fn = tc.get("function") or {}
+                args = fn.get("arguments") or {}
+                if isinstance(args, str):
+                    try:
+                        args = json.loads(args)
+                    except ValueError:
+                        args = {}
+                say("step", f"called {fn.get('name', '?').replace('_', ' ')}")
+                r = T.call(fn.get("name", ""), args, ctx)
+                results.append(r)
+                called.append(r.tool)
+                body["messages"].append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tc.get("id", f"call_{len(called)}"),
+                        "content": r.as_markdown(),
+                    }
+                )
+        body.pop("tools", None)
+        text = parse_groq(self._openai_post(body, meta))
+        return text, check(text)
+
+    def _ddg_writer(self) -> tuple | None:
+        """An (post, model) pair for the DuckDuckGo write-up: any OpenAI-compatible model -
+        Groq, UPB, or the operator's own server. DuckDuckGo needs no key, but something must
+        read the fetched pages and write the answer up; None when nothing can."""
+        if self.c.groq_key:
+            return (
+                lambda b: self.post_groq(self.c.groq_url, self.c.groq_key or "", b),
+                self.c.groq_model,
+            )
+        if self.c.upb_key:
+            return (
+                lambda b: self.post_groq(self.c.upb_url, self.c.upb_key or "", b),
+                self.c.upb_model,
+            )
+        if self.c.openai_url:
+            return (
+                lambda b: self.post_groq(self.c.openai_url, self.c.openai_key or "", b),
+                self.c.openai_model,
+            )
+        return None
+
     def _provider(self, wanted: str | None) -> list[str]:
         """The order models are tried in: the tab the operator chose first, then ORDER (Gemini,
         Groq, UPB, the local model), skipping any without a key. A provider that failed lately
@@ -1030,6 +1151,7 @@ class Chat:
             "gemini": bool(self.c.key),
             "groq": bool(self.c.groq_key),
             "upb": bool(self.c.upb_key),
+            "openai": bool(self.c.openai_url),
             "ollama": bool(self.c.ollama_model),
         }
         first = {"grok": "groq", "local": "ollama"}.get(wanted or "", wanted)
@@ -1222,27 +1344,13 @@ class Chat:
         web_failed = False
 
         # the web: Groq's browser search reads the pages and writes the answer with its links;
-        # deep research searches each sub-question, and the chosen model writes the findings up
-        if plan.web and self.c.groq_key:
-            post = lambda b: self.post_groq(self.c.groq_url, self.c.groq_key, b)  # noqa: E731
+        # deep research searches each sub-question, and the chosen model writes the findings up.
+        # When Groq is missing or its search fails, DuckDuckGo (keyless) lists and fetches the
+        # pages and whichever model is configured writes the answer up from the fetched text.
+        if plan.web and (self.c.groq_key or self._ddg_writer()):
             context = context_block(req.grounding, req.page, results)
-            try:
-                if plan.mode == "deep":
-                    say("step", "deep research: planning the searches")
-                    found = await asyncio.to_thread(
-                        W.deep,
-                        req.question,
-                        context,
-                        post,
-                        self.c.groq_search_model,
-                        self.c.groq_model,
-                        lambda t: say("step", t),
-                    )
-                else:
-                    say("step", f"searching the web with groq {self.c.groq_search_model}")
-                    found = await asyncio.to_thread(
-                        W.search, req.question, context, post, self.c.groq_search_model, "low"
-                    )
+
+            def absorb(found: W.Found) -> None:
                 for t in found.steps:
                     say("step", t)
                 for t in found.reasoning:
@@ -1254,6 +1362,59 @@ class Chat:
                     0, web_result("web_research" if plan.mode == "deep" else "web_search", found)
                 )
                 called.append(results[0].tool)
+
+            found: W.Found | None = None
+            if self.c.groq_key:
+                post = lambda b: self.post_groq(self.c.groq_url, self.c.groq_key, b)  # noqa: E731
+                try:
+                    if plan.mode == "deep":
+                        say("step", "deep research: planning the searches")
+                        found = await asyncio.to_thread(
+                            W.deep,
+                            req.question,
+                            context,
+                            post,
+                            self.c.groq_search_model,
+                            self.c.groq_model,
+                            lambda t: say("step", t),
+                        )
+                    else:
+                        say("step", f"searching the web with groq {self.c.groq_search_model}")
+                        found = await asyncio.to_thread(
+                            W.search, req.question, context, post, self.c.groq_search_model, "low"
+                        )
+                except RuntimeError as e:
+                    logger.warning("Web search failed for question %r: %s", req.question[:60], e)
+                    notes.append(f"the web search failed ({e})")
+                    found = None
+                    say("step", f"the web search failed: {e}; trying DuckDuckGo instead")
+            if found is None and (writer := self._ddg_writer()):
+                post_ddg, model_ddg = writer
+                try:
+                    if plan.mode == "deep":
+                        say("step", "deep research: planning the DuckDuckGo searches")
+                        found = await asyncio.to_thread(
+                            W.deep_ddg, req.question, context, post_ddg, model_ddg,
+                            lambda t: say("step", t),
+                        )
+                    else:
+                        say("step", f"searching DuckDuckGo; {model_ddg} writes the answer up")
+                        found = await asyncio.to_thread(
+                            W.search_ddg, req.question, context, post_ddg, model_ddg
+                        )
+                except RuntimeError as e:
+                    logger.warning(
+                        "DuckDuckGo search failed for question %r: %s", req.question[:60], e
+                    )
+                    notes.append(f"the DuckDuckGo search failed ({e})")
+                    found = None
+                    web_failed = True
+                    say(
+                        "step",
+                        f"DuckDuckGo failed too: {e}; Gemini's Google Search, else the documents",
+                    )
+            if found:
+                absorb(found)
                 if plan.mode == "web":
                     bad = check(found.text)
                     note = None
@@ -1264,14 +1425,6 @@ class Chat:
                         )
                     return reply(found.text, f"groq {found.model} + web search", note, bad)
                 extra += "\n\n" + R.instruction("research")
-            except RuntimeError as e:
-                logger.warning("Web search failed for question %r: %s", req.question[:60], e)
-                notes.append(f"the web search failed ({e})")
-                web_failed = True
-                say(
-                    "step",
-                    f"the web search failed: {e}; Gemini's Google Search, else the documents",
-                )
         elif plan.web:
             say("step", "searching the web with Gemini's Google Search")
 
@@ -1291,7 +1444,13 @@ class Chat:
                 self._gemini
                 if prov == "gemini"
                 else (
-                    self._groq if prov == "groq" else (self._upb if prov == "upb" else self._ollama)
+                    self._groq
+                    if prov == "groq"
+                    else (
+                        self._upb
+                        if prov == "upb"
+                        else (self._openai if prov == "openai" else self._ollama)
+                    )
                 )
             )
             deep = plan.mode == "deep" or style == "derive"
@@ -1307,7 +1466,9 @@ class Chat:
             try:
                 answer, bad = await asyncio.to_thread(run, req, ctx, results, called, check, meta)
             except ModelError as e:
-                logger.warning("LLM provider '%s' failed for question %r: %s", prov, req.question[:60], e)
+                logger.warning(
+                    "LLM provider '%s' failed for question %r: %s", prov, req.question[:60], e
+                )
                 if e.cool:
                     self.out[prov] = time.time() + e.cool
                 who = (
@@ -1316,7 +1477,15 @@ class Chat:
                     else (
                         "Groq"
                         if prov == "groq"
-                        else ("UPB AI" if prov == "upb" else "the local model")
+                        else (
+                            "UPB AI"
+                            if prov == "upb"
+                            else (
+                                f"the open model ({self.c.openai_model})"
+                                if prov == "openai"
+                                else "the local model"
+                            )
+                        )
                     )
                 )
                 notes.append(f"{who} unavailable ({e})")
@@ -1328,6 +1497,7 @@ class Chat:
                         "groq": "Groq",
                         "upb": "UPB AI",
                         "gemini": "Gemini",
+                        "openai": "the open model",
                         "ollama": "local model",
                     }.get(chain[i + 1], "next")
                     switched.append(
@@ -1350,6 +1520,8 @@ class Chat:
                 model = meta.get("model") or self.c.model
             elif prov == "groq":
                 model = meta.get("model") or f"groq {self.c.groq_model}"
+            elif prov == "openai":
+                model = self.c.openai_model
             else:
                 model = self.c.ollama_model or "ollama"
             warn = list(notes[-1:]) if any("web search failed" in n for n in notes) else []

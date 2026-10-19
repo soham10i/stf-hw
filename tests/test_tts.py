@@ -6,6 +6,7 @@ import base64
 import io
 import json
 import struct
+import time as time_module
 import urllib.error
 
 import pytest
@@ -32,6 +33,13 @@ def req(client="127.0.0.1"):
     )
 
 
+@pytest.fixture(autouse=True)
+def _fresh_spoken_cache(tmp_path, monkeypatch):
+    """Each test gets its own spoken-cache dir: the real one lives in the system temp dir and
+    would otherwise leak synthesized sentences between runs."""
+    monkeypatch.setattr(V, "CACHE_DIR", tmp_path / "tts-cache")
+
+
 def speak(t, text="**The oven** is at temperature [Machine: Oven].\n- door shut"):
     return asyncio.run(t.speak(V.TtsRequest(text=text), req()))
 
@@ -44,6 +52,25 @@ def test_speakable_drops_markdown_and_citations():
         V.speakable("The oven is at 176 °C and costs €6.16.")
         == "The oven is at 176 degrees Celsius and costs 6.16 euros."
     )
+
+
+def test_speakable_reads_the_content_only():
+    """Links keep their text, URLs and formulas go, and a Sources/Resources section is not read."""
+    md = (
+        "The oven holds **176 °C**.\n\n"
+        "Details: [the manual](https://fischertechnik.de/manual) and https://example.com/x.\n"
+        "Efficiency is $\\eta = 0.9$ today.\n\n"
+        "## Sources\n1. [a](https://a.example) 2. [b](https://b.example)\n"
+        "## Resources\n- [c](https://c.example)"
+    )
+    s = V.speakable(md)
+    assert "the manual" in s                      # the link's text stays
+    assert "fischertechnik.de/manual" not in s    # its URL is not read
+    assert "example.com" not in s                 # bare URLs neither
+    assert "(formula)" in s and "eta = 0.9" not in s and "$" not in s  # LaTeX becomes a word
+    assert "Sources" not in s and "Resources" not in s
+    assert "a.example" not in s and "c.example" not in s
+    assert "176 degrees Celsius" in s
 
 
 def test_pcm_becomes_a_valid_wav():
@@ -193,6 +220,124 @@ def test_groq_tts_provider():
     assert r.headers["X-TTS-Provider"] == "groq"
     assert r.headers["X-TTS-Model"] == "groq canopylabs/orpheus-v1-english"
     assert r.body == b"RIFFwav"
+
+
+def test_split_sentences_basic_and_fragments():
+    # short text stays one synthesis; max_chars forces the splitter for the test
+    assert V.split_sentences("Just one line.") == ["Just one line."]
+    ss = V.split_sentences(
+        "The oven heats to 176 °C. The conveyor moves 12 molds per cycle! Does it stop at noon?",
+        max_chars=50,
+    )
+    assert ss == [
+        "The oven heats to 176 °C.",
+        "The conveyor moves 12 molds per cycle!",
+        "Does it stop at noon?",
+    ]
+    # a fragment without sentence punctuation reads with what follows it
+    ss = V.split_sentences("Status. Ready now The oven is hot.", max_chars=30)
+    assert ss == ["Status.", "Ready now The oven is hot."]
+    # numbers and abbreviations never split
+    assert V.split_sentences("It runs at 3.5 A for 2.5 h. Then it rests.", max_chars=30) == [
+        "It runs at 3.5 A for 2.5 h.",
+        "Then it rests.",
+    ]
+    assert V.split_sentences("Use e.g. defaults here. Done now.", max_chars=30) == [
+        "Use e.g. defaults here.",
+        "Done now.",
+    ]
+
+
+def test_split_sentences_caps_long_ones():
+    long_sentence = "The picker moves to the cell, " + "lifts the mold gently, " * 40 + "and rests."
+    ss = V.split_sentences(long_sentence, max_chars=200)
+    assert all(len(s) <= 200 for s in ss) and len(ss) > 1
+    # nothing lost but the split commas, order kept (", " becomes " " at a cut)
+    flat = lambda s: s.replace(" ", "").replace(",", "")
+    assert flat(" ".join(ss)) == flat(long_sentence)
+    short = "All good."
+    assert V.split_sentences(short) == ["All good."]
+
+
+class _FakeStreamer:
+    """A streaming provider that yields PCM per sentence, with an artificial delay so the
+    pipeline's concurrency (and not just its order) is exercised."""
+
+    name = "fake"
+    order: list[str] = []
+
+    def __init__(self, delay: float):
+        self.delay = delay
+
+    def ready(self):
+        return True
+
+    def stream(self, text, voice):
+        _FakeStreamer.order.append(text)
+        time_module.sleep(self.delay)
+        n = max(2, len(text) // 4)
+        yield b"\x01\x00" * n, 24000, "fake fake-1"
+
+
+def test_stream_pipeline_concurrent_and_in_reading_order():
+    _FakeStreamer.order = []
+    t = V.Tts(
+        sec.Settings.from_env(), key=None, models=[], daily_limit=10, providers=["local"]
+    )
+    t.providers = [_FakeStreamer(delay=0.05)]
+
+    text = " ".join(f"Sentence number {i} is here and ready." for i in range(1, 9))
+    t0 = time_module.monotonic()
+    events = asyncio.run(_collect_events(t, text))
+    wall = time_module.monotonic() - t0
+
+    metas = [json.loads(e.split("data: ", 1)[1]) for e in events if e.startswith("event: meta")]
+    chunks = [e for e in events if e.startswith("event: chunk")]
+    assert events[-1].startswith("event: end")
+    assert len(metas) == 1 and metas[0]["rate"] == 24000
+    # 8 sentences, each ~4-7 PCM bytes * 2 -> each yields 1 chunk of its own bytes
+    assert len(chunks) == 8
+    # concurrent: 8 sentences x 0.05s with 3 lanes takes ~3 waves, not 8 x 0.05s serial
+    assert wall < 8 * 0.05 * 0.75, f"not concurrent enough: {wall:.2f}s"
+    # every sentence was synthesized exactly once, cache apart
+    assert sorted(_FakeStreamer.order) == sorted(V.split_sentences(text))
+    # a repeat hits the cache: nothing is synthesized again
+    _FakeStreamer.order = []
+    asyncio.run(_collect_events(t, text))
+    assert _FakeStreamer.order == []
+
+
+async def _collect_events(t, text):
+    out = []
+    async for ev in t._events(text, "Kore"):
+        out.append(ev)
+    return out
+
+
+def test_stream_pipeline_single_sentence_uses_one_synthesis():
+    class OneShot:
+        name = "oneshot"
+
+        def __init__(self):
+            self.calls = []
+
+        def ready(self):
+            return True
+
+        def stream(self, text, voice):
+            self.calls.append(text)
+            yield b"\x02\x00" * 8, 16000, "oneshot os-1"
+
+    t = V.Tts(sec.Settings.from_env(), key=None, models=[], daily_limit=10, providers=["local"])
+    shot = OneShot()
+    t.providers = [shot]
+    events = asyncio.run(_collect_events(t, "Only one short line."))
+    assert len(shot.calls) == 1
+    assert [e.split("\n", 1)[0] for e in events] == [
+        "event: meta",
+        "event: chunk",
+        "event: end",
+    ]
 
 
 def test_groq_stt_transcription():

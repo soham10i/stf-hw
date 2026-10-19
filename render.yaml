@@ -84,3 +84,25 @@ services:
         value: auto
       - key: STF_GUEST_DAYS
         value: "30"
+      # usage traction, consent-gated (services/api/visits.py): a beacon per page visit is stored
+      # only after the visitor accepts the banner; needs the visits/app_logs tables (a
+      # supabase/migrations file adds them). STF_GEO=0 stores the IP without the place lookup.
+      - key: STF_TRACKING
+        value: "1"
+      - key: STF_GEO
+        value: "1"
+      - key: STF_TRACK_DAYS
+        value: "180"
+      # optional owner notifications (services/api/notify.py): one email per visitor
+      # (consent-gated, max 1/guest/12h). Set STF_NOTIFY_EMAIL + SMTP_* to turn it on;
+      # for Gmail use an app password, never the account password.
+      - key: STF_NOTIFY_EMAIL
+        sync: false
+      - key: STF_SMTP_HOST
+        value: smtp.gmail.com
+      - key: STF_SMTP_PORT
+        value: "465"
+      - key: STF_SMTP_USER
+        sync: false
+      - key: STF_SMTP_PASS
+        sync: false

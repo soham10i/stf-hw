@@ -5,17 +5,16 @@
 import { useEffect, useState } from "react";
 
 export type Appearance = "light" | "dark";
-export type ThemeId = "system" | "light" | "dark" | "midnight" | "graphite" | "hmi" | "contrast";
+export type ThemeId = "lumen" | "lumen-day" | "lumen-night";
 export type ThemeDef = { id: ThemeId; label: string; say: string; appearance: Appearance | "system"; swatch: [string, string, string] };
 
+// Lumen is the product's one design - offered three ways: following the system (the default),
+// pinned to the light blue day, or pinned to the deep night. All three render the same palette;
+// only the appearance differs.
 export const THEMES: ThemeDef[] = [
-  { id: "system", label: "System", say: "Light or dark, as the system is set", appearance: "system", swatch: ["#f5f5f7", "#1c1c1e", "#0071e3"] },
-  { id: "light", label: "Light", say: "Neutral greys, blue for what you can click", appearance: "light", swatch: ["#f5f5f7", "#ffffff", "#0071e3"] },
-  { id: "dark", label: "Dark", say: "The default for the 3D twin", appearance: "dark", swatch: ["#0e0e10", "#1c1c1e", "#4ba3ff"] },
-  { id: "midnight", label: "Midnight", say: "Navy surfaces for a dim room", appearance: "dark", swatch: ["#0a0f1a", "#121a2b", "#6cb4ff"] },
-  { id: "graphite", label: "Graphite", say: "Grey controls: colour only for the machine's states", appearance: "dark", swatch: ["#0e0e10", "#2c2c2e", "#8e8e93"] },
-  { id: "hmi", label: "HMI grey", say: "An operator screen's grey (ISA-101)", appearance: "light", swatch: ["#d4d6d9", "#e6e7e9", "#1f4e8c"] },
-  { id: "contrast", label: "High contrast", say: "Black and white, strong outlines", appearance: "dark", swatch: ["#000000", "#ffffff", "#66b8ff"] },
+  { id: "lumen", label: "Lumen", say: "Soft sky by day, deep lumen night - follows the system", appearance: "system", swatch: ["#f4f8ff", "#0a1120", "#3b82f6"] },
+  { id: "lumen-day", label: "Lumen · day", say: "The light blue UI, always", appearance: "light", swatch: ["#f4f8ff", "#ffffff", "#2563eb"] },
+  { id: "lumen-night", label: "Lumen · night", say: "The deep lumen night, always", appearance: "dark", swatch: ["#0a1120", "#101a30", "#7db4ff"] },
 ];
 const KEY = "stf.theme";
 
@@ -24,7 +23,7 @@ function saved(): ThemeId {
     const t = localStorage.getItem(KEY);
     if (THEMES.some((x) => x.id === t)) return t as ThemeId;
   } catch { /* private mode */ }
-  return "system";
+  return "lumen";
 }
 const systemDark = () => !window.matchMedia?.("(prefers-color-scheme: light)").matches;
 const appearanceOf = (id: ThemeId): Appearance => {
@@ -36,21 +35,23 @@ const appearanceOf = (id: ThemeId): Appearance => {
 export function applyTheme(id: ThemeId = saved()) {
   const root = document.documentElement;
   root.dataset.theme = appearanceOf(id);
-  if (id === "system" || id === "light" || id === "dark") delete root.dataset.palette;
-  else root.dataset.palette = id;
+  // every lumen entry renders the one lumen palette; only data-theme (the appearance) differs
+  root.dataset.palette = id.startsWith("lumen") ? "lumen" : id;
 }
 
 export function useTheme() {
   const [theme, setTheme] = useState<ThemeId>(saved);
   const [appearance, setAppearance] = useState<Appearance>(() => appearanceOf(theme));
   useEffect(() => {
-    applyTheme(theme);
-    setAppearance(appearanceOf(theme));
+    // the colour change itself cross-fades across the page (View Transitions, where supported)
+    const apply = () => { applyTheme(theme); setAppearance(appearanceOf(theme)); };
+    if (document.startViewTransition) document.startViewTransition(apply);
+    else apply();
     try { localStorage.setItem(KEY, theme); } catch { /* private mode */ }
-    if (theme !== "system") return;
-    // System: follow the system as it changes
+    if (THEMES.find((x) => x.id === theme)?.appearance !== "system") return;
+    // System appearance: follow the system as it changes
     const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
-    const on = () => { applyTheme("system"); setAppearance(appearanceOf("system")); };
+    const on = () => { applyTheme(theme); setAppearance(appearanceOf(theme)); };
     mq?.addEventListener("change", on);
     return () => mq?.removeEventListener("change", on);
   }, [theme]);

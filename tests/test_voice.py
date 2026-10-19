@@ -36,12 +36,14 @@ def test_elevenlabs_never_writes_an_answer():
     chat = C.Chat(C.sec.Settings.from_env(), C.ChatSettings(key="g", model="m", daily_limit=1))
     for wanted in ("gemini", "groq", "ollama", "auto", None):
         assert "elevenlabs" not in chat._provider(wanted)
-    # its two classes only speak and transcribe
+    # its two classes only speak, stream speech, and transcribe
     assert {m for m in vars(V.ElevenLabsVoice) if not m.startswith("_")} == {
         "name",
         "URL",
+        "URL_STREAM",
         "ready",
         "speak",
+        "stream",
     }
     assert {m for m in vars(V.ElevenLabsStt) if not m.startswith("_")} == {
         "name",

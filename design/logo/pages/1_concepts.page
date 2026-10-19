@@ -1,0 +1,328 @@
+pageType: content
+background:
+  type: solid
+  color: "$bg"
+elements:
+  # ---------- header ----------
+  - elementId: title
+    elementType: text
+    bounds: [60, 52, 1000, 48]
+    content:
+      fontFamily: Liter
+      fontSize: 36
+      color: "$text"
+      wrap: false
+      align: [left, middle]
+      text: |
+        <p><strong>STF Digital Twin</strong> <span style="color:$muted; font-size:24px;">— logo concepts, refined</span></p>
+  - elementId: subtitle
+    elementType: text
+    bounds: [60, 106, 1200, 22]
+    content:
+      style: "$note"
+      wrap: false
+      align: [left, middle]
+      text: "smooth strokes · colors sampled from the live twin and console — amber #E8A33D · UI blue #1E7BEE · machine coral #EE7B62 · aluminum #B9C0C9"
+  # ---------- card 01 : STF Cell ----------
+  - elementId: cardA
+    elementType: shape
+    bounds: [60, 210, 355, 660]
+    shapeName: roundRect
+    adjustments: [4000]
+    fill: {type: solid, color: "$surface"}
+    border: {style: solid, width: 1, color: "$line"}
+  - elementId: cardA-bar
+    elementType: shape
+    bounds: [60, 210, 355, 3]
+    shapeName: rect
+    fill: {type: solid, color: "$amber"}
+  - elementId: cardA-num
+    elementType: text
+    bounds: [84, 230, 80, 26]
+    content: {style: "$note", fontSize: 15, color: "$faint", wrap: false, align: [left, middle], text: "01"}
+  - elementId: a-ghost
+    elementType: shape
+    bounds: [122, 258, 230, 230]
+    shapeName: custom
+    viewBox: [64, 64]
+    opacity: 0.55
+    path: "M33.37,7.29 Q36.50,5.50 39.63,7.29 L54.37,15.71 Q57.50,17.50 57.50,21.10 L57.50,37.90 Q57.50,41.50 54.37,43.29 L39.63,51.71 Q36.50,53.50 33.37,51.71 L18.63,43.29 Q15.50,41.50 15.50,37.90 L15.50,21.10 Q15.50,17.50 18.63,15.71 Z"
+    border: {style: dot, width: 6, color: "$aluLo"}
+  - elementId: a-frame
+    elementType: shape
+    bounds: [122, 258, 230, 230]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M28.87,10.79 Q32.00,9.00 35.13,10.79 L49.87,19.21 Q53.00,21.00 53.00,24.60 L53.00,41.40 Q53.00,45.00 49.87,46.79 L35.13,55.21 Q32.00,57.00 28.87,55.21 L14.13,46.79 Q11.00,45.00 11.00,41.40 L11.00,24.60 Q11.00,21.00 14.13,19.21 Z"
+    border: {style: solid, width: 9, color: "$alu"}
+  - elementId: a-y
+    elementType: shape
+    bounds: [122, 258, 230, 230]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M11,21 L32,33 L53,21 M32,33 L32,57"
+    border: {style: solid, width: 9, color: "$amber"}
+  - elementId: a-cookie
+    elementType: shape
+    bounds: [206.4, 346, 61, 61]
+    shapeName: ellipse
+    fill:
+      type: gradient
+      gradientType: radial
+      stops:
+        - {position: 0, color: "$doughHi"}
+        - {position: 1, color: "$doughLo"}
+  - elementId: a-beacon
+    elementType: shape
+    bounds: [228.4, 282.1, 16.5, 16.5]
+    shapeName: ellipse
+    fill: {type: solid, color: "$coral"}
+  - elementId: a-name
+    elementType: text
+    bounds: [84, 528, 307, 34]
+    content:
+      style: "$label"
+      fontSize: 24
+      wrap: false
+      align: [left, middle]
+      text: STF Cell
+  - elementId: a-desc
+    elementType: text
+    bounds: [84, 572, 307, 120]
+    content:
+      style: "$note"
+      align: [left, top]
+      text: "The machine itself — a smooth isometric enclosure with an aluminum frame, amber axes, one warm cookie inside, and its dotted twin behind."
+  - elementId: a-file
+    elementType: text
+    bounds: [84, 824, 307, 20]
+    content: {style: "$note", fontSize: 12, color: "$faint", wrap: false, align: [left, middle], text: "design/logo/stf-cell.svg"}
+  # ---------- card 02 : Twin Ribbon ----------
+  - elementId: cardB
+    elementType: shape
+    bounds: [445, 210, 355, 660]
+    shapeName: roundRect
+    adjustments: [4000]
+    fill: {type: solid, color: "$surface"}
+    border: {style: solid, width: 1, color: "$line"}
+  - elementId: cardB-bar
+    elementType: shape
+    bounds: [445, 210, 355, 3]
+    shapeName: rect
+    fill: {type: solid, color: "$blue"}
+  - elementId: cardB-num
+    elementType: text
+    bounds: [469, 230, 80, 26]
+    content: {style: "$note", fontSize: 15, color: "$faint", wrap: false, align: [left, middle], text: "02"}
+  - elementId: b-upper
+    elementType: shape
+    bounds: [507, 258, 230, 230]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M43,18.5 C43,11.5 38,7.5 32,7.5 C25.5,7.5 21,11.5 21,18.5 C21,25.5 26.5,28 32,30"
+    border: {style: solid, width: 32, color: "$blueHi"}
+  - elementId: b-lower
+    elementType: shape
+    bounds: [507, 258, 230, 230]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M21,45.5 C21,52.5 26,56.5 32,56.5 C38.5,56.5 43,52.5 43,45.5 C43,38.5 37.5,36 32,34"
+    border: {style: solid, width: 32, color: "$amber"}
+  - elementId: b-cap1
+    elementType: shape
+    bounds: [645.7, 308.7, 31.6, 31.6]
+    shapeName: ellipse
+    fill: {type: solid, color: "$blueHi"}
+  - elementId: b-cap2
+    elementType: shape
+    bounds: [606.2, 350, 31.6, 31.6]
+    shapeName: ellipse
+    fill: {type: solid, color: "$blueHi"}
+  - elementId: b-cap3
+    elementType: shape
+    bounds: [566.7, 405.7, 31.6, 31.6]
+    shapeName: ellipse
+    fill: {type: solid, color: "$amber"}
+  - elementId: b-cap4
+    elementType: shape
+    bounds: [606.2, 364.4, 31.6, 31.6]
+    shapeName: ellipse
+    fill: {type: solid, color: "$amber"}
+  - elementId: b-pivot
+    elementType: shape
+    bounds: [611.2, 362.2, 21.5, 21.5]
+    shapeName: ellipse
+    fill: {type: solid, color: "$coral"}
+  - elementId: b-name
+    elementType: text
+    bounds: [469, 528, 307, 34]
+    content:
+      style: "$label"
+      fontSize: 24
+      wrap: false
+      align: [left, middle]
+      text: Twin Ribbon
+  - elementId: b-desc
+    elementType: text
+    bounds: [469, 572, 307, 120]
+    content:
+      style: "$note"
+      align: [left, top]
+      text: "One continuous stroke, two strands — blue simulation above, amber plant below — meeting at the coral cookie."
+  - elementId: b-file
+    elementType: text
+    bounds: [469, 824, 307, 20]
+    content: {style: "$note", fontSize: 12, color: "$faint", wrap: false, align: [left, middle], text: "design/logo/stf-ribbon.svg"}
+  # ---------- card 03 : Orbit Cookie ----------
+  - elementId: cardC
+    elementType: shape
+    bounds: [830, 210, 355, 660]
+    shapeName: roundRect
+    adjustments: [4000]
+    fill: {type: solid, color: "$surface"}
+    border: {style: solid, width: 1, color: "$line"}
+  - elementId: cardC-bar
+    elementType: shape
+    bounds: [830, 210, 355, 3]
+    shapeName: rect
+    fill: {type: solid, color: "$coral"}
+  - elementId: cardC-num
+    elementType: text
+    bounds: [854, 230, 80, 26]
+    content: {style: "$note", fontSize: 15, color: "$faint", wrap: false, align: [left, middle], text: "03"}
+  - elementId: c-ring
+    elementType: shape
+    bounds: [892, 258, 230, 230]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M55.3,24.43 L55.46,25.37 L55.37,26.37 L55.02,27.44 L54.42,28.57 L53.57,29.72 L52.49,30.91 L51.18,32.1 L49.66,33.3 L47.95,34.47 L46.06,35.63 L44.02,36.74 L41.85,37.8 L39.56,38.8 L37.2,39.72 L34.78,40.56 L32.33,41.3 L29.88,41.95 L27.44,42.48 L25.06,42.9 L22.76,43.2 L20.55,43.37 L18.48,43.43 L16.55,43.35 L14.78,43.16 L13.21,42.84 L11.84,42.4 L10.7,41.85 L9.79,41.19 L9.12,40.42 L8.7,39.57 L8.54,38.63 L8.63,37.63 L8.98,36.56 L9.58,35.43 L10.43,34.28 L11.51,33.09 L12.82,31.9 L14.34,30.7 L16.05,29.53 L17.94,28.37 L19.98,27.26 L22.15,26.2 L24.44,25.2 L26.8,24.28 L29.22,23.44 L31.67,22.7 L34.12,22.05 L36.56,21.52 L38.94,21.1 L41.24,20.8 L43.45,20.63 L45.52,20.57 L47.45,20.65 L49.22,20.84 L50.79,21.16 L52.16,21.6 L53.3,22.15 L54.21,22.81 L54.88,23.58 Z"
+    border: {style: solid, width: 8, color: "$blue"}
+  - elementId: c-cookie
+    elementType: shape
+    bounds: [960.3, 326.3, 93.4, 93.4]
+    shapeName: ellipse
+    fill:
+      type: gradient
+      gradientType: radial
+      stops:
+        - {position: 0, color: "$doughHi"}
+        - {position: 1, color: "$doughLo"}
+  - elementId: c-highlight
+    elementType: shape
+    bounds: [978, 340, 30, 16]
+    shapeName: ellipse
+    rotation: -24
+    opacity: 0.7
+    fill: {type: solid, color: "$cream"}
+  - elementId: c-sat
+    elementType: shape
+    bounds: [1063.4, 315.6, 22.3, 22.3]
+    shapeName: ellipse
+    fill: {type: solid, color: "$coral"}
+  - elementId: c-name
+    elementType: text
+    bounds: [854, 528, 307, 34]
+    content:
+      style: "$label"
+      fontSize: 24
+      wrap: false
+      align: [left, middle]
+      text: Orbit Cookie
+  - elementId: c-desc
+    elementType: text
+    bounds: [854, 572, 307, 120]
+    content:
+      style: "$note"
+      align: [left, top]
+      text: "The product at the center — a smooth blue line and a coral satellite circling it like the inspection camera on the line."
+  - elementId: c-file
+    elementType: text
+    bounds: [854, 824, 307, 20]
+    content: {style: "$note", fontSize: 12, color: "$faint", wrap: false, align: [left, middle], text: "design/logo/stf-orbit.svg"}
+  # ---------- card 04 : Rack Tile ----------
+  - elementId: cardD
+    elementType: shape
+    bounds: [1215, 210, 355, 660]
+    shapeName: roundRect
+    adjustments: [4000]
+    fill: {type: solid, color: "$surface"}
+    border: {style: solid, width: 1, color: "$line"}
+  - elementId: cardD-bar
+    elementType: shape
+    bounds: [1215, 210, 355, 3]
+    shapeName: rect
+    fill: {type: solid, color: "$amber"}
+  - elementId: cardD-num
+    elementType: text
+    bounds: [1239, 230, 80, 26]
+    content: {style: "$note", fontSize: 15, color: "$faint", wrap: false, align: [left, middle], text: "04"}
+  - elementId: d-tile
+    elementType: shape
+    bounds: [1277, 258, 230, 230]
+    shapeName: roundRect
+    adjustments: [26800]
+    fill:
+      type: gradient
+      gradientType: linear
+      angle: 135
+      stops:
+        - {position: 0, color: "#1D2229"}
+        - {position: 1, color: "$tile"}
+    border: {style: solid, width: 2, color: "$line"}
+  - elementId: d-slot1
+    elementType: shape
+    bounds: [1334.5, 320.9, 115, 16.2]
+    shapeName: roundRect
+    adjustments: [50000]
+    opacity: 0.3
+    fill: {type: solid, color: "$alu"}
+  - elementId: d-slot2
+    elementType: shape
+    bounds: [1334.5, 364.9, 115, 16.2]
+    shapeName: roundRect
+    adjustments: [50000]
+    opacity: 0.3
+    fill: {type: solid, color: "$alu"}
+  - elementId: d-slot3
+    elementType: shape
+    bounds: [1334.5, 408.9, 115, 16.2]
+    shapeName: roundRect
+    adjustments: [50000]
+    opacity: 0.3
+    fill: {type: solid, color: "$alu"}
+  - elementId: d-cookie
+    elementType: shape
+    bounds: [1353.9, 352.9, 40.2, 40.2]
+    shapeName: ellipse
+    fill:
+      type: gradient
+      gradientType: linear
+      angle: 90
+      stops:
+        - {position: 0, color: "$amberHi"}
+        - {position: 1, color: "$amberLo"}
+  - elementId: d-beacon
+    elementType: shape
+    bounds: [1435.2, 304.9, 17.3, 17.3]
+    shapeName: ellipse
+    fill: {type: solid, color: "$coral"}
+  - elementId: d-name
+    elementType: text
+    bounds: [1239, 528, 307, 34]
+    content:
+      style: "$label"
+      fontSize: 24
+      wrap: false
+      align: [left, middle]
+      text: Rack Tile
+  - elementId: d-desc
+    elementType: text
+    bounds: [1239, 572, 307, 120]
+    content:
+      style: "$note"
+      align: [left, top]
+      text: "The chip the header already wears — three rack bays, one amber cookie parked in a slot, one live dot. Zero learning curve."
+  - elementId: d-file
+    elementType: text
+    bounds: [1239, 824, 307, 20]
+    content: {style: "$note", fontSize: 12, color: "$faint", wrap: false, align: [left, middle], text: "design/logo/stf-rack.svg"}

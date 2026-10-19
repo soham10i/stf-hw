@@ -23,7 +23,10 @@ import time
 import uuid
 
 from .grounding import tokenize
+from .logging_config import get_logger
 from .store import DocStore
+
+logger = get_logger(__name__)
 
 COL = "sessions"
 MAX_TURNS = 200
@@ -34,14 +37,25 @@ SUMMARY = ("title", "created", "updated", "n_turns", "last_model")
 
 
 def new_id() -> str:
+    """Generate a random 32-character hexadecimal session identifier."""
     return uuid.uuid4().hex
 
 
 def new(page: str | None) -> dict:
+    """Initialize a fresh conversation session record.
+
+    Args:
+        page: Optional identifier of the active frontend dashboard page.
+
+    Returns:
+        dict: New session record dictionary.
+    """
     now = time.time()
+    sid = new_id()
+    logger.debug("Initialized new chat session %s (page=%s)", sid, page)
     ctx = {"facts": [], "tools": [], "models": [], "page": page}
     return {
-        "id": new_id(),
+        "id": sid,
         "title": "",
         "created": now,
         "updated": now,
@@ -53,14 +67,27 @@ def new(page: str | None) -> dict:
 
 
 def load(store: DocStore, user: str, sid: str | None, page: str | None) -> dict:
-    """The session, or a new one when the id is missing or unknown to this user."""
+    """Retrieve an existing session or initialize a fresh one if missing or inaccessible.
+
+    Args:
+        store: Document repository holding persistent session documents.
+        user: Authenticated user or guest identifier.
+        sid: Optional session identifier to look up.
+        page: Active frontend page identifier.
+
+    Returns:
+        dict: Existing or newly initialized session dictionary.
+    """
     if sid:
         try:
             doc = store.get(COL, user, sid)
+            if doc:
+                logger.debug("Loaded existing session %s for user %s", sid, user)
+                return doc
         except ValueError:
-            doc = None
-        if doc:
-            return doc
+            logger.debug("Session %s not found for user %s; starting new session", sid, user)
+        except Exception as e:
+            logger.warning("Error reading session %s for user %s (%s); creating new session", sid, user, e)
     return new(page)
 
 
@@ -141,7 +168,19 @@ def add_turn(s: dict, role: str, text: str, **meta) -> None:
 
 
 def save(store: DocStore, user: str, s: dict) -> None:
-    store.put(COL, user, s["id"], s)
+    """Persist session record to the underlying document store.
+
+    Args:
+        store: Document repository instance.
+        user: Authenticated or guest user identifier.
+        s: Session dictionary to save.
+    """
+    try:
+        store.put(COL, user, s["id"], s)
+        logger.debug("Saved session %s for user %s (%d turns)", s.get("id"), user, s.get("n_turns", 0))
+    except Exception as e:
+        logger.error("Failed to save session %s for user %s: %s", s.get("id"), user, e, exc_info=True)
+        raise
 
 
 def public(s: dict) -> dict:

@@ -175,7 +175,7 @@ class SqliteDb:
         return n > 0
 
     def list(self, col: str, owner: str, fields: tuple[str, ...], limit: int = 100) -> list[dict]:
-        """List documents belonging to an owner, newest first, projecting requested summary fields."""
+        """List an owner's documents, newest first, projecting the requested summary fields."""
         rows = self._q(
             "SELECT id, doc FROM documents WHERE col = ? AND owner = ? ORDER BY t DESC LIMIT ?",
             (col, owner, limit),

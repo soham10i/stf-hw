@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="STF — Smart Tabletop Factory cell">
+  <defs>
+    <linearGradient id="alu" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#C7CDD4"/>
+      <stop offset="1" stop-color="#7E8A96"/>
+    </linearGradient>
+    <linearGradient id="amberY" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F2B45A"/>
+      <stop offset="1" stop-color="#D98E2B"/>
+    </linearGradient>
+    <radialGradient id="dough2" cx="0.38" cy="0.32" r="0.85">
+      <stop offset="0" stop-color="#F6C878"/>
+      <stop offset="1" stop-color="#E09A2F"/>
+    </radialGradient>
+  </defs>
+  <!-- ghost twin: dotted rounded enclosure, offset -->
+  <path fill="none" stroke="#8E99A5" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="0.1 6" opacity="0.55"
+        d="M33.37,7.29 Q36.50,5.50 39.63,7.29 L54.37,15.71 Q57.50,17.50 57.50,21.10 L57.50,37.90 Q57.50,41.50 54.37,43.29 L39.63,51.71 Q36.50,53.50 33.37,51.71 L18.63,43.29 Q15.50,41.50 15.50,37.90 L15.50,21.10 Q15.50,17.50 18.63,15.71 Z"/>
+  <!-- physical enclosure: rounded isometric frame -->
+  <path fill="none" stroke="url(#alu)" stroke-width="3" stroke-linejoin="round"
+        d="M28.87,10.79 Q32.00,9.00 35.13,10.79 L49.87,19.21 Q53.00,21.00 53.00,24.60 L53.00,41.40 Q53.00,45.00 49.87,46.79 L35.13,55.21 Q32.00,57.00 28.87,55.21 L14.13,46.79 Q11.00,45.00 11.00,41.40 L11.00,24.60 Q11.00,21.00 14.13,19.21 Z"/>
+  <path fill="none" stroke="url(#amberY)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+        d="M11,21 L32,33 L53,21 M32,33 L32,57"/>
+  <!-- the product inside: cookie -->
+  <circle cx="32" cy="33" r="8.5" fill="url(#dough2)"/>
+  <!-- live beacon -->
+  <circle cx="32" cy="9" r="2.3" fill="#EE7B62"/>
+</svg>

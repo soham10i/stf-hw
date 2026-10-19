@@ -1,8 +1,9 @@
 // The twin's top bar: brand, the view switcher (searchable, Cmd/Ctrl+K), the backend status,
-// the order shortcut, the dashboard link and the theme.
+// this visitor's session, the order shortcut, the dashboard link and the theme.
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ThemeId } from "../shared/theme";
 import { Icon, ThemeMenu } from "../shared/icons";
+import { fetchGuest, type GuestStatus } from "../shared/session";
 import type { View } from "./registry";
 
 export type Status = "open" | "connecting" | "closed" | "standalone";
@@ -83,6 +84,22 @@ function ViewMenu({ views, view, onView }: { views: View[]; view: View; onView: 
   );
 }
 
+/** This visitor's session (shared/session.ts): the id the server stores everything under. */
+function SessionChip() {
+  const [g, setG] = useState<GuestStatus | null>(null);
+  useEffect(() => {
+    let live = true;
+    void fetchGuest().then((s) => { if (live) setG(s); });
+    return () => { live = false; };
+  }, []);
+  if (!g) return null;
+  return (
+    <span className="ui-chip top-guest" title="Private session — orders, photos and chats are kept separate and secure.">
+      <Icon name="lock" size={12} />Private session
+    </span>
+  );
+}
+
 export function TopBar({ views, view, onView, status, statusTip, theme, setTheme, onOrder }: {
   views: View[]; view: View; onView: (id: string) => void;
   status: Status; statusTip: string; theme: ThemeId; setTheme: (t: ThemeId) => void; onOrder?: () => void;
@@ -95,6 +112,7 @@ export function TopBar({ views, view, onView, status, statusTip, theme, setTheme
       </div>
       <ViewMenu views={views} view={view} onView={onView} />
       <div className="top-actions">
+        <SessionChip />
         <span className={`ui-chip top-status ${CHIP[status][0]}`} title={[CHIP[status][2], statusTip].filter(Boolean).join("\n")}>
           <span className="ui-dot" />{CHIP[status][1]}
         </span>

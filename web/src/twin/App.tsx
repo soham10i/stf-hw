@@ -20,7 +20,7 @@ import { SidePanel } from "./SidePanel";
 import { TopBar } from "./TopBar";
 import { useBackend } from "./useBackend";
 import { useLiveShare } from "./liveShare";
-import { CameraTip, CellStatus, FocusMenu, LoadingVeil } from "./ViewportChrome";
+import { CameraTip, CellStatus, FocusMenu, LoadingVeil, SpeedControl } from "./ViewportChrome";
 
 export default function App() {
   const { theme, setTheme } = useTheme();
@@ -104,7 +104,7 @@ export default function App() {
     <div className={`app ${machineView ? "immersive" : ""}`}>
       <TopBar views={views} view={view} onView={setViewId} theme={theme} setTheme={setTheme}
         status={conn.conn} onOrder={machineView && ctx ? order : undefined}
-        statusTip={[scene && `layout ${scene.fingerprint}`, machine.doc && `cad ${machine.doc.fingerprint}`].filter(Boolean).join("  ·  ")} />
+        statusTip={[scene && "layout loaded", machine.doc && "cad synchronized"].filter(Boolean).join("  ·  ")} />
 
       {view.kind === "controller" && (ctl.doc ? <ControllerView doc={ctl.doc} /> : <div className="error">{ctl.err}</div>)}
       {view.kind === "component" && comps.doc && <ComponentView id={view.id} doc={comps.doc} />}
@@ -132,6 +132,8 @@ export default function App() {
           <div className="vp-dock">
             <div className="vp-bar">
               <CellStatus doc={machine.doc} />
+              <span className="vp-sep" />
+              <SpeedControl />
               <span className="vp-sep" />
               <FocusMenu />
               <span className="vp-sep" />

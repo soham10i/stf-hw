@@ -35,6 +35,9 @@ import re
 from dataclasses import dataclass, field
 
 from .grounding import get_bm25
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 MODES = ("chat", "twin", "docs", "web", "deep")
 STRONG_SCORE = 6.0  # a BM25 score this high, with...
@@ -97,22 +100,46 @@ DATA_TOOLS = {
 
 @dataclass
 class Plan:
+    """Orchestration routing plan describing the response strategy and reasoning."""
+
     mode: str
     why: list[str]
     signals: dict = field(default_factory=dict)
-    web: bool = False  # a web search runs (web, deep)
+    web: bool = False  # True when a web search will execute (web or deep modes)
 
     def as_dict(self) -> dict:
+        """Convert orchestration plan to a serializable dictionary."""
         return {"mode": self.mode, "why": self.why, "signals": self.signals}
 
 
 def decide(
     question: str, called: list[str], choice: str | None = None, can_search: bool = True
 ) -> Plan:
-    """The route for `question`, given the tools the rules router already called for it, the
-    operator's choice (auto/docs/web/deep) and whether a search provider is configured."""
+    """Determine the optimal routing strategy for a user query based on heuristic signals.
+
+    Evaluation precedence:
+      1. Operator explicit override (docs, web, deep).
+      2. Greetings and conversational pleasantries -> chat mode.
+      3. Explicit research or web requests -> deep or web mode.
+      4. Machine runtime/operational inquiries matching twin data tools -> twin mode.
+      5. High lexical BM25 match against knowledge base -> docs mode.
+      6. External standards, vendors, or general industrial topics -> web mode.
+
+    Args:
+        question: User query string.
+        called: List of tool names called by the rules router.
+        choice: Optional operator override ('docs', 'web', 'deep').
+        can_search: Whether an external search provider is configured.
+
+    Returns:
+        Plan: Orchestration decision containing selected mode, rationale, and signal flags.
+    """
     q = question.strip()
-    hits = get_bm25().search(q, top_k=1)
+    try:
+        hits = get_bm25().search(q, top_k=1)
+    except Exception as e:
+        logger.warning("BM25 lexical search failed in router for query %r: %s", q[:50], e)
+        hits = []
     score = round(float(hits[0]["score"]), 2) if hits else 0.0
     cover = round(float(hits[0]["cover"]), 2) if hits else 0.0
     data = [t for t in called if t in DATA_TOOLS]
@@ -126,7 +153,6 @@ def decide(
         "explicit_deep": bool(DEEP.search(q)),
         "search_provider": can_search,
     }
-    # a long question holds a small share of any passage's words: a high score alone is enough
     strong = score >= STRONG_SCORE and (cover >= STRONG_COVER or score >= 2 * STRONG_SCORE)
     very_strong = score >= VERY_STRONG[0] and cover >= VERY_STRONG[1]
     match = f"the documents' best passage scores {score:g} and holds {cover:.0%} of its words"
@@ -136,36 +162,41 @@ def decide(
             return Plan(mode, why, sig, web=True)
         return Plan("docs", [*why, "no web search provider is configured: the documents only"], sig)
 
+    plan: Plan
     if choice in ("docs", "web", "deep"):
         if choice == "docs":
-            return Plan("docs", ["you chose Docs: the knowledge base only, no web"], sig)
-        return web_or_docs(choice, [f"you chose {choice.capitalize()}"])
-    if GREETING.match(q):
-        return Plan("chat", ["a greeting: no retrieval needed"], sig)
-    if sig["explicit_deep"]:
-        return web_or_docs("deep", ["the question asks for research across sources"])
-    if sig["explicit_web"]:
-        return web_or_docs("web", ["the question asks for something recent or on the web"])
-    tools = ", ".join(t.replace("_", " ") for t in data)
-    # "how is it computed": the documents explain it, the twin's numbers are the example - a
-    # fair match is enough (a long question holds a small share of any passage's words)
-    if data and EXPLAIN.search(q) and score >= STRONG_SCORE:
-        return Plan(
-            "docs",
-            [
-                f"asks how it works: the documents first ({match}); the twin's numbers "
-                f"({tools}) as the example"
-            ],
-            sig,
-        )
-    if data:
-        return Plan("twin", [f"the twin's own data: {tools}", match], sig)
-    if sig["external"] and not sig["about_twin"] and not very_strong:
-        return web_or_docs(
-            "web", ["outside knowledge (a standard, a vendor or general practice)", match]
-        )
-    if strong:
-        return Plan("docs", [f"the documents cover it: {match}"], sig)
-    if sig["about_twin"] or score >= STRONG_SCORE / 2:
-        return Plan("docs", [f"about this twin: {match}"], sig)
-    return web_or_docs("web", [f"the documents hardly match: {match}"])
+            plan = Plan("docs", ["you chose Docs: the knowledge base only, no web"], sig)
+        else:
+            plan = web_or_docs(choice, [f"you chose {choice.capitalize()}"])
+    elif GREETING.match(q):
+        plan = Plan("chat", ["a greeting: no retrieval needed"], sig)
+    elif sig["explicit_deep"]:
+        plan = web_or_docs("deep", ["the question asks for research across sources"])
+    elif sig["explicit_web"]:
+        plan = web_or_docs("web", ["the question asks for something recent or on the web"])
+    else:
+        tools = ", ".join(t.replace("_", " ") for t in data)
+        if data and EXPLAIN.search(q) and score >= STRONG_SCORE:
+            plan = Plan(
+                "docs",
+                [
+                    f"asks how it works: the documents first ({match}); the twin's numbers "
+                    f"({tools}) as the example"
+                ],
+                sig,
+            )
+        elif data:
+            plan = Plan("twin", [f"the twin's own data: {tools}", match], sig)
+        elif sig["external"] and not sig["about_twin"] and not very_strong:
+            plan = web_or_docs(
+                "web", ["outside knowledge (a standard, a vendor or general practice)", match]
+            )
+        elif strong:
+            plan = Plan("docs", [f"the documents cover it: {match}"], sig)
+        elif sig["about_twin"] or score >= STRONG_SCORE / 2:
+            plan = Plan("docs", [f"about this twin: {match}"], sig)
+        else:
+            plan = web_or_docs("web", [f"the documents hardly match: {match}"])
+
+    logger.debug("Orchestration route decided: question=%r -> mode=%s (why=%s)", q[:50], plan.mode, plan.why)
+    return plan

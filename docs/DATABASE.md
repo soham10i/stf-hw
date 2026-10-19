@@ -24,6 +24,11 @@ browser reaches the API, and the browser keeps it in a cookie.
   not carry it), `Secure` over HTTPS, `Path=/`, kept for `STF_GUEST_DAYS` (default 30).
 - **No personal data.** A guest record is its id, when it was made, when it was last seen and how many
   visits. No IP address, no browser fingerprint.
+- **Visible in the twin.** The top bar shows the session id and which database holds its data
+  (`web/src/twin/TopBar.tsx`); the Orders panel's *Session history* section reads `GET /twin/records`
+  back: the order lines this visitor's twin finished and the cookies its camera judged, newest first
+  (`web/src/shared/session.ts`, `web/src/shared/records.ts`). Two visitors on the deployed site are
+  two guests: neither sees the other's rows.
 - **Lapses on its own.** A guest unseen for `STF_GUEST_DAYS` is removed with its conversations.
 - **Forget me.** `DELETE /guest` removes the guest's conversations, photos and live twin at once, and
   clears the cookie. `GET /guest` shows the guest's record and which database is in use.
@@ -89,6 +94,19 @@ create index documents_owner on public.documents (col, owner, t desc);
 alter table public.guests enable row level security;
 alter table public.documents enable row level security;
 ```
+
+## Usage traction and logs (consent-gated)
+
+`services/api/visits.py` keeps one row per page visit — but only after the visitor accepts the
+banner (`web/src/dashboard/Consent.tsx`). A row is the anonymous guest id, the page, the time,
+the IP and its **coarse** place (country/region/city/coordinates, from ip-api.com, cached by
+/24 for a day; loopback and private addresses are stored as "Local" and never looked up).
+A "no" stores nothing. `STF_TRACKING=0` turns the beacon off entirely, `STF_GEO=0` keeps the IP
+without the place. The same module ships the server's WARNING-and-above logs to an `app_logs`
+table (batched, so logging never slows a request). Both tables live wherever the guests do —
+the migration [`20261019043500_stf_visits_app_logs.sql`](../supabase/migrations/20261019043500_stf_visits_app_logs.sql)
+adds them to Supabase; SQLite creates them on first use. `GET /guest/visits` shows a guest
+their own rows.
 
 ### Render
 

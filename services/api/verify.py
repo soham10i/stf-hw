@@ -58,9 +58,22 @@ def _floats(text: str) -> list[float]:
 
 
 def allowed(evidence: str, question: str = "") -> set[str]:
-    """Every number an answer may state, given its evidence: the evidence's numbers (rounded as
-    one would write them), ratios as percentages, and - exactly, never rounded - hours as
-    minutes and the sum or difference of two measured (decimal) evidence numbers."""
+    """Calculate the set of allowable numerical strings derivable from ground-truth evidence.
+
+    Permits:
+      - Raw evidence and question numbers.
+      - Numbers rounded to 0, 1, or 2 decimal places.
+      - Unit conversions (e.g. hours to minutes).
+      - Ratios expressed as percentages.
+      - Pairwise sums and differences of decimal numbers.
+
+    Args:
+        evidence: Ground-truth tool results or retrieved documents.
+        question: User query text.
+
+    Returns:
+        set[str]: Normalized string representations of verified permissible numbers.
+    """
     xs = _floats(evidence)
     ok = numbers(evidence) | numbers(question)
     for a in xs:
@@ -68,8 +81,7 @@ def allowed(evidence: str, question: str = "") -> set[str]:
         if 0 < abs(a) <= 1.5:
             ok |= _rounded(a * 100)
         ok |= _exact(a * 60)
-    # pairs: only of two measured decimals (a saving between two costs, two energies). Pairs of
-    # counts would make almost every small integer "backed" and blind the check.
+    # pairs: only of two measured decimals (e.g. saving between two costs, two energies)
     head = [x for x in xs if x != int(x)][:_CAP]
     for i, a in enumerate(head):
         for b in head[i + 1 :]:
@@ -78,7 +90,16 @@ def allowed(evidence: str, question: str = "") -> set[str]:
 
 
 def unverified(answer: str, evidence: str, question: str = "") -> list[str]:
-    """The numbers in an answer that the evidence does not back, in order of appearance."""
+    """Identify any numbers in an answer that lack mathematical derivation from evidence.
+
+    Args:
+        answer: Model-generated answer text.
+        evidence: Ground-truth tool outputs and citations provided to the model.
+        question: User inquiry string.
+
+    Returns:
+        list[str]: List of unverified or hallucinated numerical tokens.
+    """
     text = LIST_MARK.sub(" ", answer)
     ok = allowed(evidence, question)
     seen, out = set(), []

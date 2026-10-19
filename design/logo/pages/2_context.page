@@ -1,0 +1,546 @@
+pageType: content
+background:
+  type: solid
+  color: "$bg"
+elements:
+  # ---------- product header mock ----------
+  - elementId: hdr
+    elementType: shape
+    bounds: [0, 0, 1600, 150]
+    shapeName: rect
+    fill: {type: solid, color: "$raised"}
+    border: {style: solid, width: 1, color: "$line"}
+  - elementId: hdr-chip
+    elementType: shape
+    bounds: [60, 35, 80, 80]
+    shapeName: roundRect
+    adjustments: [16000]
+    fill:
+      type: gradient
+      gradientType: linear
+      angle: 135
+      stops:
+        - {position: 0, color: "#1D2229"}
+        - {position: 1, color: "$tile"}
+    border: {style: solid, width: 1, color: "$line"}
+  - elementId: hdr-ghost
+    elementType: shape
+    bounds: [60, 35, 80, 80]
+    shapeName: custom
+    viewBox: [64, 64]
+    opacity: 0.5
+    path: "M33.37,7.29 Q36.50,5.50 39.63,7.29 L54.37,15.71 Q57.50,17.50 57.50,21.10 L57.50,37.90 Q57.50,41.50 54.37,43.29 L39.63,51.71 Q36.50,53.50 33.37,51.71 L18.63,43.29 Q15.50,41.50 15.50,37.90 L15.50,21.10 Q15.50,17.50 18.63,15.71 Z"
+    border: {style: dot, width: 2.4, color: "$aluLo"}
+  - elementId: hdr-frame
+    elementType: shape
+    bounds: [60, 35, 80, 80]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M28.87,10.79 Q32.00,9.00 35.13,10.79 L49.87,19.21 Q53.00,21.00 53.00,24.60 L53.00,41.40 Q53.00,45.00 49.87,46.79 L35.13,55.21 Q32.00,57.00 28.87,55.21 L14.13,46.79 Q11.00,45.00 11.00,41.40 L11.00,24.60 Q11.00,21.00 14.13,19.21 Z"
+    border: {style: solid, width: 3.2, color: "$alu"}
+  - elementId: hdr-y
+    elementType: shape
+    bounds: [60, 35, 80, 80]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M11,21 L32,33 L53,21 M32,33 L32,57"
+    border: {style: solid, width: 3.2, color: "$amber"}
+  - elementId: hdr-cookie
+    elementType: shape
+    bounds: [83.5, 59.5, 17, 17]
+    shapeName: ellipse
+    fill:
+      type: gradient
+      gradientType: radial
+      stops:
+        - {position: 0, color: "$doughHi"}
+        - {position: 1, color: "$doughLo"}
+  - elementId: hdr-beacon
+    elementType: shape
+    bounds: [89.7, 41.7, 4.6, 4.6]
+    shapeName: ellipse
+    fill: {type: solid, color: "$coral"}
+  - elementId: hdr-word
+    elementType: text
+    bounds: [156, 42, 420, 30]
+    content:
+      fontFamily: Liter
+      fontSize: 24
+      color: "$text"
+      wrap: false
+      align: [left, middle]
+      text: |
+        <p><strong>Smart Tabletop Factory</strong></p>
+  - elementId: hdr-sub
+    elementType: text
+    bounds: [157, 76, 300, 20]
+    content:
+      style: "$note"
+      fontSize: 13
+      wrap: false
+      align: [left, middle]
+      text: Digital twin
+  - elementId: hdr-live-dot
+    elementType: shape
+    bounds: [1178, 60, 12, 12]
+    shapeName: ellipse
+    fill: {type: solid, color: "#30D158"}
+  - elementId: hdr-live
+    elementType: text
+    bounds: [1198, 54, 60, 24]
+    content: {style: "$note", fontSize: 14, color: "$text", wrap: false, align: [left, middle], text: Live}
+  - elementId: hdr-order
+    elementType: shape
+    bounds: [1276, 48, 130, 36]
+    shapeName: roundRect
+    adjustments: [50000]
+    fill:
+      type: gradient
+      gradientType: linear
+      angle: 90
+      stops:
+        - {position: 0, color: "$blueHi"}
+        - {position: 1, color: "$blueLo"}
+  - elementId: hdr-order-t
+    elementType: text
+    bounds: [1276, 48, 130, 36]
+    content: {fontFamily: Liter, fontSize: 15, color: "#FFFFFF", wrap: false, align: [center, middle], text: "+  New order"}
+  - elementId: hdr-dash
+    elementType: shape
+    bounds: [1420, 48, 130, 36]
+    shapeName: roundRect
+    adjustments: [50000]
+    fill: {type: solid, color: "$raised"}
+    border: {style: solid, width: 1, color: "$line"}
+  - elementId: hdr-dash-t
+    elementType: text
+    bounds: [1420, 48, 130, 36]
+    content: {fontFamily: Liter, fontSize: 15, color: "$text", wrap: false, align: [center, middle], text: "Dashboard"}
+  # ---------- app icon & favicon ----------
+  - elementId: s1-label
+    elementType: text
+    bounds: [60, 200, 460, 22]
+    content: {style: "$note", fontSize: 13, letterSpacing: 3, color: "$amber", wrap: false, align: [left, middle], text: APP ICON & FAVICON}
+  - elementId: fav-tile
+    elementType: shape
+    bounds: [60, 240, 140, 140]
+    shapeName: roundRect
+    adjustments: [14000]
+    fill:
+      type: gradient
+      gradientType: linear
+      angle: 135
+      stops:
+        - {position: 0, color: "#1D2229"}
+        - {position: 1, color: "$tile"}
+    border: {style: solid, width: 1, color: "$line"}
+  - elementId: fav-ghost
+    elementType: shape
+    bounds: [60, 240, 140, 140]
+    shapeName: custom
+    viewBox: [64, 64]
+    opacity: 0.5
+    path: "M33.37,7.29 Q36.50,5.50 39.63,7.29 L54.37,15.71 Q57.50,17.50 57.50,21.10 L57.50,37.90 Q57.50,41.50 54.37,43.29 L39.63,51.71 Q36.50,53.50 33.37,51.71 L18.63,43.29 Q15.50,41.50 15.50,37.90 L15.50,21.10 Q15.50,17.50 18.63,15.71 Z"
+    border: {style: dot, width: 4.2, color: "$aluLo"}
+  - elementId: fav-frame
+    elementType: shape
+    bounds: [60, 240, 140, 140]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M28.87,10.79 Q32.00,9.00 35.13,10.79 L49.87,19.21 Q53.00,21.00 53.00,24.60 L53.00,41.40 Q53.00,45.00 49.87,46.79 L35.13,55.21 Q32.00,57.00 28.87,55.21 L14.13,46.79 Q11.00,45.00 11.00,41.40 L11.00,24.60 Q11.00,21.00 14.13,19.21 Z"
+    border: {style: solid, width: 5.6, color: "$alu"}
+  - elementId: fav-y
+    elementType: shape
+    bounds: [60, 240, 140, 140]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M11,21 L32,33 L53,21 M32,33 L32,57"
+    border: {style: solid, width: 5.6, color: "$amber"}
+  - elementId: fav-cookie
+    elementType: shape
+    bounds: [101.1, 282.9, 29.8, 29.8]
+    shapeName: ellipse
+    fill:
+      type: gradient
+      gradientType: radial
+      stops:
+        - {position: 0, color: "$doughHi"}
+        - {position: 1, color: "$doughLo"}
+  - elementId: fav-beacon
+    elementType: shape
+    bounds: [112, 251.7, 8, 8]
+    shapeName: ellipse
+    fill: {type: solid, color: "$coral"}
+  - elementId: size64-tile
+    elementType: shape
+    bounds: [240, 316, 64, 64]
+    shapeName: roundRect
+    adjustments: [16000]
+    fill:
+      type: gradient
+      gradientType: linear
+      angle: 135
+      stops:
+        - {position: 0, color: "#1D2229"}
+        - {position: 1, color: "$tile"}
+  - elementId: size64-frame
+    elementType: shape
+    bounds: [240, 316, 64, 64]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M28.87,10.79 Q32.00,9.00 35.13,10.79 L49.87,19.21 Q53.00,21.00 53.00,24.60 L53.00,41.40 Q53.00,45.00 49.87,46.79 L35.13,55.21 Q32.00,57.00 28.87,55.21 L14.13,46.79 Q11.00,45.00 11.00,41.40 L11.00,24.60 Q11.00,21.00 14.13,19.21 Z"
+    border: {style: solid, width: 2.6, color: "$alu"}
+  - elementId: size64-y
+    elementType: shape
+    bounds: [240, 316, 64, 64]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M11,21 L32,33 L53,21 M32,33 L32,57"
+    border: {style: solid, width: 2.6, color: "$amber"}
+  - elementId: size64-cookie
+    elementType: shape
+    bounds: [263.5, 339.5, 17, 17]
+    shapeName: ellipse
+    fill:
+      type: gradient
+      gradientType: radial
+      stops:
+        - {position: 0, color: "$doughHi"}
+        - {position: 1, color: "$doughLo"}
+  - elementId: size64-beacon
+    elementType: shape
+    bounds: [269.7, 322.7, 4.6, 4.6]
+    shapeName: ellipse
+    fill: {type: solid, color: "$coral"}
+  - elementId: size64-label
+    elementType: text
+    bounds: [240, 388, 64, 18]
+    content: {style: "$note", fontSize: 12, color: "$faint", wrap: false, align: [center, middle], text: "64"}
+  - elementId: size32-tile
+    elementType: shape
+    bounds: [324, 348, 32, 32]
+    shapeName: roundRect
+    adjustments: [22000]
+    fill:
+      type: gradient
+      gradientType: linear
+      angle: 135
+      stops:
+        - {position: 0, color: "#1D2229"}
+        - {position: 1, color: "$tile"}
+  - elementId: size32-cookie
+    elementType: shape
+    bounds: [331.75, 355.75, 8.5, 8.5]
+    shapeName: ellipse
+    fill: {type: solid, color: "$amber"}
+  - elementId: size32-label
+    elementType: text
+    bounds: [324, 388, 32, 18]
+    content: {style: "$note", fontSize: 12, color: "$faint", wrap: false, align: [center, middle], text: "32"}
+  - elementId: size16-tile
+    elementType: shape
+    bounds: [376, 364, 16, 16]
+    shapeName: roundRect
+    adjustments: [28000]
+    fill:
+      type: gradient
+      gradientType: linear
+      angle: 135
+      stops:
+        - {position: 0, color: "#1D2229"}
+        - {position: 1, color: "$tile"}
+  - elementId: size16-cookie
+    elementType: shape
+    bounds: [380.5, 368.5, 7, 7]
+    shapeName: ellipse
+    fill: {type: solid, color: "$amber"}
+  - elementId: size16-label
+    elementType: text
+    bounds: [368, 388, 32, 18]
+    content: {style: "$note", fontSize: 12, color: "$faint", wrap: false, align: [center, middle], text: "16"}
+  - elementId: s1-note
+    elementType: text
+    bounds: [60, 470, 460, 60]
+    content:
+      style: "$note"
+      align: [left, top]
+      text: "The enclosure frame thins out as it shrinks; the amber cookie is the last element standing at 16 px."
+  # ---------- light surface ----------
+  - elementId: s2-label
+    elementType: text
+    bounds: [560, 200, 460, 22]
+    content: {style: "$note", fontSize: 13, letterSpacing: 3, color: "$amber", wrap: false, align: [left, middle], text: ON LIGHT SURFACES}
+  - elementId: light-card
+    elementType: shape
+    bounds: [560, 240, 460, 210]
+    shapeName: roundRect
+    adjustments: [6000]
+    fill: {type: solid, color: "#F4F1EA"}
+  - elementId: lt-frame
+    elementType: shape
+    bounds: [596, 300, 80, 80]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M28.87,10.79 Q32.00,9.00 35.13,10.79 L49.87,19.21 Q53.00,21.00 53.00,24.60 L53.00,41.40 Q53.00,45.00 49.87,46.79 L35.13,55.21 Q32.00,57.00 28.87,55.21 L14.13,46.79 Q11.00,45.00 11.00,41.40 L11.00,24.60 Q11.00,21.00 14.13,19.21 Z"
+    border: {style: solid, width: 3, color: "$aluLo"}
+  - elementId: lt-y
+    elementType: shape
+    bounds: [596, 300, 80, 80]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M11,21 L32,33 L53,21 M32,33 L32,57"
+    border: {style: solid, width: 3, color: "$amber"}
+  - elementId: lt-cookie
+    elementType: shape
+    bounds: [625.4, 330.6, 23.8, 23.8]
+    shapeName: ellipse
+    fill:
+      type: gradient
+      gradientType: radial
+      stops:
+        - {position: 0, color: "$doughHi"}
+        - {position: 1, color: "$doughLo"}
+  - elementId: lt-beacon
+    elementType: shape
+    bounds: [633.1, 308.4, 6.5, 6.5]
+    shapeName: ellipse
+    fill: {type: solid, color: "$coral"}
+  - elementId: lt-cap1
+    elementType: shape
+    bounds: [746.9, 316.3, 13.75, 13.75]
+    shapeName: ellipse
+    fill: {type: solid, color: "$blue"}
+  - elementId: lt-cap2
+    elementType: shape
+    bounds: [733.1, 330.6, 13.75, 13.75]
+    shapeName: ellipse
+    fill: {type: solid, color: "$blue"}
+  - elementId: lt-cap3
+    elementType: shape
+    bounds: [719.4, 350, 13.75, 13.75]
+    shapeName: ellipse
+    fill: {type: solid, color: "$amber"}
+  - elementId: lt-cap4
+    elementType: shape
+    bounds: [733.1, 335.6, 13.75, 13.75]
+    shapeName: ellipse
+    fill: {type: solid, color: "$amber"}
+  - elementId: lt-upper
+    elementType: shape
+    bounds: [700, 300, 80, 80]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M43,18.5 C43,11.5 38,7.5 32,7.5 C25.5,7.5 21,11.5 21,18.5 C21,25.5 26.5,28 32,30"
+    border: {style: solid, width: 11, color: "$blue"}
+  - elementId: lt-lower
+    elementType: shape
+    bounds: [700, 300, 80, 80]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M21,45.5 C21,52.5 26,56.5 32,56.5 C38.5,56.5 43,52.5 43,45.5 C43,38.5 37.5,36 32,34"
+    border: {style: solid, width: 11, color: "$amber"}
+  - elementId: lt-pivot
+    elementType: shape
+    bounds: [736.25, 336.25, 7.5, 7.5]
+    shapeName: ellipse
+    fill: {type: solid, color: "$coral"}
+  - elementId: lt-ring
+    elementType: shape
+    bounds: [804, 300, 80, 80]
+    shapeName: custom
+    viewBox: [64, 64]
+    path: "M55.3,24.43 L55.46,25.37 L55.37,26.37 L55.02,27.44 L54.42,28.57 L53.57,29.72 L52.49,30.91 L51.18,32.1 L49.66,33.3 L47.95,34.47 L46.06,35.63 L44.02,36.74 L41.85,37.8 L39.56,38.8 L37.2,39.72 L34.78,40.56 L32.33,41.3 L29.88,41.95 L27.44,42.48 L25.06,42.9 L22.76,43.2 L20.55,43.37 L18.48,43.43 L16.55,43.35 L14.78,43.16 L13.21,42.84 L11.84,42.4 L10.7,41.85 L9.79,41.19 L9.12,40.42 L8.7,39.57 L8.54,38.63 L8.63,37.63 L8.98,36.56 L9.58,35.43 L10.43,34.28 L11.51,33.09 L12.82,31.9 L14.34,30.7 L16.05,29.53 L17.94,28.37 L19.98,27.26 L22.15,26.2 L24.44,25.2 L26.8,24.28 L29.22,23.44 L31.67,22.7 L34.12,22.05 L36.56,21.52 L38.94,21.1 L41.24,20.8 L43.45,20.63 L45.52,20.57 L47.45,20.65 L49.22,20.84 L50.79,21.16 L52.16,21.6 L53.3,22.15 L54.21,22.81 L54.88,23.58 Z"
+    border: {style: solid, width: 3, color: "$blue"}
+  - elementId: lt-ocookie
+    elementType: shape
+    bounds: [827.75, 323.75, 32.5, 32.5]
+    shapeName: ellipse
+    fill:
+      type: gradient
+      gradientType: radial
+      stops:
+        - {position: 0, color: "$doughHi"}
+        - {position: 1, color: "$doughLo"}
+  - elementId: lt-sat
+    elementType: shape
+    bounds: [863.6, 322.6, 7.75, 7.75]
+    shapeName: ellipse
+    fill: {type: solid, color: "$coral"}
+  - elementId: lt-tile
+    elementType: shape
+    bounds: [908, 300, 80, 80]
+    shapeName: roundRect
+    adjustments: [21000]
+    fill:
+      type: gradient
+      gradientType: linear
+      angle: 135
+      stops:
+        - {position: 0, color: "#1D2229"}
+        - {position: 1, color: "$tile"}
+  - elementId: lt-slot1
+    elementType: shape
+    bounds: [928, 321.9, 40, 5.6]
+    shapeName: roundRect
+    adjustments: [50000]
+    opacity: 0.3
+    fill: {type: solid, color: "$alu"}
+  - elementId: lt-slot2
+    elementType: shape
+    bounds: [928, 337.2, 40, 5.6]
+    shapeName: roundRect
+    adjustments: [50000]
+    opacity: 0.3
+    fill: {type: solid, color: "$alu"}
+  - elementId: lt-slot3
+    elementType: shape
+    bounds: [928, 352.5, 40, 5.6]
+    shapeName: roundRect
+    adjustments: [50000]
+    opacity: 0.3
+    fill: {type: solid, color: "$alu"}
+  - elementId: lt-rcookie
+    elementType: shape
+    bounds: [934.75, 333, 14, 14]
+    shapeName: ellipse
+    fill: {type: solid, color: "$amber"}
+  - elementId: lt-rbeacon
+    elementType: shape
+    bounds: [955.1, 316.4, 6, 6]
+    shapeName: ellipse
+    fill: {type: solid, color: "$coral"}
+  - elementId: s2-note
+    elementType: text
+    bounds: [560, 470, 460, 60]
+    content:
+      style: "$note"
+      align: [left, top]
+      text: "Amber, blue, and coral hold their contrast on white — README, docs, and the printed lab poster need no recolor."
+  # ---------- palette ----------
+  - elementId: s3-label
+    elementType: text
+    bounds: [1060, 200, 480, 22]
+    content: {style: "$note", fontSize: 13, letterSpacing: 3, color: "$amber", wrap: false, align: [left, middle], text: PALETTE — SAMPLED FROM THE PRODUCT}
+  - elementId: sw1
+    elementType: shape
+    bounds: [1060, 240, 150, 44]
+    shapeName: roundRect
+    adjustments: [14000]
+    fill: {type: solid, color: "$amber"}
+  - elementId: sw1-t
+    elementType: text
+    bounds: [1060, 290, 150, 34]
+    content:
+      style: "$note"
+      fontSize: 12
+      align: [left, top]
+      text: |
+        <p>amber / axes & accent</p>
+        <p><span style="color:$faint">#E8A33D</span></p>
+  - elementId: sw2
+    elementType: shape
+    bounds: [1230, 240, 150, 44]
+    shapeName: roundRect
+    adjustments: [14000]
+    fill:
+      type: gradient
+      gradientType: linear
+      angle: 90
+      stops:
+        - {position: 0, color: "$blueHi"}
+        - {position: 1, color: "$blueLo"}
+  - elementId: sw2-t
+    elementType: text
+    bounds: [1230, 290, 150, 34]
+    content:
+      style: "$note"
+      fontSize: 12
+      align: [left, top]
+      text: |
+        <p>UI blue / simulation</p>
+        <p><span style="color:$faint">#1E7BEE</span></p>
+  - elementId: sw3
+    elementType: shape
+    bounds: [1400, 240, 140, 44]
+    shapeName: roundRect
+    adjustments: [14000]
+    fill: {type: solid, color: "$coral"}
+  - elementId: sw3-t
+    elementType: text
+    bounds: [1400, 290, 140, 34]
+    content:
+      style: "$note"
+      fontSize: 12
+      align: [left, top]
+      text: |
+        <p>coral / machine, live</p>
+        <p><span style="color:$faint">#EE7B62</span></p>
+  - elementId: sw4
+    elementType: shape
+    bounds: [1060, 350, 150, 44]
+    shapeName: roundRect
+    adjustments: [14000]
+    fill: {type: solid, color: "$alu"}
+  - elementId: sw4-t
+    elementType: text
+    bounds: [1060, 400, 150, 34]
+    content:
+      style: "$note"
+      fontSize: 12
+      align: [left, top]
+      text: |
+        <p>aluminum / extrusion</p>
+        <p><span style="color:$faint">#B9C0C9</span></p>
+  - elementId: sw5
+    elementType: shape
+    bounds: [1230, 350, 150, 44]
+    shapeName: roundRect
+    adjustments: [14000]
+    fill:
+      type: gradient
+      gradientType: linear
+      angle: 135
+      stops:
+        - {position: 0, color: "$doughHi"}
+        - {position: 1, color: "$doughLo"}
+  - elementId: sw5-t
+    elementType: text
+    bounds: [1230, 400, 150, 34]
+    content:
+      style: "$note"
+      fontSize: 12
+      align: [left, top]
+      text: |
+        <p>dough / the cookie</p>
+        <p><span style="color:$faint">#F6C878 → #E09A2F</span></p>
+  - elementId: sw6
+    elementType: shape
+    bounds: [1400, 350, 140, 44]
+    shapeName: roundRect
+    adjustments: [14000]
+    fill: {type: solid, color: "$tile"}
+    border: {style: solid, width: 1, color: "$line"}
+  - elementId: sw6-t
+    elementType: text
+    bounds: [1400, 400, 140, 34]
+    content:
+      style: "$note"
+      fontSize: 12
+      align: [left, top]
+      text: |
+        <p>app tile</p>
+        <p><span style="color:$faint">#0C0E11</span></p>
+  # ---------- footer ----------
+  - elementId: footer-rule
+    elementType: shape
+    bounds: [60, 560, 1480, 1]
+    shapeName: rect
+    fill: {type: solid, color: "$line"}
+  - elementId: footer-note
+    elementType: text
+    bounds: [60, 580, 1480, 60]
+    content:
+      style: "$note"
+      fontSize: 14
+      align: [left, top]
+      text: "Language — aluminum extrusion is the machine, amber is the process, blue is the simulation, coral is life. Clear space: half a cell-width on all sides. Ships as hand-editable SVG on a 64-unit grid: stf-cell · stf-ribbon · stf-orbit · stf-rack · stf-favicon."

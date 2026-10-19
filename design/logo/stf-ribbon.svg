@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="STF — twin ribbon">
+  <defs>
+    <linearGradient id="blueR" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4EA3FF"/>
+      <stop offset="1" stop-color="#0E6CDE"/>
+    </linearGradient>
+    <linearGradient id="amberR" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F2B45A"/>
+      <stop offset="1" stop-color="#D98E2B"/>
+    </linearGradient>
+  </defs>
+  <path fill="none" stroke="url(#blueR)" stroke-width="10" stroke-linecap="round"
+        d="M43,18.5 C43,11.5 38,7.5 32,7.5 C25.5,7.5 21,11.5 21,18.5 C21,25.5 26.5,28 32,30"/>
+  <path fill="none" stroke="url(#amberR)" stroke-width="10" stroke-linecap="round"
+        d="M21,45.5 C21,52.5 26,56.5 32,56.5 C38.5,56.5 43,52.5 43,45.5 C43,38.5 37.5,36 32,34"/>
+  <circle cx="32" cy="32" r="3" fill="#EE7B62"/>
+</svg>

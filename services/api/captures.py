@@ -64,7 +64,8 @@ def jpeg_size(b: bytes) -> tuple[int, int] | None:
         b: Raw bytes of the image file.
 
     Returns:
-        tuple[int, int] | None: (width, height) in pixels, or None if the bytes do not form a valid JPEG.
+        tuple[int, int] | None: (width, height) in pixels, or None if the bytes do not form a
+        valid JPEG.
     """
     if len(b) < 4 or b[:2] != b"\xff\xd8":
         return None
@@ -354,7 +355,14 @@ class Captures:
         }
         try:
             self.store.save(rec, body)
-            logger.info("Inspection capture uploaded: %s (%s, %dx%d, %d bytes)", rec["id"], flavour, size[0], size[1], len(body))
+            logger.info(
+                "Inspection capture uploaded: %s (%s, %dx%d, %d bytes)",
+                rec["id"],
+                flavour,
+                size[0],
+                size[1],
+                len(body),
+            )
         except (OSError, urllib.error.URLError, TimeoutError) as e:
             logger.error("Failed to store inspection capture %s: %s", rec["id"], e)
             raise HTTPException(

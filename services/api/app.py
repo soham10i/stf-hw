@@ -21,6 +21,11 @@ Endpoints:
     POST /chat/stt      a recorded question (audio/webm ...) -> its transcript (tts.py)
     GET  /guest         this visitor's guest session: since when, how many visits, which database
     DELETE /guest       forget this guest: its conversations and photos; a new one starts
+    POST /guest/track   usage beacon (consent-gated, visits.py): page + the guest's coarse place;
+                        optionally emails the owner once per guest (notify.py)
+    GET  /guest/visits  this guest's own visits, newest first
+    GET  /notify/status   owner notifications configured? (email/webhook on, no secrets)
+    POST /notify/test   send the owner a test notice (operator only, like /command)
     GET  /copilot/sessions        the guest's chat history
     GET  /copilot/sessions/{id}   one session: its turns and its context store
     DELETE /copilot/sessions/{id}
@@ -38,6 +43,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import time
 from contextlib import asynccontextmanager
@@ -45,7 +51,7 @@ from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -54,10 +60,12 @@ from stf_layout import get_layout
 from . import guests as G
 from . import live, wire
 from . import security as sec
+from . import visits as VIS
 from .captures import Captures
 from .chat import Chat, ChatRequest, dotenv
 from .factory_db import factory_from
 from .logging_config import get_logger
+from .notify import Notifier
 from .runtime import SimRuntime
 from .tts import Stt, Tts, TtsRequest
 
@@ -79,13 +87,24 @@ factory = factory_from(guests.db)
 tts = Tts(settings)
 stt = Stt(settings)
 captures = Captures(settings)
+visits = VIS.Visits({**dotenv(), **os.environ})
+notify = Notifier({**dotenv(), **os.environ}, geo=visits.geo)
+# WARNING-and-above logs ship to the same database the visits use (SQLite or Supabase)
+if visits.store.name == "supabase":
+    _log_shipper = VIS.SupabaseLogHandler(visits.store)
+    _log_shipper.setFormatter(logging.Formatter("%(levelname)s [%(name)s]: %(message)s"))
+    get_logger("").addHandler(_log_shipper)
 WS_MAX_MSG = 1024
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application startup and shutdown lifecycle tasks."""
-    logger.info("Starting STF Digital Twin API (version=4.0.0, time_scale=%.1f, database=%s)", _TIME_SCALE, factory.name)
+    logger.info(
+        "Starting STF Digital Twin API (version=4.0.0, time_scale=%.1f, database=%s)",
+        _TIME_SCALE,
+        factory.name,
+    )
     await runtime.start()
     try:
         yield
@@ -100,10 +119,16 @@ app = FastAPI(title="STF Digital Twin", version="4.0.0", lifespan=lifespan)
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Global catch-all exception handler logging unexpected 500 errors with full tracebacks."""
-    logger.error("Unhandled exception processing %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    logger.error(
+        "Unhandled exception processing %s %s: %s", request.method, request.url.path, exc,
+        exc_info=True,
+    )
     return JSONResponse(
         status_code=500,
-        content={"error": "internal_server_error", "detail": "An unexpected error occurred processing your request."},
+        content={
+            "error": "internal_server_error",
+            "detail": "An unexpected error occurred processing your request.",
+        },
     )
 
 
@@ -111,9 +136,21 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """Global HTTP exception handler logging client and server errors with contextual detail."""
     if exc.status_code >= 500:
-        logger.error("HTTP error %d on %s %s: %s", exc.status_code, request.method, request.url.path, exc.detail)
+        logger.error(
+            "HTTP error %d on %s %s: %s",
+            exc.status_code,
+            request.method,
+            request.url.path,
+            exc.detail,
+        )
     else:
-        logger.warning("HTTP %d on %s %s: %s", exc.status_code, request.method, request.url.path, exc.detail)
+        logger.warning(
+            "HTTP %d on %s %s: %s",
+            exc.status_code,
+            request.method,
+            request.url.path,
+            exc.detail,
+        )
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": exc.detail},
@@ -253,7 +290,9 @@ async def chat_ask(req: ChatRequest, request: Request) -> dict:
         raise
     except Exception as e:
         logger.error("POST /chat error for question %r: %s", req.question[:60], e, exc_info=True)
-        raise HTTPException(status_code=500, detail="The copilot encountered an unexpected error")
+        raise HTTPException(
+            status_code=500, detail="The copilot encountered an unexpected error"
+        ) from e
 
 
 @app.post("/chat/stream")
@@ -273,7 +312,10 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         try:
             emit("answer", await chat.ask(req, request, emit=emit, admitted=client))
         except Exception as e:
-            logger.error("POST /chat/stream failed for question %r: %s", req.question[:80], e, exc_info=True)
+            logger.error(
+                "POST /chat/stream failed for question %r: %s", req.question[:80], e,
+                exc_info=True,
+            )
             emit("error", {"detail": getattr(e, "detail", None) or "the copilot failed"})
         emit("", None)
 
@@ -310,6 +352,13 @@ async def tts_speak(req: TtsRequest, request: Request):
     return await tts.speak(req, request)
 
 
+@app.post("/chat/tts/stream")
+async def tts_stream(req: TtsRequest, request: Request):
+    """The answer read aloud as it is synthesised (SSE: meta, base64 chunks, end); the browser
+    plays from the first chunk. Non-streaming providers answer as one file chunk (tts.py)."""
+    return await tts.stream(req, request)
+
+
 @app.get("/chat/stt/status")
 async def stt_status() -> dict:
     """The transcription providers in order and which are ready (tts.py)."""
@@ -340,6 +389,68 @@ async def guest_forget(request: Request) -> JSONResponse:
     r = JSONResponse(content={"forgotten": True})
     r.headers.append("set-cookie", guests.clear_cookie(_https(request)))
     return r
+
+
+class TrackRequest(BaseModel):
+    """The usage beacon: which page, and whether the visitor agreed to being measured."""
+
+    page: str = Field(min_length=1, max_length=200)
+    consent: bool
+    ua: bool = False  # send the user-agent only when asked (it may hold a rare identifier)
+
+
+@app.post("/guest/track")
+async def track(req: TrackRequest, request: Request) -> Response:
+    """A page visit, stored only with consent (visits.py): the guest's id, the page, the time,
+    the IP and its coarse place. Declined, or switched off (STF_TRACKING=0): an empty 204, no row.
+    """
+    if not visits.on:
+        return Response(status_code=204)
+    gid = G.current() or guests.verify(request.cookies.get(G.COOKIE))
+    forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    ip = forwarded or (request.client.host if request.client else None)
+    kept = await asyncio.to_thread(
+        visits.record, gid, req.page, ip, request.headers.get("user-agent") if req.ua else None, req.consent
+    )
+    if not kept:
+        return Response(status_code=204)
+    # the owner's "someone is on the site" note (notify.py): throttled to one per guest
+    # per STF_NOTIFY_EVERY_HOURS, synchronous with a short timeout, never blocks the beacon
+    await asyncio.to_thread(
+        notify.visit, gid, req.page, ip, request.headers.get("user-agent") if req.ua else None
+    )
+    return {"kept": True}
+
+
+@app.get("/guest/visits")
+async def guest_visits() -> dict:
+    """What traction is kept for this guest: their own visits, newest first."""
+    gid = G.current()
+    if not gid:
+        return {"visits": []}
+    try:
+        return {"visits": visits.store.visits(gid)}
+    except (OSError, ValueError) as e:
+        raise HTTPException(status_code=503, detail=f"the visits are not reachable ({e})")
+
+
+@app.get("/notify/status")
+async def notify_status() -> dict:
+    """Whether owner notifications are configured (notify.py): which channels are on.
+    No secrets - safe to show any visitor; it only says the feature exists."""
+    return {"on": notify.on, "channels": notify.channels, "every_hours": notify.every_s / 3600.0}
+
+
+@app.post("/notify/test", dependencies=[Depends(command_guard)])
+async def notify_test() -> dict:
+    """Send the owner a test notice (notify.py). Operator-only, like /command: from the
+    operator's machine or with X-STF-Token. Use the dashboard's bell button."""
+    if not notify.on:
+        raise HTTPException(status_code=409, detail="owner notifications are not configured (STF_NOTIFY_*)")
+    sent = await asyncio.to_thread(notify.test)
+    if not sent:
+        raise HTTPException(status_code=502, detail="the notice could not be sent - check the SMTP/webhook settings and the service log")
+    return {"sent": True, "channels": notify.channels}
 
 
 @app.get("/copilot/sessions")

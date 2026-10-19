@@ -28,6 +28,7 @@ from dataclasses import asdict, dataclass, field
 from . import gemini_pool as GP
 from . import live
 from . import security as sec
+from . import vectors as V
 from .grounding import get_bm25, load_json
 from .logging_config import get_logger
 
@@ -543,9 +544,14 @@ def oven_process(args: dict, ctx: Ctx) -> Result:
 # ------------------------------------------------------------------------ documents
 def search_docs(args: dict, ctx: Ctx) -> Result:
     """The documents (machine, panels, dashboard pages, alarms, FAQ, design notes), best
-    passages first."""
+    passages first. Hybrid retrieval: BM25 fused with the vector store (vectors.py) - a hit
+    counts when its lexical score says it matches, or when the vectors say so alone."""
     q = str(args.get("query", "")).strip()
-    hits = [h for h in get_bm25().search(q, top_k=int(args.get("k") or 4)) if h["score"] >= 2.0]
+    hits = [
+        h
+        for h in V.hybrid_search(q, top_k=int(args.get("k") or 4) * 2)
+        if h["score"] >= 2.0 or h.get("vscore", 0.0) >= V.VECTOR_ACCEPT
+    ][: int(args.get("k") or 4)]
     if not hits:
         return Result("search_docs", f"No document covers '{q}'.")
     facts, sources, cites = [], [], []
@@ -564,7 +570,9 @@ def search_docs(args: dict, ctx: Ctx) -> Result:
                 "quote": p.text[:400],
             }
         )
-    return Result("search_docs", f"{len(hits)} passages match.", facts, sources, cites=cites)
+    n_sem = sum(1 for h in hits if h.get("via") == "vector")
+    how = f"{len(hits)} passages match" + (f" ({n_sem} by meaning, not words)" if n_sem else "")
+    return Result("search_docs", f"{how}.", facts, sources, cites=cites)
 
 
 def equations(top: Result, budget: int = 7000) -> Result:
@@ -676,6 +684,17 @@ def _env() -> dict[str, str]:
     return env
 
 
+def _retrieval_desc() -> str:
+    """How the documents are retrieved, for the setup answer: BM25 plus the vector store's
+    embedder and passage count, or pure BM25 when vectors are off."""
+    store = V.get_store()
+    if store is None:
+        return "BM25 over the knowledge base (vectors off)"
+    got = store.matrix()
+    n = len(got[0]) if got else 0
+    return f"hybrid: BM25 fused with {store.embedder.name} vectors ({n} passages indexed)"
+
+
 def copilot_setup(args: dict, ctx: Ctx) -> Result:
     """How this copilot itself is set up: local text model, Groq LPU engine, Gemini chat
     and speech models in fallback order, speech pipeline, and data directory."""
@@ -711,6 +730,7 @@ def copilot_setup(args: dict, ctx: Ctx) -> Result:
         ["chat questions per day", env.get("GEMINI_DAILY_LIMIT", "300")],
         ["spoken answers per day", env.get("GEMINI_TTS_DAILY_LIMIT", "100")],
         ["Supabase cloud store", "configured" if supabase_set else "local SQLite"],
+        ["document retrieval", _retrieval_desc()],
         ["data directory", env.get("STF_DATA_DIR", os.path.join(repo, ".data"))],
     ]
     groq_desc = (

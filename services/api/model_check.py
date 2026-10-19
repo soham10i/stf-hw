@@ -18,13 +18,29 @@ from . import chat as C
 ASK = "Reply with the single word OK."
 
 
-def _openai(post, url, key, model):
+def _openai(post, url: str, key: str, model: str) -> str:
+    """Submit a test inference probe to an OpenAI-compatible /chat/completions endpoint.
+
+    Args:
+        post: HTTP POST callable function.
+        url: Base URL of the OpenAI-compatible service.
+        key: Authentication key or token.
+        model: Target model name.
+
+    Returns:
+        str: Cleaned text response from the model.
+    """
     body = {"model": model, "messages": [{"role": "user", "content": ASK}], "max_tokens": 200}
     d = post(url, key, body)
     return (C.parse_groq(d) or "").strip()
 
 
 def main() -> int:
+    """Diagnostic CLI entry point probing each configured LLM provider in fallback priority.
+
+    Returns:
+        int: 0 if at least one provider answered successfully, 1 otherwise.
+    """
     c = C.ChatSettings.from_env()
     probes = {
         "gemini": (
@@ -47,6 +63,11 @@ def main() -> int:
             bool(c.upb_key),
             c.upb_model,
             lambda: _openai(C._post_groq, c.upb_url, c.upb_key, c.upb_model),
+        ),
+        "openai": (
+            bool(c.openai_url),
+            c.openai_model,
+            lambda: _openai(C._post_groq, c.openai_url, c.openai_key or "", c.openai_model),
         ),
         "ollama": (bool(c.ollama_model), c.ollama_model, None),
     }

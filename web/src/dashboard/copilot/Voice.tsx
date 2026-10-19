@@ -13,13 +13,12 @@ export function Voice({ busy, onAsk }: { busy: boolean; onAsk: (text: string) =>
   const [state, setState] = useState<"idle" | "listening" | "transcribing">("idle");
   const [heard, setHeard] = useState("");
   const [err, setErr] = useState("");
-  const [server, setServer] = useState<string | null>(null);     // the server's first ready transcriber
-  const [by, setBy] = useState("");
+  const [server, setServer] = useState<string | null>(null);     // a ready transcriber on the server
   const rec = useRef<Rec | null>(null);
   const media = useRef<MediaRecorder | null>(null);
   useEffect(() => () => { rec.current?.abort(); media.current?.stop(); }, []);
   useEffect(() => {
-    sttStatus().then((s) => { const p = s.providers.find((x) => x.ready); setServer(p ? `${p.name} ${p.model ?? ""}`.trim() : null); });
+    sttStatus().then((s) => { setServer(s.providers.some((x) => x.ready) ? "server" : null); });
   }, []);
 
   const finish = (text: string) => {
@@ -57,7 +56,7 @@ export function Voice({ busy, onAsk }: { busy: boolean; onAsk: (text: string) =>
     m.onstop = async () => {
       stream.getTracks().forEach((t) => t.stop());
       setState("transcribing");
-      try { const t = await transcribe(new Blob(chunks, { type: m.mimeType })); setHeard(t.text); setBy(t.model); finish(t.text); }
+      try { const t = await transcribe(new Blob(chunks, { type: m.mimeType })); setHeard(t.text); finish(t.text); }
       catch (e) { setErr((e as Error).message); setState("idle"); }
     };
     media.current = m;
@@ -87,7 +86,7 @@ export function Voice({ busy, onAsk }: { busy: boolean; onAsk: (text: string) =>
       {heard && <p className="cx-heard">“{heard}”</p>}
       {err && <p className="cx-note bad">{err}</p>}
       <span className="cx-hint">
-        {server ? `heard by ${by || server} on the server` : Recognition ? "speech recognition in your browser" : "recorded, transcribed on the server"}
+        {server ? "transcribed on the server" : Recognition ? "speech recognition in your browser" : "recorded, transcribed on the server"}
         {" · answers written by the language model, read aloud"}
       </span>
     </div>

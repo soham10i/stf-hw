@@ -81,6 +81,7 @@ export function ProcessPage() {
           <p className="hl-cap">A nominal 8 mm cookie in a settled 180 °C oven. The centre stays near 100 °C ({n.plateau[0].toFixed(0)}–{n.plateau[1].toFixed(0)} °C) while its water boils off, then climbs. The surface browns only once it is dry. Done at {mmss(n.t_done)}, the colour target at {mmss(n.t_b)}; the right colour lasts under two minutes.</p>
         </section>
 
+        <div className="db-pair">
         <section className="db-card"><h3>The oven heating up</h3>
           <Plot h={230} xTitle="time from switch-on" yTitle="°C" xMin={0} xMax={900} xFmt={mmss} yMin={0}
             series={[
@@ -98,7 +99,7 @@ export function ProcessPage() {
           <HBar xTitle="cookies right first time" fmt={(v) => `${v.toFixed(1)} %`} x0={50} x1={100}
             rows={d.policies.map((p) => ({ label: p.name, v: p.ok_pct, color: PCOL[p.policy],
               tip: `${p.name}: ${p.ok} right, ${p.underbaked} underbaked, ${p.burnt} burnt of ${p.cookies} · fridge dough ${p.ok_pct_fridge} % right · bake ${Math.round(p.bake_mean)} ± ${Math.round(p.bake_sd)} s` }))} />
-          <div className="cx-table" style={{ marginTop: 10 }}><table>
+          <div className="cx-table pol-cmp"><table>
             <thead><tr><th>policy</th><th>underbaked</th><th>burnt</th><th>fridge dough right</th><th>bake</th></tr></thead>
             <tbody>{d.policies.map((p) => (
               <tr key={p.policy}><td><i className="pr-dot" style={{ background: PCOL[p.policy] }} />{p.name}</td><td>{p.underbaked}</td><td>{p.burnt}</td>
@@ -106,6 +107,7 @@ export function ProcessPage() {
           </table></div>
           <p className="hl-cap">{d.shifts} shifts each, {d.policies[0].cookies} cookies, the same dough, hall and oven for every policy. The timer cannot see a cold oven or cold dough; the soft sensor follows the oven; the camera corrects the colour cookie by cookie; the dough sensors read each piece before it goes in.</p>
         </section>
+        </div>
 
         <section className="db-card wide"><h3>Each cookie of one shift</h3>
           <Plot h={240} xTitle="cookie in the shift" yTitle="browning index" xMin={0} xMax={d.cookies.timer.length} yMin={0.1} yMax={0.9}

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="STF — rack tile">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1D2229"/>
+      <stop offset="1" stop-color="#0C0E11"/>
+    </linearGradient>
+    <linearGradient id="amberT" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F2B45A"/>
+      <stop offset="1" stop-color="#D98E2B"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="15" fill="url(#tile)" stroke="#FFFFFF" stroke-opacity="0.09" stroke-width="1"/>
+  <g fill="#B9C0C9" opacity="0.3">
+    <rect x="16" y="17.5" width="32" height="4.5" rx="2.25"/>
+    <rect x="16" y="29.75" width="32" height="4.5" rx="2.25"/>
+    <rect x="16" y="42" width="32" height="4.5" rx="2.25"/>
+  </g>
+  <circle cx="27" cy="32" r="5.6" fill="url(#amberT)"/>
+  <circle cx="46.5" cy="15.5" r="2.4" fill="#EE7B62"/>
+</svg>

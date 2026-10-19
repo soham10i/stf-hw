@@ -10,10 +10,13 @@
 }
 .brand { display: flex; align-items: center; gap: 10px; }
 .brand-mark {
-  display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 8px;
-  background: radial-gradient(circle at 4px 4px, rgba(255, 255, 255, .16) 1px, transparent 1.5px) 0 0 / 8px 8px, #2b2b2e;
-  color: #fff; font: 700 var(--fs-caption) var(--font-display); letter-spacing: .06em;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08), 0 1px 2px rgba(0, 0, 0, .25);
+  display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 9px;
+  background:
+    radial-gradient(circle at 5px 5px, rgba(255, 255, 255, .22) 1px, transparent 1.6px) 0 0 / 8px 8px,
+    linear-gradient(145deg, #6aa8ff 0%, #2563eb 52%, #1c44b8 100%);
+  color: #fff; font: 800 var(--fs-caption) var(--font-display); letter-spacing: .05em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 0 0 1px rgba(13, 32, 84, .25), 0 2px 6px rgba(30, 70, 180, .35);
+  text-shadow: 0 1px 1px rgba(10, 25, 70, .4);
 }
 .brand b { display: block; font-size: var(--fs-head); font-weight: 600; line-height: 1.2; }
 .brand div span { display: block; font-size: var(--fs-callout); color: var(--muted); }
@@ -316,6 +319,11 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .ord-list small { font-size: var(--fs-caption); color: var(--faint); }
 .ord-list .ord-bar { grid-column: 1 / -1; height: 4px; }
 
+.ord-hist { margin-top: 10px; }
+.ord-hist li { padding: 7px 10px; }
+.ord-hist-t { font: 500 var(--fs-caption) var(--mono); color: var(--faint); white-space: nowrap; }
+.ord-hist-cookies { margin-top: 10px; }
+
 .ord-rack { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .ord-reset { width: 100%; margin-top: 10px; }
 .ord-cell { display: grid; justify-items: center; gap: 3px; padding: 8px 2px 6px; border-radius: 10px; background: var(--surface);
@@ -551,6 +559,12 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .vp-status b { font: 600 var(--fs-callout) var(--mono); color: var(--muted); }
 .vp-status .vp-phase { color: var(--text); max-width: 360px; }
 .vp-sep { width: 1px; height: 20px; background: var(--glass-line); margin: 0 3px; }
+/* fast-forward (ViewportChrome SpeedControl): compact segmented numbers beside the status */
+.vp-speed { padding: 2px; gap: 1px; }
+.vp-speed button { height: 26px; padding: 0 9px; font: 600 var(--fs-callout) var(--mono); }
+
+/* this visitor's session (TopBar.tsx SessionChip): the id everything is stored under */
+.top-guest { font-family: var(--mono); background: var(--accent-weak); color: var(--accent); }
 .vp-btn, .vp-cta { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 11px; border: 0;
   background: transparent; color: var(--muted); font: 500 var(--fs-body) var(--font); cursor: pointer; transition: background .15s, color .15s; list-style: none; }
 .vp-btn:hover { background: var(--raised); color: var(--text); }
@@ -649,7 +663,7 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 /* a phone: one row of top bar (icons for the actions), the bar's toggles as icons */
 @media (max-width: 900px) {
   .app.immersive .top-actions { grid-column: auto; }
-  .top-actions .top-status { display: none; }
+  .top-actions .top-status, .top-actions .top-guest { display: none; }
   .top-actions .ui-btn { padding: 0 9px; }
   .vp-bar .vp-label { display: none; }
   .vp-bar .vp-btn { padding: 0 9px; }
@@ -676,3 +690,28 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .ord-auto { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0 10px; font-size: var(--fs-callout); color: var(--muted); cursor: pointer; }
 .ord-auto input { margin-top: 3px; accent-color: var(--accent); }
 .ord-auto b { color: var(--text); font-weight: 600; }
+
+/* ---------------------------------------------------- lumen (premium glass)
+   The dashboard's lumen palette, continued on the twin: the floating chrome gets a deeper frost
+   (more of the machine shows through the glass) and the controls become full pills, as the
+   dashboard's nav does. Menus and list rows stay solid/rounded - restraint, like macOS menus. The
+   3D viewport keeps its own --viewport ground (theme.css), so no page ground is added here. */
+:root[data-palette="lumen"] {
+  --glass-bg: color-mix(in srgb, var(--surface) 46%, transparent);
+  --glass-blur: blur(30px) saturate(195%);
+}
+/* the floating islands: a hair more radius than the default 16px */
+[data-palette="lumen"] .app.immersive .topbar,
+[data-palette="lumen"] .app.immersive .rail,
+[data-palette="lumen"] .vp-bar { border-radius: 18px; }
+[data-palette="lumen"] .app.immersive .side.float,
+[data-palette="lumen"] .app.immersive .side.pinned { border-radius: 20px; }
+/* pills: top-bar actions, the view switcher, the control bar's buttons and segments */
+[data-palette="lumen"] .top-actions .ui-btn,
+[data-palette="lumen"] .vm-btn,
+[data-palette="lumen"] .vp-btn,
+[data-palette="lumen"] .vp-cta { border-radius: 999px; }
+[data-palette="lumen"] .ui-seg { border-radius: 999px; }
+[data-palette="lumen"] .ui-seg button { border-radius: 999px; }
+/* the tip and the floating panel's cards inherit the deeper frost automatically
+   (they read --glass-bg / --glass-blur); the veil keeps the machine's ground */

@@ -19,6 +19,10 @@ import time
 import urllib.error
 from dataclasses import dataclass, field
 
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
+
 API = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 # tool-calling chat models, fastest-good first; each has its own free-tier quota
@@ -41,10 +45,19 @@ MAX_COOLDOWN = 24 * 3600.0
 
 
 def cooldown_of(e: urllib.error.HTTPError) -> float:
-    """How long a failed model stays out: Google's RetryInfo delay when the error carries one."""
+    """Calculate cooldown seconds for a failed model using Google RetryInfo headers or defaults.
+
+    Args:
+        e: The HTTPError response from Google Gemini API.
+
+    Returns:
+        float: Number of seconds to temporarily remove model from the active pool.
+    """
     try:
         body = json.loads(e.read() or b"{}")
     except (ValueError, OSError):
+        body = {}
+    if not isinstance(body, dict):
         body = {}
     for d in (body.get("error") or {}).get("details", []) or []:
         m = re.match(r"^(\d+(?:\.\d+)?)s$", str(d.get("retryDelay", "")))
@@ -54,11 +67,13 @@ def cooldown_of(e: urllib.error.HTTPError) -> float:
 
 
 class AllBusy(Exception):
-    """Every model in the pool is out; the message says until when (safe to show)."""
+    """Exception raised when every Gemini model in the pool is in cooldown."""
 
 
 @dataclass
 class Pool:
+    """Thread-safe model pool that rotates through Gemini models and tracks quota cooldowns."""
+
     models: list[str]
     _out: dict[str, float] = field(default_factory=dict)
     _why: dict[str, str] = field(default_factory=dict)
@@ -66,22 +81,43 @@ class Pool:
     clock: object = field(default=time.time, repr=False)
 
     def available(self) -> list[str]:
+        """Return list of models whose cooldown period has expired."""
         now = self.clock()
         with self._lock:
             return [m for m in self.models if self._out.get(m, 0.0) <= now]
 
     def out(self, model: str, seconds: float, why: str) -> None:
+        """Mark a model temporarily unavailable for the given duration with rationale.
+
+        Args:
+            model: Model identifier.
+            seconds: Duration in seconds to exclude this model.
+            why: Diagnostic description of failure.
+        """
         with self._lock:
             self._out[model] = self.clock() + seconds
             self._why[model] = why
+            logger.warning("Gemini model %r placed on cooldown for %.1fs (reason: %s)", model, seconds, why)
 
     def call(
         self, post, body: dict, retryable=(429, 500, 503, 404), accept=None, trace=None
     ) -> tuple[dict, str]:
-        """post(url, body) with the first available model; on a quota or overload error the
-        model is taken out and the next one is tried. `accept(response)` may raise ValueError
-        for an answer that is no use (a voice that returned no audio): that model, too, is
-        passed over for a minute. Returns (response, model used)."""
+        """Submit request to the first available model, falling back through the pool on error.
+
+        Args:
+            post: Callable to execute HTTP POST against the model endpoint.
+            body: Request payload dictionary.
+            retryable: Tuple of HTTP status codes that trigger model rotation.
+            accept: Optional validation callback that may raise ValueError for empty responses.
+            trace: Optional list to record model rotation attempts and errors.
+
+        Returns:
+            tuple[dict, str]: (Parsed response dictionary, model identifier used).
+
+        Raises:
+            AllBusy: When all models in the pool are on cooldown.
+            urllib.error.HTTPError: For non-retryable HTTP errors.
+        """
         tried = []
         for m in self.available():
             tried.append(m)
@@ -97,7 +133,6 @@ class Pool:
                 if trace is not None:
                     trace.append((m, "at its limit" if e.code == 429 else f"HTTP {e.code}"))
             except (urllib.error.URLError, TimeoutError):
-                # a model that times out is set aside, so the next question does not wait for it
                 self.out(m, 300.0, "no answer in time")
                 if trace is not None:
                     trace.append((m, "no answer in time"))
@@ -107,12 +142,14 @@ class Pool:
                 if trace is not None:
                     trace.append((m, "no usable answer"))
         nxt = min((self._out.get(m, 0.0) for m in self.models), default=0.0) - self.clock()
+        logger.error("All Gemini models in pool are exhausted: tried=%s, next_free_in=%.0fs", tried, max(0, nxt))
         raise AllBusy(
             f"every model is at its limit ({', '.join(tried) or 'none free'}); "
             f"the first is free again in {max(0, nxt):.0f} s"
         )
 
     def status(self) -> list[dict]:
+        """Return diagnostic health and cooldown status for each model in the pool."""
         now = self.clock()
         return [
             {
@@ -129,6 +166,7 @@ class Pool:
 
 
 def models_from_env(name: str, default: list[str], env: dict) -> list[str]:
+    """Parse comma-separated model list from environment or return default."""
     raw = env.get(name, "")
     ms = [m.strip() for m in raw.split(",") if m.strip()]
     return ms or list(default)

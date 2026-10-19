@@ -10,8 +10,8 @@ Ask about the cell in plain words, by typing or by voice.  A language model answ
 
 ## How to read it
 
-1. Pick a tab: Gemini (cloud models), Local (a model on this machine through Ollama) or Voice (speak, hear the answer).
-2. If the model you chose is at its limit or not running, the next one answers with the same context - the chip on the answer says it switched.
+1. Pick a tab: Chat (type, a language model answers) or Voice (speak, hear the answer).
+2. If the first model is at its limit or not running, the next ready one answers with the same context - the chip on the answer says it handed over.
 3. Answers take the form the question needs: a figure, a table for comparisons, numbered steps for an alarm, a status card for 'now'.
 4. Copy any question or answer; 🔊 reads an answer aloud.
 5. History is on the left; the Context panel on the right lists what the conversation has established.
@@ -22,9 +22,9 @@ Ask about the cell in plain words, by typing or by voice.  A language model answ
 
 Your earlier conversations; open one to continue it, × to delete it.
 
-### Gemini / Local / Voice
+### Chat / Voice
 
-Which model answers first; the others take over when it cannot.
+How you ask; the first ready model answers, and the next takes over when it cannot.
 
 ### Context
 

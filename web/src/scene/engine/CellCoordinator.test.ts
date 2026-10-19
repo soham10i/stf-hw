@@ -211,7 +211,7 @@ describe("the inspection steers the line", () => {
     return [-230 + tx, 200 + ty] as [number, number];
   };
 
-  it("a rejected cookie is held at the end of the line, its mould comes home empty, and the order makes it again", () => {
+  it("a rejected cookie is held at the end of the line, its mould is refilled with dough, and the order makes it again", () => {
     const { store, coord, run, done } = cell();
     coord.setCamera(lensOf());
     judgeByTruth(store);
@@ -228,8 +228,11 @@ describe("the inspection steers the line", () => {
       return done();
     })).toBe(true);
     const rack = Object.values(store.model.rack);
-    expect(rack.filter((c) => c === null)).toHaveLength(1);            // the rejected cookie's mould
-    expect(rack.filter((c) => c === CHOC)).toHaveLength(1);           // and the one that passed
+    // the rejected cookie's mould came home empty and was refilled with dough at once:
+    // no slot stands empty, and the order made its cookie again from the fresh dough
+    expect(rack.filter((c) => c === null)).toHaveLength(0);
+    expect(rack.filter((c) => c === CHOC)).toHaveLength(1);           // the one that passed
+    expect(rack.filter((c) => c === RAW)).toHaveLength(11);
     expect(store.model.queue[0].done).toBe(1);
     expect(store.model.inspect).toMatchObject({ passed: 1, rejected: 1, next: null });
     expect(store.model.inspect.recent.map((r) => r.truth)).toEqual(["ok", "burnt"]);
@@ -271,12 +274,38 @@ describe("the inspection steers the line", () => {
   it("with no raw dough left, an order waits rather than take a baked cookie's slot", () => {
     const { store, coord, run } = cell();
     coord.setCamera(lensOf());
+    store.model.dough = false;               // no automatic refill: a rejected mould stays empty
     store.onCapture((c) => store.decide({ n: c.n, verdict: "reject", condition: "burnt", p: 1, flavour: c.flavour, ae: 2, anomaly: true }));
     store.place("strawberry", 12);
     run(36000, () => store.model.idle && Object.values(store.model.rack).every((c) => c !== store.model.rawColour));
     expect(Object.values(store.model.rack).every((c) => c === null)).toBe(true);   // all rejected
     expect(store.model.queue[0].done).toBe(0);
     expect(store.model.idle).toBe(true);
+  });
+});
+
+describe("the pipeline", () => {
+  it("twelve cookies are in the factory at every tick: every slot always holds one", () => {
+    const { store, run, done } = cell();
+    store.place("chocolate", 4);
+    let ticks = 0;
+    expect(run(3600, () => {
+      ticks++;
+      const rack = Object.values(store.model.rack);
+      expect(rack).toHaveLength(12);
+      expect(rack.every((c) => c !== null)).toBe(true);   // raw, cooking or cooked - never empty
+      return done();
+    })).toBe(true);
+    expect(ticks).toBeGreaterThan(1000);
+    expect(Object.values(store.model.rack).filter((c) => c === CHOC)).toHaveLength(4);
+  });
+
+  it("the crane and the VGR work on different cookies at the same time", () => {
+    const { store, coord, run, done } = cell();
+    store.place("chocolate", 4);
+    expect(run(3600, done)).toBe(true);
+    // hundreds of ticks per order where the crane served one cookie while the VGR served another
+    expect(coord.overlapped).toBeGreaterThan(500);
   });
 });
 

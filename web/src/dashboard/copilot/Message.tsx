@@ -1,10 +1,11 @@
 // One message of the conversation. The operator's question; or the copilot's answer, drawn by
 // its STYLE (the server classifies the question - respond.py): a highlight card for a quick
 // figure, a status grid for "what is happening now", a table for a comparison, a checklist for
-// steps. Every message can be copied; an answer can be read aloud and shows which model wrote it,
-// any hand-over between models, its sources, and links to the pages with the detail.
+// steps. Every message can be copied; an answer can be read aloud and shows any hand-over between
+// models, its sources, and links to the pages with the detail. Which provider answered is a
+// server detail: it stays in the session's context, never in the UI.
 import { useEffect, useRef, useState } from "react";
-import { speech, type Cite as Source, type Mode, type Style, type Turn } from "./api";
+import { speech, speechStream, type Cite as Source, type Mode, type Style, type Turn } from "./api";
 import { CopilotMark, Icon } from "../../shared/icons";
 import { TeX, displayBlock, mathSplit } from "../../shared/tex";
 
@@ -122,7 +123,7 @@ function Trace({ turn }: { turn: Turn }) {
         {web.length > 0 && <li><b>Searched</b> the web: {web.length} page{web.length > 1 ? "s" : ""}, {web.filter((c) => c.trusted).length} from trusted hosts</li>}
         <li><b>Retrieved</b> {docs.length ? `${docs.length} passage${docs.length === 1 ? "" : "s"} from the documents (BM25 ranking; best match ${Math.max(...docs.map((d) => d.score ?? 0)).toFixed(1)})` : "no document passage"}</li>
         <li><b>Computed</b> {tools.length ? tools.map((t) => t.replace(/_/g, " ")).join(", ") : "no tool"}</li>
-        <li><b>Written by</b> {turn.model === "rules" ? "the twin's tools alone (no language model)" : turn.model ?? "?"}{turn.switched?.length ? `, after ${turn.switched.length} hand-over${turn.switched.length > 1 ? "s" : ""}` : ""}</li>
+        <li><b>Written by</b> {turn.model === "rules" ? "the twin's tools alone (no language model)" : "the copilot's language model"}{turn.switched?.length ? `, after ${turn.switched.length} hand-over${turn.switched.length > 1 ? "s" : ""}` : ""}</li>
         <li><b>Checked</b> {turn.unverified?.length ? `${turn.unverified.length} figure${turn.unverified.length > 1 ? "s" : ""} not found in the evidence: ${turn.unverified.join(", ")}` : "every number found in the evidence it was given"}</li>
       </ol>
     </details>
@@ -269,19 +270,66 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
 /** The one voice speaking now, app-wide: starting another stops it, so answers never overlap. */
 let speaking: (() => void) | null = null;
 
-/** Read aloud: the server's voice pipeline (ElevenLabs / Gemini / the local voice), else the browser.
-    Every play has a generation; stopping (or unmounting) moves it on, so a speech request that
-    returns afterwards is dropped instead of played - which is what let React's development
-    double-mount, or a fast second click, speak an answer twice. */
+/** A raw-PCM player: base64 16-bit chunks queued on an AudioContext, each starting where the
+    last one ends; the lead-in is the jitter buffer. Chunks may arrive slower than real time,
+    so a chunk that would start in the past is nudged to "now" (a small gap, never overlap). */
+function pcmPlayer(rate: number) {
+  const ctx = new AudioContext({ sampleRate: rate });
+  void ctx.resume().catch(() => { /* autoplay policy: finish() stands down */ });
+  let next = ctx.currentTime + 0.35;
+  let any = false;
+  let stopped = false;
+  let onEnd: (() => void) | null = null;
+  const watch = () => {
+    if (stopped) return;
+    if (ctx.currentTime >= next - 0.03) onEnd?.();
+    else window.setTimeout(watch, 120);
+  };
+  return {
+    push(b64: string) {
+      if (stopped) return;
+      const bin = atob(b64);
+      const n = bin.length >> 1;
+      const pcm = new Int16Array(n);
+      for (let i = 0; i < n; i++) pcm[i] = (bin.charCodeAt(2 * i + 1) << 8) | bin.charCodeAt(2 * i);
+      const f32 = new Float32Array(n);
+      for (let i = 0; i < n; i++) f32[i] = pcm[i] / 32768;
+      const buf = ctx.createBuffer(1, n, rate);
+      buf.getChannelData(0).set(f32);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      if (next < ctx.currentTime) next = ctx.currentTime + 0.04;
+      src.start(next);
+      next += buf.duration;
+      any = true;
+    },
+    /** Resolves once the buffered audio has all played (or nothing can play). */
+    finish(): Promise<void> {
+      if (!any || ctx.state === "suspended") return Promise.resolve();
+      return new Promise((res) => { onEnd = res; watch(); });
+    },
+    stop() { stopped = true; onEnd?.(); void ctx.close().catch(() => {}); },
+  };
+}
+
+/** Read aloud: the server's voice pipeline (ElevenLabs / Gemini / the local voice), streamed so
+    the first words play while the rest is still synthesised; the whole-file voice, then the
+    browser, are the fallbacks. Every play has a generation; stopping (or unmounting) moves it
+    on, so a speech request that returns afterwards is dropped instead of played - which is
+    what let React's development double-mount, or a fast second click, speak an answer twice. */
 export function Speak({ text, auto = false }: { text: string; auto?: boolean }) {
   const [state, setState] = useState<"idle" | "loading" | "playing">("idle");
   const [by, setBy] = useState("");
   const audio = useRef<HTMLAudioElement | null>(null);
+  const player = useRef<ReturnType<typeof pcmPlayer> | null>(null);
   const gen = useRef(0);
   const stop = () => {
     gen.current++;
     audio.current?.pause();
     audio.current = null;
+    player.current?.stop();
+    player.current = null;
     window.speechSynthesis?.cancel();
     if (speaking === stop) speaking = null;
     setState("idle");
@@ -292,12 +340,63 @@ export function Speak({ text, auto = false }: { text: string; auto?: boolean }) 
     speaking = stop;
     const my = ++gen.current;
     setState("loading");
-    const said = text.replace(/\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]/g, " (formula) ").replace(/```[\s\S]*?```/g, " (code) ");
+    // the content only: no formulas, code, links, URLs or citations - and nothing after a
+    // Sources/Resources heading (the evidence list is not read aloud; tts.py does the same)
+    const body = text.split(/^#{1,4}\s*(sources?|resources|references|further reading)\b.*$/im)[0];
+    const said = body
+      .replace(/\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$[^$\n]{1,400}\$/g, " (formula) ")
+      .replace(/```[\s\S]*?```/g, " (code) ")
+      .replace(/!?\[([^\]]{1,160})\]\((https?:\/\/[^)\s]+)\)/g, "$1")
+      .replace(/https?:\/\/\S+|www\.\S+/g, "")
+      .replace(/\[[^\]]{1,140}\]|[*_`#>|]/g, "");
+    // the streamed voice: meta opens the player, chunks feed it as they arrive
+    // (an array holder: closures assign it and TypeScript keeps the type)
+    const file: { mime: string; by: string; parts: string[] }[] = [];
+    try {
+      const streamed = await speechStream(said, (ev) => {
+        if (my !== gen.current) return;               // stopped meanwhile: drain quietly
+        if (ev.type === "meta") {
+          if (ev.meta.kind === "pcm") {
+            // a long answer arrives sentence by sentence: a new meta means the provider or
+            // sample rate changed mid-answer - cut the old player over so the two never overlap
+            player.current?.stop();
+            player.current = pcmPlayer(ev.meta.rate);
+            setBy(ev.meta.by);
+            setState("playing");
+          } else file.push({ mime: ev.meta.mime, by: ev.meta.by, parts: [] });
+        } else if (ev.type === "chunk") {
+          if (player.current) player.current.push(ev.b64);
+          else if (file.length) file[0].parts.push(ev.b64);
+        }
+      });
+      if (my !== gen.current) return;                 // stopped meanwhile
+      if (streamed) {
+        if (player.current) {
+          await player.current.finish();
+          if (my === gen.current) { player.current = null; setState("idle"); }
+          return;
+        }
+        if (file.length) {
+          const bin = atob(file[0].parts.join(""));
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          const url = URL.createObjectURL(new Blob([bytes], { type: file[0].mime }));
+          const a = new Audio(url);
+          audio.current = a;
+          setBy(file[0].by);
+          setState("playing");
+          a.onended = () => { URL.revokeObjectURL(url); if (my === gen.current) { audio.current = null; setState("idle"); } };
+          a.play().catch(() => { if (my === gen.current) stop(); });
+          return;
+        }
+        return setState("idle");                      // an empty stream: nothing to say
+      }
+    } catch { /* fall through to the whole-file voice */ }
     const s = await speech(said);
     if (my !== gen.current) { if (s) URL.revokeObjectURL(s.url); return; }   // stopped meanwhile
     if (!s) {
       if (!window.speechSynthesis) return setState("idle");
-      const u = new SpeechSynthesisUtterance(said.replace(/\[[^\]]{1,140}\]|[*_`#>|]/g, ""));
+      const u = new SpeechSynthesisUtterance(said.replace(/\s+/g, " ").trim());
       u.onend = () => { if (my === gen.current) setState("idle"); };
       setBy("browser voice"); setState("playing");
       window.speechSynthesis.cancel();
@@ -307,7 +406,7 @@ export function Speak({ text, auto = false }: { text: string; auto?: boolean }) 
     const a = new Audio(s.url);
     audio.current = a;
     a.onended = () => { URL.revokeObjectURL(s.url); if (my === gen.current) { audio.current = null; setState("idle"); } };
-    setBy(s.by); setState("playing");
+    setBy(""); setState("playing");
     a.play().catch(() => { if (my === gen.current) stop(); });
   };
   useEffect(() => {
@@ -347,6 +446,13 @@ export function Message({ turn, go, autoSpeak = false }: { turn: Turn; go: (p: s
       </div>
     );
   }
+  return <Answer turn={turn} go={go} autoSpeak={autoSpeak} />;
+}
+
+/** The finished answer. Its sources stay folded away behind a button in the footer - the answer
+    reads clean, and the evidence is one tap open. */
+function Answer({ turn, go, autoSpeak }: { turn: Turn; go: (p: string) => void; autoSpeak?: boolean }) {
+  const [showSrc, setShowSrc] = useState(false);
   const style = turn.style ?? "answer";
   const fig = style === "quick" ? leadFigure(turn.text) : undefined;
   const switched = (turn.switched ?? []).filter((s) => s.to !== "next" || s.why);
@@ -361,10 +467,10 @@ export function Message({ turn, go, autoSpeak = false }: { turn: Turn; go: (p: s
               <Icon name={MODE[turn.route.mode][0]} size={12} />{MODE[turn.route.mode][1]}
             </span>
           )}
-          {turn.model && <span className={`cx-chip model ${turn.model === "rules" ? "rules" : ""}`}>{turn.model === "rules" ? "twin's tools" : turn.model}</span>}
+          {turn.model === "rules" && <span className="cx-chip model rules">twin's tools</span>}
           {switched.length > 0 && (
-            <span className="cx-chip switch" title={switched.map((s) => `${s.from} → ${s.to ?? "next"}: ${s.why}`).join("\n")}>
-              ↷ switched {switched.length > 1 ? `${switched.length}×` : ""}
+            <span className="cx-chip switch" title={switched.map((s) => s.why).join("\n")}>
+              ↷ handed over {switched.length > 1 ? `${switched.length}×` : ""}
             </span>
           )}
           {turn.ms !== undefined && <span className="cx-time">{(turn.ms / 1000).toFixed(1)} s</span>}
@@ -376,9 +482,14 @@ export function Message({ turn, go, autoSpeak = false }: { turn: Turn; go: (p: s
         ) : null}
         <div className="cx-md"><Md text={fig ? turn.text.replace(`**${fig}**`, fig) : turn.text} cites={turn.cites} /></div>
         {turn.note && <p className={`cx-note ${turn.unverified?.length ? "bad" : ""}`}>{turn.unverified?.length ? "⚠ " : "ⓘ "}{turn.note}</p>}
-        {turn.cites && turn.cites.length > 0 && <Sources cites={turn.cites} text={turn.text} />}
+        {showSrc && turn.cites && turn.cites.length > 0 && <Sources cites={turn.cites} text={turn.text} />}
         {turn.cites && <Trace turn={turn} />}
         <div className="cx-foot">
+          {turn.cites && turn.cites.length > 0 && (
+            <button className={`cx-link cx-src-btn ${showSrc ? "on" : ""}`} onClick={() => setShowSrc(!showSrc)} aria-expanded={showSrc}>
+              <Icon name="book" size={13} />{showSrc ? "Hide sources" : `Sources (${turn.cites.length})`}
+            </button>
+          )}
           {turn.links?.map((l) => <button key={l.page} className="cx-link" onClick={() => go(l.page)}>{l.label} →</button>)}
           {!turn.cites && turn.sources && turn.sources.length > 0 && <span className="cx-src" title={turn.sources.join("\n")}>
             {turn.sources[0]}{turn.sources.length > 1 ? ` +${turn.sources.length - 1}` : ""}</span>}

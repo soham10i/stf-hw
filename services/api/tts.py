@@ -17,7 +17,9 @@ endpoint says so (503) and the browser speaks with its own voice instead.
 
 from __future__ import annotations
 
+import asyncio
 import base64
+import hashlib
 import io
 import json
 import os
@@ -30,9 +32,10 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from pathlib import Path
 
 from fastapi import HTTPException, Request
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from . import gemini_pool as GP
@@ -65,8 +68,19 @@ class TtsRequest(BaseModel):
 
 
 def speakable(md: str) -> str:
-    """Markdown and citations out, so the voice reads the answer, not its formatting."""
-    t = re.sub(r"\[[^\]]{1,120}\]", "", md)  # [sources]
+    """The answer's content only, as words: no markdown, links, formulas or headings -
+    and nothing after a Sources / Resources heading (the evidence list is not read aloud)."""
+    # the evidence and further-reading lists are for the eye, not the voice
+    t = re.split(r"(?im)^#{1,4}\s*(sources?|resources|references|further reading)\b.*$",
+                 md, maxsplit=1)[0]
+    t = re.sub(r"!?\[([^\]]{1,160})\]\((https?://[^)\s]+)\)", r"\1", t)  # links keep their text
+    t = re.sub(r"\[[^\]]{1,120}\]", "", t)  # [sources]
+    t = re.sub(r"https?://\S+|www\.\S+", "", t)  # bare URLs
+    t = re.sub(
+        r"\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$[^$\n]{1,400}\$",
+        " (formula) ",
+        t,
+    )  # LaTeX
     t = re.sub(r"[*_`#>|]+", "", t)
     t = re.sub(r"^\s*[-•]\s+", "", t, flags=re.M)
     t = re.sub(r"\s*\n\s*", ". ", t.strip())
@@ -79,6 +93,39 @@ def speakable(md: str) -> str:
         cut = t.rfind(". ", 0, MAX_CHARS)
         t = t[: cut + 1 if cut > MAX_CHARS // 2 else MAX_CHARS]
     return t
+
+
+def split_sentences(text: str, max_chars: int = 280) -> list[str]:
+    """The read-aloud text as synthesis-sized pieces. A period ends a sentence only when
+    followed by whitespace and a capital, digit or quote - never inside a number ("3.5 V") or
+    an abbreviation ("e.g."). Tiny fragments are read with the sentence before them; what is
+    still longer than ~max_chars is halved at the comma or semicolon nearest the middle, so no
+    single synthesis request carries a whole paragraph."""
+    text = text.strip()
+    if not text:
+        return []
+    if len(text) <= max_chars:
+        return [text]
+    parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+(?=[\"'“‘A-Z0-9])", text) if p.strip()]
+    joined: list[str] = []
+    for p in parts:
+        if joined and len(p) < 25 and not p.endswith((".", "!", "?")):
+            joined[-1] += " " + p  # a heading-like fragment: read it with the sentence before
+            continue
+        joined.append(p)
+    out: list[str] = []
+    for p in joined:
+        while len(p) > max_chars:
+            window = p[:max_chars]
+            cut = window.rfind(", ")
+            if cut < max_chars // 2:
+                cut = window.rfind(" ")
+            if cut <= 0:
+                break
+            out.append(p[:cut].strip().rstrip(","))
+            p = p[cut:].strip()
+        out.append(p)
+    return [p for p in out if p]
 
 
 def wav(pcm: bytes, rate: int = 24000, channels: int = 1, bits: int = 16) -> bytes:
@@ -138,24 +185,85 @@ class GeminiVoice:
     def ready(self) -> bool:
         return bool(self.key)
 
-    def speak(self, text: str, voice: str) -> tuple[bytes, str, str]:
-        if not self.key:
-            raise Unavailable("no Gemini key")
+    def _body(self, text: str, voice: str) -> dict:
         name = voice if voice in VOICES else "Kore"
-        body = {
+        return {
             "contents": [{"parts": [{"text": STYLE + text}]}],
             "generationConfig": {
                 "responseModalities": ["AUDIO"],
                 "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": name}}},
             },
         }
+
+    def speak(self, text: str, voice: str) -> tuple[bytes, str, str]:
+        if not self.key:
+            raise Unavailable("no Gemini key")
         try:
             data, model = self.pool.call(
-                lambda url, b: self.post(url, self.key, b), body, accept=audio_of
+                lambda url, b: self.post(url, self.key, b), self._body(text, voice), accept=audio_of
             )
         except GP.AllBusy as e:
             raise Unavailable(f"every Gemini voice is at its limit: {e}") from None
         return audio_of(data), "audio/wav", model
+
+    def stream(self, text: str, voice: str):
+        """Yields (pcm_chunk, rate, model) as the model produces them (streamGenerateContent),
+        rotating through the pool's models like speak() does."""
+        if not self.key:
+            raise Unavailable("no Gemini key")
+        body = self._body(text, voice)
+        for model in self.pool.available():
+            url = GP.API.format(model=model).replace(
+                ":generateContent", ":streamGenerateContent?alt=sse"
+            )
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(body).encode(),
+                method="POST",
+                headers={
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": self.key,
+                    "Accept": "text/event-stream",
+                },
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:  # noqa: S310 - fixed https URL
+                    for pcm, rate in _sse_audio(r):
+                        yield pcm, rate, f"gemini {model}"
+                return
+            except urllib.error.HTTPError as e:
+                if e.code not in (429, 500, 503, 404):
+                    raise
+                self.pool.out(model, GP.cooldown_of(e), f"HTTP {e.code}")
+            except (urllib.error.URLError, TimeoutError):
+                self.pool.out(model, 300.0, "no answer in time")
+                raise
+        raise GP.AllBusy("every Gemini voice is at its limit")
+
+
+def _sse_audio(resp):
+    """Yields (pcm_chunk, rate) from a streamGenerateContent SSE response: each `data:` JSON
+    carries the next consecutive audio fragment as inlineData (base64, audio/L16;rate=N)."""
+    rate: int | None = None
+    for raw in resp:
+        line = raw.decode("utf-8", "replace").strip()
+        if not line.startswith("data:"):
+            continue
+        payload = line[5:].strip()
+        if not payload or payload == "[DONE]":
+            continue
+        try:
+            j = json.loads(payload)
+        except ValueError:
+            continue
+        for c in j.get("candidates", [])[:1]:
+            for p in (c.get("content") or {}).get("parts", []):
+                inline = p.get("inlineData") or {}
+                if not inline.get("data"):
+                    continue
+                m = re.search(r"rate=(\d+)", inline.get("mimeType", ""))
+                rate = int(m.group(1)) if m else (rate or 24000)
+                yield base64.b64decode(inline["data"]), rate
 
 
 def eleven_voices(env: dict) -> dict[str, str]:
@@ -179,6 +287,9 @@ class ElevenLabsVoice:
 
     name = "elevenlabs"
     URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=mp3_44100_128"
+    # the streaming sibling: raw 16-bit PCM at 16 kHz - fragments concatenate cleanly, so the
+    # browser can play from the first chunk instead of waiting for the whole MP3
+    URL_STREAM = "https://api.elevenlabs.io/v1/text-to-speech/{voice}/stream?output_format=pcm_16000"
 
     def __init__(self, env: dict) -> None:
         self.key = env.get("ELEVENLABS_API_KEY") or None
@@ -212,6 +323,34 @@ class ElevenLabsVoice:
                 self.out_until = time.time() + (3600 if e.code in (401, 402) else 60)
                 raise Unavailable(f"ElevenLabs answered HTTP {e.code}") from None
             raise
+
+    def stream(self, text: str, voice: str):
+        """Yields (pcm_chunk, 16000, model) as ElevenLabs streams raw PCM; a 429/401/402/503
+        rests the provider exactly like speak() does."""
+        if not self.ready():
+            raise Unavailable("no ElevenLabs key" if not self.key else "ElevenLabs is at its limit")
+        payload = json.dumps({"text": text, "model_id": self.model}).encode()
+        req = urllib.request.Request(
+            self.URL_STREAM.format(voice=self.voice),
+            method="POST",
+            data=payload,
+            headers={
+                "xi-api-key": self.key or "",
+                "Content-Type": "application/json",
+                "Accept": "audio/pcm",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:  # noqa: S310 - fixed https URL
+                while True:
+                    block = r.read(16384)
+                    if not block:
+                        return
+                    yield block, 16000, f"elevenlabs {self.model}"
+        except urllib.error.HTTPError as e:
+            if e.code in (401, 402, 429, 503):
+                self.out_until = time.time() + (3600 if e.code in (401, 402) else 60)
+            raise Unavailable(f"ElevenLabs answered HTTP {e.code}") from None
 
 
 class GroqVoice:
@@ -329,9 +468,7 @@ class Tts:
             "models": self.pool.status() if self.key else [],
         }
 
-    async def speak(self, req: TtsRequest, request: Request) -> Response:
-        import asyncio
-
+    def _check_origin(self, request: Request) -> None:
         origin = request.headers.get("origin")
         if (
             origin
@@ -339,9 +476,16 @@ class Tts:
             and sec._host(origin.split("://", 1)[-1]) != sec._host(request.headers.get("host"))
         ):
             raise HTTPException(status_code=403, detail="origin not allowed")
+
+    def _client_of(self, request: Request) -> str:
         client = request.client.host if request.client else "?"
         if client in ("127.0.0.1", "::1"):
             client = (request.headers.get("x-forwarded-for") or client).split(",")[0].strip()
+        return client
+
+    async def speak(self, req: TtsRequest, request: Request) -> Response:
+        self._check_origin(request)
+        client = self._client_of(request)
         ready = [p for p in self.providers if p.ready()]
         if not ready:
             raise HTTPException(
@@ -359,9 +503,18 @@ class Tts:
         why = []
         for p in ready:
             try:
-                logger.debug("Attempting TTS synthesis via provider '%s' (voice='%s')", p.name, req.voice)
+                logger.debug(
+                    "Attempting TTS synthesis via provider '%s' (voice='%s')",
+                    p.name,
+                    req.voice,
+                )
                 audio, mime, model = await asyncio.to_thread(p.speak, text, req.voice)
-                logger.info("Synthesized speech via provider '%s' (%s, %d bytes)", p.name, model, len(audio))
+                logger.info(
+                    "Synthesized speech via provider '%s' (%s, %d bytes)",
+                    p.name,
+                    model,
+                    len(audio),
+                )
                 return Response(
                     audio,
                     media_type=mime,
@@ -388,6 +541,183 @@ class Tts:
                 why.append(f"{p.name} did not answer")
         logger.error("All ready TTS providers failed to synthesize speech: %s", "; ".join(why))
         raise HTTPException(status_code=503, detail="no voice could speak: " + "; ".join(why))
+
+    # -------------------------------------------------------------- the streaming reader
+    async def stream(self, req: TtsRequest, request: Request) -> StreamingResponse:
+        """POST /chat/tts/stream: the same answer read aloud as it is synthesised - SSE of
+        `meta` (pcm rate / file mime), `chunk` (base64 audio) and `end`. Chunks are raw PCM
+        fragments that concatenate in order, so the browser plays from the first one instead of
+        waiting for the whole file. Falls back to one `file` chunk when no provider streams."""
+        self._check_origin(request)
+        client = self._client_of(request)
+        if not self.limiter.allow(client):
+            raise HTTPException(
+                status_code=429, detail="too many spoken answers: wait a few seconds"
+            )
+        text = speakable(req.text)
+        if not text:
+            raise HTTPException(status_code=400, detail="nothing to say")
+        if not self.cap.take():
+            raise HTTPException(status_code=429, detail="today's spoken-answer budget is used up")
+        if not any(p.ready() for p in self.providers):
+            raise HTTPException(
+                status_code=503, detail="no voice on the server: use the browser's voice"
+            )
+        voice = req.voice if req.voice in VOICES else "Kore"
+        return StreamingResponse(
+            self._events(text, voice),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+        )
+
+    @staticmethod
+    def _sse(ev: str, obj: dict) -> str:
+        return f"event: {ev}\ndata: {json.dumps(obj, separators=(',', ':'))}\n\n"
+
+    def _synth_one(self, text: str, voice: str) -> tuple[dict, bytes] | None:
+        """One piece of read-aloud text, fully synthesized (blocking - runs in a worker thread).
+        Returns (meta, audio): meta is {"kind": "pcm", "rate", "by"} with raw s16le PCM at that
+        rate, or {"kind": "file", "mime", "by"} with one container (wav/mp3) the browser plays.
+        Cached by voice+text hash: a repeated sentence costs nothing. None when no voice spoke."""
+        key = hashlib.sha256(f"{voice}|{text}".encode()).hexdigest()
+        hit = _cache_get(key)
+        if hit:
+            return hit
+
+        # streaming providers in chain order; the first that speaks wins
+        why: list[str] = []
+        for p in [p for p in self.providers if p.ready() and hasattr(p, "stream")]:
+            collected = bytearray()
+            try:
+                rate, model = 0, p.name
+                for pcm, rate, model in p.stream(text, voice):
+                    collected += pcm
+                if collected:
+                    meta = {"kind": "pcm", "rate": rate, "by": model}
+                    _cache_put(key, meta, bytes(collected))
+                    return meta, bytes(collected)
+                why.append(f"{p.name} produced no audio")
+            except GP.AllBusy as e:
+                why.append(f"every Gemini voice is at its limit: {e}")
+            except Unavailable as e:
+                why.append(str(e))
+            except urllib.error.HTTPError as e:
+                why.append(f"{p.name} answered HTTP {e.code}")
+            except (urllib.error.URLError, TimeoutError, ValueError, OSError) as e:
+                logger.warning("Streaming TTS provider '%s' failed: %s", p.name, e)
+                why.append(f"{p.name} did not answer")
+
+        # no streaming provider could speak: one whole file from a non-streaming provider
+        for p in [p for p in self.providers if p.ready() and not hasattr(p, "stream")]:
+            try:
+                audio, mime, model = p.speak(text, voice)
+                wav_like = "L16" in mime or audio[:4] == b"RIFF"
+                if wav_like:
+                    raw = audio[44:] if audio[:4] == b"RIFF" else audio
+                    m = re.search(r"rate=(\d+)", mime)
+                    meta = {"kind": "pcm", "rate": int(m.group(1)) if m else 24000, "by": model}
+                    _cache_put(key, meta, raw)
+                    return meta, raw
+                meta = {"kind": "file", "mime": mime, "by": model}
+                return meta, audio
+            except (
+                Unavailable,
+                urllib.error.HTTPError,
+                urllib.error.URLError,
+                TimeoutError,
+                ValueError,
+                subprocess.SubprocessError,
+                OSError,
+            ) as e:
+                logger.warning("Fallback TTS provider '%s' failed: %s", p.name, e)
+                why.append(f"{p.name} did not answer")
+        logger.error("TTS failed everywhere: %s", "; ".join(why))
+        return None
+
+    async def _events(self, text: str, voice: str):
+        """The SSE body. One short answer is a single synthesis. A long answer becomes
+        sentences: up to 3 are synthesized at once (one request, one budget token) and their
+        audio streams back in reading order - the first sentence plays while later ones are
+        still being made, instead of waiting for the whole answer to be synthesized."""
+        sentences = split_sentences(text)
+        if len(sentences) <= 1:
+            one = await asyncio.to_thread(self._synth_one, text, voice)
+            if one is None:
+                yield self._sse("error", {"detail": "no voice could speak"})
+                return
+            meta, audio = one
+            yield self._sse("meta", meta)
+            for i in range(0, len(audio), 32768):
+                yield self._sse("chunk", {"b64": base64.b64encode(audio[i : i + 32768]).decode()})
+            yield self._sse("end", {})
+            return
+
+        sem = asyncio.Semaphore(3)
+
+        async def one(s: str):
+            async with sem:
+                try:
+                    return await asyncio.to_thread(self._synth_one, s, voice)
+                except Exception as e:  # a broken provider must not sink the whole answer
+                    logger.warning("Sentence TTS failed for %r: %s", s[:60], e)
+                    return None
+
+        tasks = [asyncio.create_task(one(s)) for s in sentences]
+        sig: tuple | None = None  # what the player's meta was last opened with
+        spoken = 0
+        try:
+            for t in tasks:  # awaited in reading order, whatever order synthesis finished
+                r = await t
+                if r is None:
+                    continue
+                meta, audio = r
+                if meta.get("kind") != "pcm":
+                    continue  # a container file cannot join the PCM stream: skip it here
+                new_sig = (meta["rate"], meta["by"].split()[0])
+                if new_sig != sig:  # first, or the provider/rate changed mid-answer
+                    yield self._sse("meta", meta)
+                    sig = new_sig
+                for i in range(0, len(audio), 32768):
+                    yield self._sse("chunk", {"b64": base64.b64encode(audio[i : i + 32768]).decode()})
+                spoken += 1
+            if spoken:
+                yield self._sse("end", {})
+            else:
+                yield self._sse("error", {"detail": "no voice could speak the answer"})
+        finally:
+            for t in tasks:
+                t.cancel()  # the client went away: stop whatever is still synthesizing
+
+
+# ------------------------------------------------------------------ the spoken cache
+# Whole answers that were already synthesised, keyed by voice+text hash: a repeated phrase costs
+# nothing and starts instantly. PCM plus a small meta file, in the system temp dir, pruned to
+# the newest CACHE_MAX entries.
+CACHE_DIR = Path(tempfile.gettempdir()) / "stf-tts-cache"
+CACHE_MAX = 256
+
+
+def _cache_get(key: str) -> tuple[dict, bytes] | None:
+    try:
+        pcm_f, meta_f = CACHE_DIR / f"{key}.pcm", CACHE_DIR / f"{key}.json"
+        if pcm_f.exists() and meta_f.exists():
+            return json.loads(meta_f.read_text()), pcm_f.read_bytes()
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def _cache_put(key: str, meta: dict, pcm: bytes) -> None:
+    try:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        (CACHE_DIR / f"{key}.pcm").write_bytes(pcm)
+        (CACHE_DIR / f"{key}.json").write_text(json.dumps(meta))
+        entries = sorted(CACHE_DIR.glob("*.pcm"), key=lambda f: f.stat().st_mtime)
+        for old in entries[:-CACHE_MAX]:
+            old.unlink(missing_ok=True)
+            (CACHE_DIR / (old.stem + ".json")).unlink(missing_ok=True)
+    except OSError:
+        pass
 
 
 # ------------------------------------------------------------------ speech to text
@@ -560,10 +890,17 @@ class Stt:
                     why.append(str(e) or "elevenlabs did not answer")
             elif prov == "groq" and self.groq_key:
                 try:
-                    logger.debug("Attempting STT transcription via Groq Whisper (%s)", self.groq_model)
+                    logger.debug(
+                        "Attempting STT transcription via Groq Whisper (%s)",
+                        self.groq_model,
+                    )
                     text = await asyncio.to_thread(self._groq_transcribe, audio, mime)
                     if text:
-                        logger.info("Transcribed audio via Groq (%s): %r", self.groq_model, text[:60])
+                        logger.info(
+                            "Transcribed audio via Groq (%s): %r",
+                            self.groq_model,
+                            text[:60],
+                        )
                         return {"text": text[:500], "model": f"groq {self.groq_model}"}
                 except Exception as e:
                     logger.warning("Groq STT failed: %s", e)

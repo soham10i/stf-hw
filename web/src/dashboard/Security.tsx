@@ -113,10 +113,18 @@ export function SecurityPage() {
             plant model's time for that step. {a.coverage.zero_legs} legs that move nothing are left out.</p>}
         </section>
         <section className="db-card wide"><h3>Conduit C1: the Modbus allow-list, generated from the PLC program</h3>
-          <table className="db-table"><thead><tr><td>node</td><td>function</td><td className="num">address</td><td className="num">count</td></tr></thead>
-            <tbody>{byNode.flatMap(({ m, ip, rules }) => rules.map((r, i) => (
-              <tr key={`${ip}-${i}`}><td className="mono">{i === 0 ? `${m} ${ip}` : ""}</td><td className="mono">FC{r.fc} {r.fn.replace("_", " ")}</td>
-                <td className="num">{r.start}</td><td className="num">{r.count}</td></tr>)))}</tbody></table>
+          <div className="sec-rules">{byNode.map(({ m, ip, rules }) => (
+            <div className="sec-node-card" key={ip}>
+              <div className="sec-node-h"><b>{m}</b><span className="mono">{ip}</span><em>{rules.length} rule{rules.length === 1 ? "" : "s"}</em></div>
+              <div className="sec-node-rules">{rules.map((r, i) => (
+                <span className="sec-rule" key={`${ip}-${i}`}
+                  title={`${r.fn.replace(/_/g, " ")} — ${r.count} register${r.count === 1 ? "" : "s"} from address ${r.start}`}>
+                  <b className="mono">FC{r.fc}</b><span className="sec-rule-fn">{r.fn.replace(/_/g, " ")}</span>
+                  <span className="mono sec-rule-addr">{r.start}·{r.count}</span>
+                </span>))}
+              </div>
+            </div>))}
+          </div>
           <p className="db-note">Source: the PLC ({d.meta.plc_ip}) only. Writes are exactly the coils the state machines drive; the PLC reads the same
             coils back every scan (SEC-01). Not writable although wired: {d.exposed.map((e) => `${e.module}.${e.signal}${e.retired ? " (retired)" : ""}`).join(", ")}.
             {" "}<a href={`${BASE}security/cell_firewall.nft`} download>cell_firewall.nft</a></p>
@@ -128,12 +136,6 @@ export function SecurityPage() {
           <p className="db-note">The reserve (MinRsvPct) and grid charging are set on the inverter and cannot be written over the network; the revert
             timer makes a silent EMS fall back to the inverter's own mode.</p>
         </section>
-        <section className="db-card hl-span2"><h3>Security levels: where components fall short of target 2</h3>
-          <Dumbbell xTitle="security level (IEC 62443-3-3)" max={4} fmt={(v) => `SL ${v}`}
-            a={{ name: "capability (SL-C)", color: "var(--bad)" }} b={{ name: "target (SL-T)", color: "var(--ok)" }}
-            rows={d.sl.filter((r) => r.gap).map((r) => ({ label: `${r.component.replace(/ \(.*\)$/, "")} · ${r.fr.split(" ")[0]}`, a: r.sl_c, b: r.sl_t, note: `${r.fr} → ${r.countermeasure}` }))} />
-          <p className="hl-cap">Each gap is closed by a countermeasure outside the component (hover a row). The PLC meets SL 2 everywhere. Capabilities are assumed by product class.</p>
-        </section>
         <section className="db-card"><h3>Safety stays off the network</h3>
           <table className="db-table"><tbody>{d.safety.functions.map((f) => <tr key={f.id}><td className="mono">{f.id}</td><td>{f.name}</td><td className="db-muted">{f.devices}</td><td className="num">PL{f.PLr}</td></tr>)}</tbody></table>
           {d.safety.soft_links.map((s) => <p key={s.what} className="db-note"><b>Soft link: {s.what}.</b> {s.why}. {s.still}.</p>)}
@@ -143,10 +145,17 @@ export function SecurityPage() {
           <h3 style={{ marginTop: 12 }}>New alarms</h3>
           <table className="db-table"><tbody>{d.alarms.map((x) => <tr key={x.code}><td className="mono">{x.code}</td><td>{x.text}</td></tr>)}</tbody></table>
         </section>
+        <section className="db-card wide"><h3>Security levels: where components fall short of target 2</h3>
+          <Dumbbell xTitle="security level (IEC 62443-3-3)" max={4} fmt={(v) => `SL ${v}`}
+            a={{ name: "capability (SL-C)", color: "var(--bad)" }} b={{ name: "target (SL-T)", color: "var(--ok)" }}
+            rows={d.sl.filter((r) => r.gap).map((r) => ({ label: `${r.component.replace(/ \(.*\)$/, "")} · ${r.fr.split(" ")[0]}`, a: r.sl_c, b: r.sl_t, note: `${r.fr} → ${r.countermeasure}` }))} />
+          <p className="hl-cap">Each gap is closed by a countermeasure outside the component (hover a row). The PLC meets SL 2 everywhere. Capabilities are assumed by product class.</p>
+        </section>
         <section className="db-card wide"><h3>Signed program manifest</h3>
-          <table className="db-table"><tbody>{Object.entries(d.manifest.files).map(([f, h]) => <tr key={f}><td className="mono">{f}</td><td className="mono db-muted">{h.slice(0, 32)}…</td></tr>)}
-            <tr><td><b>root</b></td><td className="mono">{d.manifest.root}</td></tr></tbody></table>
-          <p className="db-note">The PLC refuses to leave INIT unless the running program hashes to the signed root (SEC-03).</p>
+          <div className="sec-manifest">{Object.entries(d.manifest.files).map(([f, h]) => (
+            <div className="sec-hash" key={f}><span className="mono">{f}</span><span className="mono sec-hash-h">{h.slice(0, 24)}…</span></div>))}
+          </div>
+          <p className="db-note"><b>root</b> <span className="mono">{d.manifest.root}</span> — the PLC refuses to leave INIT unless the running program hashes to the signed root (SEC-03).</p>
           <ul className="gr-std">{d.meta.standards.map((s) => <li key={s}>{s}</li>)}</ul>
           <p className="db-note">A design and a model-based assessment, not a penetration test. Assumed: {d.meta.assumed}.</p>
         </section>

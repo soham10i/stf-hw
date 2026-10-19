@@ -85,6 +85,15 @@ GREETING = re.compile(
 
 
 def classify(question: str, tools: list[str] | None = None) -> str:
+    """Classify user query and invoked tools into a target response presentation style.
+
+    Args:
+        question: User query text.
+        tools: Optional list of executed tool names.
+
+    Returns:
+        str: Style identifier key ('greeting', 'derive', 'compare', 'steps', 'status', 'list', 'explain', 'quick', or 'answer').
+    """
     q = question.strip()
     if GREETING.match(q):
         return "greeting"
@@ -101,4 +110,12 @@ def classify(question: str, tools: list[str] | None = None) -> str:
 
 
 def instruction(style: str) -> str:
+    """Format styling system prompt instruction for the LLM based on selected style.
+
+    Args:
+        style: Style identifier name.
+
+    Returns:
+        str: Formatted system instruction text.
+    """
     return f"FORMAT ({style}): {STYLES.get(style, STYLES['answer'])}"

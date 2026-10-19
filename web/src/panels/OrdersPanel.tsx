@@ -11,9 +11,11 @@
 //
 // The physics kernel's manual crane commands are in the Telemetry panel, beside the kernel.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DEFECTS, useCell, type Defect, type OrderLine } from "../scene/store/useCellStore";
 import { useCadDoc } from "../shared/model";
+import { ago, fetchRecords, type TwinRecords } from "../shared/records";
+import { HAS_API } from "../shared/mode";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const clock = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
@@ -39,6 +41,19 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
   const free = store.free();
   const current = queue.find((o) => o.started > o.done);
 
+  // this session's stored past (shared/records.ts): refreshed on mount, when the twin
+  // finishes something, and every half minute; hidden without the API
+  const [hist, setHist] = useState<TwinRecords | null>(null);
+  useEffect(() => {
+    if (!HAS_API) return;
+    let live = true;
+    const load = () => { void fetchRecords().then((r) => { if (live) setHist(r); }); };
+    load();
+    const off = store.onRecord(load);
+    const timer = window.setInterval(load, 30_000);
+    return () => { live = false; off(); window.clearInterval(timer); };
+  }, [store]);
+
   // the twelve cookies, by state
   const inOven = busy ? cyc.from : null;
   const counts = { raw: 0, oven: inOven ? 1 : 0 } as Record<string, number>;
@@ -56,6 +71,10 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
       setMsg({ tone: "bad", text: free
         ? `Only ${free} raw cookie${free === 1 ? "" : "s"} left. Lower the quantity, or deliver the baked cookies to refill the rack.`
         : "No raw dough left. Deliver the baked cookies to refill the rack." });
+      return;
+    }
+    if (queue.length >= 12) {
+      setMsg({ tone: "bad", text: "The order book is full (12 orders). Wait until one is finished, or reset the rack to clear the list." });
       return;
     }
     const wasIdle = m.idle && !queue.some((o) => o.done < o.qty);
@@ -202,6 +221,40 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
           Reset rack
         </button>
       </section>
+
+      {/* ------------------------------------------------- this session's stored past */}
+      {hist && (hist.orders.length > 0 || hist.inspections.length > 0) && (
+        <section className="ord-card">
+          <div className="ord-head"><h3>Session history</h3>
+            <span className="ord-total">{hist.orders.length} order{hist.orders.length === 1 ? "" : "s"} · {hist.inspections.length} cookie{hist.inspections.length === 1 ? "" : "s"}</span></div>
+          <p className="ord-hint">Kept on the server under this session's id ({hist.database}) — another visitor sees none of it.</p>
+          {hist.orders.length > 0 && (
+            <ol className="ord-list ord-hist">
+              {hist.orders.slice(0, 10).map((o, i) => (
+                <li key={`${o.t}-${i}`}>
+                  <i className="slot-dot" style={{ background: colour(o.flavour) }} />
+                  <div><b>{o.qty} × {cap(o.flavour)}</b><small>{o.good} good{o.scrap ? ` · ${o.scrap} scrap` : ""}</small></div>
+                  <span className="ord-hist-t" title={new Date(o.t).toLocaleString()}>{ago(o.t)}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+          {hist.inspections.length > 0 && (
+            <ol className="ord-ins ord-hist-cookies">
+              {hist.inspections.slice(0, 6).map((c, i) => {
+                const pass = c.verdict === "pass";
+                return (
+                  <li key={`${c.t}-${i}`}>
+                    <i className="slot-dot" style={{ background: colour(c.flavour) }} />
+                    <span><b>#{c.n} {c.truth === "ok" ? "good" : c.truth}</b><small>{c.condition} · {ago(c.t)}</small></span>
+                    <em className={pass ? "pass" : "reject"}>{pass ? "pass" : "reject"}</em>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </section>
+      )}
 
     </div>
   );

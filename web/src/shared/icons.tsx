@@ -1,6 +1,7 @@
 // A small line-icon set (24 px grid, 1.8 stroke), drawn inline so the app
 // needs no icon library. Colour follows currentColor.
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { THEMES, type ThemeDef, type ThemeId } from "./theme";
 
 const P: Record<string, string> = {
@@ -121,8 +122,11 @@ export function ThemeMenu({ theme, setTheme }: { theme: ThemeId; setTheme: (t: T
         title={`Theme: ${cur.label}`} aria-label={`Theme: ${cur.label}`}>
         <Icon name="palette" size={17} />
       </button>
+      <AnimatePresence>
       {open && (
-        <div className="theme-pop" role="menu" aria-label="Theme"
+        <motion.div className="theme-pop" role="menu" aria-label="Theme"
+          initial={{ opacity: 0, y: -6, scale: 0.985 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -4, scale: 0.99 }} transition={{ duration: 0.16, ease: "easeOut" }}
           onKeyDown={(e) => {
             if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
             e.preventDefault();
@@ -139,8 +143,9 @@ export function ThemeMenu({ theme, setTheme }: { theme: ThemeId; setTheme: (t: T
               <span className="theme-txt"><b>{t.label}</b><small>{t.say}</small></span>
             </button>
           ))}
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

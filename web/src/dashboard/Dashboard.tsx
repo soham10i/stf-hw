@@ -3,6 +3,8 @@
 // commissioning results (U5), the condition-monitoring model (U6) and the
 // lifecycle checks (U7). Nothing here is typed in.
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { motion, MotionConfig } from "motion/react";
+import Lenis from "lenis";
 import { useCadDoc } from "../shared/model";
 import { fmtT, makespan } from "../shared/hmi";
 import { maxShifts } from "../shared/health";
@@ -22,6 +24,9 @@ import { CopilotPage } from "./Copilot";
 import { Chat } from "./Chat";
 import { CopilotMark, Icon, ThemeMenu } from "../shared/icons";
 import { useTheme } from "../shared/theme";
+import { track } from "../shared/track";
+import { ConsentBanner } from "./Consent";
+import { NotifyMenu } from "./NotifyMenu";
 import { GUIDE, cardHelp } from "./guide";
 import { DocsPage, type DocTarget } from "./docs/DocsPage";
 
@@ -56,6 +61,10 @@ function useDoc() {
 import { PageCtx, GuideBox } from "./ui";
 import { Overview, Production, Quality, Alarms } from "./Operate";
 import { Engineering, Data } from "./Engineer";
+import { AuroraBackdrop } from "./AuroraBackdrop";
+
+// the sliding "you are here" highlight of the nav and the copilot's tabs: one shared spring
+const PILL = { type: "spring", stiffness: 500, damping: 40 } as const;
 
 // ----------------------------------------------------------------- shell
 export function Dashboard() {
@@ -70,6 +79,8 @@ export function Dashboard() {
     setPageOnly(p);
   };
   const view: View = page === "maintenance" && mtab === "ai" ? "ai" : page;
+  // usage traction, consent-gated (shared/track.ts): each page the visitor looks at is one beacon
+  useEffect(() => { track(view); }, [view]);
   // the Docs page's document, heading or cited line (?p=docs&f=docs/plc/README.md&a=...&l=...);
   // an answer's source opens it from anywhere (the copilot's citations send stf:open-doc)
   const q0 = new URLSearchParams(location.search);
@@ -98,6 +109,13 @@ export function Dashboard() {
     const id = window.setInterval(() => setT((x) => (x + 2 >= T ? 0 : x + 2)), 100);
     return () => window.clearInterval(id);
   }, [play, T, doc]);
+  // butter-smooth page scroll (lenis.dev): the window's wheel glides; the panels that scroll on
+  // their own (chat log, context, guide) keep native scrolling via data-lenis-prevent
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const lenis = new Lenis({ autoRaf: true, lerp: 0.14 });
+    return () => lenis.destroy();
+  }, []);
   useEffect(() => {
     const q = new URLSearchParams({ p: view });
     if (view === "docs") {
@@ -138,29 +156,37 @@ export function Dashboard() {
     if (el) el.classList.toggle("open");
   };
   return (
+    <MotionConfig reducedMotion="user">
     <div className={`db ${navOpen ? "" : "nav-min"} ${askOpen && page !== "copilot" ? "ask" : ""}`}>
-      <nav className="db-nav">
+      <AuroraBackdrop />
+      {/* data-lenis-prevent: the nav scrolls itself on hover; the window's smooth scroll is for the
+          page only (the chat log, context and guide panels opt out the same way) */}
+      <nav className="db-nav" data-lenis-prevent>
         <div className="db-brand">
-          <span className="brand-mark">STF</span><div><b>Operations</b><span>{src} · live twin data</span></div>
+          <span className="brand-mark">STF</span><div><b>Operations</b><span>Live twin data</span></div>
         </div>
+        <button className="db-nav-toggle" onClick={() => setNavOpen(!navOpen)} aria-expanded={navOpen}
+          aria-label={navOpen ? "Collapse navigation" : "Expand navigation"}
+          title={navOpen ? "Collapse the navigation" : "Expand the navigation"}>
+          <Icon name="menu" size={16} /><span>{navOpen ? "Collapse" : "Expand"}</span>
+        </button>
         {groups.map((g) => (
           <div key={g} className="db-group">
             <div className="db-group-h">{g}</div>
             {PAGES.filter((p) => p[3] === g).map(([id, label, icon]) => (
               <button key={id} className={id === page ? "on" : ""} onClick={() => setPage(id)} title={label}>
+                {id === page && <motion.span layoutId="db-nav-pill" className="db-nav-pill" transition={PILL} />}
                 <Icon name={icon} size={17} /><span>{label}</span>
               </button>
             ))}
           </div>
         ))}
-        <div className="db-nav-foot">
-          <div className="db-src" title={doc.fingerprint}>{doc.fingerprint}</div>
-        </div>
       </nav>
       <main className="db-main" onClick={expand}>
         <div className="db-top">
-          <button className="ui-btn icon ghost" onClick={() => setNavOpen(!navOpen)} aria-label="Toggle navigation"><Icon name="menu" size={18} /></button>
-          <div className="db-title"><span>{cur[3]}</span><h1>{cur[1]}</h1></div>
+          <div className="db-title"><span>{cur[3]}</span>
+            <h1><motion.span key={view} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}>{cur[1]}</motion.span></h1></div>
           {/* the way back to the machine sits in the header, not at the sidebar's bottom edge (sidebars.md) */}
           <a className="ui-btn" href={BASE} title="Open the 3D twin"><Icon name="cube" size={15} /><span className="hide-sm">3D twin</span></a>
           <div className="db-guide-anchor">
@@ -172,6 +198,7 @@ export function Dashboard() {
             <button className={`ui-btn db-ask-btn ${askOpen ? "on" : ""}`} onClick={() => showAsk(!askOpen)} aria-expanded={askOpen}
               title="Ask the copilot about this page"><Icon name="copilot" size={15} />Ask</button>
           )}
+          <NotifyMenu />
           <ThemeMenu theme={theme} setTheme={setTheme} />
           {(CLOCK_PAGES.includes(view) || AGE_PAGES.includes(view)) && (
             // the page's own controls: a second row of the header, so the title row never wraps
@@ -242,6 +269,8 @@ export function Dashboard() {
           <Chat key={view} page={view} go={(p) => { setPage(p as View); }} age={age} pm={pm} compact />
         </aside>
       )}
+      <ConsentBanner page={view} />
     </div>
+    </MotionConfig>
   );
 }
