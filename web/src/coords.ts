@@ -14,16 +14,3 @@ export const VIEW = 0.01; // 1 mm -> 0.01 scene units (a 400 mm axis -> 4 units)
 export function v3(x: number, y: number, z: number): THREE.Vector3 {
   return new THREE.Vector3(x * VIEW, z * VIEW, y * VIEW);
 }
-
-export function v3a(p: [number, number, number]): THREE.Vector3 {
-  return v3(p[0], p[1], p[2]);
-}
-
-/** Each crane joint maps cleanly to one three.js axis under the mapping above. */
-export const AXIS3 = {
-  travel: "x", // factory +X
-  lift: "y", // factory +Z (up)
-  fork: "z", // factory +Y (depth, into the rack)
-  reach: "x", // factory -X (the VGR arm's home direction, toward the belt)
-  plunge: "y", // factory +Z (up)
-} as const;

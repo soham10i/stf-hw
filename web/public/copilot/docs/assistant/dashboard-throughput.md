@@ -15,10 +15,6 @@ How the same machine was made faster by changing only its program, and what each
 
 ## Sections
 
-### What the study says
-
-The headline: order time before and after, and why.
-
 ### The same order, before and after
 
 Both programs' runs, step by step, from virtual commissioning.

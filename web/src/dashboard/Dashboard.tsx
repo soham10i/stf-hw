@@ -4,7 +4,6 @@
 // lifecycle checks (U7). Nothing here is typed in.
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { motion, MotionConfig } from "motion/react";
-import Lenis from "lenis";
 import { useCadDoc } from "../shared/model";
 import { fmtT, makespan } from "../shared/hmi";
 import { maxShifts } from "../shared/health";
@@ -12,6 +11,7 @@ import { HealthPage } from "./Health";
 import { MaintenancePage } from "./Maintenance";
 import { MonthPage } from "./Month";
 import { AiPage } from "./Ai";
+import { PdmPage } from "./Pdm";
 import { GridPage } from "./Grid";
 import { ThroughputPage } from "./Throughput";
 import { SecurityPage } from "./Security";
@@ -23,11 +23,13 @@ import { SchedulerPage } from "./Scheduler";
 import { CopilotPage } from "./Copilot";
 import { Chat } from "./Chat";
 import { CopilotMark, Icon, ThemeMenu } from "../shared/icons";
+import { StfLogo, StfMark } from "../shared/Logo";
+import { useScrollMemory } from "../shared/scrollMemory";
 import { useTheme } from "../shared/theme";
 import { track } from "../shared/track";
 import { ConsentBanner } from "./Consent";
 import { NotifyMenu } from "./NotifyMenu";
-import { GUIDE, cardHelp } from "./guide";
+import { cardHelp } from "./guide";
 import { DocsPage, type DocTarget } from "./docs/DocsPage";
 
 
@@ -39,18 +41,19 @@ const PAGES = [
   ["overview", "Overview", "overview", "Operate"], ["production", "Production", "factory", "Operate"],
   ["quality", "Quality & trace", "seal", "Operate"], ["vision", "Vision QC", "viewfinder", "Operate"], ["alarms", "Alarms", "bell", "Operate"], ["copilot", "Copilot", "copilot", "Operate"],
   ["health", "Health", "pulse", "Maintain"], ["maintenance", "Maintenance", "wrench", "Maintain"],
-  ["month", "Month", "calendar", "Analyse"], ["throughput", "Throughput", "gauge", "Analyse"], ["process", "Oven process", "zap", "Analyse"], ["scheduler", "Learned scheduler", "shuffle", "Analyse"],
+  ["month", "Two months", "calendar", "Analyse"], ["throughput", "Throughput", "gauge", "Analyse"], ["process", "Oven process", "zap", "Analyse"], ["scheduler", "Learned scheduler", "shuffle", "Analyse"],
   ["energy", "Energy & grid", "bolt", "Analyse"], ["carbon", "Carbon per cookie", "leaf", "Analyse"], ["security", "OT security", "shieldlock", "Analyse"],
   ["hardening", "Defence in depth", "layers", "Analyse"],
   ["engineering", "Engineering", "cog", "Engineer"], ["validation", "Validation", "checklist", "Engineer"], ["data", "Data", "database", "Engineer"],
   ["docs", "Documentation", "book", "Docs"], ["docs-degradation", "Hardware degradation", "pulse", "Docs"],
 ] as const;
-const CLOCK_PAGES = ["overview", "production", "quality"];
-const AGE_PAGES = ["overview", "health", "maintenance"];
+// the Overview shows the live twin instead of a replay: its header has no clock or age slider
+const CLOCK_PAGES = ["production", "quality"];
+const AGE_PAGES = ["health", "maintenance"];
 type Page = (typeof PAGES)[number][0];
 /** what is on screen: a page, or the Maintenance page's AI tab (its own guide, copilot context
     and link, ?p=ai, as when it was a page) */
-type View = Page | "ai";
+type View = Page | "ai" | "pdm";
 
 function useDoc() {
   const { doc, err } = useCadDoc();
@@ -58,10 +61,9 @@ function useDoc() {
 }
 
 // --------------------------------------------------------------- shared
-import { PageCtx, GuideBox } from "./ui";
+import { PageCtx, GuideBox, HelpTips, helpDot } from "./ui";
 import { Overview, Production, Quality, Alarms } from "./Operate";
 import { Engineering, Data } from "./Engineer";
-import { AuroraBackdrop } from "./AuroraBackdrop";
 
 // the sliding "you are here" highlight of the nav and the copilot's tabs: one shared spring
 const PILL = { type: "spring", stiffness: 500, damping: 40 } as const;
@@ -70,21 +72,22 @@ const PILL = { type: "spring", stiffness: 500, damping: 40 } as const;
 export function Dashboard() {
   const { doc, src, err } = useDoc();
   const first = new URLSearchParams(location.search).get("p");
-  const [page, setPageOnly] = useState<Page>(() => (first === "ai" ? "maintenance" : (first as Page)) || "overview");
-  // Maintenance: the service plan from the rules, or the neural network's predictions
-  const [mtab, setMtab] = useState<"plan" | "ai">(first === "ai" ? "ai" : "plan");
+  const [page, setPageOnly] = useState<Page>(() => (first === "ai" || first === "pdm" ? "maintenance" : (first as Page)) || "overview");
+  // Maintenance: the service plan from the rules, the pre-failure window (the statistical
+  // pipeline), or the neural network's predictions
+  const [mtab, setMtab] = useState<"plan" | "pdm" | "ai">(first === "ai" ? "ai" : first === "pdm" ? "pdm" : "plan");
   const setPage = (p: View) => {
-    if (p === "ai") { setPageOnly("maintenance"); setMtab("ai"); return; }
+    if (p === "ai" || p === "pdm") { setPageOnly("maintenance"); setMtab(p); return; }
     if (p === "maintenance") setMtab("plan");
     setPageOnly(p);
   };
-  const view: View = page === "maintenance" && mtab === "ai" ? "ai" : page;
+  const view: View = page === "maintenance" && mtab !== "plan" ? mtab : page;
   // usage traction, consent-gated (shared/track.ts): each page the visitor looks at is one beacon
   useEffect(() => { track(view); }, [view]);
   // the Docs page's document, heading or cited line (?p=docs&f=docs/plc/README.md&a=...&l=...);
   // an answer's source opens it from anywhere (the copilot's citations send stf:open-doc)
   const q0 = new URLSearchParams(location.search);
-  const [docAt, setDocAt] = useState<DocTarget>(() => ({ file: q0.get("f") || "docs/plc/README.md", anchor: q0.get("a") || undefined,
+  const [docAt, setDocAt] = useState<DocTarget>(() => ({ file: q0.get("f") || "docs/guide/README.md", anchor: q0.get("a") || undefined,
     line: q0.get("l") ? Number(q0.get("l")) : undefined }));
   const openDoc = (t: DocTarget) => { setDocAt(t); setPageOnly("docs"); };
   useEffect(() => {
@@ -93,7 +96,7 @@ export function Dashboard() {
     return () => window.removeEventListener("stf:open-doc", on);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [t, setT] = useState(0);
-  const [play, setPlay] = useState(true);
+  const [play, setPlay] = useState(false);  // nothing runs until the user presses play
   const [age, setAge] = useState(0);
   const [pm, setPm] = useState(true);
   const { theme, setTheme } = useTheme();
@@ -109,13 +112,9 @@ export function Dashboard() {
     const id = window.setInterval(() => setT((x) => (x + 2 >= T ? 0 : x + 2)), 100);
     return () => window.clearInterval(id);
   }, [play, T, doc]);
-  // butter-smooth page scroll (lenis.dev): the window's wheel glides; the panels that scroll on
-  // their own (chat log, context, guide) keep native scrolling via data-lenis-prevent
-  useEffect(() => {
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const lenis = new Lenis({ autoRaf: true, lerp: 0.14 });
-    return () => lenis.destroy();
-  }, []);
+  // each page opens at the top on its first visit after a load, and where it was left after that
+  // (native scrolling: no smooth-scroll loop running every frame)
+  useScrollMemory(view === "docs" ? `docs:${docAt.file}` : view);
   useEffect(() => {
     const q = new URLSearchParams({ p: view });
     if (view === "docs") {
@@ -135,9 +134,7 @@ export function Dashboard() {
         if (h.querySelector(".db-help")) return;
         const help = cardHelp(view, h.textContent ?? "");
         if (!help) return;
-        const i = document.createElement("i");
-        i.className = "db-help"; i.title = help; i.setAttribute("aria-label", help); i.textContent = "i";
-        h.appendChild(i);
+        h.appendChild(helpDot(help, h.textContent ?? ""));
       });
     };
     hint();
@@ -147,29 +144,29 @@ export function Dashboard() {
   }, [view, doc]);
   const ageMax = useMemo(() => (doc?.health ? maxShifts(doc.health.components) : 1), [doc]);
   if (err) return <div className="db-err">{err}</div>;
-  if (!doc) return <div className="db-loading" aria-busy="true"><span className="brand-mark">STF</span><b>Operations</b><span>Reading the twin's export…</span><i /></div>;
+  if (!doc) return <div className="db-loading" aria-busy="true"><StfLogo className="db-loading-logo" height={64} /><b>Operations</b><span>Reading the twin's export…</span><i /></div>;
   const cur = PAGES.find((p) => p[0] === page)!;
   const groups = Array.from(new Set(PAGES.map((p) => p[3])));
   // long notes and findings open on click instead of filling the page
   const expand = (e: React.MouseEvent) => {
-    const el = (e.target as HTMLElement).closest(".db-note, .mo-insights > div");
+    const el = (e.target as HTMLElement).closest(".db-note, .hl-cap, p.db-muted, .mo-insights > div");
     if (el) el.classList.toggle("open");
   };
   return (
     <MotionConfig reducedMotion="user">
     <div className={`db ${navOpen ? "" : "nav-min"} ${askOpen && page !== "copilot" ? "ask" : ""}`}>
-      <AuroraBackdrop />
-      {/* data-lenis-prevent: the nav scrolls itself on hover; the window's smooth scroll is for the
-          page only (the chat log, context and guide panels opt out the same way) */}
-      <nav className="db-nav" data-lenis-prevent>
+      <nav className="db-nav">
         <div className="db-brand">
-          <span className="brand-mark">STF</span><div><b>Operations</b><span>Live twin data</span></div>
+          <StfLogo className="db-brand-logo" height={32} />
+          <StfMark className="brand-mark" size={32} />
+          <div><b>Operations</b><span>Live twin data</span></div>
         </div>
         <button className="db-nav-toggle" onClick={() => setNavOpen(!navOpen)} aria-expanded={navOpen}
           aria-label={navOpen ? "Collapse navigation" : "Expand navigation"}
           title={navOpen ? "Collapse the navigation" : "Expand the navigation"}>
           <Icon name="menu" size={16} /><span>{navOpen ? "Collapse" : "Expand"}</span>
         </button>
+        <div className="db-nav-scroll">
         {groups.map((g) => (
           <div key={g} className="db-group">
             <div className="db-group-h">{g}</div>
@@ -181,6 +178,7 @@ export function Dashboard() {
             ))}
           </div>
         ))}
+        </div>
       </nav>
       <main className="db-main" onClick={expand}>
         <div className="db-top">
@@ -223,18 +221,19 @@ export function Dashboard() {
           )}
         </div>
         {/* the copilot explains itself in its empty chat: its page gives the room to the conversation */}
-        {GUIDE[view] && view !== "copilot" && <p className="db-lede">{GUIDE[view].what}</p>}
         {page === "maintenance" && (
           <div className="ui-seg db-tabs" role="tablist" aria-label="Maintenance">
             <button role="tab" aria-selected={mtab === "plan"} className={mtab === "plan" ? "on" : ""} onClick={() => setMtab("plan")}>Service plan</button>
+            <button role="tab" aria-selected={mtab === "pdm"} className={mtab === "pdm" ? "on" : ""} onClick={() => setMtab("pdm")}>Pre-failure window</button>
             <button role="tab" aria-selected={mtab === "ai"} className={mtab === "ai" ? "on" : ""} onClick={() => setMtab("ai")}>AI predictions</button>
           </div>
         )}
         <PageCtx.Provider value={view}>
-        <div className="db-page" key={view}>
+        <div className="db-page" key={view} data-view={view}>
           {page === "month" && <MonthPage />}
           {page === "vision" && <VisionPage />}
           {view === "ai" && <AiPage />}
+          {view === "pdm" && <PdmPage />}
           {page === "energy" && <GridPage />}
           {page === "carbon" && <CarbonPage />}
           {page === "process" && <ProcessPage />}
@@ -256,7 +255,6 @@ export function Dashboard() {
           {page === "data" && <Data doc={doc} src={src} />}
         </div>
         </PageCtx.Provider>
-        <p className="db-foot">Simulated from the twin's models; values marked assumed are listed on the blueprint sheets. Click any note to expand it.</p>
       </main>
       {askOpen && page !== "copilot" && (
         <aside className="db-inspector" aria-label="Ask about this page">
@@ -269,6 +267,7 @@ export function Dashboard() {
           <Chat key={view} page={view} go={(p) => { setPage(p as View); }} age={age} pm={pm} compact />
         </aside>
       )}
+      <HelpTips />
       <ConsentBanner page={view} />
     </div>
     </MotionConfig>

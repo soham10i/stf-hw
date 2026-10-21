@@ -50,6 +50,11 @@ The entire digital twin (interactive 3D Three.js frontend + FastAPI physics kern
      STF_TRACKING=1
      STF_GEO=1
      STF_TRACK_DAYS=180
+     # security (docs/SECURITY.md): Cloud Run's front end appends the caller's address to
+     # X-Forwarded-For, so 1 hop; 2 if a Google load balancer sits in front of the service
+     STF_PROXY_HOPS=1
+     STF_API_DOCS=0
+     STF_NOTIFY_MAX_PER_HOUR=10
      # optional - "someone is on the site" notice to the owner (notify.py), off when empty:
      STF_NOTIFY_EMAIL=your.address@gmail.com
      STF_SMTP_HOST=smtp.gmail.com
@@ -57,7 +62,14 @@ The entire digital twin (interactive 3D Three.js frontend + FastAPI physics kern
      STF_SMTP_USER=your.address@gmail.com
      STF_SMTP_PASS=your_gmail_app_password
      ```
-     `STF_SESSION_SECRET` matters on Cloud Run: without it, each new instance (and every
+     Put the **keys and secrets** (`*_API_KEY`, `*_KEY`, `STF_SESSION_SECRET`, `STF_API_TOKEN`,
+     `STF_SMTP_PASS`) under **Variables & Secrets → Reference a secret** (Secret Manager), not
+     as plain variables: a plain variable is readable by anyone with viewer access to the
+     service and is copied into every revision.
+     `STF_API_TOKEN` is the operator token for `POST /command` and the bell's test notice;
+     without it the public service is read-only (which is safe).
+     `STF_SESSION_SECRET` must be 32+ random characters - a placeholder or a short value is
+     refused at start-up (any visitor could forge cookies signed with it). It matters on Cloud Run: without it, each new instance (and every
      scale-from-zero wake) generates a new cookie-signing secret and every visitor's session
      silently resets. Generate one: `python3 -c "import secrets; print(secrets.token_hex(32))"`.
      `STF_TRACKING`/`STF_GEO`/`STF_TRACK_DAYS` run the consent-gated usage beacon
@@ -99,35 +111,61 @@ gcloud config set project YOUR_PROJECT_ID
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
 ```
 
-### 4. Deploy Directly from Local Source
-Run this single command from the root of `stf-hw` (Google Cloud Build will build the Docker container in the cloud without needing local Docker):
+### 4. Store the secrets in Secret Manager (once)
+
+Keys never go on the command line (shell history) or into plain environment variables
+(readable by every viewer of the service). Create each secret once, reading the value from your
+local `.env` so it is never typed or echoed:
 
 ```bash
-gcloud run deploy stf-live \
-  --source . \
-  --platform managed \
-  --region europe-west3 \
-  --allow-unauthenticated \
-  --port 10000 \
-  --memory 1Gi \
-  --cpu 1 \
-  --min-instances 0 \
-  --max-instances 2 \
-  --set-env-vars "GEMINI_API_KEY=$GEMINI_API_KEY,GROQ_API_KEY=$GROQ_API_KEY,ELEVENLABS_API_KEY=$ELEVENLABS_API_KEY,ELEVENLABS_VOICE_ID_01=$ELEVENLABS_VOICE_ID_01,ELEVENLABS_VOICE_ID_02=$ELEVENLABS_VOICE_ID_02,UPB_AI_URL=$UPB_AI_URL,UPB_AI_KEY=$UPB_AI_KEY,SUPABASE_URL=$SUPABASE_URL,SUPABASE_SERVICE_KEY=$SUPABASE_SERVICE_KEY,SUPABASE_BUCKET=captures,STF_DB=auto,STF_MAX_WS_CLIENTS=16,STF_SESSION_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))" 2>/dev/null || echo CHANGE_ME_64_HEX_CHARS),STF_TRACKING=1,STF_GEO=1,STF_TRACK_DAYS=180"
+gcloud services enable secretmanager.googleapis.com
 ```
 
-> Keep the generated `STF_SESSION_SECRET` value somewhere safe and pass the SAME one on every
-> redeploy — a new secret invalidates every visitor's session cookie. The tracking variables
-> default to on; `STF_TRACKING=0` turns the consent-gated beacon off.
+```bash
+for k in GEMINI_API_KEY GROQ_API_KEY ELEVENLABS_API_KEY UPB_AI_KEY SUPABASE_SERVICE_KEY STF_SMTP_PASS; do grep "^$k=" .env | cut -d= -f2- | tr -d '\n' | gcloud secrets create "$k" --data-file=- ; done
+```
+
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32), end='')" | gcloud secrets create STF_SESSION_SECRET --data-file=-
+```
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(32), end='')" | gcloud secrets create STF_API_TOKEN --data-file=-
+```
+
+Give the service's runtime account read access (the default compute account unless you chose
+another):
+
+```bash
+PROJECT_NUMBER=$(gcloud projects describe "$(gcloud config get-value project)" --format='value(projectNumber)')
+```
+
+```bash
+for k in GEMINI_API_KEY GROQ_API_KEY ELEVENLABS_API_KEY UPB_AI_KEY SUPABASE_SERVICE_KEY STF_SMTP_PASS STF_SESSION_SECRET STF_API_TOKEN; do gcloud secrets add-iam-policy-binding "$k" --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --role=roles/secretmanager.secretAccessor; done
+```
+
+The session secret now stays the same across redeploys by itself (a new one would log every
+visitor out).
+
+### 5. Deploy Directly from Local Source
+
+Run this from the root of `stf-hw` (Cloud Build builds the container; no local Docker needed):
+
+```bash
+gcloud run deploy stf-live --source . --platform managed --region europe-west1 --allow-unauthenticated --port 10000 --memory 1Gi --cpu 1 --min-instances 0 --max-instances 2 --set-secrets "GEMINI_API_KEY=GEMINI_API_KEY:latest,GROQ_API_KEY=GROQ_API_KEY:latest,ELEVENLABS_API_KEY=ELEVENLABS_API_KEY:latest,UPB_AI_KEY=UPB_AI_KEY:latest,SUPABASE_SERVICE_KEY=SUPABASE_SERVICE_KEY:latest,STF_SESSION_SECRET=STF_SESSION_SECRET:latest,STF_API_TOKEN=STF_API_TOKEN:latest" --set-env-vars "ELEVENLABS_VOICE_ID_01=qFjcP4hHD9WIdODvuJOJ,ELEVENLABS_VOICE_ID_02=bGnz83yTAb7caZSC7BBz,UPB_AI_URL=https://ai-chat.uni-paderborn.de,SUPABASE_URL=https://buiwsvaowyigqpeprike.supabase.co,SUPABASE_BUCKET=captures,STF_DB=auto,STF_MAX_WS_CLIENTS=16,STF_TRACKING=1,STF_GEO=1,STF_TRACK_DAYS=180,STF_PROXY_HOPS=1,STF_API_DOCS=0,STF_NOTIFY_MAX_PER_HOUR=10"
+```
+
+> Optional owner notifications (notify.py): add
+> `STF_NOTIFY_EMAIL=you@gmail.com,STF_SMTP_HOST=smtp.gmail.com,STF_SMTP_PORT=465,STF_SMTP_USER=you@gmail.com`
+> to `--set-env-vars` and `STF_SMTP_PASS=STF_SMTP_PASS:latest` to `--set-secrets`.
+> With these set, a visitor who accepts the consent banner emails you "A visitor is on
+> stf-live right now" - at most one email per guest per 12 hours and at most
+> `STF_NOTIFY_MAX_PER_HOUR` across all visitors, so a script cannot fill your inbox.
 >
-> Optional owner notifications (notify.py), same for both methods:
-> ```bash
-> --set-env-vars "STF_NOTIFY_EMAIL=you@gmail.com,STF_SMTP_HOST=smtp.gmail.com,STF_SMTP_PORT=465,STF_SMTP_USER=you@gmail.com,STF_SMTP_PASS=your_gmail_app_password"
-> ```
-> With these set, every new visitor (after they accept the consent banner) emails you
-> "A visitor is on stf-live right now" with the page, the coarse place and the time —
-> at most one email per guest per 12 hours, so a browsing session cannot spam you.
-> Leave them out and the feature stays off.
+> Already deployed with plain variables? Run the same command with `--set-secrets` and add
+> `--remove-env-vars GEMINI_API_KEY,GROQ_API_KEY,ELEVENLABS_API_KEY,UPB_AI_KEY,SUPABASE_SERVICE_KEY,STF_SESSION_SECRET,STF_SMTP_PASS`
+> so the plain copies are gone from the new revision. Then **rotate those keys** at each
+> provider: old revisions still hold the plain values.
 
 Once deployment completes, the terminal will output the live Service URL.
 Visiting the URL will automatically redirect to `/stf/` and connect to the live physics WebSocket at 30 Hz.
@@ -153,7 +191,7 @@ within the free tier (3 scheduler jobs are free; the pings themselves are
 gcloud services enable cloudscheduler.googleapis.com
 
 gcloud scheduler jobs create http stf-keep-warm \
-  --location=europe-west3 \
+  --location=europe-west1 \
   --schedule="*/5 * * * *" \
   --time-zone="Europe/Berlin" \
   --uri="https://stf-live-<hash>-<region>.a.run.app/health" \

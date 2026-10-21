@@ -307,9 +307,7 @@ class Captures:
         return {"enabled": self.on, "store": self.store.name, "max_bytes": MAX_BYTES}
 
     def _client(self, request: Request) -> str:
-        client = request.client.host if request.client else "?"
-        if client in ("127.0.0.1", "::1"):
-            client = (request.headers.get("x-forwarded-for") or client).split(",")[0].strip()
+        client = sec.client_ip(request)
         return client
 
     async def upload(self, request: Request) -> dict:
@@ -334,7 +332,7 @@ class Captures:
             n = 0
         if not self.limiter.allow(self._client(request)):
             raise HTTPException(status_code=429, detail="too many photos: wait a few seconds")
-        body = await request.body()
+        body = await sec.read_body(request, MAX_BYTES)
         if not MIN_BYTES <= len(body) <= MAX_BYTES:
             raise HTTPException(status_code=413, detail=f"a photo of at most {MAX_BYTES} bytes")
         size = jpeg_size(body)

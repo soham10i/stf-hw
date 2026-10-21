@@ -49,7 +49,7 @@ The tags an operator may change, and who.
 
 ### New alarms
 
-The security alarms this upgrade adds.
+The security alarms added to the system.
 
 ### Signed program manifest
 

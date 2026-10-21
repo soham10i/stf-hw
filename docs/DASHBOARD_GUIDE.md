@@ -8,32 +8,6 @@ title says what the card shows.
 > Every number is simulated from the twin's models, not measured on a real machine. Values the models only assume
 > are marked *assumed* on the blueprint sheets.
 
-## Header toolbar controls
-
-The persistent header toolbar provides instant navigation, assistance, and operator tools:
-
-- **3D twin**: Jumps directly to the interactive 3D factory simulation view.
-- **Guide**: Toggles this field guide inside a portaled, frosted glassmorphism modal with background blur.
-- **Ask**: Opens the grounded Industrial Copilot sidebar for instant telemetry and documentation Q&A.
-- **🔔 Owner Notifications**: Displays live email/webhook dispatch status (`on · email` or `off`), allows testing email delivery in one click, and saves an operator token (`STF_API_TOKEN`) for protected endpoints.
-- **🎨 Theme**: Switches between dark modes and color palettes (Slate, Obsidian, Titanium, Aurora).
-
-<p align="center">
-  <img src="images/notify-alerts.jpg" alt="Owner Notifications Menu" width="85%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
-</p>
-
-### Privacy & Consent-Gated Analytics
-
-The frontend operates with strict privacy-by-design standards:
-
-<p align="center">
-  <img src="images/consent-banner.jpg" alt="Privacy & Consent Banner" width="85%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
-</p>
-
-- **Signed Session Cookies**: Keeps each visitor's simulated orders, camera snapshots, and copilot chats strictly isolated without exposing raw user IDs.
-- **Zero Fingerprinting**: No canvas hashing, device serials, or invasive trackers.
-- **Consent-Gated Telemetry**: Page beacons and coarse geo-location (country/city) are only dispatched if the visitor explicitly accepts the banner.
-
 ## Pages
 
 - **Operate**: [Overview](#overview) · [Production](#production) · [Quality & trace](#quality-trace) · [Vision QC](#vision-qc) · [Alarms](#alarms) · [Copilot](#copilot)
@@ -97,7 +71,7 @@ Every cookie's record: which mould carried it, where the RFID heads read it, its
 
 | Section | What it shows |
 |---|---|
-| Records | One line per cookie: flavour, mould, RFID reads, colour sensor reading in mV, and the verdict. |
+| Records | One line per cookie: its journey (rack → belt → oven → bin) with the current stage lit, the RFID reads, its bake on a shared time axis, and the colour verdict. |
 
 *Data:* The PLC program's traceability design: RFID read points on the HBW belt and the sorting line's colour sensor.
 
@@ -144,23 +118,25 @@ Every alarm the PLC can raise, and how the machine reacted when each fault was i
 
 ### Copilot
 
-Ask about the cell in plain words, by typing or by voice. A language model answers by calling the twin's own tools and states only what they return, with citations; the server checks every number before you see it. Conversations are kept in your history, and the facts each one establishes are kept with it.
+Ask about the cell in everyday words - type or speak. The answer comes from the twin's own live data and documents, shows its sources, and every number is checked before it reaches you.
 
 **How to read it**
 
-1. Pick a tab: Chat (type, a language model answers) or Voice (speak, hear the answer).
-2. If the first model is at its limit or not running, the next ready one answers with the same context - the chip on the answer says it handed over.
-3. Answers take the form the question needs: a figure, a table for comparisons, numbered steps for an alarm, a status card for 'now'.
-4. Copy any question or answer; 🔊 reads an answer aloud.
-5. History is on the left; the Context panel on the right lists what the conversation has established.
+1. Type a question and press Enter - or open the Voice tab and just speak.
+2. A free AI model answers straight away. Several models are connected: if the first one is busy or offline, the next takes over automatically, and the answer says who handed over.
+3. Above the input box you choose where answers come from: Auto lets the server decide, Docs reads only the twin's documents, Web searches the internet, Deep researches a question longer and more thoroughly.
+4. Every answer lists its sources - the documents, tools and web pages behind it. Open “How this answer was made” to see the steps, and “Sources” to check each one.
+5. Copy any question or answer with the copy button; the speaker icon reads an answer aloud.
+6. Past conversations are on the left (click to continue, × to delete). The Context panel on the right shows what the current conversation has established.
 
 | Section | What it shows |
 |---|---|
-| History | Your earlier conversations; open one to continue it, × to delete it. |
-| Chat / Voice | How you ask; the first ready model answers, and the next takes over when it cannot. |
-| Context | The models that answered, the tools used and the facts found - what any model answering next is given. |
+| History | Your earlier conversations. Open one to continue where you left off; × deletes it. |
+| Chat / Voice | How you ask and read the answer. |
+| Auto · Docs · Web · Deep | Where answers come from. Auto is the default; Deep is slower but researches a question properly before answering. |
+| Context | The facts, documents and tools this conversation has gathered - handed to whichever model answers next, so a hand-over loses nothing. |
 
-*Data:* The server's tools (services/api/tools.py), the model and its tool calls (chat.py), sessions and their context (sessions.py, store.py), speech (tts.py); scored on tests/copilot_eval.json.
+*Data:* The twin's live data and its indexed documents, answered by connected AI models on the server; conversations are stored per visitor. The pipeline is scored automatically after every change.
 
 ---
 
@@ -268,7 +244,6 @@ How the same machine was made faster by changing only its program, and what each
 
 | Section | What it shows |
 |---|---|
-| What the study says | The headline: order time before and after, and why. |
 | The same order, before and after | Both programs' runs, step by step, from virtual commissioning. |
 | Where the time went: the critical path | The chain of jobs that decides the order time. |
 | Ablation | The order time with each improvement switched off; hover a bar for cycle time and the busiest unit. |
@@ -302,7 +277,7 @@ The bake as heat and water: the oven heating and holding, a cookie baking throug
 | Where the heat goes | One shift's heat: walls, door, vent, the open mouth, the tray outside and the steam. |
 | Checks | The model's proofs, the faults they catch, and every parameter with its source. |
 
-*Data:* The oven and cookie model of Upgrade 19 (stf-cad/hbw/bake.py), from the oven's parts (oven_model.py) and the order's door openings (control.py).
+*Data:* The oven and cookie model (stf-cad/hbw/bake.py), from the oven's parts (oven_model.py) and the order's door openings (control.py).
 
 ### Learned scheduler
 
@@ -388,7 +363,7 @@ The cell's network split into IEC 62443 zones, and what happens when attacks are
 | Security levels | Capability (red) against target SL 2 (green) per device and requirement; hover for the countermeasure. |
 | Safety stays off the network | Why the E-stops and door locks have no network interface. |
 | HMI: what an operator may write | The tags an operator may change, and who. |
-| New alarms | The security alarms this upgrade adds. |
+| New alarms | The security alarms added to the system. |
 | Signed program manifest | The hashes the PLC checks before it runs a program. |
 
 *Data:* The security design (security.py): a model-based assessment, not a penetration test.
@@ -439,12 +414,12 @@ How the project checks itself: every variant re-built, the plant varied, and def
 
 **How to read it**
 
-1. Regression: every upgrade's machine is re-exported and must give the same result.
+1. Regression: every design variant is re-exported and must give the same result.
 2. Mutation tests: each planted defect must be caught; one that survives would be a gap in the proofs.
 
 | Section | What it shows |
 |---|---|
-| Regression: every variant re-exported | Each upgrade's export rebuilt and compared with its recorded fingerprint. |
+| Regression: every variant re-exported | Each design export rebuilt and compared with its recorded baseline. |
 | Robustness: ±20 % on every plant step | Random plants with every step time varied; no false alarms allowed. |
 | Data products | Checks on the published data: the network's ONNX and browser copies against the original, the month and grid files, the tests and the web build. |
 | Mutation tests | A defect planted in each proof, and which check caught it. |

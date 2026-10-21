@@ -215,6 +215,22 @@ function useCameraRig(doc: CadDoc): [number, number, number] {
   return useMemo(() => [first.cx, first.y, -first.cy], [first]);
 }
 
+/** The ground grid's colours from the theme (--scene-cell, --scene-section in shared/studio.css),
+ *  re-read when the theme changes; the earlier neutral greys where a palette sets none. */
+function useGridColours() {
+  const read = () => {
+    const cs = getComputedStyle(document.documentElement);
+    return { cell: cs.getPropertyValue("--scene-cell").trim() || "#c9d0d4", section: cs.getPropertyValue("--scene-section").trim() || "#98a2a8" };
+  };
+  const [c, setC] = useState(read);
+  useEffect(() => {
+    const mo = new MutationObserver(() => setC(read()));
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-palette"] });
+    return () => mo.disconnect();
+  }, []);
+  return c;
+}
+
 export function HbwCadStage({ doc, showZones = false, netZones = false, showCover = true }: {
   doc: CadDoc; showZones?: boolean; netZones?: boolean; showCover?: boolean;
 }) {
@@ -238,6 +254,7 @@ export function HbwCadStage({ doc, showZones = false, netZones = false, showCove
     sorting: jointTrims(doc.sorting.parts) }), [doc]);
   // the loading screen lifts once the precise meshes are in (or when there are none to wait for)
   useEffect(() => { if (precise || !doc.upgrade) markStageReady(); }, [precise, doc.upgrade]);
+  const grid = useGridColours();
   return (
     <>
       {/* the camera stays above the table: from below, the parts that reach through the plates
@@ -255,8 +272,10 @@ export function HbwCadStage({ doc, showZones = false, netZones = false, showCove
       <Grid
         args={[24, 24]}
         position={[px * MM * 0.5, -0.101, -py * MM * 0.5]}
-        cellColor="#c9d0d4"
-        sectionColor="#98a2a8"
+        cellSize={15 * MM}
+        sectionSize={150 * MM}
+        cellColor={grid.cell}
+        sectionColor={grid.section}
         fadeDistance={26}
         infiniteGrid
       />

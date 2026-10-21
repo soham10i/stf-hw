@@ -4,6 +4,7 @@
 // show, comes from the panel registry; this component only lays them out.
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../shared/icons";
+import { useScrollMemory } from "../shared/scrollMemory";
 import type { Panel, PanelCtx } from "./registry";
 
 export const SIDE_MIN = 300, SIDE_MAX = 640;
@@ -15,6 +16,9 @@ export function SidePanel({ panels, active, open, pinned, width, onPick, onToggl
   // the width follows the pointer while dragging and is stored once, on release
   const [drag, setDrag] = useState<number | null>(null);
   const start = useRef<{ x: number; w: number; moved: boolean } | null>(null);
+  // each panel opens at the top on its first visit after a load, and where it was left after that
+  const body = useRef<HTMLDivElement>(null);
+  useScrollMemory(open ? `panel:${active.id}` : "", () => body.current);
   const w = drag ?? width;
 
   // a floating panel closes with Escape
@@ -72,7 +76,7 @@ export function SidePanel({ panels, active, open, pinned, width, onPick, onToggl
               <Icon name="chevron" size={16} />
             </button>
           </div>
-          <div className="side-body">{active.render(ctx)}</div>
+          <div className="side-body" ref={body}>{active.render(ctx)}</div>
           {grip}
         </aside>
       ) : grip}

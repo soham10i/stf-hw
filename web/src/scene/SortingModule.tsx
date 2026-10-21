@@ -13,7 +13,7 @@ import { useJson } from "../shared/data";
 import type { CadPart, CadDoc } from "../shared/model";
 import type { CellJoints, Drive } from "./store/useCellStore";
 import { MM, v, Solid, useBeltTexture } from "./parts";
-import { FEED_MS, INSPECT_LAYER, expose, inspected, jpeg, visionChannel } from "../vision/photo";
+import { FEED_MS, INSPECT_LAYER, cameraWatch, expose, inspected, jpeg, sendFrame } from "../vision/photo";
 
 /** the ring light's flash at the lens, candela: ~2 lx-equivalent on the cookie 27 mm below */
 const FLASH = 0.004;
@@ -77,20 +77,14 @@ export function SortingModule({ doc, joints, onPhoto }: {
       if (aim.current) (l as THREE.DirectionalLight).target = aim.current;
     });
   });
-  // the live feed: on while a dashboard says it watches (every 2 s), never stored
-  const feed = useRef({ until: 0, last: 0, busy: false });
-  useEffect(() => {
-    const ch = visionChannel();
-    if (!ch) return;
-    const on = (e: MessageEvent) => { if (e.data?.type === "watch") feed.current.until = Date.now() + 5000; };
-    ch.addEventListener("message", on);
-    return () => ch.removeEventListener("message", on);
-  }, []);
+  // the live feed: on while a dashboard watches (it says so every 2 s on the live link) or the
+  // twin's own camera view is open; never stored
+  const feed = useRef({ last: 0, busy: false });
 
   useFrame(() => {
     const c = joints.camera;
     const now = Date.now(), F = feed.current;
-    const live = now < F.until && !F.busy && now - F.last >= FEED_MS;
+    const live = (now < cameraWatch.until || cameraWatch.local > 0) && !F.busy && now - F.last >= FEED_MS;
     // the photo of the cookie offered last frame (every part has moved to this frame's pose by
     // now), and the live view's next frame
     if ((shot.current || live) && cam && lens.current && aim.current && ahead.current) {
@@ -111,7 +105,7 @@ export function SortingModule({ doc, joints, onPhoto }: {
       } else if (img) {
         F.last = now; F.busy = true;
         // a frame of the live view: shown by the dashboard, then dropped
-        jpeg(img, 0.75).then((b) => { if (b) visionChannel()?.postMessage({ type: "frame", jpeg: b, t: now, lit: c.lit > 0 }); })
+        jpeg(img, 0.75).then((b) => { if (b) sendFrame(b, now, c.lit > 0); })
           .catch(() => { /* a dropped frame */ }).finally(() => { F.busy = false; });
       }
     }

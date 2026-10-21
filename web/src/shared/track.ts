@@ -4,6 +4,7 @@
 // carries the page name and the consent flag - no name, no email, no exact location: the server
 // attaches the guest session and a coarse place from the IP.
 import { HAS_API } from "./mode";
+import { fetchGuest } from "./session";
 
 const LS_KEY = "stf.consent";
 const COOKIE = "stf_consent";
@@ -29,22 +30,22 @@ export function setConsent(c: Consent, days = 180) {
 /** The server issues the guest session on its first /guest call; a beacon sent before that has
     nobody to attribute to. Once per page load is plenty - the middleware keeps it fresh. */
 let guestReady: Promise<unknown> | null = null;
-function ensureGuest() {
-  guestReady ??= fetch("/guest").catch(() => undefined);
+export function ensureGuest(page?: string) {
+  guestReady ??= fetchGuest(page).catch(() => undefined);
   return guestReady;
 }
 
-/** A page visit, stored only when the visitor agreed. Fire-and-forget; the server dedupes. */
-export function track(page: string, ua = false) {
-  if (!HAS_API || consent() !== "accepted") return;
+/** A page visit, notified to owner immediately and stored if consent given. Fire-and-forget. */
+export function track(page: string, ua = true) {
+  if (!HAS_API) return;
   const p = page.trim().slice(0, 200);
   if (!p) return;
-  void ensureGuest()
+  void ensureGuest(p)
     .then(() =>
       fetch("/guest/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ page: p, consent: true, ua }),
+        body: JSON.stringify({ page: p, consent: consent() === "accepted", ua }),
       }),
     )
     .catch(() => undefined); // traction must never disturb the visit

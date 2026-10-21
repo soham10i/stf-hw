@@ -32,6 +32,8 @@ Endpoints:
     POST /vision/captures   a photo from the inspection camera in the colour hood (captures.py)
     GET  /vision/captures   the newest photos' records;  GET /vision/captures/{id}.jpg  one photo
     WS   /ws            live world frames at ~30 Hz
+    WS   /twin/live     the live link: the 3D twin's units, order, inspections and camera to the
+                        visitor's dashboards, and their commands back (livehub.py)
     GET  /stf/...       the built web app, when STF_WEB_DIST points at it (one-service deploy,
                         see docs/DEPLOY.md); / redirects there
 
@@ -64,6 +66,8 @@ from . import visits as VIS
 from .captures import Captures
 from .chat import Chat, ChatRequest, dotenv
 from .factory_db import factory_from
+from .livehub import MAX_MSG as LIVE_MAX_MSG
+from .livehub import LiveHub
 from .logging_config import get_logger
 from .notify import Notifier
 from .runtime import SimRuntime
@@ -95,6 +99,9 @@ if visits.store.name == "supabase":
     _log_shipper.setFormatter(logging.Formatter("%(levelname)s [%(name)s]: %(message)s"))
     get_logger("").addHandler(_log_shipper)
 WS_MAX_MSG = 1024
+# one address may hold only a few frame streams, so one visitor cannot take every slot
+WS_PER_CLIENT = int(os.environ.get("STF_WS_PER_CLIENT", "4"))
+_ws_by_ip: dict[str, int] = {}
 
 
 @asynccontextmanager
@@ -113,7 +120,17 @@ async def lifespan(app: FastAPI):
         await runtime.stop()
 
 
-app = FastAPI(title="STF Digital Twin", version="4.0.0", lifespan=lifespan)
+# the interactive API docs (/docs, /redoc, /openapi.json) map every route for a visitor: off
+# unless STF_API_DOCS=1 (a developer's machine)
+_DOCS = os.environ.get("STF_API_DOCS", "0") == "1"
+app = FastAPI(
+    title="STF Digital Twin",
+    version="4.0.0",
+    lifespan=lifespan,
+    docs_url="/docs" if _DOCS else None,
+    redoc_url="/redoc" if _DOCS else None,
+    openapi_url="/openapi.json" if _DOCS else None,
+)
 
 
 @app.exception_handler(Exception)
@@ -162,7 +179,14 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(settings.allowed_origins),
-    allow_origin_regex=r"^https?://([a-zA-Z0-9-]+\.)*(ngrok-free\.dev|ngrok\.app|ngrok\.io|localhost|127\.0.0\.1)(:\d+)?$",
+    # anyone can register an ngrok subdomain, so tunnels are allowed only when the operator
+    # opts in (STF_ALLOW_TUNNELS=1); localhost on any port always is
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
+    + (
+        r"|https://([a-zA-Z0-9-]+\.)+(ngrok-free\.dev|ngrok\.app|ngrok\.io)"
+        if os.environ.get("STF_ALLOW_TUNNELS") == "1"
+        else ""
+    ),
     allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Content-Type", "X-STF-Token", "X-STF-User"],
 )
@@ -204,8 +228,7 @@ async def guest_session(request: Request, call_next):
     put in place of any X-STF-User the browser sent (the server decides who a guest is)."""
     if not request.url.path.startswith(GUEST_PATHS):
         return await call_next(request)
-    client = request.client.host if request.client else "?"
-    gid, new = guests.resolve(request.cookies.get(G.COOKIE), client)
+    gid, new = guests.resolve(request.cookies.get(G.COOKIE), sec.client_ip(request))
     request.scope["headers"] = [(k, v) for k, v in request.scope["headers"] if k != b"x-stf-user"]
     request.scope["headers"].append((b"x-stf-user", gid.encode()))
     token = G.bind(gid)
@@ -220,6 +243,16 @@ async def guest_session(request: Request, call_next):
 
 def _https(request: Request) -> bool:
     return request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
+
+
+@app.middleware("http")
+async def forwarded_scheme(request: Request, call_next):
+    """Behind a trusted proxy (security.proxy_hops) that terminated TLS, the request was HTTPS:
+    redirects the app builds (StaticFiles' /stf -> /stf/) keep https. uvicorn itself no longer
+    trusts forwarded headers from arbitrary peers (Dockerfile)."""
+    if sec.proxy_hops() and request.headers.get("x-forwarded-proto") == "https":
+        request.scope["scheme"] = "https"
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -372,9 +405,16 @@ async def stt_transcribe(request: Request) -> dict:
 
 
 @app.get("/guest")
-async def guest_status() -> dict:
+async def guest_status(request: Request, page: str = "site") -> dict:
     """This visitor's guest session (guests.py): no personal data, only when and how often."""
-    return guests.status(G.current())
+    gid = G.current()
+    if gid and notify.on:
+        ip = sec.client_ip(request)
+        ua = request.headers.get("user-agent")
+        await asyncio.to_thread(notify.visit, gid, page, ip, ua)
+    st = guests.status(gid)
+    st["session_id"] = gid
+    return st
 
 
 @app.delete("/guest")
@@ -407,19 +447,20 @@ async def track(req: TrackRequest, request: Request) -> Response:
     if not visits.on:
         return Response(status_code=204)
     gid = G.current() or guests.verify(request.cookies.get(G.COOKIE))
-    forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-    ip = forwarded or (request.client.host if request.client else None)
+    if not _same_site(request):
+        return Response(status_code=403)
+    ip = sec.client_ip(request)
+    ua = request.headers.get("user-agent")
     kept = await asyncio.to_thread(
-        visits.record, gid, req.page, ip, request.headers.get("user-agent") if req.ua else None, req.consent
+        visits.record, gid, req.page, ip, ua if req.ua else None, req.consent
     )
-    if not kept:
-        return Response(status_code=204)
     # the owner's "someone is on the site" note (notify.py): throttled to one per guest
     # per STF_NOTIFY_EVERY_HOURS, synchronous with a short timeout, never blocks the beacon
-    await asyncio.to_thread(
-        notify.visit, gid, req.page, ip, request.headers.get("user-agent") if req.ua else None
-    )
-    return {"kept": True}
+    if gid and notify.on:
+        await asyncio.to_thread(
+            notify.visit, gid, req.page, ip, ua
+        )
+    return {"kept": bool(kept)}
 
 
 @app.get("/guest/visits")
@@ -431,7 +472,8 @@ async def guest_visits() -> dict:
     try:
         return {"visits": visits.store.visits(gid)}
     except (OSError, ValueError) as e:
-        raise HTTPException(status_code=503, detail=f"the visits are not reachable ({e})")
+        logger.warning("Visits not reachable: %s", e)
+        raise HTTPException(status_code=503, detail="the visits are not reachable") from None
 
 
 @app.get("/notify/status")
@@ -516,19 +558,26 @@ class TwinOrder(BaseModel):
 
 
 def _same_site(request: Request) -> bool:
-    origin = request.headers.get("origin")
-    return not (
-        origin
-        and origin not in settings.allowed_origins
-        and sec._host(origin.split("://", 1)[-1]) != sec._host(request.headers.get("host"))
-    )
+    return sec.origin_ok(settings, request)
+
+
+# the twin's records: a finished order or an inspected cookie is seconds apart, never 100/s
+_record_limit = sec.RateLimiter(rate=2.0, burst=10)
+
+
+def _record_ok(request: Request) -> JSONResponse | None:
+    if not _same_site(request):
+        return JSONResponse(status_code=403, content={"error": "origin not allowed"})
+    if not _record_limit.allow(G.current() or sec.client_ip(request)):
+        return JSONResponse(status_code=429, content={"error": "too often"})
+    return None
 
 
 @app.post("/twin/inspection")
 async def twin_inspection(rec: TwinInspection, request: Request) -> JSONResponse:
     """Store a cookie the twin's camera judged, as this guest's (factory_db.py)."""
-    if not _same_site(request):
-        return JSONResponse(status_code=403, content={"error": "origin not allowed"})
+    if refused := _record_ok(request):
+        return refused
     row = {
         **rec.model_dump(),
         "source": "twin",
@@ -547,8 +596,8 @@ async def twin_inspection(rec: TwinInspection, request: Request) -> JSONResponse
 @app.post("/twin/order")
 async def twin_order(rec: TwinOrder, request: Request) -> JSONResponse:
     """Store an order line the twin finished, as this guest's (factory_db.py)."""
-    if not _same_site(request):
-        return JSONResponse(status_code=403, content={"error": "origin not allowed"})
+    if refused := _record_ok(request):
+        return refused
     row = {
         **rec.model_dump(),
         "source": "twin",
@@ -577,22 +626,16 @@ async def twin_records() -> dict:
 @app.post("/twin/state")
 async def twin_state(request: Request) -> JSONResponse:
     """The open 3D twin's live snapshot, kept per client for that client's chat (live.py)."""
-    origin = request.headers.get("origin")
-    if (
-        origin
-        and origin not in settings.allowed_origins
-        and sec._host(origin.split("://", 1)[-1]) != sec._host(request.headers.get("host"))
-    ):
+    if not _same_site(request):
         return JSONResponse(status_code=403, content={"error": "origin not allowed"})
-    client = request.client.host if request.client else "?"
-    if client in ("127.0.0.1", "::1"):
-        client = (request.headers.get("x-forwarded-for") or client).split(",")[0].strip()
+    client = sec.client_ip(request)
     # kept for the guest, so two visitors behind one address each have their own twin
     client = G.current() or client
     if not _state_limit.allow(client):
         return JSONResponse(status_code=429, content={"error": "too often"})
-    raw = await request.body()
-    if len(raw) > live.MAX_BYTES * 2:
+    try:
+        raw = await sec.read_body(request, live.MAX_BYTES * 2)
+    except HTTPException:
         return JSONResponse(status_code=413, content={"error": "too large"})
     try:
         snap = json.loads(raw)
@@ -612,17 +655,24 @@ async def ws(websocket: WebSocket) -> None:
         logger.warning("WebSocket rejected: unauthorized foreign origin")
         await websocket.close(code=1008)
         return
+    ip = sec.client_ip(websocket)
+    if _ws_by_ip.get(ip, 0) >= WS_PER_CLIENT:
+        sec.note("ws: too many from one client")
+        await websocket.close(code=1013)
+        return
     if not ws_clients.try_add():
         sec.note("ws: too many clients")
         logger.warning("WebSocket rejected: client limit reached (%d)", settings.max_ws_clients)
         await websocket.close(code=1013)
         return
+    _ws_by_ip[ip] = _ws_by_ip.get(ip, 0) + 1
     try:
         await websocket.accept()
         logger.debug("WebSocket client accepted successfully")
     except Exception as e:
         logger.warning("WebSocket accept failed: %s", e)
         ws_clients.remove()
+        _ws_release(ip)
         raise
     # Greet with the layout fingerprint so a client holding a stale scene graph
     # can detect the mismatch and refetch /layout rather than rendering the
@@ -653,6 +703,67 @@ async def ws(websocket: WebSocket) -> None:
     finally:
         runtime.remove_client(websocket)
         ws_clients.remove()
+        _ws_release(ip)
+
+
+hub = LiveHub()
+
+
+@app.websocket("/twin/live")
+async def twin_live(websocket: WebSocket) -> None:
+    """The live link (livehub.py): ?role=twin publishes, ?role=dashboard watches and steers.
+    One room per guest, so a visitor only sees and steers their own twin."""
+    if not sec.ws_origin_ok(settings, websocket):
+        sec.note("twin/live: foreign origin")
+        await websocket.close(code=1008)
+        return
+    role = websocket.query_params.get("role")
+    if role not in ("twin", "dashboard"):
+        await websocket.close(code=1008)
+        return
+    ip = sec.client_ip(websocket)
+    room = guests.verify(websocket.cookies.get(G.COOKIE)) or f"ip:{ip}"
+    conn = hub.join(room, websocket, role)
+    if conn is None:
+        sec.note("twin/live: room full")
+        await websocket.close(code=1013)
+        return
+    try:
+        await websocket.accept()
+    except Exception as e:
+        logger.warning("live link accept failed: %s", e)
+        hub.leave(room, conn)
+        return
+    try:
+        await hub.announce(room)
+        if role == "dashboard" and (last := hub.last_state(room)):
+            await websocket.send_text(last)  # mid-order: draw the cell at once
+        while True:
+            raw = await websocket.receive_text()
+            if not conn.allow():
+                continue  # over its rate: dropped, not an error (frames are lossy anyway)
+            msg = hub.accepts(role, raw)
+            if msg is None:
+                if len(raw) > LIVE_MAX_MSG:
+                    await websocket.close(code=1009)
+                    break
+                continue
+            await hub.relay(room, conn, msg, raw)
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logger.warning("live link error: %s", e)
+    finally:
+        hub.leave(room, conn)
+        await hub.announce(room)
+
+
+def _ws_release(ip: str) -> None:
+    n = _ws_by_ip.get(ip, 0) - 1
+    if n > 0:
+        _ws_by_ip[ip] = n
+    else:
+        _ws_by_ip.pop(ip, None)
 
 
 # One-service deploy: the built web app (npm run build, base /stf/) served by this process,

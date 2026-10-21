@@ -96,8 +96,3 @@ export function PreciseMesh({ meshes, matrix = MM_TO_SCENE }: { meshes: THREE.Me
   );
 }
 
-/** Scope-local helper: the precise meshes of `part` in `module` from the lib. */
-export function usePreciseIn(module: string, part: string) {
-  const lib = useContext(PreciseLibCtx);
-  return lib?.get(`${module}:${part}`);
-}

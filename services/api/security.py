@@ -65,6 +65,86 @@ def is_local(request_host: str | None) -> bool:
     return _host(request_host) in LOCAL_HOSTS
 
 
+LOOPBACK = ("127.0.0.1", "::1")
+
+
+def _forwarded_for(request: Request | WebSocket) -> list[str]:
+    raw = request.headers.get("x-forwarded-for") or ""
+    return [p.strip() for p in raw.split(",") if p.strip()]
+
+
+def is_local_request(request: Request) -> bool:
+    """The operator's own machine: the Host says localhost, the TCP peer is loopback, and any
+    proxy hop (the Vite dev proxy adds X-Forwarded-For) is loopback too. The Host header alone
+    is the client's to choose, so it never suffices on its own."""
+    if not is_local(request.headers.get("host")):
+        return False
+    if request.headers.get("forwarded") or request.headers.get("x-real-ip"):
+        return False
+    if any(h not in LOOPBACK for h in _forwarded_for(request)):
+        return False
+    # the raw TCP peer: uvicorn's proxy-header rewrite never runs for a localhost-only request
+    # without X-Forwarded-For, and with one every entry was just checked to be loopback
+    peer = request.scope.get("client")
+    return bool(peer) and peer[0] in LOOPBACK
+
+
+def proxy_hops() -> int:
+    """How many proxies in front append to X-Forwarded-For: STF_PROXY_HOPS, else 1 on Cloud Run
+    (K_SERVICE is set in every Cloud Run container), else 0."""
+    default = "1" if os.environ.get("K_SERVICE") else "0"
+    try:
+        return max(0, int(os.environ.get("STF_PROXY_HOPS", default) or 0))
+    except ValueError:
+        return 0
+
+
+def client_ip(request: Request | WebSocket) -> str:
+    """The caller's address, for rate limits and the visit log.
+
+    X-Forwarded-For is written by whoever sends the request, so it is trusted only as far as
+    the deployment says: STF_PROXY_HOPS is how many proxies in front APPEND to it (Cloud Run's
+    front end: 1). The entry that many places from the right is the address the outermost
+    trusted proxy saw; everything to its left is client-written. STF_PROXY_HOPS=0 (the
+    default off Cloud Run: no proxy) ignores the header and uses the TCP peer - an app reached directly must
+    never take its rate-limit key from a header (found by Strix against a local instance)."""
+    hops = proxy_hops()
+    xff = _forwarded_for(request) if hops else []
+    if len(xff) >= hops > 0:
+        return xff[-hops]
+    peer = request.scope.get("client")
+    return peer[0] if peer else "?"
+
+
+def origin_ok(settings: Settings, request: Request) -> bool:
+    """No Origin (not a browser), an allowed origin, or the page's own origin."""
+    origin = request.headers.get("origin")
+    return not (
+        origin
+        and origin not in settings.allowed_origins
+        and _host(origin.split("://", 1)[-1]) != _host(request.headers.get("host"))
+    )
+
+
+async def read_body(request: Request, limit: int) -> bytes:
+    """The request body, refusing (413) before more than `limit` bytes are held in memory:
+    a declared Content-Length is checked first, a chunked body is counted as it arrives."""
+    declared = request.headers.get("content-length")
+    if declared:
+        try:
+            if int(declared) > limit:
+                raise HTTPException(status_code=413, detail=f"at most {limit} bytes")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="bad Content-Length") from None
+    chunks, n = [], 0
+    async for chunk in request.stream():
+        n += len(chunk)
+        if n > limit:
+            raise HTTPException(status_code=413, detail=f"at most {limit} bytes")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
 def token_ok(settings: Settings, presented: str | None) -> bool:
     if not (settings.api_token and presented):
         return False
@@ -77,10 +157,14 @@ class RateLimiter:
 
     rate: float
     burst: int
+    max_keys: int = 50_000
     _buckets: dict[str, tuple[float, float]] = field(default_factory=dict)
 
     def allow(self, key: str, now: float | None = None) -> bool:
         now = time.monotonic() if now is None else now
+        if len(self._buckets) > self.max_keys:  # many addresses: drop the full (idle) buckets
+            idle = (self.burst - 1) / self.rate if self.rate > 0 else 0.0
+            self._buckets = {k: v for k, v in self._buckets.items() if now - v[1] < idle}
         tokens, last = self._buckets.get(key, (float(self.burst), now))
         tokens = min(self.burst, tokens + (now - last) * self.rate)
         if tokens < 1.0:
@@ -112,24 +196,16 @@ class CommandGuard:
             HTTPException: 403 Forbidden if origin is untrusted or host lacks authentication.
             HTTPException: 429 Too Many Requests if the client rate limit is exceeded.
         """
-        origin = request.headers.get("origin")
-        if (
-            origin
-            and origin not in self.settings.allowed_origins
-            and _host(origin.split("://", 1)[-1]) != _host(request.headers.get("host"))
-        ):
+        if not origin_ok(self.settings, request):
             note("command: foreign origin")
             raise HTTPException(status_code=403, detail="origin not allowed")
-        local = is_local(request.headers.get("host"))
+        local = is_local_request(request)
         if not (local or token_ok(self.settings, request.headers.get("x-stf-token"))):
             note("command: not local, no token")
             raise HTTPException(
                 status_code=403, detail="commands need the operator's machine or an operator token"
             )
-        client = request.client.host if request.client else "?"
-        if client in ("127.0.0.1", "::1"):
-            client = (request.headers.get("x-forwarded-for") or client).split(",")[0].strip()
-        if not self.limiter.allow(client):
+        if not self.limiter.allow(client_ip(request)):
             note("command: rate limit")
             raise HTTPException(status_code=429, detail="too many commands")
 

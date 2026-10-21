@@ -49,7 +49,7 @@ def client(monkeypatch):
     import services.api.app as appmod
 
     appmod = importlib.reload(appmod)
-    with TestClient(appmod.app) as c:
+    with TestClient(appmod.app, client=("127.0.0.1", 50000)) as c:
         c.sent = sent  # type: ignore[attr-defined]
         yield c
 
@@ -89,8 +89,27 @@ def test_unconfigured_service_says_so(monkeypatch):
     import services.api.app as appmod
 
     appmod = importlib.reload(appmod)
-    with TestClient(appmod.app) as c:
+    with TestClient(appmod.app, client=("127.0.0.1", 50000)) as c:
         assert c.get("/notify/status").json()["on"] is False
         r = c.post("/notify/test", headers=LOCAL)
         assert r.status_code == 409
         assert "not configured" in r.json()["error"]
+
+
+def test_guest_session_load_notifies_owner(client):
+    r = client.get("/guest?page=twin")
+    assert r.status_code == 200
+    data = r.json()
+    assert "session_id" in data and data["session_id"]
+    sess_id = data["session_id"]
+    assert len(client.sent) == 1  # type: ignore[attr-defined]
+    mail = client.sent[0]  # type: ignore[attr-defined]
+    body = str(mail.get_content())
+    assert f"session {sess_id}" in body
+    assert "twin" in body
+    assert sess_id[:8] in mail["Subject"]
+
+    # Subsequent visit by same guest is throttled (no duplicate email)
+    r2 = client.get("/guest?page=twin")
+    assert r2.status_code == 200
+    assert len(client.sent) == 1  # type: ignore[attr-defined]

@@ -2,44 +2,43 @@
 
 Dashboard group: Operate. Page id: `copilot`.
 
-Ask about the cell in plain words, by typing or by voice. A language model answers by calling the twin's own tools and states only what they return, with citations; the server checks every number before you see it. Conversations are kept in your history, and the facts each one establishes are kept with it.
+Ask about the cell in everyday words - type or speak. The answer comes from the twin's own live data and documents, shows its sources, and every number is checked before it reaches you.
 
 ## In brief
 
-Ask about the cell in plain words, by typing or by voice.  A language model answers by calling the twin's own tools and states only what they return, with citations; the server checks every number before you see it.
+Ask about the cell in everyday words - type or speak.  The answer comes from the twin's own live data and documents, shows its sources, and every number is checked before it reaches you.
 
 ## How to read it
 
-1. Pick a tab: Chat (type, a language model answers) or Voice (speak, hear the answer).
-2. If the first model is at its limit or not running, the next ready one answers with the same context - the chip on the answer says it handed over.
-3. Answers take the form the question needs: a figure, a table for comparisons, numbered steps for an alarm, a status card for 'now'.
-4. Copy any question or answer; 🔊 reads an answer aloud.
-5. History is on the left; the Context panel on the right lists what the conversation has established.
+1. Type a question and press Enter - or open the Voice tab and just speak.
+2. A free AI model answers straight away. Several models are connected: if the first one is busy or offline, the next takes over automatically, and the answer says who handed over.
+3. Above the input box you choose where answers come from: Auto lets the server decide, Docs reads only the twin's documents, Web searches the internet, Deep researches a question longer and more thoroughly.
+4. Every answer lists its sources - the documents, tools and web pages behind it. Open “How this answer was made” to see the steps, and “Sources” to check each one.
+5. Copy any question or answer with the copy button; the speaker icon reads an answer aloud.
+6. Past conversations are on the left (click to continue, × to delete). The Context panel on the right shows what the current conversation has established.
 
 ## Sections
 
 ### History
 
-Your earlier conversations; open one to continue it, × to delete it.
+Your earlier conversations. Open one to continue where you left off; × deletes it.
 
 ### Chat / Voice
 
-How you ask; the first ready model answers, and the next takes over when it cannot.
+How you ask and read the answer.
+
+### Auto · Docs · Web · Deep
+
+Where answers come from. Auto is the default; Deep is slower but researches a question properly before answering.
 
 ### Context
 
-The models that answered, the tools used and the facts found - what any model answering next is given.
+The facts, documents and tools this conversation has gathered - handed to whichever model answers next, so a hand-over loses nothing.
 
 ## Where the numbers come from
 
-The server's tools (services/api/tools.py), the model and its tool calls (chat.py), sessions and their context (sessions.py, store.py), speech (tts.py); scored on tests/copilot_eval.json.
+The twin's live data and its indexed documents, answered by connected AI models on the server; conversations are stored per visitor. The pipeline is scored automatically after every change.
 
 Every number is simulated from the twin's models, not measured on a real machine.
-
-## Terms
-
-- **Health index (HI)**: 100 = as new, 0 = it fails now. Computed from how far a part's measured behaviour has drifted toward its failure limit.
-- **RUL**: Remaining useful life: how many shifts (or orders) a part has left before it fails.
-- **OEE**: Overall equipment effectiveness = availability × performance × quality. 100 % means making only good parts, as fast as possible, with no stops.
 
 *Generated from `web/src/dashboard/guide.ts`; edit the guide, not this file.*

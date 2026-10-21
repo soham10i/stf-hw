@@ -32,7 +32,7 @@ from .factory_db import TABLES, factory_from
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 PUB = os.path.join(ROOT, "web", "public")
-TZ = "+02:00"  # the month runs in September, central European summer time
+TZ = "+02:00"  # September and October, central European summer time (to 25 Oct)
 
 
 def _f(v: str):
@@ -241,7 +241,10 @@ def main() -> int:
         )
     fac.insert("inspections", ins)
     print(f"  {'inspections':16s} {len(ins):6d} rows  (and {len(ins)} photos, {caps.name})")
-    bad = [t for t, rows in data.items() if fac.count(t) != len(rows)]
+    # a table with a source column also keeps the visitors' own twin rows (factory_db clear):
+    # it holds at least the seeded rows
+    bad = [t for t, rows in data.items()
+           if (fac.count(t) < len(rows) if "source" in TABLES[t][0] else fac.count(t) != len(rows))]
     if fac.count("inspections") < len(ins):
         bad.append("inspections")
     print("all loaded" if not bad else f"count mismatch: {', '.join(bad)}")

@@ -85,7 +85,8 @@ local voice. With none ready the endpoint answers 503 and a browser can fall bac
 ### The text
 
 Markdown and `[citations]` are removed and units are spoken as words ("176 degrees Celsius",
-"6.16 euros", "O E E"); at most 1 200 characters are spoken, cut at a sentence.
+"6.16 euros", "O E E"); LaTeX is verbalized (see below); at most 3 000 characters are
+spoken, cut at a sentence.
 
 ### From another site
 
@@ -102,7 +103,38 @@ The other site's origin must be in `STF_ALLOWED_ORIGINS` on the API (requests fr
 refused), and each client is rate-limited (3 at once, then one every 10 s) under a daily budget
 (`GEMINI_TTS_DAILY_LIMIT`) - the keys stay on the server.
 
-Mathematics and code in an answer are read as "(formula)" and "(code)".
+Mathematics is read the way a lecturer reads it, not symbol by symbol. The equation's
+hierarchy is carried two ways:
+
+- **Wording that names the structure** (`services/api/mathspeak.py`, rules, offline):
+  "rho times the quantity ...", "a plus b, all over c", "one half m v squared", "the gradient
+  of p", "the divergence of tau", "the curl of B", "the Laplacian of u", "u dot del u",
+  "sine of the quantity k x minus omega t", "the integral from 0 to 1 of x squared, d x".
+  Never "open bracket / close bracket".
+- **Pauses at three strengths**: a short one where a bracketed group closes, a medium one
+  between the terms of each side, a long one before the relation. mathspeak emits them as
+  marks; `tts.prosody` renders them for the engine - timed `<break>` tags (0.25 s, 0.45 s)
+  for ElevenLabs' v2 models, commas for Gemini, Groq, the local voice and `eleven_v3`.
+  An expression of ten words or fewer is read in one breath.
+
+A long answer is synthesized in pieces; a piece is cut at an equation's strongest pause
+(before "equals" first), and ElevenLabs is given the sentences before and after each piece
+(`previous_text` / `next_text`), so the intonation runs on across the pieces.
+
+Example: `\rho(\partial_t \mathbf{u} + (\mathbf{u}\cdot\nabla)\mathbf{u}) = -\nabla p +
+\mu\nabla^2\mathbf{u} + \rho\mathbf{f}` is read "rho times the quantity partial u by partial
+t, plus u dot del u, [long pause] equals minus the gradient of p, [pause] plus mu times the
+Laplacian of u, [pause] plus rho f".
+
+**No separate LLM is needed for this.** The structure is in the LaTeX, and the rules read it
+deterministically, offline, at no cost and with no added latency. A language model only
+helps with notation the rules cannot say: `services/api/fluent_math.py` sends just those
+expressions (mathspeak raises `Unsupported`) to the chat's model (Groq, then Gemini), with a
+prompt in the same lecturer style, batched and cached per expression. `TTS_MATH_FLUENT`
+sets this: unset or `fallback` (default) as described; `always` sends every expression to
+the LLM first (about 1 s more per answer, quota, and readings that may vary); `0` turns it
+off. What nothing can say (matrices, custom macros) is read as "(formula)", and code as
+"(code)".
 
 ## Checking it
 
@@ -118,4 +150,4 @@ server will use.
 
 Code: `services/api/tts.py` (providers `ElevenLabsVoice`, `GroqVoice`, `GeminiVoice`, `LocalVoice`;
 `ElevenLabsStt`; classes `Tts` and `Stt`), `services/api/voice_check.py`.
-Tests: `tests/test_tts.py`, `tests/test_voice.py`.
+Tests: `tests/test_tts.py`, `tests/test_voice.py`, `tests/test_mathspeak.py`, `tests/test_fluent_math.py`.

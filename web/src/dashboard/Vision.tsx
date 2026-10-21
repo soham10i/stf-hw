@@ -13,6 +13,7 @@ import { decode, type Cnn } from "../vision/cnn";
 import { LiveLine, drift, tally, type Frame } from "../vision/live";
 import { prepare, useTwinCamera } from "../vision/twinCamera";
 import { rgba, type RenderParams } from "../vision/render";
+import { FALSE_MAX, TARGET, WEEKS, forecast, type Week } from "../vision/lifetime";
 import { HAS_API } from "../shared/mode";
 
 type Camera = { fov_mm: number; optics: { working_distance_mm: number; lens_angle_deg: number; trigger_delay_s: number; roi_mm: number };
@@ -186,6 +187,8 @@ export function VisionPage() {
           <p className="db-muted small">The cookies inspected since this page opened. Diagonal = right. {all.toPerson > 0 ? `${pct(all.toPerson)} sent to a person (unsure).` : ""}</p>
         </section>
 
+        <Lifetime />
+
         <Samples />
 
         <section className="db-card wide">
@@ -293,5 +296,89 @@ function Photos() {
         </>
       )}
     </section>
+  );
+}
+
+type Life = { per_week: number; weeks: Week[] };
+const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / Math.max(1, a.length);
+/** a 4-week running mean: one week's batch is small, the trend is in the run */
+const run4 = (a: number[]) => a.map((_, i) => mean(a.slice(Math.max(0, i - 3), i + 1)));
+
+/** Both inspection models over a year of an ageing line (vision/lifetime.ts): measured week by
+    week up to "today", forecast from there to the year's end, and when each needs retraining. */
+function Lifetime() {
+  const { data } = useJson<Life>("vision/lifetime.json", "run `make vision-lifetime`");
+  const [now, setNow] = useState(26);
+  const [check, setCheck] = useState(false);
+  if (!data) return null;
+  const past = data.weeks.filter((w) => w.w <= now), ahead = data.weeks.filter((w) => w.w > now);
+  const xs = past.map((w) => w.w);
+  // the line's drift (the autoencoder's error on good cookies): both models see the same images,
+  // so its alarm (x2) is a reason to retrain either
+  const dr = forecast(xs, past.map((w) => w.ae.drift), now, { link: "ratio", limit: 2, below: false });
+  const model = (k: "cnn" | "ae") => {
+    const det = past.map((w) => w[k].detect), fa = past.map((w) => w[k].falseAlarm);
+    // each model against its own commissioning level (the first 8 weeks), not one shared target:
+    // the autoencoder was never meant to catch every fault
+    const floor = mean(data.weeks.slice(0, 8).map((w) => w[k].detect)) - (1 - TARGET);
+    const fd = forecast(xs, det, now, { limit: floor }), ff = forecast(xs, fa, now, { limit: FALSE_MAX, below: false });
+    const hits: [number | null, string][] = [[fd.crosses, "detection below its floor"], [ff.crosses, "false alarms over the limit"], [dr.crosses, "drift alarm"]];
+    const why = (hits.filter((c) => c[0] != null) as [number, string][]).sort((a, b) => a[0] - b[0])[0] ?? null;
+    return { det, fa, fd, ff, floor, retrain: why, detNow: mean(det.slice(-4)), faNow: mean(fa.slice(-4)) };
+  };
+  const cnn = model("cnn"), ae = model("ae");
+  const p = (x: number) => `${Math.round(100 * x)} %`;
+  const when = (x: number | null) => (x == null ? "not this year" : x <= now ? "now" : `week ${x}`);
+
+  const chart = (m: ReturnType<typeof model>, k: "cnn" | "ae", col: string) => (
+    <Plot h={240} xTitle="weeks in service" yTitle="share of cookies" xMin={0} xMax={WEEKS} yMin={0} yMax={1}
+      yFmt={(v) => `${Math.round(v * 100)} %`}
+      series={[
+        { name: "detection (4-wk mean)", x: xs, y: run4(m.det), color: col, width: 2.4, fmt: p },
+        { name: "detection forecast", x: m.fd.w, y: m.fd.mid, color: col, dash: true, width: 2, fmt: p },
+        { name: "90 % range", x: m.fd.w, y: m.fd.lo, color: col, dash: true, width: 1, fmt: p },
+        { name: "false alarms (4-wk mean)", x: xs, y: run4(m.fa), color: "#e0503a", width: 2.4, fmt: p },
+        { name: "false-alarm forecast", x: m.ff.w, y: m.ff.mid, color: "#e0503a", dash: true, width: 2, fmt: p },
+        { name: "90 % range ", x: m.ff.w, y: m.ff.hi, color: "#e0503a", dash: true, width: 1, fmt: p },
+        ...(check ? [
+          { name: "what then happened: detection", x: ahead.map((w) => w.w), y: ahead.map((w) => w[k].detect), color: col, kind: "dots" as const, fmt: p },
+          { name: "what then happened: false alarms", x: ahead.map((w) => w.w), y: ahead.map((w) => w[k].falseAlarm), color: "#e0503a", kind: "dots" as const, fmt: p },
+        ] : []),
+      ]}
+      hlines={[{ y: m.floor, color: "var(--muted)", label: "detection floor" }, { y: FALSE_MAX, color: "var(--bad)", label: "false-alarm limit" }]}
+      vmarks={[{ x: now, color: "var(--text)", label: "today" }]}
+      tipTitle={(x) => `week ${Math.round(x)}`} />
+  );
+
+  const summary = (name: string, m: ReturnType<typeof model>) => (
+    <dl className="vq-life-sum">
+      <div><dt>{name}: detection now</dt><dd><b>{p(m.detNow)}</b></dd></div>
+      <div><dt>predicted, week {WEEKS}</dt><dd><b>{p(m.fd.atEnd)}</b> <span>({p(m.fd.lo[m.fd.lo.length - 1])}–{p(m.fd.hi[m.fd.hi.length - 1])})</span></dd></div>
+      <div><dt>false alarms now → week {WEEKS}</dt><dd><b>{p(m.faNow)}</b> → <b>{p(m.ff.atEnd)}</b></dd></div>
+      <div><dt>retrain</dt><dd className={m.retrain ? "vq-bad" : ""}><b>{when(m.retrain?.[0] ?? null)}</b>{m.retrain && <span> · {m.retrain[1]}</span>}</dd></div>
+    </dl>
+  );
+
+  return (
+    <>
+      <section className="db-card wide vq-life">
+        <h3>The two models over a year on the line</h3>
+        <p className="db-muted small">Each week a test batch of {data.per_week} cookies (half good, half burnt, underbaked, cracked or chipped) is photographed in that week's conditions — the ring light dimming, the belt wearing lighter, the sensor getting noisier — and judged by the deployed models. The <b>CNN</b> is supervised: it learnt the faults by name. The <b>autoencoder</b> is unsupervised: it only learnt what a good cookie looks like and flags anything else. Up to <i>today</i> is measured; after it, the forecast is fitted on those weeks alone. A model needs retraining when its detection falls 10 points under its commissioning level, its false alarms pass 10 %, or the line drifts past ×2 — whichever the forecast reaches first.</p>
+        <div className="vq-life-ctl">
+          <label className="vq-row" title="Move today: the forecast is refitted on the weeks measured up to it"><span>Today</span>
+            <input type="range" min={8} max={WEEKS - 4} step={1} value={now} onChange={(e) => setNow(+e.target.value)} /><b>week {now}</b></label>
+          <label className="vq-check"><input type="checkbox" checked={check} onChange={(e) => setCheck(e.target.checked)} /> Check the forecast against what the line then did</label>
+        </div>
+        <div className="vq-life-sums">{summary("CNN", cnn)}{summary("Autoencoder", ae)}</div>
+      </section>
+      <div className="vq-life-pair">
+      <section className="db-card"><h3>CNN (supervised)</h3>{chart(cnn, "cnn", "#4f8fd6")}
+        <p className="hl-cap">The CNN keeps catching damaged cookies — none passes — but as the light and belt leave its training range it grows unsure of good ones and rejects them or sends them to a person: the cost of drift shows up as false alarms, not escapes.</p>
+      </section>
+      <section className="db-card"><h3>Autoencoder (unsupervised)</h3>{chart(ae, "ae", "#2f9e8f")}
+        <p className="hl-cap">The autoencoder catches the faults that change how a cookie looks (burnt, cracked) and misses subtle ones; as the line ages <i>everything</i> looks less like training, so its detection appears to rise only because it flags good cookies too. Its error is ×{past[past.length - 1].ae.drift.toFixed(1)} the training baseline today, forecast ×{dr.atEnd.toFixed(1)} by week {WEEKS}; drift alarm (×2): {when(dr.crosses)}.</p>
+      </section>
+      </div>
+    </>
   );
 }

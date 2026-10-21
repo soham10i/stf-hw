@@ -9,8 +9,15 @@
   background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(14px); z-index: 5;
 }
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand-mark {
+.brand-logo {
+  display: block; height: 34px; width: auto; object-fit: contain; border-radius: 8px; flex: none;
+}
+.brand .brand-mark { display: none; }
+img.brand-mark, svg.brand-mark, span.brand-mark {
   display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 9px;
+  object-fit: cover;
+}
+span.brand-mark {
   background:
     radial-gradient(circle at 5px 5px, rgba(255, 255, 255, .22) 1px, transparent 1.6px) 0 0 / 8px 8px,
     linear-gradient(145deg, #6aa8ff 0%, #2563eb 52%, #1c44b8 100%);
@@ -585,6 +592,10 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
   .app.immersive .side.float, .app.immersive .side.pinned { left: 72px !important; top: 76px; bottom: 10px; border-radius: 18px; width: min(380px, calc(100vw - 84px)) !important; }
   .vp-status .vp-phase { max-width: 140px; }
 }
+@media (max-width: 500px) {
+  .brand .brand-logo { display: none; }
+  .brand .brand-mark { display: grid; }
+}
 .vp-btn, .vp-cta, .vp-status b { white-space: nowrap; flex: none; }
 .vp-status { flex: 1 1 auto; }
 .vp-btn.off { color: var(--faint); } .vp-btn.off svg { opacity: .5; }
@@ -624,6 +635,10 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
   transition: opacity .45s var(--ease); }
 .vp-veil.out { opacity: 0; pointer-events: none; }
 .vp-veil-card { display: grid; justify-items: center; gap: 6px; text-align: center; }
+.vp-veil-logo {
+  height: 64px; width: auto; max-width: 220px; object-fit: contain; margin-bottom: 12px;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .45));
+}
 .vp-veil-card .brand-mark { width: 52px; height: 52px; border-radius: 13px; font-size: var(--fs-body); margin-bottom: 10px;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08), 0 10px 30px rgba(0, 0, 0, .3); }
 .vp-veil-card b { font: 600 var(--fs-title3) var(--font-display); letter-spacing: -.01em; }
@@ -691,27 +706,36 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .ord-auto input { margin-top: 3px; accent-color: var(--accent); }
 .ord-auto b { color: var(--text); font-weight: 600; }
 
-/* ---------------------------------------------------- lumen (premium glass)
-   The dashboard's lumen palette, continued on the twin: the floating chrome gets a deeper frost
-   (more of the machine shows through the glass) and the controls become full pills, as the
-   dashboard's nav does. Menus and list rows stay solid/rounded - restraint, like macOS menus. The
-   3D viewport keeps its own --viewport ground (theme.css), so no page ground is added here. */
-:root[data-palette="lumen"] {
-  --glass-bg: color-mix(in srgb, var(--surface) 46%, transparent);
-  --glass-blur: blur(30px) saturate(195%);
+/* New order: the broken-cookie switch and the two ways to start */
+.ord-broken {
+  display: flex; align-items: center; gap: 12px; width: 100%; margin: 12px 0 0; padding: 10px 12px; text-align: left;
+  border: 1px dashed var(--border); border-radius: 14px; background: none; color: var(--text); font: inherit; cursor: pointer;
+  transition: background .15s, border-color .15s;
 }
-/* the floating islands: a hair more radius than the default 16px */
-[data-palette="lumen"] .app.immersive .topbar,
-[data-palette="lumen"] .app.immersive .rail,
-[data-palette="lumen"] .vp-bar { border-radius: 18px; }
-[data-palette="lumen"] .app.immersive .side.float,
-[data-palette="lumen"] .app.immersive .side.pinned { border-radius: 20px; }
-/* pills: top-bar actions, the view switcher, the control bar's buttons and segments */
-[data-palette="lumen"] .top-actions .ui-btn,
-[data-palette="lumen"] .vm-btn,
-[data-palette="lumen"] .vp-btn,
-[data-palette="lumen"] .vp-cta { border-radius: 999px; }
-[data-palette="lumen"] .ui-seg { border-radius: 999px; }
-[data-palette="lumen"] .ui-seg button { border-radius: 999px; }
-/* the tip and the floating panel's cards inherit the deeper frost automatically
-   (they read --glass-bg / --glass-blur); the veil keeps the machine's ground */
+.ord-broken:hover { background: color-mix(in oklab, var(--text) 5%, transparent); }
+.ord-broken b { display: block; font-weight: 500; }
+.ord-broken small { display: block; color: var(--faint); font-size: var(--fs-caption); }
+.ord-broken-ico {
+  flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px;
+  border: 1.5px solid var(--border); font-size: 12px; font-weight: 700; color: var(--bad);
+}
+.ord-broken.on { border-style: solid; border-color: color-mix(in oklab, var(--bad) 55%, transparent); background: color-mix(in oklab, var(--bad) 9%, transparent); }
+.ord-broken.on .ord-broken-ico { border-color: var(--bad); background: color-mix(in oklab, var(--bad) 14%, transparent); }
+.ord-go { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
+.ord-go .ord-place { margin: 0; }
+.ord-sample { white-space: nowrap; }
+
+/* the inspection camera's live view */
+.cam-view { position: relative; margin: 10px 0 12px; border-radius: 14px; overflow: hidden; background: #0b0d10; aspect-ratio: 1; max-width: 100%;
+  box-shadow: inset 0 0 0 1px var(--border); }
+.cam-view img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cam-view.lit { box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 3px color-mix(in oklab, var(--accent) 25%, transparent); }
+.cam-view figcaption {
+  position: absolute; left: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px;
+  background: rgba(0, 0, 0, .55); color: #fff; font: 500 11px var(--mono); letter-spacing: .04em;
+}
+.cam-view figcaption i { width: 7px; height: 7px; border-radius: 50%; background: #777; }
+.cam-view figcaption i.on { background: #e5484d; animation: cam-rec 1.4s ease-in-out infinite; }
+.cam-wait { position: absolute; inset: 0; display: grid; place-items: center; color: #9aa3ad; font-size: var(--fs-caption); }
+@keyframes cam-rec { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .cam-view figcaption i.on { animation: none; } }

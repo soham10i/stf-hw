@@ -1,5 +1,11 @@
 <p align="center">
-  <h1 align="center">🏭 STF Digital Twin</h1>
+  <a href="https://stf-live-500754517962.europe-west1.run.app/stf/">
+    <img src="docs/assets/stf-logo.png" alt="STF Factory Simulation" width="300">
+  </a>
+</p>
+
+<p align="center">
+  <h1 align="center">STF Digital Twin</h1>
   <p align="center">
     <strong>Full-Stack Cyber-Physical Digital Twin with In-Browser WebAssembly PLC & Grounded AI Copilot</strong>
   </p>

@@ -192,6 +192,22 @@ describe("sensors", () => {
     expect(shots).toBe(3);
   });
 
+  it("the camera photographs every cookie at one frame a second (a background window)", () => {
+    for (const speed of [4, 8]) {
+      const store = new CellStore();
+      store.model.inspect.auto = false;
+      const coord = new CellCoordinator(doc, store, { tours, persistence: memoryPersistence() });
+      const [tx, ty] = doc.factory.sort_placement.translate;
+      coord.setCamera([-230 + tx, 200 + ty]);
+      let shots = 0;
+      store.onCapture(() => shots++);
+      store.place("chocolate", 1); store.place("vanilla", 1); store.place("strawberry", 1);
+      let t = 0;
+      while (t < 3600 && !(store.model.idle && store.model.queue.every((o) => o.done === o.qty))) { t += speed; coord.tick(t, 1); }
+      expect(shots, `${speed}x`).toBe(3);
+    }
+  });
+
   it("the oven heats while it bakes and cools after", () => {
     const { store, run } = cell();
     store.place("chocolate", 1);

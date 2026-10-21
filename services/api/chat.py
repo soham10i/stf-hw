@@ -29,6 +29,7 @@ Every answer returns the sources and dashboard links of the tools that produced 
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import re
@@ -1171,9 +1172,7 @@ class Chat:
             and sec._host(origin.split("://", 1)[-1]) != sec._host(request.headers.get("host"))
         ):
             raise HTTPException(status_code=403, detail="origin not allowed")
-        client = request.client.host if request.client else "?"
-        if client in ("127.0.0.1", "::1"):
-            client = (request.headers.get("x-forwarded-for") or client).split(",")[0].strip()
+        client = sec.client_ip(request)
         if not self.limiter.allow(client):
             raise HTTPException(status_code=429, detail="too many questions: wait a few seconds")
         return client
@@ -1218,7 +1217,15 @@ class Chat:
         called = [r.tool for r in results]
         # identical session-less questions (a double-ask, a voice echo) reuse the answer for
         # CACHE_TTL_S; never cached when live_state answered (the twin may have moved on)
-        cache_key = (req.question, req.page, req.provider, req.mode, req.age, req.pm)
+        # keyed by the guest and by everything the client supplied (grounding, history): one
+        # visitor's crafted context must never become another visitor's cached answer
+        supplied = json.dumps(
+            [req.grounding.model_dump(), [t.model_dump() for t in req.history]], sort_keys=True
+        )
+        cache_key = (
+            user or client, req.question, req.page, req.provider, req.mode, req.age, req.pm,
+            hashlib.sha256(supplied.encode()).hexdigest(),
+        )
         if session is None and "live_state" not in called:
             hit = self.cache.get(cache_key)
             if hit and time.time() - hit[0] < self.cache_ttl_s:

@@ -54,7 +54,7 @@ The model's proofs, the faults they catch, and every parameter with its source.
 
 ## Where the numbers come from
 
-The oven and cookie model of Upgrade 19 (stf-cad/hbw/bake.py), from the oven's parts (oven_model.py) and the order's door openings (control.py).
+The oven and cookie model (stf-cad/hbw/bake.py), from the oven's parts (oven_model.py) and the order's door openings (control.py).
 
 Every number is simulated from the twin's models, not measured on a real machine.
 

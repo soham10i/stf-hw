@@ -23,6 +23,8 @@ function saveToken(v: string) {
   } catch { /* private mode: the token just is not remembered */ }
 }
 
+const IS_PROD = import.meta.env.PROD;
+
 export function NotifyMenu() {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status | null>(null);
@@ -32,7 +34,7 @@ export function NotifyMenu() {
   const box = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open || !HAS_API) return;
+    if (!open || !HAS_API || IS_PROD) return;
     let stale = false;
     fetch("/notify/status").then((r) => (r.ok ? r.json() : null)).then((s) => { if (!stale && s) setStatus(s); }).catch(() => undefined);
     return () => { stale = true; };
@@ -47,7 +49,8 @@ export function NotifyMenu() {
     return () => { window.removeEventListener("pointerdown", away); window.removeEventListener("keydown", esc); };
   }, [open]);
 
-  if (!HAS_API) return null;
+  // Hidden in production so regular users do not see or access owner notifications
+  if (!HAS_API || IS_PROD) return null;
 
   const test = async () => {
     setPhase("sending");

@@ -1,5 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import "@fontsource-variable/geist";
+import "@fontsource-variable/geist-mono";
 import "../shared/theme.css";
 import "../index.css";
 import "./styles/shell.css";
@@ -10,6 +12,7 @@ import "./styles/vision.css";
 import "./styles/chat.css";
 import "./styles/docs.css";
 import "./styles/consent.css";
+import "../shared/studio.css";
 import { Dashboard } from "./Dashboard";
 import { applyTheme } from "../shared/theme";
 

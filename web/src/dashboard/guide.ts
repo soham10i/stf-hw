@@ -229,6 +229,23 @@ export const GUIDE: Record<string, PageGuide> = {
     terms: ["PM", "Shift", "RUL"],
   },
 
+  pdm: {
+    title: "Maintenance · Pre-failure window",
+    what: "When each part's failure becomes likely: a statistical pipeline that models each signal's normal behaviour, tracks the part's wear with its own physics, and gives the remaining life as a probability.",
+    read: [
+      "The window opens when the chance of failing within two shifts passes the threshold: renew the part in the next night gap.",
+      "Compare the methods on the same unseen machines: in time, how early (wasted life), false alarms, and how right the remaining life is.",
+      "The two failures of the production months show when each method would have acted.",
+    ],
+    sections: [
+      ["Methods compared", "The rules, this pipeline and the neural networks, graded the same way on 16 unseen machines."],
+      ["The two failures", "The spindle and the gearbox, run to failure: the chance of failing within two shifts, and the remaining life with its 80 % range."],
+      ["What each step does", "Normal-behaviour model, physics-informed filter, remaining-life distribution, change detection."],
+    ],
+    source: "stf-cad/hbw/pdm (make pdm), on the Upgrade 8 fleet; docs/maintenance/pdm-pipeline.md.",
+    terms: ["RUL", "PM", "Shift"],
+  },
+
   ai: {
     title: "Maintenance · AI predictions",
     what: "A neural network that predicts each part's remaining life from its sensor history, tested on machines it never saw, and running here in your browser.",
@@ -281,7 +298,6 @@ export const GUIDE: Record<string, PageGuide> = {
       "The critical path shows which jobs set the order time; the ablation shows each improvement's own value.",
     ],
     sections: [
-      ["What the study says", "The headline: order time before and after, and why."],
       ["The same order, before and after", "Both programs' runs, step by step, from virtual commissioning."],
       ["Where the time went: the critical path", "The chain of jobs that decides the order time."],
       ["Ablation", "The order time with each improvement switched off; hover a bar for cycle time and the busiest unit."],

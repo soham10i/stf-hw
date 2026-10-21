@@ -176,7 +176,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
   const MODEL_AVAIL: Partial<Record<api.Model, boolean | undefined>> = { auto: true, local: status.ollama };
 
   const history = (
-    <div className="cx-history" data-lenis-prevent>
+    <div className="cx-history">
       <button className="cx-new" onClick={() => open(null)}>＋ New chat</button>
       {list.length === 0 && <p className="cx-muted">No conversations yet.</p>}
       {list.map((s) => (
@@ -199,7 +199,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
   }, [turns]);
   const answers = turns.filter((t) => t.role === "assistant" && !t.pending).length;
   const contextPanel = (
-    <aside className="cx-context" data-lenis-prevent>
+    <aside className="cx-context">
       <h3>Context</h3>
       <p className="cx-muted">What this conversation has established. Whichever model answers next is given all of it.</p>
       <div className="cx-ctx-stats">
@@ -292,7 +292,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
       </AnimatePresence>
       <AnimatePresence>{!compact && title && <motion.div className="cx-title" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>{title}</motion.div>}</AnimatePresence>
 
-      <div className="cx-log" data-lenis-prevent>
+      <div className="cx-log">
         {turns.length === 0 && (
           <motion.div className="cx-hero" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut" }}>
             <motion.div className="cx-orb" animate={{ y: [0, -4, 0] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}><CopilotMark size={30} /></motion.div>

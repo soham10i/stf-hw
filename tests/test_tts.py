@@ -67,7 +67,7 @@ def test_speakable_reads_the_content_only():
     assert "the manual" in s                      # the link's text stays
     assert "fischertechnik.de/manual" not in s    # its URL is not read
     assert "example.com" not in s                 # bare URLs neither
-    assert "(formula)" in s and "eta = 0.9" not in s and "$" not in s  # LaTeX becomes a word
+    assert "eta equals 0 point 9" in s and "$" not in s  # LaTeX is spoken (mathspeak)
     assert "Sources" not in s and "Resources" not in s
     assert "a.example" not in s and "c.example" not in s
     assert "176 degrees Celsius" in s
@@ -359,3 +359,46 @@ def test_groq_stt_transcription():
     res = asyncio.run(stt.transcribe(req_obj))
     assert res["text"] == "What is the warehouse status?"
     assert "groq" in res["model"]
+
+
+# ---------------------------------------------------------------- spoken equations: prosody
+NS_MD = ("The momentum balance is $$\\rho\\left(\\frac{\\partial \\mathbf{u}}{\\partial t} + "
+         "(\\mathbf{u}\\cdot\\nabla)\\mathbf{u}\\right) = -\\nabla p + \\mu\\nabla^2\\mathbf{u} + "
+         "\\rho\\mathbf{f}$$ in a fluid.")
+
+
+def test_prosody_renders_marks_per_engine():
+    from services.api import mathspeak as M
+    from services.api import tts as T
+    said = T.speakable(NS_MD)
+    assert M.P3 in said  # the hierarchy survives the text clean-up
+    plain = T.prosody(said)
+    assert ("the quantity partial u by partial t, plus u dot del u, "
+            "equals minus the gradient of p") in plain
+    assert "<break" not in plain and not any(p in plain for p in M.MARKS)
+    timed = T.prosody(said, breaks=True)
+    assert timed.count('<break time="0.45s" />') == 1  # before "equals"
+    assert timed.count('<break time="0.25s" />') == 2  # between the right side's terms
+
+
+def test_split_cuts_a_long_equation_at_its_relation():
+    from services.api import mathspeak as M
+    from services.api import tts as T
+    said = T.speakable(NS_MD)
+    parts = T.split_sentences(said, max_chars=120)
+    assert len(parts) >= 2
+    assert parts[1].startswith("equals")  # cut where a lecturer breathes, not mid-term
+    assert not any(p.endswith(M.MARKS) or p.startswith(M.MARKS) for p in parts)
+
+
+def test_elevenlabs_payload_has_breaks_and_context():
+    import json
+
+    from services.api import tts as T
+    v = T.ElevenLabsVoice({"ELEVENLABS_API_KEY": "k"})
+    said = T.speakable(NS_MD)
+    body = json.loads(v._payload(said, ("Before this.", "After this.")))
+    assert '<break time="0.45s" />' in body["text"]
+    assert body["previous_text"] == "Before this." and body["next_text"] == "After this."
+    v3 = T.ElevenLabsVoice({"ELEVENLABS_API_KEY": "k", "ELEVENLABS_MODEL": "eleven_v3"})
+    assert "<break" not in json.loads(v3._payload(said))["text"]  # v3 does not read break tags

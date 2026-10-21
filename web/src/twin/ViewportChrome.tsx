@@ -8,6 +8,7 @@ import { useCell } from "../scene/store/useCellStore";
 import { RATE, FF } from "../scene/timeline";
 import type { CadDoc } from "../shared/model";
 import { Icon } from "../shared/icons";
+import { StfLogo } from "../shared/Logo";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -110,7 +111,7 @@ export function LoadingVeil({ hasDoc }: { hasDoc: boolean }) {
   return (
     <div className={`vp-veil ${done ? "out" : ""}`} aria-busy={!done} aria-live="polite">
       <div className="vp-veil-card">
-        <span className="brand-mark">STF</span>
+        <StfLogo className="vp-veil-logo" height={56} />
         <b>Building the machine</b>
         <span>{hasDoc ? (pct ? `Loading parts · ${pct} %` : "Placing the modules…") : "Reading the model…"}</span>
         <div className="vp-veil-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>

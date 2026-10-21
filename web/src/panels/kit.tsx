@@ -18,16 +18,6 @@ export function Empty({ text }: { text: string }) {
   return <p className="np-err">{text}</p>;
 }
 
-/** A panel's title, the upgrade it belongs to, and one line saying what it shows. */
-export function Title({ children, up: _up, lead }: { children: React.ReactNode; up?: string; lead?: React.ReactNode }) {
-  return (
-    <>
-      <h2 className="np-title">{children}</h2>
-      {lead && <p className="np-lead">{lead}</p>}
-    </>
-  );
-}
-
 /** Explanation that most readers can skip: closed until asked for. */
 export function Note({ title = "About this", children }: { title?: string; children: React.ReactNode }) {
   return (

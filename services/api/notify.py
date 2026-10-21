@@ -53,6 +53,10 @@ class Notifier:
         self.smtp_pass = raw_pass.replace(" ", "") if is_gmail else raw_pass
         self.webhook = (env.get("STF_NOTIFY_WEBHOOK") or "").strip()
         self.every_s = float(env.get("STF_NOTIFY_EVERY_HOURS") or "12") * 3600.0
+        # service-wide: a new guest is free to make (no cookie = a new guest), so the per-guest
+        # throttle alone would let a script send one email per request
+        self.max_per_hour = int(env.get("STF_NOTIFY_MAX_PER_HOUR") or "10")
+        self._sent: list[float] = []
         self.geo = geo
         self._now = now
         self._last: dict[str, float] = {}
@@ -69,6 +73,10 @@ class Notifier:
             last = self._last.get(guest)
             if last is not None and now - last < self.every_s:
                 return False
+            self._sent = [t for t in self._sent if now - t < 3600.0]
+            if len(self._sent) >= self.max_per_hour:
+                return False
+            self._sent.append(now)
             self._last[guest] = now
             if len(self._last) > 4096:
                 for g, _t in [g for g, t in self._last.items() if now - t > 7 * 86400]:
@@ -93,13 +101,14 @@ class Notifier:
     @staticmethod
     def _text(guest: str, page: str, where: str, ua: str | None) -> str:
         when = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())
+        page, where, ua = _plain(page, 80), _plain(where, 120), _plain(ua, 120) if ua else ua
         lines = [
             "A visitor is on stf-live right now.",
             "",
+            f"  session {guest}",
             f"  page    {page}",
             f"  where   {where or 'unknown'}",
             f"  when    {when}",
-            f"  guest   {guest[:12]}…",
         ]
         if ua:
             lines.append(f"  browser {ua[:120]}")
@@ -145,7 +154,12 @@ class Notifier:
                 (ln.split(None, 1)[1] for ln in text.splitlines() if ln.startswith("  where")), ""
             )
             place = where.strip()
-            subject = f"stf-live: visitor from {place}" if place else "stf-live: visitor"
+            place = _plain(place, 80)
+            session = next(
+                (ln.split(None, 1)[1] for ln in text.splitlines() if ln.startswith("  session")), ""
+            ).strip()
+            sess_tag = f" [session: {session[:8]}]" if session else ""
+            subject = f"stf-live: visitor from {place}{sess_tag}" if place else f"stf-live: visitor{sess_tag}"
         msg["Subject"] = subject
         msg["From"] = self.smtp_user
         msg["To"] = self.email_to
@@ -176,6 +190,11 @@ class Notifier:
         except Exception as e:  # any webhook failure is a log line, not a beacon failure
             logger.warning("Visitor notice webhook failed: %s", e)
             return False
+
+
+def _plain(s: str, n: int) -> str:
+    """Visitor-supplied text, made safe for an email: one line, printable, bounded."""
+    return "".join(c if c.isprintable() else " " for c in s)[:n]
 
 
 def notifier_from_env(env: dict | None = None, geo: object | None = None) -> Notifier:

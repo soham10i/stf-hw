@@ -291,6 +291,9 @@ class SupabaseLogHandler(logging.Handler):
         self._lock = threading.Lock()
         self._timer: threading.Timer | None = None
         self._closed = False
+        # a cap on records shipped per minute: a scan that sends thousands of bad requests
+        # (each a WARNING) must not fill the logs table on the free database
+        self.max_per_min, self._window, self._n = 120, 0.0, 0
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
@@ -302,6 +305,11 @@ class SupabaseLogHandler(logging.Handler):
             }
             with self._lock:
                 if self._closed:
+                    return
+                if record.created - self._window >= 60.0:
+                    self._window, self._n = record.created, 0
+                self._n += 1
+                if self._n > self.max_per_min:
                     return
                 self._rows.append(row)
                 if len(self._rows) >= BATCH:

@@ -83,6 +83,13 @@ vision-live: ## Upgrade 15 step 2: camera mount (checked), autoencoder, renderer
 	cd web && npx esbuild scripts/vision-live-check.ts --bundle --platform=node --format=esm --outfile=../.cache/vision-live-check.mjs --log-level=warning \
 		&& node ../.cache/vision-live-check.mjs public/vision 1500
 
+vision-lifetime: ## Upgrade 15: a year of camera ageing - both inspection models measured week by week (web/public/vision/lifetime.json)
+	cd web && npx esbuild scripts/vision-lifetime.ts --bundle --platform=node --format=esm --outfile=../.cache/vision-lifetime.mjs --log-level=warning \
+		&& node ../.cache/vision-lifetime.mjs public/vision 40
+
+pdm: ## Predictive maintenance: the pre-failure window - NBM, physics-informed EKF, first-passage RUL, CUSUM/BOCPD/T^2 (web/public/pdm/pdm.json; FOUNDATION=chronos adds Chronos-Bolt)
+	cd stf-cad/hbw && STF_VARIANT=up7 PDM_FOUNDATION=$(FOUNDATION) PYTHONPATH=. ../../$(PY) -m pdm.run
+
 aas: ## Upgrade 14: generate and verify the Asset Administration Shells (needs the [aas] extra)
 	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m aas.build
 

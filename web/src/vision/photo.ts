@@ -10,8 +10,9 @@
 // stored twin photos "chipped", the autoencoder at 25x its threshold).
 //
 // Two uses, one renderer:
-//   - the LIVE FEED: a frame every FEED_MS while a dashboard watches (Vision QC); streamed to it
-//     over a BroadcastChannel and never stored;
+//   - the LIVE FEED: a frame every FEED_MS while someone watches - a dashboard (it says so on
+//     the live link, shared/liveLink.ts, and gets the frames there) or the twin's own camera
+//     view (cameraFrames); never stored;
 //   - the PHOTO: one exposure as each cookie crosses the lens's axis; kept in the tab's gallery,
 //     sent to the dashboard for inspection and stored by the API (POST /vision/captures,
 //     services/api/captures.py) as the dataset for the vision models.
@@ -19,7 +20,7 @@
 
 import * as THREE from "three";
 import { HAS_API } from "../shared/mode";
-import { VISION_CHANNEL } from "./channel";
+import { liveLink, toB64 } from "../shared/liveLink";
 
 export const PHOTO_PX = 256;
 /** the three.js layer the inspection camera sees */
@@ -98,11 +99,16 @@ export const photos = {
   listeners: new Set<() => void>(),
 };
 
-let channel: BroadcastChannel | null = null;
-/** The channel to the dashboard, or null where there is none. */
-export function visionChannel() {
-  try { channel ??= new BroadcastChannel(VISION_CHANNEL); } catch { /* no BroadcastChannel */ }
-  return channel;
+/** Who watches the live feed: a dashboard until `until` (renewed by its "watch" every 2 s), and
+    the twin's own camera views (`local`, a count). */
+export const cameraWatch = { until: 0, local: 0 };
+/** The twin's own camera views: each live frame, as it is taken. */
+export const cameraFrames = new Set<(jpeg: Blob, lit: boolean) => void>();
+
+/** A live frame: to the twin's own views, and to the dashboards while one watches. */
+export function sendFrame(b: Blob, t: number, lit: boolean) {
+  cameraFrames.forEach((f) => f(b, lit));
+  if (Date.now() < cameraWatch.until) void toB64(b).then((jpeg) => liveLink("twin").send({ type: "frame", jpeg, t, lit }));
 }
 
 /** Keep the photo: in the tab's gallery, at the dashboard's inspection (Vision QC, with the empty
@@ -113,7 +119,8 @@ export async function keep(blob: Blob, empty: Blob | null, flavour: string, n: n
   photos.list.unshift(entry);
   for (const old of photos.list.splice(24)) URL.revokeObjectURL(old.url);
   photos.listeners.forEach((f) => f());
-  visionChannel()?.postMessage({ type: "photo", n, flavour, truth, jpeg: blob, empty, t: Date.now() });
+  void Promise.all([toB64(blob), empty ? toB64(empty) : Promise.resolve(null)])
+    .then(([jpeg, ref]) => liveLink("twin").send({ type: "photo", n, flavour, truth, jpeg, empty: ref, t: Date.now() }));
   if (!HAS_API) return;
   try {
     const q = new URLSearchParams({ flavour, n: String(n), source: "twin" });

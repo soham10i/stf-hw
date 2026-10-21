@@ -1,0 +1,543 @@
+/* Studio: the portfolio's design system carried into the twin and the dashboard
+   (docs: Porfolio/docs/stf-cad-design-strategy.md; the look of the portfolio's own pages,
+   Porfolio/app/src/features/story/story.css: its liquid glass, pills and mono labels). Loaded last by both entry points; it
+   dresses the one palette, "studio", in light and dark, over the base tokens of theme.css.
+
+   - The model is the page: the 3D viewport fills the window; the chrome floats over it as glass.
+   - Glass only where there is reading or input: the top bar, the rail and its panel, the dock.
+   - One type scale, one accent: Geist for the UI, Geist Mono for values and section labels;
+     the accent means "selected / live", the state colours are the machine's alone.
+   - Calm by default: nothing pulses but a fault.
+
+   Colours are the portfolio's tokens (story.css). Where a token is text on a light surface it is
+   darkened just enough for 4.5:1 (measured on #ffffff and on the glass over the ground):
+   --faint #6b7c97 -> #5b6b85, ok #16a34a -> #15803d, warn #d97706 -> #b45309, fault #dc2626 -> #c81e1e.
+   In dark, --faint #6f7e97 -> #8693ad. The doc's values stay as the state fills (--ok-fill etc). */
+
+/* ------------------------------------------------------------------ tokens */
+:root[data-palette="studio"] {
+  --font: "Geist Variable", "Geist", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-display: var(--font);
+  --mono: "Geist Mono Variable", "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --radius: 10px;
+  --radius-sm: 7px;
+  --radius-panel: 14px;
+  /* corners: tight and consistent - bars and panels 16, cards 14, tiles 12, controls 10 */
+  --r-bar: 16px;
+  --r-tile: 12px;
+  --r-ctl: 10px;
+  --gap: 8px;                                       /* the one gutter between floating blocks */
+  /* type: 13-14 px controls, 15-16 px reading; labels in mono capitals */
+  --fs-caption: 11px;
+  --fs-callout: 12px;
+  --fs-body: 13.5px;
+  --fs-head: 15px;
+  --fs-title3: 18px;
+  --fs-title2: 22px;
+  --fs-title1: 26px;
+  --fs-label: 11px;
+  --glass-blur: blur(24px) saturate(170%);          /* lg-panel */
+  --chrome-blur: blur(30px) saturate(180%);         /* lg-chrome: fixed chrome, denser */
+  --block-blur: blur(22px) saturate(165%);          /* content-glass: reading blocks */
+  /* the pane's light: a soft sheen from the top left over the rim's inner line */
+  --glass-light: linear-gradient(155deg, var(--glass-sheen), transparent 34%), linear-gradient(180deg, var(--glass-inner), transparent 40%);
+  /* the page's ground light: the accent from the top right, the cyan from the bottom left */
+  --ground-light:
+    radial-gradient(60vmax 40vmax at 90% 0%, color-mix(in oklab, var(--accent) 10%, transparent), transparent 60%),
+    radial-gradient(60vmax 40vmax at 0% 100%, color-mix(in oklab, var(--cyan) 8%, transparent), transparent 60%);
+}
+
+:root[data-theme="light"][data-palette="studio"] {
+  color-scheme: light;
+  --ground: #e4e9f1;
+  --bg: #e4e9f1;
+  --surface: #ffffff;
+  --surface-2: #f4f6fb;
+  --raised: #eef2f8;
+  --hover: #e6ebf3;
+  --border: #d3dae6;
+  --border-soft: #e3e8f0;
+  --text: #0b1322;
+  --muted: #434f66;
+  --faint: #5b6b85;
+  --accent: #2f5bea;
+  --logo-a: #0891b2; --logo-b: #2563eb;      /* the logo cube, deep enough for a light ground */
+  --accent-strong: #2449c4;
+  --accent-fill: #2f5bea;
+  --accent-fill-hover: #2554d8;
+  --accent-weak: rgba(47, 91, 234, .10);
+  --on-accent: #ffffff;
+  --ok: #15803d; --ok-weak: rgba(22, 163, 74, .12); --ok-fill: #16a34a;
+  --warn: #b45309; --warn-weak: rgba(217, 119, 6, .13); --warn-fill: #d97706;
+  --bad: #c81e1e; --bad-weak: rgba(220, 38, 38, .10); --bad-fill: #dc2626;
+  --ink: #0b1322; --sky: #0e7490;
+  --grid: #e3e8f0; --grid-strong: #c3ccdb; --inset: #0b1322;
+  --shadow: 0 1px 2px rgba(13, 22, 38, .06);
+  --viewport: radial-gradient(ellipse at 50% 28%, #f3f6fa 0%, #e4e9f1 70%);
+  --dot: rgba(11, 19, 34, .05);
+  --violet: #7048ff; --cyan: #0891b2;
+  --on-ink: #ffffff;                                /* text on an ink (--text) pill */
+  /* liquid glass (story.css): a hairline, a bright rim along the top, an inner line, a soft drop */
+  --line: rgba(11, 19, 34, .09);
+  --glass-fill: rgba(255, 255, 255, .62);
+  --chrome-fill: rgba(255, 255, 255, .68);
+  --block-fill: rgba(255, 255, 255, .66);
+  --glass-rim: rgba(255, 255, 255, .95);
+  --glass-inner: rgba(255, 255, 255, .55);
+  --glass-sheen: rgba(255, 255, 255, .50);          /* the soft light across the top-left of a pane */
+  --glass-shadow: 0 1px 1px rgba(13, 22, 38, .04), 0 10px 24px -14px rgba(13, 22, 38, .20), 0 34px 60px -42px rgba(13, 22, 38, .32);
+  --glass-bg: var(--chrome-fill);
+  --glass-solid: #f7f9fc;
+  --glass-line: var(--line);
+  --glass-edge: var(--line);
+  --float-shadow: var(--glass-shadow);
+  --scene-cell: #cdd5e1;
+  --scene-section: #9aa7bb;
+}
+
+:root[data-theme="dark"][data-palette="studio"] {
+  color-scheme: dark;
+  --ground: #030509;
+  --bg: #030509;
+  --surface: #121a2a;
+  --surface-2: #0d1422;
+  --raised: #1a2436;
+  --hover: #222e44;
+  --border: #263247;
+  --border-soft: #1a2436;
+  --text: #edf1f8;
+  --muted: #a0adc2;
+  --faint: #8693ad;
+  --accent: #7fb0ff;
+  --logo-a: #22d3ee; --logo-b: #3b82f6;      /* brighter on dark */
+  --accent-strong: #a8c9ff;
+  --accent-fill: #2f5bea;
+  --accent-fill-hover: #3a66f2;
+  --accent-weak: rgba(127, 176, 255, .14);
+  --on-accent: #ffffff;
+  --ok: #4ade80; --ok-weak: rgba(74, 222, 128, .13); --ok-fill: #4ade80;
+  --warn: #fbbf24; --warn-weak: rgba(251, 191, 36, .13); --warn-fill: #fbbf24;
+  --bad: #f87171; --bad-weak: rgba(248, 113, 113, .14); --bad-fill: #f87171;
+  --ink: #edf1f8; --sky: #46e0ee;
+  --grid: #1a2436; --grid-strong: #33415a; --inset: #02040a;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5);
+  --viewport: radial-gradient(ellipse at 50% 28%, #0d1424 0%, #030509 72%);
+  --dot: rgba(160, 190, 255, .05);
+  --violet: #b49cff; --cyan: #46e0ee;
+  --on-ink: #0a0f1a;
+  /* smoked glass: blue-grey slabs with a faint rim */
+  --line: rgba(160, 190, 255, .10);
+  --glass-fill: rgba(170, 200, 255, .05);
+  --chrome-fill: rgba(16, 23, 38, .64);
+  --block-fill: rgba(14, 20, 33, .62);
+  --glass-rim: rgba(255, 255, 255, .11);
+  --glass-inner: rgba(255, 255, 255, .035);
+  --glass-sheen: rgba(190, 215, 255, .06);
+  --glass-shadow: 0 1px 1px rgba(0, 0, 0, .35), 0 12px 28px -16px rgba(0, 0, 0, .7), 0 36px 70px -44px rgba(0, 0, 0, .9);
+  --glass-bg: var(--chrome-fill);
+  --glass-solid: #0d1422;
+  --glass-line: var(--line);
+  --glass-edge: var(--line);
+  --float-shadow: var(--glass-shadow);
+  --scene-cell: #1c2638;
+  --scene-section: #33425c;
+}
+
+/* ------------------------------------------------------------------ shared */
+[data-palette="studio"] body { background: var(--ground); }
+/* the ground's light as one fixed layer behind the page: scrolling never repaints it (a fixed
+   background-attachment repaints the whole page on every scroll) */
+[data-palette="studio"] body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--ground-light), var(--ground);
+}
+[data-palette="studio"] :is(table, .mono, code, .num, [class*="num"]) { font-variant-numeric: tabular-nums; }
+/* liquid glass, three weights (story.css): chrome for the fixed bars, block for reading, panel for cards.
+   Each has the hairline, the rim along the top, the inner line, the soft drop - and the specular
+   sheen across the top as a first background layer. */
+[data-palette="studio"] :is(
+  .glass, .app.immersive .topbar, .app.immersive .rail, .vp-bar, .db-nav, .db-top, .db-inspector,
+  .app.immersive .side.float, .vp-tip,
+  .db-card, .db-kpi, .db-ctl, .db-search
+) {
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-inner), var(--glass-shadow);
+}
+[data-palette="studio"] :is(.glass, .app.immersive .topbar, .app.immersive .rail, .vp-bar, .db-nav, .db-top, .db-inspector) {
+  background: var(--glass-light), var(--chrome-fill);
+  -webkit-backdrop-filter: var(--chrome-blur); backdrop-filter: var(--chrome-blur);
+  /* its own compositor layer: the blur is sampled once per frame, not re-rasterised with the page */
+  transform: translateZ(0); backface-visibility: hidden;
+}
+[data-palette="studio"] :is(.ui-btn, .vp-btn, .db-nav button, .rail button, .ui-seg button) {
+  transition: background-color .22s var(--ease-out), color .22s var(--ease-out), border-color .22s var(--ease-out), transform .22s var(--ease-out);
+}
+[data-palette="studio"] :is(.app.immersive .side.float, .vp-tip) {
+  background: var(--glass-light), var(--block-fill);
+  -webkit-backdrop-filter: var(--block-blur); backdrop-filter: var(--block-blur);
+}
+/* the dashboard's cards sit on the still ground, where a blur would show nothing: no backdrop
+   filter, so scrolling a page of cards costs no re-blur */
+[data-palette="studio"] :is(.db-card, .db-kpi, .db-ctl, .db-search) {
+  background: var(--glass-light), var(--glass-fill);
+}
+/* section labels: mono capitals, the portfolio's chapter labels */
+[data-palette="studio"] :is(
+  .side .panel h3, .np-h, .db-group-h, .db-title > span, .vm-group, .vm-list em, .theme-pop > em, .db-kpi > span, .al-detail b
+) {
+  font: 500 var(--fs-label) / 1.4 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--faint);
+}
+/* values: mono, tabular, so live numbers never jitter */
+[data-palette="studio"] :is(.side .num, .vp-status b, .vp-speed button, .db-ctl .mono, .pr-unit em, .pr-flav b, .plc-unit code) {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+}
+/* controls (story.css lg-btn / btn-ink): soft translucent pills; the primary action is a solid
+   ink pill; a pressed control takes the accent at 14 % with a hairline */
+[data-palette="studio"] .ui-btn {
+  height: 34px; padding: 0 14px; border-radius: var(--r-ctl); border: 1px solid transparent; font-weight: 400;
+  background: color-mix(in oklab, var(--text) 6%, transparent); color: var(--text);
+  transition: background-color .2s ease, border-color .2s ease, transform .2s var(--ease-out);
+}
+[data-palette="studio"] .ui-btn:hover { background: color-mix(in oklab, var(--text) 11%, transparent); }
+[data-palette="studio"] .ui-btn:active { transform: scale(.97); }
+[data-palette="studio"] .ui-btn.icon { width: 34px; padding: 0; }
+[data-palette="studio"] .ui-btn.ghost { background: transparent; }
+[data-palette="studio"] .ui-btn.ghost:hover { background: color-mix(in oklab, var(--text) 8%, transparent); }
+[data-palette="studio"] .ui-btn[aria-pressed="true"],
+[data-palette="studio"] .ui-btn.on { border-color: var(--line); background: color-mix(in oklab, var(--accent) 14%, transparent); }
+[data-palette="studio"] :is(.ui-btn.primary, .vp-cta, .op.cycle) {
+  background: var(--text); color: var(--on-ink); border-color: transparent; font-weight: 500;
+}
+[data-palette="studio"] :is(.ui-btn.primary, .vp-cta, .op.cycle):hover:not(:disabled) {
+  background: var(--text); transform: translateY(-1px); box-shadow: 0 14px 28px -14px rgba(13, 22, 38, .6);
+}
+[data-palette="studio"] :is(.op, .slot) { border-radius: var(--r-ctl); }
+[data-palette="studio"] .op.cycle { border-radius: var(--r-ctl); padding-block: 13px; }
+[data-palette="studio"] :is(.slot.active, .op.retrieve) {
+  background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--text); border-color: var(--line);
+}
+[data-palette="studio"] :is(.slot.active, .op.retrieve):hover { background: color-mix(in oklab, var(--accent) 20%, transparent); }
+[data-palette="studio"] .ui-seg { border-radius: var(--r-ctl); background: color-mix(in oklab, var(--text) 6%, transparent); }
+[data-palette="studio"] .ui-seg button { border-radius: calc(var(--r-ctl) - 3px); }
+[data-palette="studio"] .ui-seg button.on {
+  background: var(--chrome-fill); color: var(--text); box-shadow: inset 0 1px 0 var(--glass-rim), 0 1px 3px rgba(0, 0, 0, .14);
+}
+[data-palette="studio"] .ui-chip { border-radius: 6px; font: 500 10px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+[data-palette="studio"] :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+/* menus over glass are solid (a nested blur samples nothing) */
+[data-palette="studio"] :is(.vm-pop, .vp-pop, .theme-pop) {
+  background: var(--glass-solid); border: 1px solid var(--glass-edge); border-radius: var(--r-tile); box-shadow: var(--float-shadow);
+}
+
+/* ============================================================ the live simulation (twin)
+   Four glass zones over a full-bleed viewport: the top bar, the rail with its panel on the
+   left, and the dock at the bottom. Everything between them stays clear. */
+[data-palette="studio"] .viewport { background: var(--ground-light), var(--viewport); }
+/* the top bar: the portfolio's nav capsule - a 52 px chrome pill */
+[data-palette="studio"] .app.immersive .topbar {
+  top: var(--gap); left: var(--gap); right: var(--gap); height: 52px; border-radius: var(--r-bar); padding: 0 8px 0 8px;
+}
+[data-palette="studio"] .brand { padding-right: 6px; }
+[data-palette="studio"] .brand-logo { border-radius: var(--r-ctl); height: 36px; }
+[data-palette="studio"] .brand b { font-size: 14px; font-weight: 500; letter-spacing: -.01em; }
+[data-palette="studio"] .brand div span { font-size: 11.5px; color: var(--faint); }
+[data-palette="studio"] .top-actions .ui-btn { height: 40px; }
+[data-palette="studio"] .top-actions .ui-btn.icon { width: 40px; }
+[data-palette="studio"] .vm-btn {
+  height: 38px; border-radius: var(--r-ctl); border-color: transparent; background: color-mix(in oklab, var(--text) 6%, transparent);
+}
+[data-palette="studio"] .vm-btn:hover { background: color-mix(in oklab, var(--text) 11%, transparent); border-color: transparent; }
+[data-palette="studio"] .vm-btn b { font-weight: 500; }
+[data-palette="studio"] :is(.top-guest, .top-status) { font: 500 10px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+
+/* the rail: a 64 px icon column of glass */
+[data-palette="studio"] .app.immersive .rail {
+  left: var(--gap); top: calc(52px + 2 * var(--gap)); bottom: var(--gap); width: 56px; border-radius: var(--r-bar); padding: 8px 0; gap: 4px;
+}
+/* the rail's items: the nav's chapters - the current one a 9 % ink pill, no colour */
+[data-palette="studio"] .rail button { width: 40px; height: 40px; border-radius: var(--r-ctl); color: var(--muted); }
+[data-palette="studio"] .rail button:hover { background: transparent; color: var(--text); }
+[data-palette="studio"] .rail button.on { background: color-mix(in oklab, var(--text) 9%, transparent); color: var(--text); }
+[data-palette="studio"] .rail button.on::before { display: none; }
+[data-palette="studio"] .rail button::after {
+  left: 52px; border-radius: var(--radius-sm); background: var(--glass-solid); color: var(--text); border: 1px solid var(--glass-edge);
+  font: 500 var(--fs-callout) var(--font); box-shadow: var(--float-shadow);
+}
+
+/* the panel: floating glass beside the rail; pinned, the same block, a little more solid */
+[data-palette="studio"] .app.immersive :is(.side.float, .side.pinned) {
+  left: calc(56px + 2 * var(--gap)); top: calc(52px + 2 * var(--gap)); bottom: var(--gap); border-radius: var(--r-bar); animation: studio-in .26s var(--ease-out);
+}
+[data-palette="studio"] .app.immersive .side.pinned {
+  background: var(--glass-light), color-mix(in srgb, var(--glass-solid) 94%, transparent);
+  border: 1px solid var(--line); box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-inner), var(--glass-shadow);
+}
+@keyframes studio-in { from { opacity: 0; transform: translateX(-8px); } }
+[data-palette="studio"] .app.immersive .side-grip.closed { left: calc(56px + var(--gap) - 2px); top: calc(50% + 32px); }
+[data-palette="studio"] .side-head { height: 56px; padding: 0 10px 0 14px; border-bottom: 1px solid var(--line); }
+[data-palette="studio"] .side-head b { font-size: 19px; font-weight: 500; letter-spacing: -.03em; }
+[data-palette="studio"] .side-ico { width: 30px; height: 30px; border-radius: var(--r-ctl); background: var(--text); color: var(--on-ink); }
+[data-palette="studio"] .side-body { padding: 14px; }
+/* the panel's groups: quiet tiles on the glass, one level only */
+[data-palette="studio"] .side .panel,
+[data-palette="studio"] .side :is(.ord-card, .tm-card) {
+  background: var(--glass-light), var(--glass-fill); border: 1px solid var(--line); border-radius: var(--r-tile);
+  box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-inner);
+}
+[data-palette="studio"] .side .panel h2 { font-size: var(--fs-head); font-weight: 500; }
+/* a group's own title is a heading, not a section label */
+[data-palette="studio"] .side :is(.ord-card, .tm-card) h3 {
+  font: 500 16px / 1.2 var(--font); letter-spacing: -.02em; text-transform: none; color: var(--text);
+}
+[data-palette="studio"] .side .panel p,
+[data-palette="studio"] .side .muted { font-size: var(--fs-body); line-height: 1.5; }
+[data-palette="studio"] .side table td,
+[data-palette="studio"] .side table th { border-bottom-color: var(--glass-edge); }
+[data-palette="studio"] :is(.np-zones, .np-out, .plc-io, .plc-log, .ord-ins li) {
+  background: color-mix(in oklab, var(--text) 4%, transparent); border-color: var(--line); border-radius: var(--r-ctl);
+}
+[data-palette="studio"] .side :is(input[type="number"], input[type="text"], select, .ui-select) {
+  border-radius: var(--r-ctl); border: 1px solid var(--line); background: color-mix(in oklab, var(--text) 4%, transparent); color: var(--text);
+}
+[data-palette="studio"] .plc-io i { font-family: var(--mono); }
+[data-palette="studio"] .side .tag { font: 500 9.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; padding: 3px 9px; }
+
+/* the dock: transport and view controls as one glass pill at the bottom centre */
+[data-palette="studio"] .vp-dock {
+  top: auto; bottom: calc(var(--gap) + 4px); flex-direction: column-reverse; gap: 10px;
+}
+[data-palette="studio"] .vp-bar { height: 48px; border-radius: var(--r-bar); padding: 0 6px 0 8px; gap: 4px; }
+/* the dock's buttons are the bottom capsule's lg-btn chips */
+[data-palette="studio"] :is(.vp-btn, .vp-cta) { border-radius: var(--r-ctl); height: 34px; padding: 0 14px; font-size: 13px; }
+[data-palette="studio"] .vp-btn { background: color-mix(in oklab, var(--text) 6%, transparent); color: var(--text); }
+[data-palette="studio"] .vp-btn:hover { background: color-mix(in oklab, var(--text) 11%, transparent); }
+[data-palette="studio"] .vp-btn.off { background: transparent; color: var(--faint); }
+[data-palette="studio"] :is(.vp-btn.on, .vp-btn[aria-pressed="true"]) {
+  border: 1px solid var(--line); background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--text);
+}
+[data-palette="studio"] .vp-sep { height: 24px; background: var(--line); margin: 0 4px; }
+/* the status reads like the capsule's "01 / 07 - label": a mono rate, a hairline, the step */
+[data-palette="studio"] .vp-status b { font: 500 11px var(--mono); letter-spacing: .14em; color: var(--text); }
+[data-palette="studio"] .vp-status .vp-phase { font-size: 13px; color: var(--muted); }
+[data-palette="studio"] .vp-speed { border-radius: var(--r-ctl); }
+[data-palette="studio"] .vp-speed button { border-radius: calc(var(--r-ctl) - 3px); }
+/* menus open upwards from the bottom dock */
+[data-palette="studio"] .vp-pop { top: auto; bottom: 46px; }
+[data-palette="studio"] .vp-bar .wire-legend ul { top: auto; bottom: 48px; background: var(--glass-solid); }
+[data-palette="studio"] .vp-tip { border-radius: var(--r-bar); color: var(--accent); }
+/* running is neutral and still; only a fault pulses (1 Hz) */
+[data-palette="studio"] .vp-status > i { background: var(--ok-fill); box-shadow: none; animation: none; }
+[data-palette="studio"] .vp-status > i.idle { background: var(--faint); }
+[data-palette="studio"] .vp-status > i.fault { background: var(--bad-fill); animation: studio-fault 1s ease-in-out infinite; }
+@keyframes studio-fault { 50% { box-shadow: 0 0 0 6px var(--bad-weak); } }
+[data-palette="studio"] .vp-progress { left: 18px; right: 18px; bottom: -6px; height: 1px; background: var(--line); }
+[data-palette="studio"] .vp-progress i { background: var(--text); }
+[data-palette="studio"] .vp-errors { top: 80px; }
+[data-palette="studio"] .viewport .error { border-radius: var(--r-ctl); padding: 8px 16px; }
+/* the loading veil sits on the ground */
+[data-palette="studio"] .vp-veil { background: var(--ground-light), var(--viewport); }
+[data-palette="studio"] .vp-veil-card b { font-weight: 500; }
+[data-palette="studio"] .vp-veil-bar i { background: var(--accent); }
+[data-palette="studio"] .vp-veil-logo { filter: none; }
+
+/* phones: the rail is a row under the top bar, the panel a bottom sheet above the dock (two rows) */
+@media (max-width: 700px) {
+  [data-palette="studio"] .app.immersive .topbar { top: 8px; left: 8px; right: 8px; height: 52px; }
+  [data-palette="studio"] .vp-bar { height: auto; padding: 6px; }
+  [data-palette="studio"] .app.immersive .rail {
+    top: 68px; bottom: auto; left: 8px; right: 8px; width: auto; height: 52px; flex-direction: row; justify-content: flex-start;
+    padding: 0 6px; border-radius: var(--r-bar); overflow-x: auto; scrollbar-width: none;
+  }
+  [data-palette="studio"] .app.immersive .rail button { flex: none; }
+  [data-palette="studio"] .app.immersive .rail .rail-sp { display: none; }
+  [data-palette="studio"] .rail button.on::before { display: none; }
+  [data-palette="studio"] .rail button::after { display: none; }
+  [data-palette="studio"] .app.immersive :is(.side.float, .side.pinned) {
+    left: 8px !important; right: 8px; top: auto; bottom: 116px; width: auto !important; height: 42vh; border-radius: var(--r-bar);
+  }
+  [data-palette="studio"] .app.immersive .side-grip { display: none; }
+  [data-palette="studio"] .vp-dock { left: 0 !important; bottom: 8px; }
+  [data-palette="studio"] .vp-bar { flex-wrap: wrap; justify-content: center; max-width: calc(100% - 16px); border-radius: var(--r-bar); }
+  [data-palette="studio"] .vp-bar .vp-sep { display: none; }
+  [data-palette="studio"] .vp-status .vp-phase { max-width: 120px; }
+  [data-palette="studio"] .vp-tip { display: none; }
+  [data-palette="studio"] .vp-errors { top: 128px; }
+}
+
+/* ============================================================ the dashboard
+   The portfolio's open layout: the page is the ground with its light, the navigation and the
+   page bar are chrome, the content is glass cards (the hero's stat cards, the Work cards). */
+[data-palette="studio"] .db { background: transparent; --lift: var(--glass-shadow); }
+[data-palette="studio"] :is(.db-card, .db-kpi)::after { display: none; }
+[data-palette="studio"] .db-glow { display: none; }
+[data-palette="studio"] :is(.db-card, .db-kpi) { transition: transform .3s var(--ease-out), box-shadow .3s ease; }
+[data-palette="studio"] .db-card:hover { transform: none; }
+[data-palette="studio"] .db-kpi:hover { transform: translateY(-2px); }
+[data-palette="studio"] .db { grid-template-columns: 252px minmax(0, 1fr); }
+[data-palette="studio"] .db.nav-min { grid-template-columns: 76px minmax(0, 1fr); }
+[data-palette="studio"] .db-nav {
+  top: var(--gap); height: calc(100vh - 2 * var(--gap)); margin: var(--gap) 0 var(--gap) var(--gap); border-radius: var(--r-bar); padding: 12px 10px;
+}
+[data-palette="studio"] .db-brand b { font-size: 14px; font-weight: 500; letter-spacing: -.01em; }
+[data-palette="studio"] .db-brand span:not(.brand-mark) { font-size: 11.5px; color: var(--faint); white-space: nowrap; }
+[data-palette="studio"] .db-brand-logo { border-radius: var(--r-ctl); }
+/* collapse: a quiet row like the items below it, set off by a hairline - not a label */
+[data-palette="studio"] .db-nav-toggle {
+  height: 36px; margin: 6px 0 10px; padding: 0 10px; gap: 11px; border: 0; border-radius: var(--r-ctl); background: none; color: var(--faint);
+  font: 400 13px var(--font); letter-spacing: 0; text-transform: none; position: relative;
+}
+[data-palette="studio"] .db-nav-toggle::after {
+  content: ""; position: absolute; left: 10px; right: 10px; bottom: -6px; height: 1px; background: var(--line);
+}
+[data-palette="studio"] .db-nav-toggle:hover { background: color-mix(in oklab, var(--text) 6%, transparent); color: var(--text); border: 0; }
+[data-palette="studio"] .db.nav-min .db-nav-toggle { padding: 0; }
+[data-palette="studio"] .db-nav { scrollbar-width: none; }
+[data-palette="studio"] .db-nav::-webkit-scrollbar { display: none; }
+[data-palette="studio"] .db-group-h { padding: 10px 10px 6px; }
+/* the nav's items: the portfolio's chapter links - the current one a 9 % ink pill */
+[data-palette="studio"] :is(.db-nav button, .db-twin) { height: 36px; border-radius: var(--r-ctl); color: var(--muted); font-size: 13px; }
+[data-palette="studio"] .db-nav button svg { color: currentColor; opacity: .8; }
+[data-palette="studio"] :is(.db-nav button, .db-twin):hover { background: transparent; color: var(--text); }
+[data-palette="studio"] .db-nav button.on { color: var(--text); }
+[data-palette="studio"] .db-nav-pill { border-radius: var(--r-ctl); background: color-mix(in oklab, var(--text) 9%, transparent); }
+[data-palette="studio"] .db-nav-foot { border-top-color: var(--line); }
+[data-palette="studio"] .db-main { padding: 0 var(--gap) 32px; }
+/* the page's own blocks keep the same rhythm as the chrome around them */
+[data-palette="studio"] .db-kpis { gap: 10px; margin-bottom: 12px; }
+[data-palette="studio"] .db-grid { gap: 12px; }
+/* the page bar: one block of chrome, level with the nav's top edge. A capsule only while it is
+   one row; with the page's own controls under the title it is a rounded block, so the label and
+   the controls keep their inset instead of meeting the curve */
+[data-palette="studio"] .db-top {
+  top: var(--gap); margin: var(--gap) 0 12px; padding: 10px 10px 10px 20px; min-height: 60px; border-radius: var(--r-bar); column-gap: 8px;
+}
+[data-palette="studio"] .db-title > span { margin-bottom: 2px; }
+/* the page's controls sit in the bar, not in a second glass pill: a hairline row under the title */
+[data-palette="studio"] .db-top .db-tools {
+  flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 0; padding-top: 10px; border-top: 1px solid var(--line);
+}
+[data-palette="studio"] .db .db-main .db-top .db-ctl {
+  background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+  padding: 0; gap: 12px; min-height: 34px;
+}
+[data-palette="studio"] .db-top .db-ctl > span:first-child {
+  font: 500 var(--fs-label) / 1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--faint);
+}
+[data-palette="studio"] .db-top .db-ctl .ui-btn.icon { width: 32px; height: 32px; border-radius: var(--r-ctl); }
+[data-palette="studio"] .db-top .db-ctl input[type="range"] { width: clamp(160px, 26vw, 360px); }
+[data-palette="studio"] .db-title h1 { font-size: 24px; font-weight: 500; letter-spacing: -.03em; line-height: 1.1; }
+[data-palette="studio"] .db-ctl { border-radius: var(--r-ctl); }
+[data-palette="studio"] :is(.db-card, .db-kpi) { border-radius: var(--radius-panel); }
+/* headline figures: the hero's stat cards - mono label, a large figure, a short note */
+[data-palette="studio"] .db-kpi { padding: 18px 20px 17px; }
+[data-palette="studio"] .db-kpi > span { font-size: 9.5px; }
+[data-palette="studio"] .db-kpi::before { top: 20px; bottom: auto; height: 12px; left: 0; width: 2px; border-radius: 0 2px 2px 0; }
+[data-palette="studio"] .db-kpi b { font-family: var(--font); font-size: clamp(24px, 2.4vw, 32px); font-weight: 500; line-height: 1; letter-spacing: -.03em; margin: 12px 0 8px; }
+[data-palette="studio"] .db-kpi em { font-size: 12.5px; color: var(--muted); }
+[data-palette="studio"] .db-card { padding: 20px 22px; }
+[data-palette="studio"] .db-card h3 { font-size: 17px; font-weight: 500; letter-spacing: -.02em; }
+[data-palette="studio"] :is(.db-table, .db-card table) td { border-bottom-color: var(--line); }
+[data-palette="studio"] .al-item { background: color-mix(in oklab, var(--text) 4%, transparent); border-color: var(--line); border-radius: var(--r-tile); }
+/* Ask: the third column, a glass pane mirroring the nav - same gutter, height and corners */
+[data-palette="studio"] .db.ask { grid-template-columns: 252px minmax(0, 1fr) 380px; }
+[data-palette="studio"] .db.ask.nav-min { grid-template-columns: 76px minmax(0, 1fr) 380px; }
+[data-palette="studio"] .db-inspector {
+  top: var(--gap); height: calc(100vh - 2 * var(--gap)); margin: var(--gap) var(--gap) var(--gap) 0;
+  border-radius: var(--r-bar); overflow: hidden; animation: studio-ask .28s var(--ease-out);
+}
+[data-palette="studio"] .db-inspector-h { min-height: 60px; border-bottom-color: var(--line); }
+[data-palette="studio"] .db-inspector-ico { border-radius: var(--r-ctl); }
+@keyframes studio-ask { from { opacity: 0; transform: translateX(10px); } }
+@media (max-width: 1200px) {
+  [data-palette="studio"] .db.ask { grid-template-columns: 252px minmax(0, 1fr); }
+  [data-palette="studio"] .db.ask.nav-min { grid-template-columns: 76px minmax(0, 1fr); }
+  [data-palette="studio"] .db-inspector { position: fixed; top: var(--gap); right: 0; bottom: var(--gap); height: auto; width: min(400px, calc(100vw - 2 * var(--gap))); z-index: 40; }
+}
+@media (max-width: 900px) {
+  [data-palette="studio"] .db.ask, [data-palette="studio"] .db.ask.nav-min { grid-template-columns: 1fr; }
+  [data-palette="studio"] .db-nav { margin: 0; top: 0; height: 100vh; border-radius: 0 var(--r-bar) var(--r-bar) 0; }
+  [data-palette="studio"] .db-top { margin: 8px 0 14px; top: 8px; }
+}
+
+/* the consent banner: a content-glass block with the site's two buttons (ink and lg-btn) */
+[data-palette="studio"] .consent-card {
+  border-radius: var(--r-bar); padding: 18px 20px 16px; border: 1px solid var(--line);
+  background: var(--glass-light), var(--chrome-fill);
+  -webkit-backdrop-filter: var(--chrome-blur); backdrop-filter: var(--chrome-blur);
+  box-shadow: inset 0 1px 0 var(--glass-rim), inset 0 0 0 1px var(--glass-inner), var(--glass-shadow);
+}
+[data-palette="studio"] :is(.consent-yes, .consent-no) {
+  height: 38px; padding: 0 18px; border-radius: var(--r-ctl); border: 1px solid transparent; font: 500 13px var(--font); cursor: pointer;
+}
+[data-palette="studio"] .consent-yes { background: var(--text); color: var(--on-ink); }
+[data-palette="studio"] .consent-no { background: color-mix(in oklab, var(--text) 6%, transparent); color: var(--text); }
+[data-palette="studio"] .consent-no:hover { background: color-mix(in oklab, var(--text) 11%, transparent); }
+
+/* Reduce Transparency and Increase Contrast: the glass becomes a solid surface */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  [data-palette="studio"] :is(
+    .glass, .app.immersive .topbar, .app.immersive .rail, .app.immersive .side.float, .vp-bar, .vp-tip,
+    .db-nav, .db-card, .db-kpi, .db-ctl, .db-search, .db-top, .db-inspector, .consent-card
+  ) { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background: var(--surface) !important; border-color: var(--border) !important; }
+}
+/* Reduce Motion: no panel slide and no fault pulse; the machine's own motion stays */
+@media (prefers-reduced-motion: reduce) {
+  [data-palette="studio"] .app.immersive :is(.side.float, .side.pinned), [data-palette="studio"] .db-inspector { animation: none; }
+  [data-palette="studio"] .vp-status > i.fault { animation: none; box-shadow: 0 0 0 3px var(--bad-weak); }
+}
+
+/* the page title's animated span is the title, not the section label above it */
+.db-title h1 span { display: inline; font: inherit; letter-spacing: inherit; text-transform: none; color: inherit; }
+
+/* ============================================================ scrolling inside glass
+   Content in a scrolling pane slides under a soft fade a little before the pane's edge, rather
+   than being cut by the border line. The fade follows the scroll (a scroll-driven animation of
+   the mask's two stops): none at the top until you scroll, none at the bottom once you reach it,
+   and no fade at all on a pane that does not scroll. Browsers without scroll timelines keep the
+   hard edge. */
+@property --fade-a { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-b { syntax: "<length>"; inherits: false; initial-value: 0px; }
+:is(
+  .db-nav-scroll, .side-body, .cx-log, .cx-side, .cx-context, .cx-pop-in, .db-guide-scroll, .doc-lib, .doc-toc,
+  .vm-list, .tp-st, .cx-think-text, .ua-tree, .uns-tck
+) {
+  --fade: 26px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-a), #000 calc(100% - var(--fade-b)), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-a), #000 calc(100% - var(--fade-b)), transparent 100%);
+}
+@supports (animation-timeline: scroll()) {
+  :is(
+    .db-nav-scroll, .side-body, .cx-log, .cx-side, .cx-context, .cx-pop-in, .db-guide-scroll, .doc-lib, .doc-toc,
+    .vm-list, .tp-st, .cx-think-text, .ua-tree, .uns-tck
+  ) { animation: glass-fade linear both; animation-timeline: scroll(self block); }
+}
+@keyframes glass-fade {
+  0% { --fade-a: 0px; --fade-b: var(--fade); }
+  5% { --fade-a: var(--fade); }
+  95% { --fade-b: var(--fade); }
+  100% { --fade-a: var(--fade); --fade-b: 0px; }
+}
+/* panes that scroll keep their last line clear of the bottom fade once scrolled to the end */
+[data-palette="studio"] .side-body { padding-bottom: 20px; }
+[data-palette="studio"] .db-guide { border-radius: var(--r-bar); }
+
+/* the dock fits the room the rail and an open panel leave: it is a size container, and as that
+   room shrinks the buttons drop their words (their icons and tooltips stay), then the step text
+   goes, and only then does the bar wrap - its parts never overlap or run off the window */
+[data-palette="studio"] .vp-dock { container: dock / inline-size; }
+[data-palette="studio"] .vp-bar > * { flex: none; }
+[data-palette="studio"] .vp-bar > .vp-status { flex: 0 1 auto; min-width: 150px; }
+@container dock (max-width: 1010px) {
+  [data-palette="studio"] .vp-bar .vp-label { display: none; }
+  [data-palette="studio"] .vp-bar :is(.vp-btn:has(.vp-label), .wire-legend summary) { width: 34px; padding: 0; justify-content: center; gap: 0; }
+  [data-palette="studio"] .vp-bar .wire-legend summary::before { content: none; }
+}
+@container dock (max-width: 760px) {
+  [data-palette="studio"] .vp-bar > .vp-status { min-width: 0; }
+  [data-palette="studio"] .vp-status .vp-phase { display: none; }
+}
+@container dock (max-width: 600px) {
+  [data-palette="studio"] .vp-bar { flex-wrap: wrap; justify-content: center; height: auto; padding: 6px; row-gap: 4px; }
+  [data-palette="studio"] .vp-bar .vp-sep { display: none; }
+}

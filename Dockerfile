@@ -30,5 +30,7 @@ COPY --from=web /app/web/dist web/dist
 RUN useradd --create-home --uid 10001 stf && chown -R stf /app
 USER stf
 EXPOSE 10000
-# Render sets $PORT; the proxy in front of it sets X-Forwarded-For (the rate limiter's client).
-CMD ["sh", "-c", "exec uvicorn services.api.app:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips='*'"]
+# The platform sets $PORT. uvicorn rewrites the client address from X-Forwarded-For only for a
+# loopback peer (its default): with '*' any visitor could choose their own address. The API reads
+# the proxy's entry itself (security.client_ip, STF_PROXY_HOPS; automatic on Cloud Run).
+CMD ["sh", "-c", "exec uvicorn services.api.app:app --host 0.0.0.0 --port ${PORT} --proxy-headers"]

@@ -17,7 +17,7 @@ Every cookie's record: which mould carried it, where the RFID heads read it, its
 
 ### Records
 
-One line per cookie: flavour, mould, RFID reads, colour sensor reading in mV, and the verdict.
+One line per cookie: its journey (rack → belt → oven → bin) with the current stage lit, the RFID reads, its bake on a shared time axis, and the colour verdict.
 
 ## Where the numbers come from
 

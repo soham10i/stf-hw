@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ThemeId } from "../shared/theme";
 import { Icon, ThemeMenu } from "../shared/icons";
+import { StfLogo, StfMark } from "../shared/Logo";
 import { fetchGuest, type GuestStatus } from "../shared/session";
 import type { View } from "./registry";
 
@@ -107,7 +108,8 @@ export function TopBar({ views, view, onView, status, statusTip, theme, setTheme
   return (
     <header className="topbar">
       <div className="brand">
-        <span className="brand-mark">STF</span>
+        <StfLogo className="brand-logo" height={34} />
+        <StfMark className="brand-mark" size={32} />
         <div><b>Smart Tabletop Factory</b><span>Digital twin</span></div>
       </div>
       <ViewMenu views={views} view={view} onView={onView} />

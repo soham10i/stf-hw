@@ -315,9 +315,15 @@ def db_from_env(env: dict) -> tuple[Any, str]:
 def _secret(env: dict) -> bytes:
     """STF_SESSION_SECRET, else one kept beside the local database (a local run: cookies stay
     valid across restarts); a deployment sets it (render.yaml generates one)."""
-    s = env.get("STF_SESSION_SECRET")
-    if s:
+    s = (env.get("STF_SESSION_SECRET") or "").strip()
+    if s and len(s) >= 32 and "change" not in s.lower():
         return s.encode()
+    if s:
+        # a placeholder or a short secret signs cookies anyone can forge: never use it
+        logger.error(
+            "STF_SESSION_SECRET is too short or a placeholder: ignored, using a random one "
+            "(sessions reset on restart); set 64 random hex characters"
+        )
     path = os.path.join(env.get("STF_DATA_DIR") or ROOT, "session_secret")
     try:
         with open(path, encoding="utf-8") as f:
@@ -390,6 +396,7 @@ class Guests:
             pass
         return {
             "guest": (id or "")[:8],
+            "session_id": id,
             "since": g["created"] if g else None,
             "visits": g["visits"] if g else None,
             "kept_days": self.days,

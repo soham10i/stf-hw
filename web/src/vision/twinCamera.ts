@@ -1,12 +1,12 @@
-// The dashboard's end of the 3D twin's inspection camera (vision/photo.ts): it says it is
-// watching, so the twin streams the camera's live view, and it receives each cookie's photo.
-// The live view is drawn and dropped - only the latest frame is held, nothing is stored; the
-// photos are what the twin's API stores, and what the inspection models judge here.
+// The dashboard's end of the 3D twin's inspection camera (vision/photo.ts), over the live link
+// (shared/liveLink.ts): it says it is watching, so the twin streams the camera's live view, and
+// it receives each cookie's photo. The live view is drawn and dropped - only the latest frame is
+// held, nothing is stored; the photos are what the twin's API stores, and what the inspection
+// models judge here.
 import { useEffect, useRef, useState } from "react";
-import { VISION_CHANNEL } from "./channel";
+import { fromB64, liveLink } from "../shared/liveLink";
 
 export type TwinPhoto = { n: number; flavour: string; truth?: string; jpeg: Blob; empty: Blob | null; t: number };
-type Msg = { type: "frame"; jpeg: Blob; t: number; lit: boolean } | ({ type: "photo" } & TwinPhoto);
 
 /** Say "watching" every 2 s while the page is visible; the twin streams for 5 s after each. */
 const WATCH_MS = 2000;
@@ -18,26 +18,28 @@ export function useTwinCamera(onPhoto: (p: TwinPhoto) => void) {
   const photo = useRef(onPhoto);
   photo.current = onPhoto;
   useEffect(() => {
-    let ch: BroadcastChannel;
-    try { ch = new BroadcastChannel(VISION_CHANNEL); } catch { return; }
-    const watch = () => { if (document.visibilityState === "visible") ch.postMessage({ type: "watch" }); };
+    const link = liveLink("dashboard");
+    const watch = () => { if (document.visibilityState === "visible") link.send({ type: "watch" }); };
     watch();
     const id = window.setInterval(watch, WATCH_MS);
     const times: number[] = [];
-    ch.onmessage = async (e: MessageEvent<Msg>) => {
-      const m = e.data;
-      if (m?.type === "photo") photo.current(m);
-      if (m?.type !== "frame") return;
+    const off = link.on(async (m) => {
+      if (m.type === "photo" && typeof m.jpeg === "string") {
+        photo.current({ n: Number(m.n), flavour: String(m.flavour), truth: m.truth as string | undefined, t: Number(m.t),
+          jpeg: fromB64(m.jpeg), empty: typeof m.empty === "string" ? fromB64(m.empty) : null });
+        return;
+      }
+      if (m.type !== "frame" || typeof m.jpeg !== "string") return;
       try {
-        const bmp = await createImageBitmap(m.jpeg);
-        setFrame((old) => { old?.bmp.close(); return { bmp, t: m.t, lit: m.lit }; });
+        const bmp = await createImageBitmap(fromB64(m.jpeg));
+        setFrame((old) => { old?.bmp.close(); return { bmp, t: Date.now(), lit: !!m.lit }; });
         const now = performance.now();
         times.push(now);
         while (times.length && now - times[0] > 2000) times.shift();
         setFps(times.length / 2);
       } catch { /* a frame that would not decode */ }
-    };
-    return () => { window.clearInterval(id); ch.close(); };
+    });
+    return () => { window.clearInterval(id); off(); };
   }, []);
   // the feed has stopped when no frame came for 3 s (the twin closed, or its tab hidden)
   const [, tick] = useState(0);

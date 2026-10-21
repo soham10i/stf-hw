@@ -16,10 +16,8 @@ them and link there. Numbers come only from the twin's exports (web/public) and 
 from __future__ import annotations
 
 import html
-import ipaddress
 import os
 import re
-import socket
 import urllib.parse
 import urllib.request
 from collections.abc import Callable
@@ -27,6 +25,7 @@ from dataclasses import asdict, dataclass, field
 
 from . import gemini_pool as GP
 from . import live
+from . import netguard as NG
 from . import security as sec
 from . import vectors as V
 from .grounding import get_bm25, load_json
@@ -223,7 +222,8 @@ def alarm_lookup(args: dict, ctx: Ctx) -> Result:
 
 # ------------------------------------------------------------------------ the month
 def month_downtime(args: dict, ctx: Ctx) -> Result:
-    """The simulated month: why and how often the line stopped, downtime, OEE of the month."""
+    """The simulated production history (two months): why and how often the line stopped,
+    downtime, OEE, and the failures preventive maintenance caught."""
     m = load_json("month/month.json")
     if not m:
         return Result("month_downtime", "The month simulation is not available.")
@@ -236,19 +236,34 @@ def month_downtime(args: dict, ctx: Ctx) -> Result:
         b[1] += float(e.get("lost_s") or e.get("down_h", 0) * 3600)
     top = sorted(by.items(), key=lambda kv: kv[1][1], reverse=True)
     k = m.get("kpi", {})
+    days = m.get("meta", {}).get("days", 30)
+    span = "two months" if days > 45 else "month"
+    saves = m.get("saves", [])
     text = (
-        f"In the simulated month the line stopped {len(faults)} times ({k.get('unplanned_h', 0)} "
-        "h unplanned). "
+        f"In the simulated {span} ({days} days) the line stopped {len(faults)} times "
+        f"({k.get('unplanned_h', 0)} h unplanned). "
         + (
             f"The biggest cause was {top[0][0]} ({top[0][1][0]} stops, {top[0][1][1] / 60:.0f} "
             "min)."
             if top
             else ""
         )
+        + (
+            f" Preventive maintenance caught {len(saves)} failures before they happened: "
+            + "; ".join(
+                f"{v['name']} (warned at hour {v['warn_h']:.0f}, renewed at {v['pm_h']:.0f}, "
+                f"would have failed at {v['fail_h']:.0f})"
+                for v in saves
+                if v.get("warn_h") and v.get("pm_h") and v.get("fail_h")
+            )
+            + "."
+            if saves
+            else ""
+        )
     )
     facts = [[c, f"{n}x, {s / 60:.1f} min lost"] for c, (n, s) in top[:5]]
     facts += [
-        ["month OEE", pct(k.get("oee", 0), 1)],
+        ["OEE", pct(k.get("oee", 0), 1)],
         ["MTBF", f"{k.get('mtbf_h', 0)} h"],
         ["MTTR", f"{k.get('mttr_min', 0)} min"],
         ["cookies per hour", str(k.get("cookies_per_h", 0))],
@@ -257,8 +272,8 @@ def month_downtime(args: dict, ctx: Ctx) -> Result:
         "month_downtime",
         text,
         facts,
-        ["simulated month (month.py)"],
-        {"page": "month", "label": "Month"},
+        [f"simulated production, {days} days (month.py)"],
+        {"page": "month", "label": "Two months"},
     )
 
 
@@ -751,46 +766,19 @@ def copilot_setup(args: dict, ctx: Ctx) -> Result:
 PAGE_LIMITER = sec.RateLimiter(rate=0.2, burst=3)
 PAGE_TIMEOUT_S = 8
 PAGE_MAX_BYTES = 512_000
-_PRIVATE_NETS = [
-    ipaddress.ip_network(c)
-    for c in (
-        "127.0.0.0/8",
-        "10.0.0.0/8",
-        "172.16.0.0/12",
-        "192.168.0.0/16",
-        "169.254.0.0/16",
-        "::1/128",
-        "fc00::/7",
-        "fe80::/10",
-    )
-]
 
 
 def _public_host(host: str) -> bool:
-    """True when every address the host resolves to is a public (routable) one."""
-    host = host.lower().rstrip(".")
-    if host == "localhost" or host.endswith(".localhost") or host.endswith(".internal"):
-        return False
-    try:
-        addrs = socket.getaddrinfo(host, None)
-    except OSError:
-        return False
-    for info in addrs:
-        raw = info[4][0].split("%")[0]
-        try:
-            ip = ipaddress.ip_address(raw)
-        except ValueError:
-            return False
-        if any(ip in net for net in _PRIVATE_NETS):
-            return False
-    return bool(addrs)
+    """True when every address the host resolves to is public (netguard.py)."""
+    return NG.public_host(host)
 
 
 def _http_get(url: str) -> tuple[bytes, str]:
     req = urllib.request.Request(
         url, method="GET", headers={"User-Agent": "stf-copilot/1.0 (research; contact local)"}
     )
-    with urllib.request.urlopen(req, timeout=PAGE_TIMEOUT_S) as r:  # noqa: S310 - SSRF-guarded
+    # public peers only, checked on the connected socket: DNS rebinding and redirects too
+    with NG.opener.open(req, timeout=PAGE_TIMEOUT_S) as r:
         return r.read(PAGE_MAX_BYTES + 1), r.headers.get("Content-Type", "")
 
 

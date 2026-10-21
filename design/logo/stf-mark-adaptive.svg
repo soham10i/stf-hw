@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80" role="img" aria-label="STF Factory Simulation">
+  <!-- no background: the tab's own colour shows through; the cube follows the system's appearance -->
+  <style>
+    .a { stop-color: #0891b2 } .b { stop-color: #2563eb } .dot { fill: #0d1117 } .core { fill: #0891b2 }
+    @media (prefers-color-scheme: dark) { .a { stop-color: #22d3ee } .b { stop-color: #3b82f6 } .dot { fill: #ffffff } .core { fill: #22d3ee } }
+  </style>
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" class="a"/><stop offset="100%" class="b"/></linearGradient>
+  </defs>
+  <g stroke="url(#g)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <polygon points="40,8.5 69,25.2 69,54.8 40,71.5 11,54.8 11,25.2"/>
+    <line x1="40" y1="8.5" x2="40" y2="40"/><line x1="40" y1="40" x2="11" y2="54.8"/><line x1="40" y1="40" x2="69" y2="54.8"/>
+  </g>
+  <circle cx="40" cy="40" r="6.6" class="core"/>
+  <circle cx="69" cy="25.2" r="3" class="dot"/>
+</svg>

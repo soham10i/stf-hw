@@ -116,13 +116,6 @@
 @media (max-width: 1100px) { .mt-spares { grid-template-columns: 1fr; } }
 /* --------------------------------------------------------------- overview */
 .ov-prog { margin: 6px 0 4px; height: 5px; }
-.ov-units { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-.ov-unit { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 8px; align-items: center;
-  padding: 7px 9px; border-radius: 8px; background: var(--surface-2); border: 1px solid transparent; }
-.ov-unit.run { border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
-.ov-unit .hmi-led { grid-row: 1 / 3; }
-.ov-unit b { font-size: var(--fs-body); font-weight: 600; }
-.ov-unit em { font-style: normal; font-size: var(--fs-callout); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ov-oee { display: flex; flex-direction: column; gap: 10px; }
 .ov-oee > div { display: grid; grid-template-columns: 110px minmax(0, 1fr) 44px; align-items: center; gap: 10px; font-size: var(--fs-body); }
 .ov-oee span { color: var(--muted); }

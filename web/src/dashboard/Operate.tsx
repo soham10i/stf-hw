@@ -22,6 +22,8 @@ import { compAt } from "../shared/health";
 
 
 import { HBar } from "./Plot";
+import { LiveCell } from "./LiveCell";
+import { currentOrder, useLive } from "./live";
 import { Kpi, Card, HBars } from "./ui";
 type Page = string;
 
@@ -49,38 +51,34 @@ export function Gantt({ doc, t }: { doc: CadDoc; t: number }) {
 export function Overview({ doc, t, age, pm, go }: { doc: CadDoc; t: number; age: number; pm: boolean; go: (p: Page) => void }) {
   const c = doc.control!, vc = doc.vc!, h = doc.health!, p = vc.performance;
   const prod = c.trace.filter((r) => r.kind === "production");
-  const done = prod.filter((r) => (r.t.sorted ?? Infinity) <= t).length;
+  // the live twin's order and units (over the live link); nothing runs until an order is simulated
+  const { state: live } = useLive();
+  const { total, done } = currentOrder(live);
+  const running = live ? Object.values(live.units).filter((u) => u.state === "RUN").length : 0;
   const st = h.components.map((x) => compAt(x, age, pm));
   const fleet = st.reduce((a, x) => a + x.hi, 0) / st.length;
   const warned = st.filter((s) => s.status !== "ok").length;
   const worst = st.reduce((a, b) => (b.hi < a.hi ? b : a));
   const next = [...st].sort((a, b) => (a.rulShifts ?? 1e9) - (b.rulShifts ?? 1e9)).slice(0, 5);
-  const now = unitsAt(c, t);
   const oee = [["Availability", p.availability], ["Performance", p.performance], ["Quality", p.quality]] as const;
   const loss = [...oee].sort((x, y) => x[1] - y[1])[0];
   const jobs = Array.from(new Set((c.policies[c.policy].bars ?? []).map((b) => b.job)));
   return (
     <>
       <div className="db-kpis">
-        <div className="db-kpi"><span>order progress</span><b>{done}/{prod.length}</b>
-          <div className="db-prog ov-prog"><i style={{ width: `${(done / prod.length) * 100}%` }} /></div><em>{fmtT(t)} of {fmtT(makespan(c))}</em></div>
+        <div className="db-kpi"><span>live order</span><b>{total ? `${done}/${total}` : "–"}</b>
+          <div className="db-prog ov-prog"><i style={{ width: `${total ? (done / total) * 100 : 0}%` }} /></div><em>{live?.running ? "simulating" : "no order running"}</em></div>
         <Kpi label="throughput" value={`${((prod.length / p.makespan) * 3600).toFixed(1)}`} sub="cookies per hour" />
         <Kpi label="OEE" value={`${Math.round(p.oee * 100)} %`} sub={`biggest loss: ${loss[0].toLowerCase()}`} />
-        <Kpi label="running units" value={`${now.filter((u) => u.state === "RUN").length}/${now.length}`} sub={`bottleneck: ${p.bottleneck}`} />
+        <Kpi label="running units" value={live ? `${running}/8` : "–"} sub={`bottleneck: ${p.bottleneck}`} />
         <Kpi label="fleet health" value={`${Math.round(fleet)}`} sub={warned ? `${warned} part${warned > 1 ? "s" : ""} need service` : `worst: ${worst.c.name.replace(/ \(.*\)$/, "")}`}
           tone={st.some((s) => s.status === "fail") ? "fail" : warned ? "warn" : "ok"} />
       </div>
       <div className="db-grid">
+        <LiveCell />
         <Card title="Production timeline" wide extra={<button className="db-link" onClick={() => go("production")}>details →</button>}>
           <Gantt doc={doc} t={t} />
           <div className="db-legend">{jobs.map((j) => <span key={j} title={JOB_SAY[j]}><i style={{ background: JOB_COL[j] }} />{j.replace(/_/g, " ")}</span>)}</div>
-        </Card>
-        <Card title="Units now">
-          <div className="ov-units">{now.map((u) => (
-            <div key={u.unit} className={`ov-unit ${u.state.toLowerCase()}`} title={u.job ? JOB_SAY[u.job] : "ready"}>
-              <span className={`hmi-led ${u.state.toLowerCase()}`} /><b>{u.unit}</b>
-              <em style={u.job ? { color: JOB_COL[u.job] } : undefined}>{u.job ? u.job.replace(/_/g, " ") : "ready"}</em>
-            </div>))}</div>
         </Card>
         <Card title="OEE breakdown">
           <div className="ov-oee">

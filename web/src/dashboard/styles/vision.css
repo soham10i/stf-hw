@@ -89,3 +89,19 @@
 .vq-samples figcaption { display: grid; gap: 2px; margin-top: 6px; font-size: var(--fs-caption); color: var(--muted); }
 .vq-samples figcaption b { color: var(--text); font-size: var(--fs-callout); text-transform: capitalize; }
 .vq-samples figcaption em { font-style: normal; }
+/* the two models over a year: the controls and the two summaries */
+.vq-life-ctl { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; margin: 12px 0 14px; }
+.vq-life-ctl .vq-row { flex: 1 1 320px; }
+.vq-check { display: inline-flex; gap: 8px; align-items: center; font-size: var(--fs-body); color: var(--muted); cursor: pointer; }
+.vq-life-sums { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.vq-life-sum { margin: 0; display: grid; gap: 6px; padding: 14px 16px; border: 1px solid var(--line, var(--border)); border-radius: 16px; }
+.vq-life-sum > div { display: flex; justify-content: space-between; gap: 12px; font-size: var(--fs-body); }
+.vq-life-sum dt { color: var(--muted); }
+.vq-life-sum dd { margin: 0; font-variant-numeric: tabular-nums; }
+.vq-life-sum dd span { color: var(--faint); }
+.vq-life-sum > div:first-child dt { color: var(--text); font-weight: 500; }
+.vq-life-ctl .vq-row { grid-template-columns: 70px 1fr auto; }
+.vq-life-ctl .vq-row b { white-space: nowrap; }
+/* the two models side by side, each half the page */
+.vq-life-pair { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .vq-life-pair { grid-template-columns: 1fr; } }

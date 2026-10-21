@@ -12,7 +12,7 @@
 // as it is: one plane cannot trim its middle.
 
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { createElement } from "react";
 import * as THREE from "three";
 import { VIEW as MM } from "../coords";
@@ -65,8 +65,6 @@ export function jointTrims(parts: Part[]): Map<string, Trim[]> {
 }
 
 /** The trims of a module's parts, computed once per parts list. */
-export const useJointTrims = (parts: Part[] | undefined) => useMemo(() => jointTrims(parts ?? []), [parts]);
-
 // the module frame's axes in three's: v(x, y, z) = (x, z, y)
 const AXIS = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0)];
 

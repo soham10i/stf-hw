@@ -10,14 +10,14 @@ How the project checks itself: every variant re-built, the plant varied, and def
 
 ## How to read it
 
-1. Regression: every upgrade's machine is re-exported and must give the same result.
+1. Regression: every design variant is re-exported and must give the same result.
 2. Mutation tests: each planted defect must be caught; one that survives would be a gap in the proofs.
 
 ## Sections
 
 ### Regression: every variant re-exported
 
-Each upgrade's export rebuilt and compared with its recorded fingerprint.
+Each design export rebuilt and compared with its recorded baseline.
 
 ### Robustness: ±20 % on every plant step
 

@@ -14,6 +14,7 @@ export type DocTarget = { file: string; anchor?: string; line?: number };
 
 /** Where a document belongs in the library. */
 function group(f: string) {
+  if (f.startsWith("docs/guide/")) return "User guide";
   if (f.startsWith("docs/plc/")) return "PLC program";
   if (f.startsWith("docs/vision/")) return "Vision QC";
   if (f.startsWith("docs/maintenance/")) return "Maintenance";
@@ -25,7 +26,7 @@ function group(f: string) {
   if (f.startsWith("docs/assistant/")) return "Operations";
   return "Project documents";
 }
-const ORDER = ["PLC program", "Vision QC", "Maintenance", "Oven process", "Copilot", "The machine", "Operations", "The 3D twin", "Dashboard pages", "Project documents"];
+const ORDER = ["User guide", "PLC program", "Vision QC", "Maintenance", "Oven process", "Copilot", "The machine", "Operations", "The 3D twin", "Dashboard pages", "Project documents"];
 
 function useText(file: string | undefined) {
   const [t, setT] = useState<{ file: string; text: string } | null>(null);

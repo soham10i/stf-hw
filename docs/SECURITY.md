@@ -49,3 +49,26 @@ Python dependencies: `pip-audit` finds no known vulnerabilities. npm: 0 in produ
 - To command the machine from another device, set `STF_API_TOKEN` and send it as `X-STF-Token`. Never put the token in
   a URL.
 - Share the production build only: `npm run build && npm run preview` on port 4173, and tunnel that port.
+
+## Second review (2026-10-20): the public deployment on Cloud Run
+
+Reviewed with the Strix checklists (OWASP Top 10, API security) by reading the code and making
+read-only requests; every fix has a regression test in `tests/test_api_security.py`.
+
+| Finding | Fix |
+|---|---|
+| Rate limits keyed on the leftmost `X-Forwarded-For` (uvicorn `--forwarded-allow-ips='*'`), which the client writes: any per-client limit, and so the daily model quota, could be bypassed | `security.client_ip()`: the entry `STF_PROXY_HOPS` from the right (the one the platform's front end appended); 0 hops (the TCP peer) unless configured, 1 automatically on Cloud Run; uvicorn no longer runs with `--forwarded-allow-ips='*'` |
+| Strix (UPB `gpt-oss-120b`, local instance): the first version of that fix still trusted the rightmost entry when NO proxy was in front, so a directly reached server took its rate-limit key from the client (30 forged addresses = 30 kept guests) | trust the header only with a configured or detected proxy; replayed PoC now keeps 20 (the per-client burst) |
+| A command was "local" on the `Host` header alone | `is_local_request()`: Host, the TCP peer and every proxy hop must be loopback |
+| SSRF: the research path fetched search-result URLs with no address check; `open_page` missed `0.0.0.0`, IPv4-mapped IPv6, CGNAT and redirects; both were open to DNS rebinding | `netguard.py`: the connected socket's peer must be public, checked before any request bytes, on every redirect |
+| The copilot's answer cache ignored the guest and the client-supplied grounding: one visitor could plant another's answer | cache key = guest + hash of grounding and history |
+| Owner emails were throttled per guest, but a guest is free to create | `STF_NOTIFY_MAX_PER_HOUR` across all guests; visitor text cleaned |
+| Bodies read whole before the size check (photos, recordings, `/twin/state`) | `security.read_body()`: Content-Length checked, stream counted |
+| Any `*.ngrok` origin allowed by CORS | only with `STF_ALLOW_TUNNELS=1` |
+| `/docs` and `/openapi.json` public | only with `STF_API_DOCS=1` |
+| No rate limit on `/twin/order`, `/twin/inspection`; log shipping unbounded; one client could hold every WebSocket slot | limits on each (`STF_WS_PER_CLIENT`) |
+| A placeholder `STF_SESSION_SECRET` (the deploy guide's `CHANGE_ME` fallback) would sign forgeable cookies | secrets under 32 characters or containing "change" are refused |
+| API keys deployed as plain Cloud Run variables | `docs/GCP_DEPLOY.md`: Secret Manager (`--set-secrets`) |
+
+Rate limits and daily caps live in each instance's memory, so with `--max-instances 2` they
+are per instance (at most twice the configured values).

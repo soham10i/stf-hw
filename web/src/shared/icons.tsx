@@ -135,8 +135,8 @@ export function ThemeMenu({ theme, setTheme }: { theme: ThemeId; setTheme: (t: T
             items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length]?.focus();
           }}>
           <em>Theme</em>
-          {THEMES.map((t, i) => (
-            <button key={t.id} role="menuitemradio" aria-checked={t.id === theme} className={i === 0 ? "sep" : ""}
+          {THEMES.map((t) => (
+            <button key={t.id} role="menuitemradio" aria-checked={t.id === theme}
               onClick={() => { setTheme(t.id); setOpen(false); }}>
               <span className="theme-check">{t.id === theme ? "✓" : ""}</span>
               {swatch(t)}

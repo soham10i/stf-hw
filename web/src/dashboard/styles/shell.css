@@ -47,10 +47,17 @@
 .db-brand { display: flex; align-items: center; gap: 10px; padding: 2px 6px 14px; }
 .db-brand b { display: block; font-size: var(--fs-head); font-weight: 600; }
 .db-brand span:not(.brand-mark) { display: block; font-size: var(--fs-callout); color: var(--muted); }
-/* the mark: one confident azure tile - a sky-blue gradient with the fischertechnik hole grid
-   ghosted on it, lit from above */
-.brand-mark {
+.db-brand-logo {
+  display: block; height: 32px; width: auto; object-fit: contain; border-radius: 8px; flex: none;
+}
+.db-brand .brand-mark { display: none; }
+.db.nav-min .db-brand .db-brand-logo { display: none; }
+.db.nav-min .db-brand .brand-mark { display: grid; }
+img.brand-mark, svg.brand-mark, span.brand-mark {
   display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 9px;
+  object-fit: cover;
+}
+span.brand-mark {
   background:
     radial-gradient(circle at 5px 5px, rgba(255, 255, 255, .22) 1px, transparent 1.6px) 0 0 / 8px 8px,
     linear-gradient(145deg, #6aa8ff 0%, #2563eb 52%, #1c44b8 100%);
@@ -208,7 +215,6 @@
   color: var(--text); font: var(--fs-body) var(--font);
 }
 .db-err { padding: 60px; color: var(--muted); text-align: center; }
-.db-foot { color: var(--faint); font-size: var(--fs-callout); margin-top: 24px; text-align: center; }
 .db .u6-curve { background: #0d3560; border-radius: 8px; --bp-ink: #e6f0ff; --bp-dim: #9fd0ff; }
 .hmi-led { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: var(--faint); }
 .hmi-led.run { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-weak); }
@@ -234,7 +240,6 @@ details > summary { cursor: pointer; }
 /* ------------------------------------------------------------- the page guide (guide.ts)
    The page's purpose is its lede, always shown under the title; how to read it is a popover
    from the Guide button, so the figures start at the top of every page (popovers.md). */
-.db-lede { margin: -8px 0 20px; max-width: 86ch; font-size: var(--fs-head); line-height: 1.5; color: var(--muted); text-wrap: pretty; }
 .db-guide-btn.on, .db-ask-btn.on { background: var(--accent-weak); color: var(--accent); border-color: transparent;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), 0 4px 16px -6px color-mix(in srgb, var(--accent) 60%, transparent); }
 .db-guide-anchor { position: relative; }
@@ -312,6 +317,9 @@ details > summary { cursor: pointer; }
 
 /* the first moment: the dashboard reads the twin's export */
 .db-loading { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 6px; text-align: center; }
+.db-loading .db-loading-logo {
+  height: 64px; width: auto; max-width: 220px; margin-bottom: 12px;
+}
 .db-loading .brand-mark { width: 52px; height: 52px; border-radius: 13px; font-size: var(--fs-body); margin-bottom: 10px; }
 .db-loading b { font: 600 var(--fs-title3) var(--font-display); }
 .db-loading > span:not(.brand-mark) { font-size: var(--fs-body); color: var(--muted); }
@@ -322,9 +330,24 @@ details > summary { cursor: pointer; }
 /* headline figures: labels in sentence case like every other label */
 .db-kpi > span::first-letter { text-transform: uppercase; }
 @media (prefers-reduced-motion: reduce) { .db-guide, .db-inspector { animation: none; } .db-loading i { animation: none; } }
-.db-help { display: inline-grid; place-items: center; width: 15px; height: 15px; margin-left: 6px; border-radius: 50%; font: 600 var(--fs-caption) var(--mono);
-  font-style: normal; color: var(--muted); border: 1px solid var(--border); cursor: help; vertical-align: 1px; text-transform: none; }
-.db-help:hover { color: var(--accent); border-color: var(--accent); }
+.db-help { display: inline-grid; place-items: center; width: 17px; height: 17px; margin-left: 7px; padding: 0; border-radius: 50%; font: 600 10px/1 var(--mono);
+  font-style: normal; color: var(--muted); background: transparent; border: 1px solid var(--border); cursor: pointer; vertical-align: 1px; text-transform: none;
+  transition: color .18s ease, border-color .18s ease, background-color .18s ease; }
+/* a larger touch target than the dot itself */
+.db-help { position: relative; }
+.db-help::after { content: ""; position: absolute; inset: -8px; }
+.db-help:hover, .db-help:focus-visible { color: var(--accent); border-color: var(--accent); background: var(--accent-weak); }
+/* the note: one popover for every hint, under (or over) its dot, with an arrow at the dot */
+.db-tip { position: fixed; z-index: 90; padding: 10px 13px; border-radius: 10px; font: 400 var(--fs-callout)/1.5 var(--font); color: var(--text);
+  background: var(--glass-solid, var(--surface)); border: 1px solid var(--glass-edge, var(--border)); box-shadow: var(--float-shadow, 0 12px 32px -12px rgba(0, 0, 0, .4));
+  pointer-events: auto; animation: db-tip .16s cubic-bezier(.16, 1, .3, 1); text-transform: none; letter-spacing: 0; }
+.db-tip::before { content: ""; position: absolute; left: calc(var(--arrow) - 5px); top: -6px; width: 10px; height: 10px; rotate: 45deg;
+  background: inherit; border: inherit; border-right: 0; border-bottom: 0; }
+.db-tip.up::before { top: auto; bottom: -6px; border: inherit; border-left: 0; border-top: 0; }
+@keyframes db-tip { from { opacity: 0; transform: translateY(-3px); } }
+.db-tip.up { animation-name: db-tip-up; }
+@keyframes db-tip-up { from { opacity: 0; transform: translateY(3px); } }
+@media (prefers-reduced-motion: reduce) { .db-tip { animation: none; } }
 @keyframes vq-blink { 50% { opacity: .3; } }
 .db-muted.small { font-size: var(--fs-callout); line-height: 1.5; }
 /* --------------------------------------------------------------- docs: degradation */
@@ -364,11 +387,8 @@ details > summary { cursor: pointer; }
 .db-nav button.on svg { opacity: 1; }
 
 /* --------------------------------------------------------------- motion
-   The aurora behind the page (AuroraBackdrop.tsx), the nav's sliding highlight. The backdrop sits
-   under everything; only transforms/opacity animate so the twin canvas and charts are untouched. */
-.db-aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.db-aurora i { position: absolute; border-radius: 50%; filter: blur(90px); will-change: transform; }
-/* content above the aurora - without touching the nav's position: sticky or the top bar's */
+   The nav's sliding highlight. Content sits above the page's ground layer, without touching the
+   nav's position: sticky or the top bar's */
 .db-main { position: relative; z-index: 1; }
 .db-nav { z-index: 1; }
 /* the sliding "you are here" pill behind the nav's active item (layoutId, motion) */
@@ -413,49 +433,6 @@ details > summary { cursor: pointer; }
 .pr-dots i { width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--c); transition: background .25s; }
 .pr-dots i.on { background: var(--c); }
 
-/* --------------------------------------------------------------- lumen (premium glass)
-   Lumen: a calm ambient ground drifts behind the glass - pale sky and periwinkle by day, deep
-   indigo glows at night - while the glass itself goes softer and deeper so the ground reads
-   through the cards. Surfaces stay solid tokens, so text contrast is untouched; only the card
-   material and the chrome change. The ground is fixed (it does not scroll) and only
-   background-position animates, so the twin canvas and charts are never repainted. */
-:root[data-palette="lumen"] { --radius: 18px; }
-[data-palette="lumen"] .db {
-  /* deeper frost: more of the ground comes through, a longer blur, a brighter top light */
-  --card-bg: color-mix(in srgb, var(--surface) 50%, transparent);
-  --card-blur: blur(26px) saturate(185%);
-  --card-hi: color-mix(in srgb, #ffffff 18%, transparent);
-  --lift: var(--shadow), 0 20px 44px -18px rgba(30, 70, 160, .28);
-  /* nav items and the sliding pill become full pills instead of rounded squares */
-  animation: db-lumen-drift 46s ease-in-out infinite alternate;
-}
-[data-palette="lumen"] .db-nav button, [data-palette="lumen"] .db-twin { border-radius: 999px; }
-[data-palette="lumen"] .db-nav-pill { border-radius: 999px; }
-/* the pale-sky day ground: a breath of azure top-left, periwinkle top-right, a soft horizon below */
-[data-theme="light"][data-palette="lumen"] .db {
-  background:
-    radial-gradient(42% 55% at 12% 8%, rgba(147, 197, 253, .32), transparent 70%),
-    radial-gradient(38% 48% at 88% 18%, rgba(196, 181, 253, .24), transparent 70%),
-    radial-gradient(50% 60% at 50% 105%, rgba(191, 219, 254, .38), transparent 72%),
-    linear-gradient(180deg, #f4f8fe 0%, #e8f0fa 55%, #dde9f8 100%);
-  background-size: 160% 160%, 150% 150%, 170% 170%, 100% 100%;
-  background-attachment: fixed; /* after the shorthand, which would reset it */
-}
-/* the deep lumen night ground: indigo glows low and slow behind the frosted cards */
-[data-theme="dark"][data-palette="lumen"] .db {
-  background:
-    radial-gradient(45% 60% at 15% 10%, rgba(59, 110, 246, .28), transparent 70%),
-    radial-gradient(40% 50% at 85% 20%, rgba(124, 92, 255, .20), transparent 70%),
-    radial-gradient(55% 65% at 50% 110%, rgba(37, 99, 235, .24), transparent 72%),
-    linear-gradient(180deg, #0a1120 0%, #0b1530 55%, #0a1120 100%);
-  background-size: 160% 160%, 150% 150%, 170% 170%, 100% 100%;
-  background-attachment: fixed; /* after the shorthand, which would reset it */
-}
-@keyframes db-lumen-drift {
-  0% { background-position: 0% 0%, 0% 0%, 50% 100%, 0 0; }
-  100% { background-position: 100% 55%, 25% 100%, 45% 0%, 0 0; }
-}
-@media (prefers-reduced-motion: reduce) { [data-palette="lumen"] .db { animation: none; } }
 
 /* the owner-notifications bell menu (dashboard/NotifyMenu.tsx) */
 .notify-menu .ui-btn { position: relative; }
@@ -475,3 +452,92 @@ details > summary { cursor: pointer; }
 .notify-ok { color: var(--ok, #22c55e); }
 .notify-bad { color: var(--bad, #e0503a); }
 .notify-hint { margin: 0; font-size: var(--fs-caption, 11px); color: var(--muted); }
+
+/* Less to read: a page's captions and notes show their first line; a click opens the rest
+   (Dashboard.tsx toggles .open). The copilot and the docs keep their full text. */
+.db-page:not([data-view="copilot"]):not([data-view="docs"]) :is(.hl-cap, .db-note, p.db-muted):not(.open) {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; overflow: hidden;
+  cursor: pointer;
+}
+.db-page:not([data-view="copilot"]):not([data-view="docs"]) :is(.hl-cap, .db-note, p.db-muted).open { cursor: pointer; }
+
+/* ---------------------------------------------------------------- the live cell (Overview) */
+.lc h3 { display: flex; align-items: center; gap: 10px; }
+.lc-link { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border-radius: 999px;
+  font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
+  background: color-mix(in oklab, var(--text) 6%, transparent); }
+.lc-link i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+.lc-link.on { color: var(--ok); }
+.lc-link.on i { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ok) 25%, transparent); }
+.lc-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 16px; }
+.lc-note { color: var(--faint); font-size: var(--fs-callout); }
+.lc-count { margin-left: auto; font: 500 var(--fs-callout) var(--mono); color: var(--muted); }
+.lc-count b { color: var(--text); font-size: 18px; }
+.lc-body { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 20px; }
+@media (max-width: 760px) { .lc-body { grid-template-columns: 1fr; } }
+
+/* the cookie's way: eight stations on a line, the current one in the cookie's colour */
+.lc-journey { list-style: none; margin: 0 0 12px; padding: 0; display: grid; grid-template-columns: repeat(8, 1fr); }
+.lc-journey li { position: relative; display: grid; justify-items: center; gap: 6px; font-size: 11px; color: var(--faint); text-align: center; }
+.lc-journey li::before { content: ""; position: absolute; top: 7px; left: -50%; width: 100%; height: 2px; background: var(--line, var(--border)); z-index: 0; }
+.lc-journey li:first-child::before { display: none; }
+.lc-journey li.done::before, .lc-journey li.now::before { background: var(--accent); }
+.lc-journey li i { position: relative; z-index: 1; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); background: var(--bg, transparent); }
+.lc-journey li.done i { border-color: var(--accent); background: var(--accent); }
+.lc-journey li.now i { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 22%, transparent); }
+.lc-journey li.now span { color: var(--text); font-weight: 500; }
+.lc-cookie { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: var(--fs-callout); }
+.lc-cookie > i { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); }
+.lc-cookie b { font-weight: 500; text-transform: capitalize; }
+.lc-cookie em { font-style: normal; font-size: 11px; padding: 1px 8px; border-radius: 999px; }
+.lc-cookie em.bad { color: var(--bad); background: color-mix(in oklab, var(--bad) 12%, transparent); }
+.lc-prog { flex: 1; height: 5px; border-radius: 99px; background: color-mix(in oklab, var(--text) 8%, transparent); overflow: hidden; }
+.lc-prog i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .25s linear; }
+.lc-cookie small { font-family: var(--mono); color: var(--muted); min-width: 38px; text-align: right; }
+
+/* one row per unit: its state machine, the live state lit */
+.lc-fsm { display: grid; gap: 4px; }
+.lc-unit { display: grid; grid-template-columns: 82px auto minmax(0, 1fr); align-items: center; gap: 12px; padding: 5px 8px; border-radius: 10px; }
+.lc-unit.run { background: color-mix(in oklab, var(--ok) 7%, transparent); }
+.lc-unit b { font: 500 var(--fs-callout) var(--mono); }
+.lc-states { display: inline-flex; gap: 3px; }
+.lc-states i { font: 500 9.5px var(--mono); letter-spacing: .06em; padding: 3px 6px; border-radius: 6px; font-style: normal;
+  color: var(--faint); background: color-mix(in oklab, var(--text) 4%, transparent); transition: background .2s, color .2s; }
+.lc-states i.on.idle { color: var(--muted); background: color-mix(in oklab, var(--text) 12%, transparent); }
+.lc-states i.on.ready { color: var(--accent); background: color-mix(in oklab, var(--accent) 16%, transparent); }
+.lc-states i.on.run { color: #fff; background: var(--ok); }
+.lc-states i.on.held { color: #1a1300; background: var(--warn); }
+.lc-unit small { color: var(--muted); font-size: var(--fs-callout); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.lc-side { display: grid; gap: 12px; align-content: start; }
+.lc-cam { position: relative; margin: 0; border-radius: 14px; overflow: hidden; background: #0b0d10; aspect-ratio: 1; }
+.lc-cam canvas { display: block; width: 100%; height: 100%; }
+.lc-cam > span { position: absolute; inset: 0; display: grid; place-items: center; color: #8a939d; font-size: 12px; }
+.lc-cam.lit { box-shadow: inset 0 0 0 2px var(--accent); }
+.lc-cam figcaption { position: absolute; left: 7px; bottom: 7px; display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px;
+  border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font: 500 10px var(--mono); }
+.lc-cam figcaption i { width: 6px; height: 6px; border-radius: 50%; background: #777; }
+.lc-cam figcaption i.on { background: #e5484d; }
+.lc-side dl { margin: 0; display: grid; gap: 4px; font-size: var(--fs-callout); }
+.lc-side dl div { display: flex; justify-content: space-between; }
+.lc-side dt { color: var(--muted); }
+.lc-side dd { margin: 0; font-family: var(--mono); }
+.lc-side dd.ok { color: var(--ok); } .lc-side dd.bad { color: var(--bad); }
+.lc-ins { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 12px; }
+.lc-ins li { display: flex; align-items: center; gap: 6px; }
+.lc-ins li i { width: 8px; height: 8px; border-radius: 50%; }
+.lc-ins li b { margin-left: auto; font-weight: 500; }
+.lc-ins li.ok b { color: var(--ok); } .lc-ins li.bad b { color: var(--bad); }
+
+/* Energy & grid: the battery's charge and the price side by side under the day's power flows */
+.gr-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 6px; }
+@media (max-width: 900px) { .gr-pair { grid-template-columns: 1fr; } }
+
+/* the nav's pages scroll inside the nav, under its brand and toggle, so the list fades out before
+   the glass edge instead of being cut by it; on a phone the strip scrolls sideways as before */
+@media (min-width: 901px) {
+  .db-nav { overflow: hidden; }
+  .db-nav-scroll { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -10px; padding: 2px 10px 14px; scrollbar-width: none; overscroll-behavior: contain; }
+  .db-nav-scroll::-webkit-scrollbar { display: none; }
+}
+@media (max-width: 900px) { .db-nav-scroll { display: contents; } }

@@ -82,9 +82,6 @@ export function ThroughputPage() {
         <div className="db-kpi ok"><span>proofs</span><b>{d.proofs.fault_matrix.filter((r) => r.pass).length}/{d.proofs.fault_matrix.length}</b><em>faults recovered; no deadlock in {d.proofs.explored_states.reuse} states</em></div>
       </div>
       <div className="db-grid">
-        <section className="db-card wide"><h3>What the study says</h3>
-          <div className="mo-insights">{d.findings.map((f) => <div key={f.title}><b>{f.title}</b><p>{f.text}</p></div>)}</div>
-        </section>
         <section className="db-card wide"><h3>The same order, before and after, on one time scale (virtual commissioning)</h3>
           <Gantt bars={d.gantt.before} tMax={tMax} title="before: the original program" />
           <Gantt bars={d.gantt.after} tMax={tMax} title="after: the throughput program" />

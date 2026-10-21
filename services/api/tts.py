@@ -38,14 +38,16 @@ from fastapi import HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
+from . import fluent_math, mathspeak
 from . import gemini_pool as GP
 from . import security as sec
 from .chat import DailyCap, dotenv
+from .fluent_math import MATH_RX
 from .logging_config import get_logger
 
 logger = get_logger(__name__)
 
-MAX_CHARS = 1200
+MAX_CHARS = 3000
 VOICES = {"Kore", "Puck", "Charon", "Fenrir", "Aoede", "Leda", "Orus", "Zephyr"}
 TIMEOUT_S = 60
 # short: a long instruction makes the flash voices return no audio at all (finishReason OTHER)
@@ -67,20 +69,28 @@ class TtsRequest(BaseModel):
     voice: str = Field(default="Kore", max_length=20)
 
 
+def _spoken_math(m: re.Match) -> str:
+    """LaTeX as words, with its pause marks for the voice (see prosody); what mathspeak
+    cannot say stays the old "(formula)" word."""
+    inner = next(g for g in m.groups() if g is not None)
+    try:
+        return " " + mathspeak.verbalize_marked(inner) + " "
+    except mathspeak.Unsupported:
+        return " (formula) "
+
+
 def speakable(md: str) -> str:
-    """The answer's content only, as words: no markdown, links, formulas or headings -
-    and nothing after a Sources / Resources heading (the evidence list is not read aloud)."""
+    """The answer's content only, as words: no markdown, links or headings -
+    and nothing after a Sources / Resources heading (the evidence list is not read
+    aloud). LaTeX is verbalized (see mathspeak); what cannot be said becomes the
+    word "(formula)"."""
     # the evidence and further-reading lists are for the eye, not the voice
     t = re.split(r"(?im)^#{1,4}\s*(sources?|resources|references|further reading)\b.*$",
                  md, maxsplit=1)[0]
     t = re.sub(r"!?\[([^\]]{1,160})\]\((https?://[^)\s]+)\)", r"\1", t)  # links keep their text
     t = re.sub(r"\[[^\]]{1,120}\]", "", t)  # [sources]
     t = re.sub(r"https?://\S+|www\.\S+", "", t)  # bare URLs
-    t = re.sub(
-        r"\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$[^$\n]{1,400}\$",
-        " (formula) ",
-        t,
-    )  # LaTeX
+    t = MATH_RX.sub(_spoken_math, t)  # LaTeX -> spoken words
     t = re.sub(r"[*_`#>|]+", "", t)
     t = re.sub(r"^\s*[-•]\s+", "", t, flags=re.M)
     t = re.sub(r"\s*\n\s*", ". ", t.strip())
@@ -95,12 +105,28 @@ def speakable(md: str) -> str:
     return t
 
 
+# How each pause mark of a spoken equation is said (mathspeak P1 < P2 < P3). An engine that
+# takes timed breaks (ElevenLabs' v2 models) gets them for the term and relation pauses - the
+# hierarchy a lecturer gives an equation; every other engine gets a comma, its natural pause.
+BREAKS = {mathspeak.P1: ",", mathspeak.P2: ', <break time="0.25s" />',
+          mathspeak.P3: ', <break time="0.45s" />'}
+_MARK_RX = re.compile(r"\s*([\ue001-\ue003])\s*")
+
+
+def prosody(text: str, breaks: bool = False) -> str:
+    """The read-aloud text for one engine: the pause marks as commas, or as timed breaks."""
+    t = _MARK_RX.sub(lambda m: (BREAKS[m.group(1)] if breaks else ",") + " ", text)
+    t = re.sub(r",\s*([,.;:!?])", r"\1", t)
+    return re.sub(r"\s{2,}", " ", t).strip()
+
+
 def split_sentences(text: str, max_chars: int = 280) -> list[str]:
     """The read-aloud text as synthesis-sized pieces. A period ends a sentence only when
     followed by whitespace and a capital, digit or quote - never inside a number ("3.5 V") or
     an abbreviation ("e.g."). Tiny fragments are read with the sentence before them; what is
-    still longer than ~max_chars is halved at the comma or semicolon nearest the middle, so no
-    single synthesis request carries a whole paragraph."""
+    still longer than ~max_chars is cut at its strongest pause in the second half of the window -
+    an equation's relation or term pause first, then a comma, then a space - so no single
+    synthesis request carries a whole paragraph and an equation is cut where a lecturer breathes."""
     text = text.strip()
     if not text:
         return []
@@ -117,13 +143,15 @@ def split_sentences(text: str, max_chars: int = 280) -> list[str]:
     for p in joined:
         while len(p) > max_chars:
             window = p[:max_chars]
-            cut = window.rfind(", ")
-            if cut < max_chars // 2:
-                cut = window.rfind(" ")
+            cut = -1
+            for sep in (mathspeak.P3, mathspeak.P2, ", ", mathspeak.P1, " "):
+                cut = window.rfind(sep)
+                if cut >= max_chars // 2:
+                    break
             if cut <= 0:
                 break
-            out.append(p[:cut].strip().rstrip(","))
-            p = p[cut:].strip()
+            out.append(p[:cut].strip().rstrip(",").rstrip("\ue001\ue002\ue003").strip())
+            p = p[cut:].strip().lstrip("\ue001\ue002\ue003").strip()
         out.append(p)
     return [p for p in out if p]
 
@@ -188,7 +216,7 @@ class GeminiVoice:
     def _body(self, text: str, voice: str) -> dict:
         name = voice if voice in VOICES else "Kore"
         return {
-            "contents": [{"parts": [{"text": STYLE + text}]}],
+            "contents": [{"parts": [{"text": STYLE + prosody(text)}]}],
             "generationConfig": {
                 "responseModalities": ["AUDIO"],
                 "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": name}}},
@@ -300,13 +328,29 @@ class ElevenLabsVoice:
         self.model = env.get("ELEVENLABS_MODEL", "eleven_multilingual_v2")
         self.out_until = 0.0
 
+    @property
+    def _breaks(self) -> bool:
+        """Timed <break> tags: the v2-family models read them; eleven_v3 does not."""
+        return not self.model.startswith("eleven_v3")
+
+    def _payload(self, text: str, context: tuple[str | None, str | None] | None = None) -> bytes:
+        body = {"text": prosody(text, self._breaks), "model_id": self.model}
+        # the sentences around this one: the voice keeps one intonation across the pieces of
+        # a long answer instead of starting each sentence afresh
+        prev, nxt = context or (None, None)
+        if prev:
+            body["previous_text"] = prosody(prev)
+        if nxt:
+            body["next_text"] = prosody(nxt)
+        return json.dumps(body).encode()
+
     def ready(self) -> bool:
         return bool(self.key) and time.time() >= self.out_until
 
     def speak(self, text: str, voice: str) -> tuple[bytes, str, str]:
         if not self.ready():
             raise Unavailable("no ElevenLabs key" if not self.key else "ElevenLabs is at its limit")
-        payload = json.dumps({"text": text, "model_id": self.model}).encode()
+        payload = self._payload(text)
         headers = {
             "xi-api-key": self.key,
             "Content-Type": "application/json",
@@ -324,12 +368,13 @@ class ElevenLabsVoice:
                 raise Unavailable(f"ElevenLabs answered HTTP {e.code}") from None
             raise
 
-    def stream(self, text: str, voice: str):
+    def stream(self, text: str, voice: str, context: tuple[str | None, str | None] | None = None):
         """Yields (pcm_chunk, 16000, model) as ElevenLabs streams raw PCM; a 429/401/402/503
-        rests the provider exactly like speak() does."""
+        rests the provider exactly like speak() does. `context`: the sentences before and
+        after this one, for continuous intonation."""
         if not self.ready():
             raise Unavailable("no ElevenLabs key" if not self.key else "ElevenLabs is at its limit")
-        payload = json.dumps({"text": text, "model_id": self.model}).encode()
+        payload = self._payload(text, context)
         req = urllib.request.Request(
             self.URL_STREAM.format(voice=self.voice),
             method="POST",
@@ -375,7 +420,7 @@ class GroqVoice:
         payload = json.dumps(
             {
                 "model": self.model,
-                "input": text[:200] if len(text) > 200 else text,
+                "input": prosody(text)[:200],
                 "voice": self.voice,
                 "response_format": "wav",
             }
@@ -415,7 +460,7 @@ class LocalVoice:
             raise Unavailable("no local speech engine")
         with tempfile.TemporaryDirectory() as d:
             aiff, wavf = os.path.join(d, "a.aiff"), os.path.join(d, "a.wav")
-            subprocess.run(["say", "-o", aiff, "--", text], check=True, timeout=60)  # noqa: S603,S607
+            subprocess.run(["say", "-o", aiff, "--", prosody(text)], check=True, timeout=60)  # noqa: S603,S607
             subprocess.run(
                 ["afconvert", "-f", "WAVE", "-d", "LEI16@22050", aiff, wavf],  # noqa: S603,S607
                 check=True,
@@ -478,9 +523,7 @@ class Tts:
             raise HTTPException(status_code=403, detail="origin not allowed")
 
     def _client_of(self, request: Request) -> str:
-        client = request.client.host if request.client else "?"
-        if client in ("127.0.0.1", "::1"):
-            client = (request.headers.get("x-forwarded-for") or client).split(",")[0].strip()
+        client = sec.client_ip(request)
         return client
 
     async def speak(self, req: TtsRequest, request: Request) -> Response:
@@ -495,7 +538,7 @@ class Tts:
             raise HTTPException(
                 status_code=429, detail="too many spoken answers: wait a few seconds"
             )
-        text = speakable(req.text)
+        text = speakable(await fluent_math.verbalize_fluent(req.text))
         if not text:
             raise HTTPException(status_code=400, detail="nothing to say")
         if not self.cap.take():
@@ -554,7 +597,7 @@ class Tts:
             raise HTTPException(
                 status_code=429, detail="too many spoken answers: wait a few seconds"
             )
-        text = speakable(req.text)
+        text = speakable(await fluent_math.verbalize_fluent(req.text))
         if not text:
             raise HTTPException(status_code=400, detail="nothing to say")
         if not self.cap.take():
@@ -574,7 +617,9 @@ class Tts:
     def _sse(ev: str, obj: dict) -> str:
         return f"event: {ev}\ndata: {json.dumps(obj, separators=(',', ':'))}\n\n"
 
-    def _synth_one(self, text: str, voice: str) -> tuple[dict, bytes] | None:
+    def _synth_one(
+        self, text: str, voice: str, context: tuple[str | None, str | None] | None = None
+    ) -> tuple[dict, bytes] | None:
         """One piece of read-aloud text, fully synthesized (blocking - runs in a worker thread).
         Returns (meta, audio): meta is {"kind": "pcm", "rate", "by"} with raw s16le PCM at that
         rate, or {"kind": "file", "mime", "by"} with one container (wav/mp3) the browser plays.
@@ -590,7 +635,8 @@ class Tts:
             collected = bytearray()
             try:
                 rate, model = 0, p.name
-                for pcm, rate, model in p.stream(text, voice):
+                kw = {"context": context} if context and p.name == "elevenlabs" else {}
+                for pcm, rate, model in p.stream(text, voice, **kw):
                     collected += pcm
                 if collected:
                     meta = {"kind": "pcm", "rate": rate, "by": model}
@@ -654,15 +700,18 @@ class Tts:
 
         sem = asyncio.Semaphore(3)
 
-        async def one(s: str):
+        async def one(i: int):
+            s = sentences[i]
+            ctx = (sentences[i - 1] if i else None,
+                   sentences[i + 1] if i + 1 < len(sentences) else None)
             async with sem:
                 try:
-                    return await asyncio.to_thread(self._synth_one, s, voice)
+                    return await asyncio.to_thread(self._synth_one, s, voice, ctx)
                 except Exception as e:  # a broken provider must not sink the whole answer
                     logger.warning("Sentence TTS failed for %r: %s", s[:60], e)
                     return None
 
-        tasks = [asyncio.create_task(one(s)) for s in sentences]
+        tasks = [asyncio.create_task(one(i)) for i in range(len(sentences))]
         sig: tuple | None = None  # what the player's meta was last opened with
         spoken = 0
         try:
@@ -864,14 +913,14 @@ class Stt:
                 status_code=503,
                 detail="no transcription on the server: use the browser's recognition",
             )
-        client = request.client.host if request.client else "?"
+        client = sec.client_ip(request)
         if not self.limiter.allow(client):
             raise HTTPException(status_code=429, detail="too many recordings: wait a few seconds")
         mime = (request.headers.get("content-type") or "").split(";")[0].strip()
         if mime not in STT_TYPES:
             raise HTTPException(status_code=415, detail=f"send one of {', '.join(STT_TYPES)}")
-        audio = await request.body()
-        if not audio or len(audio) > STT_MAX_BYTES:
+        audio = await sec.read_body(request, STT_MAX_BYTES)
+        if not audio:
             raise HTTPException(status_code=413, detail="a recording of at most 2 MB")
 
         # ElevenLabs Scribe, then Groq Whisper, then the Gemini pool (STT_PROVIDERS)

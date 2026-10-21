@@ -1,8 +1,8 @@
 """
-One month of production on the Upgrade 7 machine - the data a real cell
+Two months of production on the Upgrade 7 machine (September and October) - the data a real cell
 would have produced, simulated from the models (STF_VARIANT=up7).
 
-  PLAN      30 days x 2 shifts (06-14, 14-22). One order = the 12-cookie
+  PLAN      61 days x 2 shifts (06-14, 14-22). One order = the 12-cookie
             batch the rack holds: 9 baked and sorted, 3 returned to the rack.
             Between orders the operator empties the bays and loads raw dough
             (CHANGEOVER). No order starts that cannot finish in its shift.
@@ -43,7 +43,7 @@ assert UP7, "run with STF_VARIANT=up7"
 
 OUT = os.path.expanduser("~/workspace/stf-hw/web/public/month")
 START = datetime(2026, 9, 1, 6, 0)
-DAYS = 30
+DAYS = 61                          # two months: September and October
 SHIFTS = ((6, 14), (14, 22))
 CHANGEOVER = 120.0                 # s: empty the bays, load 9 raw doughs (ASSUMED)
 SEED = 20260901
@@ -57,7 +57,7 @@ SCENARIO = {
     "belt":    {"w0": 0.35, "events": []},
     "rfid":    {"w0": 0.10, "events": []},
     "spindle": {"w0": 0.45, "events": [(5.0, 6.0, "the spindle nut loses its grease (a wiper seal failed)")]},
-    "gearbox": {"w0": 0.62, "events": [(16.0, 1.6, "bearing spalling starts in the swivel gearbox")]},
+    "gearbox": {"w0": 0.40, "events": [(38.0, 1.6, "bearing spalling starts in the swivel gearbox")]},
     "air":     {"w0": 0.20, "events": [(12.0, 1.8, "a push-in fitting on the oven manifold starts to leak")]},
     "colour":  {"w0": 0.25, "events": []},
 }

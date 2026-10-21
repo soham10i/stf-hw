@@ -20,7 +20,9 @@ import { SidePanel } from "./SidePanel";
 import { TopBar } from "./TopBar";
 import { useBackend } from "./useBackend";
 import { useLiveShare } from "./liveShare";
+import { useLivePublish } from "./livePublish";
 import { CameraTip, CellStatus, FocusMenu, LoadingVeil, SpeedControl } from "./ViewportChrome";
+import { track } from "../shared/track";
 
 export default function App() {
   const { theme, setTheme } = useTheme();
@@ -28,6 +30,10 @@ export default function App() {
   const machine = useCadDoc();
   const comps = useComponents();
   const ctl = useController();
+
+  useEffect(() => {
+    track("twin", true);
+  }, []);
   // react-three-fiber measures its parent with a ResizeObserver, which some embedded
   // browsers never fire initially: the Canvas then stays empty. Nudge it once the machine
   // is loaded (a timeout, not rAF: rAF does not run in a hidden tab).
@@ -94,6 +100,7 @@ export default function App() {
     "--tools-left": `${inset}px`,
   } as React.CSSProperties;
   useLiveShare(machineView && !!machine.doc);
+  useLivePublish(machineView && !!machine.doc);
   // the camera centres the machine in what the rail, a floating panel and the bars leave clear
   useEffect(() => {
     const narrow = window.innerWidth <= 900;
@@ -123,7 +130,7 @@ export default function App() {
             <LoadingVeil hasDoc={!!machine.doc} />
             {machine.doc && (
               <ErrorBoundary>
-                <Canvas shadows dpr={[1, 2]} gl={{ preserveDrawingBuffer: true }} onCreated={({ gl }) => { gl.localClippingEnabled = true; }}>
+                <Canvas shadows dpr={[1, 1.5]} gl={{ powerPreference: "high-performance" }} onCreated={({ gl }) => { gl.localClippingEnabled = true; }}>
                   <HbwCadStage doc={machine.doc} showZones={showZones && !netZones} netZones={netZones} showCover={showCover} />
                 </Canvas>
               </ErrorBoundary>

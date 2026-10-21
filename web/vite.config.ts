@@ -17,7 +17,7 @@ const API_PROXY = {
   "/orders": API,
   "/health": API,
   "/chat": API,
-  "/twin": API,
+  "/twin": { ...API, ws: true },  // REST and the live link (WS /twin/live)
   "/copilot": API,
   "/guest": API,
   "/notify": API,

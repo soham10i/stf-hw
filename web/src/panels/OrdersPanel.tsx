@@ -16,6 +16,8 @@ import { DEFECTS, useCell, type Defect, type OrderLine } from "../scene/store/us
 import { useCadDoc } from "../shared/model";
 import { ago, fetchRecords, type TwinRecords } from "../shared/records";
 import { HAS_API } from "../shared/mode";
+import { CameraView } from "../twin/CameraView";
+import { SAMPLE } from "../twin/livePublish";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const clock = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
@@ -29,6 +31,8 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
   const [flavour, setFlavour] = useState("chocolate");
   const [qty, setQty] = useState(3);
   const [msg, setMsg] = useState<{ text: string; tone: "ok" | "bad" } | null>(null);
+  // a broken cookie in the order: the inspection must catch it (the camera, the CNN, the line)
+  const [broken, setBroken] = useState(false);
   const store = useCell((s) => s);
   const m = store.model;
   const rack = m.rack, raw = m.rawColour, cyc = m.cycle;
@@ -78,8 +82,16 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
       return;
     }
     const wasIdle = m.idle && !queue.some((o) => o.done < o.qty);
+    if (broken) store.injectDefect("cracked");
     store.place(flavour, qty);
-    setMsg({ tone: "ok", text: `Order placed: ${qty} × ${flavour}. ${wasIdle ? "The cell starts now." : "It is queued after the current order."}` });
+    setMsg({ tone: "ok", text: `Order placed: ${qty} × ${flavour}${broken ? ", the first one broken" : ""}. ${wasIdle ? "The cell starts now." : "Queued."}` });
+  };
+  /** One cookie of each flavour: the quickest way to watch the whole line work. */
+  const sample = () => {
+    if (free < SAMPLE.length) { setMsg({ tone: "bad", text: "Not enough raw dough: deliver the baked cookies first." }); return; }
+    if (broken) store.injectDefect("cracked");
+    SAMPLE.forEach((f) => store.place(f, 1));
+    setMsg({ tone: "ok", text: `Sample order: one of each flavour${broken ? ", the first one broken" : ""}.` });
   };
   const reset = () => {
     if (!window.confirm("Reset the rack? Every slot gets fresh dough and the order list is cleared.")) return;
@@ -113,9 +125,18 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
           <button className="slot" onClick={() => setQty(Math.min(12, qty + 1))} aria-label="More">+</button>
           <em>1 to 12 cookies</em>
         </div>
-        <button className="op cycle ord-place" onClick={place} disabled={!free}>
-          Place order · {qty} × {cap(flavour)}
+        <button className={`ord-broken ${broken ? "on" : ""}`} aria-pressed={broken} onClick={() => setBroken(!broken)}
+          title="The first cookie of the order comes out broken (cracked): watch the camera find it and the line hold it back">
+          <span className="ord-broken-ico" aria-hidden>{broken ? "✕" : ""}</span>
+          <span><b>Broken cookie</b><small>{broken ? "the first cookie is cracked" : "every cookie baked right"}</small></span>
         </button>
+        <div className="ord-go">
+          <button className="op cycle ord-place" onClick={place} disabled={!free}>
+            Place order · {qty} × {cap(flavour)}
+          </button>
+          <button className="op ord-sample" onClick={sample} disabled={free < SAMPLE.length}
+            title="One chocolate, one vanilla, one strawberry">Sample order</button>
+        </div>
         {msg && <p className={`ord-msg ${msg.tone}`} role="status">{msg.text}</p>}
         {baked > 0 && (
           <button className="op store ord-deliver" onClick={deliver} disabled={busy}
@@ -147,7 +168,7 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
       <section className="ord-card">
         <div className="ord-head"><h3>Quality inspection</h3>
           <span className="ord-total">{ins.passed} passed · {ins.rejected} rejected</span></div>
-        <p className="ord-hint">The camera in the colour hood photographs every cookie; the CNN decides, and the sorting line acts on it - a cookie that does not pass is not ejected to its Lagerstelle but held at the end of the line, and the order makes it again.</p>
+        <CameraView size={220} />
         <label className="ord-auto">
           <input type="checkbox" checked={ins.auto} onChange={(e) => store.autoDefects(e.target.checked)} />
           <span><b>QC testing</b>: one cookie in every 12, drawn at random, gets a random fault</span>

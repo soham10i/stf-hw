@@ -1,7 +1,7 @@
 // Analysis charts for the dashboard: axes with titles and units, "nice" ticks, a crosshair that
 // reads every series at the pointer, a legend that hides and shows series, and labelled limit
 // lines, bands and events. Plot is the x-y chart; Heat is a rows x time heat map.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 /** The element's width in CSS pixels, so a chart draws at true size (text never scales). */
 export function useWidth<T extends HTMLElement>(fallback = 900) {
@@ -68,6 +68,7 @@ export function Plot({ series, xTitle, yTitle, xFmt = fmtNum, yFmt = fmtNum, xMi
   const [off, setOff] = useState<Set<string>>(new Set());
   const [hx, setHx] = useState<number | null>(null);
   const [box, W] = useWidth<HTMLDivElement>();
+  const gid = `pl${useId().replace(/:/g, "")}`;  // gradient ids, unique per chart
   const L = 58, R = 16, T = 14, B = 42;
   const vis = series.filter((s) => !off.has(s.name));
   const dom = useMemo(() => {
@@ -120,11 +121,18 @@ export function Plot({ series, xTitle, yTitle, xFmt = fmtNum, yFmt = fmtNum, xMi
           {hlines.filter((l) => l.y >= dom.y0 && l.y <= dom.y1).map((l) => <g key={l.label}>
             <line x1={L} x2={W - R} y1={Y(l.y)} y2={Y(l.y)} stroke={l.color} strokeDasharray="6 4" strokeWidth={1.3} />
             <text x={W - R - 4} y={Y(l.y) - 5} textAnchor="end" className="pl-lab" style={{ fill: l.color }}>{l.label} · {yFmt(l.y)}</text></g>)}
-          {vis.map((s) => s.kind === "dots"
+          {vis.map((s, k) => s.kind === "dots"
             ? <g key={s.name}>{s.x.map((x, i) => s.y[i] !== null && <circle key={i} cx={X(x)} cy={Y(s.y[i]!)} r={1.8} fill={s.color} opacity={0.6} />)}</g>
             : <g key={s.name}>
-                {s.kind === "area" && <path d={`${path(s)}L${X(s.x[s.x.length - 1])},${Y(Math.max(dom.y0, 0))}L${X(s.x[0])},${Y(Math.max(dom.y0, 0))}Z`} fill={s.color} opacity={0.12} />}
-                <path d={path(s)} fill="none" stroke={s.color} strokeWidth={s.width ?? 2} strokeDasharray={s.dash ? "5 4" : undefined} strokeLinejoin="round" />
+                {s.kind === "area" && <>
+                  {/* the fill fades from the line to the baseline */}
+                  <defs><linearGradient id={`${gid}-${k}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" style={{ stopColor: s.color, stopOpacity: 0.34 }} /><stop offset="1" style={{ stopColor: s.color, stopOpacity: 0.02 }} />
+                  </linearGradient></defs>
+                  <path d={`${path(s)}L${X(s.x[s.x.length - 1])},${Y(Math.max(dom.y0, 0))}L${X(s.x[0])},${Y(Math.max(dom.y0, 0))}Z`} fill={`url(#${gid}-${k})`} />
+                </>}
+                <path d={path(s)} fill="none" stroke={s.color} strokeWidth={s.width ?? 2} strokeDasharray={s.dash ? "5 4" : undefined}
+                  strokeLinejoin="round" strokeLinecap="round" />
               </g>)}
           {(() => {
             // each event label takes the lowest row where it does not overlap another label

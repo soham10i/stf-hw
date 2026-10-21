@@ -110,6 +110,8 @@ export interface CoordinatorOptions {
 }
 
 const smooth = (u: number) => THREE.MathUtils.smoothstep(u, 0, 1);
+/** how far past the lens's axis a cookie can be and still be photographed whole (half the field) */
+const LENS_WINDOW_MM = 30;
 const HOLD_SAY = "VGR: holds clear while the cookie is baked and sorted";
 
 export class CellCoordinator {
@@ -153,8 +155,6 @@ export class CellCoordinator {
   overlapped = 0;
   /** the travelling cookie's position along the belt relative to the lens's axis, last tick */
   private along = NaN;
-  /** the flight the camera last looked at (its along-axis must reset when the flight changes) */
-  private alongFlight: Flight | null = null;
   /** the first tick announces the restored cell (the constructor runs inside a React render,
       where notifying other components is not allowed) */
   private announced = false;
@@ -877,21 +877,27 @@ export class CellCoordinator {
     }
   }
 
-  /** The inspection camera fires as the travelling cookie CROSSES its lens's axis - a change of
-      side between two ticks, so a fast playback that steps over the axis still triggers it. A
-      capture is offered to the renderer for exactly one tick (camera.pending), and to listeners. */
+  /** The inspection camera fires once per cookie as it CROSSES its lens's axis - a change of side
+      between two ticks, so a fast playback that steps over the axis still triggers it - or, when a
+      slow frame rate brought it onto the belt already past the axis, on its first tick in the
+      field. A capture is offered to the renderer for exactly one tick (camera.pending), and to
+      listeners. */
   private camera(dt: number) {
     const cam = this.store.joints.camera, wp = this.store.joints.workpiece;
     cam.pending = null;
     cam.lit = Math.max(0, cam.lit - dt * 4);
-    if (this.flowFlight !== this.alongFlight) { this.alongFlight = this.flowFlight; this.along = NaN; }
     const f = this.flowFlight;
-    if (!f || !this.lens) return;
+    if (!f || !this.lens) { this.along = NaN; return; }
     const flavour = f.cyc.flavour;
     // the sorting belt runs along the factory's +Y here; across it, the cookie must be under the lens
     const on = wp.visible && Math.abs(wp.pos[0] - this.lens[0]) < 15;
     const along = on ? wp.pos[1] - this.lens[1] : NaN;
-    if (along >= 0 && this.along < 0) {
+    // the photo, once per cookie: as it crosses the lens's axis between two ticks, or - when a
+    // slow frame rate (a background window, fast playback) brought it onto the belt already
+    // past the axis - on the first tick it is in the field
+    const prev = this.along;
+    this.along = along;
+    if (!f.cyc.shot && along >= 0 && (prev < 0 || along < LENS_WINDOW_MM)) {
       cam.shots++;
       cam.lit = 1;
       const truth = f.cyc.defect ?? "ok";
@@ -899,7 +905,6 @@ export class CellCoordinator {
       if (!f.cyc.shot) f.cyc.shot = cam.shots;
       this.store.emitCapture({ n: cam.shots, flavour, truth });
     }
-    this.along = along;
   }
 }
 

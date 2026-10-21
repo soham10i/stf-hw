@@ -6,6 +6,7 @@ import { HAS_API } from "./mode";
 
 export type GuestStatus = {
   guest: string;            // the session id, first 8 hex chars
+  session_id?: string;      // full session id
   since: number | null;     // epoch seconds, when the session was made
   visits: number | null;
   kept_days: number;        // unseen this long, the record and its data are removed
@@ -13,9 +14,13 @@ export type GuestStatus = {
   note: string;             // why the database is what it is (empty when healthy)
 };
 
-export function fetchGuest(): Promise<GuestStatus | null> {
+let _cachedGuest: Promise<GuestStatus | null> | null = null;
+
+export function fetchGuest(page = "site"): Promise<GuestStatus | null> {
   if (!HAS_API) return Promise.resolve(null);
-  return fetch("/guest")
+  const q = page ? `?page=${encodeURIComponent(page)}` : "";
+  _cachedGuest ??= fetch(`/guest${q}`)
     .then((r) => (r.ok ? (r.json() as Promise<GuestStatus>) : null))
     .catch(() => null);
+  return _cachedGuest;
 }

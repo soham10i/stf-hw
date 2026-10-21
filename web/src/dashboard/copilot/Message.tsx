@@ -344,15 +344,23 @@ export function Speak({ text, auto = false }: { text: string; auto?: boolean }) 
     speaking = stop;
     const my = ++gen.current;
     setState("loading");
-    // the content only: no formulas, code, links, URLs or citations - and nothing after a
-    // Sources/Resources heading (the evidence list is not read aloud; tts.py does the same)
+    // the content only: no code, links, URLs or citations - and nothing after a
+    // Sources/Resources heading (the evidence list is not read aloud; tts.py does the
+    // same). Math is kept verbatim: tts.py's speakable() verbalizes the LaTeX, so the
+    // markdown stripping below must not touch it - each expression is parked in a
+    // placeholder and put back afterwards.
     const body = text.split(/^#{1,4}\s*(sources?|resources|references|further reading)\b.*$/im)[0];
-    const said = body
-      .replace(/\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$[^$\n]{1,400}\$/g, " (formula) ")
+    const math: string[] = [];
+    const parked = body.replace(
+      /\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$[^$\n]{1,2000}\$/g,
+      (m) => { math.push(m); return `${math.length - 1}`; },
+    );
+    const said = parked
       .replace(/```[\s\S]*?```/g, " (code) ")
       .replace(/!?\[([^\]]{1,160})\]\((https?:\/\/[^)\s]+)\)/g, "$1")
       .replace(/https?:\/\/\S+|www\.\S+/g, "")
-      .replace(/\[[^\]]{1,140}\]|[*_`#>|]/g, "");
+      .replace(/\[[^\]]{1,140}\]|[*_`#>|]/g, "")
+      .replace(/(\d+)/g, (_, i) => math[+i]);
     // the streamed voice: meta opens the player, chunks feed it as they arrive
     // (an array holder: closures assign it and TypeScript keeps the type)
     const file: { mime: string; by: string; parts: string[] }[] = [];
