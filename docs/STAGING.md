@@ -36,10 +36,37 @@ No token needed through the proxy; it authenticates with your gcloud credentials
 Opening the `*.run.app` URL directly in a browser shows Google's `Forbidden` page —
 that is the privacy working, not an outage; the browser sends no identity token.
 
+## Branch workflow (2026-10-23) — push to `dev` tests, merge to `main` ships
+
+Two Cloud Build GitHub triggers automate the whole loop:
+
+| push to | trigger | deploys to |
+|---|---|---|
+| `dev` | `stf-staging-dev-deploy` | private mirror `stf-staging` |
+| `main` | `rmgpgab-stf-live-…` | public `stf-live` |
+
+So the daily loop is pure git:
+
+```bash
+git switch dev            # all work happens on dev
+# ... edit, run the suite, commit ...
+git push origin dev       # -> auto-builds and deploys the mirror in ~5 min
+# test the mirror (Swagger via `make staging-proxy`, curl with token)
+git switch main && git merge dev && git push origin main   # -> ships to the public URL
+```
+
+Trigger deploys only replace the container image, so the mirror keeps its
+configuration across builds: private IAM (invoker = your account only),
+`STF_API_DOCS=1`, blanked mail, the 10 Secret Manager mounts, and the
+1 GiB / 1 CPU sizing. Verified 2026-10-23 after the first dev push.
+
+`make staging-deploy` / `make promote` remain as manual escape hatches for
+deploying an uncommitted local tree; the branch flow is the normal path.
+
 ## Development loop
 
 1. Change code locally; run the suite (`.venv/bin/python -m pytest -q --ignore=tests/perf`).
-2. `make staging-deploy` — builds the current tree onto `stf-staging`.
+2. Commit on `dev` and `git push origin dev` — the trigger builds and deploys the mirror.
 3. Test on staging (Swagger, curl with token, dashboard pointed at staging if needed).
 4. Repeat until stable.
 
