@@ -33,8 +33,14 @@ industrial-deficit analysis behind this list is in the session log and
    (tests/test_retrieval_eval.py) guard the baseline in CI. **Built 2026-10-23** — baseline
    on the hash embedder: hit@8 0.875, MRR 0.64; the lexical MISSes it surfaced are the
    reranker's target list.
-3. **Query rewriting.** Spell-fix plus vocabulary expansion from the page the question
-   was asked on; HyDE for the vector side when BM25 is empty.
+3. **Query rewriting.** **Built 2026-10-23** (`services/api/rewrite.py`): SymSpell-style
+   spell-fix against the corpus vocabulary (bounded Damerau-Levenshtein; short words
+   admit distance-1 fixes only, so stopwords never get "corrected" into kb terms);
+   page-vocabulary expansion from `Ctx.page`; HyDE-lite for the vector side - the
+   page-expanded query is embedded instead of the raw one when BM25 is empty (a real
+   HyDE needs an LLM call in the hot path; revisit under a cheap local model). Golden-set
+   baseline unchanged after wiring (hit@8 0.875, MRR 0.644) - the win is on typo'd
+   queries, which the goldens don't contain; typo-recovery pairs are a follow-up for B2.
 
 ## Phase C - context engineering
 

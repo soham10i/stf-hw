@@ -571,7 +571,7 @@ def search_docs(args: dict, ctx: Ctx) -> Result:
     q = str(args.get("query", "")).strip()
     hits = [
         h
-        for h in V.hybrid_search(q, top_k=int(args.get("k") or 4) * 2)
+        for h in V.hybrid_search(q, top_k=int(args.get("k") or 4) * 2, page=ctx.page)
         if h["score"] >= 2.0 or h.get("vscore", 0.0) >= V.VECTOR_ACCEPT
     ][: int(args.get("k") or 4)]
     if not hits:

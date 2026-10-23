@@ -56,7 +56,7 @@ import urllib.request
 
 import numpy as np
 
-from . import keepalive
+from . import keepalive, rewrite
 from .envcfg import dotenv
 from .grounding import get_bm25, tokenize
 from .logging_config import get_logger
@@ -905,20 +905,25 @@ def _rerank(query: str, out: list[dict]) -> list[dict]:
         return out
 
 
-def hybrid_search(query: str, top_k: int = 8) -> list[dict]:
+def hybrid_search(query: str, top_k: int = 8, page: str | None = None) -> list[dict]:
     """Execute hybrid retrieval combining BM25 lexical search with dense vector embeddings via RRF.
 
     Reciprocal Rank Fusion (RRF) scores each document candidate by combining lexical ranking
     and semantic vector similarity without letting dense embeddings eclipse precision lexical hits.
+    The query passes through rewrite.py first: spell-fix against the corpus vocabulary on the
+    lexical side; page-vocabulary expansion on the vector side only when BM25 found nothing
+    (the HyDE-lite fallback). Reranking always sees the original query.
 
     Args:
         query: User search query string.
         top_k: Number of highest-ranking candidate documents to return.
+        page: Dashboard page id the question was asked on (drives expansion), if known.
 
     Returns:
         list[dict]: List of matched passages with ranking metadata, BM25 score, and cosine vscore.
     """
-    bm25_hits = get_bm25().search(query, top_k=top_k)
+    lexical_q = rewrite.spell_fix(query)
+    bm25_hits = get_bm25().search(lexical_q, top_k=top_k)
     try:
         store = get_store()
     except Exception as e:
@@ -939,7 +944,8 @@ def hybrid_search(query: str, top_k: int = 8) -> list[dict]:
         }
 
     try:
-        vec = store.top(query, top_k)
+        vec_q = rewrite.vector_query(query, page, bm25_empty=not bm25_hits)
+        vec = store.top(vec_q, top_k)
         vrank = {pid: 1.0 / (RRF_K + r + 1) for r, (pid, _) in enumerate(vec)}
         floors = _bm25_cosines(query, store, top_k)
         best_floor = max(floors.values(), default=0.0)
