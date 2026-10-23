@@ -20,7 +20,9 @@ The signals, in the order they are weighed:
      "latest", "news", a recent year -> web;
   4. the twin's own data: a tool the rules router called for this question -> twin;
   5. the documents' match: the best passage's BM25 score and the share of the question's words
-     it contains - a strong match -> docs;
+     it contains - a strong match -> docs; a passage whose *meaning* matches even though its
+     words do not (the vector side of hybrid retrieval, cosine at or above VEC_STRONG) covers
+     the question too - a plain BM25 router misroutes those to the web;
   6. outside knowledge: a standard (ISO 13849, IEC 62443), a vendor, or a general-engineering
      question the documents match only weakly -> web, unless the question is about this twin
      (its parts, pages, PLC), which no web page can answer.
@@ -34,7 +36,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from .grounding import get_bm25
+from . import vectors as V
 from .logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -43,6 +45,7 @@ MODES = ("chat", "twin", "docs", "web", "deep")
 STRONG_SCORE = 6.0  # a BM25 score this high, with...
 STRONG_COVER = 0.5  # ...this share of the question's words, means the documents cover it
 VERY_STRONG = (12.0, 0.75)  # so strong that the documents win even for an outside topic
+VEC_STRONG = 0.72  # a passage this close by meaning covers the question even when words differ
 
 GREETING = re.compile(
     r"^(hi|hello|hey|howdy|thanks|thank you|greetings|good\s+(morning|afternoon|evening))\b"
@@ -112,6 +115,28 @@ class Plan:
         return {"mode": self.mode, "why": self.why, "signals": self.signals}
 
 
+def _doc_hit(q: str) -> tuple[float, float, float, str]:
+    """The best retrieval hit's signals: BM25 score, word cover, cosine, and which side matched.
+
+    Hybrid when the vector store is up (vectors.py); BM25 alone otherwise. Any failure lands
+    on the BM25-only shape - routing must never break because retrieval did.
+    """
+    try:
+        hits = V.hybrid_search(q, top_k=1)
+    except Exception as e:
+        logger.warning("Hybrid retrieval failed in router for query %r: %s", q[:50], e)
+        hits = []
+    if not hits:
+        return 0.0, 0.0, 0.0, "bm25"
+    h = hits[0]
+    return (
+        round(float(h["score"]), 2),
+        round(float(h["cover"]), 2),
+        round(float(h.get("vscore", 0.0)), 2),
+        str(h.get("via", "bm25")),
+    )
+
+
 def decide(
     question: str, called: list[str], choice: str | None = None, can_search: bool = True
 ) -> Plan:
@@ -135,17 +160,14 @@ def decide(
         Plan: Orchestration decision containing selected mode, rationale, and signal flags.
     """
     q = question.strip()
-    try:
-        hits = get_bm25().search(q, top_k=1)
-    except Exception as e:
-        logger.warning("BM25 lexical search failed in router for query %r: %s", q[:50], e)
-        hits = []
-    score = round(float(hits[0]["score"]), 2) if hits else 0.0
-    cover = round(float(hits[0]["cover"]), 2) if hits else 0.0
+    score, cover, vscore, via = _doc_hit(q)
     data = [t for t in called if t in DATA_TOOLS]
+    semantic = via in ("vector", "both") and vscore >= VEC_STRONG
     sig = {
         "doc_score": score,
         "doc_cover": cover,
+        "vec_score": vscore,
+        "via": via,
         "data_tools": data,
         "about_twin": bool(TWIN.search(q)),
         "external": bool(EXTERNAL.search(q)),
@@ -153,11 +175,20 @@ def decide(
         "explicit_deep": bool(DEEP.search(q)),
         "search_provider": can_search,
     }
-    strong = score >= STRONG_SCORE and (cover >= STRONG_COVER or score >= 2 * STRONG_SCORE)
+    strong = (
+        score >= STRONG_SCORE and (cover >= STRONG_COVER or score >= 2 * STRONG_SCORE)
+    ) or semantic
     very_strong = score >= VERY_STRONG[0] and cover >= VERY_STRONG[1]
-    match = f"the documents' best passage scores {score:g} and holds {cover:.0%} of its words"
+    if semantic and score < STRONG_SCORE:
+        match = (
+            f"the documents' closest passage matches by meaning ({vscore:.2f} cosine), "
+            "not by words"
+        )
+    else:
+        match = f"the documents' best passage scores {score:g} and holds {cover:.0%} of its words"
 
     def web_or_docs(mode: str, why: list[str]) -> Plan:
+        """A web/docs plan when searching is possible, else documents-only with the reason."""
         if can_search:
             return Plan(mode, why, sig, web=True)
         return Plan("docs", [*why, "no web search provider is configured: the documents only"], sig)
@@ -193,10 +224,12 @@ def decide(
             )
         elif strong:
             plan = Plan("docs", [f"the documents cover it: {match}"], sig)
-        elif sig["about_twin"] or score >= STRONG_SCORE / 2:
+        elif sig["about_twin"] or semantic or score >= STRONG_SCORE / 2:
             plan = Plan("docs", [f"about this twin: {match}"], sig)
         else:
             plan = web_or_docs("web", [f"the documents hardly match: {match}"])
 
-    logger.debug("Orchestration route decided: question=%r -> mode=%s (why=%s)", q[:50], plan.mode, plan.why)
+    logger.debug(
+        "Orchestration route decided: question=%r -> mode=%s (why=%s)", q[:50], plan.mode, plan.why
+    )
     return plan

@@ -83,6 +83,50 @@ server keeps an ordered list and takes a model out for as long as Google's error
 then tries the next; when every Gemini model is out, a local model (Ollama) answers if one runs, and
 otherwise the twin's tools answer directly. `GET /chat/status` shows which models are free.
 
+**A Google Cloud key (billing on, e.g. the $300 trial credit)** is a second Gemini lane,
+`GEMINI_CLOUD_API_KEY`, asked *before* the AI Studio key. Each lane has its own models and cooldowns,
+its own Google Search pool and its own token budget (larger defaults: `GEMINI_CLOUD_TOKENS_PER_DAY` 4000000,
+`GEMINI_CLOUD_SEARCHES_PER_DAY` 300, and so on), and a billed key lifts the daily question cap
+(`GEMINI_CLOUD_DAILY_LIMIT`, 2000). A key that is at its limit, refused or too slow hands the question to the
+next lane, and then to Groq. Create the key in the Cloud console for a project with billing on, restricted to the
+Generative Language API, and put it only in `.env` or Render's environment. `make model-check` tests both keys.
+Spend is capped by the token and search limits you set, not by the credit: Google Search grounding is billed
+per query beyond a free daily allowance, so set `GEMINI_CLOUD_SEARCHES_PER_DAY` to what you are willing to spend.
+
+**Web search and deep research** run through three providers in order (`WEB_SEARCH_ORDER`, default
+`gemini,groq,ddg`); one that fails, is resting or cannot be afforded hands the question to the next:
+
+1. **Gemini's Google Search** (`services/api/gemini_search.py`) - the model searches Google and answers.
+   Each sentence gets the links of the pages that back it, the pages are followed to their real address
+   (public hosts only) and graded by host, and the first few are read so the server can check the
+   answer's figures against text it fetched itself. A deep research plans up to four sub-questions and
+   searches each.
+2. **Groq's browser search** (`GROQ_SEARCH_MODEL`), and 3. **DuckDuckGo** (keyless; a configured model
+   writes the fetched pages up).
+
+**Token budget (dynamic).** Every Gemini answer's `usageMetadata` is counted (`services/api/token_budget.py`).
+What a search may do depends on the budget left - the smallest of the day's, the minute's and the guest's
+share:
+
+| Left | Tier | A search may |
+|---|---|---|
+| over 50 % | `full` | send the whole context, think, read pages, run up to 4 sub-searches (2048 tokens each) |
+| 20-50 % | `lean` | half the context, little thinking, 3 sub-searches (1536 each) |
+| 5-20 % | `minimal` | a short context, no thinking, 2 sub-searches (1024 each) |
+| under 5 %, or no searches left | `spent` | no Gemini search: Groq or DuckDuckGo answers |
+
+A question may also spend at most `GEMINI_WEB_TOKENS` (search) or `GEMINI_DEEP_TOKENS` (research), and
+never more than is left; a deep research drops the sub-searches that would not fit. These limits are
+yours, set below Google's own, so one busy hour or one visitor cannot run the key dry. They are held
+in memory and restart with the service. `GET /chat/status` shows the tier, the tokens used and the
+searches left.
+
+**Google Search has its own quota**, apart from plain answers (a key can answer questions yet have none
+for Google Search - every grounded call is then a 429). Grounded calls use their own model pool, so a
+refusal never takes a model out of the chat; when every model refuses, searches rest for
+`GEMINI_SEARCH_REST_S` and go straight to Groq. A model that does not answer within
+`GEMINI_SEARCH_TIMEOUT_S` is skipped for the next, up to `GEMINI_SEARCH_DEADLINE_S` in all.
+
 **Conversations are kept** as JSON documents, one per session (`services/api/store.py`, under
 `STF_DATA_DIR`, default `.data/`), owned by an anonymous id the browser keeps. Each session carries a
 context store - the facts the tools established - that whichever model answers next is given, so a
@@ -102,6 +146,13 @@ recognition, or records them for `POST /chat/stt` (Gemini transcription) where t
 | `GEMINI_MODEL` | `gemini-3.5-flash` | the first chat model |
 | `GEMINI_MODELS` | 3.5/3.8/3.7/3.6/3 flash, 2.5 flash, the lite models | the fallback order, comma-separated |
 | `GEMINI_DAILY_LIMIT` | 300 | model questions a day, whole service |
+| `GEMINI_CLOUD_API_KEY`, `GEMINI_CLOUD_MODELS` | unset, the `GEMINI_MODELS` list | the Google Cloud lane, asked first |
+| `GEMINI_CLOUD_TOKENS_PER_DAY`, `_PER_MINUTE`, `_PER_GUEST`, `_WEB_TOKENS`, `_DEEP_TOKENS`, `_SEARCHES_PER_DAY`, `GEMINI_CLOUD_DAILY_LIMIT` | 4000000, 800000, 400000, 16000, 80000, 300, 2000 | its budget and question cap |
+| `WEB_SEARCH_ORDER` | `gemini,groq,ddg` | who searches the web first |
+| `GEMINI_TOKENS_PER_DAY`, `_PER_MINUTE`, `_PER_GUEST` | 600000, 120000, 80000 | Gemini tokens: whole service a UTC day, any minute, one guest a day |
+| `GEMINI_WEB_TOKENS`, `GEMINI_DEEP_TOKENS` | 8000, 40000 | the most one web search / one deep research may use |
+| `GEMINI_SEARCHES_PER_DAY` | 200 | grounded Google searches a day |
+| `GEMINI_SEARCH_TIMEOUT_S`, `_DEADLINE_S`, `_REST_S` | 25, 50, 900 | one grounded call, all of a question's, and the rest after a quota refusal |
 | `GEMINI_TTS_MODELS` | `gemini-2.5-pro-preview-tts,gemini-2.5-flash-preview-tts,gemini-3.8-flash-tts` | voices in order |
 | `GEMINI_TTS_DAILY_LIMIT` | 100 | spoken answers a day, whole service |
 | `OLLAMA_URL`, `OLLAMA_MODEL` | `http://127.0.0.1:11434`, `qwen2.5:7b-instruct` | the local model, when it runs |

@@ -12,6 +12,10 @@ so a browsing session cannot fill a mailbox. Off unless configured:
   STF_NOTIFY_WEBHOOK=https://...        extra channel, a POST with the note as text
                                         (a Discord/Slack webhook, or https://ntfy.sh/<topic>)
   STF_NOTIFY_EVERY_HOURS=12             per-guest throttle, default 12
+  STF_NOTIFY_LOCAL=1                    arm sending from localhost (dev machines): without it
+                                        a request whose Host is localhost/127.0.0.1 never
+                                        sends, so a configured .env cannot spam the mailbox
+                                        from a local test run - only the deployed site sends
 
 The send is synchronous with short timeouts: Cloud Run allocates CPU only
 while a request is being processed, so a fire-and-forget thread could be
@@ -37,6 +41,14 @@ logger = get_logger(__name__)
 
 CONNECT_S = 5  # SMTP connect / webhook timeout - one notice must not stall a beacon
 
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "0.0.0.0"}  # Host header names of a dev machine
+
+
+def local_host(host: str | None) -> bool:
+    """Whether a request's Host header says it reached us from a dev machine."""
+    name = (host or "").rsplit("@", 1)[-1].split(":", 1)[0].strip("[]").lower()
+    return name in LOCAL_HOSTS
+
 
 class Notifier:
     """One email per guest per window. Everything degrades to a log line."""
@@ -61,11 +73,19 @@ class Notifier:
         self._now = now
         self._last: dict[str, float] = {}
         self._lock = threading.Lock()
+        # a configured local run must not email the owner from a dev machine: the send happens
+        # only for real hosts, unless the operator arms it explicitly for a test
+        self.local_armed = (env.get("STF_NOTIFY_LOCAL") or "").strip() == "1"
 
     @property
     def on(self) -> bool:
+        """Whether any channel is configured well enough to send."""
         email_ok = bool(self.email_to and self.smtp_host and self.smtp_user and self.smtp_pass)
         return email_ok or bool(self.webhook)
+
+    def may_send(self, host: str | None) -> bool:
+        """Configured AND not a local test request, or explicitly armed (STF_NOTIFY_LOCAL=1)."""
+        return self.on and (self.local_armed or not local_host(host))
 
     def _fresh(self, guest: str) -> bool:
         now = self._now()
@@ -132,6 +152,7 @@ class Notifier:
 
     @property
     def channels(self) -> list[str]:
+        """The configured channel names, for the status endpoint."""
         ch = []
         if self.email_to and self.smtp_host and self.smtp_user and self.smtp_pass:
             ch.append(f"email ({self.smtp_host})")
@@ -159,7 +180,10 @@ class Notifier:
                 (ln.split(None, 1)[1] for ln in text.splitlines() if ln.startswith("  session")), ""
             ).strip()
             sess_tag = f" [session: {session[:8]}]" if session else ""
-            subject = f"stf-live: visitor from {place}{sess_tag}" if place else f"stf-live: visitor{sess_tag}"
+            subject = (
+                f"stf-live: visitor from {place}{sess_tag}"
+                if place else f"stf-live: visitor{sess_tag}"
+            )
         msg["Subject"] = subject
         msg["From"] = self.smtp_user
         msg["To"] = self.email_to
@@ -198,4 +222,5 @@ def _plain(s: str, n: int) -> str:
 
 
 def notifier_from_env(env: dict | None = None, geo: object | None = None) -> Notifier:
+    """The Notifier the environment configures (SMTP and/or webhook; empty = silent)."""
     return Notifier({**os.environ, **(env or {})}, geo=geo)

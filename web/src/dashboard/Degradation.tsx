@@ -10,7 +10,7 @@ import { DegradeSim, type Law, type Theory } from "../shared/degrade";
 import { PART_COL } from "./Health";
 
 function TeX({ s, block }: { s: string; block?: boolean }) {
-  const html = useMemo(() => katex.renderToString(s, { displayMode: !!block, throwOnError: false }), [s, block]);
+  const html = useMemo(() => katex.renderToString(s, { displayMode: !!block, throwOnError: false, trust: false, maxExpand: 1000 }), [s, block]);
   return <span className={block ? "dg-tex" : undefined} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 const f = (x: number, d = 3) => (Math.abs(x) >= 1000 ? Math.round(x).toLocaleString() : x.toFixed(d));

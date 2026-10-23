@@ -153,6 +153,29 @@ photo. Run it again whenever the simulations change, and the database matches th
 order line) store the guest's own rows; `GET /twin/records` returns them. The twin sends them as it
 runs (`web/src/shared/records.ts`); the public demo, with no API, sends nothing.
 
+## The copilot's vector index
+
+The dense half of the copilot's hybrid retrieval lives in the same Postgres when it can
+(`services/api/vectors.py`, design in [architecture/RAG_SYSTEM_DESIGN.md](architecture/RAG_SYSTEM_DES.md)).
+The migration
+[`20261023023000_stf_kb_vectors.sql`](../supabase/migrations/20261023023000_stf_kb_vectors.sql)
+adds:
+
+| Table | Rows | From |
+|---|---|---|
+| `kb_vectors` | one per knowledge-base passage: id, source `file`/`line`, `doc`, section `path`, a `meta` jsonb for future filters, and the 384-dim `emb` with an HNSW cosine index | `make copilot`'s `kb.json`, embedded at startup or on change |
+| `kb_meta` | the cache key (`passages` → hash of embedder + dims + passage ids): a docs change is detected before any stale search | the API, on every rebuild |
+
+Three RPCs serve it over PostgREST with the service key: `stf_kb_reset` (truncate + new key),
+`stf_kb_insert` (a batch of rows as JSONB), `stf_match_kb` (HNSW top-k by cosine). RLS is on with
+no policies - only the API server reads or writes; the embeddings encode the whole knowledge base.
+
+`STF_VECTOR_BACKEND` picks the store: `auto` (default: pgvector when Supabase is configured and
+the table answers, else the local SQLite file), `pgvector`, `sqlite` or `off`. Every failure -
+unreachable project, missing table, missing RPC - degrades one level (pgvector → SQLite →
+BM25-only), never to an error. On a host without `.env`, set `SUPABASE_URL` +
+`SUPABASE_SERVICE_KEY` as usual: `auto` does the rest, no new variables needed.
+
 ## When sign-in arrives
 
 A signed-in user replaces the guest as the owner. `guests.current()` is the one place the API asks

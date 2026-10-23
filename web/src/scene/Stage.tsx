@@ -32,6 +32,10 @@ import { HbwCad } from "./HbwCad";
 import { VgrModule } from "./VgrModule";
 import { OvenModule, FlowCookie, FlowBarriers } from "./OvenModule";
 import { SortingModule } from "./SortingModule";
+import { BenchBodies } from "./bench/BenchBodies";
+import { MaterialPool } from "./MaterialPool";
+import { Batcher } from "./Batcher";
+import { PERF, PerfOverlay } from "./PerfOverlay";
 
 /** The review aids in the URL: ?t=<s> or ?at=<step>[&n=2] freeze the first cycle. */
 function reviewFromUrl() {
@@ -56,7 +60,8 @@ function useCoordinator(doc: CadDoc, tours: Record<string, PlanKey[]> | null | u
     const [tx, ty] = doc.factory.sort_placement.translate;
     coord.setCamera([-cam.lens[1] + tx, cam.lens[0] + ty]);
   }, [coord, cam, doc]);
-  useFrame(({ clock }, dt) => coord?.tick(clock.getElapsedTime() * PLAYBACK * FF.value, dt), -1);
+  // the coordinator keeps its own clock: a change of speed changes its rate, never its time
+  useFrame((_, dt) => coord?.advance(dt, PLAYBACK * FF.value), -1);
   return coord;
 }
 
@@ -315,6 +320,12 @@ export function HbwCadStage({ doc, showZones = false, netZones = false, showCove
       </group>
       <FlowCookie workpiece={J.workpiece} />
       <FlowBarriers doc={doc} workpiece={J.workpiece} />
+      {/* the Test bench's physics bodies, drawn from the worker's shared memory */}
+      <BenchBodies />
+      {/* identical materials shared (the frame is CPU-bound on per-material work); ?perf=1 shows the cost */}
+      <MaterialPool />
+      <Batcher />
+      {PERF && <PerfOverlay />}
       <PlcCabinet parts={doc.plc.parts as never} at={doc.plc.at} />
       {doc.upgrade && <PreciseScope module="upgrade"><UpgradeParts parts={doc.upgrade.parts as never} module="upgrade" /></PreciseScope>}
       {/* the enclosure: guard frame, panels, doors and what is mounted on them */}

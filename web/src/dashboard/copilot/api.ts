@@ -14,16 +14,27 @@ export type Route = { mode: Mode; why: string[]; signals?: Record<string, unknow
 /** The operator's choice in the composer: auto lets the server decide. */
 export type Choice = "auto" | "docs" | "web" | "deep";
 export type Switch = { from: string; to: string | null; why: string };
+/** How much an answer may spend (services/api/depth.py); "auto" lets the server pick. */
+export type Depth = "auto" | "brief" | "standard" | "thorough";
+/** Who the answer is written for (depth.py AUDIENCE). */
+export type Audience = "operator" | "engineer" | "researcher";
+/** Which web pages an answer may use (services/api/source_policy.py): forums and social media
+    are never used; "strict" keeps only standards, agencies, papers, makers and references. */
+export type SourceLevel = "vetted" | "strict";
+export type Grade = "authoritative" | "reference" | "community";
+/** What one answer cost: every model call's tokens, by provider (token_budget.meter). */
+export type Usage = { tokens: number; calls: number; by: Record<string, number>; depth: Exclude<Depth, "auto">;
+  audience?: Audience | null; sources: SourceLevel; removed: number };
 /** Where a source is, exactly (services/api/chat.py _cites): a document passage (its file, line,
     heading anchor, match score and text), a tool that computed facts, or a web page. */
 export type Cite = { kind: "doc" | "tool" | "web"; tool: string; label: string; file?: string; line?: number;
-  anchor?: string; score?: number; quote?: string; title?: string; trusted?: boolean; cited?: boolean };
+  anchor?: string; score?: number; quote?: string; title?: string; trusted?: boolean; cited?: boolean; grade?: Grade };
 export type Turn = {
   role: "user" | "assistant"; text: string; t: number;
   model?: string; style?: Style; sources?: string[]; links?: { page: string; label: string }[];
   tools?: string[]; note?: string; unverified?: string[]; switched?: Switch[]; facts?: [string, string][];
   cites?: Cite[]; ms?: number; pending?: boolean;
-  route?: Route; steps?: string[]; thinking?: string;
+  route?: Route; steps?: string[]; thinking?: string; usage?: Usage;
 };
 export type Fact = [name: string, value: string, source: string];
 export type Session = {
@@ -39,6 +50,14 @@ export type Status = {
   gemini_pool?: { model: string; free: boolean; back_in_s?: number }[] | null;
   /** the providers in try-order, with readiness (services/api/chat.py ORDER) */
   order?: { name: string; ready: boolean }[];
+  /** the web search's order and Gemini's token budget (services/api/token_budget.py) */
+  search?: { order: string[]; gemini: boolean; gemini_rest_s: number;
+    /** each Gemini key in the order it is asked (Google Cloud before AI Studio) */
+    lanes?: { name: "cloud" | "studio"; label: string; models_free: number; rest_s: number; refused: boolean }[];
+    budget: { tier: "full" | "lean" | "minimal" | "spent"; tokens_day: { used: number; limit: number };
+      searches_day: { used: number; limit: number } } | null };
+  /** who pays for each provider, as the operator labelled it (chat.py status) */
+  billing?: { provider: string; plan: string }[];
 };
 
 const store = {
@@ -63,6 +82,28 @@ export const savedTab = { get: (): Tab => (store.get("stf.copilot.tab") === "voi
 // falls back to Auto; the chain itself stays a server detail
 export const savedModel = { get: (): Model => { const m = store.get("stf.copilot.model") as Model | null; return m === "local" ? "local" : "auto"; }, set: (m: Model) => store.set("stf.copilot.model", m) };
 /** What the server calls each model choice; "auto" sends none, so the server walks its chain. */
+/** The answer settings, kept in this browser: who is asking, how deep, which sources. */
+export type Prefs = { audience: Audience; depth: Depth; sources: SourceLevel };
+export const PROFILE_DEFAULTS: Record<Audience, Prefs> = {
+  operator: { audience: "operator", depth: "brief", sources: "vetted" },
+  engineer: { audience: "engineer", depth: "auto", sources: "vetted" },
+  researcher: { audience: "researcher", depth: "thorough", sources: "strict" },
+};
+export const savedPrefs = {
+  get: (): Prefs => {
+    try {
+      const p = JSON.parse(store.get("stf.copilot.prefs") ?? "null") as Partial<Prefs> | null;
+      const a: Audience = p?.audience && p.audience in PROFILE_DEFAULTS ? p.audience : "engineer";
+      const d = PROFILE_DEFAULTS[a];
+      return {
+        audience: a,
+        depth: (["auto", "brief", "standard", "thorough"] as Depth[]).includes(p?.depth as Depth) ? p!.depth as Depth : d.depth,
+        sources: p?.sources === "strict" || p?.sources === "vetted" ? p.sources : d.sources,
+      };
+    } catch { return PROFILE_DEFAULTS.engineer; }
+  },
+  set: (p: Prefs) => store.set("stf.copilot.prefs", JSON.stringify(p)),
+};
 export const providerOf = (m: Model): string | undefined => ({ auto: undefined, gemini: "gemini", groq: "groq", upb: "upb", local: "ollama" })[m];
 
 const H = () => ({ "Content-Type": "application/json", "X-STF-User": userId() });
@@ -73,14 +114,16 @@ export async function status(): Promise<Status> {
   return { enabled: false, model: null };
 }
 
-type AskBody = { question: string; page: string; provider?: string; session_id?: string | null; age?: number; pm?: boolean; mode?: Choice };
+type AskBody = { question: string; page: string; provider?: string; session_id?: string | null; age?: number; pm?: boolean; mode?: Choice;
+  depth?: Depth; audience?: Audience; sources?: SourceLevel };
 export type Reply = {
   answer: string; model: string; style: Style; sources: string[]; links: { page: string; label: string }[];
   tools: string[]; facts: [string, string][]; note?: string; unverified?: string[]; switched?: Switch[];
   cites?: Cite[]; session?: { id: string; title: string; facts: number; models: string[] };
-  route?: Route; steps?: string[]; thinking?: string;
+  route?: Route; steps?: string[]; thinking?: string; usage?: Usage;
 };
-const payload = (body: AskBody) => JSON.stringify({ ...body, session_id: body.session_id ?? undefined, mode: body.mode === "auto" ? undefined : body.mode });
+const payload = (body: AskBody) => JSON.stringify({ ...body, session_id: body.session_id ?? undefined,
+  mode: body.mode === "auto" ? undefined : body.mode, depth: body.depth === "auto" ? undefined : body.depth });
 
 export async function ask(body: AskBody) {
   const r = await fetch("/chat", { method: "POST", headers: H(), body: payload(body) });
@@ -205,6 +248,9 @@ export async function sttStatus(): Promise<SttStatus> {
   try { const r = await fetch("/chat/stt/status"); if (r.ok) return await r.json(); } catch { /* offline */ }
   return { enabled: false, providers: [] };
 }
+
+/** 6234 -> "6.2k" */
+export const kTokens = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : `${n}`);
 
 export const ago = (t: number) => {
   const s = Date.now() / 1000 - t;

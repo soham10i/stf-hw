@@ -521,3 +521,73 @@ tr.warn td { color: var(--warn); } tr.fail td { color: var(--bad); }
 .u6-curve .bp-small { font-size: var(--fs-caption); }
 .u7-reach i.far { background: #e0503a; }
 @media (max-width: 1100px) { .ops-grid { grid-template-columns: 1fr; } .ops-box.wide { grid-column: auto; } }
+
+/* ---- electrics view ----------------------------------------------------- */
+.el-main { gap: 12px; }
+.el-cols { display: grid; grid-template-columns: 200px minmax(0, 1fr) 300px; gap: 12px; align-items: start; }
+@media (max-width: 1200px) { .el-cols { grid-template-columns: 180px minmax(0, 1fr); } .el-side { grid-column: 1 / -1; } }
+@media (max-width: 760px) { .el-cols { grid-template-columns: 1fr; } }
+.el-list { display: flex; flex-direction: column; gap: 4px; max-height: 70vh; overflow-y: auto; }
+.el-list button { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 9px; color: var(--text); cursor: pointer; display: flex; flex-direction: column; gap: 1px; }
+.el-list button span { color: var(--muted); font-size: var(--fs-caption); }
+.el-list button.on { border-color: var(--accent); background: var(--accent-weak); }
+.el-sheet, .el-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.el-scroll { overflow-x: auto; }
+.el-pins td { vertical-align: top; }
+.el-pins td.num, .el-pins th.num { white-space: nowrap; }
+.el-pins .el-to { font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--fs-caption); color: var(--muted); }
+.el-pins tr.el-unwired td { opacity: 0.5; }
+.el-pins td.warn { color: var(--bad); font-weight: 600; }
+.el-wire { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; border: 1px solid var(--border); }
+.el-btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.el-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-callout); }
+.el-checks li { display: grid; grid-template-columns: 14px 1fr; column-gap: 6px; }
+.el-checks li em { grid-column: 2; color: var(--muted); font-style: normal; font-size: var(--fs-caption); }
+.el-checks li.ok b { color: var(--ok); }
+.el-checks li.warn b { color: var(--warn, #c98a12); }
+.el-checks li.fail b { color: var(--bad); }
+.el-curve { width: 100%; max-width: 520px; height: auto; }
+.el-curve .ax { stroke: var(--border); stroke-width: 1; }
+.el-curve polyline { fill: none; stroke-width: 2; }
+.el-curve .c-speed, .el-legend i.c-speed { stroke: var(--accent); background: var(--accent); }
+.el-curve .c-current, .el-legend i.c-current { stroke: #d2763a; background: #d2763a; }
+.el-curve .c-power, .el-legend i.c-power { stroke: #2f9e57; background: #2f9e57; stroke-dasharray: 4 3; }
+.el-curve .c-op, .el-legend i.c-op { fill: var(--text); background: var(--text); }
+.el-curve .lbl { font-size: 9px; fill: var(--muted); }
+.el-legend { font-size: var(--fs-caption); color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin: 4px 0; }
+.el-legend i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 3px; }
+.el-variant { align-self: center; margin-left: 6px; }
+
+/* ---- the electrical card (a part clicked in the 3D twin) ---------------- */
+.el-card { position: absolute; right: 12px; top: calc(52px + 2 * var(--gap, 8px) + 4px); z-index: 6; width: min(340px, calc(100% - 24px)); max-height: calc(100% - 52px - 2 * var(--gap, 8px) - 90px);
+  overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; gap: 8px; font-size: var(--fs-callout); }
+.el-card header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.el-card header div { display: flex; flex-direction: column; gap: 2px; }
+.el-card header span { color: var(--muted); font-size: var(--fs-caption); font-family: var(--font-mono, ui-monospace, monospace); }
+.el-card-live { margin: 0; font-size: var(--fs-caption); color: var(--muted); }
+.el-card-live.on { color: var(--ok); }
+.el-card-live.on::before { content: "● "; }
+.el-card-read { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; }
+.el-card-read dt { color: var(--muted); }
+.el-card-read dd { margin: 0; font-family: var(--font-mono, ui-monospace, monospace); }
+.el-card-pins td.num { white-space: nowrap; }
+.el-card-pins td.warn { color: var(--bad); font-weight: 600; }
+.el-card-more { color: var(--accent); font-size: var(--fs-caption); }
+
+/* ---- wiring diagram ------------------------------------------------------ */
+.el-tabs { align-self: flex-start; }
+.el-cols.el-cols-sch { grid-template-columns: minmax(0, 1fr) 300px; }
+@media (max-width: 1200px) { .el-cols.el-cols-sch { grid-template-columns: 1fr; } }
+.el-sch-panel { min-width: 0; }
+.sch-wrap { overflow: auto; max-height: 75vh; }
+.sch { display: block; font-family: var(--font-mono, ui-monospace, monospace); }
+.sch-wires path { fill: none; stroke-width: 1.4; opacity: 0.85; }
+.sch-box rect { fill: var(--surface); stroke: var(--border); }
+.sch-box { cursor: pointer; }
+.sch-box:hover rect { stroke: var(--accent); }
+.sch-title { font-size: 11px; font-weight: 700; fill: var(--text); }
+.sch-sub { font-size: 9px; fill: var(--muted); }
+.sch-pin { font-size: 9.5px; fill: var(--text); }
+.sch-rail, .sch-v { font-size: 9px; }

@@ -29,6 +29,7 @@ import { type CadPart, type CadDoc, boxSize, cylSpec } from "../shared/model";
 import type { CellJoints, Drive, Rack } from "./store/useCellStore";
 import { MM, v, AIM, Solid, Cookie, Mould } from "./parts";
 import { HBW, RunningGear } from "./RunningGear";
+import { benchOn, live as benchLive } from "./bench/benchStore";
 
 /** What the warehouse draws from: its axes, the circulating mould, the slot that mould is out
     of, and the light barriers. */
@@ -224,10 +225,13 @@ export function HbwCad({ doc, joints, slots }: { doc: CadDoc; joints: HbwJoints;
 
   useFrame(() => {
     const h = joints.hbw, load = joints.load, d = drive.current;
-    d.travel = h.travel; d.lift = h.lift; d.fork = h.fork; d.belt = h.belt;
-    if (gTravel.current) gTravel.current.position.x = h.travel * MM;
-    if (gLift.current) gLift.current.position.y = h.lift * MM;
-    if (gFork.current) gFork.current.position.z = h.fork * MM;
+    // on the Test bench the physics worker's motor axes place the crane (bench/BenchBodies)
+    const ax = benchOn("warehouse") ? benchLive.hbw : h;
+    d.travel = ax.travel; d.lift = ax.lift; d.fork = ax.fork;
+    d.belt = benchOn("warehouse") ? benchLive.hbw.belt : h.belt;
+    if (gTravel.current) gTravel.current.position.x = ax.travel * MM;
+    if (gLift.current) gLift.current.position.y = ax.lift * MM;
+    if (gFork.current) gFork.current.position.z = ax.fork * MM;
 
     const held = load.held;
     for (const q in slotG.current) {

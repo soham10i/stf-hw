@@ -10,8 +10,8 @@
 // check, it is not decoration.
 
 import { Bounds, ContactShadows, Environment, Html, Lightformer, OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
 
@@ -22,10 +22,13 @@ import { SwitchState, ValveState, PumpState, CylinderState, MotorState, TrackSta
 
 const SRC_LABEL: Record<Src, string> = {
   datasheet: "datasheet", photo: "photo", "ft-std": "ft std", assumed: "measure", booklet: "booklet", model: "model",
+  standard: "standard", design: "design",
 };
 
 export function ComponentView({ id, doc }: { id: string; doc: ComponentDoc }) {
   const c = doc.components[id];
+  const reach = Math.max(1, Math.max(...(c?.overall_mm ?? [60])) / 70);
+  const modelRef = useRef<THREE.Group>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [showDims, setShowDims] = useState(true);
   const [wire, setWire] = useState(false);
@@ -96,7 +99,9 @@ export function ComponentView({ id, doc }: { id: string; doc: ComponentDoc }) {
             shadows
             dpr={[1, 2]}
             gl={{ preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping }}
-            camera={{ position: [-0.1, 0.07, 0.11], fov: 32, near: 0.001, far: 5 }}
+            // the start distance scales with the part: <Bounds> does not always refit once the
+            // model has loaded, and a 125 mm power supply does not fit a view sized for 60 mm parts
+            camera={{ position: [-0.1 * reach, 0.07 * reach, 0.11 * reach], fov: 32, near: 0.001, far: 5 }}
             onPointerMissed={() => setPicked(null)}
           >
             {/* mid-grey studio backdrop: black ft housings vanish against near-black */}
@@ -115,7 +120,8 @@ export function ComponentView({ id, doc }: { id: string; doc: ComponentDoc }) {
             <directionalLight position={[-0.05, 0.08, -0.15]} intensity={1.6} color="#cfe6ff" />
             <Suspense fallback={<Html center className="dim-label">loading {c.name}…</Html>}>
               <Bounds fit clip observe margin={1.5}>
-                <group>
+                <group ref={modelRef}>
+                  <FrameOnLoad target={modelRef} id={id} />
                   <Part url={`${BASE}${c.files.glb}`} picked={picked} onPick={setPicked} wire={wire}
                     actuator={actuator} pressed={on} onToggle={() => setOn((v) => !v)}
                     motion={motion} running={on} xray={xray} />
@@ -156,7 +162,7 @@ export function ComponentView({ id, doc }: { id: string; doc: ComponentDoc }) {
       <aside className="sidebar">
         <section className="panel">
           <h2>
-            {c.name} <span className="tag idle">{c.kind === "mechanism" ? "mechanism" : `ft ${c.ft}`}</span>
+            {c.name} <span className="tag idle">{c.kind === "mechanism" ? "mechanism" : c.kind === "device" ? c.ft : `ft ${c.ft}`}</span>
           </h2>
           <p className="clock">{c.name_de} · {c.material}</p>
           <p className="clock">
@@ -269,4 +275,35 @@ export function ComponentView({ id, doc }: { id: string; doc: ComponentDoc }) {
       </aside>
     </div>
   );
+}
+
+/** Frames the loaded part: aims the orbit at the centre of what was actually drawn and backs the
+    camera off until it fits, keeping the view's direction. (<Bounds> alone does not always refit
+    once the model has loaded: a 110 mm RevPi stayed cut off.) */
+function FrameOnLoad({ target, id }: { target: React.RefObject<THREE.Group>; id: string }) {
+  const { camera, controls } = useThree() as unknown as { camera: THREE.PerspectiveCamera; controls: { target: THREE.Vector3; update: () => void } | null };
+  useEffect(() => {
+    const frame = () => {
+      const g = target.current;
+      if (!g || !controls) return false;
+      const box = new THREE.Box3().setFromObject(g);
+      if (box.isEmpty()) return false;
+      const centre = box.getCenter(new THREE.Vector3());
+      const radius = box.getSize(new THREE.Vector3()).length() / 2;
+      const dist = (radius * 1.25) / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2));
+      const dir = camera.position.clone().sub(controls.target).normalize();
+      controls.target.copy(centre);
+      camera.position.copy(centre.clone().add(dir.multiplyScalar(dist)));
+      camera.near = dist / 100;
+      camera.far = dist * 20;
+      camera.updateProjectionMatrix();
+      controls.update();
+      return true;
+    };
+    // the model mounts with this component, but its meshes may arrive a frame later
+    let n = 0;
+    const t = window.setInterval(() => { if (frame() || ++n > 20) window.clearInterval(t); }, 50);
+    return () => window.clearInterval(t);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
 }

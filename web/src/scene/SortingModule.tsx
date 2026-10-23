@@ -14,6 +14,7 @@ import type { CadPart, CadDoc } from "../shared/model";
 import type { CellJoints, Drive } from "./store/useCellStore";
 import { MM, v, Solid, useBeltTexture } from "./parts";
 import { FEED_MS, INSPECT_LAYER, cameraWatch, expose, inspected, jpeg, sendFrame } from "../vision/photo";
+import { benchOn, live as benchLive } from "./bench/benchStore";
 
 /** the ring light's flash at the lens, candela: ~2 lx-equivalent on the cookie 27 mm below */
 const FLASH = 0.004;
@@ -114,10 +115,12 @@ export function SortingModule({ doc, joints, onPhoto }: {
     if (flash.current) flash.current.intensity = FLASH * c.lit;
     // the sorting belt starts when the cookie reaches it (I2) and stops after it has been
     // ejected; only the cookie's own ejector fires
-    drive.current.belt = joints.oven.beltSort;
+    // on the Test bench the physics worker moves the belt and the pushers (bench/BenchBodies)
+    const bench = benchOn("sorting");
+    drive.current.belt = bench ? benchLive.beltTravel : joints.oven.beltSort;
     for (let i = 0; i < 3; i++) {
       const g = pushes[i].current;
-      if (g) g.position.z = sign * (i === joints.sort.ejector ? joints.oven.eject : 0) * MM;
+      if (g) g.position.z = sign * (bench ? benchLive.pusherMm[i] : i === joints.sort.ejector ? joints.oven.eject : 0) * MM;
     }
   });
   const P = (p: CadPart) => <Solid key={p.n} part={p} drive={drive} pitch={4} tex={tex} />;

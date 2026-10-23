@@ -62,6 +62,7 @@ from stf_layout import get_layout
 from . import guests as G
 from . import live, wire
 from . import security as sec
+from . import usage as U
 from . import visits as VIS
 from .captures import Captures
 from .chat import Chat, ChatRequest, dotenv
@@ -89,6 +90,8 @@ guests = G.Guests({**dotenv(), **os.environ})
 chat = Chat(settings, store=guests.db)
 factory = factory_from(guests.db)
 tts = Tts(settings)
+# spoken answers a day (paid voices): counted across every instance, like the chat's caps
+tts.cap.shared, tts.cap.name = U.shared_from(guests.db), "tts:spoken"
 stt = Stt(settings)
 captures = Captures(settings)
 visits = VIS.Visits({**dotenv(), **os.environ})
@@ -102,6 +105,10 @@ WS_MAX_MSG = 1024
 # one address may hold only a few frame streams, so one visitor cannot take every slot
 WS_PER_CLIENT = int(os.environ.get("STF_WS_PER_CLIENT", "4"))
 _ws_by_ip: dict[str, int] = {}
+# the live link (/twin/live) has its own limits: all its sockets on this instance, and per address
+live_clients = sec.ClientCounter(int(os.environ.get("STF_MAX_LIVE_CLIENTS", "64")))
+LIVE_PER_CLIENT = int(os.environ.get("STF_LIVE_PER_CLIENT", "6"))
+_live_by_ip: dict[str, int] = {}
 
 
 @asynccontextmanager
@@ -215,6 +222,9 @@ SECURITY_HEADERS = {
     "X-Frame-Options": "DENY",
     "Permissions-Policy": "camera=(), microphone=(self), geolocation=(), usb=(), serial=()",
     "Cross-Origin-Opener-Policy": "same-origin",
+    # with COOP: cross-origin isolation, so the twin's simulation bridge can use SharedArrayBuffer
+    # (web/src/core/SimulationBridge.ts); the CSP already loads nothing from another origin
+    "Cross-Origin-Embedder-Policy": "require-corp",
 }
 
 
@@ -228,7 +238,11 @@ async def guest_session(request: Request, call_next):
     put in place of any X-STF-User the browser sent (the server decides who a guest is)."""
     if not request.url.path.startswith(GUEST_PATHS):
         return await call_next(request)
-    gid, new = guests.resolve(request.cookies.get(G.COOKIE), sec.client_ip(request))
+    # in a worker thread: a guest the server has not seen yet is looked up and added in the
+    # database (Supabase: network round trips), which must not stall the event loop and the stream
+    gid, new = await asyncio.to_thread(
+        guests.resolve, request.cookies.get(G.COOKIE), sec.client_ip(request)
+    )
     request.scope["headers"] = [(k, v) for k, v in request.scope["headers"] if k != b"x-stf-user"]
     request.scope["headers"].append((b"x-stf-user", gid.encode()))
     token = G.bind(gid)
@@ -257,6 +271,7 @@ async def forwarded_scheme(request: Request, call_next):
 
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
+    """Attach the security headers (CSP, frame denial, ...) to every response."""
     response = await call_next(request)
     for k, v in SECURITY_HEADERS.items():
         response.headers.setdefault(k, v)
@@ -274,13 +289,25 @@ class CommandRequest(BaseModel):
 
 @app.get("/health")
 async def health() -> dict:
+    """Liveness and readiness: the keep-warm jobs and monitors poll this."""
     return {
         "status": "ok",
         "version": "4.0.0",
         "clients": runtime.client_count,
         "layout": get_layout().fingerprint(),
         "commands": "token" if settings.api_token else "localhost only",
+    }
+
+
+@app.get("/admin/status", dependencies=[Depends(command_guard)])
+async def admin_status() -> dict:
+    """The operator's view (X-STF-Token or the operator's machine, like /command): which
+    defences were tripped, and the copilot's budgets in full. Not public: it would tell a
+    visitor exactly how to pace an attack at the limits."""
+    return {
         "rejected": dict(sec.COUNTS),
+        "chat": await asyncio.to_thread(chat.status, True),
+        "live": {"rooms": len(hub.rooms), "clients": live_clients.n, "frame_clients": ws_clients.n},
     }
 
 
@@ -292,6 +319,7 @@ async def layout() -> dict:
 
 @app.get("/orders")
 async def orders() -> dict:
+    """The factory simulation's open orders (public twin state)."""
     return {"orders": runtime.orders()}
 
 
@@ -311,7 +339,9 @@ async def command(req: CommandRequest) -> JSONResponse:
 @app.get("/chat/status")
 async def chat_status() -> dict:
     """Check the status and availability of the copilot LLM chat providers."""
-    return chat.status()
+    # in a worker thread: it may probe a local model server, which must not stall the event loop
+    # (and with it the frame stream)
+    return await asyncio.to_thread(chat.status)
 
 
 @app.post("/chat")
@@ -338,10 +368,12 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     queue: asyncio.Queue = asyncio.Queue()
 
     def emit(kind: str, data) -> None:
+        """Feed one SSE event into the stream's FIFO (thread-safe via the loop)."""
         # from any thread, and always this way: one FIFO, so the answer never overtakes a step
         loop.call_soon_threadsafe(queue.put_nowait, (kind, data) if kind else None)
 
     async def run() -> None:
+        """Produce the answer on a task, so the request's guest contextvar carries over."""
         try:
             emit("answer", await chat.ask(req, request, emit=emit, admitted=client))
         except Exception as e:
@@ -356,6 +388,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     task = asyncio.create_task(run())
 
     async def events():
+        """Drain the FIFO onto the wire as SSE, one event at a time, until the sentinel."""
         try:
             while (item := await queue.get()) is not None:
                 kind, data = item
@@ -376,6 +409,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
 
 @app.get("/chat/tts/status")
 async def tts_status() -> dict:
+    """Which TTS providers are configured (voice tab's status chip)."""
     return tts.status()
 
 
@@ -408,7 +442,7 @@ async def stt_transcribe(request: Request) -> dict:
 async def guest_status(request: Request, page: str = "site") -> dict:
     """This visitor's guest session (guests.py): no personal data, only when and how often."""
     gid = G.current()
-    if gid and notify.on:
+    if gid and notify.may_send(request.headers.get("host")):
         ip = sec.client_ip(request)
         ua = request.headers.get("user-agent")
         await asyncio.to_thread(notify.visit, gid, page, ip, ua)
@@ -455,8 +489,9 @@ async def track(req: TrackRequest, request: Request) -> Response:
         visits.record, gid, req.page, ip, ua if req.ua else None, req.consent
     )
     # the owner's "someone is on the site" note (notify.py): throttled to one per guest
-    # per STF_NOTIFY_EVERY_HOURS, synchronous with a short timeout, never blocks the beacon
-    if gid and notify.on:
+    # per STF_NOTIFY_EVERY_HOURS, synchronous with a short timeout, never blocks the beacon;
+    # a localhost request never sends (a local test run cannot spam the mailbox)
+    if gid and notify.may_send(request.headers.get("host")):
         await asyncio.to_thread(
             notify.visit, gid, req.page, ip, ua
         )
@@ -484,11 +519,15 @@ async def notify_status() -> dict:
 
 
 @app.post("/notify/test", dependencies=[Depends(command_guard)])
-async def notify_test() -> dict:
+async def notify_test(request: Request) -> dict:
     """Send the owner a test notice (notify.py). Operator-only, like /command: from the
-    operator's machine or with X-STF-Token. Use the dashboard's bell button."""
+    operator's machine or with X-STF-Token. Use the dashboard's bell button. From a local
+    address it refuses unless STF_NOTIFY_LOCAL=1 arms it - a local test run cannot spam."""
     if not notify.on:
         detail = "owner notifications are not configured (STF_NOTIFY_*)"
+        raise HTTPException(status_code=409, detail=detail)
+    if not notify.may_send(request.headers.get("host")):
+        detail = "refusing to send from a local address (set STF_NOTIFY_LOCAL=1 to arm a test)"
         raise HTTPException(status_code=409, detail=detail)
     sent = await asyncio.to_thread(notify.test)
     if not sent:
@@ -505,11 +544,13 @@ async def copilot_sessions(request: Request) -> dict:
 
 @app.get("/copilot/sessions/{sid}")
 async def copilot_session(sid: str, request: Request) -> dict:
+    """One chat session's full record (the history drawer's opened conversation)."""
     return chat.session(request, sid)
 
 
 @app.delete("/copilot/sessions/{sid}")
 async def copilot_forget(sid: str, request: Request) -> dict:
+    """Delete one of the caller's chat sessions."""
     return chat.forget(request, sid)
 
 
@@ -527,6 +568,7 @@ async def vision_captures(limit: int = 48) -> dict:
 
 @app.get("/vision/captures/{cid}.jpg")
 async def vision_capture_image(cid: str):
+    """Serve one capture's JPEG (ownership-checked inside captures)."""
     return captures.image(cid, G.current())
 
 
@@ -721,18 +763,37 @@ async def twin_live(websocket: WebSocket) -> None:
     if role not in ("twin", "dashboard"):
         await websocket.close(code=1008)
         return
+    # the room is the visitor's signed guest id, never their address: people behind one NAT
+    # (a campus, an office) must not see or steer each other's twin. The page asks GET /guest
+    # first (web/src/shared/liveLink.ts), which issues the cookie.
+    room = guests.verify(websocket.cookies.get(G.COOKIE))
+    if not room:
+        sec.note("twin/live: no guest cookie")
+        await websocket.close(code=1008)
+        return
     ip = sec.client_ip(websocket)
-    room = guests.verify(websocket.cookies.get(G.COOKIE)) or f"ip:{ip}"
+    if _live_by_ip.get(ip, 0) >= LIVE_PER_CLIENT:
+        sec.note("twin/live: too many from one client")
+        await websocket.close(code=1013)
+        return
+    if not live_clients.try_add():
+        sec.note("twin/live: too many clients")
+        await websocket.close(code=1013)
+        return
     conn = hub.join(room, websocket, role)
     if conn is None:
         sec.note("twin/live: room full")
+        live_clients.remove()
         await websocket.close(code=1013)
         return
+    _live_by_ip[ip] = _live_by_ip.get(ip, 0) + 1
     try:
         await websocket.accept()
     except Exception as e:
         logger.warning("live link accept failed: %s", e)
         hub.leave(room, conn)
+        live_clients.remove()
+        _release(_live_by_ip, ip)
         return
     try:
         await hub.announce(room)
@@ -755,15 +816,21 @@ async def twin_live(websocket: WebSocket) -> None:
         logger.warning("live link error: %s", e)
     finally:
         hub.leave(room, conn)
+        live_clients.remove()
+        _release(_live_by_ip, ip)
         await hub.announce(room)
 
 
-def _ws_release(ip: str) -> None:
-    n = _ws_by_ip.get(ip, 0) - 1
+def _release(by_ip: dict[str, int], ip: str) -> None:
+    n = by_ip.get(ip, 0) - 1
     if n > 0:
-        _ws_by_ip[ip] = n
+        by_ip[ip] = n
     else:
-        _ws_by_ip.pop(ip, None)
+        by_ip.pop(ip, None)
+
+
+def _ws_release(ip: str) -> None:
+    _release(_ws_by_ip, ip)
 
 
 # One-service deploy: the built web app (npm run build, base /stf/) served by this process,
@@ -774,6 +841,7 @@ if _WEB and os.path.isdir(_WEB):
 
     @app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
     async def root() -> RedirectResponse:
+        """The bare domain redirects into the dashboard."""
         return RedirectResponse("/stf/")
 
     app.mount("/stf", StaticFiles(directory=_WEB, html=True), name="web")

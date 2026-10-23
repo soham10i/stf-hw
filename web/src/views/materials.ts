@@ -12,7 +12,10 @@ import * as THREE from "three";
 
 
 // Physically based materials, chosen per sub-part from the CAD's own material tag.
-export function physical(material: string, colour: string): THREE.Material {
+/** `lite`: for the whole factory. Real transmission makes three.js render every opaque object a
+    second time per frame (the transmission pass) - 22 small clear parts doubled the factory's draw
+    calls - so there clear acrylic is drawn as plain see-through plastic instead. */
+export function physical(material: string, colour: string, lite = false): THREE.Material {
   const c = new THREE.Color(colour);
   switch (material) {
     case "steel":
@@ -20,6 +23,9 @@ export function physical(material: string, colour: string): THREE.Material {
     case "brass":
       return new THREE.MeshPhysicalMaterial({ color: c, metalness: 1, roughness: 0.32 });
     case "clear":
+      if (lite) return new THREE.MeshPhysicalMaterial({
+        color: c, metalness: 0, roughness: 0.05, clearcoat: 1, transparent: true, opacity: 0.35, depthWrite: false,
+      });
       return new THREE.MeshPhysicalMaterial({
         color: c, metalness: 0, roughness: 0.05, transmission: 0.85, thickness: 0.6, ior: 1.49,
       });

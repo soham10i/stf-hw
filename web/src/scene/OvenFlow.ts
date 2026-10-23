@@ -46,6 +46,9 @@ export interface Flow {
   steps: (Step & { t0: number; from: FlowState })[];
   total: number;
   arrive: number;           // time the cookie enters its Lagerstelle
+  /** the end of the colour reading: up to here the pass and reject journeys are the same, so the
+      inspection's verdict must be in by then (the coordinator holds the belt until it is) */
+  decide: number;
   bin: string;
   binIndex: number;
   /** The joints, the holder, the caption and the cookie's position at time t, written into
@@ -63,8 +66,8 @@ const BELT = 60; // mm/s of playback on the belts - slowed so the hand-over read
 
 /** The cookie's journey. `reject`: the inspection rejected it - no ejector fires, and the belt
     carries it past the Lagerstellen to the end of the line, where it is held for the operator.
-    Up to the ejectors both journeys are the same, at the same speed: the coordinator can switch
-    a cookie onto this one whenever the inspection's verdict comes in before then. */
+    Up to the end of the colour reading (`decide`) both journeys are the same, at the same speed:
+    the coordinator commits a cookie to one of them there, never later. */
 export function buildFlow(doc: CadDoc, flavour: string, bakeExtra = 0, reject = false): Flow {
   const J = doc.oven.joints, F = doc.oven.flow;
   // the oven is placed rotated +90 about Z: module (x, y) -> (-y + tx, x + ty)
@@ -180,6 +183,8 @@ export function buildFlow(doc: CadDoc, flavour: string, bakeExtra = 0, reject = 
   const slid = timed.find((st) => st.mode === "slide");
   const arrive = slid ? slid.t0 + slid.d : total;
   const last: Mode = reject ? "line" : "bay";
+  const read = timed.find((st) => st.say.startsWith("Farbsensor"));
+  const decide = read ? read.t0 + read.d : total;
 
   // the sorting frame -> factory frame, and the oven frame -> factory frame, into `out`
   const sortTo = (x: number, y: number, z: number, out: [number, number, number]) => {
@@ -258,5 +263,5 @@ export function buildFlow(doc: CadDoc, flavour: string, bakeExtra = 0, reject = 
   const beltOven = (ly: number) => Math.min(ly, cum[2]);
   const beltSort = (ly: number) => Math.max(0, ly - cum[2]);
   const belts = (ly: number) => ({ oven: beltOven(ly), sort: beltSort(ly) });
-  return { steps: timed, total, arrive, bin, binIndex, sample, at, pos, belts, beltOven, beltSort };
+  return { steps: timed, total, arrive, decide, bin, binIndex, sample, at, pos, belts, beltOven, beltSort };
 }

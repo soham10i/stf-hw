@@ -55,7 +55,7 @@ sim: ## Watch the kernel run live in the terminal, e.g. make sim SLOT=B2 OP=retr
 		--slot $(or $(SLOT),B2) --op $(or $(OP),retrieve) $(if $(FAST),--fast,)
 
 api: ## Run the live twin backend (FastAPI + WebSocket) on :8000
-	PYTHONPATH=packages $(PY) -m uvicorn services.api.app:app --host 127.0.0.1 --port 8000 --reload
+	PYTHONPATH=packages $(PY) -m uvicorn services.api.app:app --host 127.0.0.1 --port 8000 --reload --ws-max-size 400000
 
 web: ## Run the 3D frontend dev server on localhost:5173 (needs `make api` running)
 	cd web && npm install && npm run dev
@@ -115,6 +115,21 @@ copilot: ## Upgrade 17: the copilot's knowledge base from docs/, and its test qu
 		&& node ../.cache/copilot-kb.mjs ../docs public/copilot/kb.json
 	cd web && npx esbuild scripts/copilot-check.ts --bundle --platform=node --format=esm --outfile=../.cache/copilot-check.mjs --log-level=warning \
 		&& node ../.cache/copilot-check.mjs public
+
+eval-retrieval: ## the copilot's retrieval quality on the golden set (STF_EMBEDDER=minilm for real vectors)
+	$(PY) -m services.api.eval_retrieval
+
+reranker-deploy: ## the cross-encoder reranker to Cloud Run on trial credits (docs/GCP_RERANKER.md)
+	./deploy/reranker.sh
+
+staging-deploy: ## the private staging mirror (IAM-only access, Swagger on) - test here before promoting
+	./deploy/staging.sh
+
+staging-proxy: ## stf-staging onto localhost:8080 (browser access to the private mirror; Ctrl-C to stop)
+	gcloud run services proxy stf-staging --region europe-west1 --project smart-tabletop-factory-512013
+
+promote: ## the tested tree from staging to the public stf-live service (docs/STAGING.md)
+	./deploy/promote.sh
 
 carbon: ## Upgrade 18: grams of CO2e per cookie from the microgrid month, and the levers that cut it
 	cd stf-cad/hbw && STF_VARIANT=up7 PYTHONPATH=. ../../$(PY) carbon.py

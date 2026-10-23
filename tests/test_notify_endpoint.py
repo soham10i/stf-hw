@@ -24,6 +24,7 @@ ENV = {
 @pytest.fixture()
 def client(monkeypatch):
     monkeypatch.setenv("STF_API_TOKEN", "s3cret-token")
+    monkeypatch.setenv("STF_NOTIFY_LOCAL", "")  # deterministic: the dev-machine guard stays off
     for k, v in ENV.items():
         monkeypatch.setenv(k, v)
 
@@ -65,12 +66,24 @@ def test_status_is_open_and_secret_free(client):
     assert "secret" not in r.text
 
 
-def test_test_notice_from_localhost(client):
+def test_localhost_refuses_unless_armed(client, monkeypatch):
+    # a configured local run must not email the owner: localhost refuses, sends nothing
     r = client.post("/notify/test", headers=LOCAL)
-    assert r.status_code == 200
-    assert r.json()["sent"] is True
-    assert len(client.sent) == 1  # type: ignore[attr-defined]
-    assert "test" in client.sent[0]["Subject"].lower()  # type: ignore[attr-defined]
+    assert r.status_code == 409
+    assert "local address" in r.json()["error"]
+    assert len(client.sent) == 0  # type: ignore[attr-defined]
+
+    # armed explicitly (STF_NOTIFY_LOCAL=1), a local test send works - the button's path
+    monkeypatch.setenv("STF_NOTIFY_LOCAL", "1")
+    import services.api.app as appmod
+
+    appmod = importlib.reload(appmod)
+    with TestClient(appmod.app, client=("127.0.0.1", 50000)) as armed:
+        ok = armed.post("/notify/test", headers=LOCAL)
+        assert ok.status_code == 200
+        assert ok.json()["sent"] is True
+        assert len(client.sent) == 1  # type: ignore[attr-defined]
+        assert "test" in client.sent[0]["Subject"].lower()  # type: ignore[attr-defined]
 
 
 def test_test_notice_through_tunnel_needs_token(client):

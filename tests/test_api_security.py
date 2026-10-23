@@ -185,7 +185,9 @@ def test_ngrok_origin_not_allowed_by_default(client):
 def test_notifier_has_a_service_wide_cap():
     from services.api.notify import Notifier
 
-    n = Notifier({"STF_NOTIFY_WEBHOOK": "https://example.invalid/x", "STF_NOTIFY_MAX_PER_HOUR": "3"})
+    n = Notifier({
+        "STF_NOTIFY_WEBHOOK": "https://example.invalid/x", "STF_NOTIFY_MAX_PER_HOUR": "3"
+    })
     fresh = [n._fresh(f"guest{i}") for i in range(10)]  # a new guest per request
     assert fresh.count(True) == 3
 
@@ -215,6 +217,7 @@ def test_fetch_refuses_a_connection_that_lands_on_a_private_address():
     import socket
 
     import pytest as _pytest
+
     from services.api import netguard as NG
 
     srv = socket.socket()

@@ -12,7 +12,12 @@ export function texHtml(s: string, display: boolean) {
   const k = `${display ? "D" : "I"}${s}`;
   let h = cache.get(k);
   if (h === undefined) {
-    h = katex.renderToString(s, { displayMode: display, throwOnError: false, strict: "ignore", output: "html" });
+    h = katex.renderToString(s, {
+      displayMode: display, throwOnError: false, strict: "ignore", output: "html",
+      // the text can come from a model and from web pages: no \href/\url/\html* commands, and a
+      // bounded macro expansion (a macro bomb cannot hang the tab)
+      trust: false, maxExpand: 1000, maxSize: 20,
+    });
     if (cache.size > 500) cache.clear();
     cache.set(k, h);
   }

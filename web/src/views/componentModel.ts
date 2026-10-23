@@ -14,7 +14,7 @@ import { useJson } from "../shared/data";
 
 export const BASE = `${import.meta.env.BASE_URL}components/`;
 
-export type Src = "datasheet" | "photo" | "ft-std" | "assumed" | "booklet" | "model";
+export type Src = "datasheet" | "photo" | "ft-std" | "assumed" | "booklet" | "model" | "standard" | "design";
 /** How a sub-part moves when the component is operated (from components.py). */
 export interface Motion {
   part: string; type: "spin" | "orbit" | "reciprocate" | "slide" | "squash" | "chain" | "screw";
@@ -36,7 +36,9 @@ interface Component {
   mesh: { triangles: number; chordal_tolerance_mm: number };
   files: { glb: string; step: string; fcstd: string };
   used_in: { module: string; part: string; io: string; terminal: string; function: string }[];
-  kind?: "component" | "mechanism"; upgrade?: string; generator?: string;
+  kind?: "component" | "mechanism" | "device"; upgrade?: string; generator?: string;
+  /** a device's maker and family (devices.py); the ft parts are fischertechnik's */
+  maker?: string; family?: string; document_url?: string;
   motion?: Motion[];
   operate?: string | null;
   xray?: boolean;

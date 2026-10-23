@@ -32,20 +32,31 @@ logger = get_logger(__name__)
 
 MAX_MSG = 320_000  # a camera photo with its empty-hood reference, base64
 MAX_ROOMS = 200
-MAX_PER_ROOM = 8
+# per room, by role: a visitor's twin tab (a second one while the first reloads) and a few
+# dashboards. Everything a twin sends is fanned out to every dashboard, so these bound the
+# relay's egress as much as the room's memory.
+MAX_TWINS = 2
+MAX_DASHBOARDS = 4
 RATE = 40.0  # messages per second per connection (the twin sends ~4 states and ~8 frames)
+# bytes a room may take in per second, all its senders together (token bucket, with a burst of
+# BURST_S seconds): the camera feed is ~0.3 MB/s, a photo 0.3 MB. Over it, messages are dropped.
+ROOM_BYTES_PER_S = 1_500_000
+BURST_S = 2.0
 TWIN_TYPES = {"hello", "state", "inspection", "frame", "photo", "order_done", "notice"}
 DASH_TYPES = {"watch", "simulate", "defect"}
 
 
 @dataclass
 class _Conn:
+    """One websocket connection: its role and a per-message token bucket."""
+
     ws: WebSocket
     role: str  # "twin" | "dashboard"
     budget: float = RATE
     at: float = field(default_factory=time.monotonic)
 
     def allow(self) -> bool:
+        """Take one message token; False when the connection is over its message rate."""
         now = time.monotonic()
         self.budget = min(RATE, self.budget + (now - self.at) * RATE)
         self.at = now
@@ -57,31 +68,58 @@ class _Conn:
 
 @dataclass
 class _Room:
+    """One live-twin room: its connections, replayable state, and a relay byte budget."""
+
     conns: list[_Conn] = field(default_factory=list)
     last_state: str | None = None
+    budget: float = ROOM_BYTES_PER_S * BURST_S
+    at: float = field(default_factory=time.monotonic)
+
+    def take(self, n: int) -> bool:
+        """Spend `n` bytes of the room's relay budget; False (drop the message) when it is out."""
+        now = time.monotonic()
+        full = ROOM_BYTES_PER_S * BURST_S
+        self.budget = min(full, self.budget + (now - self.at) * ROOM_BYTES_PER_S)
+        self.at = now
+        if n > self.budget:
+            return False
+        self.budget -= n
+        return True
 
 
 class LiveHub:
+    """The live-twin relay: role-checked websocket rooms with rate and byte budgets.
+
+    A twin publishes frames; dashboards subscribe. One hub instance is shared by the
+    app; every room is independent (per-guest isolation).
+    """
+
     def __init__(self) -> None:
         self.rooms: dict[str, _Room] = {}
 
     def counts(self, room: str) -> dict[str, int]:
+        """Connected twins and dashboards in a room (for /health and metrics)."""
         r = self.rooms.get(room)
         conns = r.conns if r else []
         return {"twins": sum(c.role == "twin" for c in conns),
                 "dashboards": sum(c.role == "dashboard" for c in conns)}
 
     def join(self, room: str, ws: WebSocket, role: str) -> _Conn | None:
+        """Admit a connection to a room, or None when room/role caps are full."""
         if room not in self.rooms and len(self.rooms) >= MAX_ROOMS:
             return None
         r = self.rooms.setdefault(room, _Room())
-        if len(r.conns) >= MAX_PER_ROOM:
+        cap = MAX_TWINS if role == "twin" else MAX_DASHBOARDS
+        if sum(c.role == role for c in r.conns) >= cap:
+            if not r.conns:
+                self.rooms.pop(room, None)
             return None
         c = _Conn(ws, role)
         r.conns.append(c)
         return c
 
     def leave(self, room: str, c: _Conn) -> None:
+        """Remove a connection; the room (and its replay state) goes with the last twin."""
         r = self.rooms.get(room)
         if not r:
             return
@@ -93,6 +131,7 @@ class LiveHub:
             self.rooms.pop(room, None)
 
     def last_state(self, room: str) -> str | None:
+        """The last state a twin published, replayed to late-joining dashboards."""
         r = self.rooms.get(room)
         return r.last_state if r else None
 
@@ -113,7 +152,7 @@ class LiveHub:
     async def relay(self, room: str, sender: _Conn, msg: dict[str, Any], raw: str) -> None:
         """Send a message to the room's other side: twin -> dashboards, dashboard -> twins."""
         r = self.rooms.get(room)
-        if not r:
+        if not r or not r.take(len(raw)):
             return
         if sender.role == "twin" and msg.get("type") == "state":
             r.last_state = raw

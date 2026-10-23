@@ -8,12 +8,13 @@ import * as THREE from "three";
 import { VIEW } from "../coords";
 import { ThreadedRod } from "./ThreadedRod";
 
-import { PcbBoard, PreciseComp, ProfileBox } from "./FactoryDetail";
+import { DeviceModel, PcbBoard, PreciseComp, ProfileBox } from "./FactoryDetail";
 
 import { Suspense } from "react";
 
 
-import { MM_TO_SCENE, PreciseMesh, depthBias, usePrecise } from "./Precise";
+import { MM_TO_SCENE, PreciseMesh, depthBias, useModuleName, usePrecise } from "./Precise";
+import { Pickable } from "./electricPick";
 
 import { type CadPart, type CadDoc, boxSize, cylSpec } from "../shared/model";
 import { Trimmed, type Trim } from "./joints";
@@ -183,7 +184,13 @@ export function Solid(props: {
   drumD?: number;
 }) {
   const trims = useContext(TrimsCtx)?.get(props.part.n);
-  return trims ? <Trimmed trims={trims}><SolidBody {...props} /></Trimmed> : <SolidBody {...props} />;
+  const module = useModuleName();
+  // an electrical part opens its sheet when clicked (electricPick.tsx)
+  return (
+    <Pickable cad={`${module}/${props.part.n}`}>
+      {trims ? <Trimmed trims={trims}><SolidBody {...props} /></Trimmed> : <SolidBody {...props} />}
+    </Pickable>
+  );
 }
 
 function SolidBody({ part, drive, pitch, tex, drumD }: {
@@ -200,8 +207,9 @@ function SolidBody({ part, drive, pitch, tex, drumD }: {
   // I/O parts are drawn as the precise FreeCAD component they are
   if (part.fit) return <Suspense fallback={null}><PreciseComp fit={part.fit} /></Suspense>;
   // the adapter PCB's own renderer (headers, relays, terminals) is richer than its CAD block
+  // the adapter PCB: its precise model (devices.py), on its standoffs in the box the CAD reserves
   if (/pcb/i.test(part.n) && part.k === "box")
-    return <PcbBoard p={part.p} s={boxSize(part)} />;
+    return <DeviceModel comp="adaptor_pcb" p={part.p} s={boxSize(part)} lift={5} fallback={<PcbBoard p={part.p} s={boxSize(part)} />} />;
   // Upgrade 1: the exact CAD shape (web_precise.py), where one was exported
   if (precise) {
     if (part.mech === "pulley" || part.mech.startsWith("spin:"))

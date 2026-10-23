@@ -97,10 +97,19 @@ class Pool:
         with self._lock:
             self._out[model] = self.clock() + seconds
             self._why[model] = why
-            logger.warning("Gemini model %r placed on cooldown for %.1fs (reason: %s)", model, seconds, why)
+            logger.warning(
+                "Gemini model %r placed on cooldown for %.1fs (reason: %s)", model, seconds, why
+            )
 
     def call(
-        self, post, body: dict, retryable=(429, 500, 503, 404), accept=None, trace=None
+        self,
+        post,
+        body: dict,
+        retryable=(429, 500, 503, 404),
+        accept=None,
+        trace=None,
+        only: list[str] | None = None,
+        rotate_timeouts: bool = False,
     ) -> tuple[dict, str]:
         """Submit request to the first available model, falling back through the pool on error.
 
@@ -110,6 +119,9 @@ class Pool:
             retryable: Tuple of HTTP status codes that trigger model rotation.
             accept: Optional validation callback that may raise ValueError for empty responses.
             trace: Optional list to record model rotation attempts and errors.
+            only: Optional subset of models to try (the pool's order is kept).
+            rotate_timeouts: When True, a model that does not answer in time is taken out and the
+                next one asked, instead of the timeout ending the call.
 
         Returns:
             tuple[dict, str]: (Parsed response dictionary, model identifier used).
@@ -120,6 +132,8 @@ class Pool:
         """
         tried = []
         for m in self.available():
+            if only is not None and m not in only:
+                continue
             tried.append(m)
             try:
                 data = post(API.format(model=m), body)
@@ -136,17 +150,25 @@ class Pool:
                 self.out(m, 300.0, "no answer in time")
                 if trace is not None:
                     trace.append((m, "no answer in time"))
-                raise
+                if not rotate_timeouts:
+                    raise
             except ValueError as e:
                 self.out(m, 60.0, f"unusable answer: {e}")
                 if trace is not None:
                     trace.append((m, "no usable answer"))
         nxt = min((self._out.get(m, 0.0) for m in self.models), default=0.0) - self.clock()
-        logger.error("All Gemini models in pool are exhausted: tried=%s, next_free_in=%.0fs", tried, max(0, nxt))
+        logger.error(
+            "All Gemini models in pool are exhausted: tried=%s, next_free_in=%.0fs",
+            tried, max(0, nxt),
+        )
         raise AllBusy(
             f"every model is at its limit ({', '.join(tried) or 'none free'}); "
             f"the first is free again in {max(0, nxt):.0f} s"
         )
+
+    def why(self, model: str) -> str:
+        """Why a model is out right now ("" when it is free)."""
+        return self._why.get(model, "") if self._out.get(model, 0.0) > self.clock() else ""
 
     def status(self) -> list[dict]:
         """Return diagnostic health and cooldown status for each model in the pool."""

@@ -18,6 +18,8 @@ import { type CadPart, type CadDoc, boxSize, cylSpec } from "../shared/model";
 import type { CellJoints, Drive } from "./store/useCellStore";
 import { AIM, MM, v, centreOf, Solid, Cookie, useBeltTexture } from "./parts";
 import { subjects } from "../vision/photo";
+import { benchOn, live } from "./bench/benchStore";
+import { BARRIERS } from "./bench/sortingWorld";
 
 
 
@@ -288,7 +290,7 @@ export function FlowCookie({ workpiece }: { workpiece: CellJoints["workpiece"] }
   }, []);
   useFrame(() => {
     if (!grp.current) return;
-    grp.current.visible = workpiece.visible;
+    grp.current.visible = workpiece.visible && !benchOn("sorting"); // the bench draws its own cookies
     const p = workpiece.pos;
     grp.current.position.set(p[0] * MM, p[2] * MM, p[1] * MM);
   });
@@ -331,13 +333,27 @@ export function FlowBarriers({ doc, workpiece }: { doc: CadDoc; workpiece: CellJ
   const leds = useRef<(THREE.MeshStandardMaterial | null)[]>([]);
   useFrame(({ clock }) => {
     const on = Math.floor(clock.getElapsedTime() * 8) % 2 === 0;
+    const bench = benchOn("sorting");
     const cx = workpiece.pos[0], cy = workpiece.pos[1];
     for (let i = 0; i < pairs.length; i++) {
       const pr = pairs[i];
       // where along the beam (0 = receiver, 1 = LED) the cookie blocks it: the light from
       // the LED stops at the cookie's near face, it never passes through
       let stop = 0;
-      if (workpiece.visible && pr.a.z > 55 && pr.a.z < 85) {
+      const benchPin = bench ? BARRIERS.indexOf(pr.tag as (typeof BARRIERS)[number]) : -1;
+      if (benchPin >= 0) {
+        // the Test bench: the physics says whether the beam is cut; it stops at the nearest cookie
+        if (live.pins[benchPin] >= 15) {
+          stop = 1;
+          const abx = pr.b.x - pr.a.x, aby = pr.b.y - pr.a.y, L = Math.hypot(abx, aby);
+          for (const [cx2, cy2] of live.cookieXY) {
+            const acx = cx2 - pr.a.x, acy = cy2 - pr.a.y;
+            const u = (acx * abx + acy * aby) / (L * L);
+            const d = Math.hypot(acx - abx * u, acy - aby * u);
+            if (u >= 0 && u <= 1 && d < 22.5) stop = Math.min(stop, u + Math.sqrt(22.5 * 22.5 - d * d) / L);
+          }
+        }
+      } else if (workpiece.visible && pr.a.z > 55 && pr.a.z < 85) {
         const abx = pr.b.x - pr.a.x, aby = pr.b.y - pr.a.y, L = Math.hypot(abx, aby);
         const acx = cx - pr.a.x, acy = cy - pr.a.y;
         const u = (acx * abx + acy * aby) / (L * L);

@@ -15,7 +15,9 @@ import { ComponentView } from "../views/ComponentView";
 import { useComponents } from "../views/componentModel";
 import { ControllerView } from "../views/ControllerView";
 import { useController } from "../views/controllerModel";
-import { CONTROLLER_VIEW, MACHINE_VIEW, PANELS, componentViews, type PanelCtx } from "./registry";
+import { ElectricsView, useElectrical } from "../views/ElectricsView";
+import { ElectricCard } from "./ElectricCard";
+import { CONTROLLER_VIEW, ELECTRICS_VIEW, MACHINE_VIEW, PANELS, componentViews, type PanelCtx } from "./registry";
 import { SidePanel } from "./SidePanel";
 import { TopBar } from "./TopBar";
 import { useBackend } from "./useBackend";
@@ -30,6 +32,7 @@ export default function App() {
   const machine = useCadDoc();
   const comps = useComponents();
   const ctl = useController();
+  const elec = useElectrical();
 
   useEffect(() => {
     track("twin", true);
@@ -42,7 +45,7 @@ export default function App() {
   }, [machine.doc]);
 
   // ------------------------------------------------------------ the view
-  const views = useMemo(() => [MACHINE_VIEW, CONTROLLER_VIEW, ...componentViews(comps.doc?.components)], [comps.doc]);
+  const views = useMemo(() => [MACHINE_VIEW, CONTROLLER_VIEW, ELECTRICS_VIEW, ...componentViews(comps.doc?.components)], [comps.doc]);
   const [viewId, setViewId] = useState(() => new URLSearchParams(location.search).get("view") ?? MACHINE_VIEW.id);
   const view = views.find((v) => v.id === viewId) ?? MACHINE_VIEW;
   useEffect(() => {
@@ -114,6 +117,7 @@ export default function App() {
         statusTip={[scene && "layout loaded", machine.doc && "cad synchronized"].filter(Boolean).join("  ·  ")} />
 
       {view.kind === "controller" && (ctl.doc ? <ControllerView doc={ctl.doc} /> : <div className="error">{ctl.err}</div>)}
+      {view.kind === "electrics" && (elec.doc ? <ElectricsView doc={elec.doc} /> : <div className="error">{elec.err}</div>)}
       {view.kind === "component" && comps.doc && <ComponentView id={view.id} doc={comps.doc} />}
 
       {machineView && (
@@ -128,6 +132,7 @@ export default function App() {
               {machine.err && <div className="error">{machine.err}</div>}
             </div>}
             <LoadingVeil hasDoc={!!machine.doc} />
+            <ElectricCard />
             {machine.doc && (
               <ErrorBoundary>
                 <Canvas shadows dpr={[1, 1.5]} gl={{ powerPreference: "high-performance" }} onCreated={({ gl }) => { gl.localClippingEnabled = true; }}>

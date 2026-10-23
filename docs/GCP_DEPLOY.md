@@ -45,6 +45,9 @@ The entire digital twin (interactive 3D Three.js frontend + FastAPI physics kern
      SUPABASE_SERVICE_KEY=your_supabase_service_key
      SUPABASE_BUCKET=captures
      STF_DB=auto
+     # the copilot's vector index: auto = pgvector in the Supabase project above (migration
+     # supabase/migrations/20261023023000_stf_kb_vectors.sql), SQLite file when unset/off
+     STF_VECTOR_BACKEND=auto
      STF_MAX_WS_CLIENTS=16
      STF_SESSION_SECRET=any_64_character_random_hex_string
      STF_TRACKING=1
@@ -162,10 +165,14 @@ gcloud run deploy stf-live --source . --platform managed --region europe-west1 -
 > stf-live right now" - at most one email per guest per 12 hours and at most
 > `STF_NOTIFY_MAX_PER_HOUR` across all visitors, so a script cannot fill your inbox.
 >
-> Already deployed with plain variables? Run the same command with `--set-secrets` and add
-> `--remove-env-vars GEMINI_API_KEY,GROQ_API_KEY,ELEVENLABS_API_KEY,UPB_AI_KEY,SUPABASE_SERVICE_KEY,STF_SESSION_SECRET,STF_SMTP_PASS`
-> so the plain copies are gone from the new revision. Then **rotate those keys** at each
-> provider: old revisions still hold the plain values.
+> **This migration was done on 2026-10-23.** Ten credentials (the seven above plus
+> `SUPABASE_SECRET_KEY`, `SUPABASE_DATABASE_PASSWORD`, `POSTGRES_PASSWORD`,
+> `REDIS_PASSWORD`) now live in Secret Manager, mounted by `deploy/staging.sh` /
+> `deploy/promote.sh`; no secret is a plain env var on `stf-live` anymore. The
+> migration ran via `./deploy/migrate-secrets.sh` (values copied from the running
+> service's spec, never printed); the compute service account holds
+> `roles/secretmanager.secretAccessor`. The step below is what to do if a new
+> secret is ever added as a plain variable again.
 
 Once deployment completes, the terminal will output the live Service URL.
 Visiting the URL will automatically redirect to `/stf/` and connect to the live physics WebSocket at 30 Hz.
@@ -264,6 +271,13 @@ time. It fires only for visitors who accepted the consent banner (the same
 privacy rule as the usage beacon), it is throttled to one note per guest per
 12 hours, and a mail-server hiccup can never break the beacon itself.
 
+The dashboard's top-bar bell shows the configuration status at a glance (green
+dot when armed) and sends a test notice on click — operator-guarded like
+`POST /command`; on the deployed site paste `STF_API_TOKEN` once in the bell's
+field and the browser remembers it. A request whose Host is `localhost` never
+sends, unless `STF_NOTIFY_LOCAL=1` is set — a local test run with a configured
+`.env` cannot spam the mailbox.
+
 ---
 
 ## First deploy with usage traction (one-time)
@@ -275,3 +289,9 @@ so in its log. The migration is in the repo: run
 once — Supabase dashboard → **SQL Editor** → paste → Run. This has already been applied to the
 project above; it only needs doing for a *different* project. The guests/documents/captures
 tables from the earlier migration are required the same way.
+
+The copilot's pgvector index has its own migration,
+[`supabase/migrations/20261023023000_stf_kb_vectors.sql`](../supabase/migrations/20261023023000_stf_kb_vectors.sql)
+(`kb_vectors` + `kb_meta` + three RPCs; already applied to the project above). Without it the
+API detects the missing table, logs a warning and answers from the SQLite vector store or
+BM25 alone — nothing breaks, retrieval just stays local to the container.

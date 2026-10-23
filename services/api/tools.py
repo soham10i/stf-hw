@@ -39,6 +39,8 @@ MACHINE = "hbw_parts_up12.json"
 
 @dataclass
 class Ctx:
+    """The request-scoped context every tool call runs with (dashboard state)."""
+
     age: float = 140.0  # machine age in shifts (the dashboard's slider)
     pm: bool = True  # preventive maintenance on
     page: str | None = None  # dashboard page id
@@ -47,6 +49,8 @@ class Ctx:
 
 @dataclass
 class Result:
+    """A tool's answer: text, tabular facts, sources, and exact citation anchors."""
+
     tool: str
     text: str
     facts: list[list[str]] = field(default_factory=list)
@@ -56,6 +60,7 @@ class Result:
     cites: list[dict] = field(default_factory=list)
 
     def as_dict(self) -> dict:
+        """The API-facing shape, empty fields dropped."""
         return {k: v for k, v in asdict(self).items() if v not in (None, [], "")}
 
     def as_markdown(self) -> str:
@@ -83,6 +88,7 @@ def _md_cell(v: object) -> str:
 
 
 def pct(x: float, d: int = 0) -> str:
+    """A fraction as a percentage string (0.123, 1 -> '12.3 %')."""
     return f"{x * 100:.{d}f} %"
 
 
@@ -148,6 +154,7 @@ def machine_health(args: dict, ctx: Ctx) -> Result:
     states.sort(key=lambda s: (0 if s["status"] != "ok" else 1, s["warn_in"]))
 
     def line(s: dict) -> str:
+        """One wear part's one-line health summary for the model."""
         if s["status"] == "fail":
             return "FAILED - replace it"
         if s["status"] == "warn":
@@ -701,13 +708,21 @@ def _env() -> dict[str, str]:
 
 def _retrieval_desc() -> str:
     """How the documents are retrieved, for the setup answer: BM25 plus the vector store's
-    embedder and passage count, or pure BM25 when vectors are off."""
+    backend and embedder, or pure BM25 when vectors are off."""
     store = V.get_store()
     if store is None:
         return "BM25 over the knowledge base (vectors off)"
     got = store.matrix()
     n = len(got[0]) if got else 0
-    return f"hybrid: BM25 fused with {store.embedder.name} vectors ({n} passages indexed)"
+    backend = getattr(store, "name", "sqlite")
+    tail = ""
+    rk = V.get_reranker()
+    if rk is not None:
+        tail = " + reranker"
+    return (
+        f"hybrid: BM25 fused with {store.embedder.name} vectors "
+        f"in {backend}{tail} ({n} passages indexed)"
+    )
 
 
 def copilot_setup(args: dict, ctx: Ctx) -> Result:
@@ -826,6 +841,8 @@ def open_page(args: dict, ctx: Ctx) -> Result:
 # ------------------------------------------------------------------------ the table
 @dataclass
 class Tool:
+    """One twin capability exposed to the model: name, implementation, JSON-schema params."""
+
     name: str
     fn: Callable[[dict, Ctx], Result]
     params: dict

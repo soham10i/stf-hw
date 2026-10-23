@@ -39,6 +39,7 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from . import keepalive
 from . import security as sec
 from .logging_config import get_logger
 from .store import ROOT
@@ -207,7 +208,8 @@ class SupabaseDb:
         req = urllib.request.Request(
             self.url + "/rest/v1/" + path, method=method, data=data, headers=h
         )
-        with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:  # noqa: S310 - the configured project URL
+        # kept-alive: no TLS handshake per query
+        with keepalive.urlopen(req, timeout=TIMEOUT_S) as r:
             raw = r.read()
         return json.loads(raw) if raw else None
 
@@ -231,10 +233,12 @@ class SupabaseDb:
         return "&".join(f"{k}=eq.{urllib.parse.quote(v, safe='')}" for k, v in kv.items())
 
     def guest(self, id: str) -> dict | None:
+        """One guest row by id, or None."""
         r = self._req("GET", f"guests?select=id,created,last_seen,visits&{self._eq(id=id)}")
         return r[0] if r else None
 
     def add_guest(self, id: str, now: float) -> None:
+        """Insert a new guest row (idempotent on conflict)."""
         self._req(
             "POST",
             "guests",
@@ -243,6 +247,7 @@ class SupabaseDb:
         )
 
     def touch(self, id: str, now: float) -> None:
+        """Bump last_seen and the visit counter for a returning guest."""
         g = self.guest(id)
         if g:
             self._req(
@@ -253,23 +258,28 @@ class SupabaseDb:
             )
 
     def forget(self, id: str) -> None:
+        """Erase a guest and everything they own (GDPR-style deletion)."""
         self._req("DELETE", f"documents?{self._eq(owner=id)}", prefer="return=minimal")
         self._req("DELETE", f"guests?{self._eq(id=id)}", prefer="return=minimal")
 
     def lapse(self, before: float) -> int:
+        """Forget every guest last seen before `before`; returns how many."""
         old = self._req("GET", f"guests?select=id&last_seen=lt.{before}") or []
         for g in old:
             self.forget(g["id"])
         return len(old)
 
     def guests(self) -> int:
+        """The number of guest rows in the database."""
         return len(self._req("GET", "guests?select=id") or [])
 
     def get(self, col: str, owner: str, id: str) -> dict | None:
+        """One document by (collection, owner, id), or None."""
         r = self._req("GET", f"documents?select=doc&{self._eq(col=col, owner=owner, id=id)}")
         return r[0]["doc"] if r else None
 
     def put(self, col: str, owner: str, id: str, doc: dict) -> None:
+        """Upsert a document; newer writes win on conflict."""
         self._req(
             "POST",
             "documents",
@@ -278,6 +288,7 @@ class SupabaseDb:
         )
 
     def delete(self, col: str, owner: str, id: str) -> bool:
+        """Delete a document; True when one existed."""
         r = self._req(
             "DELETE",
             f"documents?{self._eq(col=col, owner=owner, id=id)}",
@@ -286,6 +297,7 @@ class SupabaseDb:
         return bool(r)
 
     def list(self, col: str, owner: str, fields: tuple[str, ...], limit: int = 100) -> list[dict]:
+        """A owner's documents in a collection, newest first, projected to `fields`."""
         own = self._eq(col=col, owner=owner)
         q = f"documents?select=id,doc&{own}&order=t.desc&limit={int(limit)}"
         return [
@@ -338,6 +350,12 @@ def _secret(env: dict) -> bytes:
 
 
 class Guests:
+    """Per-visitor identity: HMAC-signed guest cookies backed by the guest database.
+
+    Every request resolves to a guest id (creating one on first visit), which is
+    also the owner key for all per-visitor data (docs/DATABASE.md).
+    """
+
     def __init__(self, env: dict, db: Any = None, note: str = "") -> None:
         self.db, self.note = (db, note or db.name) if db is not None else db_from_env(env)
         self.key = _secret(env)
@@ -348,9 +366,11 @@ class Guests:
         self._made = 0
 
     def sign(self, id: str) -> str:
+        """The cookie value for a guest id: id + HMAC signature."""
         return f"{id}.{hmac.new(self.key, id.encode(), hashlib.sha256).hexdigest()[:32]}"
 
     def verify(self, cookie: str | None) -> str | None:
+        """The guest id inside a cookie, or None when the signature does not match."""
         if not cookie or "." not in cookie:
             return None
         id, _ = cookie.split(".", 1)
@@ -378,17 +398,20 @@ class Guests:
         return id, True
 
     def cookie(self, id: str, secure: bool) -> str:
+        """The Set-Cookie header value pinning a guest id for its retention period."""
         age = int(self.days * 86400)
         return f"{COOKIE}={self.sign(id)}; Path=/; Max-Age={age}; HttpOnly; SameSite=Lax" + (
             "; Secure" if secure else ""
         )
 
     def clear_cookie(self, secure: bool) -> str:
+        """The Set-Cookie header value that forgets the guest in the browser."""
         return f"{COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax" + (
             "; Secure" if secure else ""
         )
 
     def status(self, id: str | None) -> dict:
+        """The /guest payload: who this visitor is and how long they are kept."""
         g = None
         try:
             g = self.db.guest(id) if id else None
@@ -406,8 +429,10 @@ class Guests:
 
 
 def bind(guest: str) -> contextvars.Token:
+    """Set the current guest for this context (request-scoped, middleware use)."""
     return _current.set(guest)
 
 
 def unbind(token: contextvars.Token) -> None:
+    """Restore the previous guest binding (paired with `bind`)."""
     _current.reset(token)

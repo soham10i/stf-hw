@@ -11,6 +11,8 @@
 // tabs of one browser. Every message carries its sender and a sequence number, so one that
 // arrives both ways is taken once.
 import { HAS_API } from "./mode";
+import { fetchGuest } from "./session";
+import { apiWs } from "./api";
 
 export type Role = "twin" | "dashboard";
 export type Msg = { type: string; src?: string; seq?: number; [k: string]: unknown };
@@ -61,9 +63,15 @@ export class LiveLink {
 
   private open() {
     if (this.closed) return;
-    const proto = location.protocol === "https:" ? "wss" : "ws";
+    // the hub keys rooms by the signed guest cookie and refuses a socket without one: make sure
+    // GET /guest has issued it (once per page; cached) before connecting
+    void fetchGuest().then(() => this.connect());
+  }
+
+  private connect() {
+    if (this.closed) return;
     let ws: WebSocket;
-    try { ws = new WebSocket(`${proto}://${location.host}/twin/live?role=${this.role}`); } catch { return; }
+    try { ws = new WebSocket(apiWs(`/twin/live?role=${this.role}`)); } catch { return; }
     this.ws = ws;
     ws.onopen = () => { this.backoff = 500; this.emit({ type: "link", up: true }); };
     ws.onmessage = (e) => { try { this.take(JSON.parse(e.data as string) as Msg, true); } catch { /* not JSON */ } };

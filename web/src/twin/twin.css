@@ -739,3 +739,19 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .cam-wait { position: absolute; inset: 0; display: grid; place-items: center; color: #9aa3ad; font-size: var(--fs-caption); }
 @keyframes cam-rec { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .cam-view figcaption i.on { animation: none; } }
+
+/* the Test bench panel (panels/BenchPanel.tsx) */
+.bench-run, .bench-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.bench-row .ui-btn .mono { color: var(--muted); margin-left: 4px; font-size: var(--fs-caption); }
+.bench-slider { width: 100%; margin: 2px 0 10px; }
+.bench-readings li { display: grid; grid-template-columns: 12px 30px 1fr auto; align-items: center; gap: 8px; }
+.bench-readings em { font-style: normal; color: var(--muted); font-size: var(--fs-callout); }
+.bench-led { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); opacity: .5; }
+.bench-led.on { background: var(--bad, #e0503a); opacity: 1; box-shadow: 0 0 0 3px var(--bad-weak); }
+.bench-stats { color: var(--muted); font-size: var(--fs-caption); margin: 8px 0; }
+.bench-modules { margin: 0 0 10px; }
+.bench-axis { display: grid; grid-template-columns: 76px 1fr; gap: 3px 10px; margin: 2px 0 12px; font-size: var(--fs-callout); }
+.bench-axis dt { color: var(--muted); }
+.bench-axis dd { margin: 0; }
+.bench-axis-line { color: var(--muted); font-size: var(--fs-callout); margin: 0 0 10px; }
+.bench-row .ui-select { min-width: 150px; }

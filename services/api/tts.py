@@ -65,6 +65,8 @@ SAY = [
 
 
 class TtsRequest(BaseModel):
+    """The voice endpoint's input: what to say and in which voice."""
+
     text: str = Field(min_length=1, max_length=4000)
     voice: str = Field(default="Kore", max_length=20)
 
@@ -211,6 +213,7 @@ class GeminiVoice:
         self.key, self.pool, self.post = key, GP.Pool(models), post
 
     def ready(self) -> bool:
+        """Whether a Gemini key is configured (the Gemini TTS lane)."""
         return bool(self.key)
 
     def _body(self, text: str, voice: str) -> dict:
@@ -224,6 +227,7 @@ class GeminiVoice:
         }
 
     def speak(self, text: str, voice: str) -> tuple[bytes, str, str]:
+        """Synthesize with Gemini; raises Unavailable when no key is configured."""
         if not self.key:
             raise Unavailable("no Gemini key")
         try:
@@ -345,9 +349,11 @@ class ElevenLabsVoice:
         return json.dumps(body).encode()
 
     def ready(self) -> bool:
+        """Whether the key is present and any rate-limit rest has elapsed."""
         return bool(self.key) and time.time() >= self.out_until
 
     def speak(self, text: str, voice: str) -> tuple[bytes, str, str]:
+        """Synthesize with ElevenLabs; raises Unavailable when keyless or resting."""
         if not self.ready():
             raise Unavailable("no ElevenLabs key" if not self.key else "ElevenLabs is at its limit")
         payload = self._payload(text)
@@ -412,9 +418,11 @@ class GroqVoice:
         self.out_until = 0.0
 
     def ready(self) -> bool:
+        """Whether the key is present and any rate-limit rest has elapsed."""
         return bool(self.key) and time.time() >= self.out_until
 
     def speak(self, text: str, voice: str) -> tuple[bytes, str, str]:
+        """Synthesize with Groq; raises Unavailable when keyless or resting."""
         if not self.ready():
             raise Unavailable("no Groq key" if not self.key else "Groq TTS is resting")
         payload = json.dumps(
@@ -453,9 +461,11 @@ class LocalVoice:
     name = "local"
 
     def ready(self) -> bool:
+        """Whether this machine has the macOS 'say' + 'afconvert' speech tools."""
         return bool(shutil.which("say") and shutil.which("afconvert"))
 
     def speak(self, text: str, voice: str) -> tuple[bytes, str, str]:
+        """Synthesize with the macOS speech engine (dev machine fallback lane)."""
         if not self.ready():
             raise Unavailable("no local speech engine")
         with tempfile.TemporaryDirectory() as d:
@@ -506,6 +516,7 @@ class Tts:
         self.limiter = sec.RateLimiter(rate=0.1, burst=3)
 
     def status(self) -> dict:
+        """The /chat/tts/status payload: which providers can speak, the voice list."""
         return {
             "enabled": any(p.ready() for p in self.providers),
             "voices": sorted(VOICES),
@@ -527,6 +538,7 @@ class Tts:
         return client
 
     async def speak(self, req: TtsRequest, request: Request) -> Response:
+        """The voice endpoint: sentence-split, synthesize in parallel, stream PCM as SSE."""
         self._check_origin(request)
         client = self._client_of(request)
         ready = [p for p in self.providers if p.ready()]
@@ -634,12 +646,13 @@ class Tts:
         for p in [p for p in self.providers if p.ready() and hasattr(p, "stream")]:
             collected = bytearray()
             try:
-                rate, model = 0, p.name
                 kw = {"context": context} if context and p.name == "elevenlabs" else {}
-                for pcm, rate, model in p.stream(text, voice, **kw):
-                    collected += pcm
-                if collected:
-                    meta = {"kind": "pcm", "rate": rate, "by": model}
+                last: tuple | None = None
+                for chunk in p.stream(text, voice, **kw):
+                    last = chunk
+                    collected += chunk[0]
+                if collected and last is not None:
+                    meta = {"kind": "pcm", "rate": last[1], "by": last[2]}
                     _cache_put(key, meta, bytes(collected))
                     return meta, bytes(collected)
                 why.append(f"{p.name} produced no audio")
@@ -694,13 +707,16 @@ class Tts:
             meta, audio = one
             yield self._sse("meta", meta)
             for i in range(0, len(audio), 32768):
-                yield self._sse("chunk", {"b64": base64.b64encode(audio[i : i + 32768]).decode()})
+                yield self._sse(
+                        "chunk", {"b64": base64.b64encode(audio[i : i + 32768]).decode()}
+                    )
             yield self._sse("end", {})
             return
 
         sem = asyncio.Semaphore(3)
 
         async def one(i: int):
+            """Synthesize sentence i with its neighbours as prosody context."""
             s = sentences[i]
             ctx = (sentences[i - 1] if i else None,
                    sentences[i + 1] if i + 1 < len(sentences) else None)
@@ -727,7 +743,8 @@ class Tts:
                     yield self._sse("meta", meta)
                     sig = new_sig
                 for i in range(0, len(audio), 32768):
-                    yield self._sse("chunk", {"b64": base64.b64encode(audio[i : i + 32768]).decode()})
+                    b64 = base64.b64encode(audio[i : i + 32768]).decode()
+                    yield self._sse("chunk", {"b64": b64})
                 spoken += 1
             if spoken:
                 yield self._sse("end", {})
@@ -811,9 +828,11 @@ class ElevenLabsStt:
         self.out_until = 0.0
 
     def ready(self) -> bool:
+        """Whether the key is present and any rate-limit rest has elapsed."""
         return bool(self.key) and time.time() >= self.out_until
 
     def transcribe(self, audio: bytes, mime: str) -> tuple[str, str]:
+        """Transcribe one audio clip; returns (text, provider name)."""
         body, ctype = _multipart({"model_id": self.model, "tag_audio_events": "false"}, audio, mime)
         req = urllib.request.Request(
             self.URL,
@@ -850,6 +869,7 @@ class Stt:
         self.post = _post
 
     def status(self) -> dict:
+        """The /chat/stt/status payload: which transcription providers answer."""
         ready = {
             "elevenlabs": self.eleven.ready(),
             "groq": bool(self.groq_key),
@@ -899,6 +919,7 @@ class Stt:
             return res.get("text", "").strip()
 
     async def transcribe(self, request: Request) -> dict:
+        """The speech-to-text endpoint: validate, transcribe through the provider ladder."""
         import asyncio
 
         origin = request.headers.get("origin")
@@ -984,6 +1005,7 @@ class Stt:
         }
 
         def text_of(d: dict) -> str:
+            """The transcript text from a Gemini STT response."""
             t = "".join(
                 p.get("text", "")
                 for c in d.get("candidates", [])[:1]

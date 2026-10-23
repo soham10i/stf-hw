@@ -31,9 +31,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
+from . import keepalive
 from .logging_config import get_logger
 from .store import ROOT
 
@@ -124,6 +125,7 @@ class SqliteVisits:
         )
 
     def add_visit(self, v: dict) -> None:
+        """Record one page visit (SQLite backend)."""
         with self._lock:
             self._db.execute(
                 "INSERT INTO visits (guest, t, page, ip, country, region, city, lat, lon, ua)"
@@ -133,6 +135,7 @@ class SqliteVisits:
             )
 
     def add_logs(self, rows: list[dict]) -> None:
+        """Buffer log rows for one batch insert (SQLite backend)."""
         with self._lock:
             self._db.executemany(
                 "INSERT INTO app_logs (t, level, logger, message) VALUES (?, ?, ?, ?)",
@@ -140,6 +143,7 @@ class SqliteVisits:
             )
 
     def visits(self, guest: str, limit: int = 200) -> list[dict]:
+        """One guest's visit history (SQLite backend)."""
         with self._lock:
             cur = self._db.execute(
                 "SELECT guest, t, page, ip, country, region, city, lat, lon, ua FROM visits"
@@ -170,11 +174,12 @@ class SupabaseVisits:
                 "Prefer": "return=minimal",
             },
         )
-        with urllib.request.urlopen(req, timeout=10) as r:  # noqa: S310 - the configured project URL
+        with keepalive.urlopen(req, timeout=10) as r:  # kept-alive: no TLS handshake per query
             raw = r.read()
         return json.loads(raw) if raw else None
 
     def ready(self) -> str | None:
+        """None when the Supabase tables answer; otherwise why they cannot be used."""
         try:
             self._req("GET", "visits?select=guest&limit=1")
             self._req("GET", "app_logs?select=id&limit=1")
@@ -189,20 +194,24 @@ class SupabaseVisits:
             return f"Supabase is unreachable ({type(e).__name__})"
 
     def add_visit(self, v: dict) -> None:
+        """Insert one visit row, timestamp converted to ISO 8601 (PostgREST contract)."""
         # Postgres' timestamptz wants ISO 8601, not a Unix float (PostgREST answers 400)
         self._req("POST", "visits", {**v, "t": _iso(v["t"])})
 
     def add_logs(self, rows: list[dict]) -> None:
+        """Insert buffered log rows, timestamps converted to ISO 8601."""
         self._req("POST", "app_logs", [{**r, "t": _iso(r["t"])} for r in rows])
 
     def visits(self, guest: str, limit: int = 200) -> list[dict]:
+        """One guest's visit history (Supabase backend)."""
         q = urllib.parse.quote(guest, safe="")
-        return self._req("GET", f"visits?select=*&guest=eq.{q}&order=t.desc&limit={int(limit)}") or []
+        path = f"visits?select=*&guest=eq.{q}&order=t.desc&limit={int(limit)}"
+        return self._req("GET", path) or []
 
 
 def _iso(t: float) -> str:
     """A Unix epoch second as ISO 8601 UTC, the shape Postgres' timestamptz accepts."""
-    return datetime.fromtimestamp(t, tz=timezone.utc).isoformat()
+    return datetime.fromtimestamp(t, tz=UTC).isoformat()
 
 
 def store_from_env(env: dict) -> tuple[Any, str]:
@@ -227,7 +236,10 @@ class Visits:
     the same page inside ten seconds, so an SPA's eager beacon cannot fill the table."""
 
     def __init__(self, env: dict, store: Any = None, note: str = "", geo: Geo | None = None):
-        self.store, self.note = (store, note or store.name) if store is not None else store_from_env(env)
+        if store is not None:
+            self.store, self.note = store, note or store.name
+        else:
+            self.store, self.note = store_from_env(env)
         self.geo = geo if geo is not None else Geo(on=env.get("STF_GEO", "1") != "0")
         self.on = env.get("STF_TRACKING", "1") != "0"
         self.days = float(env.get("STF_TRACK_DAYS", "180"))
@@ -296,6 +308,7 @@ class SupabaseLogHandler(logging.Handler):
         self.max_per_min, self._window, self._n = 120, 0.0, 0
 
     def emit(self, record: logging.LogRecord) -> None:
+        """A log record arrives: rate-limit, buffer, and ship by size or timer. Never raises."""
         try:
             row = {
                 "t": record.created,
@@ -328,6 +341,7 @@ class SupabaseLogHandler(logging.Handler):
             self._timer.start()
 
     def flush(self) -> None:
+        """Ship whatever is buffered now (called by the timer and at shutdown)."""
         with self._lock:
             if not self._rows:
                 self._timer = None
@@ -342,6 +356,7 @@ class SupabaseLogHandler(logging.Handler):
             logger.warning("Could not ship %d log records: %s", len(rows), e)
 
     def close(self) -> None:
+        """Stop the shipping timer and mark the handler closed (shutdown hook)."""
         with self._lock:
             self._closed = True
             if self._timer:
@@ -352,5 +367,6 @@ class SupabaseLogHandler(logging.Handler):
 
 
 def consent_cookie(value: str, days: float, secure: bool) -> str:
+    """The Set-Cookie header value recording the visitor's analytics consent."""
     age = int(days * 86400)
     return f"{COOKIE}={value}; Path=/; Max-Age={age}; SameSite=Lax" + ("; Secure" if secure else "")

@@ -42,6 +42,7 @@ def public_host(host: str, port: int | None = None) -> bool:
 
 
 def public_url(url: str) -> bool:
+    """Whether a URL names a non-loopback, non-link-local host (fetching it goes to the network)."""
     try:
         u = urllib.parse.urlparse(url)
         port = u.port
@@ -58,13 +59,19 @@ def _check_peer(sock: socket.socket) -> None:
 
 
 class _HTTPConnection(http.client.HTTPConnection):
+    """Plain-HTTP connection that verifies the peer's address before any request."""
+
     def connect(self) -> None:
+        """Open the socket, then refuse non-public peers before anything is sent."""
         super().connect()
         _check_peer(self.sock)
 
 
 class _HTTPSConnection(http.client.HTTPSConnection):
+    """TLS connection that verifies the peer's address after the handshake."""
+
     def connect(self) -> None:
+        """Connect (TCP + TLS), then refuse non-public peers before any request is sent."""
         # the TCP connection and the TLS handshake, then the peer check: no request is sent
         # before it passes
         super().connect()
@@ -72,12 +79,18 @@ class _HTTPSConnection(http.client.HTTPSConnection):
 
 
 class _HTTPHandler(urllib.request.HTTPHandler):
+    """urllib handler pairing plain-HTTP URLs with the peer-checked connection."""
+
     def http_open(self, req):  # noqa: ANN001
+        """Open a plain-HTTP URL on the peer-checked connection."""
         return self.do_open(_HTTPConnection, req)
 
 
 class _HTTPSHandler(urllib.request.HTTPSHandler):
+    """urllib handler pairing HTTPS URLs with the peer-checked connection."""
+
     def https_open(self, req):  # noqa: ANN001
+        """Open an HTTPS URL on the peer-checked connection."""
         return self.do_open(_HTTPSConnection, req, context=self._context)
 
 
@@ -85,6 +98,7 @@ class _Redirects(urllib.request.HTTPRedirectHandler):
     """Only http(s) redirects (never file:, ftp:); the socket check covers the address."""
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001
+        """Follow a redirect only when the target stays on http(s); the peer check still applies."""
         if urllib.parse.urlparse(newurl).scheme not in ("http", "https"):
             raise urllib.error.URLError("redirect to a non-http(s) URL refused")
         return super().redirect_request(req, fp, code, msg, headers, newurl)

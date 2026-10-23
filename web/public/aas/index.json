@@ -114,6 +114,72 @@
    ]
   },
   {
+   "id": "https://soham10i.github.io/stf-hw/aas/part-revpi-dio",
+   "name": "RevPi DIO (KUNBUS 100197)",
+   "kind": "Type",
+   "submodels": [
+    "Nameplate",
+    "TechnicalData",
+    "HandoverDocumentation",
+    "Models3D"
+   ]
+  },
+  {
+   "id": "https://soham10i.github.io/stf-hw/aas/part-revpi-core",
+   "name": "RevPi Core S (KUNBUS 100359)",
+   "kind": "Type",
+   "submodels": [
+    "Nameplate",
+    "TechnicalData",
+    "HandoverDocumentation",
+    "Models3D"
+   ]
+  },
+  {
+   "id": "https://soham10i.github.io/stf-hw/aas/part-psu-wdr120",
+   "name": "Power supply WDR-120-24 (MEAN WDR-120-24)",
+   "kind": "Type",
+   "submodels": [
+    "Nameplate",
+    "TechnicalData",
+    "HandoverDocumentation",
+    "Models3D"
+   ]
+  },
+  {
+   "id": "https://soham10i.github.io/stf-hw/aas/part-adaptor-pcb",
+   "name": "Adaptor PCB 24V (fischertechnik 536634-PCB)",
+   "kind": "Type",
+   "submodels": [
+    "Nameplate",
+    "TechnicalData",
+    "HandoverDocumentation",
+    "Models3D"
+   ]
+  },
+  {
+   "id": "https://soham10i.github.io/stf-hw/aas/part-io-coupler",
+   "name": "Remote I/O bus coupler (not IO-COUPLER)",
+   "kind": "Type",
+   "submodels": [
+    "Nameplate",
+    "TechnicalData",
+    "HandoverDocumentation",
+    "Models3D"
+   ]
+  },
+  {
+   "id": "https://soham10i.github.io/stf-hw/aas/part-io-slice",
+   "name": "Remote I/O slice, 8 channels (not IO-SLICE-8)",
+   "kind": "Type",
+   "submodels": [
+    "Nameplate",
+    "TechnicalData",
+    "HandoverDocumentation",
+    "Models3D"
+   ]
+  },
+  {
    "id": "https://soham10i.github.io/stf-hw/aas/ai-predictive-maintenance",
    "name": "Predictive-maintenance network (Upgrade 8)",
    "kind": "Type",
@@ -131,9 +197,9 @@
   }
  ],
  "counts": {
-  "shells": 12,
-  "submodels": 45,
-  "elements": 1961
+  "shells": 18,
+  "submodels": 69,
+  "elements": 3034
  },
  "extensions": [
   "Time_Series_Data: TimeSeries/Metadata/Record/component",
@@ -147,7 +213,7 @@
   "Artificial_Intelligence_Model_Nameplate: AIModelNameplate/AITypeSpecificInformation/Hyperparameter/Parameters"
  ],
  "fails": [],
- "files": 39,
+ "files": 57,
  "mutants": [
   {
    "id": "AM1",
@@ -190,5 +256,5 @@
   "Provision_of_3D_Models": "https://admin-shell.io/idta/Models3D/1/0",
   "Artificial_Intelligence_Model_Nameplate": "https://admin-shell.io/idta/SubmodelTemplate/AIModelNameplate/1/0"
  },
- "built": "2026-10-18T12:59:48Z"
+ "built": "2026-10-22T00:27:53Z"
 }

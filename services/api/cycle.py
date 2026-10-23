@@ -39,6 +39,8 @@ OVEN_BAKE_SECONDS = 4.0
 
 @dataclass
 class Order:
+    """One factory machine order as it moves pending -> running -> completed | failed."""
+
     id: int
     op: str
     slot: str | None
@@ -46,6 +48,7 @@ class Order:
     error: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
+        """The wire/API shape of the order."""
         return {
             "id": self.id,
             "op": self.op,

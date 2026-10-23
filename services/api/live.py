@@ -60,7 +60,8 @@ def latest(client: str = "local") -> tuple[dict[str, Any] | None, float]:
         client: Client or guest identifier.
 
     Returns:
-        tuple[dict[str, Any] | None, float]: (Snapshot dictionary, age_in_seconds), or (None, inf) if stale/absent.
+        tuple[dict[str, Any] | None, float]: (Snapshot, age_in_seconds), or
+        (None, inf) if stale/absent.
     """
     snap, at = _by.get(guests.current() or client, (None, 0.0))
     age = time.time() - at

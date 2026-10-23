@@ -71,11 +71,26 @@ def main() -> int:
         ),
         "ollama": (bool(c.ollama_model), c.ollama_model, None),
     }
+    if c.cloud_key:  # the Google Cloud key is asked before the AI Studio one: check it on its own
+        cm = (c.cloud_models or [c.model])[0]
+        probes["gemini (cloud)"] = (
+            True,
+            cm,
+            lambda: C.parse(
+                C._post(
+                    C.API.format(model=cm),
+                    c.cloud_key,
+                    {"contents": [{"role": "user", "parts": [{"text": ASK}]}]},
+                )
+            ),
+        )
     usable = []
-    for name in C.ORDER:
+    for name in ("gemini (cloud)", *C.ORDER):
+        if name not in probes:
+            continue
         has, model, run = probes[name]
         if not has:
-            print(f"  --   {name:7s} not configured")
+            print(f"  --   {name:14s} not configured")
             continue
         t = time.monotonic()
         try:
@@ -87,16 +102,16 @@ def main() -> int:
             else:
                 reply = run()
             usable.append(name)
-            print(f"  ok   {name:7s} {model}  {time.monotonic() - t:4.1f} s  {reply[:40]!r}")
+            print(f"  ok   {name:14s} {model}  {time.monotonic() - t:4.1f} s  {reply[:40]!r}")
         except urllib.error.HTTPError as e:
             try:
                 why = json.loads(e.read().decode()).get("error", {})
                 why = why.get("message", "") if isinstance(why, dict) else str(why)
             except Exception:
                 why = ""
-            print(f"  FAIL {name:7s} {model}  HTTP {e.code} {why[:110]}")
+            print(f"  FAIL {name:14s} {model}  HTTP {e.code} {why[:110]}")
         except Exception as e:  # noqa: BLE001 - report every failure
-            print(f"  FAIL {name:7s} {model}  {type(e).__name__} {str(e)[:110]}")
+            print(f"  FAIL {name:14s} {model}  {type(e).__name__} {str(e)[:110]}")
     print("answers will come from: " + (" -> ".join(usable + ["the twin's tools"])))
     return 0 if usable else 1
 

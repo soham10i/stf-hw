@@ -14,6 +14,7 @@ import { GUIDE } from "./guide";
 import * as api from "./copilot/api";
 import { Md, Message, openSource } from "./copilot/Message";
 import { Voice } from "./copilot/Voice";
+import { AnswerSettings, SettingsChip } from "./copilot/Settings";
 import { CopilotMark, Icon } from "../shared/icons";
 
 const TABS: [api.Tab, string, string][] = [
@@ -35,6 +36,19 @@ const CHOICES: [api.Choice, string, string, string][] = [
   ["web", "globe", "Web", "Search the web; every claim linked to its page, each page graded trusted or unvetted"],
   ["deep", "layers", "Deep", "Research: split into sub-questions, each searched, then written up together (slower, several searches)"],
 ];
+// what to ask first, by who is asking (the twin's own questions stay first for the operator)
+const PROFILE_EXAMPLES: Record<api.Audience, string[]> = {
+  operator: [],
+  engineer: ["What PFHd does PL d require for the E-stop?", "Derive the belt's stopping distance", "Compare EtherCAT and Modbus TCP for the remote I/O"],
+  researcher: ["Deep research: virtual commissioning with FMI and OPC UA - state of the art",
+    "Deep research: physics engines for industrial digital twins - accuracy vs real time",
+    "What does the literature say about predictive maintenance of DC gear motors?"],
+};
+const HERO: Record<api.Audience, string> = {
+  operator: "Short answers from the twin's own tools and documents, with their sources. Numbers are checked before you see them.",
+  engineer: "Answers from the twin's tools and documents, the standards and datasheets behind them, and the web when they cannot answer.",
+  researcher: "Researched reports from standards and peer-reviewed papers only - forums and social media are never used, and the evidence is rated.",
+};
 const EMPTY: api.Session["context"] = { facts: [], tools: [], models: [], page: null };
 // one shared spring for the sliding highlights (the provider tabs, where-answers-come-from)
 const PILL = { type: "spring", stiffness: 500, damping: 40 } as const;
@@ -105,6 +119,8 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [choice, setChoice] = useState<api.Choice>(api.savedChoice.get());
+  const [prefs, setPrefs] = useState<api.Prefs>(api.savedPrefs.get());
+  const [showSet, setShowSet] = useState(false);
   // the answer to read aloud by itself (a Voice question's): by its time, so it is spoken once,
   // not again when the list re-renders or the conversation is reopened
   const [speakNext, setSpeakNext] = useState<number | null>(null);
@@ -124,6 +140,9 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
   useEffect(() => { api.savedTab.set(tab); }, [tab]);
   useEffect(() => { api.savedModel.set(model); }, [model]);
   useEffect(() => { api.savedChoice.set(choice); }, [choice]);
+  useEffect(() => { api.savedPrefs.set(prefs); }, [prefs]);
+  // the tokens this conversation's answers used, whoever answered them
+  const spent = useMemo(() => turns.reduce((n, t) => n + (t.usage?.tokens ?? 0), 0), [turns]);
 
   const ask = async (text: string, viaVoice = false) => {
     const t = text.trim();
@@ -150,10 +169,11 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
           if (p.thinking) next.thinking = next.thinking ? `${next.thinking}\n\n${p.thinking}` : p.thinking;
           return [...m.slice(0, -1), next];
         });
-        const r = await api.askStream({ question: t, page, provider: api.providerOf(model), session_id: sid, age, pm, mode: choice }, live);
+        const r = await api.askStream({ question: t, page, provider: api.providerOf(model), session_id: sid, age, pm, mode: choice,
+          depth: prefs.depth, audience: prefs.audience, sources: prefs.sources }, live);
         reply = { role: "assistant", text: r.answer, t: now, model: r.model, style: r.style, sources: r.sources, links: r.links,
           tools: r.tools, note: r.note, unverified: r.unverified, switched: r.switched, facts: r.facts, cites: r.cites,
-          route: r.route, steps: r.steps, thinking: r.thinking };
+          route: r.route, steps: r.steps, thinking: r.thinking, usage: r.usage };
         if (r.session) {
           setSid(r.session.id); api.currentSession.set(r.session.id); setTitle(r.session.title);
           api.session(r.session.id).then((s) => { if (s) { setContext(s.context); setMemory(s.memory ?? ""); } });
@@ -171,7 +191,11 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
     if (!viaVoice) input.current?.focus();
   };
 
-  const examples = useMemo(() => (compact ? ["What does this page show?", ...EXAMPLES.slice(0, 3)] : EXAMPLES.slice(0, 6)), [compact]);
+  const examples = useMemo(() => {
+    if (compact) return ["What does this page show?", ...EXAMPLES.slice(0, 3)];
+    const own = PROFILE_EXAMPLES[prefs.audience];
+    return [...own, ...EXAMPLES].slice(0, 6);
+  }, [compact, prefs.audience]);
   const pageTitle = GUIDE[page]?.title;
   const MODEL_AVAIL: Partial<Record<api.Model, boolean | undefined>> = { auto: true, local: status.ollama };
 
@@ -206,6 +230,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
         <div><b>{context.facts.length}</b><span>facts</span></div>
         <div><b>{docs.length}</b><span>documents</span></div>
         <div><b>{answers}</b><span>answers</span></div>
+        <div><b>{api.kTokens(spent)}</b><span>tokens</span></div>
       </div>
       {/* each block folds away; the counts say what is inside before it is opened */}
       <details className="cx-sec" open={docs.length > 0}>
@@ -280,6 +305,12 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
           <button className={`cx-icon ${compact ? "" : "cx-hist-btn"}`} onClick={() => { setShowList(!showList); refreshList(); }} title="History" aria-label="History">☰</button>
         )}
         {compact && turns.length > 0 && <button className="cx-icon" onClick={() => open(null)} title="New chat" aria-label="New chat">＋</button>}
+        {HAS_API && (
+          <button className={`cx-icon ${showSet ? "on" : ""}`} onClick={() => { setShowSet(!showSet); setShowList(false); setShowCtx(false); api.status().then(setStatus); }}
+            title="Answer settings: who is asking, depth, sources, cost" aria-label="Answer settings" aria-expanded={showSet}>
+            <Icon name="cog" size={15} />
+          </button>
+        )}
         {!compact && (
           <button className={`cx-icon cx-ctx-btn ${showCtx ? "on" : ""}`} onClick={() => setShowCtx(!showCtx)} title="Context" aria-label="Show the context">
             ◎ <span>{context.facts.length}</span>
@@ -289,6 +320,14 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
       <AnimatePresence>
         {!compact && showCtx && <motion.div className="cx-pop right" {...POP}><div className="cx-pop-in">{contextPanel}</div></motion.div>}
         {showList && <motion.div className={`cx-pop ${compact ? "" : "cx-pop-hist"}`} {...POP}><div className="cx-pop-in">{history}</div></motion.div>}
+        {showSet && (
+          <motion.div className="cx-pop right cx-pop-set" {...POP}>
+            <div className="cx-pop-in">
+              <div className="cx-pop-head"><b>Answer settings</b><button className="cx-icon" onClick={() => setShowSet(false)} aria-label="Close"><Icon name="close" size={14} /></button></div>
+              <AnswerSettings prefs={prefs} set={setPrefs} status={status} spent={spent} />
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
       <AnimatePresence>{!compact && title && <motion.div className="cx-title" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>{title}</motion.div>}</AnimatePresence>
 
@@ -297,7 +336,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
           <motion.div className="cx-hero" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut" }}>
             <motion.div className="cx-orb" animate={{ y: [0, -4, 0] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}><CopilotMark size={30} /></motion.div>
             <b>{tab === "voice" ? "Ask by voice" : `Ask about ${pageTitle && page !== "copilot" ? `“${pageTitle}”` : "the cell"}`}</b>
-            <span>Answers come from the twin's own tools and documents, with their sources. Numbers are checked before you see them.</span>
+            <span>{HERO[prefs.audience]}</span>
             {tab !== "voice" && (
               <motion.div className="cx-examples" variants={EX} initial="off" animate="on">
                 {examples.map((e) => <motion.button key={e} variants={EXI} onClick={() => ask(e)}>{e}</motion.button>)}
@@ -318,13 +357,16 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
 
       {tab === "voice" && <Voice busy={busy} onAsk={(t) => ask(t, true)} />}
       {HAS_API && tab !== "voice" && (
-        <div className="cx-choice" role="radiogroup" aria-label="Where answers come from">
-          {CHOICES.map(([id, icon, label, tip]) => (
-            <button key={id} role="radio" aria-checked={choice === id} className={choice === id ? "on" : ""} title={tip} onClick={() => setChoice(id)}>
-              {choice === id && <motion.span layoutId="cx-choice-pill" className="cx-pill" transition={PILL} />}
-              <Icon name={icon} size={13} />{label}
-            </button>
-          ))}
+        <div className="cx-controls">
+          <div className="cx-choice" role="radiogroup" aria-label="Where answers come from">
+            {CHOICES.map(([id, icon, label, tip]) => (
+              <button key={id} role="radio" aria-checked={choice === id} className={choice === id ? "on" : ""} title={tip} onClick={() => setChoice(id)}>
+                {choice === id && <motion.span layoutId="cx-choice-pill" className="cx-pill" transition={PILL} />}
+                <Icon name={icon} size={13} /><span className="cx-choice-l">{label}</span>
+              </button>
+            ))}
+          </div>
+          <SettingsChip prefs={prefs} open={showSet} onOpen={() => { setShowSet(!showSet); setShowList(false); setShowCtx(false); api.status().then(setStatus); }} />
         </div>
       )}
       <form className="cx-composer" onSubmit={(e) => { e.preventDefault(); ask(q); }}>

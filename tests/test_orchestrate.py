@@ -61,6 +61,41 @@ def test_a_question_about_this_twin_never_goes_to_the_web():
         assert route(q).mode in ("docs", "twin")
 
 
+# ------------------------------------------------------ routing on meaning, not only words
+def _semantic_hit(monkeypatch):
+    """The vector side alone matches: words differ, the cosine says the passage covers it."""
+    from services.api.grounding import Passage
+
+    p = Passage(id=1, doc="Docs", path=["A"], text="t", file="a.md", line=1, anchor="a")
+    hit = {"passage": p, "score": 0.4, "cover": 0.1, "vscore": 0.83, "via": "vector", "rrf": 0.1}
+    monkeypatch.setattr(O.V, "hybrid_search", lambda q, top_k=8: [hit])
+
+
+def test_a_meaning_match_routes_to_docs(monkeypatch):
+    _semantic_hit(monkeypatch)
+    plan = O.decide("why does a vacuum gripper lose its pick sometimes?", [], None, True)
+    assert plan.mode == "docs", plan.why
+    assert "by meaning" in " ".join(plan.why)
+    assert plan.signals["vec_score"] == 0.83 and plan.signals["via"] == "vector"
+
+
+def test_an_external_question_still_goes_to_the_web(monkeypatch):
+    # a standards/vendor question stays web even when a passage matches it by meaning
+    _semantic_hit(monkeypatch)
+    plan = O.decide("how do Siemens PLCs handle safety?", [], None, True)
+    assert plan.mode == "web"
+
+
+def test_routing_survives_a_retrieval_failure(monkeypatch):
+    def boom(q, top_k=8):
+        raise RuntimeError("store down")
+
+    monkeypatch.setattr(O.V, "hybrid_search", boom)
+    # a question about this twin is answered from the documents no matter what retrieval does
+    assert route("what does the crane do in this project?").mode == "docs"
+    assert route("what is the weather tomorrow").mode == "web"
+
+
 # ------------------------------------------------------------------ thinking apart from the answer
 def test_thinking_is_kept_apart_from_the_answer():
     assert C.split_think("<think>check the soft limit</think>The belt warns.") == (

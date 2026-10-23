@@ -50,7 +50,26 @@ const SECURITY_HEADERS = {
   "X-Frame-Options": "DENY",
   "Permissions-Policy": "camera=(), microphone=(self), geolocation=(), usb=(), serial=()",
   "Cross-Origin-Opener-Policy": "same-origin",
+  // with COOP, makes the page cross-origin isolated: SharedArrayBuffer for the simulation bridge
+  // (src/core/SimulationBridge.ts). Safe here: the CSP already loads nothing from another origin.
+  "Cross-Origin-Embedder-Policy": "require-corp",
 };
+// The dev server sends only the isolation pair (its own scripts and HMR are same-origin), from a
+// middleware: Vite's server.headers does not reach the pages it serves.
+const ISOLATION_HEADERS = {
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Embedder-Policy": "require-corp",
+};
+const isolation = (): Plugin => ({
+  name: "stf-cross-origin-isolation",
+  apply: "serve",
+  configureServer(server) {
+    server.middlewares.use((_req, res, next) => {
+      for (const [k, v] of Object.entries(ISOLATION_HEADERS)) res.setHeader(k, v);
+      next();
+    });
+  },
+});
 
 // A static host (GitHub Pages) cannot send headers, so the standalone build carries its
 // policy as a <meta> tag instead (frame-ancestors is not allowed there; Pages adds nosniff).
@@ -81,7 +100,7 @@ export default defineConfig(({ mode }) => {
   return {
     // where the app is served: /stf/ locally, /<repo>/ on GitHub Pages (STF_BASE)
     base: env.STF_BASE || "/stf/",
-    plugins: [react(), themeInit(), ...(standalone ? [cspMeta()] : [])],
+    plugins: [react(), themeInit(), isolation(), ...(standalone ? [cspMeta()] : [])],
     // two pages: the 3D twin (index.html) and the operations dashboard (dashboard.html)
     build: {
       rollupOptions: {
@@ -102,8 +121,10 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       host: "localhost",
       proxy: API_PROXY,
-      // Allow any ngrok or remote tunnel host
-      allowedHosts: true,
+      // Vite's Host check stays on (a website the developer visits cannot reach this server through
+      // DNS rebinding). Tunnelling the dev server is an explicit opt-in (STF_TUNNEL_DEV=1, the
+      // web-tunnel launch config) and then admits ngrok's hostnames only, never any Host.
+      allowedHosts: process.env.STF_TUNNEL_DEV === "1" ? [".ngrok-free.dev", ".ngrok.app", ".ngrok.io"] : [],
     },
   };
 });

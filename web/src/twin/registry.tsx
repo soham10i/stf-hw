@@ -8,10 +8,11 @@ import { TelemetryPanel } from "../panels/TelemetryPanel";
 import { VcPanel } from "../panels/VcPanel";
 import { IoPanel } from "../panels/IoPanel";
 import { GeometryPanel } from "../panels/GeometryPanel";
+import { BenchPanel } from "../panels/BenchPanel";
 import { Analysis, Connectivity, PlcTabs, SafetySecurity } from "../panels/merged";
 
 // ---------------------------------------------------------------- views
-export type ViewKind = "machine" | "controller" | "component";
+export type ViewKind = "machine" | "controller" | "electrics" | "component";
 export type View = { id: string; label: string; kind: ViewKind; group: string; about: string };
 
 export const MACHINE_VIEW: View = {
@@ -24,14 +25,21 @@ export const CONTROLLER_VIEW: View = {
   about: "The 24 V adapter PCB and the PLC interface, pin by pin.",
 };
 
-export function componentViews(components: Record<string, { name: string; ft: string; kind?: string; upgrade?: string }> | undefined): View[] {
+export const ELECTRICS_VIEW: View = {
+  id: "electrics", label: "Electrics · pin by pin", kind: "electrics", group: "Factory",
+  about: "Every electrical part, its pinout and ratings with their sources, its wiring, and live circuit checks.",
+};
+
+export function componentViews(components: Record<string, { name: string; ft: string; kind?: string; upgrade?: string; maker?: string }> | undefined): View[] {
   return Object.entries(components ?? {}).map(([id, c]) => {
     const mech = c.kind === "mechanism";
+    const device = c.kind === "device";
     return {
       id, label: c.name, kind: "component" as const,
-      group: mech ? "Mechanisms" : "Components",
+      group: mech ? "Mechanisms" : device ? "Control and power" : "Components",
       about: mech ? "How it works, its numbers from the model, where it is used"
-        : `${/^\d+$/.test(c.ft) ? `fischertechnik ${c.ft} · ` : ""}sourced dimensions, materials, how it works`,
+        : device ? `${c.maker ?? ""} ${c.ft} · sourced dimensions, connectors, where it is used`
+          : `${/^\d+$/.test(c.ft) ? `fischertechnik ${c.ft} · ` : ""}sourced dimensions, materials, how it works`,
     };
   });
 }
@@ -64,4 +72,5 @@ export const PANELS: Panel[] = [
   { id: "vc", label: "Commissioning", icon: "checklist", available: (c) => !!c.doc.vc, render: (c) => <VcPanel vc={c.doc.vc!} /> },
   { id: "geometry", label: "Geometry", icon: "ruler", available: () => true, render: (c) => <GeometryPanel doc={c.doc} /> },
   { id: "analysis", label: "Analysis", icon: "bars", available: () => true, render: () => <Analysis /> },
+  { id: "bench", label: "Test bench", icon: "activity", available: (c) => !!c.doc.sorting, render: (c) => <BenchPanel doc={c.doc} /> },
 ];

@@ -46,15 +46,18 @@ def _f(v: str):
 
 
 def rows_csv(path: str) -> list[dict]:
+    """Load one CSV with numeric strings coerced to numbers."""
     with open(path, newline="", encoding="utf-8") as f:
         return [{k: _f(v) for k, v in r.items()} for r in csv.DictReader(f)]
 
 
 def ts(t: str) -> str:
+    """Normalize a CSV timestamp to the full timestamptz shape Postgres accepts."""
     return t + (":00" if len(t) == 16 else "") + TZ
 
 
 def build() -> dict[str, list[dict]]:
+    """Assemble every table's seed rows from web/public/month."""
     m = os.path.join(PUB, "month")
     out: dict[str, list[dict]] = {}
     out["orders"] = [
@@ -132,6 +135,7 @@ def build() -> dict[str, list[dict]]:
 
 
 def samples() -> list[tuple[dict, bytes]]:
+    """The vision sample photos with their labels."""
     d = os.path.join(PUB, "vision", "samples")
     s = json.load(open(os.path.join(d, "samples.json"), encoding="utf-8"))
     return [(x, open(os.path.join(d, x["file"]), "rb").read()) for x in s["samples"]]
@@ -142,6 +146,7 @@ def reset(db, caps) -> None:
     if db.name == "supabase":
 
         def req(method, path, body=None):
+            """One authenticated PostgREST call against the seed target."""
             h = {
                 "Authorization": f"Bearer {db.key}",
                 "apikey": db.key,
@@ -188,6 +193,7 @@ def reset(db, caps) -> None:
 
 
 def main() -> int:
+    """The seed CLI: push the demo dataset into the configured database."""
     env = {**dotenv(), **os.environ}
     db, note = G.db_from_env(env)
     caps = store_from_env(env)

@@ -22,6 +22,11 @@ Every answer returns the sources and dashboard links of the tools that produced 
   GEMINI_API_KEY      the key (unset: Gemini is off)
   GEMINI_MODEL        default gemini-3.5-flash
   GEMINI_DAILY_LIMIT  model questions per day for the whole service (default 300)
+  GEMINI_CLOUD_API_KEY  a Google Cloud project's key (billing on, e.g. the $300 trial credit): its
+                      own lane, asked before the AI Studio key, with its own models, quota and
+                      token budget (GEMINI_CLOUD_TOKENS_PER_DAY ... , GEMINI_CLOUD_MODELS)
+  WEB_SEARCH_ORDER    the web search's providers in order (default gemini,groq,ddg); Gemini's
+                      token budget and limits are in token_budget.py (GEMINI_TOKENS_PER_DAY ...)
   OLLAMA_URL          default http://127.0.0.1:11434
   OLLAMA_MODEL        default qwen2.5:7b-instruct (used only when Ollama answers)
 """
@@ -29,6 +34,8 @@ Every answer returns the sources and dashboard links of the tools that produced 
 from __future__ import annotations
 
 import asyncio
+import dataclasses
+import functools
 import hashlib
 import json
 import os
@@ -36,18 +43,26 @@ import re
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
+from typing import Any
 
 from fastapi import HTTPException, Request
 from pydantic import BaseModel, Field
 
+from . import depth as D
 from . import gemini_pool as GP
+from . import gemini_search as GS
 from . import orchestrate as O
 from . import respond as R
+from . import scholar as SCH
 from . import security as sec
 from . import sessions as S
+from . import source_policy as SP
+from . import token_budget as TB
 from . import tools as T
+from . import usage as U
 from . import verify as V
 from . import websearch as W
 from .logging_config import get_logger
@@ -62,6 +77,12 @@ MAX_ROUNDS = 4
 MAX_OUTPUT_TOKENS = int(os.environ.get("COPILOT_MAX_TOKENS", "4096"))
 DEADLINE_S = 75.0  # the hand-over between models stops here; the tools answer
 SEARCH_TIMEOUT_S = 90  # one web search (websearch.py)
+# one grounded call (Google Search and page reading take longer than a plain answer)
+GEMINI_SEARCH_TIMEOUT_S = float(os.environ.get("GEMINI_SEARCH_TIMEOUT_S", "25"))
+# all of one question's grounded calls, together, before the search is handed to the next provider
+GEMINI_SEARCH_DEADLINE_S = float(os.environ.get("GEMINI_SEARCH_DEADLINE_S", "50"))
+# when every model refuses a grounded call for its quota, searches rest this long (seconds)
+GEMINI_SEARCH_REST_S = float(os.environ.get("GEMINI_SEARCH_REST_S", "900"))
 MAX_THINKING = 12000  # characters of a model's thinking kept with the answer
 WEB_TOOLS = ("web_search", "web_research")
 
@@ -109,6 +130,8 @@ You answer from ONLY the facts in CONTEXT and in the results of the tools you ca
 
 
 class Turn(BaseModel):
+    """One chat message in the history a client sends with a question."""
+
     role: str = Field(pattern="^(user|assistant)$")
     text: str = Field(max_length=2000)
 
@@ -125,6 +148,9 @@ class Grounding(BaseModel):
 
 
 class ChatRequest(BaseModel):
+    """The copilot's input contract: question plus everything that steers the answer
+    (provider ladder, route mode, depth, audience, source policy, session identity)."""
+
     question: str = Field(min_length=1, max_length=500)
     history: list[Turn] = Field(default_factory=list, max_length=8)
     grounding: Grounding = Field(default_factory=Grounding)
@@ -138,10 +164,16 @@ class ChatRequest(BaseModel):
     user: str | None = Field(default=None, pattern=r"^[a-zA-Z0-9_-]{8,64}$")
     # the operator's choice of route (orchestrate.py): auto, or documents / web / deep research
     mode: str | None = Field(default=None, pattern="^(auto|docs|web|deep)$")
+    # how much the answer may spend (depth.py), who it is written for, which sources it may use
+    depth: str | None = Field(default=None, pattern="^(auto|brief|standard|thorough)$")
+    audience: str | None = Field(default=None, pattern="^(operator|engineer|researcher)$")
+    sources: str | None = Field(default=None, pattern="^(vetted|strict)$")
 
 
 @dataclass
 class ChatSettings:
+    """Model ladder and endpoint configuration for the copilot, resolved from env."""
+
     key: str | None
     model: str
     daily_limit: int
@@ -163,9 +195,19 @@ class ChatSettings:
     openai_model: str = "Qwen/Qwen2.5-7B-Instruct"
     models: list[str] = field(default_factory=list)  # the fallback order after `model`
     grounding: bool = False  # Gemini's built-in Google Search, on with GEMINI_GROUNDING=1
+    limits: TB.Limits = field(default_factory=TB.Limits)  # Gemini token budget (token_budget.py)
+    # a Google Cloud (billed) key: asked before `key`, with its own models and larger budget
+    cloud_key: str | None = None
+    cloud_models: list[str] = field(default_factory=list)  # empty: the same list as `models`
+    cloud_limits: TB.Limits = field(default_factory=lambda: TB.CLOUD)
+    cloud_daily_limit: int = 2000  # model questions a day while the cloud key is set
+    # the web search's providers, tried in this order: gemini (Google Search), groq (browser
+    # search), ddg (DuckDuckGo, written up by a configured model)
+    search_order: tuple[str, ...] = ("gemini", "groq", "ddg")
 
     @staticmethod
     def from_env() -> ChatSettings:
+        """Resolve the model ladder and endpoints from the environment."""
         env = {**dotenv(), **os.environ}
         first = env.get("GEMINI_MODEL", GP.CHAT[0])
         groq_key = (
@@ -214,36 +256,26 @@ class ChatSettings:
             openai_key=env.get("OPENAI_API_KEY") or env.get("OPENAI_KEY") or None,
             openai_model=env.get("OPENAI_MODEL", "Qwen/Qwen2.5-7B-Instruct"),
             grounding=env.get("GEMINI_GROUNDING", "").lower() in ("1", "true", "yes"),
+            limits=TB.Limits.from_env(env),
+            cloud_key=env.get("GEMINI_CLOUD_API_KEY") or None,
+            cloud_models=GP.models_from_env("GEMINI_CLOUD_MODELS", [], env),
+            cloud_limits=TB.Limits.from_env(env, "GEMINI_CLOUD", TB.CLOUD),
+            cloud_daily_limit=int(env.get("GEMINI_CLOUD_DAILY_LIMIT", "2000")),
+            search_order=tuple(
+                p
+                for p in (x.strip().lower() for x in env.get("WEB_SEARCH_ORDER", "").split(","))
+                if p in ("gemini", "groq", "ddg")
+            )
+            or ("gemini", "groq", "ddg"),
         )
 
 
 def dotenv(path: str | None = None) -> dict[str, str]:
-    """Parse .env lines of the repo (git-ignored) for local runs; the environment wins."""
-    path = path or os.path.join(os.path.dirname(__file__), "..", "..", ".env")
-    out: dict[str, str] = {}
-    prefixes = (
-        "GEMINI_",
-        "OLLAMA_",
-        "GROQ_",
-        "GROK_",
-        "XAI_",
-        "TTS_",
-        "ELEVENLABS_",
-        "STF_",
-        "SUPABASE_",
-        "UPB_",
-    )
-    try:
-        for line in open(path, encoding="utf-8"):
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            k, sep, v = line.partition("=")
-            if sep and k.strip().startswith(prefixes):
-                out[k.strip()] = v.strip().strip('"').strip("'")
-    except OSError:
-        pass
-    return out
+    """Moved to envcfg.py (vectors.py needed it without a circular import); re-exported here
+    so every existing `from .chat import dotenv` keeps working."""
+    from .envcfg import dotenv as _dotenv
+
+    return _dotenv(path)
 
 
 @dataclass
@@ -254,14 +286,23 @@ class DailyCap:
     day: str = ""
     used: int = 0
     _clock: object = field(default=time.gmtime, repr=False)
+    # shared with every instance (usage.py): a restart or a second instance does not reset it
+    shared: Any = field(default=None, repr=False)
+    name: str = ""
 
     def take(self) -> bool:
+        """Consume one question from the daily budget; False when the day is spent."""
         today = time.strftime("%Y-%m-%d", self._clock())
         if today != self.day:
             self.day, self.used = today, 0
-        if self.used >= self.limit:
+        used = self.used
+        if self.shared is not None and self.name:
+            used = max(used, self.shared.total(today, self.name))
+        if used >= self.limit:
             return False
         self.used += 1
+        if self.shared is not None and self.name:
+            self.shared.add(today, self.name, 1)
         return True
 
 
@@ -396,20 +437,23 @@ def function_calls(data: dict) -> list[dict]:
     ]
 
 
-def _post(url: str, key: str, body: dict) -> dict:
+def _post(url: str, key: str, body: dict, timeout: float = TIMEOUT_S) -> dict:
     req = urllib.request.Request(
         url,
         data=json.dumps(body).encode(),
         method="POST",
         headers={"Content-Type": "application/json", "x-goog-api-key": key},
     )
-    with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:  # noqa: S310 - fixed https URL
-        return json.loads(r.read())
+    with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa: S310 - fixed https URL
+        data = json.loads(r.read())
+    TB.meter("gemini", data)
+    return data
 
 
 def build_ollama_body(
     req: ChatRequest, model: str, results: list[T.Result] | None = None, extra: str = ""
 ) -> dict:
+    """The Ollama /api/chat request body for a question (system prompt, history, tools)."""
     messages = [{"role": "system", "content": SYSTEM}]
     for t in req.history:
         messages.append(
@@ -426,6 +470,7 @@ def build_ollama_body(
 
 
 def parse_ollama(data: dict) -> str:
+    """The answer text from an Ollama response, thinking tags removed."""
     msg = split_think((data.get("message") or {}).get("content", ""))[1]
     return msg.strip() or "The local model returned an empty answer."
 
@@ -438,12 +483,15 @@ def _post_ollama(url: str, body: dict, timeout: float = TIMEOUT_OLLAMA_S) -> dic
         headers={"Content-Type": "application/json"},
     )
     with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa: S310 - local URL from config
-        return json.loads(r.read())
+        data = json.loads(r.read())
+    TB.meter("local", data)
+    return data
 
 
 def build_groq_body(
     req: ChatRequest, model: str, results: list[T.Result] | None = None, extra: str = ""
 ) -> dict:
+    """The OpenAI-compatible request body for a Groq model, tuned per model family."""
     messages = [{"role": "system", "content": SYSTEM}]
     for t in req.history:
         messages.append(
@@ -462,7 +510,9 @@ def build_groq_body(
     )
 
 
-def groq_model(body: dict, model: str, effort: str = "low", long: bool = False) -> dict:
+def groq_model(
+    body: dict, model: str, effort: str = "low", long: bool = False, max_tokens: int | None = None
+) -> dict:
     """The body for `model`: gpt-oss returns its reasoning (include_reasoning, at `effort`),
     other models think in <think> tags or not at all; the thinking counts against max_tokens."""
     for k in ("include_reasoning", "reasoning_effort", "reasoning_format"):
@@ -472,11 +522,15 @@ def groq_model(body: dict, model: str, effort: str = "low", long: bool = False) 
         body.update(include_reasoning=True, reasoning_effort=effort)
     elif "qwen3" in model:
         body["reasoning_format"] = "parsed"
-    body["max_tokens"] = 4000 if long else max(body.get("max_tokens", 1500), 1500)
+    if max_tokens:  # the question's depth (depth.py)
+        body["max_tokens"] = max_tokens
+    else:
+        body["max_tokens"] = 4000 if long else max(body.get("max_tokens", 1500), 1500)
     return body
 
 
 def parse_groq(data: dict) -> str:
+    """The answer text from an OpenAI-compatible response, thinking tags removed."""
     choices = data.get("choices") or []
     if choices:
         msg = choices[0].get("message") or {}
@@ -514,7 +568,10 @@ def _post_groq(url: str, key: str, body: dict) -> dict:
     # a browser search opens and reads several pages on Groq's side: it is given longer
     searching = any(t.get("type") == "browser_search" for t in body.get("tools") or [])
     with urllib.request.urlopen(req, timeout=SEARCH_TIMEOUT_S if searching else 30) as r:  # noqa: S310
-        return json.loads(r.read())
+        data = json.loads(r.read())
+    h = urllib.parse.urlparse(endpoint).hostname or ""
+    TB.meter("groq" if h.endswith("groq.com") else "upb" if "paderborn" in h else "openai", data)
+    return data
 
 
 def _cite(results: list[T.Result]) -> tuple[list[str], list[dict]]:
@@ -558,6 +615,7 @@ def web_result(tool: str, found: W.Found) -> T.Result:
                 "label": s["url"],
                 "title": s["title"],
                 "trusted": s.get("trusted", W.trusted(s["url"])),
+                "grade": s.get("grade") or SP.grade(s["url"]),
                 "cited": s.get("cited", False),
             }
             for s in found.sources
@@ -610,8 +668,34 @@ COOL = {429: 60.0, 503: 60.0, 401: 3600.0, 402: 3600.0, 403: 3600.0}
 COOL_TIMEOUT = 120.0
 
 
+@dataclass
+class Lane:
+    """One Gemini key with everything that is metered by it: its models and their cooldowns, its
+    grounded-search pool (Google Search has its own quota), and its token budget. The Google
+    Cloud lane (billed) is asked before the AI Studio one (free)."""
+
+    name: str  # "cloud" or "studio"
+    key: str
+    pool: GP.Pool
+    search_pool: GP.Pool
+    budget: TB.TokenBudget
+
+    @property
+    def rest(self) -> str:
+        """The key in Chat.out under which this lane's Google Search rests."""
+        return "gemini_search" if self.name == "studio" else f"gemini_search_{self.name}"
+
+    @property
+    def label(self) -> str:
+        """The lane's display name in answers and status."""
+        return "Google Cloud" if self.name == "cloud" else "AI Studio"
+
+
 # --------------------------------------------------------------------- the chat
 class Chat:
+    """The copilot engine: routes a question to the right provider ladder, runs the twin's
+    tools, grounds the answer in retrieved documents, and enforces daily caps."""
+
     def __init__(
         self,
         settings: sec.Settings,
@@ -622,17 +706,67 @@ class Chat:
         self.store = store or default_store()
         self.c = chat or ChatSettings.from_env()
         self.limiter = sec.RateLimiter(rate=0.2, burst=5)  # per client: 5 at once, then one per 5 s
-        self.cap = DailyCap(self.c.daily_limit)
+        # the day's question and token counts, shared by every instance (usage.py)
+        shared = U.shared_from(store) if store is not None else U.Shared(None)
+        self.cap = DailyCap(
+            max(self.c.daily_limit, self.c.cloud_daily_limit)
+            if self.c.cloud_key
+            else self.c.daily_limit,
+            shared=shared,
+            name="chat:questions",
+        )
         self.post = _post
+        self.post_search = self._post_search  # replaced by a fake in tests
         self.post_groq = _post_groq
+        self.budget = TB.TokenBudget(self.c.limits, shared=shared, name="gemini:studio")
         self.post_ollama = self._post_ollama_bounded
         self._local = threading.local()  # the question's deadline, in the worker thread
         # the configured model first, then the others in order: one at its limit hands over
         self.pool = GP.Pool([self.c.model, *[m for m in self.c.models if m != self.c.model]])
+        # grounded searches have their own quota (Google Search is metered apart from plain
+        # answers): their refusals must not take a model out of the chat's pool
+        self.search_pool = GP.Pool(list(self.pool.models))
+        # the Google Cloud key's lane (billed), asked before the AI Studio key's (see `lanes`)
+        self.cloud: Lane | None = None
+        if self.c.cloud_key:
+            ms = self.c.cloud_models or [self.c.model, *self.c.models]
+            self.cloud = Lane(
+                "cloud", self.c.cloud_key, GP.Pool(list(ms)), GP.Pool(list(ms)),
+                TB.TokenBudget(self.c.cloud_limits, shared=shared, name="gemini:cloud"),
+            )
         # identical session-less questions reuse the last answer briefly (see ask())
         self.cache: dict[tuple, tuple[float, dict]] = {}
         self.cache_ttl_s = 90.0
         self.out: dict[str, float] = {}  # provider -> when it may be tried first again
+
+    @property
+    def lanes(self) -> list[Lane]:
+        """The Gemini keys in the order they are asked: Google Cloud (billed), then AI Studio."""
+        out = [self.cloud] if self.cloud else []
+        if self.c.key:
+            out.append(Lane("studio", self.c.key, self.pool, self.search_pool, self.budget))
+        return out
+
+    @property
+    def has_gemini(self) -> bool:
+        """Whether any Gemini lane (Studio or Cloud) is configured."""
+        return bool(self.c.key or self.c.cloud_key)
+
+    def search_ready(self, guest: str | None) -> bool:
+        """Whether some Gemini key can still run a grounded search: not resting for its quota and
+        with budget left."""
+        now = time.time()
+        return any(
+            self.out.get(ln.rest, 0.0) <= now and ln.budget.tier(guest) != "spent"
+            for ln in self.lanes
+        )
+
+    def _post_search(self, url: str, key: str, body: dict) -> dict:
+        """A grounded call: Google Search and page reading take longer than a plain answer; its
+        time limit is what is left of the question's search deadline (_gemini_call)."""
+        return _post(
+            url, key, body, timeout=getattr(self._local, "search_timeout", GEMINI_SEARCH_TIMEOUT_S)
+        )
 
     def _post_ollama_bounded(self, url: str, body: dict) -> dict:
         """A local model is slow: a request may take no longer than the question has left."""
@@ -642,18 +776,30 @@ class Chat:
             raise TimeoutError
         return _post_ollama(url, body, timeout=min(TIMEOUT_OLLAMA_S, left))
 
+    OLLAMA_PROBE_TTL_S = 30.0
+
     def _ollama_alive(self) -> bool:
+        """Whether the local Ollama answers. The probe can wait up to 1.5 s, so its answer is kept
+        for OLLAMA_PROBE_TTL_S: /chat/status (polled by every open dashboard) does not probe each
+        time."""
         if not self.c.ollama_url or not self.c.ollama_model:
             return False
+        now = time.monotonic()
+        cached = getattr(self, "_ollama_probe", None)
+        if cached and now - cached[0] < self.OLLAMA_PROBE_TTL_S:
+            return cached[1]
         try:
             req = urllib.request.Request(f"{self.c.ollama_url.rstrip('/')}/api/tags", method="GET")
             with urllib.request.urlopen(req, timeout=1.5) as r:  # noqa: S310 - local URL from config
-                return r.status == 200
+                alive = r.status == 200
         except Exception:
-            return False
+            alive = False
+        self._ollama_probe = (now, alive)
+        return alive
 
-    def status(self) -> dict:
-        gemini_on = bool(self.c.key)
+    def status(self, detail: bool = False) -> dict:
+        """The copilot's providers and budgets. `detail`: the operator's view (/admin/status)."""
+        gemini_on = self.has_gemini
         groq_on = bool(self.c.groq_key)
         upb_on = bool(self.c.upb_key)
         ollama_on = bool(self.c.ollama_model and self._ollama_alive())
@@ -698,6 +844,49 @@ class Chat:
                 ollama_model=self.c.ollama_model if ollama_on else None,
                 grounding=self.c.grounding if gemini_on else False,
             )
+        if enabled:
+            out["search"] = {
+                "order": list(self.c.search_order),
+                "gemini": gemini_on,
+                # the first key's budget; every key's is under "lanes"
+                "budget": self.lanes[0].budget.status(detail) if self.lanes else None,
+                # Google Search has its own quota: when it is used up, that key's searches rest
+                "gemini_rest_s": max(
+                    0, round(self.out.get(self.lanes[0].rest, 0.0) - time.time())
+                )
+                if self.lanes
+                else 0,
+                "lanes": [
+                    {
+                        "name": ln.name,
+                        "label": ln.label,
+                        "models_free": len(ln.pool.available()),
+                        "rest_s": max(0, round(self.out.get(ln.rest, 0.0) - time.time())),
+                        "refused": self.out.get(f"lane:{ln.name}", 0.0) > time.time(),
+                        "budget": ln.budget.status(detail),
+                    }
+                    for ln in self.lanes
+                ],
+            }
+        # who pays for each provider: the operator's own labels (env), never read from the
+        # providers - their consoles are the authority. A Google Cloud key is billed by design.
+        if enabled:
+            plans = []
+            if self.c.cloud_key:
+                plans.append({"provider": "Gemini (Google Cloud key)",
+                              "plan": os.environ.get("GEMINI_CLOUD_BILLING", "billed")})
+            if self.c.key:
+                plans.append({"provider": "Gemini (AI Studio key)",
+                              "plan": os.environ.get("GEMINI_BILLING", "free tier")})
+            if groq_on:
+                plan = os.environ.get("GROQ_BILLING", "free tier")
+                plans.append({"provider": "Groq", "plan": plan})
+            if upb_on:
+                plan = os.environ.get("UPB_BILLING", "fixed credit")
+                plans.append({"provider": "UPB AI", "plan": plan})
+            plans.append({"provider": "OpenAlex (literature)", "plan": "free"})
+            plans.append({"provider": "DuckDuckGo", "plan": "free"})
+            out["billing"] = plans
         # the fallback chain as it stands now: which provider answers first, which are resting
         now = time.time()
         if enabled:
@@ -716,38 +905,231 @@ class Chat:
         return out
 
     def _gemini_post(self, body: dict, meta: dict) -> dict:
-        """One request to the first Gemini model with quota left; meta["model"] says which.
-        A turn written by another model keeps its text but not its thought signatures, which
-        belong to the model that made them."""
+        """One request to the first Gemini model with quota left, asking the keys in order (Google
+        Cloud, then AI Studio): a key whose models are all at their limit, that was refused or
+        that does not answer hands over to the next. meta["model"] and meta["lane"] say who
+        answered. A turn written by another model keeps its text but not its thought signatures,
+        which belong to the model that made them."""
+        last: ModelError | None = None
+        for lane in self.lanes:
+            if self.out.get(f"lane:{lane.name}", 0.0) > time.time():
+                continue
+
+            def post(url: str, b: dict, lane: Lane = lane) -> dict:
+                """One Gemini call on this lane: strip stale thought signatures, meter it."""
+                model = url.split("/models/")[1].split(":")[0]
+                if meta.get("model") not in (None, model):
+                    for c in b["contents"]:
+                        for p in c.get("parts", []):
+                            p.pop("thoughtSignature", None)
+                return self.post(url, lane.key, b)
+
+            try:
+                before = meta.get("model")
+                data, meta["model"] = lane.pool.call(
+                    post, body, trace=meta.setdefault("skipped", [])
+                )
+                meta["lane"] = lane.name
+                lane.budget.record(TB.usage_tokens(data), meta.get("guest"), TB.searches_in(data))
+                if meta["model"] != before and meta.get("emit"):
+                    via = f" ({lane.label})" if len(self.lanes) > 1 else ""
+                    meta["emit"]("step", f"asked {meta['model']}{via}")
+                return data
+            except GP.AllBusy as e:
+                m = re.search(r"free again in (\d+) s", str(e))
+                last = ModelError(f"Gemini's rate limits: {e}", float(m.group(1)) if m else 60.0)
+            except urllib.error.HTTPError as e:
+                if e.code in (401, 403):  # this key is refused: leave it out for an hour
+                    self.out[f"lane:{lane.name}"] = time.time() + COOL[403]
+                    last = ModelError(f"the {lane.label} key was refused")
+                    continue
+                raise ModelError(
+                    {400: "the request was rejected"}.get(e.code, f"Gemini answered HTTP {e.code}")
+                ) from None
+            except (urllib.error.URLError, TimeoutError):
+                last = ModelError("Gemini did not answer in time", COOL_TIMEOUT)
+        raise last or ModelError("no Gemini key is available")
+
+    def _gemini_call(self, body: dict, tune, lane: Lane | None = None) -> tuple[dict, str]:
+        """The web search's Gemini call on one key's lane: its search pool's first model with quota
+        (one at its limit, or too slow, hands over), the request tuned to whichever answers
+        (gemini_search.tune). Failures are RuntimeErrors safe to show. A model that rejects the
+        URL-context tool is asked again without it. When every model refuses for its quota,
+        Google Search rests on this lane (self.out[lane.rest]) so the next questions go straight
+        to the next lane or provider."""
+        lane = lane or self.lanes[0]
+        rest = self.out.get(lane.rest, 0.0) - time.time()
+        if rest > 0:
+            raise RuntimeError(
+                f"Gemini's Google Search ({lane.label}) is resting for {rest:.0f} s (its quota)"
+            )
+        end = time.monotonic() + GEMINI_SEARCH_DEADLINE_S
 
         def post(url: str, b: dict) -> dict:
+            """One Gemini search call on this lane, fitted to the time left on the deadline."""
+            left = end - time.monotonic()
+            if left < 5:
+                raise RuntimeError(
+                    f"Gemini's search did not finish in {GEMINI_SEARCH_DEADLINE_S:.0f} s"
+                )
+            self._local.search_timeout = min(GEMINI_SEARCH_TIMEOUT_S, left)
             model = url.split("/models/")[1].split(":")[0]
-            if meta.get("model") not in (None, model):
-                for c in b["contents"]:
-                    for p in c.get("parts", []):
-                        p.pop("thoughtSignature", None)
-            return self.post(url, self.c.key, b)
+            return self.post_search(url, lane.key, tune(b, model))
+
+        # a model the chat's pool has found slow or out is not asked first for a search either
+        free = [m for m in lane.search_pool.models if m in lane.pool.available()] or None
+
+        def run(b: dict) -> tuple[dict, str]:
+            """A search call through the lane's model pool (skipping cooled-down models)."""
+            return lane.search_pool.call(post, b, only=free, rotate_timeouts=True)
 
         try:
-            before = meta.get("model")
-            data, meta["model"] = self.pool.call(post, body, trace=meta.setdefault("skipped", []))
-            if meta["model"] != before and meta.get("emit"):
-                meta["emit"]("step", f"asked {meta['model']}")
-            return data
+            try:
+                return run(body)
+            except urllib.error.HTTPError as e:
+                if e.code != 400 or not any("url_context" in t for t in body.get("tools", [])):
+                    raise
+                logger.warning("Gemini rejected the URL-context tool; searching without it")
+                return run({**body, "tools": [t for t in body["tools"] if "url_context" not in t]})
         except GP.AllBusy as e:
+            quota = any(lane.search_pool.why(m) == "HTTP 429" for m in lane.search_pool.models)
             m = re.search(r"free again in (\d+) s", str(e))
-            raise ModelError(
-                f"Gemini's rate limits: {e}", float(m.group(1)) if m else 60.0
-            ) from None
+            wait = float(m.group(1)) if m else 60.0
+            if quota:
+                self.out[lane.rest] = time.time() + max(wait, GEMINI_SEARCH_REST_S)
+                raise RuntimeError(
+                    f"Gemini's Google Search quota ({lane.label}) is used up "
+                    "(plain answers are unaffected)"
+                ) from None
+            raise RuntimeError(f"Gemini's search models are busy: {e}") from None
         except urllib.error.HTTPError as e:
-            raise ModelError(
+            if e.code in (401, 403):
+                self.out[lane.rest] = time.time() + COOL[403]
+            raise RuntimeError(
                 {
                     400: "the request was rejected",
+                    401: "the key was refused",
                     403: "the key was refused",
-                }.get(e.code, f"Gemini answered HTTP {e.code}")
+                }.get(
+                    e.code, f"Gemini answered HTTP {e.code}"
+                )
             ) from None
         except (urllib.error.URLError, TimeoutError):
-            raise ModelError("Gemini did not answer in time", COOL_TIMEOUT) from None
+            raise RuntimeError("Gemini did not answer in time") from None
+
+    async def _web_gemini(
+        self, req: ChatRequest, mode: str, context: str, guest: str | None, say, notes: list[str],
+        dp: D.Depth = D.PROFILES["standard"], level: str = "vetted",
+    ) -> W.Found | None:
+        """Search (or research) with Gemini's Google Search on the token budget of the first key
+        that can afford it - Google Cloud, then AI Studio. The tier sets the context, thinking,
+        answer length and number of sub-searches; None when no key can (resting, spent, or
+        failing), so the next provider takes the question."""
+        for lane in self.lanes:
+            found = await self._web_lane(lane, req, mode, context, guest, say, notes, dp, level)
+            if found:
+                return found
+        return None
+
+    async def _web_lane(
+        self, lane: Lane, req: ChatRequest, mode: str, context: str, guest: str | None, say,
+        notes: list[str], dp: D.Depth = D.PROFILES["standard"], level: str = "vetted",
+    ) -> W.Found | None:
+        """One key's grounded search; None when it cannot or fails."""
+        rest = self.out.get(lane.rest, 0.0) - time.time()
+        if rest > 0:
+            say(
+                "step",
+                f"Gemini's Google Search ({lane.label}) is resting {rest:.0f} s (its quota): next",
+            )
+            return None
+        tier = lane.budget.tier(guest)
+        prompt = (
+            TB.est_tokens(context[: TB.TIERS[tier]["context"]] if tier != "spent" else "")
+            + TB.est_tokens(req.question)
+            + 400
+        )
+        a = lane.budget.allow(mode, prompt, guest)
+        if a is None:
+            logger.info("Gemini search skipped (%s): budget tier %s", lane.name, tier)
+            notes.append(f"the {lane.label} token budget for searches is used up for now")
+            say("step", f"Gemini's {lane.label} search budget is {tier}: next")
+            return None
+        # the depth narrows what the budget allows: never more sub-searches or a longer answer
+        a = dataclasses.replace(
+            a, searches=min(a.searches, dp.subs), max_output=min(a.max_output, dp.gemini_tokens)
+        )
+        call = functools.partial(self._gemini_call, lane=lane)
+        try:
+            if mode == "deep":
+                say(
+                    "step",
+                    f"deep research with Gemini on {lane.label} ({a.tier} budget: up to "
+                    f"{a.searches} searches, {a.ceiling} tokens)",
+                )
+                return await asyncio.to_thread(
+                    GS.deep, req.question, context, call, a, lane.budget, guest,
+                    lambda t: say("step", t), level,
+                )
+            say("step", f"searching Google with Gemini on {lane.label} ({a.tier} budget)")
+            return await asyncio.to_thread(
+                GS.search, req.question, context, call, a, lane.budget, guest, GS.READ_PAGES, level
+            )
+        except RuntimeError as e:
+            logger.warning("Gemini search failed (%s) for %r: %s", lane.name, req.question[:60], e)
+            notes.append(f"the Gemini search failed ({e})")
+            say("step", f"the Gemini search failed: {e}")
+            return None
+
+    async def _web_groq(
+        self, req: ChatRequest, mode: str, context: str, say, notes: list[str],
+        dp: D.Depth = D.PROFILES["standard"], level: str = "vetted",
+    ) -> W.Found | None:
+        """Groq's browser search; None when it fails."""
+        post = lambda b: self.post_groq(self.c.groq_url, self.c.groq_key, b)  # noqa: E731
+        try:
+            if mode == "deep":
+                say("step", "deep research: planning the searches")
+                return await asyncio.to_thread(
+                    W.deep, req.question, context, post, self.c.groq_search_model,
+                    self.c.groq_model, lambda t: say("step", t), dp, level,
+                )
+            say("step", f"searching the web with groq {self.c.groq_search_model}")
+            return await asyncio.to_thread(
+                W.search, req.question, context, post, self.c.groq_search_model, "low",
+                dp.search_tokens, level,
+            )
+        except RuntimeError as e:
+            logger.warning("Web search failed for question %r: %s", req.question[:60], e)
+            notes.append(f"the web search failed ({e})")
+            say("step", f"the web search failed: {e}")
+            return None
+
+    async def _web_ddg(
+        self, req: ChatRequest, mode: str, context: str, say, notes: list[str],
+        dp: D.Depth = D.PROFILES["standard"], level: str = "vetted",
+    ) -> W.Found | None:
+        """DuckDuckGo lists and fetches the pages; a configured model writes them up."""
+        writer = self._ddg_writer()
+        if not writer:
+            return None
+        post_ddg, model_ddg = writer
+        try:
+            if mode == "deep":
+                say("step", "deep research: planning the DuckDuckGo searches")
+                return await asyncio.to_thread(
+                    W.deep_ddg, req.question, context, post_ddg, model_ddg,
+                    lambda t: say("step", t), dp, level,
+                )
+            say("step", f"searching DuckDuckGo; {model_ddg} writes the answer up")
+            return await asyncio.to_thread(
+                W.search_ddg, req.question, context, post_ddg, model_ddg, dp, level
+            )
+        except RuntimeError as e:
+            logger.warning("DuckDuckGo search failed for question %r: %s", req.question[:60], e)
+            notes.append(f"the DuckDuckGo search failed ({e})")
+            say("step", f"DuckDuckGo failed: {e}")
+            return None
 
     def _gemini(
         self,
@@ -763,6 +1145,8 @@ class Chat:
         body = build_body(
             req, results, meta.get("extra", ""), search=self.c.grounding or web, functions=not web
         )
+        if meta.get("gemini_tokens"):
+            body["generationConfig"]["maxOutputTokens"] = meta["gemini_tokens"]
         retried = False
         for _ in range(MAX_ROUNDS + 1):
             data = self._gemini_post(body, meta)
@@ -815,6 +1199,8 @@ class Chat:
         model = self.c.ollama_model or "qwen2.5:7b-instruct"
         self._local.deadline = meta.get("deadline")
         body = build_ollama_body(req, model, results, meta.get("extra", ""))
+        if meta.get("max_tokens"):  # a small local model: a third of a hosted model's allowance
+            body["options"]["num_predict"] = max(600, meta["max_tokens"] // 3)
         retried = False
         for _ in range(MAX_ROUNDS + 1):
             try:
@@ -869,7 +1255,10 @@ class Chat:
             for model in order:
                 if model in meta.setdefault("groq_out", set()):
                     continue
-                groq_model(body, model, meta.get("effort", "low"), meta.get("long", False))
+                groq_model(
+                    body, model, meta.get("effort", "low"), meta.get("long", False),
+                    meta.get("max_tokens"),
+                )
                 try:
                     data = self.post_groq(self.c.groq_url, self.c.groq_key, body)
                     if meta.get("model") != f"groq {model}":
@@ -881,6 +1270,25 @@ class Chat:
                         why = json.loads(e.read().decode()).get("error", {}).get("message", "")
                     except Exception:
                         why = ""
+                    # a request over the free tier's tokens per minute (prompt + max_tokens):
+                    # the answer is allowed less and the same model asked again, once
+                    big = body.get("max_tokens", 0) > 2000
+                    if e.code == 413 and big and not meta.get("shrunk"):
+                        meta["shrunk"] = True
+                        meta["max_tokens"] = body["max_tokens"] // 2
+                        say(
+                            "step",
+                            f"groq {model}: over its tokens per minute - answer limited to "
+                            f"{meta['max_tokens']} tokens",
+                        )
+                        effort = meta.get("effort", "low")
+                        groq_model(body, model, effort, False, meta["max_tokens"])
+                        try:
+                            data = self.post_groq(self.c.groq_url, self.c.groq_key, body)
+                            meta["model"] = f"groq {model}"
+                            return data
+                        except urllib.error.HTTPError as e2:
+                            e = e2
                     if e.code not in (429, 404, 413, 498, 500, 503):
                         raise ModelError(
                             f"Groq answered {why or f'HTTP {e.code}'}", COOL.get(e.code, 0.0)
@@ -997,6 +1405,7 @@ class Chat:
             raise ModelError("no UPB API key configured")
         say = meta.get("emit") or (lambda *_: None)
         body = build_groq_body(req, self.c.upb_model, results, meta.get("extra", ""))
+        body["max_tokens"] = meta.get("max_tokens") or body["max_tokens"]
         retried = False
         for _ in range(MAX_ROUNDS + 1):
             data = self._upb_post(body, meta)
@@ -1074,6 +1483,7 @@ class Chat:
             raise ModelError("no OpenAI-compatible endpoint configured")
         say = meta.get("emit") or (lambda *_: None)
         body = build_groq_body(req, self.c.openai_model, results, meta.get("extra", ""))
+        body["max_tokens"] = meta.get("max_tokens") or body["max_tokens"]
         retried = False
         for _ in range(MAX_ROUNDS + 1):
             data = self._openai_post(body, meta)
@@ -1149,7 +1559,7 @@ class Chat:
         if wanted == "rules":
             return []
         have = {
-            "gemini": bool(self.c.key),
+            "gemini": self.has_gemini,
             "groq": bool(self.c.groq_key),
             "upb": bool(self.c.upb_key),
             "openai": bool(self.c.openai_url),
@@ -1185,6 +1595,9 @@ class Chat:
         returned at the end holds all of it too."""
         client = admitted or self.admit(req, request)
         started = time.monotonic()
+        usage = TB.meter_start()  # every model call of this question adds its tokens here
+        level = req.sources or "vetted"
+        removed = 0  # pages the source policy took out (source_policy.py)
         steps: list[str] = []
         thinking: list[str] = []
         logger.info(
@@ -1197,6 +1610,7 @@ class Chat:
         )
 
         def say(kind: str, text: str) -> None:
+            """Record a progress step and forward it to the client's emit hook."""
             if kind == "step":
                 steps.append(text)
             if emit:
@@ -1205,6 +1619,7 @@ class Chat:
         # the session: its turns become the model's history, its facts the shared context
         user = request.headers.get("x-stf-user") or req.user
         user = user if user and S.USER.match(user) else None
+        guest = user or client  # whose share of the Gemini token budget a question counts against
         session = S.load(self.store, user, req.session_id, req.page) if user else None
         memory = S.context_text(session, req.question) if session else ""
         if session and not req.history:
@@ -1212,7 +1627,7 @@ class Chat:
 
         ctx = T.Ctx(age=req.age, pm=req.pm, page=req.page, client=client)
         # every Gemini model is cooling down: give small local models the lean retrieval
-        lean = bool(self.c.key) and not self.pool.available()
+        lean = self.has_gemini and not any(ln.pool.available() for ln in self.lanes)
         rules_text, results = T.rules_answer(req.question, ctx, lean=lean)
         called = [r.tool for r in results]
         # identical session-less questions (a double-ask, a voice echo) reuse the answer for
@@ -1224,7 +1639,7 @@ class Chat:
         )
         cache_key = (
             user or client, req.question, req.page, req.provider, req.mode, req.age, req.pm,
-            hashlib.sha256(supplied.encode()).hexdigest(),
+            req.depth, req.audience, level, hashlib.sha256(supplied.encode()).hexdigest(),
         )
         if session is None and "live_state" not in called:
             hit = self.cache.get(cache_key)
@@ -1234,7 +1649,7 @@ class Chat:
 
         # the route: decided here by rules, not by a model (orchestrate.py)
         plan = O.decide(
-            req.question, called, req.mode, can_search=bool(self.c.groq_key or self.c.key)
+            req.question, called, req.mode, can_search=bool(self.c.groq_key or self.has_gemini)
         )
         if emit:
             emit("route", json.dumps(plan.as_dict()))
@@ -1257,7 +1672,11 @@ class Chat:
                 more = T.equations(more)
             results = [r for r in results if r.tool != "search_docs"] + [more]
             called = [r.tool for r in results]
-        extra = "\n\n".join(x for x in (memory, R.instruction(style)) if x)
+        dp = D.pick(req.depth, plan.mode, style)
+        say("step", f"depth: {dp.name} (answers up to {dp.answer_tokens} tokens; sources {level})")
+        extra = "\n\n".join(
+            x for x in (memory, R.instruction(style), D.instruction(dp, req.audience)) if x
+        )
         web_pages: list[str] = []
 
         def evidence() -> str:
@@ -1272,6 +1691,7 @@ class Chat:
             )
 
         def check(answer: str) -> list[str]:
+            """Claims in the answer the evidence does not support (verification.py)."""
             return V.unverified(answer, evidence(), req.question)
 
         switched: list[dict] = []
@@ -1279,6 +1699,11 @@ class Chat:
         def reply(
             answer: str, model: str, note: str | None = None, bad: list[str] | None = None
         ) -> dict:
+            """The response payload: answer with policy-vetted links, cites, status, meter."""
+            nonlocal removed
+            # a model may still link a page the policy does not allow: the link goes
+            answer, gone = SP.strip_links(answer, level)
+            removed += len(gone)
             sources, links = _cite(results)
             out = {
                 "answer": answer,
@@ -1294,6 +1719,13 @@ class Chat:
                 "route": plan.as_dict(),
                 "steps": steps,
                 "ms": round(1000 * (time.monotonic() - started)),
+                "usage": {
+                    **usage,
+                    "depth": dp.name,
+                    "audience": req.audience,
+                    "sources": level,
+                    "removed": removed,
+                },
             }
             if thinking:
                 out["thinking"] = "\n\n".join(thinking)[:MAX_THINKING]
@@ -1322,6 +1754,7 @@ class Chat:
                     steps=steps,
                     thinking=out.get("thinking"),
                     ms=out["ms"],
+                    usage=out["usage"],
                 )
                 S.remember(session, results)
                 S.save(self.store, user, session)
@@ -1348,16 +1781,50 @@ class Chat:
         if not self.cap.take():
             raise HTTPException(status_code=429, detail="today's question budget is used up")
         notes: list[str] = []
-        web_failed = False
+        found: W.Found | None = None
 
-        # the web: Groq's browser search reads the pages and writes the answer with its links;
-        # deep research searches each sub-question, and the chosen model writes the findings up.
-        # When Groq is missing or its search fails, DuckDuckGo (keyless) lists and fetches the
-        # pages and whichever model is configured writes the answer up from the fetched text.
-        if plan.web and (self.c.groq_key or self._ddg_writer()):
+        # the web, in the operator's order (WEB_SEARCH_ORDER, default gemini, groq, ddg): Gemini's
+        # Google Search on a token budget that shrinks the search as it is used, Groq's browser
+        # search, and DuckDuckGo (keyless; a configured model writes the fetched pages up). Each
+        # one that fails or cannot be afforded hands the question to the next. Deep research
+        # searches each sub-question, and the chosen model then writes the findings up.
+        if plan.web:
             context = context_block(req.grounding, req.page, results)
-
-            def absorb(found: W.Found) -> None:
+            for name in self.c.search_order:
+                if name == "gemini" and self.has_gemini:
+                    found = await self._web_gemini(
+                        req, plan.mode, context, guest, say, notes, dp, level
+                    )
+                elif name == "groq" and self.c.groq_key:
+                    found = await self._web_groq(req, plan.mode, context, say, notes, dp, level)
+                elif name == "ddg":
+                    found = await self._web_ddg(req, plan.mode, context, say, notes, dp, level)
+                if found:
+                    break
+            if found:
+                found, n = SP.clean(found, level)
+                removed += n
+                if n:
+                    pl = "s" if n > 1 else ""
+                    say("step", f"left out {n} page{pl} the source policy does not allow")
+            # a thorough answer reads the peer-reviewed literature too (OpenAlex): its abstracts
+            # join the findings, or stand in for them when every web search failed
+            if dp.scholar:
+                lit = await asyncio.to_thread(SCH.found, req.question, dp.scholar)
+                if lit:
+                    if found:
+                        found.text += "\n\n" + lit.text
+                        found.sources = found.sources + lit.sources
+                        found.pages += " " + lit.pages
+                        found.steps += lit.steps
+                    else:
+                        found = lit
+                        notes.append(
+                            "the web searches failed; the peer-reviewed literature answered"
+                        )
+                else:
+                    say("step", "the peer-reviewed literature search returned nothing")
+            if found:
                 for t in found.steps:
                     say("step", t)
                 for t in found.reasoning:
@@ -1369,60 +1836,9 @@ class Chat:
                     0, web_result("web_research" if plan.mode == "deep" else "web_search", found)
                 )
                 called.append(results[0].tool)
-
-            found: W.Found | None = None
-            if self.c.groq_key:
-                post = lambda b: self.post_groq(self.c.groq_url, self.c.groq_key, b)  # noqa: E731
-                try:
-                    if plan.mode == "deep":
-                        say("step", "deep research: planning the searches")
-                        found = await asyncio.to_thread(
-                            W.deep,
-                            req.question,
-                            context,
-                            post,
-                            self.c.groq_search_model,
-                            self.c.groq_model,
-                            lambda t: say("step", t),
-                        )
-                    else:
-                        say("step", f"searching the web with groq {self.c.groq_search_model}")
-                        found = await asyncio.to_thread(
-                            W.search, req.question, context, post, self.c.groq_search_model, "low"
-                        )
-                except RuntimeError as e:
-                    logger.warning("Web search failed for question %r: %s", req.question[:60], e)
-                    notes.append(f"the web search failed ({e})")
-                    found = None
-                    say("step", f"the web search failed: {e}; trying DuckDuckGo instead")
-            if found is None and (writer := self._ddg_writer()):
-                post_ddg, model_ddg = writer
-                try:
-                    if plan.mode == "deep":
-                        say("step", "deep research: planning the DuckDuckGo searches")
-                        found = await asyncio.to_thread(
-                            W.deep_ddg, req.question, context, post_ddg, model_ddg,
-                            lambda t: say("step", t),
-                        )
-                    else:
-                        say("step", f"searching DuckDuckGo; {model_ddg} writes the answer up")
-                        found = await asyncio.to_thread(
-                            W.search_ddg, req.question, context, post_ddg, model_ddg
-                        )
-                except RuntimeError as e:
-                    logger.warning(
-                        "DuckDuckGo search failed for question %r: %s", req.question[:60], e
-                    )
-                    notes.append(f"the DuckDuckGo search failed ({e})")
-                    found = None
-                    web_failed = True
-                    say(
-                        "step",
-                        f"DuckDuckGo failed too: {e}; Gemini's Google Search, else the documents",
-                    )
-            if found:
-                absorb(found)
-                if plan.mode == "web":
+                # a web search's own answer is the reply - unless the literature joined it (a
+                # thorough answer), when a model writes both up together
+                if plan.mode == "web" and found.via != "openalex" and not dp.scholar:
                     bad = check(found.text)
                     note = None
                     if bad:
@@ -1430,10 +1846,14 @@ class Chat:
                             f"Not found in the pages read: {', '.join(bad)} - check these before "
                             "relying on them."
                         )
-                    return reply(found.text, f"groq {found.model} + web search", note, bad)
+                    label = {
+                        "gemini": f"{found.model} + Google Search",
+                        "duckduckgo": f"duckduckgo + {found.model}",
+                    }.get(found.via, f"groq {found.model} + web search")
+                    return reply(found.text, label, note, bad)
                 extra += "\n\n" + R.instruction("research")
-        elif plan.web:
-            say("step", "searching the web with Gemini's Google Search")
+            elif self.has_gemini and self.search_ready(guest):
+                say("step", "searching the web with Gemini's Google Search")
 
         # the chosen kind first, the other next (each model in turn), then the tools: a limit
         # hands the question - with the session's context - to the next, never an error. The
@@ -1462,11 +1882,17 @@ class Chat:
             )
             deep = plan.mode == "deep" or style == "derive"
             meta: dict = {
+                "max_tokens": dp.answer_tokens,
+                "gemini_tokens": dp.gemini_tokens,
                 "extra": extra,
                 "emit": say,
                 "thinking": thinking,
-                "web": plan.web and (web_failed or not self.c.groq_key) and prov == "gemini",
-                "effort": "medium" if deep else "low",
+                "web": plan.web
+                and found is None
+                and prov == "gemini"
+                and self.search_ready(guest),
+                "guest": guest,
+                "effort": "medium" if deep else dp.effort,
                 "long": deep or style == "research",
                 "deadline": t0 + DEADLINE_S,
             }
@@ -1519,9 +1945,9 @@ class Chat:
             for m, why in meta.get("skipped", []):
                 switched.append({"from": m, "to": meta.get("model"), "why": why})
             if meta.get("web_sources"):  # Gemini's Google Search grounding
-                results.append(
-                    web_result("web_search", W.Found("", meta["web_sources"], model="gemini"))
-                )
+                g, n = SP.clean(W.Found("", meta["web_sources"], model="gemini"), level)
+                removed += n
+                results.append(web_result("web_search", g))
                 called.append("web_search")
             if prov == "gemini":
                 model = meta.get("model") or self.c.model
@@ -1547,12 +1973,14 @@ class Chat:
 
     # ------------------------------------------------------------------ history
     def sessions(self, request: Request) -> list[dict]:
+        """The user's chat sessions (summaries), for the history drawer."""
         user = request.headers.get("x-stf-user", "")
         if not S.USER.match(user):
             return []
         return self.store.list(S.COL, user, S.SUMMARY)
 
     def session(self, request: Request, sid: str) -> dict:
+        """One session's full record; 404 when the id is malformed or not the user's."""
         user = request.headers.get("x-stf-user", "")
         sid_ok = bool(re.match(r"^[a-f0-9]{32}$", sid))
         doc = self.store.get(S.COL, user, sid) if S.USER.match(user) and sid_ok else None
@@ -1561,6 +1989,7 @@ class Chat:
         return S.public(doc)
 
     def forget(self, request: Request, sid: str) -> dict:
+        """Delete one of the user's sessions; reports whether anything was removed."""
         user = request.headers.get("x-stf-user", "")
         ok = S.USER.match(user) and bool(re.match(r"^[a-f0-9]{32}$", sid))
         ok = ok and self.store.delete(S.COL, user, sid)

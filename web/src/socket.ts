@@ -5,13 +5,13 @@
 
 import { applyFrame, store } from "./store";
 import type { Frame } from "./types";
+import { api, apiWs } from "./shared/api";
 
 let ws: WebSocket | null = null;
 let backoff = 500;
 
 export function connect(): void {
-  const proto = location.protocol === "https:" ? "wss" : "ws";
-  const url = `${proto}://${location.host}/ws`;
+  const url = apiWs("/ws");
   store.set({ conn: "connecting" });
 
   ws = new WebSocket(url);
@@ -42,7 +42,7 @@ export function connect(): void {
 }
 
 export async function sendCommand(op: string, slot: string | null): Promise<void> {
-  const res = await fetch("/command", {
+  const res = await fetch(api("/command"), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ op, slot }),

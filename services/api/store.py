@@ -33,12 +33,22 @@ ID = re.compile(r"^[a-zA-Z0-9_-]{8,64}$")
 class DocStore(Protocol):
     """Protocol defining the repository contract for document storage."""
 
-    def get(self, col: str, owner: str, id: str) -> dict | None: ...
-    def put(self, col: str, owner: str, id: str, doc: dict) -> None: ...
-    def delete(self, col: str, owner: str, id: str) -> bool: ...
+    def get(self, col: str, owner: str, id: str) -> dict | None:
+        """One document by (collection, owner, id), or None."""
+        ...
+
+    def put(self, col: str, owner: str, id: str, doc: dict) -> None:
+        """Upsert a document; newer writes win on conflict."""
+        ...
+
+    def delete(self, col: str, owner: str, id: str) -> bool:
+        """Delete a document; True when one existed."""
+        ...
     def list(
         self, col: str, owner: str, fields: tuple[str, ...], limit: int = 100
-    ) -> list[dict]: ...
+    ) -> list[dict]:
+        """An owner's documents in a collection, newest first, projected to `fields`."""
+        ...
 
 
 class JsonStore:

@@ -20,6 +20,7 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from . import keepalive
 from .logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -185,7 +186,8 @@ class SupabaseFactory:
             self.url + "/rest/v1/" + path, method=method, data=data, headers=h
         )
         try:
-            with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:  # noqa: S310 - the configured project URL
+            # kept-alive: no TLS handshake per query
+            with keepalive.urlopen(req, timeout=TIMEOUT_S) as r:
                 raw = r.read()
                 return (json.loads(raw) if raw else None), r.headers
         except urllib.error.HTTPError as e:

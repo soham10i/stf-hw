@@ -16,6 +16,7 @@ eventual design so the browser contract will not change when those land.
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from collections import deque
 from dataclasses import dataclass, field
@@ -132,6 +133,7 @@ class SimRuntime:
         return order
 
     def orders(self) -> list[dict[str, Any]]:
+        """The most recent factory orders (the /orders payload)."""
         return [o.as_dict() for o in self._history[-20:]]
 
     # -- cycle construction ------------------------------------------------
@@ -171,22 +173,33 @@ class SimRuntime:
         """Broadcast a message to all connected clients, evicting clients that time out or
 disconnect.
 
+        The frame is encoded once (not once per client), and sent to every client at once, each
+        with its own timeout: a slow client is evicted without holding up the others.
+
         Args:
             message: JSON-serializable message dictionary to broadcast.
         """
         if not self._clients:
             return
-        dead = []
-        for ws in list(self._clients):
+        text = json.dumps(message, separators=(",", ":"), ensure_ascii=False)
+        clients = list(self._clients)
+
+        async def send(ws: Any) -> bool:
+            """One frame onto one socket, with a send timeout; False means the socket is gone."""
             try:
-                await asyncio.wait_for(ws.send_json(message), timeout=0.5)
+                await asyncio.wait_for(ws.send_text(text), timeout=0.5)
+                return True
             except Exception as e:
                 logger.debug("Evicting disconnected or timed out WebSocket client: %s", e)
-                dead.append(ws)
-        for ws in dead:
-            self._clients.discard(ws)
+                return False
+
+        results = await asyncio.gather(*(send(ws) for ws in clients))
+        for ws, ok in zip(clients, results, strict=True):
+            if not ok:
+                self._clients.discard(ws)
 
     def latest_frame(self) -> dict[str, Any]:
+        """The current snapshot as a numbered wire frame (for late-joining live clients)."""
         frame = wire.frame(self.kernel.backend.snapshot(), self._seq)
         frame["carrier"] = dict(self._carrier)
         frame["oven"] = dict(self._oven)
@@ -195,9 +208,14 @@ disconnect.
     # -- the loop ----------------------------------------------------------
 
     async def _run(self) -> None:
+        # ticks on fixed deadlines, two per frame: the kernel steps at 60 Hz and every second tick
+        # broadcasts, so the stream runs at BROADCAST_HZ exactly. (It polled before, sleeping a
+        # 60th of a second and broadcasting once a 30th had passed: 26.8 frames a second, as
+        # measured - tests/perf/bench_backend.py.)
         last = time.perf_counter()
-        last_broadcast = 0.0
-        interval = 1.0 / BROADCAST_HZ
+        tick = 1.0 / (BROADCAST_HZ * 2)
+        deadline = last
+        n = 0
 
         while self._running:
             now = time.perf_counter()
@@ -208,12 +226,17 @@ disconnect.
             self.kernel.advance(dt * self.time_scale)
             self._animate_oven(dt * self.time_scale)
 
-            if now - last_broadcast >= interval:
+            if n % 2 == 0:
                 self._seq += 1
                 await self._broadcast(self.latest_frame())
-                last_broadcast = now
+            n += 1
 
-            await asyncio.sleep(1.0 / (BROADCAST_HZ * 2))
+            deadline += tick
+            behind = time.perf_counter() - deadline
+            if behind > 4 * tick:
+                # stalled (a long GC, a suspended laptop): start the schedule again from now
+                deadline = time.perf_counter()
+            await asyncio.sleep(max(0.0, deadline - time.perf_counter()))
 
     # -- order + phase servicing ------------------------------------------
 

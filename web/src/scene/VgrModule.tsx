@@ -18,6 +18,7 @@ import { type CadPart, type CadDoc, cylSpec } from "../shared/model";
 import type { CellJoints, Drive } from "./store/useCellStore";
 import { MM, v, Solid, Cookie } from "./parts";
 import { RunningGear, VGR } from "./RunningGear";
+import { benchOn, live as benchLive } from "./bench/benchStore";
 
 
 
@@ -77,8 +78,13 @@ export function VgrModule({ doc, drive, joints }: {
   const headZ = stem.p[2] + stemL;       // underside of the suction head
   const coilL = headZ - cupTop;
   const tex = useMemo(() => new THREE.Texture(), []);
+  // on the Test bench the physics worker's motor axes place the arm (bench/BenchBodies); the cup
+  // has no vacuum there yet, so it neither presses nor carries
+  const now = (): CellJoints["vgr"] =>
+    benchOn("arm") ? { ...joints, ...benchLive.vgr, compress: 0, seal: 0, carry: null } : joints;
 
   useFrame(() => {
+    const joints = now();
     if (gSwivel.current) gSwivel.current.rotation.y = -THREE.MathUtils.degToRad(joints.swivel);
     // parts are emitted at doc.vgr.authoring; the groups carry only the DELTA
     if (gPlunge.current) gPlunge.current.position.y = (joints.plunge - A.plunge) * MM;
@@ -113,14 +119,14 @@ export function VgrModule({ doc, drive, joints }: {
             <RunningGear all={doc.vgr.parts} frame="swivel" axes={VGR} />
             {doc.chains?.chains["vgr:plunge"] && (
               <DragChain spec={doc.chains.chains["vgr:plunge"]}
-                joint={() => joints.plunge + doc.chains!.chains["vgr:plunge"].M[2]} />
+                joint={() => now().plunge + doc.chains!.chains["vgr:plunge"].M[2]} />
             )}
             <group ref={gPlunge}>
               {byFrame.plunge.map(P)}
               <RunningGear all={doc.vgr.parts} frame="plunge" axes={VGR} />
               {doc.chains?.chains["vgr:reach"] && (
                 <DragChain spec={doc.chains.chains["vgr:reach"]} zBase={A.plunge}
-                  joint={() => doc.chains!.chains["vgr:reach"].M[1] - joints.reach} />
+                  joint={() => doc.chains!.chains["vgr:reach"].M[1] - now().reach} />
               )}
               <group ref={gReach}>
                 {byFrame.reach.map(P)}

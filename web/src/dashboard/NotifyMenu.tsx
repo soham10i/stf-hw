@@ -13,13 +13,17 @@ const TOKEN_KEY = "stf.op.token";
 type Status = { on: boolean; channels: string[]; every_hours: number };
 type Phase = "idle" | "sending" | "sent" | "error";
 
+// The operator token commands the machine, so it is kept for this tab only (sessionStorage):
+// gone when the tab closes, never left in the browser's long-term storage for any later page
+// script to read. A copy an earlier version left in localStorage is removed.
 function loadToken(): string {
-  try { return localStorage.getItem(TOKEN_KEY) ?? ""; } catch { return ""; }
+  try { localStorage.removeItem(TOKEN_KEY); } catch { /* none */ }
+  try { return sessionStorage.getItem(TOKEN_KEY) ?? ""; } catch { return ""; }
 }
 function saveToken(v: string) {
   try {
-    if (v) localStorage.setItem(TOKEN_KEY, v);
-    else localStorage.removeItem(TOKEN_KEY);
+    if (v) sessionStorage.setItem(TOKEN_KEY, v);
+    else sessionStorage.removeItem(TOKEN_KEY);
   } catch { /* private mode: the token just is not remembered */ }
 }
 

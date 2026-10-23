@@ -52,8 +52,9 @@ type SegT = {
   /** the segment's first leg's start in the plan's cycle time (flow offsets are relative to it) */
   cStart: number;
 };
-/** A scheduled instance of a segment in one flight. */
-type Seg = SegT & { abs0: number; li: number; fl: Flight | null };
+/** A scheduled instance of a segment in one flight. `lead`: the repositioning legs put in front
+    of the script's own when the resource was left somewhere else (its legs/cum/dur include them). */
+type Seg = SegT & { abs0: number; li: number; fl: Flight | null; lead: number };
 type Plan = {
   from: string; to: string; legs: Leg[]; tOvenGo: number; flow: ReturnType<typeof buildFlow>; total: number;
   baked: string; flavour: string; collect: string | null; collectColour: string | null; bin: string;
@@ -99,6 +100,13 @@ interface Flight {
   rejected: boolean;
   /** the VGR has taken the baked cookie off the line (the workpiece hides) */
   wpTaken: boolean;
+  /** the cookie is committed to its journey (pass or reject) at the end of the colour reading;
+      `rejected` never changes after that, so a late verdict cannot move a cookie off the belt */
+  decided: boolean;
+  /** wall seconds the belt has been held at the decision point, waiting for the verdict */
+  waited: number;
+  /** the belt is holding this cookie at the decision point now */
+  held: boolean;
 }
 
 export interface CoordinatorOptions {
@@ -113,6 +121,17 @@ const smooth = (u: number) => THREE.MathUtils.smoothstep(u, 0, 1);
 /** how far past the lens's axis a cookie can be and still be photographed whole (half the field) */
 const LENS_WINDOW_MM = 30;
 const HOLD_SAY = "VGR: holds clear while the cookie is baked and sorted";
+/** The FSM's longest step (s of twin time): a long frame (fast-forward, a slow machine) is cut
+    into steps this short, so every transition fires in order, at its own time. */
+const FSM_STEP = 0.05;
+const MAX_FSM_STEPS = 4000;
+/** A frame longer than this (s of wall time) is not caught up: a throttled window (1-2 fps)
+    keeps running at its rate, a stopped one (a hidden tab, a debugger) pauses rather than jump. */
+const MAX_FRAME_S = 1;
+/** How long (wall s) the sorting belt waits at the decision point for the inspection's verdict
+    before the cookie goes on un-inspected, to its Lagerstelle - the line never stops for good. */
+export const VERDICT_WAIT_S = 4;
+const HELD_SAY = "Sortierstrecke: the belt holds at the colour lock until the inspection's verdict is in";
 
 export class CellCoordinator {
   private readonly doc: CadDoc;
@@ -159,6 +178,11 @@ export class CellCoordinator {
       where notifying other components is not allowed) */
   private announced = false;
   private thermo = { element: 0, chamber: 25 };
+  /** the twin's own clock (s, playback-scaled): it only runs forwards, at the rate asked for
+      frame by frame, so a change of speed changes how fast it runs - never where it is */
+  private now = 0;
+  /** the time the FSM last stepped to */
+  private lastT = Number.NaN;
   /** a running count, so each faulty cookie's fault falls somewhere else */
   private seeds = 0;
   /** QC testing's draws: a fixed seed, so a run (and a test) is repeatable */
@@ -251,7 +275,9 @@ export class CellCoordinator {
         return { kind: "g" as const, legs: part, cum, dur: cum[cum.length - 1], c: false, v: true, mould: true,
                  cStart: part[0]?.start ?? 0 };
       })(),
-      mk("e", iFinal, legs.length - 1, true, true, true),      // the belt returns the mould; the crane stows it
+      // the belt returns the mould; the crane stows it. The VGR is already home (the collect ends
+      // there) and is free for the next cookie's pick: e does not claim it
+      mk("e", iFinal, legs.length - 1, true, false, true),
     ];
     // how long from the collect's start until the VGR holds the baked cookie (for its timing)
     const g = segs[5];
@@ -342,8 +368,8 @@ export class CellCoordinator {
   private wholeFlight(cyc: Cycle): Flight {
     return {
       cyc,
-      segs: cyc.segs.map((s) => ({ ...s, abs0: -1, li: 0, fl: null })),
-      idx: 0, flowAbs0: -1, ends: {}, queued: new Set(), rejected: false, wpTaken: false,
+      segs: cyc.segs.map((s) => ({ ...s, abs0: -1, li: 0, fl: null, lead: 0 })),
+      idx: 0, flowAbs0: -1, ends: {}, queued: new Set(), rejected: false, wpTaken: false, decided: false, waited: 0, held: false,
     };
   }
 
@@ -443,6 +469,8 @@ export class CellCoordinator {
         return next ? (next.ends.s ?? Infinity) : (e.s ?? Infinity);
       }
       case "g": {
+        // the VGR sets off for the Lagerstelle once the cookie's journey is decided
+        if (!f.decided) return Infinity;
         const flow = f.rejected ? f.cyc.rflow : f.cyc.flow;
         return Math.max(e.f ?? Infinity, this.vgrAt, f.flowAbs0 + flow.arrive - f.cyc.bayDur);
       }
@@ -451,13 +479,16 @@ export class CellCoordinator {
     }
   }
 
-  /** Assign start times to queued jobs whose dependencies are met, oldest first. */
-  private schedule(t: number) {
+  /** Assign start times to queued jobs whose dependencies are met by `t`, oldest first. A job
+      that became ready since the last step (`from`) starts when it became ready, not at `t`:
+      the schedule does not depend on the frame rate. */
+  private schedule(t: number, from: number) {
     for (;;) {
       const cq = this.craneQ[0];
       if (cq && this.readyAt(cq) <= t) {
         this.craneQ.shift();
-        cq.abs0 = Math.max(this.readyAt(cq), this.craneAt, t);
+        cq.abs0 = Math.max(this.readyAt(cq), this.craneAt, from);
+        this.bridgeCrane(cq);
         this.craneAt = cq.abs0 + cq.dur;
         cq.fl!.ends[cq.kind] = this.craneAt;
         this.onScheduled(cq);
@@ -466,7 +497,8 @@ export class CellCoordinator {
       const vq = this.vgrQ[0];
       if (vq && this.readyAt(vq) <= t) {
         this.vgrQ.shift();
-        vq.abs0 = Math.max(this.readyAt(vq), this.vgrAt, t);
+        vq.abs0 = Math.max(this.readyAt(vq), this.vgrAt, from);
+        this.bridgeVgr(vq);
         this.vgrAt = vq.abs0 + vq.dur;
         vq.fl!.ends[vq.kind] = this.vgrAt;
         this.onScheduled(vq);
@@ -474,6 +506,85 @@ export class CellCoordinator {
       }
       break;
     }
+  }
+
+  /** Where each resource is left by the last segment scheduled on it (null: at its rest pose). */
+  private craneEnd: Key | null = null;
+  private vgrEnd: Key | null = null;
+
+  /** A leg's time, by the same rule as the plan's (plan()). */
+  private legDur(a: Key, b: Key) {
+    const axes = Math.abs(b.t - a.t) + Math.abs(b.l - a.l) + Math.abs(b.f - a.f);
+    const vgr = Math.abs(b.vs - a.vs) * 2 + Math.abs(b.vr - a.vr) + Math.abs(b.vp - a.vp);
+    return Math.max(0.4, (axes + vgr) / (SPEED * RATE) + Math.abs(b.b - a.b) / (BELT_SPEED * RATE));
+  }
+
+  /** Put `moves` (each a partial pose, applied in turn from `from`) in front of the segment's legs.
+      Every other field of the moved-through keys is the segment's first key's, so the mould,
+      cookie and captions read as the segment's own. */
+  private lead(seg: Seg, from: Key, moves: Partial<Key>[], say: string) {
+    const first = seg.legs[0].a;
+    const keys: Key[] = [{ ...first, t: from.t, l: from.l, f: from.f, b: from.b, vs: from.vs, vr: from.vr, vp: from.vp, vc: from.vc, say }];
+    for (const mv of moves) {
+      const prev = keys[keys.length - 1];
+      const next = { ...prev, ...mv, say };
+      if (Math.abs(next.t - prev.t) + Math.abs(next.l - prev.l) + Math.abs(next.f - prev.f) + Math.abs(next.b - prev.b) +
+          Math.abs(next.vs - prev.vs) + Math.abs(next.vr - prev.vr) + Math.abs(next.vp - prev.vp) + Math.abs(next.vc - prev.vc) > 1e-6)
+        keys.push(next);
+    }
+    if (keys.length < 2) return;
+    const extra: Leg[] = [];
+    for (let i = 1; i < keys.length; i++) extra.push({ a: keys[i - 1], b: keys[i], dur: this.legDur(keys[i - 1], keys[i]), start: 0 });
+    // the last move ends exactly at the segment's first key
+    extra[extra.length - 1].b = first;
+    seg.legs = [...extra, ...seg.legs];
+    const cum: number[] = [0];
+    for (const l of seg.legs) cum.push(cum[cum.length - 1] + l.dur);
+    seg.cum = cum;
+    seg.lead = cum[extra.length];
+    seg.dur = cum[cum.length - 1];
+  }
+
+  /** The crane starts each segment where the last one left it: when pipelining put it somewhere
+      the script did not expect (another cookie's bay, the park), it first moves there - fork in,
+      up to transit height, across, down, fork out - and the belt runs to the mould's place. */
+  private bridgeCrane(seg: Seg) {
+    const from = this.craneEnd, to = seg.legs[0].a;
+    this.craneEnd = seg.legs[seg.legs.length - 1].b;
+    if (!from) return;
+    const off = Math.abs(from.t - to.t) + Math.abs(from.l - to.l) + Math.abs(from.f - to.f) + Math.abs(from.b - to.b);
+    if (off < 0.5) return;
+    const J = this.doc.joints, T = J.travel.stops, L = J.lift.stops, F = J.fork.stops;
+    const across = Math.abs(from.t - to.t) > 0.5;
+    this.lead(seg, from, [
+      { f: from.f !== to.f || across ? F.retracted : from.f },
+      across ? { l: L.transit } : {},
+      { t: to.t, b: to.b },
+      { l: to.l },
+      { f: to.f },
+    ], `crane: repositions to ${Math.abs(to.t - T.conveyor) < 0.5 ? "the conveyor" : "its next job"}`);
+    this.craneEnd = seg.legs[seg.legs.length - 1].b;
+  }
+
+  /** The same for the VGR, by the proven tours' own pattern: retract, rise to transit height,
+      swing, descend, extend. */
+  private bridgeVgr(seg: Seg) {
+    const from = this.vgrEnd, to = seg.legs[0].a;
+    this.vgrEnd = seg.legs[seg.legs.length - 1].b;
+    if (!from) return;
+    const off = Math.abs(from.vs - to.vs) + Math.abs(from.vr - to.vr) + Math.abs(from.vp - to.vp) + Math.abs(from.vc - to.vc);
+    if (off < 0.5) return;
+    const transit = this.doc.vgr.joints.plunge.stops.transit;
+    const swing = Math.abs(from.vs - to.vs) > 0.5;
+    this.lead(seg, from, [
+      { vc: 0 },
+      swing ? { vr: 0 } : {},
+      swing ? { vp: transit } : {},
+      { vs: to.vs },
+      { vp: to.vp },
+      { vr: to.vr, vc: to.vc },
+    ], "VGR: repositions for its next job");
+    this.vgrEnd = seg.legs[seg.legs.length - 1].b;
   }
 
   /** Queue the segments that a scheduled segment unlocks. */
@@ -491,7 +602,7 @@ export class CellCoordinator {
       if (prev && !prev.queued.has("f")) this.enqueue(prev, "f");
       if (!this.flights[i + 1] && !this.workPending() && !f.queued.has("f")) this.enqueue(f, "f");
     } else if (k === "c") {
-      f.flowAbs0 = seg.abs0 + (f.cyc.tOvenGo - seg.cStart);
+      f.flowAbs0 = seg.abs0 + seg.lead + (f.cyc.tOvenGo - seg.cStart);
       this.lineAt = f.flowAbs0 + f.cyc.flow.total;
     } else if (k === "f") this.enqueue(f, "g");
     else if (k === "g") this.enqueue(f, "e");
@@ -579,6 +690,7 @@ export class CellCoordinator {
     this.craneQ = [];
     this.vgrQ = [];
     this.craneAt = this.vgrAt = this.lineAt = t;
+    this.craneEnd = this.vgrEnd = null;
     this.claimed.clear();
     this.overlapped = 0;
     this.restCyc = this.rest(m.rack);
@@ -587,34 +699,33 @@ export class CellCoordinator {
   }
 
   // ------------------------------------------------------------------ the tick
-  /** Advance to twin time `t` (s, playback-scaled); `dt` is the wall-clock frame time (s). */
+  /** One display frame: `dt` wall seconds at `rate` times real time. The twin's clock advances
+      by dt x rate; a frame over MAX_FRAME_S counts as MAX_FRAME_S. */
+  advance(dt: number, rate: number) {
+    const d = Math.min(MAX_FRAME_S, Math.max(0, dt));
+    this.now += d * Math.max(0, rate);
+    this.tick(this.now, d);
+  }
+
+  /** Advance to twin time `t` (s, playback-scaled); `dt` is the wall-clock frame time (s). The
+      FSM steps from the last time to `t` in steps of at most FSM_STEP; the joints are drawn
+      once, at `t`. */
   tick(t: number, dt: number) {
     const store = this.store, m = store.model;
     const live = this.frozen === null;
     if (!this.announced) { this.announced = true; store.commit(false); }
 
-    if (live && store.requests.reset) this.doReset(t);
     if (live) {
-      // retire finished segments, oldest flight first; a flight ends with its e segment
-      for (const f of this.flights) {
-        let seg = f.segs[f.idx];
-        while (seg && seg.abs0 >= 0 && t >= seg.abs0 + seg.dur - 1e-9) {
-          f.ends[seg.kind] = seg.abs0 + seg.dur;
-          f.idx++;
-          if (seg.kind === "e") this.retire.push(f);
-          seg = f.segs[f.idx];
-        }
+      if (store.requests.reset) this.doReset(t);
+      const from = Number.isFinite(this.lastT) && this.lastT < t ? this.lastT : t;
+      const n = Math.min(MAX_FSM_STEPS, Math.max(1, Math.ceil((t - from) / FSM_STEP - 1e-9)));
+      let prev = from;
+      for (let i = 1; i <= n; i++) {
+        const s = i === n ? t : from + ((t - from) * i) / n;
+        this.step(s, prev, dt / n);
+        prev = s;
       }
-      for (const f of this.retire) {
-        this.flights.splice(this.flights.indexOf(f), 1);
-        this.complete(f);
-      }
-      this.retire.length = 0;
-      this.schedule(t);
-      if (!this.flights.length && store.requests.restock &&
-          m.queue.every((o) => o.done === o.qty)) this.restock();
-      this.beginFlights(t);
-      this.pollVerdicts();
+      this.lastT = t;
     }
 
     if (this.frozen !== null && this.frozenFlight) {
@@ -646,6 +757,62 @@ export class CellCoordinator {
     store.publishFrame(t);
   }
   private retire: Flight[] = [];
+
+  /** One FSM step, from `from` to `t` (twin s); `wall` is its share of the frame's wall time. */
+  private step(t: number, from: number, wall: number) {
+    const store = this.store, m = store.model;
+    // retire finished segments, oldest flight first; a flight ends with its e segment
+    for (const f of this.flights) {
+      let seg = f.segs[f.idx];
+      while (seg && seg.abs0 >= 0 && t >= seg.abs0 + seg.dur - 1e-9) {
+        f.ends[seg.kind] = seg.abs0 + seg.dur;
+        f.idx++;
+        if (seg.kind === "e") this.retire.push(f);
+        seg = f.segs[f.idx];
+      }
+    }
+    for (const f of this.retire) {
+      this.flights.splice(this.flights.indexOf(f), 1);
+      this.complete(f);
+    }
+    this.retire.length = 0;
+    this.schedule(t, from);
+    if (!this.flights.length && store.requests.restock &&
+        m.queue.every((o) => o.done === o.qty)) this.restock();
+    this.beginFlights(t);
+    this.pollVerdicts();
+    this.decide(t, wall);
+  }
+
+  /** The sorting line's decision: at the end of the colour reading each cookie is committed to
+      its Lagerstelle or to the end of the line. With a camera installed the belt holds there
+      (its flow's clock stands still) until the cookie has been photographed and judged - at any
+      playback rate, the verdict is in before the paths part. After VERDICT_WAIT_S of wall time
+      without one, the cookie goes on un-inspected. */
+  private decide(t: number, wall: number) {
+    for (const f of this.flights) {
+      if (f.decided || f.flowAbs0 < 0) continue;
+      const at = f.flowAbs0 + f.cyc.flow.decide;
+      if (t < at) continue;
+      const C = f.cyc;
+      const pending = this.lens !== null && (!C.shot || !C.verdict);
+      if (pending && f.waited < VERDICT_WAIT_S) {
+        // hold: the flow (and the line it occupies) is pushed back by the time it waited
+        const late = t - at;
+        const owns = Math.abs(this.lineAt - (f.flowAbs0 + C.flow.total)) < 1e-6;
+        f.flowAbs0 += late;
+        if (owns) this.lineAt += late;
+        f.waited += wall;
+        f.held = true;
+        continue;
+      }
+      f.decided = true;
+      f.held = false;
+      f.rejected = !!C.verdict && C.verdict.verdict !== "pass";
+      if (f.rejected && Math.abs(this.lineAt - (f.flowAbs0 + C.flow.total)) < 1e-6)
+        this.lineAt = f.flowAbs0 + C.rflow.total;
+    }
+  }
 
   /** The flight whose segment owns a resource (crane / VGR) at time t. */
   private owner(t: number, res: "c" | "v"): Flight | null {
@@ -718,7 +885,6 @@ export class CellCoordinator {
         if (seg.mould && !mould) { mould = seg; mouldF = f; }
       }
       if (f.flowAbs0 >= 0 && f.flowAbs0 <= t && (!flowF || f.flowAbs0 > flowF.flowAbs0)) flowF = f;
-      f.rejected = !!f.cyc.verdict && f.cyc.verdict.verdict !== "pass";
     }
     this.mouldHeld = null;
 
@@ -847,7 +1013,8 @@ export class CellCoordinator {
       }
     }
     const say = vgrSay || segSay;
-    const want = resting ? WAITING : this.flow.say ? `${say}   ·   ${this.flow.say}` : say;
+    const flowSay = this.flowFlight?.held ? HELD_SAY : this.flow.say;
+    const want = resting ? WAITING : flowSay ? `${say}   ·   ${flowSay}` : say;
     if (want && want !== m.step) { m.step = want; store.commit(false); }
     this.sensors();
     this.camera(dt);

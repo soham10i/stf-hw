@@ -1478,6 +1478,13 @@
     },
     {
      "module": "oven",
+     "part": "convection_fan_motor",
+     "io": "",
+     "terminal": "",
+     "function": ""
+    },
+    {
+     "module": "oven",
      "part": "M4_slider_motor",
      "io": "Q5/Q6",
      "terminal": "Q5:21; Q6:22",
@@ -2755,6 +2762,1883 @@
    ],
    "operate": "coil energised",
    "xray": true
+  },
+  "revpi_dio": {
+   "ft": "100197",
+   "name": "RevPi DIO",
+   "name_de": "RevPi DIO (digitales I/O-Modul)",
+   "datasheet": "Datenblatt_RevPi_DIO.pdf",
+   "material": "plastic housing (datasheet), spring-clamp plugs",
+   "kind": "device",
+   "maker": "KUNBUS GmbH",
+   "family": "Revolution Pi",
+   "facts": [
+    {
+     "label": "Dimensions",
+     "value": "96 x 22.5 x 110.5 mm (H x B x T)",
+     "source": "datasheet"
+    },
+    {
+     "label": "Housing",
+     "value": "DIN-rail housing for EN 50022 (TS35), plastic, IP20",
+     "source": "datasheet"
+    },
+    {
+     "label": "Weight",
+     "value": "approx. 100 g / 130 g with plugs",
+     "source": "datasheet"
+    },
+    {
+     "label": "Supply",
+     "value": "12-24 V DC -5 % / +20 % (X2 and X4), 1.5 W",
+     "source": "datasheet"
+    },
+    {
+     "label": "Inputs",
+     "value": "14, 2.4 mA, EN 61131-2 type I/III; counters or 6 encoders",
+     "source": "datasheet"
+    },
+    {
+     "label": "Outputs",
+     "value": "14, 500 mA high-side or 100 mA push-pull, PWM 40-400 Hz",
+     "source": "datasheet"
+    },
+    {
+     "label": "Connectors",
+     "value": "2 x 14-pole spring clamp, 3.5 mm pitch (Wieland 27.630.4453.0); 2 x 4-pole screw for supply",
+     "source": "datasheet"
+    },
+    {
+     "label": "Indicators",
+     "value": "3 multicolour status LEDs",
+     "source": "datasheet"
+    },
+    {
+     "label": "Bus",
+     "value": "PiBridge to the Core and further modules",
+     "source": "datasheet"
+    },
+    {
+     "label": "Where the connectors sit",
+     "value": "not published - placed by assumption; KUNBUS's STEP file settles it",
+     "source": "assumed"
+    }
+   ],
+   "dims": [
+    {
+     "key": "L",
+     "label": "height H",
+     "value": 96.0,
+     "source": "datasheet",
+     "note": ""
+    },
+    {
+     "key": "W",
+     "label": "width B (along the rail)",
+     "value": 22.5,
+     "source": "datasheet",
+     "note": ""
+    },
+    {
+     "key": "H",
+     "label": "depth T (rail to front)",
+     "value": 110.5,
+     "source": "datasheet",
+     "note": ""
+    },
+    {
+     "key": "base_t",
+     "label": "depth of the full-height base",
+     "value": 70.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "nose_h",
+     "label": "height of the front nose",
+     "value": 56.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "rail_w",
+     "label": "TS35 rail width",
+     "value": 35.0,
+     "source": "standard",
+     "note": "EN 60715"
+    },
+    {
+     "key": "rail_d",
+     "label": "TS35 rail depth",
+     "value": 7.5,
+     "source": "standard",
+     "note": "EN 60715"
+    },
+    {
+     "key": "io_pitch",
+     "label": "I/O plug pitch",
+     "value": 3.5,
+     "source": "datasheet",
+     "note": ""
+    },
+    {
+     "key": "io_poles",
+     "label": "poles per I/O plug",
+     "value": 14.0,
+     "source": "datasheet",
+     "note": ""
+    },
+    {
+     "key": "pwr_poles",
+     "label": "poles per supply plug",
+     "value": 4.0,
+     "source": "datasheet",
+     "note": ""
+    },
+    {
+     "key": "pwr_pitch",
+     "label": "supply plug pitch",
+     "value": 3.5,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "plug_w",
+     "label": "plug body width",
+     "value": 9.5,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "plug_h",
+     "label": "plug body height",
+     "value": 12.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "led_d",
+     "label": "LED diameter",
+     "value": 3.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "edge",
+     "label": "housing edge round",
+     "value": 0.8,
+     "source": "assumed",
+     "note": ""
+    }
+   ],
+   "parts": [
+    {
+     "name": "housing",
+     "material": "plastic (datasheet), PC/ABS (assumed)",
+     "colour": "#8f959b",
+     "inside_envelope": true
+    },
+    {
+     "name": "supply_plug_x4",
+     "material": "PA plug, screw clamps",
+     "colour": "#1f8a4c",
+     "inside_envelope": true
+    },
+    {
+     "name": "supply_plug_x2",
+     "material": "PA plug, screw clamps",
+     "colour": "#1f8a4c",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_1",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_2",
+     "material": "LED",
+     "colour": "#f0b429",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_3",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "io_plug_1",
+     "material": "PA plug, spring clamps (Wieland 27.630.4453.0)",
+     "colour": "#1f8a4c",
+     "inside_envelope": true
+    },
+    {
+     "name": "io_plug_2",
+     "material": "PA plug, spring clamps (Wieland 27.630.4453.0)",
+     "colour": "#1f8a4c",
+     "inside_envelope": true
+    },
+    {
+     "name": "pibridge_left",
+     "material": "gold-plated contacts",
+     "colour": "#d4af37",
+     "inside_envelope": true
+    },
+    {
+     "name": "pibridge_right",
+     "material": "gold-plated contacts",
+     "colour": "#d4af37",
+     "inside_envelope": true
+    },
+    {
+     "name": "id_plate",
+     "material": "IEC 61406 identification plate",
+     "colour": "#f4f4f1",
+     "inside_envelope": true
+    }
+   ],
+   "verification": [
+    {
+     "check": "housing length",
+     "datasheet_mm": 96.0,
+     "model_mm": 96.0,
+     "ok": true,
+     "source": "datasheet"
+    },
+    {
+     "check": "housing depth",
+     "datasheet_mm": 22.5,
+     "model_mm": 22.5,
+     "ok": true,
+     "source": "datasheet"
+    },
+    {
+     "check": "housing height",
+     "datasheet_mm": 110.5,
+     "model_mm": 110.5,
+     "ok": true,
+     "source": "datasheet"
+    },
+    {
+     "check": "I/O plug pole field (14 x 3.5)",
+     "datasheet_mm": 49.0,
+     "model_mm": 49.0,
+     "ok": true,
+     "source": "datasheet"
+    }
+   ],
+   "overall_mm": [
+    96.0,
+    22.5,
+    110.5
+   ],
+   "bbox_mm": [
+    -0.0,
+    -0.0,
+    -0.0,
+    96.0,
+    22.5,
+    110.5
+   ],
+   "mesh": {
+    "triangles": 21940,
+    "chordal_tolerance_mm": 0.01
+   },
+   "files": {
+    "glb": "revpi_dio.glb",
+    "step": "revpi_dio.step",
+    "fcstd": "stf-factory/cad/components/revpi_dio.FCStd"
+   },
+   "used_in": [
+    {
+     "module": "hbw",
+     "part": "hbw.dio",
+     "io": "",
+     "terminal": "",
+     "function": "RevPi DIO (original wiring)"
+    },
+    {
+     "module": "vgr",
+     "part": "vgr.dio",
+     "io": "",
+     "terminal": "",
+     "function": "RevPi DIO (original wiring)"
+    },
+    {
+     "module": "oven",
+     "part": "oven.dio",
+     "io": "",
+     "terminal": "",
+     "function": "RevPi DIO (original wiring)"
+    },
+    {
+     "module": "sorting",
+     "part": "sorting.dio",
+     "io": "",
+     "terminal": "",
+     "function": "RevPi DIO (original wiring)"
+    }
+   ],
+   "motion": [],
+   "operate": null,
+   "xray": false
+  },
+  "revpi_core": {
+   "ft": "100359",
+   "name": "RevPi Core S",
+   "name_de": "RevPi Core S (Steuerung)",
+   "datasheet": "Datenblatt_RevPi_Cores.pdf",
+   "material": "plastic housing (datasheet), passive heat sink",
+   "kind": "device",
+   "maker": "KUNBUS GmbH",
+   "family": "Revolution Pi",
+   "facts": [
+    {
+     "label": "Dimensions",
+     "value": "96 x 22.5 x 110.5 mm (H x B x T)",
+     "source": "datasheet"
+    },
+    {
+     "label": "Housing",
+     "value": "DIN-rail housing for EN 50022 (TS35), plastic, IP20",
+     "source": "datasheet"
+    },
+    {
+     "label": "Weight",
+     "value": "approx. 115 g",
+     "source": "datasheet"
+    },
+    {
+     "label": "Supply",
+     "value": "12-24 V DC -15 % / +20 %, reverse-polarity protected; 10 W max",
+     "source": "datasheet"
+    },
+    {
+     "label": "CPU",
+     "value": "Broadcom BCM2711, 4 x Cortex-A72, 1.5 GHz; 1 GB LPDDR4; 8 GB eMMC",
+     "source": "datasheet"
+    },
+    {
+     "label": "Interfaces",
+     "value": "2 x USB A, 1 x RJ45 10/100, 1 x micro-USB, 1 x micro-HDMI, 2 x PiBridge",
+     "source": "datasheet"
+    },
+    {
+     "label": "Connectors",
+     "value": "1 x 4-pole screw connector for the supply",
+     "source": "datasheet"
+    },
+    {
+     "label": "Indicators",
+     "value": "3 status LEDs, 2-colour (2 programmable)",
+     "source": "datasheet"
+    },
+    {
+     "label": "Hold-up",
+     "value": "10 ms through supply dips at 20.4-28.8 V (EN 61131-2)",
+     "source": "datasheet"
+    },
+    {
+     "label": "Where the connectors sit",
+     "value": "not published - placed by assumption; KUNBUS's STEP file settles it",
+     "source": "assumed"
+    }
+   ],
+   "dims": [
+    {
+     "key": "L",
+     "label": "height H",
+     "value": 96.0,
+     "source": "datasheet",
+     "note": ""
+    },
+    {
+     "key": "W",
+     "label": "width B (along the rail)",
+     "value": 22.5,
+     "source": "datasheet",
+     "note": ""
+    },
+    {
+     "key": "H",
+     "label": "depth T (rail to front)",
+     "value": 110.5,
+     "source": "datasheet",
+     "note": ""
+    },
+    {
+     "key": "base_t",
+     "label": "depth of the full-height base",
+     "value": 70.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "nose_h",
+     "label": "height of the front nose",
+     "value": 56.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "rail_w",
+     "label": "TS35 rail width",
+     "value": 35.0,
+     "source": "standard",
+     "note": "EN 60715"
+    },
+    {
+     "key": "rail_d",
+     "label": "TS35 rail depth",
+     "value": 7.5,
+     "source": "standard",
+     "note": "EN 60715"
+    },
+    {
+     "key": "pwr_poles",
+     "label": "poles of the supply plug",
+     "value": 4.0,
+     "source": "datasheet",
+     "note": ""
+    },
+    {
+     "key": "pwr_pitch",
+     "label": "supply plug pitch",
+     "value": 3.5,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "rj45_w",
+     "label": "RJ45 jack width",
+     "value": 16.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "rj45_h",
+     "label": "RJ45 jack height",
+     "value": 13.5,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "usb_w",
+     "label": "USB A socket width",
+     "value": 14.5,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "usb_h",
+     "label": "USB A socket height",
+     "value": 6.5,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "led_d",
+     "label": "LED diameter",
+     "value": 3.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "edge",
+     "label": "housing edge round",
+     "value": 0.8,
+     "source": "assumed",
+     "note": ""
+    }
+   ],
+   "parts": [
+    {
+     "name": "housing",
+     "material": "plastic (datasheet), PC/ABS (assumed)",
+     "colour": "#8f959b",
+     "inside_envelope": true
+    },
+    {
+     "name": "supply_plug_x4",
+     "material": "PA plug, screw clamps",
+     "colour": "#1f8a4c",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_1",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_2",
+     "material": "LED",
+     "colour": "#f0b429",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_3",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "rj45",
+     "material": "connector",
+     "colour": "#2a2b2e",
+     "inside_envelope": true
+    },
+    {
+     "name": "usb_a_1",
+     "material": "connector",
+     "colour": "#b9bec4",
+     "inside_envelope": true
+    },
+    {
+     "name": "usb_a_2",
+     "material": "connector",
+     "colour": "#b9bec4",
+     "inside_envelope": true
+    },
+    {
+     "name": "micro_hdmi",
+     "material": "connector",
+     "colour": "#b9bec4",
+     "inside_envelope": true
+    },
+    {
+     "name": "micro_usb",
+     "material": "connector",
+     "colour": "#b9bec4",
+     "inside_envelope": true
+    },
+    {
+     "name": "pibridge_left",
+     "material": "gold-plated contacts",
+     "colour": "#d4af37",
+     "inside_envelope": true
+    },
+    {
+     "name": "pibridge_right",
+     "material": "gold-plated contacts",
+     "colour": "#d4af37",
+     "inside_envelope": true
+    },
+    {
+     "name": "id_plate",
+     "material": "IEC 61406 identification plate",
+     "colour": "#f4f4f1",
+     "inside_envelope": true
+    }
+   ],
+   "verification": [
+    {
+     "check": "housing length",
+     "datasheet_mm": 96.0,
+     "model_mm": 96.0,
+     "ok": true,
+     "source": "datasheet"
+    },
+    {
+     "check": "housing depth",
+     "datasheet_mm": 22.5,
+     "model_mm": 22.5,
+     "ok": true,
+     "source": "datasheet"
+    },
+    {
+     "check": "housing height",
+     "datasheet_mm": 110.5,
+     "model_mm": 110.5,
+     "ok": true,
+     "source": "datasheet"
+    }
+   ],
+   "overall_mm": [
+    96.0,
+    22.5,
+    110.5
+   ],
+   "bbox_mm": [
+    -0.0,
+    -0.0,
+    -0.0,
+    96.0,
+    22.5,
+    110.5
+   ],
+   "mesh": {
+    "triangles": 5452,
+    "chordal_tolerance_mm": 0.01
+   },
+   "files": {
+    "glb": "revpi_core.glb",
+    "step": "revpi_core.step",
+    "fcstd": "stf-factory/cad/components/revpi_core.FCStd"
+   },
+   "used_in": [
+    {
+     "module": "cabinet",
+     "part": "core",
+     "io": "",
+     "terminal": "plc/revpi_core_3",
+     "function": "RevPi Core"
+    }
+   ],
+   "motion": [],
+   "operate": null,
+   "xray": false
+  },
+  "psu_wdr120": {
+   "ft": "WDR-120-24",
+   "name": "Power supply WDR-120-24",
+   "name_de": "Netzteil WDR-120-24 (Hutschiene)",
+   "datasheet": "Mean Well WDR-120 spec sheet (case 992B)",
+   "material": "metal case (datasheet: case 992B)",
+   "kind": "device",
+   "maker": "MEAN WELL Enterprises Co., Ltd.",
+   "family": "WDR",
+   "document_url": "https://www.meanwell.com/Upload/PDF/WDR-120/WDR-120-SPEC.PDF",
+   "facts": [
+    {
+     "label": "Dimensions",
+     "value": "40 x 125.2 x 113.5 mm (W x H x D), tolerance +-1 mm",
+     "source": "datasheet"
+    },
+    {
+     "label": "Output",
+     "value": "24 V, 5 A, 120 W; adjustable 24-29 V; efficiency 91 % (400 VAC)",
+     "source": "datasheet"
+    },
+    {
+     "label": "Input",
+     "value": "180-550 VAC between any two phases (L1, L2: no neutral)",
+     "source": "datasheet"
+    },
+    {
+     "label": "Terminals",
+     "value": "TB1: FG, AC/L2, AC/L1 - TB2: DC OK relay (1, 2), -V (3), +V (4)",
+     "source": "datasheet"
+    },
+    {
+     "label": "DC OK",
+     "value": "relay contact, 30 V / 1 A, closed while the output is good",
+     "source": "datasheet"
+    },
+    {
+     "label": "Weight",
+     "value": "0.65 kg (packing figure)",
+     "source": "datasheet"
+    },
+    {
+     "label": "Mounting",
+     "value": "TS35/7.5 or TS35/15, vertical, input terminals down; 40 mm free above",
+     "source": "datasheet"
+    },
+    {
+     "label": "Terminal pitch",
+     "value": "not given - assumed",
+     "source": "assumed"
+    }
+   ],
+   "dims": [
+    {
+     "key": "L",
+     "label": "height H",
+     "value": 125.2,
+     "source": "datasheet",
+     "note": "+-1 mm"
+    },
+    {
+     "key": "W",
+     "label": "width W (along the rail)",
+     "value": 40.0,
+     "source": "datasheet",
+     "note": "+-1 mm"
+    },
+    {
+     "key": "H",
+     "label": "depth D (rail to front)",
+     "value": 113.5,
+     "source": "datasheet",
+     "note": "+-1 mm"
+    },
+    {
+     "key": "rail_w",
+     "label": "TS35 rail width",
+     "value": 35.0,
+     "source": "standard",
+     "note": "EN 60715"
+    },
+    {
+     "key": "rail_d",
+     "label": "TS35 rail depth",
+     "value": 7.5,
+     "source": "standard",
+     "note": "EN 60715"
+    },
+    {
+     "key": "tb_pitch",
+     "label": "terminal pitch",
+     "value": 7.62,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "tb_w",
+     "label": "terminal block depth",
+     "value": 12.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "slot_w",
+     "label": "ventilation slot width",
+     "value": 2.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "slot_l",
+     "label": "ventilation slot length",
+     "value": 30.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "edge",
+     "label": "case edge round",
+     "value": 1.0,
+     "source": "assumed",
+     "note": ""
+    }
+   ],
+   "parts": [
+    {
+     "name": "housing",
+     "material": "metal case (datasheet)",
+     "colour": "#b9bec4",
+     "inside_envelope": true
+    },
+    {
+     "name": "tb1_input",
+     "material": "PA terminal block",
+     "colour": "#2a2b2e",
+     "inside_envelope": true
+    },
+    {
+     "name": "tb1_input_screws",
+     "material": "steel screws",
+     "colour": "#b9bec4",
+     "inside_envelope": true
+    },
+    {
+     "name": "tb2_output",
+     "material": "PA terminal block",
+     "colour": "#2a2b2e",
+     "inside_envelope": true
+    },
+    {
+     "name": "tb2_output_screws",
+     "material": "steel screws",
+     "colour": "#b9bec4",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_dc_ok",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "v_adj",
+     "material": "trimmer",
+     "colour": "#ecebe6",
+     "inside_envelope": true
+    },
+    {
+     "name": "id_plate",
+     "material": "IEC 61406 identification plate",
+     "colour": "#f4f4f1",
+     "inside_envelope": true
+    }
+   ],
+   "verification": [
+    {
+     "check": "housing length",
+     "datasheet_mm": 125.2,
+     "model_mm": 125.2,
+     "ok": true,
+     "source": "datasheet"
+    },
+    {
+     "check": "housing depth",
+     "datasheet_mm": 40.0,
+     "model_mm": 40.0,
+     "ok": true,
+     "source": "datasheet"
+    },
+    {
+     "check": "housing height",
+     "datasheet_mm": 113.5,
+     "model_mm": 113.5,
+     "ok": true,
+     "source": "datasheet"
+    }
+   ],
+   "overall_mm": [
+    125.2,
+    40.0,
+    113.502
+   ],
+   "bbox_mm": [
+    -0.0,
+    -0.0,
+    -0.0,
+    125.2,
+    40.0,
+    113.502
+   ],
+   "mesh": {
+    "triangles": 9752,
+    "chordal_tolerance_mm": 0.01
+   },
+   "files": {
+    "glb": "psu_wdr120.glb",
+    "step": "psu_wdr120.step",
+    "fcstd": "stf-factory/cad/components/psu_wdr120.FCStd"
+   },
+   "used_in": [
+    {
+     "module": "cabinet",
+     "part": "psu",
+     "io": "",
+     "terminal": "plc/psu_wdr120",
+     "function": "Mean Well WDR-120-24"
+    }
+   ],
+   "motion": [],
+   "operate": null,
+   "xray": false
+  },
+  "adaptor_pcb": {
+   "ft": "536634-PCB",
+   "name": "Adaptor PCB 24V",
+   "name_de": "Adapterplatine 24V",
+   "datasheet": "536634-Factory-simulation-24V-extended-description.pdf p.4",
+   "material": "FR-4 board (standard), relays, shrouded headers, pluggable terminals",
+   "kind": "device",
+   "maker": "fischertechnik GmbH",
+   "family": "fischertechnik Fabrik Simulation 24V (536634)",
+   "facts": [
+    {
+     "label": "Dimensions",
+     "value": "123.8 x 81.0 x 1.6 mm (board), scaled off the p.4 drawing",
+     "source": "photo"
+    },
+    {
+     "label": "Scale",
+     "value": "0.1235 mm/px: the 34-pin ST3 box header is 53.34 mm long",
+     "source": "standard"
+    },
+    {
+     "label": "Headers",
+     "value": "ST1 and ST2 to the model (up to 20-pole), ST3 17 x 2 to the PLC",
+     "source": "booklet"
+    },
+    {
+     "label": "Relays",
+     "value": "R1-R8: changeover relays, 4 pairs, for the bidirectional motors",
+     "source": "booklet"
+    },
+    {
+     "label": "Terminals",
+     "value": "1-30 to the PLC (alternative to ST3); V1-V4 for the solenoid valves",
+     "source": "booklet"
+    },
+    {
+     "label": "Supply",
+     "value": "terminal 1: relays (+24 V Motor, diode); 2: sensors (diode, 0.2 A resettable fuse); 3, 4: GND",
+     "source": "booklet"
+    },
+    {
+     "label": "Not documented",
+     "value": "the board's outline and the relays' height - measure",
+     "source": "assumed"
+    }
+   ],
+   "dims": [
+    {
+     "key": "L",
+     "label": "board length",
+     "value": 123.843,
+     "source": "photo",
+     "note": "scaled off the p.4 drawing"
+    },
+    {
+     "key": "W",
+     "label": "board depth",
+     "value": 80.998,
+     "source": "photo",
+     "note": "scaled off the p.4 drawing"
+    },
+    {
+     "key": "H",
+     "label": "board thickness",
+     "value": 1.6,
+     "source": "standard",
+     "note": "FR-4"
+    },
+    {
+     "key": "hdr_h",
+     "label": "box header height",
+     "value": 9.1,
+     "source": "standard",
+     "note": ""
+    },
+    {
+     "key": "hdr_w",
+     "label": "box header width",
+     "value": 8.9,
+     "source": "standard",
+     "note": ""
+    },
+    {
+     "key": "relay_h",
+     "label": "relay height",
+     "value": 15.5,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "term_h",
+     "label": "terminal block height",
+     "value": 10.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "hole_d",
+     "label": "mounting hole",
+     "value": 3.2,
+     "source": "standard",
+     "note": "M3 clearance"
+    },
+    {
+     "key": "standoff",
+     "label": "standoff height",
+     "value": 5.0,
+     "source": "assumed",
+     "note": ""
+    }
+   ],
+   "parts": [
+    {
+     "name": "housing",
+     "material": "FR-4, 1.6 mm (standard)",
+     "colour": "#1d6b3a",
+     "inside_envelope": true
+    },
+    {
+     "name": "standoffs",
+     "material": "brass standoffs (assumed)",
+     "colour": "#b9bec4",
+     "inside_envelope": false
+    },
+    {
+     "name": "relay_R1",
+     "material": "changeover relay",
+     "colour": "#2a2b2e",
+     "inside_envelope": false
+    },
+    {
+     "name": "relay_R2",
+     "material": "changeover relay",
+     "colour": "#2a2b2e",
+     "inside_envelope": false
+    },
+    {
+     "name": "relay_R3",
+     "material": "changeover relay",
+     "colour": "#2a2b2e",
+     "inside_envelope": false
+    },
+    {
+     "name": "relay_R4",
+     "material": "changeover relay",
+     "colour": "#2a2b2e",
+     "inside_envelope": false
+    },
+    {
+     "name": "relay_R5",
+     "material": "changeover relay",
+     "colour": "#2a2b2e",
+     "inside_envelope": false
+    },
+    {
+     "name": "relay_R6",
+     "material": "changeover relay",
+     "colour": "#2a2b2e",
+     "inside_envelope": false
+    },
+    {
+     "name": "relay_R7",
+     "material": "changeover relay",
+     "colour": "#2a2b2e",
+     "inside_envelope": false
+    },
+    {
+     "name": "relay_R8",
+     "material": "changeover relay",
+     "colour": "#2a2b2e",
+     "inside_envelope": false
+    },
+    {
+     "name": "st1",
+     "material": "20-pole shrouded header, 2.54 mm",
+     "colour": "#2a2b2e",
+     "inside_envelope": false
+    },
+    {
+     "name": "st1_pins",
+     "material": "gold-plated pins",
+     "colour": "#d4af37",
+     "inside_envelope": false
+    },
+    {
+     "name": "st2",
+     "material": "20-pole shrouded header, 2.54 mm",
+     "colour": "#2a2b2e",
+     "inside_envelope": false
+    },
+    {
+     "name": "st2_pins",
+     "material": "gold-plated pins",
+     "colour": "#d4af37",
+     "inside_envelope": false
+    },
+    {
+     "name": "st3",
+     "material": "34-pole shrouded header, 2.54 mm",
+     "colour": "#2a2b2e",
+     "inside_envelope": false
+    },
+    {
+     "name": "st3_pins",
+     "material": "gold-plated pins",
+     "colour": "#d4af37",
+     "inside_envelope": false
+    },
+    {
+     "name": "valve_V1",
+     "material": "2-pole terminal",
+     "colour": "#1f8a4c",
+     "inside_envelope": false
+    },
+    {
+     "name": "valve_V2",
+     "material": "2-pole terminal",
+     "colour": "#1f8a4c",
+     "inside_envelope": false
+    },
+    {
+     "name": "valve_V3",
+     "material": "2-pole terminal",
+     "colour": "#1f8a4c",
+     "inside_envelope": false
+    },
+    {
+     "name": "valve_V4",
+     "material": "2-pole terminal",
+     "colour": "#1f8a4c",
+     "inside_envelope": false
+    },
+    {
+     "name": "terminals_1_30",
+     "material": "pluggable terminal blocks",
+     "colour": "#1f8a4c",
+     "inside_envelope": false
+    },
+    {
+     "name": "id_plate",
+     "material": "IEC 61406 identification plate",
+     "colour": "#f4f4f1",
+     "inside_envelope": false
+    }
+   ],
+   "verification": [
+    {
+     "check": "housing length",
+     "datasheet_mm": 123.843,
+     "model_mm": 123.843,
+     "ok": true,
+     "source": "photo"
+    },
+    {
+     "check": "housing depth",
+     "datasheet_mm": 80.998,
+     "model_mm": 80.998,
+     "ok": true,
+     "source": "photo"
+    },
+    {
+     "check": "housing height",
+     "datasheet_mm": 1.6,
+     "model_mm": 1.6,
+     "ok": true,
+     "source": "standard"
+    },
+    {
+     "check": "ruler: ST1 drawn vs a 20-pole header",
+     "datasheet_mm": 35.56,
+     "model_mm": 37.165,
+     "ok": true,
+     "source": "standard"
+    },
+    {
+     "check": "ruler: ST2 drawn vs a 20-pole header",
+     "datasheet_mm": 35.56,
+     "model_mm": 34.572,
+     "ok": true,
+     "source": "standard"
+    }
+   ],
+   "overall_mm": [
+    123.843,
+    80.998,
+    22.101
+   ],
+   "bbox_mm": [
+    -0.0,
+    -0.0,
+    -5.001,
+    123.843,
+    80.998,
+    17.1
+   ],
+   "mesh": {
+    "triangles": 27064,
+    "chordal_tolerance_mm": 0.01
+   },
+   "files": {
+    "glb": "adaptor_pcb.glb",
+    "step": "adaptor_pcb.step",
+    "fcstd": "stf-factory/cad/components/adaptor_pcb.FCStd"
+   },
+   "used_in": [
+    {
+     "module": "hbw",
+     "part": "hbw.pcb",
+     "io": "",
+     "terminal": "hbw/adapter_pcb_24V",
+     "function": "Adapterplatine 24V (adaptor PCB)"
+    },
+    {
+     "module": "vgr",
+     "part": "vgr.pcb",
+     "io": "",
+     "terminal": "vgr/vgr_pcb",
+     "function": "Adapterplatine 24V (adaptor PCB)"
+    },
+    {
+     "module": "oven",
+     "part": "oven.pcb",
+     "io": "",
+     "terminal": "oven/oven_pcb",
+     "function": "Adapterplatine 24V (adaptor PCB)"
+    },
+    {
+     "module": "sorting",
+     "part": "sorting.pcb",
+     "io": "",
+     "terminal": "sorting/sorting_pcb",
+     "function": "Adapterplatine 24V (adaptor PCB)"
+    }
+   ],
+   "motion": [],
+   "operate": null,
+   "xray": false
+  },
+  "io_coupler": {
+   "ft": "IO-COUPLER",
+   "name": "Remote I/O bus coupler",
+   "name_de": "Buskoppler Modbus TCP",
+   "datasheet": "stf-cad io_nodes.py (Upgrade 3)",
+   "material": "plastic housing (assumed)",
+   "kind": "device",
+   "maker": "not chosen (the upgrade design)",
+   "family": "remote I/O, 750-series-like",
+   "facts": [
+    {
+     "label": "Dimensions",
+     "value": "51 x 100 x 72 mm (W x H x D) - the design's assumed product size",
+     "source": "design"
+    },
+    {
+     "label": "Network",
+     "value": "2 x RJ45, Modbus TCP, from the cabinet switch",
+     "source": "design"
+    },
+    {
+     "label": "Supply",
+     "value": "24 V system supply from the node's ECB channel",
+     "source": "design"
+    },
+    {
+     "label": "Product",
+     "value": "none chosen yet: a 750-series-like coupler",
+     "source": "design"
+    }
+   ],
+   "dims": [
+    {
+     "key": "L",
+     "label": "height H",
+     "value": 100.0,
+     "source": "design",
+     "note": ""
+    },
+    {
+     "key": "W",
+     "label": "width W (along the rail)",
+     "value": 51.0,
+     "source": "design",
+     "note": ""
+    },
+    {
+     "key": "H",
+     "label": "depth D",
+     "value": 72.0,
+     "source": "design",
+     "note": ""
+    },
+    {
+     "key": "rail_w",
+     "label": "TS35 rail width",
+     "value": 35.0,
+     "source": "standard",
+     "note": "EN 60715"
+    },
+    {
+     "key": "rail_d",
+     "label": "TS35 rail depth",
+     "value": 7.5,
+     "source": "standard",
+     "note": "EN 60715"
+    },
+    {
+     "key": "rj45_w",
+     "label": "RJ45 jack width",
+     "value": 16.0,
+     "source": "assumed",
+     "note": ""
+    },
+    {
+     "key": "rj45_h",
+     "label": "RJ45 jack height",
+     "value": 13.5,
+     "source": "assumed",
+     "note": ""
+    }
+   ],
+   "parts": [
+    {
+     "name": "housing",
+     "material": "plastic (assumed)",
+     "colour": "#8f959b",
+     "inside_envelope": true
+    },
+    {
+     "name": "rj45_1",
+     "material": "RJ45 jack",
+     "colour": "#2a2b2e",
+     "inside_envelope": true
+    },
+    {
+     "name": "rj45_2",
+     "material": "RJ45 jack",
+     "colour": "#2a2b2e",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_1",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_2",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_3",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_4",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_00",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_01",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_10",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_11",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_20",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_21",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_30",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_31",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "id_plate",
+     "material": "IEC 61406 identification plate",
+     "colour": "#f4f4f1",
+     "inside_envelope": true
+    }
+   ],
+   "verification": [
+    {
+     "check": "housing length",
+     "datasheet_mm": 100.0,
+     "model_mm": 100.0,
+     "ok": true,
+     "source": "design"
+    },
+    {
+     "check": "housing depth",
+     "datasheet_mm": 51.0,
+     "model_mm": 51.0,
+     "ok": true,
+     "source": "design"
+    },
+    {
+     "check": "housing height",
+     "datasheet_mm": 72.0,
+     "model_mm": 72.0,
+     "ok": true,
+     "source": "design"
+    }
+   ],
+   "overall_mm": [
+    100.0,
+    51.0,
+    72.0
+   ],
+   "bbox_mm": [
+    -0.0,
+    -0.0,
+    -0.0,
+    100.0,
+    51.0,
+    72.0
+   ],
+   "mesh": {
+    "triangles": 4384,
+    "chordal_tolerance_mm": 0.01
+   },
+   "files": {
+    "glb": "io_coupler.glb",
+    "step": "io_coupler.step",
+    "fcstd": "stf-factory/cad/components/io_coupler.FCStd"
+   },
+   "used_in": [
+    {
+     "module": "hbw",
+     "part": "hbw.node",
+     "io": "",
+     "terminal": "io3/io_hbw_coupler",
+     "function": "Modbus TCP bus coupler"
+    },
+    {
+     "module": "vgr",
+     "part": "vgr.node",
+     "io": "",
+     "terminal": "io3/io_vgr_coupler",
+     "function": "Modbus TCP bus coupler"
+    },
+    {
+     "module": "oven",
+     "part": "oven.node",
+     "io": "",
+     "terminal": "io3/io_oven_coupler",
+     "function": "Modbus TCP bus coupler"
+    },
+    {
+     "module": "sorting",
+     "part": "sorting.node",
+     "io": "",
+     "terminal": "io3/io_sorting_coupler",
+     "function": "Modbus TCP bus coupler"
+    }
+   ],
+   "motion": [],
+   "operate": null,
+   "xray": false
+  },
+  "io_slice": {
+   "ft": "IO-SLICE-8",
+   "name": "Remote I/O slice, 8 channels",
+   "name_de": "E/A-Klemme, 8 Kanaele",
+   "datasheet": "stf-cad io_nodes.py (Upgrade 3)",
+   "material": "plastic housing (assumed)",
+   "kind": "device",
+   "maker": "not chosen (the upgrade design)",
+   "family": "remote I/O, 750-series-like",
+   "facts": [
+    {
+     "label": "Dimensions",
+     "value": "12 x 100 x 68 mm (W x H x D) - the design's assumed product size",
+     "source": "design"
+    },
+    {
+     "label": "Channels",
+     "value": "8 (DI, DO); counter, analogue and IO-Link slices share the housing",
+     "source": "design"
+    },
+    {
+     "label": "Connection",
+     "value": "push-in terminals, 4 rows of 2 [assumed]",
+     "source": "assumed"
+    }
+   ],
+   "dims": [
+    {
+     "key": "L",
+     "label": "height H",
+     "value": 100.0,
+     "source": "design",
+     "note": ""
+    },
+    {
+     "key": "W",
+     "label": "width W (along the rail)",
+     "value": 12.0,
+     "source": "design",
+     "note": ""
+    },
+    {
+     "key": "H",
+     "label": "depth D",
+     "value": 68.0,
+     "source": "design",
+     "note": ""
+    },
+    {
+     "key": "rail_w",
+     "label": "TS35 rail width",
+     "value": 35.0,
+     "source": "standard",
+     "note": "EN 60715"
+    },
+    {
+     "key": "rail_d",
+     "label": "TS35 rail depth",
+     "value": 7.5,
+     "source": "standard",
+     "note": "EN 60715"
+    }
+   ],
+   "parts": [
+    {
+     "name": "housing",
+     "material": "plastic (assumed)",
+     "colour": "#8f959b",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_1",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_2",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_3",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_4",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_5",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_6",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_7",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "led_8",
+     "material": "LED",
+     "colour": "#39d353",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_1",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_2",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_3",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_4",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_5",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_6",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_7",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "pushin_8",
+     "material": "release tab",
+     "colour": "#ef8a26",
+     "inside_envelope": true
+    },
+    {
+     "name": "id_plate",
+     "material": "IEC 61406 identification plate",
+     "colour": "#f4f4f1",
+     "inside_envelope": true
+    }
+   ],
+   "verification": [
+    {
+     "check": "housing length",
+     "datasheet_mm": 100.0,
+     "model_mm": 100.0,
+     "ok": true,
+     "source": "design"
+    },
+    {
+     "check": "housing depth",
+     "datasheet_mm": 12.0,
+     "model_mm": 12.0,
+     "ok": true,
+     "source": "design"
+    },
+    {
+     "check": "housing height",
+     "datasheet_mm": 68.0,
+     "model_mm": 68.0,
+     "ok": true,
+     "source": "design"
+    }
+   ],
+   "overall_mm": [
+    100.0,
+    12.0,
+    68.0
+   ],
+   "bbox_mm": [
+    -0.0,
+    -0.0,
+    -0.0,
+    100.0,
+    12.0,
+    68.0
+   ],
+   "mesh": {
+    "triangles": 8312,
+    "chordal_tolerance_mm": 0.01
+   },
+   "files": {
+    "glb": "io_slice.glb",
+    "step": "io_slice.step",
+    "fcstd": "stf-factory/cad/components/io_slice.FCStd"
+   },
+   "used_in": [
+    {
+     "module": "hbw",
+     "part": "hbw.node.supply",
+     "io": "",
+     "terminal": "io3/io_hbw_supply",
+     "function": "Field-supply slice"
+    },
+    {
+     "module": "hbw",
+     "part": "hbw.node.DI1",
+     "io": "",
+     "terminal": "io3/io_hbw_DI1",
+     "function": "DI slice, 8 channels"
+    },
+    {
+     "module": "hbw",
+     "part": "hbw.node.DI2",
+     "io": "",
+     "terminal": "io3/io_hbw_DI2",
+     "function": "DI slice, 8 channels"
+    },
+    {
+     "module": "hbw",
+     "part": "hbw.node.DO1",
+     "io": "",
+     "terminal": "io3/io_hbw_DO1",
+     "function": "DO slice, 8 channels"
+    },
+    {
+     "module": "hbw",
+     "part": "hbw.node.DO2",
+     "io": "",
+     "terminal": "io3/io_hbw_DO2",
+     "function": "DO slice, 8 channels"
+    },
+    {
+     "module": "hbw",
+     "part": "hbw.node.CNT1",
+     "io": "",
+     "terminal": "io3/io_hbw_CNT1",
+     "function": "Counter slice, 1 channel"
+    },
+    {
+     "module": "hbw",
+     "part": "hbw.node.CNT2",
+     "io": "",
+     "terminal": "io3/io_hbw_CNT2",
+     "function": "Counter slice, 1 channel"
+    },
+    {
+     "module": "hbw",
+     "part": "hbw.node.CNT3",
+     "io": "",
+     "terminal": "io3/io_hbw_CNT3",
+     "function": "Counter slice, 1 channel"
+    },
+    {
+     "module": "hbw",
+     "part": "hbw.node.IOL1",
+     "io": "",
+     "terminal": "io3/io_hbw_IOL1",
+     "function": "IO-Link master slice, 4 ports"
+    },
+    {
+     "module": "vgr",
+     "part": "vgr.node.supply",
+     "io": "",
+     "terminal": "io3/io_vgr_supply",
+     "function": "Field-supply slice"
+    },
+    {
+     "module": "vgr",
+     "part": "vgr.node.DI1",
+     "io": "",
+     "terminal": "io3/io_vgr_DI1",
+     "function": "DI slice, 8 channels"
+    },
+    {
+     "module": "vgr",
+     "part": "vgr.node.DO1",
+     "io": "",
+     "terminal": "io3/io_vgr_DO1",
+     "function": "DO slice, 8 channels"
+    },
+    {
+     "module": "vgr",
+     "part": "vgr.node.DO2",
+     "io": "",
+     "terminal": "io3/io_vgr_DO2",
+     "function": "DO slice, 8 channels"
+    },
+    {
+     "module": "vgr",
+     "part": "vgr.node.CNT1",
+     "io": "",
+     "terminal": "io3/io_vgr_CNT1",
+     "function": "Counter slice, 1 channel"
+    },
+    {
+     "module": "vgr",
+     "part": "vgr.node.CNT2",
+     "io": "",
+     "terminal": "io3/io_vgr_CNT2",
+     "function": "Counter slice, 1 channel"
+    },
+    {
+     "module": "vgr",
+     "part": "vgr.node.CNT3",
+     "io": "",
+     "terminal": "io3/io_vgr_CNT3",
+     "function": "Counter slice, 1 channel"
+    },
+    {
+     "module": "vgr",
+     "part": "vgr.node.CNT4",
+     "io": "",
+     "terminal": "io3/io_vgr_CNT4",
+     "function": "Counter slice, 1 channel"
+    },
+    {
+     "module": "oven",
+     "part": "oven.node.supply",
+     "io": "",
+     "terminal": "io3/io_oven_supply",
+     "function": "Field-supply slice"
+    },
+    {
+     "module": "oven",
+     "part": "oven.node.DI1",
+     "io": "",
+     "terminal": "io3/io_oven_DI1",
+     "function": "DI slice, 8 channels"
+    },
+    {
+     "module": "oven",
+     "part": "oven.node.DI2",
+     "io": "",
+     "terminal": "io3/io_oven_DI2",
+     "function": "DI slice, 8 channels"
+    },
+    {
+     "module": "oven",
+     "part": "oven.node.DI3",
+     "io": "",
+     "terminal": "io3/io_oven_DI3",
+     "function": "DI slice, 8 channels"
+    },
+    {
+     "module": "oven",
+     "part": "oven.node.DO1",
+     "io": "",
+     "terminal": "io3/io_oven_DO1",
+     "function": "DO slice, 8 channels"
+    },
+    {
+     "module": "oven",
+     "part": "oven.node.DO2",
+     "io": "",
+     "terminal": "io3/io_oven_DO2",
+     "function": "DO slice, 8 channels"
+    },
+    {
+     "module": "oven",
+     "part": "oven.node.DO3",
+     "io": "",
+     "terminal": "io3/io_oven_DO3",
+     "function": "DO slice, 8 channels"
+    },
+    {
+     "module": "sorting",
+     "part": "sorting.node.supply",
+     "io": "",
+     "terminal": "io3/io_sorting_supply",
+     "function": "Field-supply slice"
+    },
+    {
+     "module": "sorting",
+     "part": "sorting.node.DI1",
+     "io": "",
+     "terminal": "io3/io_sorting_DI1",
+     "function": "DI slice, 8 channels"
+    },
+    {
+     "module": "sorting",
+     "part": "sorting.node.DO1",
+     "io": "",
+     "terminal": "io3/io_sorting_DO1",
+     "function": "DO slice, 8 channels"
+    },
+    {
+     "module": "sorting",
+     "part": "sorting.node.AI1",
+     "io": "",
+     "terminal": "io3/io_sorting_AI1",
+     "function": "AI slice, 2 channels"
+    }
+   ],
+   "motion": [],
+   "operate": null,
+   "xray": false
   }
  },
  "sources": {
@@ -2762,6 +4646,8 @@
   "photo": "read off the datasheet photo - size estimated",
   "ft-std": "fischertechnik system convention",
   "assumed": "not documented - measure with calipers",
-  "booklet": "536634 booklet, Bauteilbeschreibung p.8-11"
+  "booklet": "536634 booklet, Bauteilbeschreibung p.8-11",
+  "standard": "fixed by a published standard (EN 60715 rail, FR-4 board, 2.54 mm headers)",
+  "design": "chosen in this project's upgrade design, not a product datasheet"
  }
 }

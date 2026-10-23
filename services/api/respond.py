@@ -92,7 +92,8 @@ def classify(question: str, tools: list[str] | None = None) -> str:
         tools: Optional list of executed tool names.
 
     Returns:
-        str: Style identifier key ('greeting', 'derive', 'compare', 'steps', 'status', 'list', 'explain', 'quick', or 'answer').
+        str: Style identifier key ('greeting', 'derive', 'compare', 'steps', 'status',
+        'list', 'explain', 'quick', or 'answer').
     """
     q = question.strip()
     if GREETING.match(q):

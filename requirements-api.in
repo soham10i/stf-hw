@@ -1,0 +1,8 @@
+# The live API's runtime dependencies (the Docker image). Compile the pinned, hashed lock with:
+#   uv pip compile requirements-api.in --generate-hashes --python-version 3.12 --python-platform x86_64-unknown-linux-gnu -o requirements-api.txt
+pydantic>=2.9
+pyyaml>=6.0
+numpy>=1.26
+fastapi>=0.115
+uvicorn[standard]>=0.30
+websockets>=13

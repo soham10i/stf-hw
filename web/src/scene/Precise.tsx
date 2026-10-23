@@ -19,6 +19,9 @@ export function PreciseScope({ module, children }: { module: string; children: R
   return <ModuleCtx.Provider value={module}>{children}</ModuleCtx.Provider>;
 }
 
+/** The module the parts being drawn belong to ("hbw", "vgr", ...). */
+export const useModuleName = () => useContext(ModuleCtx);
+
 /** The precise meshes for a part in the current module, or undefined. */
 export function usePrecise(part: string): THREE.Mesh[] | undefined {
   const lib = useContext(PreciseLibCtx);

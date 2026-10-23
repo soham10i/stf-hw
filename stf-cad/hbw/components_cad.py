@@ -35,7 +35,10 @@ COLOURS = {"ftred": "#d8261c", "black": "#2a2b2e", "ftyellow": "#f2c21b", "red":
            "wire_red": "#d22b2b", "wire_green": "#25a244", "wire_black": "#1a1a1a",
            "wire_yellow": "#e8c21f", "led": "#f5f1e6", "sensor": "#141414",
            "blue": "#1f63c4", "grey": "#8f959b", "ir": "#3a1f4a", "pom": "#e9e6dc",
-           "rubber": "#26282b", "spring_red": "#c8231b"}
+           "rubber": "#26282b", "spring_red": "#c8231b",
+           # the devices (devices_cad.py)
+           "pcb_green": "#1d6b3a", "label": "#f4f4f1", "gold": "#d4af37", "orange": "#ef8a26",
+           "led_green": "#39d353", "led_amber": "#f0b429", "white": "#ecebe6"}
 
 
 # ----------------------------------------------------------------- helpers
@@ -355,6 +358,10 @@ BUILDERS = {"encoder_motor": encoder_motor, "mini_switch": mini_switch,
             "s_motor": s_motor, "compressor": compressor,
             "pneumatic_cylinder": pneumatic_cylinder, "ir_track_sensor": ir_track_sensor,
             "solenoid_valve": solenoid_valve}
+# the control and power devices: RevPi, PSU, adaptor PCB, remote I/O (devices.py, devices_cad.py)
+from devices_cad import DEVICE_BUILDERS  # noqa: E402
+import devices as DV  # noqa: E402
+BUILDERS.update(DEVICE_BUILDERS)
 
 
 # ----------------------------------------------------------- verification
@@ -377,6 +384,27 @@ def verify(cid, parts):
     for n, s, *_ in parts:
         if not all(sol.isValid() for sol in s.Solids) or not s.Solids:
             fails.append(f"{cid}: {n} is not a valid solid")
+    if cid == "adaptor_pcb":
+        # the outline is scaled off the p.4 drawing with ST3 as the ruler: the other headers, of
+        # standard length, must come out of the same drawing within 5 %
+        for hdr, poles in (("st1", 20), ("st2", 20)):
+            a, _, b, _ = DV.PCB_PX[hdr]
+            drawn = (b - a) * DV.PCB_MM_PER_PX
+            want = DV.BOX_HEADER(poles)
+            ok = abs(drawn - want) / want <= 0.05
+            res.append({"check": f"ruler: {hdr.upper()} drawn vs a {poles}-pole header", "datasheet_mm": round(want, 2),
+                        "model_mm": round(drawn, 3), "ok": ok, "source": "standard"})
+            if not ok:
+                fails.append(f"{cid}: the drawing's scale is off - {hdr} {drawn:.2f} vs {want:.2f} mm")
+    if cid == "revpi_dio":
+        # two 14-pole plugs at 3.5 mm: each pole field 49 mm, on a nose that must hold it
+        plug = next(s for n, s, *_ in parts if n == "io_plug_1")
+        want = C.get(cid, "io_poles") * C.get(cid, "io_pitch")
+        have = plug.BoundBox.XLength
+        res.append({"check": "I/O plug pole field (14 x 3.5)", "datasheet_mm": want, "model_mm": round(have, 4),
+                    "ok": abs(have - want) <= TOL_MM, "source": "datasheet"})
+        if abs(have - want) > TOL_MM:
+            fails.append(f"{cid}: I/O plug {have:.3f} != {want}")
     if cid == "encoder_motor":
         shaft = next(s for n, s, *_ in parts if n == "output_shaft")
         sb = shaft.optimalBoundingBox(True, False)
@@ -445,6 +473,26 @@ def write_glb(cid, parts):
     return path, ntri
 
 
+# which electrical parts (electrical.json) each device is, and in which variant it exists
+DEVICE_PARTS = {"revpi_dio": ("original", ("revpi_dio",)), "revpi_core": ("upgraded", ("revpi_core",)),
+                "psu_wdr120": ("upgraded", ("psu",)), "adaptor_pcb": ("upgraded", ("adaptor_pcb",)),
+                "io_coupler": ("upgraded", ("io_coupler",)),
+                "io_slice": ("upgraded", ("io_supply_slice", "io_di8", "io_do8", "io_cnt", "io_ai2", "io_iol4"))}
+
+
+def device_uses():
+    """Where each device sits, from the factory's electrics (electrical.py): its instances."""
+    e = json.load(open(os.path.join(os.path.dirname(WEB_DIR), "electrical.json")))
+    out = {}
+    for cid, (variant, pids) in DEVICE_PARTS.items():
+        v = e["variants"][variant]
+        out[cid] = [{"module": v["modules"][p["instance_id"]], "part": p["instance_id"], "io": "",
+                     "terminal": (v["placement"].get(p["instance_id"]) or {}).get("cad", ""),
+                     "function": e["parts"][p["part_id"]]["name"] + ("" if variant == "upgraded" else " (original wiring)")}
+                    for p in v["project"]["placed_parts"] if p["part_id"] in pids]
+    return out
+
+
 def main():
     manifest, all_fail = {}, []
     built = {}
@@ -457,6 +505,7 @@ def main():
         print("REFUSING to write - components fail their accuracy checks:")
         print("\n".join(all_fail)); sys.exit(1)
     uses = C.used_in()
+    uses.update(device_uses())
     for cid, (parts, res) in built.items():
         fc, st = write_cad(cid, parts)
         glb, ntri = write_glb(cid, parts)
@@ -467,6 +516,7 @@ def main():
             bb.add(s.optimalBoundingBox(True, False))
         manifest[cid] = {
             **{k: comp[k] for k in ("ft", "name", "name_de", "datasheet", "material")},
+            **{k: comp[k] for k in ("kind", "maker", "family", "document_url") if k in comp},
             "facts": [{"label": a, "value": b, "source": c} for a, b, c in comp["facts"]],
             "dims": comp["dims"],
             "parts": [{"name": n, "material": mat, "colour": COLOURS[col],
@@ -491,7 +541,9 @@ def main():
                            "photo": "read off the datasheet photo - size estimated",
                            "ft-std": "fischertechnik system convention",
                            "assumed": "not documented - measure with calipers",
-                           "booklet": "536634 booklet, Bauteilbeschreibung p.8-11"}},
+                           "booklet": "536634 booklet, Bauteilbeschreibung p.8-11",
+                           "standard": "fixed by a published standard (EN 60715 rail, FR-4 board, 2.54 mm headers)",
+                           "design": "chosen in this project's upgrade design, not a product datasheet"}},
               open(os.path.join(WEB_DIR, "components.json"), "w"), indent=1)
     print(f"wrote {CAD_DIR}/*.FCStd + *.step and {WEB_DIR}/*.glb + components.json")
 

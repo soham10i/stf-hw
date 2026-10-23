@@ -3,6 +3,7 @@
 // data. Two visitors never share it, so none of one's orders, photos or chats reach the other.
 // Without the API (the public demo) there is no session at all.
 import { HAS_API } from "./mode";
+import { api } from "./api";
 
 export type GuestStatus = {
   guest: string;            // the session id, first 8 hex chars
@@ -19,8 +20,11 @@ let _cachedGuest: Promise<GuestStatus | null> | null = null;
 export function fetchGuest(page = "site"): Promise<GuestStatus | null> {
   if (!HAS_API) return Promise.resolve(null);
   const q = page ? `?page=${encodeURIComponent(page)}` : "";
+  // a failure is not kept: the next caller (the live link reconnecting) asks again, so the
+  // session cookie is issued once the API is reachable
+  const forget = () => { _cachedGuest = null; return null; };
   _cachedGuest ??= fetch(`/guest${q}`)
-    .then((r) => (r.ok ? (r.json() as Promise<GuestStatus>) : null))
-    .catch(() => null);
+    .then((r) => (r.ok ? (r.json() as Promise<GuestStatus>) : forget()))
+    .catch(forget);
   return _cachedGuest;
 }

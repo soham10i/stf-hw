@@ -15,11 +15,13 @@
 
 import { boxSize, cylSpec, type CadPart } from "../shared/model";
 import { Html, useGLTF } from "@react-three/drei";
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import * as THREE from "three";
 import { useContext } from "react";
 import { MM_TO_SCENE, PreciseLibCtx, PreciseMesh, type PreciseLib } from "./Precise";
 import { Trimmed, jointTrims } from "./joints";
+import { useComponents } from "../views/componentModel";
+import { Pickable } from "./electricPick";
 import { VIEW } from "../coords";
 import { physical } from "../views/materials";
 
@@ -59,7 +61,7 @@ export function PreciseComp({ fit }: { fit: Fit }) {
       const m = c as THREE.Mesh;
       if (!m.isMesh) return;
       const u = m.userData as { material?: string; colour?: string };
-      m.material = physical(u.material ?? "abs", u.colour ?? "#888");
+      m.material = physical(u.material ?? "abs", u.colour ?? "#888", true);
       m.castShadow = true;
       m.receiveShadow = true;
     });
@@ -71,6 +73,49 @@ export function PreciseComp({ fit }: { fit: Fit }) {
       <primitive object={obj} />
     </group>
   );
+}
+
+// ------------------------------------------------------------- devices
+/** The fit of a device model (devices.py: RevPi, PSU, adaptor PCB, remote I/O) into the box the
+    factory CAD gives it: the device frame stands in the box as it is (its H, B, T along the box's
+    x, y, z), or turned a quarter about z when the box lies the other way. A board (`lift`) sits on
+    its standoffs, centred in the box the CAD reserves for it. */
+function deviceFit(comp: string, dims: { key: string; value: number }[], p: number[], s: number[], lift?: number): Fit | null {
+  const d = (k: string) => dims.find((x) => x.key === k)?.value;
+  const L = d("L"), W = d("W"), H = d("H");
+  if (L == null || W == null || H == null) return null;
+  const near = (a: number, b: number) => Math.abs(a - b) < 1.5;
+  let turned: boolean;
+  if (lift != null) turned = s[1] > s[0];                       // a board: its length along the box's long side
+  else if (near(s[0], L) && near(s[1], W)) turned = false;
+  else if (near(s[0], W) && near(s[1], L)) turned = true;
+  else return null;                                               // the CAD box is not this device
+  return {
+    comp,
+    perm: turned ? [1, 0, 2] : [0, 1, 2],
+    sign: turned ? [1, -1, 1] : [1, 1, 1],                       // a rotation, never a mirror
+    centre: [p[0] + s[0] / 2, p[1] + s[1] / 2, lift != null ? p[2] + lift + H / 2 : p[2] + s[2] / 2],
+    origin: [L / 2, W / 2, H / 2],
+  };
+}
+
+/** A device drawn as its precise model (components/<comp>.glb), or `fallback` until then. */
+export function DeviceModel({ comp, p, s, lift, fallback }: {
+  comp: string; p: number[]; s: number[]; lift?: number; fallback: JSX.Element;
+}) {
+  const c = useComponents().doc?.components[comp];
+  const fit = useMemo(() => (c ? deviceFit(comp, c.dims, p, s, lift) : null), [c, comp, p, s, lift]);
+  if (!fit) return fallback;
+  return <Suspense fallback={fallback}><PreciseComp fit={fit} /></Suspense>;
+}
+
+/** The device model for a part of the CAD export, by its name, or null. */
+export function deviceOf(name: string): string | null {
+  if (/^psu_wdr120$/.test(name)) return "psu_wdr120";
+  if (/^revpi_core/.test(name)) return "revpi_core";
+  if (/^io_[a-z]+_coupler$/.test(name)) return "io_coupler";
+  if (/^io_[a-z]+_(supply|DI\d|DO\d|CNT\d|AI\d|IOL\d)$/.test(name)) return "io_slice";
+  return null;
 }
 
 // ------------------------------------------------------------------- PCB
@@ -167,7 +212,15 @@ export function UpgradeParts({ parts, module = "upgrade" }: { parts: UpPart[]; m
   const trims = useMemo(() => jointTrims(parts as never), [parts]);
   return (
     <group>
-      {parts.filter((q) => q.g !== "frame").map((q) => <Trimmed key={q.n} trims={trims.get(q.n)}>{upgradePart(q, module, lib)}</Trimmed>)}
+      {parts.filter((q) => q.g !== "frame").map((q) => (
+        <Pickable key={q.n} cad={`${module === "io-own" ? "io3" : module}/${q.n}`}>
+          <Trimmed trims={trims.get(q.n)}>
+            {module === "io-own" && deviceOf(q.n)
+              ? <DeviceModel comp={deviceOf(q.n)!} p={q.p as number[]} s={boxSize(q)} fallback={upgradePart(q, module, lib) as JSX.Element} />
+              : upgradePart(q, module, lib)}
+          </Trimmed>
+        </Pickable>
+      ))}
     </group>
   );
 }
@@ -282,9 +335,12 @@ export function PlcCabinet({ parts, at }: {
   return (
     <group position={v(at[0], at[1], 0)}>
       {parts.filter((q) => q.g !== "frame").map((q) => (
-        <group key={q.n}>
-          <B at={q.p} size={q.s} colour={q.c} metal={q.n === "din_rail"} />
-          {q.n.startsWith("revpi") && (() => {
+        <Pickable key={q.n} cad={`plc/${q.n}`}>
+        <group>
+          {deviceOf(q.n)
+            ? <DeviceModel comp={deviceOf(q.n)!} p={q.p} s={q.s} fallback={<B at={q.p} size={q.s} colour={q.c} />} />
+            : <B at={q.p} size={q.s} colour={q.c} metal={q.n === "din_rail"} />}
+          {q.n.startsWith("revpi") && !deviceOf(q.n) && (() => {
             // front face is UP: two 14-pole spring plugs, the status LEDs
             const [x, y, z] = q.p, [dx, dy, dz] = q.s, t = z + dz;
             return (
@@ -298,11 +354,12 @@ export function PlcCabinet({ parts, at }: {
               </>
             );
           })()}
-          {q.n === "psu_wdr120" && (() => {
+          {q.n === "psu_wdr120" && !deviceOf(q.n) && (() => {
             const [x, y, z] = q.p, [dx, dy, dz] = q.s, t = z + dz;
             return <B at={[x + 8, y + 4, t]} size={[dx - 16, dy - 8, 6]} colour="#6b7178" />;
           })()}
         </group>
+        </Pickable>
       ))}
     </group>
   );

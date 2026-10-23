@@ -5,6 +5,7 @@
 // models, its sources, and links to the pages with the detail. Which provider answered is a
 // server detail: it stays in the session's context, never in the UI.
 import { useEffect, useRef, useState } from "react";
+import * as api from "./api";
 import { speech, speechStream, type Cite as Source, type Mode, type Style, type Turn } from "./api";
 import { CopilotMark, Icon } from "../../shared/icons";
 import { TeX, displayBlock, mathSplit } from "../../shared/tex";
@@ -58,6 +59,13 @@ function Cite({ src, cites }: { src: string; cites?: Source[] }) {
   return <span className="cx-cite" title={src}>{hit ? `${hit.i + 1} ` : ""}{short.length > 28 ? short.slice(0, 26) + "…" : short}</span>;
 }
 
+// a web page's grade (services/api/source_policy.py); older answers carry only trusted/unvetted
+const GRADE: Record<string, [string, string]> = {
+  authoritative: ["authoritative", "A standards body, public agency, university, peer-reviewed publisher or manufacturer"],
+  reference: ["reference", "A curated reference work or official documentation"],
+  community: ["unvetted", "Not vetted: a company blog, tutorial or similar - check it before relying on it"],
+};
+const gradeOf = (c: Source) => GRADE[c.grade ?? (c.trusted ? "reference" : "community")];
 const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
 
 /** The answer's sources, numbered as the text cites them; a document opens at the cited line, a
@@ -98,7 +106,7 @@ function SourceList({ items }: { items: { c: Source; i: number }[] }) {
           ) : c.kind === "web" ? (
             <a href={c.label} target="_blank" rel="noopener noreferrer" title={c.label}>
               <b>{c.title && c.title !== c.label ? c.title : hostOf(c.label)}</b>
-              <em><span className={`cx-trust ${c.trusted ? "ok" : ""}`}>{c.trusted ? "trusted" : "unvetted"}</span>{hostOf(c.label)}{c.cited ? " · cited" : ""}</em>
+              <em><span className={`cx-trust g-${c.grade ?? (c.trusted ? "reference" : "community")}`} title={gradeOf(c)[1]}>{gradeOf(c)[0]}</span>{hostOf(c.label)}{c.cited ? " · cited" : ""}</em>
             </a>
           ) : (
             <span><b>{c.label}</b><em>computed by the twin's tool {c.tool.replace(/_/g, " ")}</em></span>
@@ -120,7 +128,9 @@ function Trace({ turn }: { turn: Turn }) {
       <summary>How this answer was made</summary>
       <ol>
         {turn.route && <li><b>Routed</b> to {MODE[turn.route.mode]?.[1] ?? turn.route.mode}: {turn.route.why.join("; ")}</li>}
-        {web.length > 0 && <li><b>Searched</b> the web: {web.length} page{web.length > 1 ? "s" : ""}, {web.filter((c) => c.trusted).length} from trusted hosts</li>}
+        {web.length > 0 && <li><b>Searched</b> the web: {web.length} page{web.length > 1 ? "s" : ""}, {web.filter((c) => c.grade === "authoritative").length} authoritative, {web.filter((c) => c.trusted).length} vetted</li>}
+        {turn.usage && <li><b>Sources</b> {turn.usage.sources === "strict" ? "authoritative only" : "vetted (forums and social media never used)"}{turn.usage.removed ? `: ${turn.usage.removed} page${turn.usage.removed > 1 ? "s" : ""} left out` : ""}</li>}
+        {turn.usage && <li><b>Spent</b> {api.kTokens(turn.usage.tokens)} tokens in {turn.usage.calls} model call{turn.usage.calls === 1 ? "" : "s"}{Object.keys(turn.usage.by).length ? ` (${Object.entries(turn.usage.by).map(([k, v]) => `${k} ${api.kTokens(v)}`).join(", ")})` : ""} at {turn.usage.depth} depth</li>}
         <li><b>Retrieved</b> {docs.length ? `${docs.length} passage${docs.length === 1 ? "" : "s"} from the documents (BM25 ranking; best match ${Math.max(...docs.map((d) => d.score ?? 0)).toFixed(1)})` : "no document passage"}</li>
         <li><b>Computed</b> {tools.length ? tools.map((t) => t.replace(/_/g, " ")).join(", ") : "no tool"}</li>
         <li><b>Written by</b> {turn.model === "rules" ? "the twin's tools alone (no language model)" : "the copilot's language model"}{turn.switched?.length ? `, after ${turn.switched.length} hand-over${turn.switched.length > 1 ? "s" : ""}` : ""}</li>
@@ -485,7 +495,8 @@ function Answer({ turn, go, autoSpeak }: { turn: Turn; go: (p: string) => void; 
               ↷ handed over {switched.length > 1 ? `${switched.length}×` : ""}
             </span>
           )}
-          {turn.ms !== undefined && <span className="cx-time">{(turn.ms / 1000).toFixed(1)} s</span>}
+          {turn.usage && <span className={`cx-chip depth d-${turn.usage.depth}`} title={`Depth: ${turn.usage.depth}${turn.usage.audience ? ` · written for an ${turn.usage.audience}` : ""}`}>{turn.usage.depth}</span>}
+          {turn.ms !== undefined && <span className="cx-time">{(turn.ms / 1000).toFixed(1)} s{turn.usage?.tokens ? ` · ${api.kTokens(turn.usage.tokens)} tokens` : ""}</span>}
         </div>
         <Thinking turn={turn} />
         {fig && <div className="cx-figure">{fig}</div>}
@@ -493,6 +504,7 @@ function Answer({ turn, go, autoSpeak }: { turn: Turn; go: (p: string) => void; 
           <div className="cx-grid">{turn.facts.slice(0, 6).map(([k, v]) => <div key={k}><span>{k}</span><b>{v}</b></div>)}</div>
         ) : null}
         <div className="cx-md"><Md text={fig ? turn.text.replace(`**${fig}**`, fig) : turn.text} cites={turn.cites} /></div>
+        {turn.usage?.removed ? <p className="cx-note">ⓘ {turn.usage.removed} page{turn.usage.removed > 1 ? "s" : ""} from forums, social media or unvetted sites {turn.usage.removed > 1 ? "were" : "was"} left out by the source policy.</p> : null}
         {turn.note && <p className={`cx-note ${turn.unverified?.length ? "bad" : ""}`}>{turn.unverified?.length ? "⚠ " : "ⓘ "}{turn.note}</p>}
         {showSrc && turn.cites && turn.cites.length > 0 && <Sources cites={turn.cites} text={turn.text} />}
         {turn.cites && <Trace turn={turn} />}

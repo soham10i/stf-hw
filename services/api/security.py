@@ -36,6 +36,8 @@ LOCAL_HOSTS = {"localhost", "127.0.0.1", "[::1]", "::1"}
 
 @dataclass(frozen=True)
 class Settings:
+    """Security configuration: allowed browser origins, the admin API token, limits."""
+
     allowed_origins: tuple[str, ...]
     api_token: str | None
     max_ws_clients: int
@@ -44,6 +46,7 @@ class Settings:
 
     @staticmethod
     def from_env() -> Settings:
+        """Resolve settings from the environment (STF_ALLOWED_ORIGINS, STF_API_TOKEN, ...)."""
         hosts, ports = ("localhost", "127.0.0.1"), (5173, 4173)
         default = ",".join(f"http://{h}:{p}" for p in ports for h in hosts)
         raw = os.environ.get("STF_ALLOWED_ORIGINS", default)
@@ -62,6 +65,7 @@ def _host(header: str | None) -> str:
 
 
 def is_local(request_host: str | None) -> bool:
+    """Whether a request's Host header names this machine (loopback)."""
     return _host(request_host) in LOCAL_HOSTS
 
 
@@ -106,8 +110,9 @@ def client_ip(request: Request | WebSocket) -> str:
     the deployment says: STF_PROXY_HOPS is how many proxies in front APPEND to it (Cloud Run's
     front end: 1). The entry that many places from the right is the address the outermost
     trusted proxy saw; everything to its left is client-written. STF_PROXY_HOPS=0 (the
-    default off Cloud Run: no proxy) ignores the header and uses the TCP peer - an app reached directly must
-    never take its rate-limit key from a header (found by Strix against a local instance)."""
+    default off Cloud Run: no proxy) ignores the header and uses the TCP peer - an app
+    reached directly must never take its rate-limit key from a header (found by Strix
+    against a local instance)."""
     hops = proxy_hops()
     xff = _forwarded_for(request) if hops else []
     if len(xff) >= hops > 0:
@@ -146,6 +151,7 @@ async def read_body(request: Request, limit: int) -> bytes:
 
 
 def token_ok(settings: Settings, presented: str | None) -> bool:
+    """Constant-time check of the admin API token (no token configured: always False)."""
     if not (settings.api_token and presented):
         return False
     return hmac.compare_digest(settings.api_token, presented)
@@ -161,6 +167,7 @@ class RateLimiter:
     _buckets: dict[str, tuple[float, float]] = field(default_factory=dict)
 
     def allow(self, key: str, now: float | None = None) -> bool:
+        """Take one token from the client's bucket; True when the burst/rate permits."""
         now = time.monotonic() if now is None else now
         if len(self._buckets) > self.max_keys:  # many addresses: drop the full (idle) buckets
             idle = (self.burst - 1) / self.rate if self.rate > 0 else 0.0
@@ -175,7 +182,8 @@ class RateLimiter:
 
 
 class CommandGuard:
-    """FastAPI security dependency enforcing origin verification, local host / token auth, and rate limits."""
+    """FastAPI security dependency enforcing origin verification, local host / token
+    auth, and rate limits."""
 
     def __init__(self, settings: Settings) -> None:
         """Initialize the guard with API settings and a token bucket rate limiter.

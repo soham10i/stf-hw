@@ -266,6 +266,8 @@ def _number_words(raw: str) -> list[str]:
 # parser
 
 class _P:
+    """Recursive-descent parser state over the token stream (mathspeak conversion)."""
+
     def __init__(self, toks: list[tuple[str, str]]):
         self.toks = toks
         self.i = 0
@@ -276,9 +278,11 @@ class _P:
         self.in_text = False  # inside \text{...}: letters are words, not products
 
     def peek(self) -> tuple[str, str] | None:
+        """The current token without consuming it (None at the end)."""
         return self.toks[self.i] if self.i < len(self.toks) else None
 
     def next(self) -> tuple[str, str]:
+        """Consume and return the current token; raises Unsupported past the end."""
         t = self.peek()
         if t is None:
             raise Unsupported("unexpected end")
@@ -286,6 +290,7 @@ class _P:
         return t
 
     def parse(self) -> list[str]:
+        """Parse the whole token stream into spoken words; raises Unsupported on bad input."""
         words = self.expr((), top=True)
         if self.peek() is not None:
             raise Unsupported("trailing input")
@@ -403,6 +408,7 @@ class _P:
 
     @staticmethod
     def attach(base: list[str], sub: list[str] | None, sup: list[str] | None) -> list[str]:
+        """Speak a base with its sub/superscripts attached (subscript-then-power phrasing)."""
         if not base:  # a spacing atom carrying a script: 20\,^\circ C
             return list(sub or []) + list(sup or [])
         out = list(base)
@@ -422,6 +428,7 @@ class _P:
         return out
 
     def atom(self) -> list[str]:
+        """Parse one indivisible token (number, symbol, group) into words."""
         kind, val = self.next()
         if kind == "num":
             return _number_words(val)
@@ -479,6 +486,7 @@ class _P:
     # -- commands -----------------------------------------------------------
 
     def command(self, name: str) -> list[str]:
+        """Speak one LaTeX command (spacing ignored, names and functions translated)."""
         if name in SPACING or name in IGNORED or name in SIZING:
             return []
         if name in ("begin", "end"):

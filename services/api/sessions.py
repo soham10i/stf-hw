@@ -87,7 +87,9 @@ def load(store: DocStore, user: str, sid: str | None, page: str | None) -> dict:
         except ValueError:
             logger.debug("Session %s not found for user %s; starting new session", sid, user)
         except Exception as e:
-            logger.warning("Error reading session %s for user %s (%s); creating new session", sid, user, e)
+            logger.warning(
+                "Error reading session %s for user %s (%s); creating new session", sid, user, e
+            )
     return new(page)
 
 
@@ -139,6 +141,7 @@ def context_text(s: dict, question: str = "") -> str:
         facts = head + [f for f in tail if f not in head]
 
     def cell(x: object) -> str:
+        """One Markdown table cell: pipes and newlines escaped."""
         return str(x).replace("|", "\\|").replace("\n", " ")
 
     rows = [f"| {cell(k)} | {cell(v)} | [{cell(src)}] |" for k, v, src in facts[-14:]]
@@ -154,6 +157,7 @@ def context_text(s: dict, question: str = "") -> str:
 
 
 def add_turn(s: dict, role: str, text: str, **meta) -> None:
+    """Append one message to a session record, stamping time and non-empty metadata."""
     keep = {k: v for k, v in meta.items() if v}
     s["turns"].append({"role": role, "text": text, "t": time.time(), **keep})
     del s["turns"][:-MAX_TURNS]
@@ -177,9 +181,13 @@ def save(store: DocStore, user: str, s: dict) -> None:
     """
     try:
         store.put(COL, user, s["id"], s)
-        logger.debug("Saved session %s for user %s (%d turns)", s.get("id"), user, s.get("n_turns", 0))
+        logger.debug(
+            "Saved session %s for user %s (%d turns)", s.get("id"), user, s.get("n_turns", 0)
+        )
     except Exception as e:
-        logger.error("Failed to save session %s for user %s: %s", s.get("id"), user, e, exc_info=True)
+        logger.error(
+            "Failed to save session %s for user %s: %s", s.get("id"), user, e, exc_info=True
+        )
         raise
 
 

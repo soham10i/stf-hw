@@ -47,6 +47,8 @@ def wer(ref: str, hyp: str) -> float:
 
 
 def main() -> int:
+    """The voice-check CLI: report which TTS/STT providers would answer right now."""
+
     env = {**dotenv(), **os.environ}
     s = sec.Settings.from_env()
     tts, stt = Tts(s), Stt(s)

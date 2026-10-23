@@ -85,7 +85,10 @@ def test_security_note_logs_warning(caplog):
     with caplog.at_level(logging.WARNING):
         security.note("command: test foreign origin violation")
 
-    assert any("Security check rejected: command: test foreign origin violation" in r.message for r in caplog.records)
+    assert any(
+        "Security check rejected: command: test foreign origin violation" in r.message
+        for r in caplog.records
+    )
 
 
 def test_sessions_load_and_save_error_handling(caplog, tmp_path):
@@ -112,12 +115,14 @@ def test_sessions_load_and_save_error_handling(caplog, tmp_path):
 
 
 def test_orchestrate_decide_safe_bm25_fallback(caplog):
-    """Verify orchestrate.decide routes safely when BM25 search fails."""
+    """Verify orchestrate.decide routes safely when retrieval fails."""
     from services.api import orchestrate
 
-    with patch.object(orchestrate, "get_bm25", side_effect=RuntimeError("Index read failure")):
+    with patch.object(
+        orchestrate.V, "hybrid_search", side_effect=RuntimeError("Index read failure")
+    ):
         with caplog.at_level(logging.WARNING):
             plan = orchestrate.decide("how does the oven work?", ["oven_process"], can_search=False)
 
     assert plan.mode in ("twin", "docs", "chat", "web", "deep")
-    assert any("BM25 lexical search failed in router" in r.message for r in caplog.records)
+    assert any("Hybrid retrieval failed in router" in r.message for r in caplog.records)

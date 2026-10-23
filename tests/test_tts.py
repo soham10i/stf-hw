@@ -253,7 +253,8 @@ def test_split_sentences_caps_long_ones():
     ss = V.split_sentences(long_sentence, max_chars=200)
     assert all(len(s) <= 200 for s in ss) and len(ss) > 1
     # nothing lost but the split commas, order kept (", " becomes " " at a cut)
-    flat = lambda s: s.replace(" ", "").replace(",", "")
+    def flat(s):
+        return s.replace(" ", "").replace(",", "")
     assert flat(" ".join(ss)) == flat(long_sentence)
     short = "All good."
     assert V.split_sentences(short) == ["All good."]

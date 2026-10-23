@@ -19,6 +19,7 @@ from .chat import dotenv
 
 
 def main() -> int:
+    """The db-check CLI: probe every database feature and report one line each."""
     env = {**dotenv(), **os.environ}
     db, note = G.db_from_env(env)
     print(f"database: {db.name} ({note})")
@@ -29,6 +30,7 @@ def main() -> int:
     steps = []
 
     def step(name: str, fn) -> None:
+        """Run one probe, recording pass/fail without stopping the sequence."""
         try:
             ok = fn()
             steps.append((name, ok is not False))

@@ -182,37 +182,65 @@ def models3d(slug, models):
 
 
 # ------------------------------------------------------------- the parts
+def part_note(c):
+    """Who stands behind a part type's data: the ft parts and the devices are compiled from their
+    makers' public documents (and not issued by them); a remote-I/O placeholder is the design's."""
+    maker = c.get("maker", "fischertechnik GmbH")
+    if maker.startswith("not chosen"):
+        return maker, "A placeholder of the STF upgrade design: no product has been chosen; its sizes are the design's."
+    if maker.startswith("fischertechnik"):
+        return maker, SOURCE_NOTE
+    return maker, f"Compiled by the STF digital twin project from {maker}'s public datasheet; not issued by {maker}."
+
+
+def part_document(c):
+    """The part's document as kept in the repository (an AAS file reference must resolve)."""
+    for name in (c["datasheet"].split(" p.")[0], c.get("install") or ""):
+        if name and os.path.exists(os.path.join(ROOT, "docs", name)):
+            return name
+    return None
+
+
 def part_shells():
     comps = jload("components/components.json")["components"]
     shells = []
     for key, c in comps.items():
         slug = f"part-{key.replace('_', '-')}"
-        sheet = c["datasheet"].split(" p.")[0]
-        is_sheet = c["datasheet"] == sheet and not sheet.startswith("536634")
+        maker, note = part_note(c)
+        doc = part_document(c)
+        is_sheet = bool(doc) and not doc.startswith("536634")
         designation = {"en": c["name"], "de": c.get("name_de") or c["name"]}
         props = [(f"Fact{i:02d}", x["label"], f"{x['value']} (source: {x['source']})") for i, x in enumerate(c["facts"], 1)]
         dims = [(f"Dim_{x['key']}", x["label"], f"{x['value']:g} mm (source: {x['source']})") for x in c["dims"]
                 if isinstance(x.get("value"), (int, float))]
         use = sorted({u["module"] for u in c["used_in"]})
+        # the IEC 61406 identification link: the URI the part's ID plate carries (its QR code)
+        uri = PAGES + f"?view={key}"
+        extra = [("DataSource", f"{note} Source: {c['datasheet']}."), ("UsedInModules", ", ".join(use)),
+                 ("CountInCell", str(len(c["used_in"]))), ("IdentificationLink", uri)]
+        if c.get("document_url"):
+            extra.append(("DatasheetURL", c["document_url"]))
+        family = c.get("family") or "fischertechnik Fabrik Simulation 24V (536634)"
+        docs = [(f"{slug}-datasheet", "02-01", {"en": "Technical specification", "de": "Technische Spezifikation"},
+                 {"en": f"{c['name']}: {'datasheet' if is_sheet else 'booklet'} ({doc})"},
+                 {"en": f"{maker}'s own publication, as kept in the repository."},
+                 "de" if not is_sheet else "en", repo(f"docs/{doc}"))] if doc else [
+                (f"{slug}-design", "02-01", {"en": "Technical specification"}, {"en": "Upgrade plan, as built"},
+                 {"en": "The upgrade design this placeholder belongs to."}, "en", repo("docs/UPGRADE_PLAN.md"))]
         sms = [
-            nameplate(slug, PAGES + f"?view={key}", "fischertechnik GmbH", designation, c["ft"],
-                      article=c["ft"] if c["ft"].isdigit() else None, family="fischertechnik Fabrik Simulation 24V (536634)",
-                      extra=[("DataSource", f"{SOURCE_NOTE} Source: {c['datasheet']}."),
-                             ("UsedInModules", ", ".join(use)), ("CountInCell", str(len(c["used_in"])))]),
-            technical_data(slug, "fischertechnik GmbH", designation, c["ft"],
+            nameplate(slug, uri, maker, designation, c["ft"],
+                      article=c["ft"] if c["ft"].isdigit() else None, family=family, extra=extra),
+            technical_data(slug, maker, designation, c["ft"],
                            {"Facts": props, "Dimensions": dims, "Material": [("Material", "material", c.get("material") or "")]},
-                           [SOURCE_NOTE, "A value marked 'photo' or 'assumed' is not from the datasheet."]),
-            handover(slug, [(f"ft-{c['ft']}-datasheet", "02-01", {"en": "Technical specification", "de": "Technische Spezifikation"},
-                             {"en": f"{c['name']}: {'datasheet' if is_sheet else 'booklet'} ({c['datasheet']})"},
-                             {"en": "fischertechnik's own publication, as kept in the repository."},
-                             "de" if not is_sheet else "en", repo(f"docs/{sheet}"))]),
+                           [note, "A value marked 'photo', 'assumed' or 'design' is not from a datasheet."]),
+            handover(slug, docs),
             models3d(slug, [(f"{key}-step", {"en": f"{c['name']}, solid model"}, site(f"components/{c['files']['step']}"),
-                             "STEP", "AP214", "ISO 10303-21", "SolidBody", PAGES + f"?view={key}", c.get("overall_mm")),
+                             "STEP", "AP214", "ISO 10303-21", "SolidBody", uri, c.get("overall_mm")),
                             (f"{key}-glb", {"en": f"{c['name']}, web mesh"}, site(f"components/{c['files']['glb']}"),
-                             "glTF", "2.0", "binary (.glb)", "Mesh", PAGES + f"?view={key}", c.get("overall_mm"))]),
+                             "glTF", "2.0", "binary (.glb)", "Mesh", uri, c.get("overall_mm"))]),
         ]
-        shells.append(shell(slug, f"{c['name']} (fischertechnik {c['ft']})", "Type", sms,
-                            f"fischertechnik {c['ft']} {c['name']}. {SOURCE_NOTE}"))
+        who = "fischertechnik" if maker.startswith("fischertechnik") else maker.split(" ")[0]
+        shells.append(shell(slug, f"{c['name']} ({who} {c['ft']})", "Type", sms, f"{c['name']}, {c['ft']}. {note}"))
     return shells, comps
 
 
@@ -296,13 +324,15 @@ def cell_shell(parts, comps):
                    ("PV", "rooftop PV share, simulated month", f"{grid['scenarios']['pv+battery']['pv_kwh']} kWh")],
     }, ["Every value is from the simulated cell; see the twin for how each is proven."]))
     # bill of material: cell -> modules -> part types
-    modules = {"hbw": "High-bay warehouse", "vgr": "Vacuum gripper robot", "oven": "Oven and turntable", "sorting": "Sorting line"}
+    modules = {"hbw": "High-bay warehouse", "vgr": "Vacuum gripper robot", "oven": "Oven and turntable", "sorting": "Sorting line",
+               "cabinet": "Control cabinet", "air": "Central air station"}
     entry_ref = [{"type": "Submodel", "value": sm_id(slug, "HierarchicalStructures")}, {"type": "Entity", "value": "EntryNode"}]
     nodes = []
     for m, label in modules.items():
         kids = []
         for key, c in comps.items():
-            n = sum(1 for u in c["used_in"] if u["module"] == m)
+            # the cell is the upgraded one: a part of the original wiring only (the RevPi DIO) is not in it
+            n = sum(1 for u in c["used_in"] if u["module"] == m and "original wiring" not in u.get("function", ""))
             if n:
                 kids.append({"_idShort": f"{key}", "_entityType": "SelfManagedEntity",
                              "_globalAssetId": asset_id(f"part-{key.replace('_', '-')}"), "BulkCount": str(n)})

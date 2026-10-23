@@ -2,7 +2,8 @@
 // VGR's tours, a persistence in memory, and tick() called with a simulated clock. Everything the
 // 3D view would draw is in store.joints; everything the panels show is in store.model.
 import { describe, expect, it } from "vitest";
-import { CellCoordinator, WAITING } from "./CellCoordinator";
+import { CellCoordinator, VERDICT_WAIT_S, WAITING } from "./CellCoordinator";
+import { BELT_SPEED, RATE, SPEED } from "../timeline";
 import { memoryPersistence } from "./persistence";
 import { CellStore, TELEMETRY_HZ } from "../store/useCellStore";
 import machine from "../../../public/hbw_parts_up12.json";
@@ -325,3 +326,100 @@ describe("the pipeline", () => {
   });
 });
 
+
+describe("fast-forward: nothing teleports", () => {
+  const lens = () => {
+    const [tx, ty] = doc.factory.sort_placement.translate;
+    return [-230 + tx, 200 + ty] as [number, number];
+  };
+  // the fastest any joint may move, in twin time: the scripted rate at the easing's peak (1.5x)
+  const AXIS = SPEED * RATE * 1.5 * 1.01;        // mm/s - crane and VGR spindles
+  const SWIVEL = AXIS / 2;                       // deg/s - the swivel is timed at 2 mm per degree
+  const BELT = BELT_SPEED * RATE * 1.5 * 1.01;   // mm/s - the warehouse belt
+  const COOKIE = 400;                            // mm/s - the workpiece on the oven / sorting line
+
+  /** Drive the twin at 60 fps through `rates` (one every 5 s of wall time), the inspection's
+      verdict arriving `lagFrames` after each photo; returns the fastest move of each joint. */
+  function drive(rates: number[], lagFrames: number, verdictOf: (n: number) => "pass" | "reject") {
+    const store = new CellStore();
+    store.model.inspect.auto = false;
+    const coord = new CellCoordinator(doc, store, { tours, persistence: memoryPersistence() });
+    coord.setCamera(lens());
+    const due: [number, number][] = [];
+    store.onCapture((c) => due.push([c.n, lagFrames]));
+    store.place("chocolate", 2);
+    store.place("vanilla", 1);
+    const J = store.joints, w = J.workpiece;
+    const fast: Record<string, number> = {};
+    const ejectedRejects: number[] = [];
+    let held = false;
+    let prev: number[] | null = null, seed = -1, vis = false, frames = 0;
+    const done = () => store.model.idle && store.model.queue.every((o) => o.done === o.qty);
+    for (let fr = 0; fr < 60 * 3600 && !(fr > 10 && done()); fr++) {
+      const rate = rates[Math.floor(fr / 300) % rates.length];
+      for (const d of due) if (d[1]-- === 0) store.decide({ n: d[0], verdict: verdictOf(d[0]), condition: "", p: 1, flavour: "", ae: 0, anomaly: false });
+      coord.advance(1 / 60, rate);
+      if (store.model.step.includes("holds at the colour lock")) held = true;
+      if (w.visible && J.oven.eject > 0 && verdictOf(w.seed) === "reject") ejectedRejects.push(w.seed);
+      const cur = [J.hbw.travel, J.hbw.lift, J.hbw.fork, J.hbw.belt, J.vgr.swivel, J.vgr.reach, J.vgr.plunge, w.pos[0], w.pos[1], w.pos[2]];
+      // the first frame leaves the store's zero pose; a new cookie's flow is another workpiece
+      if (prev && fr > 1 && w.seed === seed && w.visible === vis) {
+        ["travel", "lift", "fork", "belt", "swivel", "reach", "plunge", "x", "y", "z"].forEach((k, i) => {
+          if (i >= 7 && !w.visible) return;
+          fast[k] = Math.max(fast[k] ?? 0, Math.abs(cur[i] - prev![i]) / (rate / 60));
+        });
+      }
+      prev = cur; seed = w.seed; vis = w.visible; frames = fr;
+    }
+    return { store, fast, held, ejectedRejects, frames, done: done() };
+  }
+  const limits = (fast: Record<string, number>) => {
+    for (const k of ["travel", "lift", "fork", "reach", "plunge"]) expect(fast[k], k).toBeLessThanOrEqual(AXIS);
+    expect(fast.swivel).toBeLessThanOrEqual(SWIVEL);
+    expect(fast.belt).toBeLessThanOrEqual(BELT);
+    for (const k of ["x", "y", "z"]) expect(fast[k], k).toBeLessThanOrEqual(COOKIE);
+  };
+
+  it("switching between 1x, 8x, 2x and 4x mid-order moves every joint at its own speed - no jumps", () => {
+    const r = drive([1, 8, 2, 4, 8, 1], 0, () => "pass");
+    expect(r.done).toBe(true);
+    limits(r.fast);
+  });
+
+  it("the crane and VGR reposition between pipelined cookies instead of jumping, at every speed", () => {
+    for (const rate of [1, 2, 4, 8]) {
+      const r = drive([rate], 0, () => "pass");
+      expect(r.done, `${rate}x`).toBe(true);
+      limits(r.fast);
+    }
+  });
+
+  it("at 8x a slow verdict holds the belt at the colour lock: a rejected cookie is never ejected or moved back", () => {
+    // 1.5 s of wall time to judge each photo - at 8x that is 12 s of the line
+    const r = drive([8], 90, (n) => (n === 1 ? "reject" : "pass"));
+    expect(r.done).toBe(true);
+    expect(r.held).toBe(true);
+    expect(r.ejectedRejects).toEqual([]);
+    expect(r.store.model.inspect).toMatchObject({ passed: 3, rejected: 1 });
+    limits(r.fast);
+  });
+
+  it("with no verdict at all the line waits VERDICT_WAIT_S, then the cookie goes on un-inspected", () => {
+    const r = drive([4], Number.POSITIVE_INFINITY, () => "pass");
+    expect(r.done).toBe(true);
+    expect(r.held).toBe(true);
+    expect(r.store.model.inspect).toMatchObject({ passed: 0, rejected: 0 });
+    // three cookies, each held about VERDICT_WAIT_S of wall time
+    expect(VERDICT_WAIT_S).toBeGreaterThan(1);
+  });
+
+  it("a stalled frame (a background tab) pauses the twin instead of jumping it ahead", () => {
+    const store = new CellStore();
+    const coord = new CellCoordinator(doc, store, { tours, persistence: memoryPersistence() });
+    store.place("chocolate", 1);
+    coord.advance(1 / 60, 8);
+    const before = store.model.cycle.t;
+    coord.advance(30, 8);            // 30 s away: counts as one 1 s frame
+    expect(store.model.cycle.t - before).toBeLessThanOrEqual(8 + 1e-9);
+  });
+});

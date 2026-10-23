@@ -39,7 +39,7 @@ from typing import Protocol
 from fastapi import HTTPException, Request
 from fastapi.responses import Response
 
-from . import guests
+from . import guests, keepalive
 from . import security as sec
 from .chat import DailyCap, dotenv
 from .logging_config import get_logger
@@ -86,10 +86,21 @@ class CaptureStore(Protocol):
 
     name: str
 
-    def save(self, rec: dict, jpeg: bytes) -> None: ...
-    def list(self, limit: int, owner: str) -> list[dict]: ...
-    def get(self, id: str, owner: str) -> bytes | None: ...
-    def forget(self, owner: str) -> None: ...
+    def save(self, rec: dict, jpeg: bytes) -> None:
+        """Store one capture's record and its JPEG."""
+        ...
+
+    def list(self, limit: int, owner: str) -> list[dict]:
+        """The owner's newest capture records."""
+        ...
+
+    def get(self, id: str, owner: str) -> bytes | None:
+        """One owner's JPEG by id, or None."""
+        ...
+
+    def forget(self, owner: str) -> None:
+        """Erase everything one owner captured."""
+        ...
 
 
 class LocalCaptures:
@@ -236,10 +247,12 @@ class SupabaseCaptures:
     def _req(self, method: str, path: str, body: bytes | None = None, headers: dict | None = None):
         h = {"Authorization": f"Bearer {self.key}", "apikey": self.key, **(headers or {})}
         req = urllib.request.Request(self.url + path, method=method, data=body, headers=h)
-        with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:  # noqa: S310 - the configured project URL
+        # kept-alive: no TLS handshake per query
+        with keepalive.urlopen(req, timeout=TIMEOUT_S) as r:
             return r.read()
 
     def save(self, rec: dict, jpeg: bytes) -> None:
+        """Store the JPEG in the bucket, then the record in the table."""
         obj = f"/storage/v1/object/{self.bucket}/{rec['id']}.jpg"
         self._req("POST", obj, jpeg, {"Content-Type": "image/jpeg", "x-upsert": "false"})
         self._req(
@@ -250,12 +263,14 @@ class SupabaseCaptures:
         )
 
     def list(self, limit: int, owner: str) -> list[dict]:
+        """The owner's capture records, newest first."""
         q = urllib.parse.urlencode(
             {"select": "*", "owner": f"eq.{owner}", "order": "t.desc", "limit": str(limit)}
         )
         return json.loads(self._req("GET", f"/rest/v1/{self.table}?{q}") or b"[]")
 
     def get(self, id: str, owner: str) -> bytes | None:
+        """One owner's JPEG by id, or None (ownership is checked before the fetch)."""
         if not ID.match(id):
             return None
         q = urllib.parse.urlencode({"select": "id", "id": f"eq.{id}", "owner": f"eq.{owner}"})
@@ -269,6 +284,7 @@ class SupabaseCaptures:
             raise
 
     def forget(self, owner: str) -> None:
+        """Delete the owner's images and records together."""
         q = urllib.parse.urlencode({"select": "id", "owner": f"eq.{owner}"})
         ids = [r["id"] for r in json.loads(self._req("GET", f"/rest/v1/{self.table}?{q}") or b"[]")]
         if ids:
@@ -284,6 +300,7 @@ class SupabaseCaptures:
 
 
 def store_from_env(env: dict | None = None) -> CaptureStore:
+    """The capture backend the environment selects: Supabase (bucket + table) or local files."""
     env = env if env is not None else {**dotenv(), **os.environ}
     url = env.get("SUPABASE_URL")
     key = env.get("SUPABASE_SERVICE_KEY") or env.get("SUPABASE_SECRET_KEY")
@@ -294,6 +311,9 @@ def store_from_env(env: dict | None = None) -> CaptureStore:
 
 
 class Captures:
+    """The /vision/capture endpoint's guard: origin and content validation, per-client and
+    daily caps, then a validated hand-off to the CaptureStore."""
+
     def __init__(self, settings: sec.Settings, store: CaptureStore | None = None) -> None:
         env = {**dotenv(), **os.environ}
         self.s = settings
@@ -304,6 +324,7 @@ class Captures:
         self.limiter = sec.RateLimiter(rate=1 / 3, burst=4)
 
     def status(self) -> dict:
+        """The /chat-free status payload for the capture pipeline."""
         return {"enabled": self.on, "store": self.store.name, "max_bytes": MAX_BYTES}
 
     def _client(self, request: Request) -> str:
@@ -311,6 +332,7 @@ class Captures:
         return client
 
     async def upload(self, request: Request) -> dict:
+        """Validate and store one camera photo; raises HTTPException on any check failure."""
         if not self.on:
             raise HTTPException(status_code=503, detail="photo capture is off on this server")
         origin = request.headers.get("origin")

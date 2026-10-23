@@ -54,6 +54,7 @@ def _req(client: str = "127.0.0.1") -> Request:
 
 
 def score(case: dict, out: dict, evidence: str) -> dict:
+    """Score one golden case's answer: tool coverage, key phrases, length, latency."""
     ans = out.get("answer", "")
     called = set(out.get("tools", []))
     need = set(case["tools"])
@@ -75,6 +76,7 @@ def score(case: dict, out: dict, evidence: str) -> dict:
 
 
 def main() -> None:
+    """The eval CLI: replay the golden cases against a provider, write the report."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--provider", choices=["gemini", "groq", "ollama", "rules"], default="gemini")
     ap.add_argument("--limit", type=int, default=0, help="first N cases only")
@@ -89,6 +91,7 @@ def main() -> None:
     real_call = T.call
 
     def recording_call(name, args, ctx):  # keep what every tool returned
+        """Wrap a tool call, appending its result to the evidence log."""
         r = real_call(name, args, ctx)
         evidence.append(json.dumps(r.as_dict(), ensure_ascii=False))
         return r
@@ -146,6 +149,7 @@ def main() -> None:
             time.sleep(a.pause)
 
     def rate(sel, key):
+        """A pass/total summary over one result column."""
         xs = [r[key] for r in sel if r[key] is not None]
         return f"{sum(xs)}/{len(xs)}" if xs else "-"
 

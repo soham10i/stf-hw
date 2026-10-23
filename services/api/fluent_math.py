@@ -214,6 +214,7 @@ def verbalize_fluent_sync(md: str) -> str:
             logger.warning("fluent-math: no LLM answer; rules-based mathspeak instead")
 
     def sub(m: re.Match) -> str:
+        """Replace one $...$ expression with its spoken form when it is in the asked set."""
         inner = next(g for g in m.groups() if g is not None)
         words = _lookup(inner) if inner in asked else None
         return f" {words} " if words else m.group(0)

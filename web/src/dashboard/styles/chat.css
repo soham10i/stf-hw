@@ -219,7 +219,7 @@
 .cx-trace b { color: var(--text); font-weight: 600; margin-right: 4px; }
 
 /* the context panel (Chat.tsx): a summary, then what the conversation used and established */
-.cx-ctx-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 12px 0 4px; }
+.cx-ctx-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 12px 0 4px; }
 .cx-ctx-stats div { padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--surface-2) 80%, transparent); border: 1px solid var(--card-line, var(--border-soft)); box-shadow: inset 0 1px 0 var(--card-hi, transparent); }
 .cx-ctx-stats b { display: block; font: 600 var(--fs-title3) var(--font-display); font-variant-numeric: tabular-nums; }
 .cx-ctx-stats span { font-size: var(--fs-caption); color: var(--faint); }
@@ -296,3 +296,49 @@
 .cx-more-src > summary { margin-top: 6px; font-size: var(--fs-caption); color: var(--faint); cursor: pointer; }
 .cx-pop.cx-pop-hist { right: auto; width: min(300px, calc(100% - 16px)); }
 .cx-think-text.plain { white-space: pre-wrap; line-height: 1.55; }
+
+/* ------------------------------------------------ answer settings (copilot/Settings.tsx) */
+/* the strip above the composer: where answers come from, and who/how deep/which sources */
+.cx-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 12px 6px; }
+.cx-controls .cx-choice { margin: 0; }
+.cx.compact .cx-controls { margin: 0 0 6px; }
+.cx.compact .cx-choice-l { display: none; }
+.cx-prefs-chip { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 10px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--border-soft); background: var(--surface-2); color: var(--muted); font: 500 var(--fs-callout) var(--font); white-space: nowrap; }
+.cx-prefs-chip b { color: var(--text); font-weight: 600; }
+.cx-prefs-chip > span { color: var(--faint); }
+.cx-prefs-chip:hover, .cx-prefs-chip.on { color: var(--text); border-color: var(--accent); }
+.cx-icon.on { color: var(--accent); background: var(--accent-weak); }
+.cx-pop.cx-pop-set { left: auto; width: min(420px, calc(100% - 16px)); max-height: calc(100% - 64px); }
+.cx-pop-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px 8px; }
+.cx-settings section { padding: 10px 2px; border-top: 1px solid var(--border-soft); }
+.cx-settings section:first-child { border-top: 0; padding-top: 0; }
+.cx-settings h4 { margin: 0 0 8px; font: 600 var(--fs-caption) var(--font); color: var(--faint); text-transform: uppercase; letter-spacing: .06em; }
+.cx-profiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.cx-profiles button { display: grid; justify-items: start; gap: 3px; padding: 9px; border-radius: 11px; text-align: left; cursor: pointer;
+  border: 1px solid var(--border-soft); background: var(--surface-2); color: var(--muted); font: var(--fs-caption)/1.35 var(--font); transition: border-color .15s, background .15s; }
+.cx-profiles button b { color: var(--text); font-size: var(--fs-body); }
+.cx-profiles button:hover { border-color: var(--border); }
+.cx-profiles button.on { border-color: var(--accent); background: var(--accent-weak); color: var(--text); }
+.cx-profiles button.on svg { color: var(--accent); }
+@media (max-width: 520px) { .cx-profiles { grid-template-columns: 1fr; } .cx-profiles button span { display: none; } }
+.cx-seg { display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border-soft); }
+.cx-seg button { flex: 1; position: relative; z-index: 0; height: 28px; padding: 0 8px; border: 0; border-radius: 7px; background: none; cursor: pointer;
+  color: var(--muted); font: 500 var(--fs-callout) var(--font); white-space: nowrap; }
+.cx-seg button.on { color: var(--text); }
+.cx-seg .cx-pill { border-radius: 7px; background: var(--raised); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+.cx-billing { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: var(--fs-callout); }
+.cx-billing li { display: flex; justify-content: space-between; gap: 8px; }
+.cx-billing i { font-style: normal; font-weight: 600; padding: 0 7px; border-radius: 99px; font-size: var(--fs-caption); line-height: 18px; }
+.cx-billing i.free { background: var(--ok-weak); color: var(--ok); }
+.cx-billing i.paid { background: var(--warn-weak); color: var(--warn); }
+.cx-budget { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin-top: 8px; font-size: var(--fs-caption); color: var(--muted); }
+.cx-budget div { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.cx-budget div i { display: block; height: 100%; background: var(--accent); }
+.cx-budget em { font-style: normal; font-variant-numeric: tabular-nums; }
+/* a web source's grade */
+.cx-trust.g-authoritative { background: var(--ok-weak); color: var(--ok); }
+.cx-trust.g-reference { background: var(--accent-weak); color: var(--accent); }
+/* the answer's depth */
+.cx-chip.depth { text-transform: capitalize; }
+.cx-chip.depth.d-thorough { color: var(--accent); }

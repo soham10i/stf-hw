@@ -374,6 +374,12 @@ COMPONENTS = {
 }
 
 
+# the control and power devices the components hang on (devices.py): the same table, the same
+# rules, built and checked by the same components_cad.py
+from devices import DEVICES  # noqa: E402 - devices.py imports this module's dim() and source tags
+COMPONENTS.update(DEVICES)
+
+
 def get(cid, key):
     for d_ in COMPONENTS[cid]["dims"]:
         if d_["key"] == key:
