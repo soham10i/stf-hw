@@ -1,0 +1,34 @@
+# What `gcloud run deploy --source .` uploads. Without this file gcloud falls back to
+# .gitignore - which excludes requirements-api.txt, and the Dockerfile COPYs it, so the
+# image build failed on staging. Patterns follow gitignore semantics; a leading slash
+# anchors a pattern to the upload root (without it, `docs/*` also ate
+# web/src/dashboard/docs/ and the build died on a missing module).
+/.git
+/.github
+/.venv
+/.cache
+**/__pycache__
+**/*.pyc
+**/node_modules
+/web/dist
+/web/dist-pages
+/web/tsconfig.tsbuildinfo
+/web/tsconfig.node.tsbuildinfo
+/stf-cad
+/docs/*
+!/docs/assistant
+/tests
+/mosquitto
+/utils
+*.md
+!/docs/assistant/*.md
+.env
+.env.*
+.data
+/kimi-code/
+/.claude/
+/.ruff_cache/
+/.pytest_cache/
+*.log
+/papers/
+/deploy/

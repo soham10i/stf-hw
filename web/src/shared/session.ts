@@ -23,7 +23,7 @@ export function fetchGuest(page = "site"): Promise<GuestStatus | null> {
   // a failure is not kept: the next caller (the live link reconnecting) asks again, so the
   // session cookie is issued once the API is reachable
   const forget = () => { _cachedGuest = null; return null; };
-  _cachedGuest ??= fetch(`/guest${q}`)
+  _cachedGuest ??= fetch(api(`/guest${q}`))
     .then((r) => (r.ok ? (r.json() as Promise<GuestStatus>) : forget()))
     .catch(forget);
   return _cachedGuest;

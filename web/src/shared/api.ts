@@ -19,9 +19,13 @@ export function api(path: string): string {
   return API_BASE + path;
 }
 
-/** A WebSocket URL for an API path: wss:// on https pages, ws:// otherwise. */
+/** A WebSocket URL for an API path: wss:// on https pages, ws:// otherwise. A base with a
+ *  scheme is an absolute origin; a bare path prefix (a same-origin reverse proxy) keeps this
+ *  page's host and prefixes the path instead. */
 export function apiWs(path: string): string {
   const proto = location.protocol === "https:" ? "wss" : "ws";
-  const host = API_BASE ? API_BASE.replace(/^https?:\/\//, "") : location.host;
-  return `${proto}://${host}${path}`;
+  if (/^https?:\/\//.test(API_BASE)) {
+    return `${proto}://${API_BASE.replace(/^https?:\/\//, "")}${path}`;
+  }
+  return `${proto}://${location.host}${API_BASE}${path}`;
 }

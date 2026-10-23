@@ -60,6 +60,13 @@ api: ## Run the live twin backend (FastAPI + WebSocket) on :8000
 web: ## Run the 3D frontend dev server on localhost:5173 (needs `make api` running)
 	cd web && npm install && npm run dev
 
+api-spec: ## Export the OpenAPI contract to docs/openapi.json (import Postman-ready)
+	PYTHONPATH=packages $(PY) -c "\
+import json; \
+from services.api.app import app; \
+json.dump(app.openapi(), open('docs/openapi.json', 'w'), indent=2)"
+	@echo "docs/openapi.json written"
+
 share: ## Serve the PRODUCTION build on localhost:4173 - the one to tunnel (never the dev server)
 	cd web && npm run build && npm run preview
 

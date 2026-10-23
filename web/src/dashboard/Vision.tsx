@@ -15,6 +15,7 @@ import { prepare, useTwinCamera } from "../vision/twinCamera";
 import { rgba, type RenderParams } from "../vision/render";
 import { FALSE_MAX, TARGET, WEEKS, forecast, type Week } from "../vision/lifetime";
 import { HAS_API } from "../shared/mode";
+import { api } from "../shared/api";
 
 type Camera = { fov_mm: number; optics: { working_distance_mm: number; lens_angle_deg: number; trigger_delay_s: number; roi_mm: number };
                 checks: { check: string; ok: boolean; detail: string }[]; why_here: string };
@@ -265,7 +266,7 @@ function Photos() {
   useEffect(() => {
     if (!HAS_API) return;
     let live = true;
-    const get = () => fetch("/vision/captures?limit=24").then((r) => (r.ok ? r.json() : null)).then((j) => { if (live && j) setD(j); }).catch(() => {});
+    const get = () => fetch(api("/vision/captures?limit=24")).then((r) => (r.ok ? r.json() : null)).then((j) => { if (live && j) setD(j); }).catch(() => {});
     get();
     const id = window.setInterval(get, 10000);
     return () => { live = false; window.clearInterval(id); };

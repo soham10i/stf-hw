@@ -4,6 +4,7 @@
 // A standalone build (HAS_API false) never contacts it at all.
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { HAS_API } from "../shared/mode";
+import { api } from "../shared/api";
 import { connect } from "../socket";
 import { store } from "../store";
 import type { SceneDescriptor } from "../types";
@@ -13,7 +14,7 @@ const RETRY_MS = 3000;
 // A down API answers the dev proxy with an empty or HTML body: fail with a
 // readable error instead of a raw JSON SyntaxError.
 async function fetchLayout(): Promise<SceneDescriptor> {
-  const r = await fetch("/layout");
+  const r = await fetch(api("/layout"));
   const text = await r.text();
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return JSON.parse(text) as SceneDescriptor;

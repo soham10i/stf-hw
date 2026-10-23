@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Icon } from "../shared/icons";
 import { HAS_API } from "../shared/mode";
+import { api } from "../shared/api";
 
 const TOKEN_KEY = "stf.op.token";
 
@@ -40,7 +41,7 @@ export function NotifyMenu() {
   useEffect(() => {
     if (!open || !HAS_API || IS_PROD) return;
     let stale = false;
-    fetch("/notify/status").then((r) => (r.ok ? r.json() : null)).then((s) => { if (!stale && s) setStatus(s); }).catch(() => undefined);
+    fetch(api("/notify/status")).then((r) => (r.ok ? r.json() : null)).then((s) => { if (!stale && s) setStatus(s); }).catch(() => undefined);
     return () => { stale = true; };
   }, [open]);
 
@@ -60,7 +61,7 @@ export function NotifyMenu() {
     setPhase("sending");
     setNote("");
     try {
-      const r = await fetch("/notify/test", {
+      const r = await fetch(api("/notify/test"), {
         method: "POST",
         headers: token ? { "X-STF-Token": token } : undefined,
       });

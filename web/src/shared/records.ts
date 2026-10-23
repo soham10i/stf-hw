@@ -2,12 +2,13 @@
 // every cookie its camera judged, and every order line it finished. Without the API (the public
 // demo) nothing is sent; a failed request is dropped - the twin never waits on the database.
 import { HAS_API } from "./mode";
+import { api } from "./api";
 import type { TwinRecord } from "../scene/store/useCellStore";
 
 export function postRecord(r: TwinRecord) {
   if (!HAS_API) return;
   const { kind, ...body } = r;
-  void fetch(kind === "inspection" ? "/twin/inspection" : "/twin/order", {
+  void fetch(api(kind === "inspection" ? "/twin/inspection" : "/twin/order"), {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), keepalive: true,
   }).catch(() => undefined);
 }
@@ -31,7 +32,7 @@ export type TwinRecords = {
 
 export function fetchRecords(): Promise<TwinRecords | null> {
   if (!HAS_API) return Promise.resolve(null);
-  return fetch("/twin/records")
+  return fetch(api("/twin/records"))
     .then((r) => (r.ok ? (r.json() as Promise<TwinRecords>) : null))
     .catch(() => null);
 }

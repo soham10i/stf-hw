@@ -6,6 +6,7 @@
 import { useEffect } from "react";
 import { cellStore, type CellStore } from "../scene/store/useCellStore";
 import { HAS_API } from "../shared/mode";
+import { api } from "../shared/api";
 
 const EVERY_MS = 3000;
 const NAMES: Record<string, string> = { "#5C3A1E": "chocolate", "#F4A6BF": "strawberry", "#FBF8F1": "vanilla" };
@@ -39,7 +40,7 @@ export function useLiveShare(on: boolean) {
     if (!on || !HAS_API) return;
     const send = () => {
       if (document.hidden) return;
-      fetch("/twin/state", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(snapshot()) })
+      fetch(api("/twin/state"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(snapshot()) })
         .catch(() => { /* the API is optional */ });
     };
     send();

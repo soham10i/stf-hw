@@ -5,6 +5,7 @@
 // attaches the guest session and a coarse place from the IP.
 import { HAS_API } from "./mode";
 import { fetchGuest } from "./session";
+import { api } from "./api";
 
 const LS_KEY = "stf.consent";
 const COOKIE = "stf_consent";
@@ -42,7 +43,7 @@ export function track(page: string, ua = true) {
   if (!p) return;
   void ensureGuest(p)
     .then(() =>
-      fetch("/guest/track", {
+      fetch(api("/guest/track"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ page: p, consent: consent() === "accepted", ua }),

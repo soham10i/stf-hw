@@ -3,6 +3,7 @@
 // The session id is shared by the Copilot page and the Ask panel on every dashboard page, so a
 // conversation continues wherever it is picked up.
 import { HAS_API } from "../../shared/mode";
+import { api } from "../../shared/api";
 
 export type Tab = "chat" | "voice";
 /** One merged model control: "auto" walks the chain below in order; the rest pin one provider. */
@@ -23,12 +24,16 @@ export type Audience = "operator" | "engineer" | "researcher";
 export type SourceLevel = "vetted" | "strict";
 export type Grade = "authoritative" | "reference" | "community";
 /** What one answer cost: every model call's tokens, by provider (token_budget.meter). */
-export type Usage = { tokens: number; calls: number; by: Record<string, number>; depth: Exclude<Depth, "auto">;
-  audience?: Audience | null; sources: SourceLevel; removed: number };
+export type Usage = {
+  tokens: number; calls: number; by: Record<string, number>; depth: Exclude<Depth, "auto">;
+  audience?: Audience | null; sources: SourceLevel; removed: number
+};
 /** Where a source is, exactly (services/api/chat.py _cites): a document passage (its file, line,
     heading anchor, match score and text), a tool that computed facts, or a web page. */
-export type Cite = { kind: "doc" | "tool" | "web"; tool: string; label: string; file?: string; line?: number;
-  anchor?: string; score?: number; quote?: string; title?: string; trusted?: boolean; cited?: boolean; grade?: Grade };
+export type Cite = {
+  kind: "doc" | "tool" | "web"; tool: string; label: string; file?: string; line?: number;
+  anchor?: string; score?: number; quote?: string; title?: string; trusted?: boolean; cited?: boolean; grade?: Grade
+};
 export type Turn = {
   role: "user" | "assistant"; text: string; t: number;
   model?: string; style?: Style; sources?: string[]; links?: { page: string; label: string }[];
@@ -51,11 +56,15 @@ export type Status = {
   /** the providers in try-order, with readiness (services/api/chat.py ORDER) */
   order?: { name: string; ready: boolean }[];
   /** the web search's order and Gemini's token budget (services/api/token_budget.py) */
-  search?: { order: string[]; gemini: boolean; gemini_rest_s: number;
+  search?: {
+    order: string[]; gemini: boolean; gemini_rest_s: number;
     /** each Gemini key in the order it is asked (Google Cloud before AI Studio) */
     lanes?: { name: "cloud" | "studio"; label: string; models_free: number; rest_s: number; refused: boolean }[];
-    budget: { tier: "full" | "lean" | "minimal" | "spent"; tokens_day: { used: number; limit: number };
-      searches_day: { used: number; limit: number } } | null };
+    budget: {
+      tier: "full" | "lean" | "minimal" | "spent"; tokens_day: { used: number; limit: number };
+      searches_day: { used: number; limit: number }
+    } | null
+  };
   /** who pays for each provider, as the operator labelled it (chat.py status) */
   billing?: { provider: string; plan: string }[];
 };
@@ -110,23 +119,27 @@ const H = () => ({ "Content-Type": "application/json", "X-STF-User": userId() })
 
 export async function status(): Promise<Status> {
   if (!HAS_API) return { enabled: false, model: null };
-  try { const r = await fetch("/chat/status"); if (r.ok) return await r.json(); } catch { /* offline */ }
+  try { const r = await fetch(api("/chat/status")); if (r.ok) return await r.json(); } catch { /* offline */ }
   return { enabled: false, model: null };
 }
 
-type AskBody = { question: string; page: string; provider?: string; session_id?: string | null; age?: number; pm?: boolean; mode?: Choice;
-  depth?: Depth; audience?: Audience; sources?: SourceLevel };
+type AskBody = {
+  question: string; page: string; provider?: string; session_id?: string | null; age?: number; pm?: boolean; mode?: Choice;
+  depth?: Depth; audience?: Audience; sources?: SourceLevel
+};
 export type Reply = {
   answer: string; model: string; style: Style; sources: string[]; links: { page: string; label: string }[];
   tools: string[]; facts: [string, string][]; note?: string; unverified?: string[]; switched?: Switch[];
   cites?: Cite[]; session?: { id: string; title: string; facts: number; models: string[] };
   route?: Route; steps?: string[]; thinking?: string; usage?: Usage;
 };
-const payload = (body: AskBody) => JSON.stringify({ ...body, session_id: body.session_id ?? undefined,
-  mode: body.mode === "auto" ? undefined : body.mode, depth: body.depth === "auto" ? undefined : body.depth });
+const payload = (body: AskBody) => JSON.stringify({
+  ...body, session_id: body.session_id ?? undefined,
+  mode: body.mode === "auto" ? undefined : body.mode, depth: body.depth === "auto" ? undefined : body.depth
+});
 
 export async function ask(body: AskBody) {
-  const r = await fetch("/chat", { method: "POST", headers: H(), body: payload(body) });
+  const r = await fetch(api("/chat"), { method: "POST", headers: H(), body: payload(body) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.detail ?? `HTTP ${r.status}`);
   return j as Reply;
@@ -138,7 +151,7 @@ export type Progress = { route?: Route; step?: string; thinking?: string };
 /** Ask, and hear the route, each step and the model's thinking as they happen; resolves with
     the reply. Falls back to the plain request where the stream is not served. */
 export async function askStream(body: AskBody, on: (p: Progress) => void): Promise<Reply> {
-  const r = await fetch("/chat/stream", { method: "POST", headers: H(), body: payload(body) });
+  const r = await fetch(api("/chat/stream"), { method: "POST", headers: H(), body: payload(body) });
   if (r.status === 404 || r.status === 405) return ask(body);
   if (!r.ok || !r.body) {
     const j = await r.json().catch(() => ({}));
@@ -146,7 +159,7 @@ export async function askStream(body: AskBody, on: (p: Progress) => void): Promi
   }
   const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
   let buf = "";
-  for (;;) {
+  for (; ;) {
     const { value, done } = await reader.read();
     if (done) break;
     buf += value;
@@ -170,20 +183,20 @@ export async function askStream(body: AskBody, on: (p: Progress) => void): Promi
 
 export async function sessions(): Promise<Summary[]> {
   if (!HAS_API) return [];
-  try { const r = await fetch("/copilot/sessions", { headers: H() }); return r.ok ? (await r.json()).sessions : []; } catch { return []; }
+  try { const r = await fetch(api("/copilot/sessions"), { headers: H() }); return r.ok ? (await r.json()).sessions : []; } catch { return []; }
 }
 export async function session(id: string): Promise<Session | null> {
-  try { const r = await fetch(`/copilot/sessions/${id}`, { headers: H() }); return r.ok ? await r.json() : null; } catch { return null; }
+  try { const r = await fetch(api(`/copilot/sessions/${id}`), { headers: H() }); return r.ok ? await r.json() : null; } catch { return null; }
 }
 export async function forget(id: string) {
-  await fetch(`/copilot/sessions/${id}`, { method: "DELETE", headers: H() }).catch(() => undefined);
+  await fetch(api(`/copilot/sessions/${id}`), { method: "DELETE", headers: H() }).catch(() => undefined);
 }
 
 /** The answer as speech: the server's voice pipeline, or null (then the browser speaks). */
 export async function speech(text: string): Promise<{ url: string; by: string } | null> {
   if (!HAS_API) return null;
   try {
-    const r = await fetch("/chat/tts", { method: "POST", headers: H(), body: JSON.stringify({ text }) });
+    const r = await fetch(api("/chat/tts"), { method: "POST", headers: H(), body: JSON.stringify({ text }) });
     if (!r.ok) return null;
     const by = [r.headers.get("X-TTS-Provider"), r.headers.get("X-TTS-Model")].filter(Boolean).join(" · ");
     return { url: URL.createObjectURL(await r.blob()), by };
@@ -202,7 +215,7 @@ export type SpeakEvent =
     whole-file speech() below. Throws on a served failure. */
 export async function speechStream(text: string, on: (e: SpeakEvent) => void): Promise<boolean> {
   if (!HAS_API) return false;
-  const r = await fetch("/chat/tts/stream", { method: "POST", headers: H(), body: JSON.stringify({ text }) });
+  const r = await fetch(api("/chat/tts/stream"), { method: "POST", headers: H(), body: JSON.stringify({ text }) });
   if (r.status === 404 || r.status === 405) return false;
   if (!r.ok || !r.body) {
     const j = await r.json().catch(() => ({}));
@@ -210,7 +223,7 @@ export async function speechStream(text: string, on: (e: SpeakEvent) => void): P
   }
   const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
   let buf = "";
-  for (;;) {
+  for (; ;) {
     const { value, done } = await reader.read();
     if (done) break;
     buf += value;
@@ -234,7 +247,7 @@ export async function speechStream(text: string, on: (e: SpeakEvent) => void): P
 
 /** A recorded question as text, by the server (for browsers without speech recognition). */
 export async function transcribe(blob: Blob): Promise<{ text: string; model: string }> {
-  const r = await fetch("/chat/stt", { method: "POST", headers: { "Content-Type": blob.type.split(";")[0], "X-STF-User": userId() }, body: blob });
+  const r = await fetch(api("/chat/stt"), { method: "POST", headers: { "Content-Type": blob.type.split(";")[0], "X-STF-User": userId() }, body: blob });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.detail ?? `HTTP ${r.status}`);
   return { text: j.text as string, model: j.model as string };
@@ -245,7 +258,7 @@ export async function transcribe(blob: Blob): Promise<{ text: string; model: str
 export type SttStatus = { enabled: boolean; providers: { name: string; ready: boolean; model: string | null }[] };
 export async function sttStatus(): Promise<SttStatus> {
   if (!HAS_API) return { enabled: false, providers: [] };
-  try { const r = await fetch("/chat/stt/status"); if (r.ok) return await r.json(); } catch { /* offline */ }
+  try { const r = await fetch(api("/chat/stt/status")); if (r.ok) return await r.json(); } catch { /* offline */ }
   return { enabled: false, providers: [] };
 }
 

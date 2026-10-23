@@ -1,0 +1,1310 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "STF Digital Twin",
+    "version": "4.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "description": "Liveness and readiness: the keep-warm jobs and monitors poll this.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/status": {
+      "get": {
+        "summary": "Admin Status",
+        "description": "The operator's view (X-STF-Token or the operator's machine, like /command): which\ndefences were tripped, and the copilot's budgets in full. Not public: it would tell a\nvisitor exactly how to pace an attack at the limits.",
+        "operationId": "admin_status_admin_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Admin Status Admin Status Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/layout": {
+      "get": {
+        "summary": "Layout",
+        "description": "The scene descriptor. The front end builds its 3D scene from this alone.",
+        "operationId": "layout_layout_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Layout Layout Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders": {
+      "get": {
+        "summary": "Orders",
+        "description": "The factory simulation's open orders (public twin state).",
+        "operationId": "orders_orders_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Orders Orders Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/command": {
+      "post": {
+        "summary": "Command",
+        "description": "Queue an operational order (retrieve, store, home, cycle) for the factory crane.",
+        "operationId": "command_command_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/status": {
+      "get": {
+        "summary": "Chat Status",
+        "description": "Check the status and availability of the copilot LLM chat providers.",
+        "operationId": "chat_status_chat_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Chat Status Chat Status Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat": {
+      "post": {
+        "summary": "Chat Ask",
+        "description": "The copilot: a language model answering from the twin's tools (chat.py).",
+        "operationId": "chat_ask_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Chat Ask Chat Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/stream": {
+      "post": {
+        "summary": "Chat Stream",
+        "description": "The copilot, streamed (text/event-stream): `route` (where the question goes and why),\n`step` (each retrieval, tool, model and search), `thinking` (the model's reasoning), then\n`answer` (the reply, as POST /chat returns it) or `error`.",
+        "operationId": "chat_stream_chat_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/tts/status": {
+      "get": {
+        "summary": "Tts Status",
+        "description": "Which TTS providers are configured (voice tab's status chip).",
+        "operationId": "tts_status_chat_tts_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Tts Status Chat Tts Status Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/tts": {
+      "post": {
+        "summary": "Tts Speak",
+        "description": "The answer read aloud: Gemini 2.5 Pro TTS, the flash voices when its quota is closed.",
+        "operationId": "tts_speak_chat_tts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TtsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/tts/stream": {
+      "post": {
+        "summary": "Tts Stream",
+        "description": "The answer read aloud as it is synthesised (SSE: meta, base64 chunks, end); the browser\nplays from the first chunk. Non-streaming providers answer as one file chunk (tts.py).",
+        "operationId": "tts_stream_chat_tts_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TtsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/stt/status": {
+      "get": {
+        "summary": "Stt Status",
+        "description": "The transcription providers in order and which are ready (tts.py).",
+        "operationId": "stt_status_chat_stt_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Stt Status Chat Stt Status Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/stt": {
+      "post": {
+        "summary": "Stt Transcribe",
+        "description": "A spoken question to text, for browsers without speech recognition (tts.py).",
+        "operationId": "stt_transcribe_chat_stt_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Stt Transcribe Chat Stt Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/guest": {
+      "get": {
+        "summary": "Guest Status",
+        "description": "This visitor's guest session (guests.py): no personal data, only when and how often.",
+        "operationId": "guest_status_guest_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "site",
+              "title": "Page"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Guest Status Guest Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Guest Forget",
+        "description": "Forget this guest: its copilot sessions, its photos and its live twin; the next request\nstarts a new guest.",
+        "operationId": "guest_forget_guest_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/guest/track": {
+      "post": {
+        "summary": "Track",
+        "description": "A page visit, stored only with consent (visits.py): the guest's id, the page, the time,\nthe IP and its coarse place. Declined, or switched off (STF_TRACKING=0): an empty 204, no row.",
+        "operationId": "track_guest_track_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/guest/visits": {
+      "get": {
+        "summary": "Guest Visits",
+        "description": "What traction is kept for this guest: their own visits, newest first.",
+        "operationId": "guest_visits_guest_visits_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Guest Visits Guest Visits Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notify/status": {
+      "get": {
+        "summary": "Notify Status",
+        "description": "Whether owner notifications are configured (notify.py): which channels are on.\nNo secrets - safe to show any visitor; it only says the feature exists.",
+        "operationId": "notify_status_notify_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Notify Status Notify Status Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notify/test": {
+      "post": {
+        "summary": "Notify Test",
+        "description": "Send the owner a test notice (notify.py). Operator-only, like /command: from the\noperator's machine or with X-STF-Token. Use the dashboard's bell button. From a local\naddress it refuses unless STF_NOTIFY_LOCAL=1 arms it - a local test run cannot spam.",
+        "operationId": "notify_test_notify_test_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Notify Test Notify Test Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/copilot/sessions": {
+      "get": {
+        "summary": "Copilot Sessions",
+        "description": "The user's chat history, newest first (sessions.py, store.py).",
+        "operationId": "copilot_sessions_copilot_sessions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Copilot Sessions Copilot Sessions Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/copilot/sessions/{sid}": {
+      "get": {
+        "summary": "Copilot Session",
+        "description": "One chat session's full record (the history drawer's opened conversation).",
+        "operationId": "copilot_session_copilot_sessions__sid__get",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Copilot Session Copilot Sessions  Sid  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Copilot Forget",
+        "description": "Delete one of the caller's chat sessions.",
+        "operationId": "copilot_forget_copilot_sessions__sid__delete",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Copilot Forget Copilot Sessions  Sid  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vision/captures": {
+      "post": {
+        "summary": "Vision Capture",
+        "description": "A photo the inspection camera took of a baked cookie, for the dataset (captures.py).",
+        "operationId": "vision_capture_vision_captures_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Vision Capture Vision Captures Post"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Vision Captures",
+        "description": "The guest's own photos, newest first.",
+        "operationId": "vision_captures_vision_captures_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 48,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Vision Captures Vision Captures Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vision/captures/{cid}.jpg": {
+      "get": {
+        "summary": "Vision Capture Image",
+        "description": "Serve one capture's JPEG (ownership-checked inside captures).",
+        "operationId": "vision_capture_image_vision_captures__cid__jpg_get",
+        "parameters": [
+          {
+            "name": "cid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/twin/inspection": {
+      "post": {
+        "summary": "Twin Inspection",
+        "description": "Store a cookie the twin's camera judged, as this guest's (factory_db.py).",
+        "operationId": "twin_inspection_twin_inspection_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwinInspection"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/twin/order": {
+      "post": {
+        "summary": "Twin Order",
+        "description": "Store an order line the twin finished, as this guest's (factory_db.py).",
+        "operationId": "twin_order_twin_order_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwinOrder"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/twin/records": {
+      "get": {
+        "summary": "Twin Records",
+        "description": "This guest's own twin records: the orders it finished and the cookies it inspected.",
+        "operationId": "twin_records_twin_records_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Twin Records Twin Records Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/twin/state": {
+      "post": {
+        "summary": "Twin State",
+        "description": "The open 3D twin's live snapshot, kept per client for that client's chat (live.py).",
+        "operationId": "twin_state_twin_state_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChatRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Question"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/Turn"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "History"
+          },
+          "grounding": {
+            "$ref": "#/components/schemas/Grounding"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40,
+                "pattern": "^[a-z0-9-]*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(gemini|groq|grok|upb|openai|ollama|rules|auto)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "age": {
+            "type": "number",
+            "maximum": 2000.0,
+            "minimum": 0.0,
+            "title": "Age",
+            "default": 140.0
+          },
+          "pm": {
+            "type": "boolean",
+            "title": "Pm",
+            "default": true
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{32}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
+          "user": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{8,64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(auto|docs|web|deep)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "depth": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(auto|brief|standard|thorough)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth"
+          },
+          "audience": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(operator|engineer|researcher)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audience"
+          },
+          "sources": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(vetted|strict)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sources"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "ChatRequest",
+        "description": "The copilot's input contract: question plus everything that steers the answer\n(provider ladder, route mode, depth, audience, source policy, session identity)."
+      },
+      "CommandRequest": {
+        "properties": {
+          "op": {
+            "type": "string",
+            "enum": [
+              "retrieve",
+              "store",
+              "home",
+              "cycle"
+            ],
+            "title": "Op"
+          },
+          "slot": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-C][1-4]$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slot",
+            "description": "target slot A1..C4"
+          }
+        },
+        "type": "object",
+        "required": [
+          "op"
+        ],
+        "title": "CommandRequest",
+        "description": "A command, validated at the boundary: a fixed set of operations, a slot like B2."
+      },
+      "Grounding": {
+        "properties": {
+          "tool": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Tool",
+            "default": "none"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 3000,
+            "title": "Text",
+            "default": ""
+          },
+          "facts": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Facts"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "Sources"
+          },
+          "passages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "title": "Passages"
+          }
+        },
+        "type": "object",
+        "title": "Grounding",
+        "description": "Facts a client computed itself (the offline copilot); optional - the server computes\nits own."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "TrackRequest": {
+        "properties": {
+          "page": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Page"
+          },
+          "consent": {
+            "type": "boolean",
+            "title": "Consent"
+          },
+          "ua": {
+            "type": "boolean",
+            "title": "Ua",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "page",
+          "consent"
+        ],
+        "title": "TrackRequest",
+        "description": "The usage beacon: which page, and whether the visitor agreed to being measured."
+      },
+      "TtsRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "voice": {
+            "type": "string",
+            "maxLength": 20,
+            "title": "Voice",
+            "default": "Kore"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "TtsRequest",
+        "description": "The voice endpoint's input: what to say and in which voice."
+      },
+      "Turn": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "pattern": "^(user|assistant)$",
+            "title": "Role"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "text"
+        ],
+        "title": "Turn",
+        "description": "One chat message in the history a client sends with a question."
+      },
+      "TwinInspection": {
+        "properties": {
+          "n": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "N"
+          },
+          "flavour": {
+            "type": "string",
+            "enum": [
+              "chocolate",
+              "strawberry",
+              "vanilla"
+            ],
+            "title": "Flavour"
+          },
+          "truth": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "burnt",
+              "underbaked",
+              "cracked"
+            ],
+            "title": "Truth"
+          },
+          "condition": {
+            "type": "string",
+            "maxLength": 24,
+            "title": "Condition"
+          },
+          "p": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "P"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "reject",
+              "check"
+            ],
+            "title": "Verdict"
+          },
+          "ae": {
+            "type": "number",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Ae"
+          },
+          "unusual": {
+            "type": "boolean",
+            "title": "Unusual"
+          }
+        },
+        "type": "object",
+        "required": [
+          "n",
+          "flavour",
+          "truth",
+          "condition",
+          "p",
+          "verdict",
+          "ae",
+          "unusual"
+        ],
+        "title": "TwinInspection",
+        "description": "One cookie the twin's camera judged (vision/inspect.ts), as the database keeps it."
+      },
+      "TwinOrder": {
+        "properties": {
+          "flavour": {
+            "type": "string",
+            "enum": [
+              "chocolate",
+              "strawberry",
+              "vanilla"
+            ],
+            "title": "Flavour"
+          },
+          "qty": {
+            "type": "integer",
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Qty"
+          },
+          "baked": {
+            "type": "integer",
+            "maximum": 48.0,
+            "minimum": 0.0,
+            "title": "Baked"
+          },
+          "good": {
+            "type": "integer",
+            "maximum": 12.0,
+            "minimum": 0.0,
+            "title": "Good"
+          },
+          "scrap": {
+            "type": "integer",
+            "maximum": 36.0,
+            "minimum": 0.0,
+            "title": "Scrap"
+          },
+          "qc_fault": {
+            "type": "string",
+            "enum": [
+              "",
+              "burnt",
+              "underbaked",
+              "cracked"
+            ],
+            "title": "Qc Fault",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "flavour",
+          "qty",
+          "baked",
+          "good",
+          "scrap"
+        ],
+        "title": "TwinOrder",
+        "description": "An order line the twin finished: what it baked, kept, and threw out."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

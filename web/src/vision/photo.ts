@@ -20,6 +20,7 @@
 
 import * as THREE from "three";
 import { HAS_API } from "../shared/mode";
+import { api } from "../shared/api";
 import { liveLink, toB64 } from "../shared/liveLink";
 
 export const PHOTO_PX = 256;
@@ -124,7 +125,7 @@ export async function keep(blob: Blob, empty: Blob | null, flavour: string, n: n
   if (!HAS_API) return;
   try {
     const q = new URLSearchParams({ flavour, n: String(n), source: "twin" });
-    const r = await fetch(`/vision/captures?${q}`, { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: blob });
+    const r = await fetch(api(`/vision/captures?${q}`), { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: blob });
     entry.stored = r.ok ? "yes" : "no";
   } catch {
     entry.stored = "no";
