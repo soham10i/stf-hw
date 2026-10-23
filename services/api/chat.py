@@ -1165,117 +1165,30 @@ class Chat:
             say("step", f"DuckDuckGo failed: {e}")
             return None
 
-    def _gemini(
-        self,
-        req: ChatRequest,
-        ctx: T.Ctx,
-        results: list[T.Result],
-        called: list[str],
-        check,
-        meta: dict,
-    ) -> tuple[str, list[str]]:
-        say = meta.get("emit") or (lambda *_: None)
-        web = bool(meta.get("web"))
-        body = build_body(
-            req, results, meta.get("extra", ""), search=self.c.grounding or web, functions=not web
-        )
-        if meta.get("gemini_tokens"):
-            body["generationConfig"]["maxOutputTokens"] = meta["gemini_tokens"]
-        retried = False
-        for _ in range(MAX_ROUNDS + 1):
-            data = self._gemini_post(body, meta)
-            th = thoughts(data)
-            if th:
-                meta.setdefault("thinking", []).append(th)
-                say("thinking", th)
-            if web:
-                meta["web_sources"] = grounding_sources(data) or meta.get("web_sources", [])
-            fcs = function_calls(data)
-            if not fcs:
-                text = parse(data)
-                bad = check(text)
-                if not bad or retried or not data.get("candidates"):
-                    return text, bad
-                retried = True  # one chance to drop what it cannot back
-                body["contents"].append({"role": "model", **data["candidates"][0]["content"]})
-                body["contents"].append({"role": "user", "parts": [{"text": correction(bad)}]})
-                continue
-            # keep the model's turn as it came (it may carry thought signatures), then the results
-            body["contents"].append({"role": "model", **data["candidates"][0]["content"]})
-            parts = []
-            for fc in fcs:
-                say("step", f"called {fc.get('name', '?').replace('_', ' ')}")
-                r = T.call(fc.get("name", ""), fc.get("args") or {}, ctx)
-                results.append(r)
-                called.append(r.tool)
-                parts.append(
-                    {
-                        "functionResponse": {
-                            "name": fc.get("name", ""),
-                            "response": {"content": r.as_markdown()},
-                        }
-                    }
-                )
-            body["contents"].append({"role": "user", "parts": parts})
-        body.pop("tools", None)  # last round: answer with what it has
-        text = parse(self._gemini_post(body, meta))
-        return text, check(text)
+    def conversation(
+        self, prov: str, req: ChatRequest, ctx: T.Ctx, results: list[T.Result],
+        called: list[str], meta: dict,
+    ):
+        """One provider's exchange for this question (toolloop.Conversation): its tool loop
+        and its one correction, the same code for every provider. Raises ModelError when the
+        provider is not configured."""
+        from . import toolloop as TL  # toolloop builds on this module
 
-    def _ollama(
-        self,
-        req: ChatRequest,
-        ctx: T.Ctx,
-        results: list[T.Result],
-        called: list[str],
-        check,
-        meta: dict,
+        return TL.Conversation(TL.ADAPTERS[prov](self), req, ctx, results, called, meta)
+
+    def converse(
+        self, prov: str, req: ChatRequest, ctx: T.Ctx, results: list[T.Result],
+        called: list[str], check, meta: dict,
     ) -> tuple[str, list[str]]:
-        model = self.c.ollama_model or "qwen2.5:7b-instruct"
-        self._local.deadline = meta.get("deadline")
-        body = build_ollama_body(req, model, results, meta.get("extra", ""))
-        if meta.get("max_tokens"):  # a small local model: a third of a hosted model's allowance
-            body["options"]["num_predict"] = max(600, meta["max_tokens"] // 3)
-        retried = False
-        for _ in range(MAX_ROUNDS + 1):
-            try:
-                data = self.post_ollama(self.c.ollama_url, body)
-            except urllib.error.HTTPError as e:
-                raise ModelError(f"the local model answered HTTP {e.code}") from None
-            except (urllib.error.URLError, TimeoutError):
-                raise ModelError(
-                    "the local model did not answer in time (is 'ollama serve' running?)"
-                ) from None
-            msg = data.get("message") or {}
-            think = (msg.get("thinking") or split_think(msg.get("content") or "")[0]).strip()
-            if think:
-                meta.setdefault("thinking", []).append(think)
-                (meta.get("emit") or (lambda *_: None))("thinking", think)
-            tcs = msg.get("tool_calls") or []
-            if not tcs:
-                text = parse_ollama(data)
-                bad = check(text)
-                if not bad or retried:
-                    return text, bad
-                retried = True
-                body["messages"].append({"role": "assistant", "content": text})
-                body["messages"].append({"role": "user", "content": correction(bad)})
-                continue
-            body["messages"].append(msg)
-            for tc in tcs:
-                fn = tc.get("function") or {}
-                args = fn.get("arguments") or {}
-                if isinstance(args, str):
-                    try:
-                        args = json.loads(args)
-                    except ValueError:
-                        args = {}
-                r = T.call(fn.get("name", ""), args, ctx)
-                results.append(r)
-                called.append(r.tool)
-                body["messages"].append({"role": "tool", "content": r.as_markdown()})
-        body.pop("tools", None)
-        text = parse_ollama(self.post_ollama(self.c.ollama_url, body))
-        return text, check(text)
+        """One provider's whole answer outside the graph: the tool loop, then the number check
+        with its one correction (in the graph the check is its own node, agent.verify)."""
+        c = self.conversation(prov, req, ctx, results, called, meta)
+        text = c.run()
+        bad = check(text)
+        if bad and c.correct(bad):
+            text = c.run()
+            bad = check(text)
+        return text, bad
 
     def _groq_post(self, body: dict, meta: dict) -> dict:
         """One request to the first Groq model with quota left. Each model has its own
@@ -1345,68 +1258,6 @@ class Chat:
             "every Groq model is at its per-minute limit", min(waits) if waits else 60.0
         )
 
-    def _groq(
-        self,
-        req: ChatRequest,
-        ctx: T.Ctx,
-        results: list[T.Result],
-        called: list[str],
-        check,
-        meta: dict,
-    ) -> tuple[str, list[str]]:
-        if not self.c.groq_key:
-            raise ModelError("no Groq API key configured")
-        say = meta.get("emit") or (lambda *_: None)
-        body = build_groq_body(
-            req, meta.get("groq_model") or self.c.groq_model, results, meta.get("extra", "")
-        )
-        retried = False
-        for _ in range(MAX_ROUNDS + 1):
-            data = self._groq_post(body, meta)
-            think = groq_thinking(data)
-            if think:
-                meta.setdefault("thinking", []).append(think)
-                say("thinking", think)
-            choice = (data.get("choices") or [{}])[0]
-            msg = choice.get("message") or {}
-            tcs = msg.get("tool_calls") or []
-            if not tcs:
-                text = parse_groq(data)
-                bad = check(text)
-                if not bad or retried:
-                    return text, bad
-                retried = True
-                say("step", f"checking: {', '.join(bad)} not in the evidence - asked to rewrite")
-                body["messages"].append({"role": "assistant", "content": text})
-                body["messages"].append({"role": "user", "content": correction(bad)})
-                continue
-            # the model's turn as it came, less what the API does not take back
-            body["messages"].append(
-                {k: v for k, v in msg.items() if k not in ("reasoning", "executed_tools")}
-            )
-            for tc in tcs:
-                fn = tc.get("function") or {}
-                args = fn.get("arguments") or {}
-                if isinstance(args, str):
-                    try:
-                        args = json.loads(args)
-                    except ValueError:
-                        args = {}
-                say("step", f"called {fn.get('name', '?').replace('_', ' ')}")
-                r = T.call(fn.get("name", ""), args, ctx)
-                results.append(r)
-                called.append(r.tool)
-                body["messages"].append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tc.get("id", f"call_{len(called)}"),
-                        "content": r.as_markdown(),
-                    }
-                )
-        body.pop("tools", None)
-        text = parse_groq(self._groq_post(body, meta))
-        return text, check(text)
-
     def _upb_post(self, body: dict, meta: dict) -> dict:
         if not self.c.upb_key:
             raise ModelError("no UPB API key configured")
@@ -1425,62 +1276,6 @@ class Chat:
             raise ModelError(f"UPB AI: {why}", COOL.get(e.code, 0.0)) from None
         except (urllib.error.URLError, TimeoutError):
             raise ModelError("UPB did not answer in time", COOL_TIMEOUT) from None
-
-    def _upb(
-        self,
-        req: ChatRequest,
-        ctx: T.Ctx,
-        results: list[T.Result],
-        called: list[str],
-        check,
-        meta: dict,
-    ) -> tuple[str, list[str]]:
-        if not self.c.upb_key:
-            raise ModelError("no UPB API key configured")
-        say = meta.get("emit") or (lambda *_: None)
-        body = build_groq_body(req, self.c.upb_model, results, meta.get("extra", ""))
-        body["max_tokens"] = meta.get("max_tokens") or body["max_tokens"]
-        retried = False
-        for _ in range(MAX_ROUNDS + 1):
-            data = self._upb_post(body, meta)
-            choice = (data.get("choices") or [{}])[0]
-            msg = choice.get("message") or {}
-            tcs = msg.get("tool_calls") or []
-            if not tcs:
-                text = parse_groq(data)
-                bad = check(text)
-                if not bad or retried:
-                    return text, bad
-                retried = True
-                say("step", f"checking: {', '.join(bad)} not in the evidence - asked to rewrite")
-                body["messages"].append({"role": "assistant", "content": text})
-                body["messages"].append({"role": "user", "content": correction(bad)})
-                continue
-            body["messages"].append(
-                {k: v for k, v in msg.items() if k not in ("reasoning", "executed_tools")}
-            )
-            for tc in tcs:
-                fn = tc.get("function") or {}
-                args = fn.get("arguments") or {}
-                if isinstance(args, str):
-                    try:
-                        args = json.loads(args)
-                    except ValueError:
-                        args = {}
-                say("step", f"called {fn.get('name', '?').replace('_', ' ')}")
-                r = T.call(fn.get("name", ""), args, ctx)
-                results.append(r)
-                called.append(r.tool)
-                body["messages"].append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tc.get("id", f"call_{len(called)}"),
-                        "content": r.as_markdown(),
-                    }
-                )
-        body.pop("tools", None)
-        text = parse_groq(self._upb_post(body, meta))
-        return text, check(text)
 
     def _openai_post(self, body: dict, meta: dict) -> dict:
         """One request to the operator's own OpenAI-compatible server (vLLM, Ollama, an
@@ -1503,66 +1298,6 @@ class Chat:
             raise ModelError(f"the open model: {why}", COOL.get(e.code, 0.0)) from None
         except (urllib.error.URLError, TimeoutError):
             raise ModelError("the open model did not answer in time", COOL_TIMEOUT) from None
-
-    def _openai(
-        self,
-        req: ChatRequest,
-        ctx: T.Ctx,
-        results: list[T.Result],
-        called: list[str],
-        check,
-        meta: dict,
-    ) -> tuple[str, list[str]]:
-        if not self.c.openai_url:
-            raise ModelError("no OpenAI-compatible endpoint configured")
-        say = meta.get("emit") or (lambda *_: None)
-        body = build_groq_body(req, self.c.openai_model, results, meta.get("extra", ""))
-        body["max_tokens"] = meta.get("max_tokens") or body["max_tokens"]
-        retried = False
-        for _ in range(MAX_ROUNDS + 1):
-            data = self._openai_post(body, meta)
-            think = groq_thinking(data)
-            if think:
-                meta.setdefault("thinking", []).append(think)
-                say("thinking", think)
-            choice = (data.get("choices") or [{}])[0]
-            msg = choice.get("message") or {}
-            tcs = msg.get("tool_calls") or []
-            if not tcs:
-                text = parse_groq(data)
-                bad = check(text)
-                if not bad or retried:
-                    return text, bad
-                retried = True
-                say("step", f"checking: {', '.join(bad)} not in the evidence - asked to rewrite")
-                body["messages"].append({"role": "assistant", "content": text})
-                body["messages"].append({"role": "user", "content": correction(bad)})
-                continue
-            body["messages"].append(
-                {k: v for k, v in msg.items() if k not in ("reasoning", "executed_tools")}
-            )
-            for tc in tcs:
-                fn = tc.get("function") or {}
-                args = fn.get("arguments") or {}
-                if isinstance(args, str):
-                    try:
-                        args = json.loads(args)
-                    except ValueError:
-                        args = {}
-                say("step", f"called {fn.get('name', '?').replace('_', ' ')}")
-                r = T.call(fn.get("name", ""), args, ctx)
-                results.append(r)
-                called.append(r.tool)
-                body["messages"].append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tc.get("id", f"call_{len(called)}"),
-                        "content": r.as_markdown(),
-                    }
-                )
-        body.pop("tools", None)
-        text = parse_groq(self._openai_post(body, meta))
-        return text, check(text)
 
     def _ddg_writer(self) -> tuple | None:
         """An (post, model) pair for the DuckDuckGo write-up: any OpenAI-compatible model -

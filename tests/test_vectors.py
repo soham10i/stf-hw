@@ -223,7 +223,8 @@ def test_openai_answers_and_cools_on_limit(monkeypatch):
         return {"choices": [{"message": {"content": "Understood."}}]}
 
     monkeypatch.setattr(chat, "post_groq", ok_post)
-    text, bad = chat._openai(
+    text, bad = chat.converse(
+        "openai",
         C.ChatRequest(question="say OK", provider="auto"), T.Ctx(), [], [], lambda t: [], {}
     )
     assert text == "Understood." and bad == []
@@ -235,7 +236,8 @@ def test_openai_answers_and_cools_on_limit(monkeypatch):
 
     monkeypatch.setattr(chat, "post_groq", busy_post)
     with pytest.raises(C.ModelError) as e:
-        chat._openai(
+        chat.converse(
+            "openai",
             C.ChatRequest(question="again", provider="auto"), T.Ctx(), [], [], lambda t: [], {}
         )
     assert e.value.cool and e.value.cool > 0

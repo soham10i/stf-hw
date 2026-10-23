@@ -10,7 +10,10 @@ an engine choice, never a second implementation.
        │ web/deep                ▲          ▲
        ├──────────▶ web ─────────┼─answered─┤
        ▼                         │          │
-     answer ──every model busy───┘──────────┘
+     answer ──every model busy───┘          │
+       │  ▲                                 │
+       ▼  │ an unbacked number, once        │
+     verify ────────────────────────────────┘
 
   prepare     the session (its turns and remembered facts), the rules router's tool calls, the
               answer cache for a repeated question
@@ -18,8 +21,10 @@ an engine choice, never a second implementation.
               question's style (respond.py) and depth (depth.py); the provider ladder
   web         the web search ladder (WEB_SEARCH_ORDER) and, when thorough, the literature; a web
               question's search answer can be the reply itself
-  answer      the model ladder (Gemini lanes, Groq, UPB, an open model, Ollama), each with its own
-              tool loop and number check (verify.py); a failure hands over to the next
+  answer      the model ladder (Gemini lanes, Groq, UPB, an open model, Ollama): each provider
+              runs the one tool loop (toolloop.py); a failure hands over to the next
+  verify      the number check (verify.py): an answer with a number nothing backs goes back to
+              the model that wrote it, once; then it stands, flagged
   tools_only  the twin's tools answer: no model is configured, or none answered in time
   respond     the payload (policy-vetted links, cites, steps, usage), the session and the cache
 
@@ -77,6 +82,7 @@ class State(TypedDict, total=False):
     web: bool  # the route searches the web
     rules: bool  # the twin's tools answer (no model, or none answered)
     why: str | None  # why the tools answer
+    retry: bool  # verify sent the answer back to its model once
     outcome: dict  # {answer, model, note, bad}: what respond turns into the payload
     out: dict  # the payload (a cache hit sets it at once)
 
@@ -114,6 +120,8 @@ class Question:
     extra: str = ""
     chain: list[str] = field(default_factory=list)
     found: Any = None
+    convo: Any = None  # the conversation that answered (toolloop.Conversation)
+    prov: str = ""  # its provider
 
     def say(self, kind: str, text: str) -> None:
         """Record a progress step and forward it to the client's emit hook."""
@@ -300,12 +308,18 @@ NEXT_NAME = {
 async def answer(state: State, q: Question) -> State:
     """The chosen kind first, the other next (each model in turn), then the tools: a limit hands
     the question - with the session's context - to the next, never an error. The whole hand-over
-    is bounded: past DEADLINE_S the tools answer."""
+    is bounded: past DEADLINE_S the tools answer. Each provider runs the one tool loop
+    (toolloop.py); its answer goes to verify. Sent back by verify, the same conversation goes on
+    with the correction."""
     chat, req, plan, dp = q.chat, q.req, q.plan, q.dp
-    runs = {
-        "gemini": chat._gemini, "groq": chat._groq, "upb": chat._upb, "openai": chat._openai,
-        "ollama": chat._ollama,
-    }
+    if state.get("retry"):
+        try:
+            await asyncio.to_thread(q.convo.run)
+        except C.ModelError as e:  # the first answer stands, flagged by verify
+            q.convo.final = True
+            q.notes.append(f"the correction failed ({e})")
+            q.say("step", f"the correction failed: {e}")
+        return {"retry": False}
     t0 = time.monotonic()
     for i, prov in enumerate(q.chain):
         if time.monotonic() - t0 > C.DEADLINE_S:
@@ -329,9 +343,8 @@ async def answer(state: State, q: Question) -> State:
             "deadline": t0 + C.DEADLINE_S,
         }
         try:
-            text, bad = await asyncio.to_thread(
-                runs.get(prov, chat._ollama), req, q.ctx, q.results, q.called, q.check, meta
-            )
+            convo = chat.conversation(prov, req, q.ctx, q.results, q.called, meta)
+            await asyncio.to_thread(convo.run)
         except C.ModelError as e:
             logger.warning(
                 "LLM provider '%s' failed for question %r: %s", prov, req.question[:60], e
@@ -347,35 +360,51 @@ async def answer(state: State, q: Question) -> State:
                 nxt = NEXT_NAME.get(q.chain[i + 1], "next")
                 q.switched.append({"from": who, "to": nxt, "why": str(e)})
             continue
-        chat.out.pop(prov, None)
-        for m, why in meta.get("skipped", []):
-            q.switched.append({"from": m, "to": meta.get("model"), "why": why})
-        if meta.get("web_sources"):  # Gemini's Google Search grounding
-            g, n = SP.clean(W.Found("", meta["web_sources"], model="gemini"), q.level)
-            q.removed += n
-            q.results.append(C.web_result("web_search", g))
-            q.called.append("web_search")
-        if prov == "gemini":
-            model = meta.get("model") or chat.c.model
-        elif prov == "groq":
-            model = meta.get("model") or f"groq {chat.c.groq_model}"
-        elif prov == "openai":
-            model = chat.c.openai_model
-        else:
-            model = chat.c.ollama_model or "ollama"
-        warn = list(q.notes[-1:]) if any("web search failed" in n for n in q.notes) else []
-        if bad:
-            warn.append(
-                f"Not backed by the twin's data: {', '.join(bad)} - "
-                "check these before relying on them"
-            )
-        note = "; ".join(warn) + "." if warn else None
-        return {"outcome": {"answer": C.tidy(text), "model": model, "note": note, "bad": bad}}
+        q.convo, q.prov = convo, prov
+        return {"retry": False}
     why = (
         "Every model is busy (" + "; ".join(q.notes)
         + "); answered from the twin's tools and documents."
     )
     return {"rules": True, "why": why}
+
+
+async def verify(state: State, q: Question) -> State:
+    """The number check (verify.py): every number in the answer must be in the evidence. The
+    first time one is not, the answer goes back to the model that wrote it, once
+    (Conversation.correct); after that it stands, flagged as unverified."""
+    chat, convo, prov = q.chat, q.convo, q.prov
+    bad = q.check(convo.text)
+    if bad and convo.correct(bad):
+        return {"retry": True}
+    meta = convo.meta
+    chat.out.pop(prov, None)
+    for m, why in meta.get("skipped", []):
+        q.switched.append({"from": m, "to": meta.get("model"), "why": why})
+    if meta.get("web_sources"):  # Gemini's Google Search grounding
+        g, n = SP.clean(W.Found("", meta["web_sources"], model="gemini"), q.level)
+        q.removed += n
+        q.results.append(C.web_result("web_search", g))
+        q.called.append("web_search")
+    if prov == "gemini":
+        model = meta.get("model") or chat.c.model
+    elif prov == "groq":
+        model = meta.get("model") or f"groq {chat.c.groq_model}"
+    elif prov == "openai":
+        model = chat.c.openai_model
+    elif prov == "upb":
+        model = meta.get("model") or f"upb {chat.c.upb_model}"
+    else:
+        model = chat.c.ollama_model or "ollama"
+    warn = [n for n in q.notes if "web search failed" in n][-1:]
+    warn += [n for n in q.notes if n.startswith("the correction failed")][-1:]
+    if bad:
+        warn.append(
+            f"Not backed by the twin's data: {', '.join(bad)} - "
+            "check these before relying on them"
+        )
+    note = "; ".join(warn) + "." if warn else None
+    return {"outcome": {"answer": C.tidy(convo.text), "model": model, "note": note, "bad": bad}}
 
 
 async def tools_only(state: State, q: Question) -> State:
@@ -467,6 +496,7 @@ NODES = {
     "route": route,
     "web": web,
     "answer": answer,
+    "verify": verify,
     "tools_only": tools_only,
     "respond": respond,
 }
@@ -486,7 +516,11 @@ def after_web(s: State) -> str:
 
 
 def after_answer(s: State) -> str:
-    return "tools_only" if s.get("rules") else "respond"
+    return "tools_only" if s.get("rules") else "verify"
+
+
+def after_verify(s: State) -> str:
+    return "answer" if s.get("retry") else "respond"
 
 
 # each node's edge: a function of the state (with every place it can lead), or one fixed node
@@ -494,7 +528,8 @@ EDGES: dict[str, tuple] = {
     "prepare": (after_prepare, ["route", END]),
     "route": (after_route, ["tools_only", "web", "answer"]),
     "web": (after_web, ["respond", "answer"]),
-    "answer": (after_answer, ["tools_only", "respond"]),
+    "answer": (after_answer, ["tools_only", "verify"]),
+    "verify": (after_verify, ["answer", "respond"]),
     "tools_only": ("respond",),
     "respond": (END,),
 }
@@ -507,11 +542,14 @@ def engine() -> str:
     return "graph" if want != "linear" and HAVE_LANGGRAPH else "linear"
 
 
+MAX_STEPS = 12  # the longest path is 8 (verify -> answer once); also LangGraph's recursion limit
+
+
 async def run_linear(q: Question) -> dict:
     """The nodes in a plain loop, following the same edges: the graph without its engine."""
     state: State = {}
     node = "prepare"
-    for _ in range(len(NODES) + 1):  # no node is visited twice
+    for _ in range(MAX_STEPS):
         if node == END:
             break
         state.update(await NODES[node](state, q) or {})
@@ -551,7 +589,7 @@ def graph():
 async def run(q: Question) -> dict:
     """Answer one question on the configured engine."""
     if engine() == "graph":
-        state = await graph().ainvoke({}, context=q)
+        state = await graph().ainvoke({}, context=q, config={"recursion_limit": MAX_STEPS})
         return state["out"]
     return await run_linear(q)
 

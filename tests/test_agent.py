@@ -79,7 +79,8 @@ def test_the_edges_route_as_drawn():
     assert A.after_route({"rules": True, "web": True}) == "tools_only"
     assert A.after_route({"web": True}) == "web" and A.after_route({}) == "answer"
     assert A.after_web({"outcome": {}}) == "respond" and A.after_web({}) == "answer"
-    assert A.after_answer({"rules": True}) == "tools_only" and A.after_answer({}) == "respond"
+    assert A.after_answer({"rules": True}) == "tools_only" and A.after_answer({}) == "verify"
+    assert A.after_verify({"retry": True}) == "answer" and A.after_verify({}) == "respond"
 
 
 def test_a_repeated_question_ends_at_prepare(monkeypatch):

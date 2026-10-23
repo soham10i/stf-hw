@@ -4,9 +4,10 @@ How the copilot's answer pipeline runs as a LangGraph state machine inside the e
 `stf-live` Cloud Run service, what is built, what each later phase adds, which loops an
 industrial agent needs and how each is bounded, and what it costs on the $300 trial credit.
 
-Code: `services/api/agent.py` (the graph), `services/api/gcp_auth.py` (Vertex AI tokens),
-`services/api/chat.py` (the providers, tools loop, budgets). Tests: `tests/test_agent.py`,
-`tests/test_vertex.py`. Live drawing: `GET /chat/graph`.
+Code: `services/api/agent.py` (the graph), `services/api/toolloop.py` (the one tool loop and
+its provider adapters), `services/api/gcp_auth.py` (Vertex AI tokens), `services/api/chat.py`
+(the providers' transports, budgets, web search). Tests: `tests/test_agent.py`,
+`tests/test_toolloop.py`, `tests/test_vertex.py`. Live drawing: `GET /chat/graph`.
 
 ## 1. Decisions
 
@@ -19,7 +20,7 @@ Code: `services/api/agent.py` (the graph), `services/api/gcp_auth.py` (Vertex AI
 | Paid model | **Gemini on Vertex AI** via the service account's OAuth token | What the trial credit pays for; the AI Studio endpoint may not be |
 | Engine switch | `STF_AGENT=graph` (default) / `linear` | Kill switch: the same nodes run as a plain loop, so rollback is an env var, not a deploy |
 
-## 2. What is built (phase 1)
+## 2. What is built (phases 1 and 2)
 
 ```mermaid
 graph TD
@@ -32,7 +33,9 @@ graph TD
   web -. answered .-> respond
   web -.-> answer
   answer -. every model busy .-> tools_only
-  answer -.-> respond
+  answer -.-> verify
+  verify -. unbacked number, once .-> answer
+  verify -.-> respond
   tools_only --> respond
   respond --> E
 ```
@@ -42,12 +45,13 @@ graph TD
 | `prepare` | session turns and remembered facts, rules router's tool calls, repeat-question cache | `sessions`, `tools.rules_answer` |
 | `route` | chat/twin/docs/web/deep by rules; style; depth; provider ladder; daily cap | `orchestrate.decide`, `respond.classify`, `depth.pick` |
 | `web` | search ladder (Gemini grounding, Groq browser search, DuckDuckGo), literature when thorough, source policy | `Chat._web_*`, `scholar`, `source_policy` |
-| `answer` | the model ladder; each provider runs its own tool loop and number check; failures hand over | `Chat._gemini/_groq/_upb/_openai/_ollama` |
+| `answer` | the model ladder; each provider runs the one tool loop through its adapter; failures hand over | `Chat.conversation`, `toolloop.Conversation.run` |
+| `verify` | the number check; an answer with a number nothing backs goes back to the model that wrote it, once | `verify.unverified`, `Conversation.correct` |
 | `tools_only` | the twin's tools answer in the rules mode's words | `chat.fallback` |
 | `respond` | payload (vetted links, cites, steps, usage), session turn, cache | `source_policy.strip_links`, `sessions` |
 
 **State vs context.** The graph *state* holds only what edges decide on and what a checkpoint
-would keep: `mode`, `web`, `rules`, `why`, `outcome`, `out`. The per-request working memory
+would keep: `mode`, `web`, `rules`, `why`, `retry`, `outcome`, `out`. The per-request working memory
 (HTTP request, the stream's `emit`, tool results the model loops append to) is a `Question`
 passed as LangGraph *runtime context* (`context_schema`) - never checkpointed, so no guest data
 lands in a checkpoint store.
@@ -61,14 +65,47 @@ engines - unchanged from the baseline. Live on :8000 a twin question routed `twi
 **Streaming** is unchanged: nodes call `Question.say`, which feeds the same FIFO the SSE
 endpoint drains (`/chat/stream` route/step/thinking/answer).
 
+## 2b. Phase 2's gate: same behaviour, measured three ways
+
+1. **Byte-identical requests.** One scripted conversation per provider (a tool call, an
+   answer with a number nothing backs, the corrected answer) was recorded on the five old loops
+   and replayed on the new tool loop + verify node: Gemini, Groq and Ollama are sent identical
+   requests and give the same answer, on both engines. The recording is kept as a golden test
+   (`tests/test_golden_requests.py`, `tests/golden/copilot_requests.json`).
+2. **Unit and parity tests.** 506 tests on each engine, among them each adapter's tool
+   round trip, the correction sent once and only once, a failed correction keeping the first
+   answer flagged, and the final no-tools answer never being sent back.
+3. **Model eval** (`eval_copilot --provider ollama`, qwen2.5:7b-instruct, local):
+
+   | Run | tuning faithful | held-out tools | held-out facts | held-out faithful | flagged |
+   |---|---|---|---|---|---|
+   | phase 1 (old loops) | 28/29 | 9/12 | 12/12 | 11/12 | 2 |
+   | phase 2, graph | 27/29 | 8/12 | 12/12 | 11/12 | 3 |
+   | phase 2, linear | 27/29 | 8/12 | 12/12 | 11/12 | 3 |
+
+   The differences are the model's sampling, not the code: graph and linear run the same code
+   and still disagree on two questions, and the two questions that differ from phase 1 were
+   asked five more times on each version - "where do we lose most time in an order?" called
+   `oee_bottleneck` 2/5 times on the old code and 1/5 on the new, "does the battery pay off?"
+   was verified 5/5 and 4/5. With (1) showing identical requests, the eval is read as
+   unchanged. The real finding is that qwen2.5-7b picks `oee_bottleneck` unreliably for that
+   paraphrase - a router or tool-description fix, not a loop fix. Every unbacked number in all
+   three runs was caught and flagged by the number check.
+
+Behaviour changes, deliberate: an answer from UPB was labelled with the local model's name (a
+bug in the old dispatch) and now carries UPB's; Ollama now reports "called X" steps and every
+provider reports "checking: ..." when an answer is sent back; a correction that fails (the
+provider errors on the second request) keeps the first answer, flagged, instead of handing the
+question to the next provider.
+
 ## 3. The loops, and how each is bounded
 
 Every loop has a hard cap, a stop condition and an exit. An industrial agent never loops open.
 
 | # | Loop | Where | Cap | Exit on failure | Status |
 |---|---|---|---|---|---|
-| 1 | **Tool use (ReAct)**: model -> tool calls -> results -> model | `answer` (per provider today) | `MAX_ROUNDS=4`, then a forced answer without tools | next provider | built ×5; phase 2 unifies into one node + adapters |
-| 2 | **Verify-correct**: number check, one corrected retry | inside loop 1 (`verify.py`) | 1 retry | answer flagged `unverified` with a note | built; phase 2 lifts it into a `verify` node |
+| 1 | **Tool use (ReAct)**: model -> tool calls -> results -> model | `answer` -> `toolloop.Conversation.run` | `MAX_ROUNDS=4` (+1 shared with the correction), then a forced answer without tools | next provider | **built once** (phase 2): five adapters, one loop |
+| 2 | **Verify-correct**: number check, one corrected retry | `verify` node -> back to `answer` | 1 correction (`Conversation.corrected`); graph `recursion_limit` 12 | answer stands, flagged `unverified` with a note | **built** (phase 2) |
 | 3 | **Corrective retrieval (CRAG)**: grade passages -> rewrite -> retrieve again | `docs_rag` subgraph | 1 rewrite | `web` if search allowed, else "documents don't cover it" | phase 3 (`rewrite.py`, reranker seam exist) |
 | 4 | **Plan -> fan-out -> combine -> critic -> replan** | `research` / root-cause subgraph, `Send` | ≤3 sub-tasks, ≤2 replans, fan-out width from `token_budget` tier | write up what was found, say what is missing | phase 3 (deep route's planner is the seed) |
 | 5 | **Act with human approval**: propose -> deterministic precheck -> `interrupt()` -> execute -> observe postcondition | `actuation` subgraph | 1 proposal per approval; observe timeout | compensate or escalate; never retries an actuation by itself | phase 5 |
@@ -97,8 +134,8 @@ why phase 1 compiles without one.
 | Phase | Adds | Gate |
 |---|---|---|
 | **1 - done** | graph wraps the pipeline; engine switch; `/chat/graph`; Vertex AI lane; cloud cap sized to the credit | full suite on both engines; eval unchanged |
-| 2 | one tool-loop node + provider adapters (deletes the five copies in `chat.py`); `verify` node; tool results move from context into state with an append reducer | eval per provider unchanged or better |
-| 3 | `docs_rag` (CRAG, loop 3) and `research` (loop 4) subgraphs with `Send` | retrieval eval (hit@k, MRR) and deep-question faithfulness |
+| **2 - done** | one tool loop + five provider adapters (`toolloop.py`; the five copies left `chat.py`, 2008 -> 1402 lines); `verify` node with the correction edge back to `answer` | golden requests identical; 506 tests on both engines; Ollama eval within sampling noise (section 2b) |
+| 3 | `docs_rag` (CRAG, loop 3) and `research` (loop 4) subgraphs with `Send`; tool results move from context into state with an append reducer (parallel branches need it; one sequential loop did not) | retrieval eval (hit@k, MRR) and deep-question faithfulness |
 | 4 | tracing: OpenTelemetry spans per node -> Langfuse (self-host or hobby tier) or Phoenix; one trace id per question, shown in the thinking drawer | traces for 100 % of eval questions |
 | 5 | `actuation` subgraph (loop 5) + Postgres checkpointer on Supabase (`langgraph-checkpoint-postgres`), checkpoints deleted with the guest (`DELETE /guest`, `STF_GUEST_DAYS`) | precheck mutants (every interlock refuses), approval round trip test |
 | 6 | monitoring loop (loop 6) over `livehub` + Sparkplug B (`stf-cad/hbw/uns`) | no LLM call per frame; alarm-flood test |
@@ -122,7 +159,7 @@ gcloud projects add-iam-policy-binding smart-tabletop-factory-512013 \
   --member="serviceAccount:500754517962-compute@developer.gserviceaccount.com" \
   --role="roles/aiplatform.user"
 gcloud run services update stf-live --region europe-west1 \
-  --update-env-vars GEMINI_VERTEX_PROJECT=smart-tabletop-factory-512013,GEMINI_CLOUD_MODELS=gemini-3.8-flash,gemini-3.5-flash
+  --update-env-vars "^@^GEMINI_VERTEX_PROJECT=smart-tabletop-factory-512013@GEMINI_CLOUD_MODELS=gemini-3.8-flash,gemini-3.5-flash"
 ```
 
 Then confirm in the console (Billing -> Credits) that the Vertex calls draw on the trial

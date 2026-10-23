@@ -1,0 +1,367 @@
+{
+ "gemini": {
+  "answer": "The belt warns in 0.6 shifts.",
+  "requests": [
+   {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "# CONTEXT\n\n## Tool results\n\n### Tool `machine_health`\n\nNothing is due. Next: HBW belt warns in 0.6 shifts.\n\n| Fact | Value |\n|---|---|\n| HBW belt | health 52 - warns in 0.6 shifts, fails in 15.2 |\n| VGR suction cup seal | health 57 - warns in 7.8 shifts, fails in 46.5 |\n| air supply (leaks) | health 97 - warns in 16.1 shifts, fails in 26.4 |\n| colour sensor A4 (LED ageing) | health 87 - warns in 24.5 shifts, fails in 57.9 |\n| VGR swivel gearbox (sudden-onset wear) | health 99 - warns in 30.5 shifts, fails in 35.8 |\n| HBW travel spindle + nut | health 97 - warns in 84.5 shifts, fails in 132.1 |\n| oven door cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n| Sauger lowering cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n\nSources: [condition-monitoring model at machine age 140 shifts, preventive maintenance on]\nDashboard page: Maintenance\n\nFORMAT (answer): Answer plainly and briefly.\n\nLENGTH (standard): a complete answer of about 150-450 words; headings only when there are several parts.\n\n# QUESTION\n\nwhich part needs service first?"
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096,
+     "temperature": 0.2,
+     "thinkingConfig": {
+      "includeThoughts": true
+     }
+    },
+    "systemInstruction": "<SYSTEM>",
+    "tools": "<1 tool groups>"
+   },
+   {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "# CONTEXT\n\n## Tool results\n\n### Tool `machine_health`\n\nNothing is due. Next: HBW belt warns in 0.6 shifts.\n\n| Fact | Value |\n|---|---|\n| HBW belt | health 52 - warns in 0.6 shifts, fails in 15.2 |\n| VGR suction cup seal | health 57 - warns in 7.8 shifts, fails in 46.5 |\n| air supply (leaks) | health 97 - warns in 16.1 shifts, fails in 26.4 |\n| colour sensor A4 (LED ageing) | health 87 - warns in 24.5 shifts, fails in 57.9 |\n| VGR swivel gearbox (sudden-onset wear) | health 99 - warns in 30.5 shifts, fails in 35.8 |\n| HBW travel spindle + nut | health 97 - warns in 84.5 shifts, fails in 132.1 |\n| oven door cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n| Sauger lowering cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n\nSources: [condition-monitoring model at machine age 140 shifts, preventive maintenance on]\nDashboard page: Maintenance\n\nFORMAT (answer): Answer plainly and briefly.\n\nLENGTH (standard): a complete answer of about 150-450 words; headings only when there are several parts.\n\n# QUESTION\n\nwhich part needs service first?"
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "parts": [
+       {
+        "functionCall": {
+         "args": {
+          "parts": [
+           "hbw_belt"
+          ]
+         },
+         "name": "machine_health"
+        }
+       }
+      ],
+      "role": "model"
+     },
+     {
+      "parts": [
+       {
+        "functionResponse": {
+         "name": "machine_health",
+         "response": {
+          "content": "### Tool `machine_health`\n\nNo monitored part matches hbw_belt. Monitored: cup, door, lower, pusher, belt, rfid, spindle, gearbox, air, colour."
+         }
+        }
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096,
+     "temperature": 0.2,
+     "thinkingConfig": {
+      "includeThoughts": true
+     }
+    },
+    "systemInstruction": "<SYSTEM>",
+    "tools": "<1 tool groups>"
+   },
+   {
+    "contents": [
+     {
+      "parts": [
+       {
+        "text": "# CONTEXT\n\n## Tool results\n\n### Tool `machine_health`\n\nNothing is due. Next: HBW belt warns in 0.6 shifts.\n\n| Fact | Value |\n|---|---|\n| HBW belt | health 52 - warns in 0.6 shifts, fails in 15.2 |\n| VGR suction cup seal | health 57 - warns in 7.8 shifts, fails in 46.5 |\n| air supply (leaks) | health 97 - warns in 16.1 shifts, fails in 26.4 |\n| colour sensor A4 (LED ageing) | health 87 - warns in 24.5 shifts, fails in 57.9 |\n| VGR swivel gearbox (sudden-onset wear) | health 99 - warns in 30.5 shifts, fails in 35.8 |\n| HBW travel spindle + nut | health 97 - warns in 84.5 shifts, fails in 132.1 |\n| oven door cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n| Sauger lowering cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n\nSources: [condition-monitoring model at machine age 140 shifts, preventive maintenance on]\nDashboard page: Maintenance\n\nFORMAT (answer): Answer plainly and briefly.\n\nLENGTH (standard): a complete answer of about 150-450 words; headings only when there are several parts.\n\n# QUESTION\n\nwhich part needs service first?"
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "parts": [
+       {
+        "functionCall": {
+         "args": {
+          "parts": [
+           "hbw_belt"
+          ]
+         },
+         "name": "machine_health"
+        }
+       }
+      ],
+      "role": "model"
+     },
+     {
+      "parts": [
+       {
+        "functionResponse": {
+         "name": "machine_health",
+         "response": {
+          "content": "### Tool `machine_health`\n\nNo monitored part matches hbw_belt. Monitored: cup, door, lower, pusher, belt, rfid, spindle, gearbox, air, colour."
+         }
+        }
+       }
+      ],
+      "role": "user"
+     },
+     {
+      "parts": [
+       {
+        "text": "The belt warns in 7.7 shifts."
+       }
+      ],
+      "role": "model"
+     },
+     {
+      "parts": [
+       {
+        "text": "Your answer states 7.7, which neither CONTEXT nor any tool result contains. Rewrite the answer using only numbers that appear there - call a tool if you need a fact - and leave out what you cannot back. Do not mention this correction."
+       }
+      ],
+      "role": "user"
+     }
+    ],
+    "generationConfig": {
+     "maxOutputTokens": 4096,
+     "temperature": 0.2,
+     "thinkingConfig": {
+      "includeThoughts": true
+     }
+    },
+    "systemInstruction": "<SYSTEM>",
+    "tools": "<1 tool groups>"
+   }
+  ],
+  "tools": [
+   "machine_health",
+   "machine_health"
+  ]
+ },
+ "groq": {
+  "answer": "The belt warns in 0.6 shifts.",
+  "requests": [
+   {
+    "include_reasoning": true,
+    "max_tokens": 3000,
+    "messages": [
+     {
+      "content": "<SYSTEM>",
+      "role": "system"
+     },
+     {
+      "content": "# CONTEXT\n\n## Tool results\n\n### Tool `machine_health`\n\nNothing is due. Next: HBW belt warns in 0.6 shifts.\n\n| Fact | Value |\n|---|---|\n| HBW belt | health 52 - warns in 0.6 shifts, fails in 15.2 |\n| VGR suction cup seal | health 57 - warns in 7.8 shifts, fails in 46.5 |\n| air supply (leaks) | health 97 - warns in 16.1 shifts, fails in 26.4 |\n| colour sensor A4 (LED ageing) | health 87 - warns in 24.5 shifts, fails in 57.9 |\n| VGR swivel gearbox (sudden-onset wear) | health 99 - warns in 30.5 shifts, fails in 35.8 |\n| HBW travel spindle + nut | health 97 - warns in 84.5 shifts, fails in 132.1 |\n| oven door cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n| Sauger lowering cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n\nSources: [condition-monitoring model at machine age 140 shifts, preventive maintenance on]\nDashboard page: Maintenance\n\nFORMAT (answer): Answer plainly and briefly.\n\nLENGTH (standard): a complete answer of about 150-450 words; headings only when there are several parts.\n\n# QUESTION\n\nwhich part needs service first?",
+      "role": "user"
+     }
+    ],
+    "model": "openai/gpt-oss-120b",
+    "reasoning_effort": "low",
+    "temperature": 0.2,
+    "tools": "<15 tool groups>"
+   },
+   {
+    "include_reasoning": true,
+    "max_tokens": 3000,
+    "messages": [
+     {
+      "content": "<SYSTEM>",
+      "role": "system"
+     },
+     {
+      "content": "# CONTEXT\n\n## Tool results\n\n### Tool `machine_health`\n\nNothing is due. Next: HBW belt warns in 0.6 shifts.\n\n| Fact | Value |\n|---|---|\n| HBW belt | health 52 - warns in 0.6 shifts, fails in 15.2 |\n| VGR suction cup seal | health 57 - warns in 7.8 shifts, fails in 46.5 |\n| air supply (leaks) | health 97 - warns in 16.1 shifts, fails in 26.4 |\n| colour sensor A4 (LED ageing) | health 87 - warns in 24.5 shifts, fails in 57.9 |\n| VGR swivel gearbox (sudden-onset wear) | health 99 - warns in 30.5 shifts, fails in 35.8 |\n| HBW travel spindle + nut | health 97 - warns in 84.5 shifts, fails in 132.1 |\n| oven door cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n| Sauger lowering cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n\nSources: [condition-monitoring model at machine age 140 shifts, preventive maintenance on]\nDashboard page: Maintenance\n\nFORMAT (answer): Answer plainly and briefly.\n\nLENGTH (standard): a complete answer of about 150-450 words; headings only when there are several parts.\n\n# QUESTION\n\nwhich part needs service first?",
+      "role": "user"
+     },
+     {
+      "content": "",
+      "role": "assistant",
+      "tool_calls": [
+       {
+        "function": {
+         "arguments": "{\"parts\": [\"hbw_belt\"]}",
+         "name": "machine_health"
+        },
+        "id": "t1"
+       }
+      ]
+     },
+     {
+      "content": "### Tool `machine_health`\n\nNo monitored part matches hbw_belt. Monitored: cup, door, lower, pusher, belt, rfid, spindle, gearbox, air, colour.",
+      "role": "tool",
+      "tool_call_id": "t1"
+     }
+    ],
+    "model": "openai/gpt-oss-120b",
+    "reasoning_effort": "low",
+    "temperature": 0.2,
+    "tools": "<15 tool groups>"
+   },
+   {
+    "include_reasoning": true,
+    "max_tokens": 3000,
+    "messages": [
+     {
+      "content": "<SYSTEM>",
+      "role": "system"
+     },
+     {
+      "content": "# CONTEXT\n\n## Tool results\n\n### Tool `machine_health`\n\nNothing is due. Next: HBW belt warns in 0.6 shifts.\n\n| Fact | Value |\n|---|---|\n| HBW belt | health 52 - warns in 0.6 shifts, fails in 15.2 |\n| VGR suction cup seal | health 57 - warns in 7.8 shifts, fails in 46.5 |\n| air supply (leaks) | health 97 - warns in 16.1 shifts, fails in 26.4 |\n| colour sensor A4 (LED ageing) | health 87 - warns in 24.5 shifts, fails in 57.9 |\n| VGR swivel gearbox (sudden-onset wear) | health 99 - warns in 30.5 shifts, fails in 35.8 |\n| HBW travel spindle + nut | health 97 - warns in 84.5 shifts, fails in 132.1 |\n| oven door cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n| Sauger lowering cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n\nSources: [condition-monitoring model at machine age 140 shifts, preventive maintenance on]\nDashboard page: Maintenance\n\nFORMAT (answer): Answer plainly and briefly.\n\nLENGTH (standard): a complete answer of about 150-450 words; headings only when there are several parts.\n\n# QUESTION\n\nwhich part needs service first?",
+      "role": "user"
+     },
+     {
+      "content": "",
+      "role": "assistant",
+      "tool_calls": [
+       {
+        "function": {
+         "arguments": "{\"parts\": [\"hbw_belt\"]}",
+         "name": "machine_health"
+        },
+        "id": "t1"
+       }
+      ]
+     },
+     {
+      "content": "### Tool `machine_health`\n\nNo monitored part matches hbw_belt. Monitored: cup, door, lower, pusher, belt, rfid, spindle, gearbox, air, colour.",
+      "role": "tool",
+      "tool_call_id": "t1"
+     },
+     {
+      "content": "The belt warns in 7.7 shifts.",
+      "role": "assistant"
+     },
+     {
+      "content": "Your answer states 7.7, which neither CONTEXT nor any tool result contains. Rewrite the answer using only numbers that appear there - call a tool if you need a fact - and leave out what you cannot back. Do not mention this correction.",
+      "role": "user"
+     }
+    ],
+    "model": "openai/gpt-oss-120b",
+    "reasoning_effort": "low",
+    "temperature": 0.2,
+    "tools": "<15 tool groups>"
+   }
+  ],
+  "tools": [
+   "machine_health",
+   "machine_health"
+  ]
+ },
+ "ollama": {
+  "answer": "The belt warns in 0.6 shifts.",
+  "requests": [
+   {
+    "messages": [
+     {
+      "content": "<SYSTEM>",
+      "role": "system"
+     },
+     {
+      "content": "# CONTEXT\n\n## Tool results\n\n### Tool `machine_health`\n\nNothing is due. Next: HBW belt warns in 0.6 shifts.\n\n| Fact | Value |\n|---|---|\n| HBW belt | health 52 - warns in 0.6 shifts, fails in 15.2 |\n| VGR suction cup seal | health 57 - warns in 7.8 shifts, fails in 46.5 |\n| air supply (leaks) | health 97 - warns in 16.1 shifts, fails in 26.4 |\n| colour sensor A4 (LED ageing) | health 87 - warns in 24.5 shifts, fails in 57.9 |\n| VGR swivel gearbox (sudden-onset wear) | health 99 - warns in 30.5 shifts, fails in 35.8 |\n| HBW travel spindle + nut | health 97 - warns in 84.5 shifts, fails in 132.1 |\n| oven door cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n| Sauger lowering cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n\nSources: [condition-monitoring model at machine age 140 shifts, preventive maintenance on]\nDashboard page: Maintenance\n\nFORMAT (answer): Answer plainly and briefly.\n\nLENGTH (standard): a complete answer of about 150-450 words; headings only when there are several parts.\n\n# QUESTION\n\nwhich part needs service first?",
+      "role": "user"
+     }
+    ],
+    "model": "qwen2.5:7b-instruct",
+    "options": {
+     "num_predict": 1000,
+     "temperature": 0.2
+    },
+    "stream": false,
+    "tools": "<15 tool groups>"
+   },
+   {
+    "messages": [
+     {
+      "content": "<SYSTEM>",
+      "role": "system"
+     },
+     {
+      "content": "# CONTEXT\n\n## Tool results\n\n### Tool `machine_health`\n\nNothing is due. Next: HBW belt warns in 0.6 shifts.\n\n| Fact | Value |\n|---|---|\n| HBW belt | health 52 - warns in 0.6 shifts, fails in 15.2 |\n| VGR suction cup seal | health 57 - warns in 7.8 shifts, fails in 46.5 |\n| air supply (leaks) | health 97 - warns in 16.1 shifts, fails in 26.4 |\n| colour sensor A4 (LED ageing) | health 87 - warns in 24.5 shifts, fails in 57.9 |\n| VGR swivel gearbox (sudden-onset wear) | health 99 - warns in 30.5 shifts, fails in 35.8 |\n| HBW travel spindle + nut | health 97 - warns in 84.5 shifts, fails in 132.1 |\n| oven door cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n| Sauger lowering cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n\nSources: [condition-monitoring model at machine age 140 shifts, preventive maintenance on]\nDashboard page: Maintenance\n\nFORMAT (answer): Answer plainly and briefly.\n\nLENGTH (standard): a complete answer of about 150-450 words; headings only when there are several parts.\n\n# QUESTION\n\nwhich part needs service first?",
+      "role": "user"
+     },
+     {
+      "content": "",
+      "role": "assistant",
+      "tool_calls": [
+       {
+        "function": {
+         "arguments": {
+          "parts": [
+           "hbw_belt"
+          ]
+         },
+         "name": "machine_health"
+        }
+       }
+      ]
+     },
+     {
+      "content": "### Tool `machine_health`\n\nNo monitored part matches hbw_belt. Monitored: cup, door, lower, pusher, belt, rfid, spindle, gearbox, air, colour.",
+      "role": "tool"
+     }
+    ],
+    "model": "qwen2.5:7b-instruct",
+    "options": {
+     "num_predict": 1000,
+     "temperature": 0.2
+    },
+    "stream": false,
+    "tools": "<15 tool groups>"
+   },
+   {
+    "messages": [
+     {
+      "content": "<SYSTEM>",
+      "role": "system"
+     },
+     {
+      "content": "# CONTEXT\n\n## Tool results\n\n### Tool `machine_health`\n\nNothing is due. Next: HBW belt warns in 0.6 shifts.\n\n| Fact | Value |\n|---|---|\n| HBW belt | health 52 - warns in 0.6 shifts, fails in 15.2 |\n| VGR suction cup seal | health 57 - warns in 7.8 shifts, fails in 46.5 |\n| air supply (leaks) | health 97 - warns in 16.1 shifts, fails in 26.4 |\n| colour sensor A4 (LED ageing) | health 87 - warns in 24.5 shifts, fails in 57.9 |\n| VGR swivel gearbox (sudden-onset wear) | health 99 - warns in 30.5 shifts, fails in 35.8 |\n| HBW travel spindle + nut | health 97 - warns in 84.5 shifts, fails in 132.1 |\n| oven door cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n| Sauger lowering cylinder | health 98 - warns in 93.7 shifts, fails in 142.7 |\n\nSources: [condition-monitoring model at machine age 140 shifts, preventive maintenance on]\nDashboard page: Maintenance\n\nFORMAT (answer): Answer plainly and briefly.\n\nLENGTH (standard): a complete answer of about 150-450 words; headings only when there are several parts.\n\n# QUESTION\n\nwhich part needs service first?",
+      "role": "user"
+     },
+     {
+      "content": "",
+      "role": "assistant",
+      "tool_calls": [
+       {
+        "function": {
+         "arguments": {
+          "parts": [
+           "hbw_belt"
+          ]
+         },
+         "name": "machine_health"
+        }
+       }
+      ]
+     },
+     {
+      "content": "### Tool `machine_health`\n\nNo monitored part matches hbw_belt. Monitored: cup, door, lower, pusher, belt, rfid, spindle, gearbox, air, colour.",
+      "role": "tool"
+     },
+     {
+      "content": "The belt warns in 7.7 shifts.",
+      "role": "assistant"
+     },
+     {
+      "content": "Your answer states 7.7, which neither CONTEXT nor any tool result contains. Rewrite the answer using only numbers that appear there - call a tool if you need a fact - and leave out what you cannot back. Do not mention this correction.",
+      "role": "user"
+     }
+    ],
+    "model": "qwen2.5:7b-instruct",
+    "options": {
+     "num_predict": 1000,
+     "temperature": 0.2
+    },
+    "stream": false,
+    "tools": "<15 tool groups>"
+   }
+  ],
+  "tools": [
+   "machine_health",
+   "machine_health"
+  ]
+ }
+}
