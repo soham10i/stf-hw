@@ -14,6 +14,7 @@ import time
 import urllib.error
 
 from . import chat as C
+from . import gcp_auth as GA
 
 ASK = "Reply with the single word OK."
 
@@ -71,7 +72,20 @@ def main() -> int:
         ),
         "ollama": (bool(c.ollama_model), c.ollama_model, None),
     }
-    if c.cloud_key:  # the Google Cloud key is asked before the AI Studio one: check it on its own
+    if c.vertex_project:  # the Vertex AI lane (the trial credit) wins over a Google Cloud key
+        cm = (c.cloud_models or [c.model])[0]
+        probes["gemini (cloud)"] = (
+            True,
+            f"{cm} on Vertex AI ({c.vertex_project})",
+            lambda: C.parse(
+                C._post(
+                    GA.endpoint(c.vertex_project, c.vertex_location, cm),
+                    f"Bearer {GA.TOKENS.get()}",
+                    {"contents": [{"role": "user", "parts": [{"text": ASK}]}]},
+                )
+            ),
+        )
+    elif c.cloud_key:  # the Google Cloud key is asked before the AI Studio one: check it on its own
         cm = (c.cloud_models or [c.model])[0]
         probes["gemini (cloud)"] = (
             True,

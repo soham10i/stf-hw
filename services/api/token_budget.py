@@ -156,8 +156,12 @@ class Limits:
         )
 
 
-# a billed Google Cloud project has far more room than the free key: its own, larger defaults
-CLOUD = Limits(day=4_000_000, minute=800_000, guest=400_000, web=16_000, deep=80_000, searches=300)
+# a billed Google Cloud project has far more room than the free key: its own, larger defaults,
+# sized so 90 days at the cap stay inside the $300 trial credit. 2.5M tokens a day is ~$2.6 at
+# Gemini 3.8 Flash's list price ($0.75 in / $3.75 out per 1M, ~90 % input), ~$240 over 90 days;
+# grounded searches are billed per query beyond a free allowance, so few - Groq and DuckDuckGo
+# search for free once these are used
+CLOUD = Limits(day=2_500_000, minute=800_000, guest=400_000, web=16_000, deep=80_000, searches=40)
 
 
 @dataclass(frozen=True)

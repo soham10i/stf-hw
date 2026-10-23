@@ -36,5 +36,8 @@ def _offline_env(monkeypatch, tmp_path):
     monkeypatch.setenv("STF_DATA_DIR", str(tmp_path))
     monkeypatch.setenv("STF_SESSION_SECRET", "test-secret")
     monkeypatch.setenv("STF_SCHOLAR", "0")  # the literature search (scholar.py) stays offline
-    for k in ("GEMINI_API_KEY", "GROQ_API_KEY", "ELEVENLABS_API_KEY", "SUPABASE_URL"):
+    for k in (
+        "GEMINI_API_KEY", "GEMINI_CLOUD_API_KEY", "GEMINI_VERTEX_PROJECT", "GROQ_API_KEY",
+        "ELEVENLABS_API_KEY", "SUPABASE_URL",
+    ):
         monkeypatch.setenv(k, "")

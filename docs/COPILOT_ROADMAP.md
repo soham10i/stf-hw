@@ -63,7 +63,11 @@ industrial-deficit analysis behind this list is in the session log and
    completes the original ElevenLabs voice-navigation vision on the free ladder.
 8. **Planner-executor-critic state machine.** Generalize the deep-research planner into a
    per-request DAG (planner → tools → verify.py → critic → respond.py), replacing the
-   linear MAX_ROUNDS loop; LangGraph-style but native to this codebase.
+   linear MAX_ROUNDS loop. **Phase 1 built 2026-10-23 on LangGraph** (`services/api/agent.py`:
+   prepare → route → web/answer/tools_only → respond, `STF_AGENT=graph|linear`, `GET
+   /chat/graph`; parity on both engines, eval unchanged) together with the Vertex AI lane for
+   the trial credit (`gcp_auth.py`). The loops, phases 2-7 and costs:
+   `docs/architecture/agent-graph.md`.
 9. **Health-aware routing policy.** Persist provider success-rate EMA, p95 latency and
    unverified-rate in the store; the ladder becomes a weighted choice under privacy /
    latency / cost constraints. Deterministic orchestrate.py rules stay on top as the

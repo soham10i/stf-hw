@@ -6,3 +6,6 @@ numpy>=1.26
 fastapi>=0.115
 uvicorn[standard]>=0.30
 websockets>=13
+# the copilot's steps as a graph (services/api/agent.py); langchain-core comes with it, the
+# langchain and langchain-community packages are not used. STF_AGENT=linear runs without it.
+langgraph>=1.2,<2

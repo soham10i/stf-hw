@@ -295,3 +295,10 @@ The copilot's pgvector index has its own migration,
 (`kb_vectors` + `kb_meta` + three RPCs; already applied to the project above). Without it the
 API detects the missing table, logs a warning and answers from the SQLite vector store or
 BM25 alone — nothing breaks, retrieval just stays local to the container.
+
+## The copilot on the trial credit (Vertex AI)
+
+The $300 credit pays for Gemini on Vertex AI, not on the AI Studio endpoint. Grant the service
+account `roles/aiplatform.user` and set `GEMINI_VERTEX_PROJECT` on `stf-live`; the token comes
+from the metadata server, so there is no key to store. Commands, budget caps and the agent
+graph that runs the copilot: [architecture/agent-graph.md](architecture/agent-graph.md).

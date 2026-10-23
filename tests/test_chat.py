@@ -80,7 +80,9 @@ def ask(chat, body=None, request=None):
 def test_status_and_no_key_answers_from_the_tools():
     chat, calls = make(key=None)
     chat.c.ollama_model = None
-    assert chat.status() == {"enabled": False, "model": None, "gemini": False, "ollama": False}
+    st = chat.status()
+    assert st.pop("engine") in ("graph", "linear")
+    assert st == {"enabled": False, "model": None, "gemini": False, "ollama": False}
     out = ask(chat)
     assert out["model"] == "rules" and not calls
     assert "machine_health" in out["tools"] and out["sources"]

@@ -85,8 +85,8 @@ otherwise the twin's tools answer directly. `GET /chat/status` shows which model
 
 **A Google Cloud key (billing on, e.g. the $300 trial credit)** is a second Gemini lane,
 `GEMINI_CLOUD_API_KEY`, asked *before* the AI Studio key. Each lane has its own models and cooldowns,
-its own Google Search pool and its own token budget (larger defaults: `GEMINI_CLOUD_TOKENS_PER_DAY` 4000000,
-`GEMINI_CLOUD_SEARCHES_PER_DAY` 300, and so on), and a billed key lifts the daily question cap
+its own Google Search pool and its own token budget (larger defaults: `GEMINI_CLOUD_TOKENS_PER_DAY` 2500000,
+`GEMINI_CLOUD_SEARCHES_PER_DAY` 40, and so on - sized so 90 days at the cap stay inside the $300 credit), and a billed key lifts the daily question cap
 (`GEMINI_CLOUD_DAILY_LIMIT`, 2000). A key that is at its limit, refused or too slow hands the question to the
 next lane, and then to Groq. Create the key in the Cloud console for a project with billing on, restricted to the
 Generative Language API, and put it only in `.env` or Render's environment. `make model-check` tests both keys.
@@ -147,7 +147,9 @@ recognition, or records them for `POST /chat/stt` (Gemini transcription) where t
 | `GEMINI_MODELS` | 3.5/3.8/3.7/3.6/3 flash, 2.5 flash, the lite models | the fallback order, comma-separated |
 | `GEMINI_DAILY_LIMIT` | 300 | model questions a day, whole service |
 | `GEMINI_CLOUD_API_KEY`, `GEMINI_CLOUD_MODELS` | unset, the `GEMINI_MODELS` list | the Google Cloud lane, asked first |
-| `GEMINI_CLOUD_TOKENS_PER_DAY`, `_PER_MINUTE`, `_PER_GUEST`, `_WEB_TOKENS`, `_DEEP_TOKENS`, `_SEARCHES_PER_DAY`, `GEMINI_CLOUD_DAILY_LIMIT` | 4000000, 800000, 400000, 16000, 80000, 300, 2000 | its budget and question cap |
+| `GEMINI_CLOUD_TOKENS_PER_DAY`, `_PER_MINUTE`, `_PER_GUEST`, `_WEB_TOKENS`, `_DEEP_TOKENS`, `_SEARCHES_PER_DAY`, `GEMINI_CLOUD_DAILY_LIMIT` | 2500000, 800000, 400000, 16000, 80000, 40, 2000 | its budget and question cap |
+| `GEMINI_VERTEX_PROJECT`, `GEMINI_VERTEX_LOCATION` | unset, `global` | the same lane on Vertex AI (the trial credit): the service account's token, no key; wins over `GEMINI_CLOUD_API_KEY` (docs/architecture/agent-graph.md) |
+| `STF_AGENT` | `graph` | the copilot's engine: LangGraph, or `linear` (the same nodes as a plain loop - the kill switch) |
 | `WEB_SEARCH_ORDER` | `gemini,groq,ddg` | who searches the web first |
 | `GEMINI_TOKENS_PER_DAY`, `_PER_MINUTE`, `_PER_GUEST` | 600000, 120000, 80000 | Gemini tokens: whole service a UTC day, any minute, one guest a day |
 | `GEMINI_WEB_TOKENS`, `GEMINI_DEEP_TOKENS` | 8000, 40000 | the most one web search / one deep research may use |

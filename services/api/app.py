@@ -344,6 +344,15 @@ async def chat_status() -> dict:
     return await asyncio.to_thread(chat.status)
 
 
+@app.get("/chat/graph")
+async def chat_graph() -> dict:
+    """The copilot's steps as a graph (agent.py): the engine that runs them and the Mermaid
+    diagram drawn from the compiled graph itself, so the picture cannot drift from the code."""
+    from . import agent as A
+
+    return {"engine": A.engine(), "nodes": list(A.NODES), "mermaid": A.mermaid()}
+
+
 @app.post("/chat")
 async def chat_ask(req: ChatRequest, request: Request) -> dict:
     """The copilot: a language model answering from the twin's tools (chat.py)."""

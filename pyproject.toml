@@ -14,6 +14,7 @@ api = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
     "websockets>=13",
+    "langgraph>=1.2,<2",  # the copilot's steps as a graph (services/api/agent.py)
 ]
 # the model's Asset Administration Shells (stf-cad/hbw/aas, Upgrade 14)
 aas = [
