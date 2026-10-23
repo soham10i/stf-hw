@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   build:
+    if: ${{ github.event.repository.has_pages }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -39,6 +40,7 @@ jobs:
           path: web/dist-pages
 
   deploy:
+    if: ${{ github.event.repository.has_pages }}
     needs: build
     runs-on: ubuntu-latest
     permissions:
