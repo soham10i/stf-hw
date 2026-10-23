@@ -74,6 +74,23 @@ def test_spell_fix_picks_the_more_frequent_word(vocab_bm25):
     assert R.spell_fix("belk") == "belt"
 
 
+# regression tests from the 2026-10-23 validation run against the real corpus
+
+def test_spell_fix_never_corrects_stopwords(vocab_bm25):
+    # "what" is not in the toy corpus vocab; without the guard it was corrected to
+    # the closest kb term ("chat" in the real corpus)
+    assert R.spell_fix("what is heat") == "what is heat"
+
+
+def test_spell_fix_prefers_a_nearby_function_word(vocab_bm25):
+    # "dose" is a real noun but as a typo it stands for "does", not "done"
+    assert R.spell_fix("why dose the belt warn") == "why does the belt warn"
+
+
+def test_spell_fix_skips_identifiers_with_digits(vocab_bm25):
+    assert R.spell_fix("the 24v motor") == "the 24v motor"
+
+
 # ---------------------------------------------------------------------- expand
 
 def test_expand_adds_page_vocabulary():

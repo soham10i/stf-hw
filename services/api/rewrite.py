@@ -20,8 +20,9 @@ Three deterministic rewrites, no model calls, applied before BM25/vector search:
 from __future__ import annotations
 
 import logging
+import re
 
-from .grounding import get_bm25, tokenize
+from .grounding import STOP_WORDS, get_bm25, tokenize
 
 logger = logging.getLogger(__name__)
 
@@ -97,22 +98,41 @@ def _damlev(a: str, b: str, maxd: int) -> int:
     return prev[len(b)]
 
 
+def _stem(word: str) -> str:
+    """The query token's dictionary form, under the same rules tokenize applies."""
+    w = re.sub(r"ies$", "y", word)
+    return re.sub(r"(?<=[a-z]{3})(s|ed|ing)$", "", w)
+
+
 def _fix_token(token: str) -> str | None:
     """Best correction for one lowercase token, or None to leave it unchanged.
 
-    Short words only admit distance-1 fixes: at distance 2 a 4-letter word has
-    too many plausible neighbours ("what"->"heat"), and common short words are
-    exactly the ones a small kb vocabulary does not contain.
+    Guards against overcorrection (validation found these live):
+    - stop words ("does") are not in the corpus vocab, so they look like typos;
+      never touch them, nor any token whose stemmed form the vocab already has
+      (inflections are the stemmer's job at search time, not the fixer's).
+    - tokens with digits ("24v") are identifiers, not words.
+    - short words only admit distance-1 fixes: at distance 2 a 4-letter word has
+      too many plausible neighbours ("what"->"heat").
     """
     assert _vocab is not None and _delete_index is not None
-    if token in _vocab or len(token) < MIN_TOKEN_LEN:
+    if (
+        token in _vocab
+        or token in STOP_WORDS
+        or len(token) < MIN_TOKEN_LEN
+        or any(c.isdigit() for c in token)
+        or _stem(token) in _vocab
+    ):
         return None
     limit = 1 if len(token) <= 5 else MAX_FIX_DIST
-    candidates: set[str] = set()
+    # a near-miss of a function word was almost certainly meant to be that word:
+    # "dose" is a real noun but as a query typo it stands for "does", not "done"
+    for s in STOP_WORDS:
+        if abs(len(s) - len(token)) <= limit and len(s) >= 2 and _damlev(token, s, limit) <= limit:
+            return s
+    candidates: set[str] = set(_delete_index.get(token, ()))  # insertion typos
     for d in _deletes(token):
         candidates.update(_delete_index.get(d, ()))
-    if token not in candidates and token[:-1] in _vocab:  # extra trailing char
-        candidates.add(token[:-1])
     best: tuple[int, int, str] | None = None  # (distance, -freq, word)
     for c in candidates:
         dist = _damlev(token, c, MAX_FIX_DIST)
