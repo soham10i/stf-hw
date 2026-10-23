@@ -18,6 +18,7 @@ from services.api import security as sec  # noqa: E402
 from services.api import toolloop as TL  # noqa: E402
 from services.api import tools as T  # noqa: E402
 
+from .test_agent import shape  # noqa: E402
 from .test_chat import req  # noqa: E402
 
 GOOD = "The belt warns in 0.6 shifts."  # 0.6 is in machine_health's result
@@ -166,7 +167,7 @@ def test_both_engines_take_the_same_path_through_a_correction(monkeypatch):
         events = []
         out = ask(chat, {"question": "which part needs service first?"}, engine, monkeypatch,
                   events)
-        runs.append(({k: v for k, v in out.items() if k != "ms"}, events))
+        runs.append((shape(out), events))
     assert runs[0] == runs[1]
 
 

@@ -23,6 +23,14 @@ from .test_orchestrate import SEARCH_REPLY, groq_chat, limited  # noqa: E402
 GROQ_OK = {"choices": [{"message": {"content": "The belt warns in 0.6 shifts."}}]}
 
 
+def shape(out: dict) -> dict:
+    """A reply without what differs from run to run - its timings and its trace's ids and
+    times - but with the trace's structure: which spans ran, at which depth."""
+    trace = out.get("trace") or {}
+    spans = sorted((s["name"], s["depth"]) for s in trace.get("spans", []))
+    return {**{k: v for k, v in out.items() if k not in ("ms", "trace")}, "spans": spans}
+
+
 def rules_chat():
     chat = C.Chat(sec.Settings.from_env(), C.ChatSettings(key=None, model="m", daily_limit=10))
     chat.c.ollama_model = None
@@ -54,7 +62,7 @@ def run(engine, monkeypatch, case):
     out = asyncio.run(
         chat.ask(C.ChatRequest(**body), req(), emit=lambda k, t: events.append((k, t)))
     )
-    out = {k: v for k, v in out.items() if k != "ms"}
+    out = shape(out)
     return out, events
 
 
@@ -95,7 +103,10 @@ def test_a_repeated_question_ends_at_prepare(monkeypatch):
     body = {"question": "which part needs service first?"}
     first = asyncio.run(chat.ask(C.ChatRequest(**body), req()))
     again = asyncio.run(chat.ask(C.ChatRequest(**body), req()))
-    assert again is first and len(calls) == 1
+    assert again["answer"] == first["answer"] and len(calls) == 1
+    # the cached reply carries its own trace: only prepare ran
+    assert again["trace"]["id"] != first["trace"]["id"]
+    assert [s["name"] for s in again["trace"]["spans"]] == ["node.prepare"]
 
 
 def test_a_spent_daily_budget_still_refuses_through_the_graph(monkeypatch):

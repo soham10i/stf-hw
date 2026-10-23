@@ -6,7 +6,7 @@
 // server detail: it stays in the session's context, never in the UI.
 import { useEffect, useRef, useState } from "react";
 import * as api from "./api";
-import { speech, speechStream, type Cite as Source, type Mode, type Style, type Turn } from "./api";
+import { speech, speechStream, type Cite as Source, type Mode, type Style, type Trace, type Turn } from "./api";
 import { CopilotMark, Icon } from "../../shared/icons";
 import { TeX, displayBlock, mathSplit } from "../../shared/tex";
 
@@ -264,8 +264,67 @@ function Thinking({ turn, live = false }: { turn: Turn; live?: boolean }) {
         {/* the model's own notes, as written: raw text, not Markdown (its "*" is a multiplication) */}
         {turn.thinking && <div className="cx-think-text plain">{turn.thinking}</div>}
         {live && !turn.thinking && <p className="cx-muted">The model's reasoning appears here when it returns it.</p>}
+        {turn.trace && <TraceView trace={turn.trace} />}
       </div>
     </details>
+  );
+}
+
+/** A span's name as a reader says it: node.answer -> "answer", llm.groq -> "groq call". */
+function spanLabel(name: string): string {
+  const [kind, rest = ""] = name.split(".", 2);
+  const what = rest.replace(/_/g, " ");
+  return kind === "node" ? what : kind === "llm" ? (what === "quick" ? "helper call" : `${what} call`)
+    : kind === "tool" ? `tool: ${what}` : kind === "search" ? `${what} search` : name;
+}
+
+/** What a span's attributes say in a few words: the model and its tokens, a verdict, a count. */
+function spanNote(a: Record<string, string | number | boolean> = {}): string {
+  const out: string[] = [];
+  if (a["gen_ai.request.model"]) out.push(String(a["gen_ai.request.model"]));
+  const i = a["gen_ai.usage.input_tokens"], o = a["gen_ai.usage.output_tokens"];
+  if (i !== undefined || o !== undefined) out.push(`${i ?? "?"} in / ${o ?? "?"} out`);
+  if (a["stf.mode"]) out.push(`route ${a["stf.mode"]}`);
+  if (a["stf.verdict"]) out.push(String(a["stf.verdict"]));
+  if (a["stf.found"] !== undefined) out.push(a["stf.found"] ? `${a["stf.sources"] ?? 0} sources` : "nothing found");
+  if (a["stf.unverified"]) out.push(`${a["stf.unverified"]} unverified`);
+  if (a["stf.corrected"]) out.push("corrected");
+  if (a["stf.error"]) out.push(`failed: ${a["stf.error"]}`);
+  return out.join(" · ");
+}
+
+/** The question's trace as a waterfall: each graph node, model call, tool and search, where it
+    started and how long it took, indented under the node it ran in. The id is the one the
+    trace store shows (Langfuse, Phoenix), so the question can be found there. */
+function TraceView({ trace }: { trace: Trace }) {
+  const total = Math.max(trace.ms, ...trace.spans.map((s) => s.at + s.ms), 1);
+  const where = trace.stores.length ? `exported to ${trace.stores.join(", ")}` : "kept with this answer";
+  return (
+    <div className="cx-otel">
+      <div className="cx-otel-head">
+        <Icon name="activity" size={12} />
+        <b>Trace</b>
+        <code title="OpenTelemetry trace id">{trace.id.slice(0, 16)}…</code>
+        <CopyButton text={trace.id} label="Copy trace id" />
+        <span className="cx-muted">{trace.spans.length} spans · {(total / 1000).toFixed(2)} s · {where}</span>
+      </div>
+      <ol className="cx-otel-rows">
+        {trace.spans.map((s, i) => {
+          const note = spanNote(s.attrs);
+          const kind = s.name.split(".", 1)[0];
+          return (
+            <li key={i} className={`k-${kind}`} title={note ? `${s.name}: ${note}` : s.name}>
+              <span className="cx-otel-name" style={{ paddingLeft: `${(s.depth - 1) * 12}px` }}>{spanLabel(s.name)}</span>
+              <span className="cx-otel-track">
+                <span className="cx-otel-bar" style={{ left: `${(100 * s.at) / total}%`, width: `max(2px, ${(100 * s.ms) / total}%)` }} />
+              </span>
+              <span className="cx-otel-ms">{s.ms < 1000 ? `${s.ms.toFixed(0)} ms` : `${(s.ms / 1000).toFixed(1)} s`}</span>
+              {note && <span className="cx-otel-note">{note}</span>}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 

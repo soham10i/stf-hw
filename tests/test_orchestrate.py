@@ -277,6 +277,9 @@ def test_deep_research_plans_searches_then_a_model_writes_it_up():
         if body.get("tools") == [{"type": "browser_search"}]:
             seen.append("search")
             return SEARCH_REPLY
+        if "further web searches" in body["messages"][0]["content"]:
+            seen.append("critic")  # agent.critic: the findings cover it
+            return {"choices": [{"message": {"content": "[]"}}]}
         if "JSON list" in body["messages"][0]["content"]:
             seen.append("plan")
             return {"choices": [{"message": {"content": '["PL d PFHd", "PL d category"]'}}]}
@@ -293,7 +296,7 @@ def test_deep_research_plans_searches_then_a_model_writes_it_up():
 
     chat.post_groq = fake
     out = ask(chat, {"question": "deep research on PL d requirements", "provider": "groq"})
-    assert seen == ["plan", "search", "search", "write"]
+    assert seen == ["plan", "search", "search", "critic", "write"]
     assert out["route"]["mode"] == "deep" and "web_research" in out["tools"]
     assert any(s.startswith("planned 2 searches") for s in out["steps"])
 

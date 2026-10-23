@@ -297,6 +297,22 @@
 .cx-pop.cx-pop-hist { right: auto; width: min(300px, calc(100% - 16px)); }
 .cx-think-text.plain { white-space: pre-wrap; line-height: 1.55; }
 
+/* ------------------------------------------------ the answer's trace (tracing.py) */
+.cx-otel { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border-soft); }
+.cx-otel-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; font-size: var(--fs-caption); color: var(--muted); }
+.cx-otel-head code { font: var(--fs-caption) var(--mono); color: var(--faint); }
+.cx-otel-head .cx-icon { width: 22px; height: 22px; }
+.cx-otel-rows { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(96px, 30%) 1fr auto; column-gap: 8px; row-gap: 2px;
+  font: var(--fs-caption)/1.5 var(--mono); color: var(--faint); max-height: 280px; overflow-y: auto; }
+.cx-otel-rows li { display: contents; }
+.cx-otel-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.cx-otel-track { position: relative; align-self: center; height: 8px; border-radius: 4px; background: var(--raised); }
+.cx-otel-bar { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: var(--accent); opacity: .55; }
+.cx-otel-rows li.k-llm .cx-otel-bar { background: var(--accent); opacity: .95; }
+.cx-otel-rows li.k-tool .cx-otel-bar, .cx-otel-rows li.k-search .cx-otel-bar { background: var(--accent-strong); opacity: .8; }
+.cx-otel-ms { text-align: right; min-width: 52px; }
+.cx-otel-note { grid-column: 1 / -1; padding-left: 12px; margin-top: -2px; color: var(--faint); opacity: .85; overflow-wrap: anywhere; }
+
 /* ------------------------------------------------ answer settings (copilot/Settings.tsx) */
 /* the strip above the composer: where answers come from, and who/how deep/which sources */
 .cx-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 12px 6px; }

@@ -34,12 +34,17 @@ export type Cite = {
   kind: "doc" | "tool" | "web"; tool: string; label: string; file?: string; line?: number;
   anchor?: string; score?: number; quote?: string; title?: string; trusted?: boolean; cited?: boolean; grade?: Grade
 };
+/** One span of a question's trace (services/api/tracing.py): when it started and how long it
+    took, in ms from the question's start, and how deep it sits under the question. */
+export type Span = { name: string; at: number; ms: number; depth: number; attrs?: Record<string, string | number | boolean> };
+/** A question's OpenTelemetry trace: its id (the one Langfuse or Phoenix shows) and its spans. */
+export type Trace = { id: string; ms: number; stores: string[]; spans: Span[] };
 export type Turn = {
   role: "user" | "assistant"; text: string; t: number;
   model?: string; style?: Style; sources?: string[]; links?: { page: string; label: string }[];
   tools?: string[]; note?: string; unverified?: string[]; switched?: Switch[]; facts?: [string, string][];
   cites?: Cite[]; ms?: number; pending?: boolean;
-  route?: Route; steps?: string[]; thinking?: string; usage?: Usage;
+  route?: Route; steps?: string[]; thinking?: string; usage?: Usage; trace?: Trace;
 };
 export type Fact = [name: string, value: string, source: string];
 export type Session = {
@@ -131,7 +136,7 @@ export type Reply = {
   answer: string; model: string; style: Style; sources: string[]; links: { page: string; label: string }[];
   tools: string[]; facts: [string, string][]; note?: string; unverified?: string[]; switched?: Switch[];
   cites?: Cite[]; session?: { id: string; title: string; facts: number; models: string[] };
-  route?: Route; steps?: string[]; thinking?: string; usage?: Usage;
+  route?: Route; steps?: string[]; thinking?: string; usage?: Usage; trace?: Trace;
 };
 const payload = (body: AskBody) => JSON.stringify({
   ...body, session_id: body.session_id ?? undefined,

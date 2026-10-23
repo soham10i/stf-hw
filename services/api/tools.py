@@ -574,6 +574,12 @@ def search_docs(args: dict, ctx: Ctx) -> Result:
         for h in V.hybrid_search(q, top_k=int(args.get("k") or 4) * 2, page=ctx.page)
         if h["score"] >= 2.0 or h.get("vscore", 0.0) >= V.VECTOR_ACCEPT
     ][: int(args.get("k") or 4)]
+    return docs_result(q, hits)
+
+
+def docs_result(q: str, hits: list[dict], how: str = "") -> Result:
+    """Retrieved passages as search_docs' result: each with its file, line, anchor and score.
+    `how` replaces the count line (corrective retrieval says how it judged them)."""
     if not hits:
         return Result("search_docs", f"No document covers '{q}'.")
     facts, sources, cites = [], [], []
@@ -593,7 +599,9 @@ def search_docs(args: dict, ctx: Ctx) -> Result:
             }
         )
     n_sem = sum(1 for h in hits if h.get("via") == "vector")
-    how = f"{len(hits)} passages match" + (f" ({n_sem} by meaning, not words)" if n_sem else "")
+    how = how or (
+        f"{len(hits)} passages match" + (f" ({n_sem} by meaning, not words)" if n_sem else "")
+    )
     return Result("search_docs", f"{how}.", facts, sources, cites=cites)
 
 

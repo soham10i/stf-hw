@@ -25,6 +25,9 @@ PREFIXES = (
     "SUPABASE_",
     "UPB_",
     "WEB_",
+    "LANGFUSE_",  # copilot traces (tracing.py)
+    "PHOENIX_",
+    "OTEL_",
 )
 
 

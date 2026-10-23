@@ -36,8 +36,12 @@ def _offline_env(monkeypatch, tmp_path):
     monkeypatch.setenv("STF_DATA_DIR", str(tmp_path))
     monkeypatch.setenv("STF_SESSION_SECRET", "test-secret")
     monkeypatch.setenv("STF_SCHOLAR", "0")  # the literature search (scholar.py) stays offline
+    monkeypatch.setenv("STF_CRAG", "off")  # no judge call unless a test asks for one (crag.py)
     for k in (
         "GEMINI_API_KEY", "GEMINI_CLOUD_API_KEY", "GEMINI_VERTEX_PROJECT", "GROQ_API_KEY",
         "ELEVENLABS_API_KEY", "SUPABASE_URL",
+        # traces stay in memory: a test must never export to a real trace store
+        "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "PHOENIX_COLLECTOR_ENDPOINT",
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "STF_TRACE_CONTENT",
     ):
         monkeypatch.setenv(k, "")

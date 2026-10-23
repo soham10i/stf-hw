@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 
 from . import chat as C
 from . import tools as T
+from . import tracing as TR
 
 
 @dataclass
@@ -311,6 +312,17 @@ class Conversation:
     def say(self, kind: str, text: str) -> None:
         (self.meta.get("emit") or (lambda *_: None))(kind, text)
 
+    def post(self) -> dict:
+        """One request to the model, as a span with the model that answered and its tokens."""
+        a = self.adapter
+        with TR.span(f"llm.{a.name}") as s:
+            data = self.last = a.post(self.body, self.meta)
+            model = self.meta.get("model") or (
+                a.model(self.meta) if isinstance(a, Completions) else a.name
+            )
+            TR.model_call(s, a.name, model, data)
+        return data
+
     def run(self) -> str:
         """The tool loop: to the model, its tool calls run here, their results back - until it
         answers without calls or the rounds run out, then once more without tools."""
@@ -318,7 +330,7 @@ class Conversation:
         a.start(self.meta)
         while self.rounds > 0:
             self.rounds -= 1
-            data = self.last = a.post(self.body, self.meta)
+            data = self.post()
             th = a.think(data)
             if th:
                 self.meta.setdefault("thinking", []).append(th)
@@ -331,7 +343,9 @@ class Conversation:
             done = []
             for call in calls:
                 self.say("step", f"called {(call.name or '?').replace('_', ' ')}")
-                r = T.call(call.name, call.args, self.ctx)
+                with TR.span(f"tool.{call.name or 'unknown'}", stf__tool=call.name) as s:
+                    r = T.call(call.name, call.args, self.ctx)
+                    TR.put(s, stf__facts=len(r.facts))
                 self.results.append(r)
                 self.called.append(r.tool)
                 call.id = call.id or f"call_{len(self.called)}"
@@ -339,8 +353,7 @@ class Conversation:
             a.answer_back(self.body, done)
         a.last_round(self.body)
         self.final = True
-        self.last = a.post(self.body, self.meta)
-        self.text = a.text(self.last)
+        self.text = a.text(self.post())
         return self.text
 
     def correct(self, bad: list[str]) -> bool:

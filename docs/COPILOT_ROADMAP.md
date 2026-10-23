@@ -66,7 +66,9 @@ industrial-deficit analysis behind this list is in the session log and
    linear MAX_ROUNDS loop. **Phase 1 built 2026-10-23 on LangGraph** (`services/api/agent.py`:
    prepare → route → web/answer/tools_only → respond, `STF_AGENT=graph|linear`, `GET
    /chat/graph`; parity on both engines, eval unchanged) together with the Vertex AI lane for
-   the trial credit (`gcp_auth.py`). The loops, phases 2-7 and costs:
+   the trial credit (`gcp_auth.py`). Phase 2: one tool loop (`toolloop.py`) and a verify node.
+   Phase 3: corrective retrieval (`crag.py`, retrieval MRR 0.642 -> 0.799) and deep research as a
+   plan -> parallel search -> critic -> gather graph. The loops, phases 4-7 and costs:
    `docs/architecture/agent-graph.md`.
 9. **Health-aware routing policy.** Persist provider success-rate EMA, p95 latency and
    unverified-rate in the store; the ladder becomes a weighted choice under privacy /
@@ -77,7 +79,10 @@ industrial-deficit analysis behind this list is in the session log and
 
 10. **Request tracing.** One trace id per question carrying route → passages → provider
     → verify outcome; visible in the dashboard's copilot tab (the "thinking" drawer is
-    already there) and logged to Supabase app_logs.
+    already there) and logged to Supabase app_logs. **Built 2026-10-23 as OpenTelemetry**
+    (`tracing.py`): one trace per question, a span per graph node and per model, tool and
+    search call, exported to Langfuse or Phoenix over OTLP/HTTP and drawn as a waterfall in the
+    thinking drawer; metadata only unless `STF_TRACE_CONTENT=1`.
 11. **Online feedback capture.** Thumbs + "wrong number" per answer; feeds the golden
     sets (B2) and the routing policy (D9).
 12. **Copilot eval as a CI gate.** `eval_copilot.py` thresholds (faithfulness, held-out

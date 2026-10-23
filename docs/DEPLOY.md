@@ -150,6 +150,13 @@ recognition, or records them for `POST /chat/stt` (Gemini transcription) where t
 | `GEMINI_CLOUD_TOKENS_PER_DAY`, `_PER_MINUTE`, `_PER_GUEST`, `_WEB_TOKENS`, `_DEEP_TOKENS`, `_SEARCHES_PER_DAY`, `GEMINI_CLOUD_DAILY_LIMIT` | 2500000, 800000, 400000, 16000, 80000, 40, 2000 | its budget and question cap |
 | `GEMINI_VERTEX_PROJECT`, `GEMINI_VERTEX_LOCATION` | unset, `global` | the same lane on Vertex AI (the trial credit): the service account's token, no key; wins over `GEMINI_CLOUD_API_KEY` (docs/architecture/agent-graph.md) |
 | `STF_AGENT` | `graph` | the copilot's engine: LangGraph, or `linear` (the same nodes as a plain loop - the kill switch) |
+| `STF_CRAG` | `judge` | corrective retrieval (crag.py): a small model judges and reranks the passages; `off` keeps the search's order |
+| `STF_QUICK_ORDER` | `groq,gemini,openai,upb,ollama` | who answers the graph's helpers (judge, rewriter, research planner and critic); with Vertex AI on, `gemini,groq,ollama` |
+| `STF_RESEARCH_TOKENS` | `120000` | a deep research's token ceiling when Gemini's deep allowance does not set one |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST` | unset, unset, `https://cloud.langfuse.com` | export each question's trace to Langfuse (OTLP/HTTP, basic auth) - tracing.py |
+| `PHOENIX_COLLECTOR_ENDPOINT` | unset | export traces to Arize Phoenix (e.g. `http://127.0.0.1:6006`) |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | unset | export traces to any OTLP/HTTP collector (the standard `OTEL_EXPORTER_OTLP_*` variables apply) |
+| `STF_TRACE_CONTENT` | off | `1` also exports the question and answer text; off, traces carry metadata only (route, models, tokens, timings, verdicts) |
 | `WEB_SEARCH_ORDER` | `gemini,groq,ddg` | who searches the web first |
 | `GEMINI_TOKENS_PER_DAY`, `_PER_MINUTE`, `_PER_GUEST` | 600000, 120000, 80000 | Gemini tokens: whole service a UTC day, any minute, one guest a day |
 | `GEMINI_WEB_TOKENS`, `GEMINI_DEEP_TOKENS` | 8000, 40000 | the most one web search / one deep research may use |

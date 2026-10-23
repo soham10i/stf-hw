@@ -9,3 +9,7 @@ websockets>=13
 # the copilot's steps as a graph (services/api/agent.py); langchain-core comes with it, the
 # langchain and langchain-community packages are not used. STF_AGENT=linear runs without it.
 langgraph>=1.2,<2
+# the copilot's traces (services/api/tracing.py): one per question, exported over OTLP/HTTP to
+# Langfuse or Phoenix when configured, kept in memory for the reply's thinking drawer otherwise
+opentelemetry-sdk>=1.45,<2
+opentelemetry-exporter-otlp-proto-http>=1.45,<2

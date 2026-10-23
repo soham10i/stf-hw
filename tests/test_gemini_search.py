@@ -393,28 +393,31 @@ def test_the_operators_order_decides_who_searches_first(pages):
 
 
 def test_deep_research_on_gemini_is_counted_whole_with_its_write_up(pages):
+    """The research graph (agent.plan/search/critic/gather) on Gemini alone: the plan, the
+    critic and the write-up are plain calls, each sub-question a grounded search; every token
+    of it lands on the AI Studio budget, and the deep allowance bounds it."""
     chat = both()
+    chat.c.groq_key = None  # Gemini alone: it plans, searches, checks and writes
 
-    def search(url, key, body):
-        if "tools" not in body:
-            return {
-                "candidates": [
-                    {"content": {"parts": [{"text": '["PL d PFHd", "PL d category"]'}]}}
-                ],
-                "usageMetadata": {"totalTokenCount": 100},
-            }
-        return GROUNDED
+    def plain(url, key, body):
+        system = body.get("systemInstruction", {}).get("parts", [{}])[0].get("text", "")
+        if "further web searches" in system:  # the critic: nothing missing
+            return {"candidates": [{"content": {"parts": [{"text": "[]"}]}}],
+                    "usageMetadata": {"totalTokenCount": 50}}
+        if "JSON list" in system:  # the planner
+            plan = '["PL d PFHd", "PL d category"]'
+            return {"candidates": [{"content": {"parts": [{"text": plan}]}}],
+                    "usageMetadata": {"totalTokenCount": 100}}
+        return {"candidates": [{"content": {"parts": [{"text": "Two sources agree."}]}}],
+                "usageMetadata": {"totalTokenCount": 900}}
 
-    chat.post_search = search
-    chat.post_groq = lambda *a: pytest.fail("Groq must not be asked")
-    chat.post = lambda url, key, body: {
-        "candidates": [{"content": {"parts": [{"text": "Two sources agree."}]}}],
-        "usageMetadata": {"totalTokenCount": 900},
-    }
+    chat.post = plain
+    chat.post_search = lambda url, key, body: GROUNDED
     out = ask(chat, {"question": "deep research on PL d requirements"})
     assert out["route"]["mode"] == "deep" and "web_research" in out["tools"]
-    assert (chat.budget.used, chat.budget.queries) == (100 + 2 * 1650 + 900, 2)
-    assert any("deep research with Gemini" in s for s in out["steps"])
+    assert (chat.budget.used, chat.budget.queries) == (100 + 2 * 1650 + 50 + 900, 2)
+    assert any(s.startswith("research on Gemini's") for s in out["steps"])
+    assert any(s.startswith("planned 2 searches") for s in out["steps"])
 
 
 def test_the_status_shows_the_order_and_the_budget_but_never_the_key():

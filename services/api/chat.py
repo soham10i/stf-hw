@@ -62,6 +62,7 @@ from . import sessions as S
 from . import source_policy as SP
 from . import token_budget as TB
 from . import tools as T
+from . import tracing as TR
 from . import usage as U
 from . import websearch as W
 from .logging_config import get_logger
@@ -776,6 +777,15 @@ class Chat:
         """Whether any Gemini lane (Studio or Cloud) is configured."""
         return bool(self.c.key or self.c.cloud_key or self.c.vertex_project)
 
+    def can_search(self) -> bool:
+        """Whether any web search can run: Gemini's Google Search, Groq's browser search, or
+        DuckDuckGo with a model to write the pages up - whichever WEB_SEARCH_ORDER lists."""
+        order = self.c.search_order
+        return bool(
+            ("gemini" in order and self.has_gemini) or ("groq" in order and self.c.groq_key)
+            or ("ddg" in order and self._ddg_writer())
+        )
+
     def search_ready(self, guest: str | None) -> bool:
         """Whether some Gemini key can still run a grounded search: not resting for its quota and
         with budget left."""
@@ -854,6 +864,8 @@ class Chat:
             "gemini": gemini_on,
             "ollama": ollama_on,
             "engine": A.engine(),  # what runs the copilot's steps: graph (LangGraph) or linear
+            # where each question's trace goes besides the reply (tracing.py), and whether text
+            "tracing": {"stores": TR.get().stores, "content": TR.content_allowed()},
         }
         if groq_on:
             out["groq"] = True
@@ -1053,14 +1065,16 @@ class Chat:
 
     async def _web_gemini(
         self, req: ChatRequest, mode: str, context: str, guest: str | None, say, notes: list[str],
-        dp: D.Depth = D.PROFILES["standard"], level: str = "vetted",
+        dp: D.Depth = D.PROFILES["standard"], level: str = "vetted", read: int = GS.READ_PAGES,
     ) -> W.Found | None:
         """Search (or research) with Gemini's Google Search on the token budget of the first key
         that can afford it - Google Cloud, then AI Studio. The tier sets the context, thinking,
         answer length and number of sub-searches; None when no key can (resting, spent, or
         failing), so the next provider takes the question."""
         for lane in self.lanes:
-            found = await self._web_lane(lane, req, mode, context, guest, say, notes, dp, level)
+            found = await self._web_lane(
+                lane, req, mode, context, guest, say, notes, dp, level, read
+            )
             if found:
                 return found
         return None
@@ -1068,8 +1082,10 @@ class Chat:
     async def _web_lane(
         self, lane: Lane, req: ChatRequest, mode: str, context: str, guest: str | None, say,
         notes: list[str], dp: D.Depth = D.PROFILES["standard"], level: str = "vetted",
+        read: int = GS.READ_PAGES,
     ) -> W.Found | None:
-        """One key's grounded search; None when it cannot or fails."""
+        """One key's grounded search, reading `read` pages for the number check (a research
+        branch reads one); None when it cannot or fails."""
         rest = self.out.get(lane.rest, 0.0) - time.time()
         if rest > 0:
             say(
@@ -1095,19 +1111,9 @@ class Chat:
         )
         call = functools.partial(self._gemini_call, lane=lane)
         try:
-            if mode == "deep":
-                say(
-                    "step",
-                    f"deep research with Gemini on {lane.label} ({a.tier} budget: up to "
-                    f"{a.searches} searches, {a.ceiling} tokens)",
-                )
-                return await asyncio.to_thread(
-                    GS.deep, req.question, context, call, a, lane.budget, guest,
-                    lambda t: say("step", t), level,
-                )
             say("step", f"searching Google with Gemini on {lane.label} ({a.tier} budget)")
             return await asyncio.to_thread(
-                GS.search, req.question, context, call, a, lane.budget, guest, GS.READ_PAGES, level
+                GS.search, req.question, context, call, a, lane.budget, guest, read, level
             )
         except RuntimeError as e:
             logger.warning("Gemini search failed (%s) for %r: %s", lane.name, req.question[:60], e)
@@ -1122,12 +1128,6 @@ class Chat:
         """Groq's browser search; None when it fails."""
         post = lambda b: self.post_groq(self.c.groq_url, self.c.groq_key, b)  # noqa: E731
         try:
-            if mode == "deep":
-                say("step", "deep research: planning the searches")
-                return await asyncio.to_thread(
-                    W.deep, req.question, context, post, self.c.groq_search_model,
-                    self.c.groq_model, lambda t: say("step", t), dp, level,
-                )
             say("step", f"searching the web with groq {self.c.groq_search_model}")
             return await asyncio.to_thread(
                 W.search, req.question, context, post, self.c.groq_search_model, "low",
@@ -1149,12 +1149,6 @@ class Chat:
             return None
         post_ddg, model_ddg = writer
         try:
-            if mode == "deep":
-                say("step", "deep research: planning the DuckDuckGo searches")
-                return await asyncio.to_thread(
-                    W.deep_ddg, req.question, context, post_ddg, model_ddg,
-                    lambda t: say("step", t), dp, level,
-                )
             say("step", f"searching DuckDuckGo; {model_ddg} writes the answer up")
             return await asyncio.to_thread(
                 W.search_ddg, req.question, context, post_ddg, model_ddg, dp, level
@@ -1189,6 +1183,85 @@ class Chat:
             text = c.run()
             bad = check(text)
         return text, bad
+
+    # the helpers' providers in order (STF_QUICK_ORDER): Groq's free small model first; with a
+    # billed Gemini lane (Vertex AI) "gemini,groq,ollama" is the steadier choice - Groq's free
+    # tier answers ~8k tokens a minute, a judged question takes ~1-2k
+    QUICK_ORDER = tuple(
+        p.strip() for p in os.environ.get("STF_QUICK_ORDER", "groq,gemini,openai,upb,ollama")
+        .split(",") if p.strip()
+    )
+    QUICK_REST_S = 60.0  # a helper call refused for its rate rests that provider this long
+
+    def quick(
+        self, system: str, user: str, max_tokens: int = 800, meta: dict | None = None,
+        purpose: str | None = None,
+    ) -> str:
+        """One short call for the graph's helpers - the retrieval judge and rewriter, the
+        research planner and critic: the first provider free in QUICK_ORDER (Groq's small
+        search model first: free and fast), no tools, no history. "" when none answers; the
+        callers then keep their deterministic default. meta["quick_model"] says who answered.
+        Traced as one llm.quick span, its `purpose` (judge, rewrite, plan, critic) included."""
+        with TR.span("llm.quick", stf__purpose=purpose) as sp:
+            text = self._quick(system, user, max_tokens, meta if meta is not None else {}, sp)
+        return text
+
+    def _quick(self, system: str, user: str, max_tokens: int, meta: dict, sp) -> str:
+        now = time.time()
+        msgs = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+        for prov in self.QUICK_ORDER:
+            # its own key: a helper's 429 on Groq's small model must not rest the chat's models
+            if max(self.out.get(prov, 0.0), self.out.get(f"quick:{prov}", 0.0)) > now:
+                continue
+            try:
+                if prov == "groq" and self.c.groq_key:
+                    model = self.c.groq_search_model
+                    body = groq_model(
+                        {"messages": msgs, "temperature": 0}, model, "low", False, max_tokens
+                    )
+                    data = self.post_groq(self.c.groq_url, self.c.groq_key, body)
+                    text = parse_groq(data)
+                    TR.model_call(sp, prov, model, data)
+                elif prov == "gemini" and self.has_gemini:
+                    body = {
+                        "systemInstruction": {"parts": [{"text": system}]},
+                        "contents": [{"role": "user", "parts": [{"text": user}]}],
+                        "generationConfig": {"temperature": 0, "maxOutputTokens": max_tokens},
+                    }
+                    m: dict = {}
+                    data = self._gemini_post(body, m)
+                    text, model = parse(data), m.get("model", "gemini")
+                    TR.model_call(sp, prov, model, data)
+                elif prov in ("openai", "upb") and (
+                    self.c.openai_url if prov == "openai" else self.c.upb_key
+                ):
+                    url, key, model = (
+                        (self.c.openai_url, self.c.openai_key or "", self.c.openai_model)
+                        if prov == "openai"
+                        else (self.c.upb_url, self.c.upb_key, self.c.upb_model)
+                    )
+                    body = {"model": model, "messages": msgs, "temperature": 0,
+                            "max_tokens": max_tokens}
+                    data = self.post_groq(url, key, body)
+                    text = parse_groq(data)
+                    TR.model_call(sp, prov, model, data)
+                elif prov == "ollama" and self.c.ollama_model and self._ollama_alive():
+                    model = self.c.ollama_model
+                    body = {"model": model, "messages": msgs, "stream": False,
+                            "options": {"temperature": 0, "num_predict": max_tokens}}
+                    data = self.post_ollama(self.c.ollama_url, body)
+                    text = parse_ollama(data)
+                    TR.model_call(sp, prov, model, data)
+                else:
+                    continue
+            except Exception as e:  # each provider fails in its own way; the next is asked
+                if isinstance(e, urllib.error.HTTPError) and e.code in (429, 503):
+                    self.out[f"quick:{prov}"] = now + self.QUICK_REST_S
+                logger.info("quick call: %s unavailable (%s)", prov, e)
+                continue
+            meta["quick_model"] = model
+            return text
+        return ""
 
     def _groq_post(self, body: dict, meta: dict) -> dict:
         """One request to the first Groq model with quota left. Each model has its own

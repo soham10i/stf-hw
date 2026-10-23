@@ -9,6 +9,7 @@ BM25 regression and an embedding regression are told apart.
 
     python -m services.api.eval_retrieval                    # the report
     STF_EMBEDDER=minilm python -m services.api.eval_retrieval   # real semantic vectors
+    python -m services.api.eval_retrieval --judge ollama     # corrective retrieval (crag.py)
     python -m services.api.eval_retrieval --out .cache/retrieval_eval.json
 
 Writes .cache/retrieval_eval_<embedder>.json (per-question ranks and the summary).
@@ -24,6 +25,7 @@ import math
 import os
 import time
 
+from . import crag as CR
 from . import vectors as V
 from .logging_config import get_logger
 
@@ -77,7 +79,7 @@ def _ndcg(rel: list[int]) -> float:
     return dcg / ideal if ideal else 0.0
 
 
-def score(top_k: int = TOP_K) -> dict:
+def score(top_k: int = TOP_K, ask=None) -> dict:
     """Run the golden set through hybrid_search and compute the metrics.
 
     Works with whatever backend/embedder the environment selects (pgvector, SQLite or
@@ -85,7 +87,9 @@ def score(top_k: int = TOP_K) -> dict:
 
     Returns:
         dict: {"embedder", "backend", "n", "questions": [...], "metrics": {...}} -
-        per-question ranks plus aggregate hit@k, MRR and nDCG.
+        per-question ranks plus aggregate hit@k, MRR and nDCG. With `ask` (a model call),
+        each question goes through corrective retrieval (crag.correct) instead, and its verdict
+        is recorded.
     """
     store = V.get_store()
     backend = "bm25" if store is None else getattr(store, "name", "sqlite")
@@ -93,7 +97,12 @@ def score(top_k: int = TOP_K) -> dict:
     questions = []
     t0 = time.time()
     for g in GOLDEN:
-        hits = V.hybrid_search(g["q"], top_k=top_k)
+        verdict = None
+        if ask:
+            j = CR.correct(g["q"], None, ask, k=top_k)
+            hits, verdict = j.hits, j.verdict
+        else:
+            hits = V.hybrid_search(g["q"], top_k=top_k)
         ranks = [i + 1 for i, h in enumerate(hits) if h["passage"].file == g["file"]]
         rel = [1 if h["passage"].file == g["file"] else 0 for h in hits]
         questions.append(
@@ -106,6 +115,7 @@ def score(top_k: int = TOP_K) -> dict:
                 "rr": 1.0 / ranks[0] if ranks else 0.0,
                 "ndcg": _ndcg(rel),
                 "top_file": hits[0]["passage"].file if hits else None,
+                **({"verdict": verdict} if verdict else {}),
             }
         )
     metrics = {}
@@ -120,6 +130,7 @@ def score(top_k: int = TOP_K) -> dict:
             "n": len(qs),
         }
     out = {
+        "judge": bool(ask),
         "embedder": embedder,
         "backend": backend,
         "n": len(questions),
@@ -136,9 +147,20 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", default=None, help="where to write the JSON report")
     ap.add_argument("--top-k", type=int, default=TOP_K)
+    ap.add_argument("--judge", choices=["groq", "gemini", "ollama", "auto"], default=None,
+                    help="corrective retrieval with this model as the judge (crag.py)")
     args = ap.parse_args()
 
-    result = score(top_k=args.top_k)
+    ask = None
+    if args.judge:
+        from . import chat as C
+        from . import security as sec
+
+        chat = C.Chat(sec.Settings.from_env())
+        if args.judge != "auto":
+            chat.QUICK_ORDER = (args.judge,)
+        ask = lambda system, user: chat.quick(system, user)  # noqa: E731
+    result = score(top_k=args.top_k, ask=ask)
     print(f"embedder: {result['embedder']}   backend: {result['backend']}   "
           f"n={result['n']}   {result['seconds']}s")
     for mode, m in result["metrics"].items():
@@ -149,9 +171,11 @@ def main() -> None:
             f"r{q['best_rank']}" if q["best_rank"] else "MISS"
         )
         print(f"  [{mark:>4}] ({q['mode']}) {q['q'][:60]:<60} -> {q['file']}"
-              + (f"   (top: {q['top_file']})" if q["best_rank"] != 1 else ""))
+              + (f"   (top: {q['top_file']})" if q["best_rank"] != 1 else "")
+              + (f"   [{q['verdict']}]" if q.get("verdict") else ""))
+    tag = f"_judge-{args.judge}" if args.judge else ""
     out = args.out or os.path.join(
-        ".cache", f"retrieval_eval_{result['embedder']}_{result['backend']}.json"
+        ".cache", f"retrieval_eval_{result['embedder']}_{result['backend']}{tag}.json"
     )
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     with open(out, "w", encoding="utf-8") as f:

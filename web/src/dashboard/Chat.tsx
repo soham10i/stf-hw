@@ -173,7 +173,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
           depth: prefs.depth, audience: prefs.audience, sources: prefs.sources }, live);
         reply = { role: "assistant", text: r.answer, t: now, model: r.model, style: r.style, sources: r.sources, links: r.links,
           tools: r.tools, note: r.note, unverified: r.unverified, switched: r.switched, facts: r.facts, cites: r.cites,
-          route: r.route, steps: r.steps, thinking: r.thinking, usage: r.usage };
+          route: r.route, steps: r.steps, thinking: r.thinking, usage: r.usage, trace: r.trace };
         if (r.session) {
           setSid(r.session.id); api.currentSession.set(r.session.id); setTitle(r.session.title);
           api.session(r.session.id).then((s) => { if (s) { setContext(s.context); setMemory(s.memory ?? ""); } });
