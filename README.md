@@ -10,7 +10,7 @@
     <strong>Full-Stack Cyber-Physical Digital Twin with In-Browser WebAssembly PLC & Grounded AI Copilot</strong>
   </p>
   <p align="center">
-    <em>A mathematically proven digital twin of the fischertechnik Fabrik Simulation 24V (536634): 3D kinematics, real-time physics, IEC 61131-3 PLC control, predictive maintenance, and Industry 4.0 connectivity.</em>
+    <em>A Digital twin of the fischertechnik Fabrik Simulation 24V (536634): 3D kinematics, real-time physics, IEC 61131-3 PLC control, predictive maintenance, and Industry 4.0 connectivity.</em>
   </p>
 </p>
 
