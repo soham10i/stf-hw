@@ -6,6 +6,7 @@ import "./shared/theme.css";
 import "./index.css";
 import "./twin/twin.css";
 import "./shared/studio.css";
+import "./shared/elevenlabs.css";
 import { applyTheme } from "./shared/theme";
 
 // the saved theme on the document before the first render: no flash of the other one
