@@ -8,9 +8,10 @@ import { HbwCadStage } from "../scene/Stage";
 import { setViewInset } from "../scene/focus";
 import { useCadDoc } from "../shared/model";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
-import { Icon } from "../shared/icons";
+import { CopilotMark, Icon } from "../shared/icons";
 import { usePersistent } from "../shared/persist";
 import { useTheme } from "../shared/theme";
+import { Chat } from "../dashboard/Chat";
 import { ComponentView } from "../views/ComponentView";
 import { useComponents } from "../views/componentModel";
 import { ControllerView } from "../views/ControllerView";
@@ -78,6 +79,22 @@ export default function App() {
   };
   const netZones = open && active?.id === "safety" && netZonesAsked;
   const order = () => { if (!open) toggle(); setPanelId("orders"); };
+  const [chatOpen, setChatOpen] = usePersistent("stf.twin.chat.open", false);
+  const [chatPinned, setChatPinned] = usePersistent("stf.twin.chat.pinned", false);
+  const toggleChatPinned = (v: boolean) => {
+    setChatPinned(v);
+    nudge();
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && chatOpen && !chatPinned) {
+        setChatOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [chatOpen, chatPinned, setChatOpen]);
 
   // keyboard: 1-9 open a panel, [ shows or hides it, P pins it (not while typing)
   useEffect(() => {
@@ -114,6 +131,7 @@ export default function App() {
     <div className={`app ${machineView ? "immersive" : ""}`}>
       <TopBar views={views} view={view} onView={setViewId} theme={theme} setTheme={setTheme}
         status={conn.conn} onOrder={machineView && ctx ? order : undefined}
+        onChat={() => { setChatOpen(!chatOpen); nudge(); }} chatOpen={chatOpen}
         statusTip={[scene && "layout loaded", machine.doc && "cad synchronized"].filter(Boolean).join("  ·  ")} />
 
       {view.kind === "controller" && (ctl.doc ? <ControllerView doc={ctl.doc} /> : <div className="error">{ctl.err}</div>)}
@@ -178,6 +196,61 @@ export default function App() {
             </div>
             <CameraTip />
           </div>
+
+          {/* Pinned right sidebar: docks on the right side of the 3D twin */}
+          {chatOpen && chatPinned && (
+            <aside className="db-inspector twin-pinned-chat" aria-label="Ask Copilot & Place Orders">
+              <div className="db-inspector-h">
+                <span className="db-inspector-ico"><CopilotMark size={17} /></span>
+                <div><b>Ask Copilot</b><span>Operations & Orders</span></div>
+                <button className="ui-btn icon ghost on" onClick={() => toggleChatPinned(false)} title="Unpin to floating window" aria-label="Unpin to floating window">
+                  <Icon name="pin" size={15} className="db-pinned-icon" />
+                </button>
+                <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html?p=copilot`} title="Open full Copilot page">
+                  <Icon name="external" size={13} /><span className="hide-sm">Full</span>
+                </a>
+                <button className="ui-btn icon ghost" onClick={() => { setChatOpen(false); nudge(); }} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
+              </div>
+              <Chat page="overview" go={(p) => { window.location.href = `${import.meta.env.BASE_URL}dashboard.html?p=${p}`; }} compact />
+            </aside>
+          )}
+
+          {/* Floating small chat window: draggable/dockable bottom-right card */}
+          {chatOpen && !chatPinned && (
+            <aside className="db-float-chat" aria-label="Floating Copilot Chat">
+              <div className="db-float-chat-h">
+                <span className="db-inspector-ico"><CopilotMark size={16} /></span>
+                <div><b>Ask Copilot</b><span>Operations & Orders</span></div>
+                <div className="db-float-chat-actions">
+                  <button className="ui-btn icon ghost" onClick={() => toggleChatPinned(true)} title="Pin to right sidebar" aria-label="Pin to right sidebar">
+                    <Icon name="pin" size={15} />
+                  </button>
+                  <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html?p=copilot`} title="Open full Copilot page">
+                    <Icon name="external" size={13} /><span className="hide-sm">Full</span>
+                  </a>
+                  <button className="ui-btn icon ghost" onClick={() => setChatOpen(false)} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
+                </div>
+              </div>
+              <div className="db-float-chat-b">
+                <Chat page="overview" go={(p) => { window.location.href = `${import.meta.env.BASE_URL}dashboard.html?p=${p}`; }} compact />
+              </div>
+            </aside>
+          )}
+
+          {/* Bottom right floating chatbot launcher button */}
+          <button
+            className={`db-float-trigger ${chatOpen ? "active" : ""}`}
+            onClick={() => { setChatOpen(!chatOpen); nudge(); }}
+            aria-expanded={chatOpen}
+            aria-label={chatOpen ? "Close Copilot" : "Open Copilot"}
+            title={chatOpen ? "Close Copilot" : "Ask Copilot & Place Orders"}
+          >
+            <span className="db-float-trigger-mark">
+              <CopilotMark size={20} />
+              <span className="db-float-trigger-dot" aria-hidden="true" />
+            </span>
+            <span className="db-float-trigger-label">Ask Copilot</span>
+          </button>
         </div>
       )}
     </div>

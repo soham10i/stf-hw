@@ -1275,7 +1275,7 @@ def route(q: str, ctx: Ctx, lean: bool = False) -> list[tuple[str, dict]]:
     # Industrial actuation: order submission
     if (
         re.search(
-            r"\b(bake (a )?cookie|bake cookies|produce (a )?cookie|submit order|queue order|run cycle|send carrier)\b",
+            r"\b(bake (a )?cookie|bake cookies|produce (a )?cookie|submit (an? )?order|queue (an? )?order|place (an? )?order|run (a )?cycle|send carrier|start production)\b",
             s,
         )
         or re.search(r"\b(retrieve from|store into|home crane)\b", s)

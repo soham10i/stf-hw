@@ -7,6 +7,8 @@ import "./index.css";
 import "./twin/twin.css";
 import "./shared/studio.css";
 import "./shared/elevenlabs.css";
+import "./dashboard/styles/chat.css";
+import "./shared/chat-widget.css";
 import { applyTheme } from "./shared/theme";
 
 // the saved theme on the document before the first render: no flash of the other one

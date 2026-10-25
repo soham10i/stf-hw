@@ -101,9 +101,10 @@ function SessionChip() {
   );
 }
 
-export function TopBar({ views, view, onView, status, statusTip, theme, setTheme, onOrder }: {
+export function TopBar({ views, view, onView, status, statusTip, theme, setTheme, onOrder, onChat, chatOpen }: {
   views: View[]; view: View; onView: (id: string) => void;
   status: Status; statusTip: string; theme: ThemeId; setTheme: (t: ThemeId) => void; onOrder?: () => void;
+  onChat?: () => void; chatOpen?: boolean;
 }) {
   return (
     <header className="topbar">
@@ -119,6 +120,10 @@ export function TopBar({ views, view, onView, status, statusTip, theme, setTheme
           <span className="ui-dot" />{CHIP[status][1]}
         </span>
         {onOrder && <button className="ui-btn primary" onClick={onOrder} title="Open the order form" aria-label="New order"><Icon name="plus" size={15} /><span className="hide-sm">New order</span></button>}
+        {onChat && (
+          <button className={`ui-btn db-ask-btn ${chatOpen ? "on" : ""}`} onClick={onChat} aria-expanded={chatOpen}
+            title="Ask Copilot or place an order"><Icon name="copilot" size={15} /><span className="hide-sm">Ask</span></button>
+        )}
         <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html`} aria-label="Dashboard"><Icon name="gauge" size={16} /><span className="hide-sm">Dashboard</span></a>
         <ThemeMenu theme={theme} setTheme={setTheme} />
       </div>
