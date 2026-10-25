@@ -1273,7 +1273,8 @@ def route(q: str, ctx: Ctx, lean: bool = False) -> list[tuple[str, dict]]:
     if re.search(r"this page|on this page|what (does|is) (this|the) page|how (do i|to) read", s):
         calls.append(("page_guide", {}))
     # Industrial actuation: order submission
-    if (
+    is_question = bool(re.search(r"\b(how (do|to|can)|what|why|explain|where)\b", s))
+    if not is_question and (
         re.search(
             r"\b(bake (a )?cookie|bake cookies|produce (a )?cookie|submit (an? )?order|queue (an? )?order|place (an? )?order|run (a )?cycle|send carrier|start production)\b",
             s,
@@ -1281,7 +1282,6 @@ def route(q: str, ctx: Ctx, lean: bool = False) -> list[tuple[str, dict]]:
         or re.search(r"\b(retrieve from|store into|home crane)\b", s)
         or (
             re.search(r"\b(order|produce)\b", s)
-            and not re.search(r"\b(how (do|to|can)|what|why|explain|where)\b", s)
             and re.search(r"\b(cookie|carrier|slot|[A-C][1-3]|batch|part)\b", s)
         )
     ):
