@@ -59,11 +59,14 @@ from pydantic import BaseModel, Field
 
 from stf_layout import get_layout
 
+from . import actuation as ACT
 from . import guests as G
+from . import industrial_io as IIO
 from . import live, wire
 from . import security as sec
 from . import usage as U
 from . import visits as VIS
+from . import watchdog as WD
 from .captures import Captures
 from .chat import Chat, ChatRequest, dotenv
 from .factory_db import factory_from
@@ -83,6 +86,11 @@ logger = get_logger(__name__)
 _TIME_SCALE = float(os.environ.get("STF_TIME_SCALE", "1.0"))
 
 runtime = SimRuntime(time_scale=_TIME_SCALE)
+ACT.set_runtime(runtime)
+watchdog = WD.TelemetryWatchdog(runtime)
+WD.set_watchdog(watchdog)
+opcua = IIO.OpcUaBridge()
+aas = IIO.AasBridge()
 settings = sec.Settings.from_env()
 command_guard = sec.CommandGuard(settings)
 ws_clients = sec.ClientCounter(settings.max_ws_clients)
@@ -120,10 +128,12 @@ async def lifespan(app: FastAPI):
         factory.name,
     )
     await runtime.start()
+    await watchdog.start()
     try:
         yield
     finally:
         logger.info("Shutting down STF Digital Twin API")
+        await watchdog.stop()
         await runtime.stop()
 
 
@@ -325,15 +335,132 @@ async def orders() -> dict:
 
 @app.post("/command", dependencies=[Depends(command_guard)])
 async def command(req: CommandRequest) -> JSONResponse:
-    """Queue an operational order (retrieve, store, home, cycle) for the factory crane."""
+    """Queue an operational order (retrieve, store, home, cycle) through the safety guard."""
     logger.info("Command received: op=%s, slot=%s", req.op, req.slot)
+    res = ACT.get_guard().execute_order(runtime, op=req.op, slot=req.slot, actor="operator")
+    if not res.get("accepted"):
+        logger.warning("Command rejected by safety guard: %s", res.get("error"))
+        return JSONResponse(status_code=400, content={"error": res.get("error")})
+    order = res.get("order", {})
+    logger.info("Command accepted: order #%d (%s, slot=%s)", order.get("id", 0), req.op, req.slot)
+    return JSONResponse(
+        content={
+            "accepted": True,
+            "order": order,
+            "audit_id": res.get("audit_id"),
+            "signature": res.get("signature"),
+        }
+    )
+
+
+@app.get("/watchdog/status")
+async def watchdog_status() -> dict:
+    """Current health and monitoring status of the autonomous background watchdog."""
+    return watchdog.get_status()
+
+
+@app.get("/watchdog/incidents")
+async def watchdog_incidents(
+    severity: str | None = None,
+    category: str | None = None,
+    limit: int = 50,
+) -> dict:
+    """List recent cyber-physical anomalies and incidents detected by the watchdog."""
+    return {"incidents": watchdog.list_incidents(severity=severity, category=category, limit=limit)}
+
+
+@app.post("/watchdog/scan")
+async def watchdog_scan() -> dict:
+    """Trigger an immediate synchronous telemetry evaluation pass."""
+    new_incidents = watchdog.scan_once()
+    return {
+        "scanned": True,
+        "new_incidents": [i.as_dict() for i in new_incidents],
+        "status": watchdog.get_status(),
+    }
+
+
+@app.post("/watchdog/incidents/{incident_id}/ack")
+async def watchdog_ack(incident_id: str) -> JSONResponse:
+    """Acknowledge a specific incident detected by the watchdog."""
+    ok = watchdog.acknowledge_incident(incident_id)
+    if not ok:
+        return JSONResponse(status_code=404, content={"error": "Incident ID not found"})
+    return JSONResponse(content={"acknowledged": True, "incident_id": incident_id})
+
+
+@app.get("/actuation/audit", dependencies=[Depends(command_guard)])
+async def actuation_audit(limit: int = 50, action: str | None = None) -> dict:
+    """Retrieve cryptographically signed IEC 62443 cyber-physical actuation audit log."""
+    return {"records": ACT.get_guard().list_audit_records(limit=limit, action=action)}
+
+
+@app.post("/actuation/e-stop", dependencies=[Depends(command_guard)])
+async def actuation_estop() -> dict:
+    """Engage emergency stop safety latch, interlocking all physical and simulation motions."""
+    ACT.get_guard().trigger_emergency_stop(actor="operator", reason="Manual operator e-stop requested")
+    return {"status": "EMERGENCY_STOP_ACTIVE", "latched": True}
+
+
+@app.post("/actuation/reset-e-stop", dependencies=[Depends(command_guard)])
+async def actuation_reset_estop() -> dict:
+    """Reset emergency stop safety latch after clearance."""
+    ACT.get_guard().reset_emergency_stop(actor="operator")
+    return {"status": "EMERGENCY_STOP_CLEARED", "latched": False}
+
+
+@app.get("/opcua/nodes")
+async def opcua_nodes() -> dict:
+    """Browse the standard OPC UA (IEC 62541) address space nodeset."""
+    return {"nodes": opcua.browse_nodes()}
+
+
+@app.get("/opcua/nodes/{node_id:path}")
+async def opcua_read(node_id: str) -> JSONResponse:
+    """Read an OPC UA node value from the live cyber-physical simulation."""
     try:
-        order = runtime.submit(req.op, req.slot)
-        logger.info("Command accepted: order #%d (%s, slot=%s)", order.id, req.op, req.slot)
-        return JSONResponse(content={"accepted": True, "order": order.as_dict()})
-    except ValueError as exc:
-        logger.warning("Command validation rejected: %s", exc)
-        return JSONResponse(status_code=400, content={"error": str(exc)})
+        val = opcua.read_node(node_id, runtime)
+        return JSONResponse(content={"node_id": node_id, "value": val})
+    except KeyError:
+        return JSONResponse(status_code=404, content={"error": f"NodeID '{node_id}' not found"})
+
+
+@app.post("/opcua/nodes/{node_id:path}", dependencies=[Depends(command_guard)])
+async def opcua_write(node_id: str, req: dict) -> JSONResponse:
+    """Write an OPC UA variable value (e.g. Safety.EmergencyStop) with audit enforcement."""
+    try:
+        val = req.get("value")
+        ok = opcua.write_node(node_id, val, actor="operator")
+        return JSONResponse(content={"node_id": node_id, "written": ok, "value": val})
+    except (PermissionError, KeyError) as e:
+        return JSONResponse(status_code=400, content={"error": str(e)})
+
+
+@app.post("/opcua/methods/{method_id:path}", dependencies=[Depends(command_guard)])
+async def opcua_call(method_id: str, req: dict) -> JSONResponse:
+    """Invoke an industrial OPC UA method dispatched through ActionGuard."""
+    try:
+        res = opcua.call_method(method_id, req, actor="operator", runtime=runtime)
+        status_code = 200 if res.get("accepted") else 400
+        return JSONResponse(status_code=status_code, content=res)
+    except KeyError as e:
+        return JSONResponse(status_code=404, content={"error": str(e)})
+
+
+@app.get("/aas/env")
+async def aas_environment() -> dict:
+    """Export the complete Asset Administration Shell (AAS / IEC 63278) environment."""
+    return aas.export_aas_env(runtime)
+
+
+@app.get("/aas/submodels/{submodel_id}")
+async def aas_submodel(submodel_id: str) -> JSONResponse:
+    """Fetch a specific Asset Administration Shell submodel descriptor."""
+    try:
+        sm = aas.get_submodel(submodel_id, runtime)
+        return JSONResponse(content=sm)
+    except KeyError:
+        return JSONResponse(status_code=404, content={"error": f"Submodel '{submodel_id}' not found"})
 
 
 @app.get("/chat/status")

@@ -846,6 +846,119 @@ def open_page(args: dict, ctx: Ctx) -> Result:
     )
 
 
+# ------------------------------------------------------------------------ industrial actuation
+def order_submit(args: dict, ctx: Ctx) -> Result:
+    """Queue an operational order (cycle, retrieve, store, home) through the safety guard."""
+    from .actuation import get_guard, get_runtime
+
+    runtime = get_runtime()
+    if not runtime:
+        return Result("order_submit", "Factory runtime kernel is unavailable for actuation.")
+    op = str(args.get("op", "cycle")).lower()
+    slot = args.get("slot")
+    actor = ctx.client or "operator"
+    res = get_guard().execute_order(runtime, op=op, slot=slot, actor=actor)
+    if not res.get("accepted"):
+        return Result(
+            "order_submit",
+            f"Order rejected by Safety Invariant Guard: {res.get('error', 'Unknown safety violation')}",
+            facts=[["Status", "REJECTED"], ["Reason", str(res.get("error"))]],
+            sources=["IEC 62443 Invariant Safety Guard"],
+        )
+    order = res.get("order", {})
+    verified = res.get("verified", False)
+    return Result(
+        "order_submit",
+        f"Order #{order.get('id')} ({op.upper()}{f' to slot {slot}' if slot else ''}) accepted and verified in runtime.",
+        facts=[
+            ["Order ID", str(order.get("id"))],
+            ["Operation", op],
+            ["Slot", str(slot or "N/A")],
+            ["Verified", "Yes" if verified else "Pending"],
+            ["Audit ID", str(res.get("audit_id", ""))],
+        ],
+        sources=["IEC 62443 Invariant Safety Guard"],
+        link={"page": "overview", "label": "Factory Orders"},
+    )
+
+
+def alarm_ack(args: dict, ctx: Ctx) -> Result:
+    """Acknowledge and clear an active factory alarm code with operator audit trail."""
+    from .actuation import get_guard
+
+    code = str(args.get("code", "")).strip().upper()
+    note = args.get("note")
+    actor = ctx.client or "operator"
+    res = get_guard().execute_alarm_ack(code=code, actor=actor, note=note)
+    if not res.get("accepted"):
+        return Result(
+            "alarm_ack",
+            f"Alarm acknowledgement rejected: {res.get('error')}",
+            facts=[["Status", "REJECTED"], ["Code", code], ["Reason", str(res.get("error"))]],
+            sources=["Safety Incident Guard"],
+        )
+    return Result(
+        "alarm_ack",
+        f"Alarm {code} acknowledged and cleared by {actor}.",
+        facts=[
+            ["Alarm Code", code],
+            ["Status", "ACKNOWLEDGED"],
+            ["Operator", actor],
+            ["Audit ID", str(res.get("audit_id", ""))],
+        ],
+        sources=["IEC 62443 Non-Repudiation Audit"],
+        link={"page": "health", "label": "Machine Health"},
+    )
+
+
+def recipe_adjust(args: dict, ctx: Ctx) -> Result:
+    """Update active baking recipe parameters within physical process bounds."""
+    from .actuation import get_guard
+
+    actor = ctx.client or "operator"
+    res = get_guard().execute_recipe_adjust(recipe=args, actor=actor)
+    if not res.get("accepted"):
+        return Result(
+            "recipe_adjust",
+            f"Recipe adjustment rejected: {res.get('error')}",
+            facts=[["Status", "REJECTED"], ["Reason", str(res.get("error"))]],
+            sources=["Process Envelope Guard"],
+        )
+    recipe = res.get("recipe", {})
+    facts = [[k, f"{v}"] for k, v in recipe.items()]
+    facts.append(["Audit ID", str(res.get("audit_id", ""))])
+    return Result(
+        "recipe_adjust",
+        "Process recipe parameters updated successfully within thermal envelope.",
+        facts=facts,
+        sources=["Process Envelope Guard"],
+        link={"page": "oven", "label": "Oven Process"},
+    )
+
+
+def twin_navigate(args: dict, ctx: Ctx) -> Result:
+    """Direct digital twin dashboard camera and view to target subsystem."""
+    from .actuation import get_guard
+
+    page = str(args.get("page", "overview")).strip().lower()
+    target = args.get("target")
+    actor = ctx.client or "operator"
+    res = get_guard().execute_twin_navigate(page=page, target=target, actor=actor)
+    if not res.get("accepted"):
+        return Result(
+            "twin_navigate",
+            f"Navigation target rejected: {res.get('error')}",
+            facts=[["Status", "REJECTED"], ["Reason", str(res.get("error"))]],
+        )
+    return Result(
+        "twin_navigate",
+        f"Digital twin viewport dispatched to '{page}' view"
+        + (f" focused on {target}." if target else "."),
+        facts=[["Page", page], ["Target", str(target or "Global")], ["Status", "DISPATCHED"]],
+        link={"page": page, "label": f"{page.title()} Dashboard"},
+    )
+
+
 # ------------------------------------------------------------------------ the table
 @dataclass
 class Tool:
@@ -969,6 +1082,91 @@ TOOLS: dict[str, Tool] = {
                 ["url"],
             ),
         ),
+        Tool(
+            "order_submit",
+            order_submit,
+            _obj(
+                {
+                    "op": {
+                        "type": "string",
+                        "enum": ["cycle", "retrieve", "store", "home"],
+                        "description": "operational command: cycle, retrieve, store, or home",
+                    },
+                    "slot": {
+                        "type": "string",
+                        "description": "rack bay slot identifier like A1, B2, C3",
+                    },
+                },
+                ["op"],
+            ),
+        ),
+        Tool(
+            "alarm_ack",
+            alarm_ack,
+            _obj(
+                {
+                    "code": {
+                        "type": "string",
+                        "description": "the alarm code to acknowledge, like OVN-D02, HBW-C01",
+                    },
+                    "note": {
+                        "type": "string",
+                        "description": "optional operator note or root-cause remark",
+                    },
+                },
+                ["code"],
+            ),
+        ),
+        Tool(
+            "recipe_adjust",
+            recipe_adjust,
+            _obj(
+                {
+                    "bake_temp_c": {
+                        "type": "number",
+                        "description": "oven baking temperature target in Celsius (120 - 240 °C)",
+                    },
+                    "conveyor_speed": {
+                        "type": "number",
+                        "description": "conveyor belt speed multiplier (0.2x - 2.5x)",
+                    },
+                    "bake_time_s": {
+                        "type": "number",
+                        "description": "duration carrier remains in oven in seconds (5 - 120 s)",
+                    },
+                    "color_tolerance": {
+                        "type": "number",
+                        "description": "acceptable color deviation delta E threshold (0.01 - 0.20)",
+                    },
+                }
+            ),
+        ),
+        Tool(
+            "twin_navigate",
+            twin_navigate,
+            _obj(
+                {
+                    "page": {
+                        "type": "string",
+                        "enum": [
+                            "overview",
+                            "warehouse",
+                            "oven",
+                            "quality",
+                            "analytics",
+                            "security",
+                            "settings",
+                        ],
+                        "description": "dashboard view or camera angle to navigate to",
+                    },
+                    "target": {
+                        "type": "string",
+                        "description": "optional focal component like crane, oven, vgr, camera",
+                    },
+                },
+                ["page"],
+            ),
+        ),
     ]
 }
 
@@ -1074,6 +1272,51 @@ def route(q: str, ctx: Ctx, lean: bool = False) -> list[tuple[str, dict]]:
         calls.append(("security_attacks", {}))
     if re.search(r"this page|on this page|what (does|is) (this|the) page|how (do i|to) read", s):
         calls.append(("page_guide", {}))
+    # Industrial actuation: order submission
+    if (
+        re.search(
+            r"\b(bake (a )?cookie|bake cookies|produce (a )?cookie|submit order|queue order|run cycle|send carrier)\b",
+            s,
+        )
+        or re.search(r"\b(retrieve from|store into|home crane)\b", s)
+        or (
+            re.search(r"\b(order|produce)\b", s)
+            and not re.search(r"\b(how (do|to|can)|what|why|explain|where)\b", s)
+            and re.search(r"\b(cookie|carrier|slot|[A-C][1-3]|batch|part)\b", s)
+        )
+    ):
+        slot_match = re.search(r"\b([A-C][1-3])\b", q, re.I)
+        slot = slot_match.group(1).upper() if slot_match else "B2"
+        op = "retrieve" if "retrieve" in s else ("store" if "store" in s else "cycle")
+        calls.append(("order_submit", {"op": op, "slot": slot}))
+    # Industrial actuation: alarm acknowledgement
+    if re.search(r"\b(ack|acknowledge|clear|silence|reset)\b.{0,20}\b(alarm|fault|error)\b", s) or (
+        codes and re.search(r"\b(ack|acknowledge|clear|silence|reset)\b", s)
+    ):
+        target_code = codes[0] if codes else "OVN-D02"
+        calls = [c for c in calls if not (c[0] == "alarm_lookup" and c[1].get("code") == target_code)]
+        calls.append(("alarm_ack", {"code": target_code}))
+    # Industrial actuation: recipe adjustment
+    if re.search(
+        r"\b(recipe|bake temp(erature)?|baking temp(erature)?|temperature|conveyor speed|bake time)\b",
+        s,
+    ) and re.search(r"\b(set|adjust|change|tune|update)\b", s):
+        recipe_args: dict = {}
+        val_match = re.search(r"\b(?:to|at|=)\s*(\d+(?:\.\d+)?)\b", s)
+        if val_match:
+            val = float(val_match.group(1))
+            if "speed" in s:
+                recipe_args["conveyor_speed"] = val
+            elif "time" in s:
+                recipe_args["bake_time_s"] = val
+            else:
+                recipe_args["bake_temp_c"] = val
+        calls.append(("recipe_adjust", recipe_args))
+    # Industrial actuation: twin navigation
+    if re.search(r"\b(navigate to|take me to|show me the|switch to (page|view)|go to (page|view))\b", s):
+        page_match = re.search(r"\b(overview|warehouse|oven|quality|analytics|security|settings)\b", s)
+        target_page = page_match.group(1) if page_match else "overview"
+        calls.append(("twin_navigate", {"page": target_page}))
     if not calls or re.search(r"\bhow does\b|\bwhy\b|\bwhat is\b|\bexplain\b|circuit|works?\b", s):
         calls.append(("search_docs", {"query": q, "k": 2 if lean else 4}))
     return calls
