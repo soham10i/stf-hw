@@ -117,6 +117,7 @@ export default function App() {
   const inset = 72 + (panelOpen ? sideW + 10 : 0);
   const vars = {
     "--vp-left": panelOpen && pinned ? `${inset}px` : "0px",
+    "--vp-right": chatOpen && chatPinned ? "440px" : "0px",
     "--tools-left": `${inset}px`,
   } as React.CSSProperties;
   useLiveShare(machineView && !!machine.doc);
@@ -124,8 +125,10 @@ export default function App() {
   // the camera centres the machine in what the rail, a floating panel and the bars leave clear
   useEffect(() => {
     const narrow = window.innerWidth <= 900;
-    setViewInset(panelOpen && pinned && !narrow ? 0 : panelOpen && !narrow ? inset : 72, 120);
-  }, [panelOpen, pinned, inset]);
+    const rightInset = chatOpen && chatPinned && !narrow ? 440 : 120;
+    const leftInset = panelOpen && pinned && !narrow ? 0 : panelOpen && !narrow ? inset : 72;
+    setViewInset(leftInset, rightInset);
+  }, [panelOpen, pinned, inset, chatOpen, chatPinned]);
 
   return (
     <div className={`app ${machineView ? "immersive" : ""}`}>
@@ -238,19 +241,21 @@ export default function App() {
           )}
 
           {/* Bottom right floating chatbot launcher button */}
-          <button
-            className={`db-float-trigger ${chatOpen ? "active" : ""}`}
-            onClick={() => { setChatOpen(!chatOpen); nudge(); }}
-            aria-expanded={chatOpen}
-            aria-label={chatOpen ? "Close NEXUS" : "Open NEXUS"}
-            title={chatOpen ? "Close NEXUS" : "Ask NEXUS & Place Orders"}
-          >
-            <span className="db-float-trigger-mark">
-              <CopilotMark size={20} />
-              <span className="db-float-trigger-dot" aria-hidden="true" />
-            </span>
-            <span className="db-float-trigger-label">Ask NEXUS</span>
-          </button>
+          {(!chatOpen || !chatPinned) && (
+            <button
+              className={`db-float-trigger ${chatOpen ? "active" : ""}`}
+              onClick={() => { setChatOpen(!chatOpen); nudge(); }}
+              aria-expanded={chatOpen}
+              aria-label={chatOpen ? "Close NEXUS" : "Open NEXUS"}
+              title={chatOpen ? "Close NEXUS" : "Ask NEXUS & Place Orders"}
+            >
+              <span className="db-float-trigger-mark">
+                <CopilotMark size={20} />
+                <span className="db-float-trigger-dot" aria-hidden="true" />
+              </span>
+              <span className="db-float-trigger-label">Ask NEXUS</span>
+            </button>
+          )}
         </div>
       )}
     </div>

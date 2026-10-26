@@ -545,7 +545,7 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 
 /* ---------------------------------------------------- canvas and its floating chrome */
 .app.immersive > .body { position: absolute; inset: 0; display: block; }
-.app.immersive .viewport { position: absolute; top: 0; right: 0; bottom: 0; left: var(--vp-left, 0px); transition: left .22s var(--ease); }
+.app.immersive .viewport { position: absolute; top: 0; right: var(--vp-right, 0px); bottom: 0; left: var(--vp-left, 0px); transition: left .22s var(--ease), right .22s var(--ease); }
 .vp-errors { position: absolute; top: 130px; left: 50%; transform: translateX(-50%); z-index: 4; display: grid; gap: 6px; }
 .vp-errors .error { position: static; transform: none; }
 
@@ -569,9 +569,38 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .side .panel { border-radius: 14px; border-color: color-mix(in srgb, var(--text) 8%, transparent); }
 .side .panel h3 { font-size: var(--fs-caption); letter-spacing: .04em; color: var(--muted); }
 
+/* pinned chat sidebar on the right */
+.app.immersive .twin-pinned-chat {
+  position: absolute;
+  right: 10px;
+  left: auto;
+  top: 76px;
+  bottom: 10px;
+  margin: 0;
+  width: min(420px, calc(100vw - 20px));
+  height: auto;
+  max-height: none;
+  z-index: 8;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  box-shadow: -14px 0 40px -14px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  -webkit-backdrop-filter: blur(28px) saturate(185%);
+  backdrop-filter: blur(28px) saturate(185%);
+  display: flex;
+  flex-direction: column;
+  padding: 0 14px 14px;
+  overflow: hidden;
+  animation: twin-pinned-slide-right 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes twin-pinned-slide-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 /* the control bar: at the top of the view, under the top bar - controls are kept off a
    window's bottom edge, which is the part people push off screen (layout.md, Desktop) */
-.vp-dock { position: absolute; top: 76px; left: var(--tools-left, 0px); right: 0; z-index: 5; display: flex; justify-content: center; pointer-events: none; transition: left .22s var(--ease); }
+.vp-dock { position: absolute; top: 76px; left: var(--tools-left, 0px); right: var(--vp-right, 0px); z-index: 5; display: flex; justify-content: center; pointer-events: none; transition: left .22s var(--ease), right .22s var(--ease); }
 .vp-bar { pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 5px; border-radius: 16px; max-width: calc(100% - 24px); }
 .vp-status { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; font-size: var(--fs-body); min-width: 0; }
 .vp-status i { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--ok); box-shadow: 0 0 0 4px var(--ok-weak); animation: pulse 1.6s ease-in-out infinite; }
