@@ -78,17 +78,26 @@ const P: Record<string, string> = {
   broadcast: "M12 12h.01M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8",
 };
 
-/** The copilot's mark: the bubble drawn, its spark filled - the avatar beside an answer, the
-    empty chat, and wherever the copilot is named. */
-export function CopilotMark({ size = 18, className }: { size?: number; className?: string }) {
+/** The NEXUS symbol: an Asset Administration Shell hex frame with converging tri-bus actuation rays and central nexus core. */
+export function NexusMark({ size = 18, className }: { size?: number; className?: string }) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5.5 4h13A2.5 2.5 0 0 1 21 6.5v8a2.5 2.5 0 0 1-2.5 2.5H12l-4.6 3.6V17H5.5A2.5 2.5 0 0 1 3 14.5v-8A2.5 2.5 0 0 1 5.5 4z" />
-      <path d="M12 6.9l1.1 2.7 2.7 1.1-2.7 1.1-1.1 2.7-1.1-2.7-2.7-1.1 2.7-1.1z" fill="currentColor" strokeWidth={1} />
+      {/* AAS Outer Hexagon Frame */}
+      <polygon points="12 2, 21 7.2, 21 16.8, 12 22, 3 16.8, 3 7.2" stroke="currentColor" strokeWidth={1.5} opacity={0.88} />
+      {/* Central Actuation Core Diamond */}
+      <polygon points="12 7.5, 16.5 12, 12 16.5, 7.5 12" fill="currentColor" fillOpacity={0.25} stroke="currentColor" strokeWidth={1.4} />
+      {/* Precision Micro Singularity */}
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+      {/* Cyber-physical Actuation Tri-Bus Lines */}
+      <line x1="12" y1="2" x2="12" y2="7.5" stroke="currentColor" strokeWidth={1.4} />
+      <line x1="3" y1="16.8" x2="7.5" y2="12" stroke="currentColor" strokeWidth={1.4} />
+      <line x1="21" y1="16.8" x2="16.5" y2="12" stroke="currentColor" strokeWidth={1.4} />
     </svg>
   );
 }
+
+export const CopilotMark = NexusMark;
 
 export function Icon({ name, size = 18, className }: { name: keyof typeof P | string; size?: number; className?: string }) {
   return (

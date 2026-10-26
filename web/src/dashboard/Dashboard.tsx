@@ -22,7 +22,7 @@ import { ProcessPage } from "./Process";
 import { SchedulerPage } from "./Scheduler";
 import { CopilotPage } from "./Copilot";
 import { Chat } from "./Chat";
-import { CopilotMark, Icon, ThemeMenu } from "../shared/icons";
+import { CopilotMark, Icon, NexusMark, ThemeMenu } from "../shared/icons";
 import { StfLogo, StfMark } from "../shared/Logo";
 import { useScrollMemory } from "../shared/scrollMemory";
 import { useTheme } from "../shared/theme";
@@ -39,7 +39,7 @@ const DegradationPage = lazy(() => import("./Degradation").then((m) => ({ defaul
 const BASE = import.meta.env.BASE_URL;
 const PAGES = [
   ["overview", "Overview", "overview", "Operate"], ["production", "Production", "factory", "Operate"],
-  ["quality", "Quality & trace", "seal", "Operate"], ["vision", "Vision QC", "viewfinder", "Operate"], ["alarms", "Alarms", "bell", "Operate"], ["copilot", "Copilot", "copilot", "Operate"],
+  ["quality", "Quality & trace", "seal", "Operate"], ["vision", "Vision QC", "viewfinder", "Operate"], ["alarms", "Alarms", "bell", "Operate"], ["copilot", "NEXUS", "copilot", "Operate"],
   ["health", "Health", "pulse", "Maintain"], ["maintenance", "Maintenance", "wrench", "Maintain"],
   ["month", "Two months", "calendar", "Analyse"], ["throughput", "Throughput", "gauge", "Analyse"], ["process", "Oven process", "zap", "Analyse"], ["scheduler", "Learned scheduler", "shuffle", "Analyse"],
   ["energy", "Energy & grid", "bolt", "Analyse"], ["carbon", "Carbon per cookie", "leaf", "Analyse"], ["security", "OT security", "shieldlock", "Analyse"],
@@ -206,7 +206,7 @@ export function Dashboard() {
           </div>
           {page !== "copilot" && (
             <button className={`ui-btn db-ask-btn ${askOpen ? "on" : ""}`} onClick={() => showAsk(!askOpen)} aria-expanded={askOpen}
-              title="Ask the copilot about this page"><Icon name="copilot" size={15} />Ask</button>
+              title="Ask NEXUS about this page"><NexusMark size={15} />Ask NEXUS</button>
           )}
           <NotifyMenu />
           <ThemeMenu theme={theme} setTheme={setTheme} />
@@ -270,14 +270,14 @@ export function Dashboard() {
       </main>
       {/* Pinned side panel: docks and consumes the 400px column space */}
       {askOpen && pinned && page !== "copilot" && (
-        <aside className="db-inspector" aria-label="Ask about this page">
+        <aside className="db-inspector" aria-label="Ask NEXUS about this page">
           <div className="db-inspector-h">
             <span className="db-inspector-ico"><CopilotMark size={17} /></span>
-            <div><b>Ask Copilot</b><span>about {cur[1]}</span></div>
+            <div><b>Ask NEXUS</b><span>about {cur[1]}</span></div>
             <button className="ui-btn icon ghost on" onClick={() => togglePinned(false)} title="Unpin to floating window" aria-label="Unpin to floating window">
               <Icon name="pin" size={15} className="db-pinned-icon" />
             </button>
-            <button className="ui-btn ghost" onClick={() => setPage("copilot")} title="Open the copilot's own page, with your history">
+            <button className="ui-btn ghost" onClick={() => setPage("copilot")} title="Open NEXUS page, with your history">
               <Icon name="external" size={13} /><span className="hide-sm">Full</span>
             </button>
             <button className="ui-btn icon ghost" onClick={() => showAsk(false)} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
@@ -288,15 +288,15 @@ export function Dashboard() {
 
       {/* Floating chatbot window: small draggable/dockable bottom-right card */}
       {askOpen && !pinned && page !== "copilot" && (
-        <aside className="db-float-chat" aria-label="Floating Copilot Chat">
+        <aside className="db-float-chat" aria-label="Floating NEXUS Chat">
           <div className="db-float-chat-h">
             <span className="db-inspector-ico"><CopilotMark size={16} /></span>
-            <div><b>Ask Copilot</b><span>about {cur[1]}</span></div>
+            <div><b>Ask NEXUS</b><span>about {cur[1]}</span></div>
             <div className="db-float-chat-actions">
               <button className="ui-btn icon ghost" onClick={() => togglePinned(true)} title="Pin to side panel" aria-label="Pin to side panel">
                 <Icon name="pin" size={15} />
               </button>
-              <button className="ui-btn ghost" onClick={() => setPage("copilot")} title="Open full copilot page">
+              <button className="ui-btn ghost" onClick={() => setPage("copilot")} title="Open full NEXUS page">
                 <Icon name="external" size={13} /><span className="hide-sm">Full</span>
               </button>
               <button className="ui-btn icon ghost" onClick={() => showAsk(false)} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
@@ -314,14 +314,14 @@ export function Dashboard() {
           className={`db-float-trigger ${askOpen ? "active" : ""}`}
           onClick={() => showAsk(!askOpen)}
           aria-expanded={askOpen}
-          aria-label={askOpen ? "Close Copilot" : "Open Copilot"}
-          title={askOpen ? "Close Copilot" : "Ask Copilot"}
+          aria-label={askOpen ? "Close NEXUS" : "Open NEXUS"}
+          title={askOpen ? "Close NEXUS" : "Ask NEXUS"}
         >
           <span className="db-float-trigger-mark">
             <CopilotMark size={20} />
             <span className="db-float-trigger-dot" aria-hidden="true" />
           </span>
-          <span className="db-float-trigger-label">Ask Copilot</span>
+          <span className="db-float-trigger-label">Ask NEXUS</span>
         </button>
       )}
       <HelpTips />

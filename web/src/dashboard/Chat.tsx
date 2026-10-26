@@ -391,7 +391,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
         </div>
       )}
       <form className="cx-composer" onSubmit={(e) => { e.preventDefault(); ask(q); }}>
-        <textarea ref={input} value={q} rows={1} placeholder={tab === "voice" ? "…or type" : compact ? "Ask about this page…" : "Ask anything about the cell — Enter to send"}
+        <textarea ref={input} value={q} rows={1} placeholder={tab === "voice" ? "…or type" : compact ? "Ask NEXUS or place order…" : "Ask NEXUS anything about the factory — Enter to send"}
           onChange={(e) => setQ(e.target.value)} aria-label="Question"
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(q); } }} />
         <motion.button type="submit" disabled={!q.trim() || busy} aria-label="Send" whileTap={{ scale: 0.9 }}>{busy ? <span className="cx-spin" /> : "↑"}</motion.button>

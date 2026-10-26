@@ -539,7 +539,7 @@ function Answer({ turn, go, autoSpeak }: { turn: Turn; go: (p: string) => void; 
   const switched = (turn.switched ?? []).filter((s) => s.to !== "next" || s.why);
   return (
     <div className="cx-row bot">
-      <div className={`cx-avatar ${turn.model === "rules" ? "rules" : ""}`} title={turn.model === "rules" ? "Answered by the twin's tools alone" : "The copilot"}><CopilotMark size={18} /></div>
+      <div className={`cx-avatar ${turn.model === "rules" ? "rules" : ""}`} title={turn.model === "rules" ? "Answered by the twin's tools alone" : "NEXUS"}><CopilotMark size={18} /></div>
       <div className={`cx-bubble bot s-${style}`}>
         <div className="cx-meta">
           <span className="cx-chip style">{STYLE_LABEL[style]}</span>

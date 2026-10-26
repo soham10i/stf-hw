@@ -1,8 +1,6 @@
-// The twin's top bar: brand, the view switcher (searchable, Cmd/Ctrl+K), the backend status,
-// this visitor's session, the order shortcut, the dashboard link and the theme.
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ThemeId } from "../shared/theme";
-import { Icon, ThemeMenu } from "../shared/icons";
+import { Icon, NexusMark, ThemeMenu } from "../shared/icons";
 import { StfLogo, StfMark } from "../shared/Logo";
 import { fetchGuest, type GuestStatus } from "../shared/session";
 import type { View } from "./registry";
@@ -122,7 +120,7 @@ export function TopBar({ views, view, onView, status, statusTip, theme, setTheme
         {onOrder && <button className="ui-btn primary" onClick={onOrder} title="Open the order form" aria-label="New order"><Icon name="plus" size={15} /><span className="hide-sm">New order</span></button>}
         {onChat && (
           <button className={`ui-btn db-ask-btn ${chatOpen ? "on" : ""}`} onClick={onChat} aria-expanded={chatOpen}
-            title="Ask Copilot or place an order"><Icon name="copilot" size={15} /><span className="hide-sm">Ask</span></button>
+            title="Ask NEXUS or place an order"><NexusMark size={15} /><span className="hide-sm">NEXUS</span></button>
         )}
         <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html`} aria-label="Dashboard"><Icon name="gauge" size={16} /><span className="hide-sm">Dashboard</span></a>
         <ThemeMenu theme={theme} setTheme={setTheme} />

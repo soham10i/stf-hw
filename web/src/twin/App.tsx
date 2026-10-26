@@ -199,14 +199,14 @@ export default function App() {
 
           {/* Pinned right sidebar: docks on the right side of the 3D twin */}
           {chatOpen && chatPinned && (
-            <aside className="db-inspector twin-pinned-chat" aria-label="Ask Copilot & Place Orders">
+            <aside className="db-inspector twin-pinned-chat" aria-label="NEXUS · Autonomous Twin & Orders">
               <div className="db-inspector-h">
                 <span className="db-inspector-ico"><CopilotMark size={17} /></span>
-                <div><b>Ask Copilot</b><span>Operations & Orders</span></div>
+                <div><b>NEXUS</b><span>Autonomous Twin & Orders</span></div>
                 <button className="ui-btn icon ghost on" onClick={() => toggleChatPinned(false)} title="Unpin to floating window" aria-label="Unpin to floating window">
                   <Icon name="pin" size={15} className="db-pinned-icon" />
                 </button>
-                <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html?p=copilot`} title="Open full Copilot page">
+                <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html?p=copilot`} title="Open full NEXUS page">
                   <Icon name="external" size={13} /><span className="hide-sm">Full</span>
                 </a>
                 <button className="ui-btn icon ghost" onClick={() => { setChatOpen(false); nudge(); }} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
@@ -217,15 +217,15 @@ export default function App() {
 
           {/* Floating small chat window: draggable/dockable bottom-right card */}
           {chatOpen && !chatPinned && (
-            <aside className="db-float-chat" aria-label="Floating Copilot Chat">
+            <aside className="db-float-chat" aria-label="Floating NEXUS Chat">
               <div className="db-float-chat-h">
                 <span className="db-inspector-ico"><CopilotMark size={16} /></span>
-                <div><b>Ask Copilot</b><span>Operations & Orders</span></div>
+                <div><b>NEXUS</b><span>Autonomous Twin & Orders</span></div>
                 <div className="db-float-chat-actions">
                   <button className="ui-btn icon ghost" onClick={() => toggleChatPinned(true)} title="Pin to right sidebar" aria-label="Pin to right sidebar">
                     <Icon name="pin" size={15} />
                   </button>
-                  <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html?p=copilot`} title="Open full Copilot page">
+                  <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html?p=copilot`} title="Open full NEXUS page">
                     <Icon name="external" size={13} /><span className="hide-sm">Full</span>
                   </a>
                   <button className="ui-btn icon ghost" onClick={() => setChatOpen(false)} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
@@ -242,14 +242,14 @@ export default function App() {
             className={`db-float-trigger ${chatOpen ? "active" : ""}`}
             onClick={() => { setChatOpen(!chatOpen); nudge(); }}
             aria-expanded={chatOpen}
-            aria-label={chatOpen ? "Close Copilot" : "Open Copilot"}
-            title={chatOpen ? "Close Copilot" : "Ask Copilot & Place Orders"}
+            aria-label={chatOpen ? "Close NEXUS" : "Open NEXUS"}
+            title={chatOpen ? "Close NEXUS" : "Ask NEXUS & Place Orders"}
           >
             <span className="db-float-trigger-mark">
               <CopilotMark size={20} />
               <span className="db-float-trigger-dot" aria-hidden="true" />
             </span>
-            <span className="db-float-trigger-label">Ask Copilot</span>
+            <span className="db-float-trigger-label">Ask NEXUS</span>
           </button>
         </div>
       )}

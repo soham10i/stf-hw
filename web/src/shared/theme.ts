@@ -21,7 +21,7 @@ function saved(): ThemeId {
     const t = localStorage.getItem(KEY);
     if (THEMES.some((x) => x.id === t)) return t as ThemeId;
   } catch { /* private mode */ }
-  return "studio";
+  return "elevenlabs";
 }
 const systemDark = () => !window.matchMedia?.("(prefers-color-scheme: light)").matches;
 const appearanceOf = (id: ThemeId): Appearance => {
