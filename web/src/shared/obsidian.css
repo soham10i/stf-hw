@@ -1,6 +1,6 @@
 /* ==========================================================================
-   ElevenLabs Obsidian Theme
-   Matches the ElevenLabs developer console:
+   STF Obsidian Dark Theme
+   Deep industrial cyber-physical control surface:
      - Deep obsidian canvas (#08080a)
      - Crisp dark glass surfaces (#121217) with hairline rim borders (#22222c)
      - High-contrast pure white typography (#ffffff) with cool slate labels (#8e8e9e)
@@ -8,7 +8,7 @@
      - Clean pill filters, stat cards, and docked panels
    ========================================================================== */
 
-:root[data-palette="elevenlabs"] {
+:root:is([data-palette="obsidian"], [data-palette="elevenlabs"]) {
   color-scheme: dark;
   --ground: #08080a;
   --bg: #08080a;
@@ -22,7 +22,7 @@
   --muted: #8e8e9e;
   --faint: #5e5e6e;
 
-  /* ElevenLabs Signature Electric Violet Accent */
+  /* Cyber-Physical Electric Violet Accent */
   --accent: #a855f7;
   --accent-strong: #c084fc;
   --accent-fill: #9333ea;
@@ -76,13 +76,13 @@
   --scene-section: #2a2538;
 }
 
-[data-palette="elevenlabs"] body {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) body {
   background: var(--ground);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-[data-palette="elevenlabs"] body::before {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) body::before {
   content: "";
   position: fixed;
   inset: 0;
@@ -94,9 +94,9 @@
 }
 
 /* --------------------------------------------------------------------------
-   Cards, KPI Metrics & Panels (ElevenLabs Style)
+   Cards, KPI Metrics & Panels (Obsidian Dark)
    -------------------------------------------------------------------------- */
-[data-palette="elevenlabs"] :is(.db-card, .db-kpi) {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) :is(.db-card, .db-kpi) {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -104,18 +104,18 @@
   transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
-[data-palette="elevenlabs"] :is(.db-card:hover) {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) :is(.db-card:hover) {
   border-color: #2e2e3b;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 24px -10px rgba(0, 0, 0, 0.7);
 }
 
-[data-palette="elevenlabs"] .db-kpi > b {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-kpi > b {
   color: #ffffff;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-[data-palette="elevenlabs"] .db-kpi > span {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-kpi > span {
   color: var(--muted);
   font-size: 11px;
   text-transform: uppercase;
@@ -124,27 +124,27 @@
 }
 
 /* Navigation Left Rail */
-[data-palette="elevenlabs"] .db-nav {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-nav {
   background: #09090c;
   border-right: 1px solid #1c1c24;
 }
 
-[data-palette="elevenlabs"] .db-nav button {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-nav button {
   color: var(--muted);
   border-radius: 10px;
 }
 
-[data-palette="elevenlabs"] .db-nav button:hover {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-nav button:hover {
   color: #ffffff;
   background: #14141b;
 }
 
-[data-palette="elevenlabs"] .db-nav button.on {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-nav button.on {
   color: #ffffff;
   font-weight: 600;
 }
 
-[data-palette="elevenlabs"] .db-nav-pill {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-nav-pill {
   background: #1a1a24;
   border: 1px solid #282836;
   border-radius: 9px;
@@ -152,14 +152,14 @@
 }
 
 /* Top bar */
-[data-palette="elevenlabs"] .db-top {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-top {
   background: rgba(8, 8, 10, 0.85);
   border-bottom: 1px solid #1c1c24;
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
 }
 
-[data-palette="elevenlabs"] .ui-btn {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .ui-btn {
   background: #14141b;
   border: 1px solid #242430;
   color: #f0f0f5;
@@ -168,132 +168,132 @@
   transition: all 0.15s ease;
 }
 
-[data-palette="elevenlabs"] .ui-btn:hover {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .ui-btn:hover {
   background: #1b1b24;
   border-color: #323242;
   color: #ffffff;
 }
 
-[data-palette="elevenlabs"] .ui-btn.on,
-[data-palette="elevenlabs"] .ui-btn.primary {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .ui-btn.on,
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .ui-btn.primary {
   background: var(--accent-fill);
   border-color: var(--accent);
   color: #ffffff;
   box-shadow: 0 0 16px rgba(168, 85, 247, 0.35);
 }
 
-/* Segmented controls / Tabs (ElevenLabs pill style) */
-[data-palette="elevenlabs"] .ui-seg {
+/* Segmented controls / Tabs (Obsidian pill style) */
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .ui-seg {
   background: #121217;
   border: 1px solid #22222b;
   border-radius: 10px;
   padding: 3px;
 }
 
-[data-palette="elevenlabs"] .ui-seg button {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .ui-seg button {
   border-radius: 7px;
   color: var(--muted);
 }
 
-[data-palette="elevenlabs"] .ui-seg button.on {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .ui-seg button.on {
   background: #20202a;
   color: #ffffff;
   border: 1px solid #30303e;
 }
 
 /* Sliders */
-[data-palette="elevenlabs"] input[type="range"]::-webkit-slider-thumb {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) input[type="range"]::-webkit-slider-thumb {
   background: var(--accent);
   box-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
 }
 
 /* Custom Scrollbars */
-[data-palette="elevenlabs"] ::-webkit-scrollbar {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
-[data-palette="elevenlabs"] ::-webkit-scrollbar-track {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-[data-palette="elevenlabs"] ::-webkit-scrollbar-thumb {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) ::-webkit-scrollbar-thumb {
   background: #242430;
   border-radius: 3px;
 }
 
-[data-palette="elevenlabs"] ::-webkit-scrollbar-thumb:hover {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) ::-webkit-scrollbar-thumb:hover {
   background: #363648;
 }
 
 /* --------------------------------------------------------------------------
-   Floating Chatbot & Pinned Inspector (ElevenLabs Theme)
+   Floating Chatbot & Pinned Inspector (Obsidian Theme)
    -------------------------------------------------------------------------- */
-[data-palette="elevenlabs"] .db-float-trigger {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-float-trigger {
   background: #111116;
   border-color: #242432;
   box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.75), 0 0 20px rgba(168, 85, 247, 0.15);
 }
 
-[data-palette="elevenlabs"] .db-float-trigger:hover {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-float-trigger:hover {
   border-color: var(--accent);
   box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.85), 0 0 26px rgba(168, 85, 247, 0.3);
 }
 
-[data-palette="elevenlabs"] .db-float-trigger.active {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-float-trigger.active {
   background: #181822;
   border-color: #a855f7;
   box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.25), 0 12px 30px -6px rgba(0, 0, 0, 0.8);
 }
 
-[data-palette="elevenlabs"] .db-float-trigger-mark {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-float-trigger-mark {
   background: rgba(168, 85, 247, 0.18);
   color: #c084fc;
 }
 
-[data-palette="elevenlabs"] .db-float-trigger-dot {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-float-trigger-dot {
   background: #34d399;
   box-shadow: 0 0 0 2px #111116, 0 0 8px #34d399;
 }
 
-[data-palette="elevenlabs"] .db-float-chat {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-float-chat {
   background: rgba(17, 17, 22, 0.94);
   border-color: #262634;
   box-shadow: 0 28px 60px -12px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 
-[data-palette="elevenlabs"] .db-float-chat-h {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-float-chat-h {
   background: rgba(14, 14, 19, 0.85);
   border-bottom-color: #1e1e28;
 }
 
-[data-palette="elevenlabs"] .db-inspector {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-inspector {
   background: #0d0d12;
   border-left-color: #1c1c24;
 }
 
-[data-palette="elevenlabs"] .db-inspector-h {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-inspector-h {
   border-bottom-color: #1c1c24;
 }
 
-[data-palette="elevenlabs"] .db-inspector-ico {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-inspector-ico {
   background: rgba(168, 85, 247, 0.16);
   color: #c084fc;
 }
 
-[data-palette="elevenlabs"] .db-ask-btn {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-ask-btn {
   background: #14141d;
   border: 1px solid #28283a;
   color: #f0f0f5;
 }
 
-[data-palette="elevenlabs"] .db-ask-btn:hover {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-ask-btn:hover {
   border-color: #38bdf8;
   color: #38bdf8;
   box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
 }
 
-[data-palette="elevenlabs"] .db-ask-btn.on {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-ask-btn.on {
   background: linear-gradient(135deg, #9333ea, #6366f1);
   border-color: #a855f7;
   color: #ffffff;
@@ -301,21 +301,21 @@
 }
 
 /* Charts / Plots (ElevenLabs vibrant violet & cyan strokes) */
-[data-palette="elevenlabs"] .pl-grid {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .pl-grid {
   stroke: #181824;
 }
 
-[data-palette="elevenlabs"] .pl-axis {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .pl-axis {
   stroke: #252536;
 }
 
-[data-palette="elevenlabs"] .pl-tick,
-[data-palette="elevenlabs"] .pl-title,
-[data-palette="elevenlabs"] .pl-row {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .pl-tick,
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .pl-title,
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .pl-row {
   fill: #8e8e9e;
 }
 
-[data-palette="elevenlabs"] .pl-tip {
+:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .pl-tip {
   background: rgba(17, 17, 23, 0.94);
   border-color: #2a2a3a;
   color: #ffffff;

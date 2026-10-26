@@ -6,7 +6,7 @@ import "./shared/theme.css";
 import "./index.css";
 import "./twin/twin.css";
 import "./shared/studio.css";
-import "./shared/elevenlabs.css";
+import "./shared/obsidian.css";
 import "./dashboard/styles/chat.css";
 import "./shared/chat-widget.css";
 import { applyTheme } from "./shared/theme";

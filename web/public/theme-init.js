@@ -5,8 +5,7 @@
   var root = document.documentElement;
   var t = null;
   try { t = localStorage.getItem("stf.theme.v2"); } catch (e) { /* private mode */ }
-  if (!t) t = "elevenlabs";
-  var sysLight = window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches;
+  if (!t || t === "elevenlabs") t = "obsidian";
   root.dataset.theme = t === "studio-light" ? "light" : "dark";
-  root.dataset.palette = t === "elevenlabs" ? "elevenlabs" : "studio";
+  root.dataset.palette = t === "studio" || t === "studio-light" || t === "studio-dark" ? "studio" : "obsidian";
 })();
