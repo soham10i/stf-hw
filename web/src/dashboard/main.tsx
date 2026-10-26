@@ -13,6 +13,7 @@ import "./styles/chat.css";
 import "./styles/docs.css";
 import "./styles/consent.css";
 import "../shared/studio.css";
+import "../shared/elevenlabs.css";
 import { Dashboard } from "./Dashboard";
 import { applyTheme } from "../shared/theme";
 

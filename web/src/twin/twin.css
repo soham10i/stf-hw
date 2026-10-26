@@ -323,8 +323,22 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
   border-radius: 10px; background: var(--surface); border: 1px solid var(--border-soft); }
 .ord-list li > div:first-of-type { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .ord-list b { font-size: var(--fs-body); font-weight: 600; }
-.ord-list small { font-size: var(--fs-caption); color: var(--faint); }
 .ord-list .ord-bar { grid-column: 1 / -1; height: 4px; }
+.ord-line-actions { display: inline-flex; align-items: center; gap: 6px; }
+.ord-cancel-btn {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
+  font: 500 11px/1.2 var(--sans); border-radius: 6px;
+  background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.28);
+  cursor: pointer; transition: all 0.15s ease;
+}
+.ord-cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.24); border-color: rgba(239, 68, 68, 0.5); color: #f87171;
+}
+.ord-cancel-btn:active { transform: scale(0.95); }
+.ord-locked-badge {
+  display: inline-flex; align-items: center; gap: 3px; font: 500 10px/1 var(--sans);
+  color: var(--faint); padding: 2px 5px; border-radius: 4px; opacity: 0.8;
+}
 
 .ord-hist { margin-top: 10px; }
 .ord-hist li { padding: 7px 10px; }

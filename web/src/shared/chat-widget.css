@@ -1,0 +1,262 @@
+/* ==========================================================================
+   Shared Floating Chatbot & Pinned Inspector Styles
+   Used across both the Dashboard and the 3D Twin.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Floating Trigger Launcher (Bottom Right)
+   -------------------------------------------------------------------------- */
+.db-float-trigger {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 85;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 18px 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-bg, var(--surface));
+  -webkit-backdrop-filter: var(--card-blur, blur(18px));
+  backdrop-filter: var(--card-blur, blur(18px));
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: 0 10px 28px -6px rgba(0, 0, 0, 0.4), inset 0 1px 0 var(--card-hi, rgba(255, 255, 255, 0.08));
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.db-float-trigger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 var(--card-hi, rgba(255, 255, 255, 0.1));
+  border-color: var(--accent);
+}
+
+.db-float-trigger.active {
+  background: var(--raised);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-weak), 0 8px 24px -4px rgba(0, 0, 0, 0.5);
+}
+
+.db-float-trigger-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-weak);
+  color: var(--accent);
+}
+
+.db-float-trigger-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 6px var(--ok);
+  animation: db-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes db-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.15); }
+}
+
+.db-float-trigger-label {
+  font: 600 var(--fs-body) var(--font);
+  letter-spacing: -0.01em;
+}
+
+/* --------------------------------------------------------------------------
+   Floating Chat Window (Bottom Right Card)
+   -------------------------------------------------------------------------- */
+.db-float-chat {
+  position: fixed;
+  bottom: 82px;
+  right: 24px;
+  width: 410px;
+  height: 600px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 100px);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--card-bg, var(--surface));
+  border: 1px solid var(--border);
+  -webkit-backdrop-filter: var(--card-blur, blur(20px));
+  backdrop-filter: var(--card-blur, blur(20px));
+  box-shadow: 0 24px 50px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--card-line, var(--border)), inset 0 1px 0 var(--card-hi, rgba(255, 255, 255, 0.1));
+  animation: db-float-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes db-float-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.db-float-chat-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 0 12px 0 16px;
+  border-bottom: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  flex: none;
+}
+
+.db-float-chat-h > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.db-float-chat-h b {
+  display: block;
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+
+.db-float-chat-h span {
+  display: block;
+  font-size: var(--fs-caption);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.db-float-chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.db-float-chat-b {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 12px 12px;
+}
+
+.db-float-chat-b .ch,
+.db-float-chat-b .cx {
+  flex: 1;
+  min-height: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Inspector Panel & Pinned Right Sidebar
+   -------------------------------------------------------------------------- */
+.db-inspector {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0 14px 14px;
+  background: var(--card-bg, var(--surface));
+  border-left: 1px solid var(--card-line, var(--border));
+  -webkit-backdrop-filter: var(--card-blur, blur(18px));
+  backdrop-filter: var(--card-blur, blur(18px));
+  animation: db-slide 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes db-slide {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.twin-pinned-chat {
+  height: 100%;
+  max-height: 100%;
+  width: 400px;
+  flex: none;
+  z-index: 6;
+  position: relative;
+  top: auto;
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 24px -10px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.db-inspector-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  margin: 0 -14px 10px;
+  padding: 0 10px 0 16px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.db-inspector-h > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.db-inspector-h b {
+  display: block;
+  font-size: var(--fs-head);
+  font-weight: 600;
+}
+
+.db-inspector-h span {
+  display: block;
+  font-size: var(--fs-callout);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.db-inspector-ico {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--accent-weak);
+  color: var(--accent);
+  flex: none;
+}
+
+.db-inspector .ch,
+.db-inspector .cx {
+  flex: 1;
+  min-height: 0;
+}
+
+.db-pinned-icon {
+  transform: rotate(45deg);
+  color: var(--accent);
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Adjustments
+   -------------------------------------------------------------------------- */
+@media (max-width: 600px) {
+  .db-float-trigger {
+    bottom: 16px;
+    right: 16px;
+    padding: 0 12px;
+  }
+  .db-float-trigger-label {
+    display: none;
+  }
+  .db-float-chat {
+    bottom: 72px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    height: calc(100vh - 90px);
+  }
+}

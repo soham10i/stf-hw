@@ -103,9 +103,21 @@ export function Dashboard() {
   // the page's guide opens on request, as a popover from its button
   const [guide, setGuide] = useState(false);
   const [navOpen, setNavOpen] = useState(() => window.innerWidth > 900);
-  // the copilot opens as an inspector beside the page, which makes room for it
+  // the copilot opens as an inspector beside the page or as a floating chatbot
   const [askOpen, setAskOpen] = useState(() => { try { return localStorage.getItem("stf.db.ask") === "1"; } catch { return false; } });
   const showAsk = (v: boolean) => { setAskOpen(v); try { localStorage.setItem("stf.db.ask", v ? "1" : "0"); } catch { /* private mode */ } };
+  const [pinned, setPinned] = useState(() => { try { return localStorage.getItem("stf.db.pinned") === "1"; } catch { return false; } });
+  const togglePinned = (v: boolean) => { setPinned(v); try { localStorage.setItem("stf.db.pinned", v ? "1" : "0"); } catch { /* private mode */ } };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && askOpen && !pinned) {
+        showAsk(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [askOpen, pinned]);
   const T = doc?.control ? makespan(doc.control) : 1;
   useEffect(() => {
     if (!play || !doc) return;
@@ -154,7 +166,7 @@ export function Dashboard() {
   };
   return (
     <MotionConfig reducedMotion="user">
-    <div className={`db ${navOpen ? "" : "nav-min"} ${askOpen && page !== "copilot" ? "ask" : ""}`}>
+    <div className={`db ${navOpen ? "" : "nav-min"} ${askOpen && pinned && page !== "copilot" ? "ask" : ""}`}>
       <nav className="db-nav">
         <div className="db-brand">
           <StfLogo className="db-brand-logo" height={32} />
@@ -256,16 +268,61 @@ export function Dashboard() {
         </div>
         </PageCtx.Provider>
       </main>
-      {askOpen && page !== "copilot" && (
+      {/* Pinned side panel: docks and consumes the 400px column space */}
+      {askOpen && pinned && page !== "copilot" && (
         <aside className="db-inspector" aria-label="Ask about this page">
           <div className="db-inspector-h">
             <span className="db-inspector-ico"><CopilotMark size={17} /></span>
-            <div><b>Ask</b><span>about {cur[1]}</span></div>
-            <button className="ui-btn ghost" onClick={() => setPage("copilot")} title="Open the copilot's own page, with your history">Open full</button>
+            <div><b>Ask Copilot</b><span>about {cur[1]}</span></div>
+            <button className="ui-btn icon ghost on" onClick={() => togglePinned(false)} title="Unpin to floating window" aria-label="Unpin to floating window">
+              <Icon name="pin" size={15} className="db-pinned-icon" />
+            </button>
+            <button className="ui-btn ghost" onClick={() => setPage("copilot")} title="Open the copilot's own page, with your history">
+              <Icon name="external" size={13} /><span className="hide-sm">Full</span>
+            </button>
             <button className="ui-btn icon ghost" onClick={() => showAsk(false)} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
           </div>
           <Chat key={view} page={view} go={(p) => { setPage(p as View); }} age={age} pm={pm} compact />
         </aside>
+      )}
+
+      {/* Floating chatbot window: small draggable/dockable bottom-right card */}
+      {askOpen && !pinned && page !== "copilot" && (
+        <aside className="db-float-chat" aria-label="Floating Copilot Chat">
+          <div className="db-float-chat-h">
+            <span className="db-inspector-ico"><CopilotMark size={16} /></span>
+            <div><b>Ask Copilot</b><span>about {cur[1]}</span></div>
+            <div className="db-float-chat-actions">
+              <button className="ui-btn icon ghost" onClick={() => togglePinned(true)} title="Pin to side panel" aria-label="Pin to side panel">
+                <Icon name="pin" size={15} />
+              </button>
+              <button className="ui-btn ghost" onClick={() => setPage("copilot")} title="Open full copilot page">
+                <Icon name="external" size={13} /><span className="hide-sm">Full</span>
+              </button>
+              <button className="ui-btn icon ghost" onClick={() => showAsk(false)} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
+            </div>
+          </div>
+          <div className="db-float-chat-b">
+            <Chat key={view} page={view} go={(p) => { setPage(p as View); }} age={age} pm={pm} compact />
+          </div>
+        </aside>
+      )}
+
+      {/* Bottom right floating chatbot launcher button */}
+      {page !== "copilot" && (
+        <button
+          className={`db-float-trigger ${askOpen ? "active" : ""}`}
+          onClick={() => showAsk(!askOpen)}
+          aria-expanded={askOpen}
+          aria-label={askOpen ? "Close Copilot" : "Open Copilot"}
+          title={askOpen ? "Close Copilot" : "Ask Copilot"}
+        >
+          <span className="db-float-trigger-mark">
+            <CopilotMark size={20} />
+            <span className="db-float-trigger-dot" aria-hidden="true" />
+          </span>
+          <span className="db-float-trigger-label">Ask Copilot</span>
+        </button>
       )}
       <HelpTips />
       <ConsentBanner page={view} />

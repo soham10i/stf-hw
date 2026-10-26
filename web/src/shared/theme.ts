@@ -5,13 +5,14 @@
 import { useEffect, useState } from "react";
 
 export type Appearance = "light" | "dark";
-export type ThemeId = "studio" | "studio-light" | "studio-dark";
+export type ThemeId = "studio" | "studio-light" | "studio-dark" | "elevenlabs";
 export type ThemeDef = { id: ThemeId; label: string; say: string; appearance: Appearance | "system"; swatch: [string, string, string] };
 
 export const THEMES: ThemeDef[] = [
   { id: "studio", label: "Studio", say: "Light or dark, following the system - the default", appearance: "system", swatch: ["#e4e9f1", "#030509", "#2f5bea"] },
   { id: "studio-light", label: "Studio · light", say: "Cool-grey ground, white glass", appearance: "light", swatch: ["#e4e9f1", "#ffffff", "#2f5bea"] },
   { id: "studio-dark", label: "Studio · dark", say: "Near-black ground, smoked glass", appearance: "dark", swatch: ["#030509", "#121a2a", "#7fb0ff"] },
+  { id: "elevenlabs", label: "ElevenLabs", say: "Deep obsidian dark, crisp dark cards, neon violet accent", appearance: "dark", swatch: ["#08080a", "#121217", "#a855f7"] },
 ];
 const KEY = "stf.theme.v2";
 
@@ -28,11 +29,11 @@ const appearanceOf = (id: ThemeId): Appearance => {
   return a === "system" ? (systemDark() ? "dark" : "light") : a;
 };
 
-/** Put the theme on the document: its appearance (one palette, Studio). */
+/** Put the theme on the document: its appearance (Studio or ElevenLabs palette). */
 export function applyTheme(id: ThemeId = saved()) {
   const root = document.documentElement;
   root.dataset.theme = appearanceOf(id);
-  root.dataset.palette = "studio";
+  root.dataset.palette = id === "elevenlabs" ? "elevenlabs" : "studio";
 }
 
 export function useTheme() {
