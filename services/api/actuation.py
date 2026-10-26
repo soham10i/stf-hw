@@ -50,6 +50,28 @@ def set_runtime(runtime: SimRuntime) -> None:
     global _RUNTIME
     _RUNTIME = runtime
 
+
+_HUB: Any | None = None
+
+
+def get_hub() -> Any | None:
+    """Return the registered LiveHub singleton."""
+    global _HUB
+    if _HUB is not None:
+        return _HUB
+    try:
+        from . import app
+        return getattr(app, "hub", None)
+    except Exception:
+        return None
+
+
+def set_hub(hub: Any) -> None:
+    """Register the active LiveHub singleton."""
+    global _HUB
+    _HUB = hub
+
+
 VALID_OPS = {"retrieve", "store", "home", "cycle"}
 SLOT_RE = re.compile(r"^[A-C][1-3]$", re.I)
 ALARM_CODE_RE = re.compile(r"^[A-Z]{3}-[A-Z0-9]{2,4}$", re.I)
@@ -269,6 +291,12 @@ class ActionGuard:
             if not page or not isinstance(page, str) or page.strip().lower() not in VALID_PAGES:
                 return False, f"Target page '{page}' not recognized in digital twin navigation map"
 
+        elif action == "order_cancel":
+            order_id = params.get("order_id")
+            if runtime and hasattr(runtime, "_active") and runtime._active:
+                if order_id is not None and runtime._active.id == order_id:
+                    return False, f"Order #{order_id} is currently in production and cannot be cancelled."
+
         return True, None
 
     def execute_order(
@@ -276,11 +304,15 @@ class ActionGuard:
         runtime: SimRuntime,
         op: str,
         slot: str | None = None,
+        flavour: str = "chocolate",
+        qty: int = 1,
         actor: str = "operator",
     ) -> dict[str, Any]:
-        """Execute machine order through invariant safety check and cryptographically sign the result."""
+        """Execute machine order through invariant safety check, sign the result, and sync with live 3D twin."""
         slot_clean = slot.strip().upper() if slot else None
-        params = {"op": op, "slot": slot_clean}
+        flavour_clean = str(flavour or "chocolate").strip().lower()
+        qty_clean = max(1, min(12, int(qty or 1)))
+        params = {"op": op, "slot": slot_clean, "flavour": flavour_clean, "qty": qty_clean}
         pre_hash = self.compute_state_hash(runtime)
 
         safe, reason = self.validate_preconditions("order_submit", params, actor, runtime)
@@ -298,9 +330,28 @@ class ActionGuard:
                 actor, "order_submit", params, pre_hash, post_hash, status,
                 None if verified else "Order submission could not be verified in runtime history",
             )
+
+            # Live 3D twin synchronization via LiveHub
+            live_synced = False
+            hub = get_hub()
+            if hub:
+                try:
+                    hub.dispatch_command({
+                        "type": "simulate",
+                        "flavour": flavour_clean,
+                        "qty": qty_clean,
+                        "slot": slot_clean,
+                    })
+                    live_synced = True
+                except Exception as e:
+                    logger.warning("Could not dispatch simulate command to live twin: %s", e)
+
             return {
                 "accepted": True,
                 "order": order.as_dict(),
+                "flavour": flavour_clean,
+                "qty": qty_clean,
+                "live_synced": live_synced,
                 "audit_id": audit.id,
                 "signature": audit.signature,
                 "verified": verified,
@@ -309,6 +360,48 @@ class ActionGuard:
             post_hash = self.compute_state_hash(runtime)
             self._append_audit(actor, "order_submit", params, pre_hash, post_hash, "FAILED", str(exc))
             return {"accepted": False, "error": f"Execution failed: {exc}"}
+
+    def execute_order_cancel(
+        self,
+        runtime: SimRuntime,
+        order_id: int | None = None,
+        actor: str = "operator",
+    ) -> dict[str, Any]:
+        """Cancel an order currently waiting in queue. Invariant: production orders cannot be cancelled."""
+        params = {"order_id": order_id}
+        pre_hash = self.compute_state_hash(runtime)
+
+        safe, reason = self.validate_preconditions("order_cancel", params, actor, runtime)
+        if not safe:
+            self._append_audit(actor, "order_cancel", params, pre_hash, pre_hash, "REJECTED", reason)
+            return {"accepted": False, "error": reason}
+
+        ok, msg, order_dict = runtime.cancel(order_id)
+        post_hash = self.compute_state_hash(runtime)
+
+        if not ok:
+            self._append_audit(actor, "order_cancel", params, pre_hash, post_hash, "REJECTED", msg)
+            return {"accepted": False, "error": msg}
+
+        audit = self._append_audit(actor, "order_cancel", params, pre_hash, post_hash, "EXECUTED", None)
+
+        hub = get_hub()
+        if hub:
+            try:
+                hub.dispatch_command({
+                    "type": "cancel_order",
+                    "id": order_dict.get("id") if order_dict else order_id,
+                })
+            except Exception as e:
+                logger.warning("Could not dispatch cancel_order to live twin: %s", e)
+
+        return {
+            "accepted": True,
+            "message": msg,
+            "order": order_dict,
+            "audit_id": audit.id,
+            "signature": audit.signature,
+        }
 
     def execute_alarm_ack(
         self,

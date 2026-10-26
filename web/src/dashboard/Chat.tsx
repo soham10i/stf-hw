@@ -16,6 +16,7 @@ import { Md, Message, openSource } from "./copilot/Message";
 import { Voice } from "./copilot/Voice";
 import { AnswerSettings, SettingsChip } from "./copilot/Settings";
 import { CopilotMark, Icon } from "../shared/icons";
+import { liveLink } from "../shared/liveLink";
 
 const TABS: [api.Tab, string, string][] = [
   ["chat", "Chat", "the models answer - whichever is free first"],
@@ -178,6 +179,26 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
           setSid(r.session.id); api.currentSession.set(r.session.id); setTitle(r.session.title);
           api.session(r.session.id).then((s) => { if (s) { setContext(s.context); setMemory(s.memory ?? ""); } });
           refreshList();
+        }
+        if (r.tools && r.tools.includes("order_submit")) {
+          try {
+            const flavourMatch = r.answer.match(/\b(chocolate|vanilla|strawberry)\b/i);
+            const flavour = flavourMatch ? flavourMatch[1].toLowerCase() : "chocolate";
+            const qtyMatch = r.answer.match(/\b(\d+)\s*x\b/i);
+            const qty = qtyMatch ? parseInt(qtyMatch[1], 10) : 1;
+            liveLink("dashboard").send({ type: "simulate", flavour, qty });
+          } catch {
+            // liveLink sync fallback
+          }
+        }
+        if (r.tools && r.tools.includes("order_cancel")) {
+          try {
+            const idMatch = r.answer.match(/#(\d+)/);
+            const id = idMatch ? parseInt(idMatch[1], 10) : undefined;
+            liveLink("dashboard").send({ type: "cancel_order", id });
+          } catch {
+            // liveLink sync fallback
+          }
         }
       }
     } catch (e) {

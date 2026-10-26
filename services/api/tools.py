@@ -882,6 +882,43 @@ def order_submit(args: dict, ctx: Ctx) -> Result:
     )
 
 
+def order_cancel(args: dict, ctx: Ctx) -> Result:
+    """Cancel a queued order. Invariant: once an order moves to production, it cannot be cancelled."""
+    from .actuation import get_guard, get_runtime
+
+    runtime = get_runtime()
+    if not runtime:
+        return Result("order_cancel", "Factory runtime kernel is unavailable for actuation.")
+    order_id = args.get("order_id")
+    if order_id is not None:
+        try:
+            order_id = int(order_id)
+        except (ValueError, TypeError):
+            order_id = None
+    actor = ctx.client or "operator"
+    res = get_guard().execute_order_cancel(runtime, order_id=order_id, actor=actor)
+    if not res.get("accepted"):
+        return Result(
+            "order_cancel",
+            f"Order cancellation rejected: {res.get('error', 'Cannot cancel order')}",
+            facts=[["Status", "REJECTED"], ["Reason", str(res.get("error"))]],
+            sources=["IEC 62443 Safety Invariant Guard"],
+        )
+    order = res.get("order") or {}
+    oid = order.get("id") or order_id
+    return Result(
+        "order_cancel",
+        f"Order #{oid} successfully cancelled and removed from queue.",
+        facts=[
+            ["Order ID", str(oid)],
+            ["Status", "CANCELLED"],
+            ["Audit ID", str(res.get("audit_id", "N/A"))],
+        ],
+        sources=["Factory Order Queue", "IEC 62443 Safety Invariant Guard"],
+        link={"page": "overview", "label": "Factory Orders"},
+    )
+
+
 def alarm_ack(args: dict, ctx: Ctx) -> Result:
     """Acknowledge and clear an active factory alarm code with operator audit trail."""
     from .actuation import get_guard
@@ -1101,6 +1138,18 @@ TOOLS: dict[str, Tool] = {
             ),
         ),
         Tool(
+            "order_cancel",
+            order_cancel,
+            _obj(
+                {
+                    "order_id": {
+                        "type": "integer",
+                        "description": "ID of the queued order to cancel or delete (optional; cancels latest queued order if omitted)",
+                    },
+                },
+            ),
+        ),
+        Tool(
             "alarm_ack",
             alarm_ack,
             _obj(
@@ -1272,23 +1321,47 @@ def route(q: str, ctx: Ctx, lean: bool = False) -> list[tuple[str, dict]]:
         calls.append(("security_attacks", {}))
     if re.search(r"this page|on this page|what (does|is) (this|the) page|how (do i|to) read", s):
         calls.append(("page_guide", {}))
+    # Industrial actuation: order cancellation
+    if re.search(r"\b(cancel|delete|remove|drop|abort)\b.{0,20}\b(order|orders|queue|job)\b", s) or (
+        re.search(r"\b(cancel|delete|remove|drop)\b", s) and re.search(r"\b(order|orders)\b", s)
+    ):
+        oid_match = re.search(r"\b(?:order\s*#?|#)(\d+)\b", s)
+        oid = int(oid_match.group(1)) if oid_match else None
+        calls.append(("order_cancel", {"order_id": oid} if oid else {}))
+
     # Industrial actuation: order submission
     is_question = bool(re.search(r"\b(how (do|to|can)|what|why|explain|where)\b", s))
-    if not is_question and (
+    if not is_question and not re.search(r"\b(cancel|delete|remove|drop|abort)\b", s) and (
         re.search(
             r"\b(bake (a )?cookie|bake cookies|produce (a )?cookie|submit (an? )?order|queue (an? )?order|place (an? )?order|run (a )?cycle|send carrier|start production)\b",
             s,
         )
         or re.search(r"\b(retrieve from|store into|home crane)\b", s)
         or (
-            re.search(r"\b(order|produce)\b", s)
-            and re.search(r"\b(cookie|carrier|slot|[A-C][1-3]|batch|part)\b", s)
+            re.search(r"\b(order|produce|bake)\b", s)
+            and re.search(r"\b(cookie|cookies|carrier|slot|[A-C][1-3]|batch|part|chocolate|vanilla|strawberry)\b", s)
         )
     ):
         slot_match = re.search(r"\b([A-C][1-3])\b", q, re.I)
         slot = slot_match.group(1).upper() if slot_match else "B2"
         op = "retrieve" if "retrieve" in s else ("store" if "store" in s else "cycle")
-        calls.append(("order_submit", {"op": op, "slot": slot}))
+        flavour = "chocolate"
+        if "vanilla" in s:
+            flavour = "vanilla"
+        elif "strawberry" in s:
+            flavour = "strawberry"
+        qty = 1
+        qty_match = re.search(r"\b(\d+)\s*(?:x\b|pieces?|cookies?|items?|orders?)?", s)
+        if qty_match:
+            try:
+                qty = max(1, min(12, int(qty_match.group(1))))
+            except ValueError:
+                qty = 1
+        elif re.search(r"\b(two|couple)\b", s):
+            qty = 2
+        elif re.search(r"\b(three)\b", s):
+            qty = 3
+        calls.append(("order_submit", {"op": op, "slot": slot, "flavour": flavour, "qty": qty}))
     # Industrial actuation: alarm acknowledgement
     if re.search(r"\b(ack|acknowledge|clear|silence|reset)\b.{0,20}\b(alarm|fault|error)\b", s) or (
         codes and re.search(r"\b(ack|acknowledge|clear|silence|reset)\b", s)

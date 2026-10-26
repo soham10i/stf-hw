@@ -353,6 +353,24 @@ async def command(req: CommandRequest) -> JSONResponse:
     )
 
 
+@app.delete("/orders/{order_id}", dependencies=[Depends(command_guard)])
+async def cancel_order(order_id: int) -> JSONResponse:
+    """Cancel a queued order. Invariant: once an order moves to production, it cannot be cancelled."""
+    res = ACT.get_guard().execute_order_cancel(runtime, order_id=order_id, actor="operator")
+    if not res.get("accepted"):
+        return JSONResponse(status_code=400, content={"error": res.get("error")})
+    return JSONResponse(content=res)
+
+
+@app.post("/orders/{order_id}/cancel", dependencies=[Depends(command_guard)])
+async def cancel_order_post(order_id: int) -> JSONResponse:
+    """Cancel a queued order (POST alias). Invariant: once an order moves to production, it cannot be cancelled."""
+    res = ACT.get_guard().execute_order_cancel(runtime, order_id=order_id, actor="operator")
+    if not res.get("accepted"):
+        return JSONResponse(status_code=400, content={"error": res.get("error")})
+    return JSONResponse(content=res)
+
+
 @app.get("/watchdog/status")
 async def watchdog_status() -> dict:
     """Current health and monitoring status of the autonomous background watchdog."""

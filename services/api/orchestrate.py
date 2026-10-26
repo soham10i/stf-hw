@@ -99,6 +99,7 @@ DATA_TOOLS = {
     "live_state",
     "copilot_setup",
     "order_submit",
+    "order_cancel",
     "alarm_ack",
     "recipe_adjust",
     "twin_navigate",

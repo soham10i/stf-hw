@@ -18,6 +18,8 @@ import { ago, fetchRecords, type TwinRecords } from "../shared/records";
 import { HAS_API } from "../shared/mode";
 import { CameraView } from "../twin/CameraView";
 import { SAMPLE } from "../twin/livePublish";
+import { Icon } from "../shared/icons";
+import { liveLink } from "../shared/liveLink";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const clock = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
@@ -101,6 +103,19 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
   const deliver = () => {
     store.deliver();
     setMsg({ tone: "ok", text: `${baked} baked cookie${baked === 1 ? "" : "s"} delivered; their moulds are refilled with fresh dough.` });
+  };
+  const cancelOrder = (id: number) => {
+    const ok = store.cancel(id);
+    if (ok) {
+      setMsg({ tone: "ok", text: `Order #${id} deleted from queue.` });
+      try {
+        liveLink("dashboard").send({ type: "cancel_order", id });
+      } catch {
+        // liveLink fallback
+      }
+    } else {
+      setMsg({ tone: "bad", text: `Order #${id} is currently in production or completed and cannot be cancelled.` });
+    }
   };
 
   return (
@@ -205,6 +220,7 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
         <ol className="ord-list">
           {[...queue].reverse().slice(0, 8).map((o: OrderLine) => {
             const st = o.done >= o.qty ? "done" : o.started > 0 ? "run" : "wait";
+            const canCancel = st === "wait";
             return (
               <li key={o.id} className={st}>
                 <i className="slot-dot" style={{ background: colour(o.flavour) }} />
@@ -212,7 +228,29 @@ export function OrdersPanel({ slots }: { slots?: string[] }) {
                   <b>{o.qty} × {cap(o.flavour)}</b>
                   <small>#{o.id}</small>
                 </div>
-                <span className={`ord-pill ${st}`}>{st === "done" ? "Completed" : st === "run" ? `${o.done} of ${o.qty}` : "Queued"}</span>
+                <div className="ord-line-actions">
+                  <span className={`ord-pill ${st}`}>{st === "done" ? "Completed" : st === "run" ? `${o.done} of ${o.qty}` : "Queued"}</span>
+                  {canCancel ? (
+                    <button
+                      type="button"
+                      className="ord-cancel-btn"
+                      onClick={() => cancelOrder(o.id)}
+                      title={`Cancel and delete queued order #${o.id}`}
+                      aria-label={`Cancel order #${o.id}`}
+                    >
+                      <Icon name="close" size={11} />
+                      <span>Delete</span>
+                    </button>
+                  ) : (
+                    <span
+                      className="ord-locked-badge"
+                      title={st === "run" ? "In production: cannot be cancelled" : "Completed order"}
+                    >
+                      <Icon name="shieldlock" size={11} />
+                      <small>{st === "run" ? "In production" : "Done"}</small>
+                    </span>
+                  )}
+                </div>
                 <div className="ord-bar"><i style={{ width: `${(100 * o.done) / o.qty}%`, background: colour(o.flavour) }} /></div>
               </li>
             );

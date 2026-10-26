@@ -123,6 +123,12 @@ export class Publisher {
       if (s.model.idle) { s.deliver(); window.setTimeout(go, 800); return "refilling the rack, then the order starts"; }
       return "busy: the order is queued after the current one";
     }
+    if (msg.type === "cancel_order") {
+      const id = typeof msg.id === "number" ? msg.id : undefined;
+      const flavour = typeof msg.flavour === "string" ? msg.flavour : undefined;
+      const ok = s.cancel(id, flavour);
+      return ok ? (id ? `Order #${id} deleted from queue` : "Queued order deleted") : "Cannot cancel: order is already in production or completed";
+    }
     return "";
   }
 }
@@ -141,7 +147,7 @@ export function useLivePublish(on: boolean, store: CellStore = cellStore) {
     send();
     const off = link.on((m) => {
       if (m.type === "link" && m.up) link.send(pub.state());       // a socket came up: draw at once
-      if (["watch", "simulate", "defect"].includes(m.type)) {
+      if (["watch", "simulate", "defect", "cancel_order"].includes(m.type)) {
         const said = pub.command(m);
         if (said) link.send({ type: "notice", text: said });
         if (m.type !== "watch") link.send(pub.state());

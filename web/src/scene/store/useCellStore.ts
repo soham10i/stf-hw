@@ -189,6 +189,36 @@ export class CellStore {
     this.commit();
     return true;
   }
+  /** Cancel / delete a queued order. Invariant: once an order moves to production (started > 0 or done > 0), it cannot be cancelled. */
+  cancel(orderId?: number, flavour?: string): boolean {
+    let idx = -1;
+    if (typeof orderId === "number") {
+      idx = this.model.queue.findIndex((o) => o.id === orderId);
+    } else if (flavour) {
+      const f = flavour.toLowerCase();
+      for (let i = this.model.queue.length - 1; i >= 0; i--) {
+        if (this.model.queue[i].flavour.toLowerCase() === f && this.model.queue[i].started === 0 && this.model.queue[i].done === 0) {
+          idx = i;
+          break;
+        }
+      }
+    } else {
+      for (let i = this.model.queue.length - 1; i >= 0; i--) {
+        if (this.model.queue[i].started === 0 && this.model.queue[i].done === 0) {
+          idx = i;
+          break;
+        }
+      }
+    }
+    if (idx === -1) return false;
+    const order = this.model.queue[idx];
+    if (order.started > 0 || order.done > 0) {
+      return false; // In production or completed - cannot be cancelled
+    }
+    this.model.queue.splice(idx, 1);
+    this.commit();
+    return true;
+  }
   /** Hand the baked cookies over and refill their moulds with dough (once the cell is idle). */
   deliver() { this.requests.restock = true; }
   /** Give the next cookie a fault, for the inspection to catch (null: a good one). */

@@ -132,6 +132,40 @@ class SimRuntime:
         self._history.append(order)
         return order
 
+    def cancel(self, order_id: int | None = None) -> tuple[bool, str, dict[str, Any] | None]:
+        """Cancel a queued order.
+
+        Invariant: once an order moves to production ('running') or is completed,
+        it cannot be cancelled.
+
+        Returns (success, message, order_dict).
+        """
+        target_id = order_id
+        if target_id is None:
+            if not self._pending:
+                return False, "No orders currently waiting in queue.", None
+            target_id = self._pending[-1].id
+
+        if self._active and self._active.id == target_id:
+            return False, f"Order #{target_id} is currently in production and cannot be cancelled.", self._active.as_dict()
+
+        for i, order in enumerate(self._pending):
+            if order.id == target_id:
+                del self._pending[i]
+                order.status = "cancelled"
+                logger.info("Order #%d cancelled and removed from pending queue", target_id)
+                return True, f"Order #{target_id} ({order.op}) cancelled and removed from queue.", order.as_dict()
+
+        for order in reversed(self._history):
+            if order.id == target_id:
+                if order.status == "running":
+                    return False, f"Order #{target_id} has moved to production and cannot be cancelled.", order.as_dict()
+                if order.status == "completed":
+                    return False, f"Order #{target_id} has already completed and cannot be cancelled.", order.as_dict()
+                return False, f"Order #{target_id} is '{order.status}'.", order.as_dict()
+
+        return False, f"Order #{target_id} not found in queue.", None
+
     def orders(self) -> list[dict[str, Any]]:
         """The most recent factory orders (the /orders payload)."""
         return [o.as_dict() for o in self._history[-20:]]
