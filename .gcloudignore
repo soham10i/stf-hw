@@ -20,7 +20,13 @@
 /tests
 /mosquitto
 /utils
-*.md
+# `*.md` is anchored below (`/*.md`): an unanchored `*.md` follows GITIGNORE semantics here
+# (any depth) and ate web/public/copilot/docs/**.md - the dashboard Docs page's documents,
+# 404 on the live site (2026-10-26). The leading slash keeps only the ROOT markdown out.
+# The same trap applies to Cloud Build's docker builder, which applies the sibling
+# .dockerignore with the same any-depth matching, unlike a local Docker Desktop build
+# (where `*.md` matched root only).
+/*.md
 !/docs/assistant/*.md
 .env
 .env.*
@@ -29,6 +35,6 @@
 /.claude/
 /.ruff_cache/
 /.pytest_cache/
-*.log
+/*.log
 /papers/
 /deploy/

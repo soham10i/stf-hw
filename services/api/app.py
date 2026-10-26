@@ -355,7 +355,7 @@ async def command(req: CommandRequest) -> JSONResponse:
 
 @app.delete("/orders/{order_id}", dependencies=[Depends(command_guard)])
 async def cancel_order(order_id: int) -> JSONResponse:
-    """Cancel a queued order. Invariant: once an order moves to production, it cannot be cancelled."""
+    """Cancel a queued order. Production orders cannot be cancelled."""
     res = ACT.get_guard().execute_order_cancel(runtime, order_id=order_id, actor="operator")
     if not res.get("accepted"):
         return JSONResponse(status_code=400, content={"error": res.get("error")})
@@ -364,7 +364,7 @@ async def cancel_order(order_id: int) -> JSONResponse:
 
 @app.post("/orders/{order_id}/cancel", dependencies=[Depends(command_guard)])
 async def cancel_order_post(order_id: int) -> JSONResponse:
-    """Cancel a queued order (POST alias). Invariant: once an order moves to production, it cannot be cancelled."""
+    """Cancel a queued order (POST alias). Production orders cannot be cancelled."""
     res = ACT.get_guard().execute_order_cancel(runtime, order_id=order_id, actor="operator")
     if not res.get("accepted"):
         return JSONResponse(status_code=400, content={"error": res.get("error")})
@@ -387,9 +387,24 @@ async def watchdog_incidents(
     return {"incidents": watchdog.list_incidents(severity=severity, category=category, limit=limit)}
 
 
+_watchdog_limit = sec.RateLimiter(rate=1.0, burst=4)
+
+
+def _watchdog_write_ok(request: Request) -> JSONResponse | None:
+    """A scan or an ack changes the twin's state, like the twin's records: same-site only,
+    and not in a flood (an unauthenticated write anyone could otherwise trigger)."""
+    if not sec.origin_ok(settings, request):
+        return JSONResponse(status_code=403, content={"error": "origin not allowed"})
+    if not _watchdog_limit.allow(sec.client_ip(request)):
+        return JSONResponse(status_code=429, content={"error": "too often"})
+    return None
+
+
 @app.post("/watchdog/scan")
-async def watchdog_scan() -> dict:
+async def watchdog_scan(request: Request) -> dict:
     """Trigger an immediate synchronous telemetry evaluation pass."""
+    if refused := _watchdog_write_ok(request):
+        return refused
     new_incidents = watchdog.scan_once()
     return {
         "scanned": True,
@@ -399,8 +414,10 @@ async def watchdog_scan() -> dict:
 
 
 @app.post("/watchdog/incidents/{incident_id}/ack")
-async def watchdog_ack(incident_id: str) -> JSONResponse:
+async def watchdog_ack(incident_id: str, request: Request) -> JSONResponse:
     """Acknowledge a specific incident detected by the watchdog."""
+    if refused := _watchdog_write_ok(request):
+        return refused
     ok = watchdog.acknowledge_incident(incident_id)
     if not ok:
         return JSONResponse(status_code=404, content={"error": "Incident ID not found"})
@@ -416,7 +433,9 @@ async def actuation_audit(limit: int = 50, action: str | None = None) -> dict:
 @app.post("/actuation/e-stop", dependencies=[Depends(command_guard)])
 async def actuation_estop() -> dict:
     """Engage emergency stop safety latch, interlocking all physical and simulation motions."""
-    ACT.get_guard().trigger_emergency_stop(actor="operator", reason="Manual operator e-stop requested")
+    ACT.get_guard().trigger_emergency_stop(
+        actor="operator", reason="Manual operator e-stop requested"
+    )
     return {"status": "EMERGENCY_STOP_ACTIVE", "latched": True}
 
 
@@ -478,7 +497,9 @@ async def aas_submodel(submodel_id: str) -> JSONResponse:
         sm = aas.get_submodel(submodel_id, runtime)
         return JSONResponse(content=sm)
     except KeyError:
-        return JSONResponse(status_code=404, content={"error": f"Submodel '{submodel_id}' not found"})
+        return JSONResponse(
+            status_code=404, content={"error": f"Submodel '{submodel_id}' not found"}
+        )
 
 
 @app.get("/chat/status")

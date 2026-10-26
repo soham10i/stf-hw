@@ -15,7 +15,10 @@ docs/*
 tests
 mosquitto
 utils
-*.md
+# anchored like .gcloudignore: an unanchored *.md can match at ANY depth (gitignore semantics
+# on Cloud Build's docker builder) and would eat web/public/copilot/docs/**.md - the dashboard
+# Docs page's documents.
+/*.md
 !docs/assistant/*.md
 .env
 .env.*

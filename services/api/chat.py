@@ -97,8 +97,9 @@ def correction(bad: list[str]) -> str:
     )
 
 
-SYSTEM = """You are NEXUS: the autonomous operations copilot and cyber-physical actuation agent for the STF digital twin: a
-simulated fischertechnik Smart Tabletop Factory that bakes cookies (high-bay warehouse, vacuum
+SYSTEM = """You are NEXUS: the autonomous operations copilot and cyber-physical actuation agent
+for the STF digital twin: a simulated fischertechnik Smart Tabletop Factory that bakes cookies
+(high-bay warehouse, vacuum
 gripper robot, oven, sorting line with colour detection) with its PLC program, condition
 monitoring, energy system, security, vision inspection and an edge computer.
 
@@ -895,6 +896,12 @@ class Chat:
                 )
                 if self.lanes
                 else 0,
+                # Groq's browser search rests after a 429 (its per-minute token limit)
+                "groq_rest_s": (
+                    max(0, round(self.out.get(self.GROQ_SEARCH_REST, 0.0) - time.time()))
+                    if self.c.groq_key
+                    else 0
+                ),
                 "lanes": [
                     {
                         "name": ln.name,
@@ -1121,11 +1128,21 @@ class Chat:
             say("step", f"the Gemini search failed: {e}")
             return None
 
+    GROQ_SEARCH_REST = "groq_search_rest"  # self.out key: when Groq's search may be tried again
+
     async def _web_groq(
         self, req: ChatRequest, mode: str, context: str, say, notes: list[str],
         dp: D.Depth = D.PROFILES["standard"], level: str = "vetted",
     ) -> W.Found | None:
-        """Groq's browser search; None when it fails."""
+        """Groq's browser search; None when it fails or is resting. A 429 is a per-minute
+        token limit (the free tier's is tiny), not a daily quota: the lane rests for a
+        minute so the next question can use it again, and this question falls through to
+        the next provider. The UI note stays short - the full provider message is for
+        the log."""
+        rest = self.out.get(self.GROQ_SEARCH_REST, 0.0) - time.time()
+        if rest > 0:
+            say("step", f"the web search is resting {rest:.0f} s (its per-minute limit): next")
+            return None
         post = lambda b: self.post_groq(self.c.groq_url, self.c.groq_key, b)  # noqa: E731
         try:
             say("step", f"searching the web with groq {self.c.groq_search_model}")
@@ -1135,8 +1152,13 @@ class Chat:
             )
         except RuntimeError as e:
             logger.warning("Web search failed for question %r: %s", req.question[:60], e)
-            notes.append(f"the web search failed ({e})")
-            say("step", f"the web search failed: {e}")
+            m = re.search(r"try again in ([\d.]+)s", str(e))
+            if m:  # the provider says when its per-minute window frees up
+                self.out[self.GROQ_SEARCH_REST] = time.time() + max(float(m.group(1)) + 5.0, 60.0)
+            notes.append(
+                "the web search's per-minute quota was momentarily full; the next source was used"
+            )
+            say("step", "the web search hit its per-minute limit: next")
             return None
 
     async def _web_ddg(

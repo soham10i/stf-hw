@@ -229,3 +229,18 @@ def test_fetch_refuses_a_connection_that_lands_on_a_private_address():
             NG.opener.open(f"http://127.0.0.1:{port}/", timeout=3)
     finally:
         srv.close()
+
+
+def test_watchdog_writes_need_same_site(client):
+    """A scan or an ack is an unauthenticated state change: a foreign origin is refused
+    (a browser attack), while a no-Origin caller (CLI, monitor) stays allowed."""
+    evil = {"origin": "https://evil.example"}
+    assert client.post("/watchdog/scan", headers=evil).status_code == 403
+    assert client.post("/watchdog/incidents/no-such-id/ack", headers=evil).status_code == 403
+    assert client.post("/watchdog/scan").status_code == 200
+
+
+def test_watchdog_writes_are_rate_limited(client):
+    """The burst is small: the fifth rapid write is refused, so a script cannot churn state."""
+    codes = [client.post("/watchdog/scan").status_code for _ in range(6)]
+    assert 429 in codes

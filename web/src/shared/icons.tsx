@@ -73,26 +73,23 @@ const P: Record<string, string> = {
   copied: "M9 9h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zM5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5M10.8 14.6l1.9 1.9 3.6-3.9",
   speaker: "M4 9.5h3.2L12 5.5v13l-4.8-4H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1zM15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11",
   stop: "M8 7h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z",
-  // the copilot: a speech bubble with a spark in it - the assistant that answers, in words
-  copilot: "M5.5 4h13A2.5 2.5 0 0 1 21 6.5v8a2.5 2.5 0 0 1-2.5 2.5H12l-4.6 3.6V17H5.5A2.5 2.5 0 0 1 3 14.5v-8A2.5 2.5 0 0 1 5.5 4zM12 7.2l1.05 2.55 2.55 1.05-2.55 1.05L12 14.4l-1.05-2.55L8.4 10.8l2.55-1.05z",
+  // the copilot: continuous twin synchronization ribbon forming a flowing cybernetic "N"
+  copilot: "M5 19L5 7.5C5 5.5 6.5 4 8.5 4C10.5 4 12 5.5 12 7.5L12 16.5C12 18.5 13.5 20 15.5 20C17.5 20 19 18.5 19 16.5L19 5",
   broadcast: "M12 12h.01M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8",
 };
 
-/** The NEXUS symbol: an Asset Administration Shell hex frame with converging tri-bus actuation rays and central nexus core. */
+/** The NEXUS symbol: continuous cyber-physical synchronization ribbon forming an energetic "N" with central convergence core. */
 export function NexusMark({ size = 18, className }: { size?: number; className?: string }) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* AAS Outer Hexagon Frame */}
-      <polygon points="12 2, 21 7.2, 21 16.8, 12 22, 3 16.8, 3 7.2" stroke="currentColor" strokeWidth={1.5} opacity={0.88} />
-      {/* Central Actuation Core Diamond */}
-      <polygon points="12 7.5, 16.5 12, 12 16.5, 7.5 12" fill="currentColor" fillOpacity={0.25} stroke="currentColor" strokeWidth={1.4} />
-      {/* Precision Micro Singularity */}
-      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-      {/* Cyber-physical Actuation Tri-Bus Lines */}
-      <line x1="12" y1="2" x2="12" y2="7.5" stroke="currentColor" strokeWidth={1.4} />
-      <line x1="3" y1="16.8" x2="7.5" y2="12" stroke="currentColor" strokeWidth={1.4} />
-      <line x1="21" y1="16.8" x2="16.5" y2="12" stroke="currentColor" strokeWidth={1.4} />
+      strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {/* Dynamic Continuous Nexus Möbius Ribbon forming an N */}
+      <path d="M5 19L5 7.5C5 5.5 6.5 4 8.5 4C10.5 4 12 5.5 12 7.5L12 16.5C12 18.5 13.5 20 15.5 20C17.5 20 19 18.5 19 16.5L19 5" />
+      {/* Central Convergence Core */}
+      <circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none" />
+      {/* Terminal Node Pins */}
+      <circle cx="5" cy="19" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="5" r="1.5" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -100,6 +97,9 @@ export function NexusMark({ size = 18, className }: { size?: number; className?:
 export const CopilotMark = NexusMark;
 
 export function Icon({ name, size = 18, className }: { name: keyof typeof P | string; size?: number; className?: string }) {
+  if (name === "copilot") {
+    return <NexusMark size={size} className={className} />;
+  }
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
