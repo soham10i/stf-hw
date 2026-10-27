@@ -859,17 +859,19 @@ def order_submit(args: dict, ctx: Ctx) -> Result:
     actor = ctx.client or "operator"
     res = get_guard().execute_order(runtime, op=op, slot=slot, actor=actor)
     if not res.get("accepted"):
+        reason = res.get("error", "Unknown safety violation")
         return Result(
             "order_submit",
-            f"Order rejected by Safety Invariant Guard: {res.get('error', 'Unknown safety violation')}",
+            f"Order rejected by Safety Invariant Guard: {reason}",
             facts=[["Status", "REJECTED"], ["Reason", str(res.get("error"))]],
             sources=["IEC 62443 Invariant Safety Guard"],
         )
     order = res.get("order", {})
     verified = res.get("verified", False)
+    operation = f"{op.upper()}{f' to slot {slot}' if slot else ''}"
     return Result(
         "order_submit",
-        f"Order #{order.get('id')} ({op.upper()}{f' to slot {slot}' if slot else ''}) accepted and verified in runtime.",
+        f"Order #{order.get('id')} ({operation}) accepted and verified in runtime.",
         facts=[
             ["Order ID", str(order.get("id"))],
             ["Operation", op],
@@ -883,7 +885,7 @@ def order_submit(args: dict, ctx: Ctx) -> Result:
 
 
 def order_cancel(args: dict, ctx: Ctx) -> Result:
-    """Cancel a queued order. Invariant: once an order moves to production, it cannot be cancelled."""
+    """Cancel a queued order; an order already in production cannot be cancelled."""
     from .actuation import get_guard, get_runtime
 
     runtime = get_runtime()
@@ -1144,7 +1146,7 @@ TOOLS: dict[str, Tool] = {
                 {
                     "order_id": {
                         "type": "integer",
-                        "description": "ID of the queued order to cancel or delete (optional; cancels latest queued order if omitted)",
+                        "description": "queued order ID; omit to cancel the latest queued order",
                     },
                 },
             ),
@@ -1220,16 +1222,31 @@ TOOLS: dict[str, Tool] = {
 }
 
 
+# Phase 0 freezes model-initiated writes until durable, exact-payload approval exists (Phase 2).
+# Routing may still recognise an action request, but neither a rules route nor a model tool call
+# can cross this boundary by default. This switch does not enable the separate /command API.
+WRITE_TOOLS = frozenset(
+    {"order_submit", "order_cancel", "alarm_ack", "recipe_adjust", "twin_navigate"}
+)
+
+
+def actuation_enabled(env: dict | None = None) -> bool:
+    """Whether controlled tests explicitly enabled the legacy agent-write tools."""
+    env = os.environ if env is None else env
+    return env.get("STF_AGENT_ACTUATION", "").strip().lower() in ("1", "true", "yes")
+
+
 def declarations() -> list[dict]:
-    """The tools as function declarations (the same JSON schema for Gemini and Ollama)."""
+    """Read-only model tools by default; legacy writes only after explicit test opt-in."""
     return [
         {"name": t.name, "description": (t.fn.__doc__ or "").strip(), "parameters": t.params}
         for t in TOOLS.values()
+        if t.name not in WRITE_TOOLS or actuation_enabled()
     ]
 
 
 def call(name: str, args: dict | None, ctx: Ctx) -> Result:
-    """Execute a registered copilot tool by name with provided arguments and context.
+    """Execute a registered copilot tool, with the Phase 0 write freeze fail-closed.
 
     Args:
         name: Registered tool name.
@@ -1243,6 +1260,14 @@ def call(name: str, args: dict | None, ctx: Ctx) -> Result:
     if not t:
         logger.warning("Tool not found: '%s'", name)
         return Result(name, f"There is no tool '{name}'.")
+    if name in WRITE_TOOLS and not actuation_enabled():
+        logger.warning("Blocked frozen agent actuation tool: %s", name)
+        return Result(
+            name,
+            "Agent actuation is frozen. No state was changed. A guarded, approved simulation "
+            "action is required before this capability can be enabled.",
+            facts=[["Status", "BLOCKED"], ["State changed", "No"]],
+        )
     try:
         return t.fn(dict(args or {}), ctx)
     except Exception as e:
@@ -1322,25 +1347,24 @@ def route(q: str, ctx: Ctx, lean: bool = False) -> list[tuple[str, dict]]:
     if re.search(r"this page|on this page|what (does|is) (this|the) page|how (do i|to) read", s):
         calls.append(("page_guide", {}))
     # Industrial actuation: order cancellation
-    if re.search(r"\b(cancel|delete|remove|drop|abort)\b.{0,20}\b(order|orders|queue|job)\b", s) or (
-        re.search(r"\b(cancel|delete|remove|drop)\b", s) and re.search(r"\b(order|orders)\b", s)
-    ):
+    cancelling = re.search(r"\b(cancel|delete|remove|drop|abort)\b", s)
+    cancel_target = r"\b(cancel|delete|remove|drop|abort)\b.{0,20}\b(order|orders|queue|job)\b"
+    if re.search(cancel_target, s) or (cancelling and re.search(r"\b(order|orders)\b", s)):
         oid_match = re.search(r"\b(?:order\s*#?|#)(\d+)\b", s)
         oid = int(oid_match.group(1)) if oid_match else None
         calls.append(("order_cancel", {"order_id": oid} if oid else {}))
 
     # Industrial actuation: order submission
     is_question = bool(re.search(r"\b(how (do|to|can)|what|why|explain|where)\b", s))
-    if not is_question and not re.search(r"\b(cancel|delete|remove|drop|abort)\b", s) and (
-        re.search(
-            r"\b(bake (a )?cookie|bake cookies|produce (a )?cookie|submit (an? )?order|queue (an? )?order|place (an? )?order|run (a )?cycle|send carrier|start production)\b",
-            s,
-        )
+    order_verbs = (
+        r"bake (a )?cookie|bake cookies|produce (a )?cookie|submit (an? )?order|"
+        r"queue (an? )?order|place (an? )?order|run (a )?cycle|send carrier|start production"
+    )
+    order_things = r"cookie|cookies|carrier|slot|[A-C][1-3]|batch|part|chocolate|vanilla|strawberry"
+    if not is_question and not cancelling and (
+        re.search(rf"\b({order_verbs})\b", s)
         or re.search(r"\b(retrieve from|store into|home crane)\b", s)
-        or (
-            re.search(r"\b(order|produce|bake)\b", s)
-            and re.search(r"\b(cookie|cookies|carrier|slot|[A-C][1-3]|batch|part|chocolate|vanilla|strawberry)\b", s)
-        )
+        or (re.search(r"\b(order|produce|bake)\b", s) and re.search(rf"\b({order_things})\b", s))
     ):
         slot_match = re.search(r"\b([A-C][1-3])\b", q, re.I)
         slot = slot_match.group(1).upper() if slot_match else "B2"
@@ -1367,13 +1391,16 @@ def route(q: str, ctx: Ctx, lean: bool = False) -> list[tuple[str, dict]]:
         codes and re.search(r"\b(ack|acknowledge|clear|silence|reset)\b", s)
     ):
         target_code = codes[0] if codes else "OVN-D02"
-        calls = [c for c in calls if not (c[0] == "alarm_lookup" and c[1].get("code") == target_code)]
+        calls = [
+            c for c in calls
+            if not (c[0] == "alarm_lookup" and c[1].get("code") == target_code)
+        ]
         calls.append(("alarm_ack", {"code": target_code}))
     # Industrial actuation: recipe adjustment
-    if re.search(
-        r"\b(recipe|bake temp(erature)?|baking temp(erature)?|temperature|conveyor speed|bake time)\b",
-        s,
-    ) and re.search(r"\b(set|adjust|change|tune|update)\b", s):
+    recipe = (
+        r"recipe|bake temp(erature)?|baking temp(erature)?|temperature|conveyor speed|bake time"
+    )
+    if re.search(rf"\b({recipe})\b", s) and re.search(r"\b(set|adjust|change|tune|update)\b", s):
         recipe_args: dict = {}
         val_match = re.search(r"\b(?:to|at|=)\s*(\d+(?:\.\d+)?)\b", s)
         if val_match:
@@ -1386,8 +1413,11 @@ def route(q: str, ctx: Ctx, lean: bool = False) -> list[tuple[str, dict]]:
                 recipe_args["bake_temp_c"] = val
         calls.append(("recipe_adjust", recipe_args))
     # Industrial actuation: twin navigation
-    if re.search(r"\b(navigate to|take me to|show me the|switch to (page|view)|go to (page|view))\b", s):
-        page_match = re.search(r"\b(overview|warehouse|oven|quality|analytics|security|settings)\b", s)
+    navigation = r"navigate to|take me to|show me the|switch to (page|view)|go to (page|view)"
+    if re.search(rf"\b({navigation})\b", s):
+        page_match = re.search(
+            r"\b(overview|warehouse|oven|quality|analytics|security|settings)\b", s
+        )
         target_page = page_match.group(1) if page_match else "overview"
         calls.append(("twin_navigate", {"page": target_page}))
     if not calls or re.search(r"\bhow does\b|\bwhy\b|\bwhat is\b|\bexplain\b|circuit|works?\b", s):

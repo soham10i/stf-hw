@@ -19,6 +19,12 @@ from services.api import watchdog as WD
 from services.api.app import app, runtime
 
 
+@pytest.fixture(autouse=True)
+def legacy_actuation_opt_in(monkeypatch):
+    """These are explicit legacy-guard tests; production agent writes default to frozen."""
+    monkeypatch.setenv("STF_AGENT_ACTUATION", "1")
+
+
 @pytest.fixture
 def clean_guard():
     """Provide a fresh ActionGuard instance for isolated testing."""
@@ -110,7 +116,11 @@ def test_action_guard_cryptographic_tamper_detection(clean_guard):
 
 
 def test_action_guard_alarm_acknowledgement(clean_guard):
-    res = clean_guard.execute_alarm_ack(code="OVN-D02", actor="operator", note="Door sensor cleaned")
+    res = clean_guard.execute_alarm_ack(
+        code="OVN-D02",
+        actor="operator",
+        note="Door sensor cleaned",
+    )
     assert res["accepted"] is True
     assert clean_guard.is_alarm_acknowledged("OVN-D02") is True
 

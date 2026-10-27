@@ -243,14 +243,17 @@ def usage(data: dict) -> tuple[int | None, int | None]:
 
 
 def model_call(s, provider: str, model: str | None, data: dict) -> None:
-    """A model request's span: the provider, the model, its tokens - in both vocabularies."""
-    if s is None:
-        return
-    i, o = usage(data)
+    """A model request's tokens and list-price estimate, in metadata-only telemetry."""
+    from . import token_budget as TB
+
+    row = TB.meter_model(provider, model, data)
+    i, o = row["input_tokens"], row["output_tokens"]
     put(
         s, stf__provider=provider, gen_ai__system=provider, gen_ai__request__model=model,
         llm__model_name=model, gen_ai__usage__input_tokens=i, gen_ai__usage__output_tokens=o,
         llm__token_count__prompt=i, llm__token_count__completion=o,
+        stf__estimated_model_cost_usd=row["cost_usd"] if provider in ("gemini", "vertex") else None,
+        stf__priced=row["priced"] if provider in ("gemini", "vertex") else None,
         langfuse__observation__type="generation",
     )
 

@@ -57,6 +57,7 @@ from . import depth as D
 from . import gcp_auth as GA
 from . import gemini_pool as GP
 from . import gemini_search as GS
+from . import model_cost as MC
 from . import security as sec
 from . import sessions as S
 from . import source_policy as SP
@@ -202,6 +203,10 @@ class ChatSettings:
     cloud_models: list[str] = field(default_factory=list)  # empty: the same list as `models`
     cloud_limits: TB.Limits = field(default_factory=lambda: TB.CLOUD)
     cloud_daily_limit: int = 2000  # model questions a day while the cloud key is set
+    cloud_daily_usd: float = 5.0  # application circuit breaker, not a billing-account cap
+    cloud_total_usd: float | None = None  # optional fixed pilot-window cap
+    cloud_budget_days: int = 60
+    cloud_budget_start: str | None = None  # YYYY-MM-DD; required with cloud_total_usd
     # the cloud lane on Vertex AI (gcp_auth.py): a project, not a key; wins over cloud_key
     vertex_project: str | None = None
     vertex_location: str = "global"
@@ -241,6 +246,14 @@ class ChatSettings:
         upb_base = (env.get("UPB_AI_URL") or "https://ai-chat.uni-paderborn.de").rstrip("/")
         upb_url = f"{upb_base}/api/chat/completions"
         upb_model = env.get("UPB_AI_MODEL", "gwdg.latest-basemodel")
+
+        def number(name: str, default: float) -> float:
+            try:
+                return max(0.0, float(env.get(name, default)))
+            except (TypeError, ValueError):
+                return default
+
+        total = env.get("GEMINI_CLOUD_USD_TOTAL", "").strip()
         return ChatSettings(
             key=env.get("GEMINI_API_KEY") or None,
             model=first,
@@ -265,6 +278,10 @@ class ChatSettings:
             cloud_models=GP.models_from_env("GEMINI_CLOUD_MODELS", [], env),
             cloud_limits=TB.Limits.from_env(env, "GEMINI_CLOUD", TB.CLOUD),
             cloud_daily_limit=int(env.get("GEMINI_CLOUD_DAILY_LIMIT", "2000")),
+            cloud_daily_usd=number("GEMINI_CLOUD_USD_PER_DAY", 5.0),
+            cloud_total_usd=number("GEMINI_CLOUD_USD_TOTAL", 0.0) if total else None,
+            cloud_budget_days=int(number("GEMINI_CLOUD_BUDGET_DAYS", 60)),
+            cloud_budget_start=env.get("GEMINI_CLOUD_BUDGET_START") or None,
             vertex_project=env.get("GEMINI_VERTEX_PROJECT") or None,
             vertex_location=env.get("GEMINI_VERTEX_LOCATION") or "global",
             search_order=tuple(
@@ -737,6 +754,14 @@ class Chat:
             shared=shared,
             name="chat:questions",
         )
+        self.spend = MC.SpendBudget(
+            daily_limit=self.c.cloud_daily_usd,
+            total_limit=self.c.cloud_total_usd,
+            period_days=self.c.cloud_budget_days,
+            period_start=self.c.cloud_budget_start,
+            shared=shared,
+            name="gemini:cloud",
+        )
         self.post = _post
         self.post_search = self._post_search  # replaced by a fake in tests
         self.post_groq = _post_groq
@@ -773,6 +798,10 @@ class Chat:
             out.append(Lane("studio", self.c.key, self.pool, self.search_pool, self.budget))
         return out
 
+    def _lane_allowed(self, lane: Lane) -> bool:
+        """Cloud calls stop at the application spend cap; other fallback lanes remain available."""
+        return lane.name != "cloud" or self.spend.allowed()
+
     @property
     def has_gemini(self) -> bool:
         """Whether any Gemini lane (Studio or Cloud) is configured."""
@@ -792,7 +821,9 @@ class Chat:
         with budget left."""
         now = time.time()
         return any(
-            self.out.get(ln.rest, 0.0) <= now and ln.budget.tier(guest) != "spent"
+            self._lane_allowed(ln)
+            and self.out.get(ln.rest, 0.0) <= now
+            and ln.budget.tier(guest) != "spent"
             for ln in self.lanes
         )
 
@@ -865,9 +896,12 @@ class Chat:
             "gemini": gemini_on,
             "ollama": ollama_on,
             "engine": A.engine(),  # what runs the copilot's steps: graph (LangGraph) or linear
+            "actuation": {"agent_writes": T.actuation_enabled()},
             # where each question's trace goes besides the reply (tracing.py), and whether text
             "tracing": {"stores": TR.get().stores, "content": TR.content_allowed()},
         }
+        if detail and self.cloud:
+            out["spend"] = self.spend.status()
         if groq_on:
             out["groq"] = True
         if upb_on:
@@ -963,6 +997,10 @@ class Chat:
         for lane in self.lanes:
             if self.out.get(f"lane:{lane.name}", 0.0) > time.time():
                 continue
+            if not self._lane_allowed(lane):
+                logger.warning("Paid Gemini circuit open; using the next configured provider")
+                last = ModelError("the paid Gemini application budget is spent")
+                continue
 
             def post(url: str, b: dict, lane: Lane = lane) -> dict:
                 """One Gemini call on this lane: strip stale thought signatures, meter it."""
@@ -979,7 +1017,10 @@ class Chat:
                     post, body, trace=meta.setdefault("skipped", [])
                 )
                 meta["lane"] = lane.name
+                meta["vertex"] = bool(lane.vertex)
                 lane.budget.record(TB.usage_tokens(data), meta.get("guest"), TB.searches_in(data))
+                if lane.name == "cloud":
+                    self.spend.record(MC.estimate(meta["model"], data)["cost_usd"])
                 if meta["model"] != before and meta.get("emit"):
                     via = f" ({lane.label})" if len(self.lanes) > 1 else ""
                     meta["emit"]("step", f"asked {meta['model']}{via}")
@@ -1027,7 +1068,10 @@ class Chat:
                 )
             self._local.search_timeout = min(GEMINI_SEARCH_TIMEOUT_S, left)
             model = url.split("/models/")[1].split(":")[0]
-            return self.post_search(*lane.target(url), tune(b, model))
+            data = self.post_search(*lane.target(url), tune(b, model))
+            if lane.name == "cloud":
+                self.spend.record(MC.estimate(model, data)["cost_usd"])
+            return data
 
         # a model the chat's pool has found slow or out is not asked first for a search either
         free = [m for m in lane.search_pool.models if m in lane.pool.available()] or None
@@ -1093,6 +1137,9 @@ class Chat:
     ) -> W.Found | None:
         """One key's grounded search, reading `read` pages for the number check (a research
         branch reads one); None when it cannot or fails."""
+        if not self._lane_allowed(lane):
+            say("step", f"Gemini's {lane.label} spend circuit is open: next")
+            return None
         rest = self.out.get(lane.rest, 0.0) - time.time()
         if rest > 0:
             say(
@@ -1253,7 +1300,7 @@ class Chat:
                     m: dict = {}
                     data = self._gemini_post(body, m)
                     text, model = parse(data), m.get("model", "gemini")
-                    TR.model_call(sp, prov, model, data)
+                    TR.model_call(sp, "vertex" if m.get("vertex") else prov, model, data)
                 elif prov in ("openai", "upb") and (
                     self.c.openai_url if prov == "openai" else self.c.upb_key
                 ):

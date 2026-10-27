@@ -123,7 +123,10 @@ class OpcUaBridge:
         if node_id == "ns=2;s=Safety.EmergencyStop":
             guard = get_guard()
             if bool(value):
-                guard.trigger_emergency_stop(actor=actor, reason="OPC UA Write to Safety.EmergencyStop")
+                guard.trigger_emergency_stop(
+                    actor=actor,
+                    reason="OPC UA Write to Safety.EmergencyStop",
+                )
             else:
                 guard.reset_emergency_stop(actor=actor)
             return True

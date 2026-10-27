@@ -20,7 +20,7 @@ import os
 import re
 import time
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
 
 from .logging_config import get_logger
@@ -150,7 +150,11 @@ class ActionGuard:
         """Current state of the emergency stop safety latch."""
         return self._emergency_latched
 
-    def trigger_emergency_stop(self, actor: str = "safety_system", reason: str = "E-Stop triggered") -> None:
+    def trigger_emergency_stop(
+        self,
+        actor: str = "safety_system",
+        reason: str = "E-Stop triggered",
+    ) -> None:
         """Engage the emergency latch, blocking all further motion commands."""
         self._emergency_latched = True
         logger.critical("EMERGENCY STOP LATCH ENGAGED by %s: %s", actor, reason)
@@ -263,24 +267,36 @@ class ActionGuard:
 
             if runtime and hasattr(runtime, "_pending"):
                 if len(runtime._pending) >= MAX_PENDING_ORDERS:
-                    return False, f"Queue saturated: maximum {MAX_PENDING_ORDERS} pending orders allowed"
+                    return (
+                        False,
+                        f"Queue saturated: maximum {MAX_PENDING_ORDERS} pending orders allowed",
+                    )
 
         elif action == "alarm_ack":
             code = params.get("code")
             if not code or not isinstance(code, str):
                 return False, "Alarm acknowledgement requires an alarm code"
             if not ALARM_CODE_RE.match(code.strip().upper()):
-                return False, f"Malformed alarm code format: '{code}'. Expected format like 'OVN-D02'"
+                return (
+                    False,
+                    f"Malformed alarm code format: '{code}'. Expected format like 'OVN-D02'",
+                )
 
         elif action == "recipe_adjust":
             temp = params.get("bake_temp_c")
             if temp is not None:
                 if not isinstance(temp, (int, float)) or not (120.0 <= float(temp) <= 240.0):
-                    return False, f"Bake temperature {temp}°C out of thermal envelope (120°C - 240°C)"
+                    return (
+                        False,
+                        f"Bake temperature {temp}°C out of thermal envelope (120°C - 240°C)",
+                    )
             speed = params.get("conveyor_speed")
             if speed is not None:
                 if not isinstance(speed, (int, float)) or not (0.2 <= float(speed) <= 2.5):
-                    return False, f"Conveyor speed multiplier {speed} out of safe range (0.2x - 2.5x)"
+                    return (
+                        False,
+                        f"Conveyor speed multiplier {speed} out of safe range (0.2x - 2.5x)",
+                    )
             duration = params.get("bake_time_s")
             if duration is not None:
                 if not isinstance(duration, (int, float)) or not (5.0 <= float(duration) <= 120.0):
@@ -295,7 +311,10 @@ class ActionGuard:
             order_id = params.get("order_id")
             if runtime and hasattr(runtime, "_active") and runtime._active:
                 if order_id is not None and runtime._active.id == order_id:
-                    return False, f"Order #{order_id} is currently in production and cannot be cancelled."
+                    return (
+                        False,
+                        f"Order #{order_id} is currently in production and cannot be cancelled.",
+                    )
 
         return True, None
 
@@ -308,7 +327,7 @@ class ActionGuard:
         qty: int = 1,
         actor: str = "operator",
     ) -> dict[str, Any]:
-        """Execute machine order through invariant safety check, sign the result, and sync with live 3D twin."""
+        """Execute a checked machine order and synchronize the live 3D twin."""
         slot_clean = slot.strip().upper() if slot else None
         flavour_clean = str(flavour or "chocolate").strip().lower()
         qty_clean = max(1, min(12, int(qty or 1)))
@@ -317,7 +336,9 @@ class ActionGuard:
 
         safe, reason = self.validate_preconditions("order_submit", params, actor, runtime)
         if not safe:
-            self._append_audit(actor, "order_submit", params, pre_hash, pre_hash, "REJECTED", reason)
+            self._append_audit(
+                actor, "order_submit", params, pre_hash, pre_hash, "REJECTED", reason
+            )
             return {"accepted": False, "error": reason}
 
         try:
@@ -358,7 +379,9 @@ class ActionGuard:
             }
         except Exception as exc:
             post_hash = self.compute_state_hash(runtime)
-            self._append_audit(actor, "order_submit", params, pre_hash, post_hash, "FAILED", str(exc))
+            self._append_audit(
+                actor, "order_submit", params, pre_hash, post_hash, "FAILED", str(exc)
+            )
             return {"accepted": False, "error": f"Execution failed: {exc}"}
 
     def execute_order_cancel(
@@ -367,13 +390,15 @@ class ActionGuard:
         order_id: int | None = None,
         actor: str = "operator",
     ) -> dict[str, Any]:
-        """Cancel an order currently waiting in queue. Invariant: production orders cannot be cancelled."""
+        """Cancel a queued order; production orders cannot be cancelled."""
         params = {"order_id": order_id}
         pre_hash = self.compute_state_hash(runtime)
 
         safe, reason = self.validate_preconditions("order_cancel", params, actor, runtime)
         if not safe:
-            self._append_audit(actor, "order_cancel", params, pre_hash, pre_hash, "REJECTED", reason)
+            self._append_audit(
+                actor, "order_cancel", params, pre_hash, pre_hash, "REJECTED", reason
+            )
             return {"accepted": False, "error": reason}
 
         ok, msg, order_dict = runtime.cancel(order_id)
@@ -383,7 +408,9 @@ class ActionGuard:
             self._append_audit(actor, "order_cancel", params, pre_hash, post_hash, "REJECTED", msg)
             return {"accepted": False, "error": msg}
 
-        audit = self._append_audit(actor, "order_cancel", params, pre_hash, post_hash, "EXECUTED", None)
+        audit = self._append_audit(
+            actor, "order_cancel", params, pre_hash, post_hash, "EXECUTED", None
+        )
 
         hub = get_hub()
         if hub:
@@ -449,7 +476,9 @@ class ActionGuard:
         audit = self._append_audit(
             actor, "recipe_adjust", recipe,
             hashlib.sha256(json.dumps(pre_state, sort_keys=True).encode()).hexdigest()[:16],
-            hashlib.sha256(json.dumps(self._active_recipe, sort_keys=True).encode()).hexdigest()[:16],
+            hashlib.sha256(
+                json.dumps(self._active_recipe, sort_keys=True).encode()
+            ).hexdigest()[:16],
             "EXECUTED",
         )
         return {
@@ -473,7 +502,14 @@ class ActionGuard:
             self._append_audit(actor, "twin_navigate", params, "NA", "NA", "REJECTED", reason)
             return {"accepted": False, "error": reason}
 
-        audit = self._append_audit(actor, "twin_navigate", params, "VIEW_CHANGED", "VIEW_CHANGED", "EXECUTED")
+        audit = self._append_audit(
+            actor,
+            "twin_navigate",
+            params,
+            "VIEW_CHANGED",
+            "VIEW_CHANGED",
+            "EXECUTED",
+        )
         return {
             "accepted": True,
             "page": page_clean,
@@ -481,7 +517,11 @@ class ActionGuard:
             "audit_id": audit.id,
         }
 
-    def list_audit_records(self, limit: int = 50, action: str | None = None) -> list[dict[str, Any]]:
+    def list_audit_records(
+        self,
+        limit: int = 50,
+        action: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Retrieve recent audit records for compliance reporting."""
         records = self._audit_trail
         if action:

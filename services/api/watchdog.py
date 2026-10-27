@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
 
 from .logging_config import get_logger
@@ -136,8 +136,7 @@ class TelemetryWatchdog:
             oven_state = getattr(self.runtime, "_oven", {})
             lamp_on = bool(oven_state.get("lamp", False))
             # Simulated temperature approximation or live thermal readout
-            # When oven lamp is on, nominal bake temp is ~195°C; check slider/door
-            slider = float(oven_state.get("slider", 1.0))
+            # When oven lamp is on, nominal bake temp is ~195°C; check door
             door = float(oven_state.get("door", 1.0))
             if lamp_on and door > 0.1:
                 # Door open while heater active represents thermal loss and safety hazard
@@ -165,7 +164,10 @@ class TelemetryWatchdog:
                         category="STALL",
                         severity="WARNING",
                         title=f"Order #{active_order.id} Execution Timeout",
-                        detail=f"Order #{active_order.id} ({active_order.op}) active for {now - start_t:.1f}s (> {MAX_ORDER_EXECUTION_TIME_S}s).",
+                        detail=(
+                            f"Order #{active_order.id} ({active_order.op}) active for "
+                            f"{now - start_t:.1f}s (> {MAX_ORDER_EXECUTION_TIME_S}s)."
+                        ),
                         action="Check crane travel axis and gripper vacuum pressure.",
                         collector=new_incidents,
                         now=now,
@@ -187,7 +189,10 @@ class TelemetryWatchdog:
                         category="WEAR",
                         severity="WARNING",
                         title=f"Critical Component Wear: {name}",
-                        detail=f"Wear level at {wear:.1f}% (exceeds {CRITICAL_WEAR_PERCENT}% threshold).",
+                        detail=(
+                            f"Wear level at {wear:.1f}% "
+                            f"(exceeds {CRITICAL_WEAR_PERCENT}% threshold)."
+                        ),
                         action=f"Schedule preventive replacement for {name}.",
                         collector=new_incidents,
                         now=now,
@@ -262,8 +267,12 @@ class TelemetryWatchdog:
 
     def get_status(self) -> dict[str, Any]:
         """Return watchdog health overview."""
-        critical_count = sum(1 for i in self._incidents if i.severity == "CRITICAL" and not i.acknowledged)
-        warning_count = sum(1 for i in self._incidents if i.severity == "WARNING" and not i.acknowledged)
+        critical_count = sum(
+            1 for i in self._incidents if i.severity == "CRITICAL" and not i.acknowledged
+        )
+        warning_count = sum(
+            1 for i in self._incidents if i.severity == "WARNING" and not i.acknowledged
+        )
         return {
             "running": self._running,
             "last_scan_time": self._last_scan_time,

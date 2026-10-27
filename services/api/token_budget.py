@@ -115,6 +115,43 @@ def meter(provider: str, data: dict) -> None:
     m["by"][provider] = m["by"].get(provider, 0) + n
 
 
+def meter_model(provider: str, model: str | None, data: dict) -> dict:
+    """Add input/output tokens and a model-aware list-price estimate to the request meter.
+
+    Transports meter total tokens once; tracing calls this when the responding model is known.
+    Only Gemini has a configured price table. Other providers and unknown models are explicitly
+    unpriced rather than being reported as zero-cost.
+    """
+    from . import model_cost as MC
+
+    billed_gemini = provider in ("gemini", "vertex")
+    row = MC.estimate(model if billed_gemini else None, data)
+    m = _METER.get()
+    if m is not None:
+        m["input_tokens"] = m.get("input_tokens", 0) + row["input_tokens"]
+        m["output_tokens"] = m.get("output_tokens", 0) + row["output_tokens"]
+        if billed_gemini:
+            m["priced_calls" if row["priced"] else "unpriced_calls"] = (
+                m.get("priced_calls" if row["priced"] else "unpriced_calls", 0) + 1
+            )
+            m["estimated_model_cost_usd"] = round(
+                m.get("estimated_model_cost_usd", 0.0) + row["cost_usd"], 8
+            )
+            models = m.setdefault("models", {})
+            key = f"{provider}:{model or 'unknown'}"
+            current = models.setdefault(
+                key, {"calls": 0, "input_tokens": 0, "output_tokens": 0, "model": model,
+                      "estimated_cost_usd": 0.0, "priced": row["priced"]}
+            )
+            current["calls"] += 1
+            current["input_tokens"] += row["input_tokens"]
+            current["output_tokens"] += row["output_tokens"]
+            current["estimated_cost_usd"] = round(
+                current["estimated_cost_usd"] + row["cost_usd"], 8
+            )
+    return row
+
+
 def searches_in(data: dict) -> int:
     """The grounded Google searches a response ran (its groundingMetadata's webSearchQueries)."""
     n = 0

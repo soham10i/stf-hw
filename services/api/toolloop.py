@@ -320,7 +320,8 @@ class Conversation:
             model = self.meta.get("model") or (
                 a.model(self.meta) if isinstance(a, Completions) else a.name
             )
-            TR.model_call(s, a.name, model, data)
+            provider = "vertex" if a.name == "gemini" and self.meta.get("vertex") else a.name
+            TR.model_call(s, provider, model, data)
         return data
 
     def run(self) -> str:

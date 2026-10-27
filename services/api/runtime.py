@@ -147,21 +147,37 @@ class SimRuntime:
             target_id = self._pending[-1].id
 
         if self._active and self._active.id == target_id:
-            return False, f"Order #{target_id} is currently in production and cannot be cancelled.", self._active.as_dict()
+            return (
+                False,
+                f"Order #{target_id} is currently in production and cannot be cancelled.",
+                self._active.as_dict(),
+            )
 
         for i, order in enumerate(self._pending):
             if order.id == target_id:
                 del self._pending[i]
                 order.status = "cancelled"
                 logger.info("Order #%d cancelled and removed from pending queue", target_id)
-                return True, f"Order #{target_id} ({order.op}) cancelled and removed from queue.", order.as_dict()
+                return (
+                    True,
+                    f"Order #{target_id} ({order.op}) cancelled and removed from queue.",
+                    order.as_dict(),
+                )
 
         for order in reversed(self._history):
             if order.id == target_id:
                 if order.status == "running":
-                    return False, f"Order #{target_id} has moved to production and cannot be cancelled.", order.as_dict()
+                    return (
+                        False,
+                        f"Order #{target_id} has moved to production and cannot be cancelled.",
+                        order.as_dict(),
+                    )
                 if order.status == "completed":
-                    return False, f"Order #{target_id} has already completed and cannot be cancelled.", order.as_dict()
+                    return (
+                        False,
+                        f"Order #{target_id} has already completed and cannot be cancelled.",
+                        order.as_dict(),
+                    )
                 return False, f"Order #{target_id} is '{order.status}'.", order.as_dict()
 
         return False, f"Order #{target_id} not found in queue.", None

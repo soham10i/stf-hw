@@ -22,7 +22,7 @@ echo "promoting current tree to $SERVICE ($PROJECT, $REGION); environment carrie
 
 # Plain env carries over; the Secret Manager names arrive via --set-secrets instead
 # (they were plain values before the migration - promote is what removes them).
-SECRET_NAMES="GEMINI_API_KEY GROQ_API_KEY ELEVENLABS_API_KEY UPB_AI_KEY SUPABASE_SERVICE_KEY SUPABASE_SECRET_KEY SUPABASE_DATABASE_PASSWORD STF_SMTP_PASS POSTGRES_PASSWORD REDIS_PASSWORD"
+SECRET_NAMES="GEMINI_API_KEY GROQ_API_KEY ELEVENLABS_API_KEY UPB_AI_KEY SUPABASE_SERVICE_KEY SUPABASE_SECRET_KEY SUPABASE_DATABASE_PASSWORD STF_SMTP_PASS POSTGRES_PASSWORD REDIS_PASSWORD STF_SESSION_SECRET"
 gcloud run services describe "$SERVICE" \
   --project "$PROJECT" --region "$REGION" --format=json > "$SPEC_FILE"
 SECRET_NAMES="$SECRET_NAMES" python3 - "$SPEC_FILE" "$ENV_FILE" << 'PY'

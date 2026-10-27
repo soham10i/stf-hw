@@ -1,0 +1,38 @@
+{
+  "about": "Small representative Phase 0/1 route suite. It complements, never replaces, the 41-case held-out copilot_eval.json quality suite. Web/deep rows measure routing and reliability; their factual quality requires live sources and model review.",
+  "cases": [
+    {
+      "q": "hi",
+      "mode": "auto",
+      "route": "chat",
+      "tools": []
+    },
+    {
+      "q": "how does the oven heat the cookies?",
+      "mode": "docs",
+      "route": "docs",
+      "tools": ["search_docs"],
+      "facts": ["heating"]
+    },
+    {
+      "q": "What are the current ISA/IEC 62443 industrial security standards?",
+      "mode": "web",
+      "route": "web",
+      "tools": []
+    },
+    {
+      "q": "Research current best practices for securing a digital twin connected to industrial control systems.",
+      "mode": "deep",
+      "route": "deep",
+      "depth": "brief",
+      "tools": []
+    },
+    {
+      "q": "which part needs service first?",
+      "mode": "auto",
+      "route": "twin",
+      "tools": ["machine_health"],
+      "facts": ["HBW belt"]
+    }
+  ]
+}

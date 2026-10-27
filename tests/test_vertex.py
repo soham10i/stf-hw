@@ -63,6 +63,18 @@ def test_the_vertex_lane_is_asked_first_with_a_bearer_token(monkeypatch):
     assert key == "Bearer tok-1" and out["answer"].startswith("The belt")
     assert chat.cloud.label == "Vertex AI" and chat.cloud.budget.used == 700
     assert chat.cap.limit == 2000  # billed: the daily question cap is lifted as for a cloud key
+    assert any(k.startswith("vertex:gemini-test") for k in out["usage"]["models"])
+    assert out["usage"]["unpriced_calls"] == 1  # test model deliberately has no list price
+
+
+def test_paid_spend_circuit_hands_over_without_calling_vertex(monkeypatch):
+    chat, keys = with_vertex(monkeypatch), []
+    chat.spend.record(chat.c.cloud_daily_usd)
+    chat.post = lambda url, key, body: keys.append(key) or PLAIN
+    out = ask(chat, {"question": "which part needs service first?"})
+    assert keys == ["g-key"] and out["answer"].startswith("The belt")
+    assert chat.status(detail=True)["spend"]["allowed"] is False
+    assert chat.search_ready(None)  # Studio remains an independent fallback
 
 
 def test_no_token_hands_over_to_ai_studio(monkeypatch):

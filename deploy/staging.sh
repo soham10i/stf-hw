@@ -30,7 +30,7 @@ echo "copying $LIVE's environment (secrets stay in transit, never on disk in the
 
 # stf-live's env -> YAML for --env-vars-file, with the two staging deltas applied and
 # the Secret Manager names dropped (they arrive via --set-secrets instead).
-SECRET_NAMES="GEMINI_API_KEY GROQ_API_KEY ELEVENLABS_API_KEY UPB_AI_KEY SUPABASE_SERVICE_KEY SUPABASE_SECRET_KEY SUPABASE_DATABASE_PASSWORD STF_SMTP_PASS POSTGRES_PASSWORD REDIS_PASSWORD"
+SECRET_NAMES="GEMINI_API_KEY GROQ_API_KEY ELEVENLABS_API_KEY UPB_AI_KEY SUPABASE_SERVICE_KEY SUPABASE_SECRET_KEY SUPABASE_DATABASE_PASSWORD STF_SMTP_PASS POSTGRES_PASSWORD REDIS_PASSWORD STF_SESSION_SECRET"
 gcloud run services describe "$LIVE" \
   --project "$PROJECT" --region "$REGION" --format=json > "$SPEC_FILE"
 SECRET_NAMES="$SECRET_NAMES" python3 - "$SPEC_FILE" "$ENV_FILE" << 'PY'
@@ -44,6 +44,9 @@ for e in env:
         out[e["name"]] = e["value"]
 out["STF_API_DOCS"] = "1"     # Swagger at /docs - private service, so this is safe
 out["STF_NOTIFY_EMAIL"] = ""  # staging must never send mail
+out["STF_AGENT_ACTUATION"] = "0"  # Phase 0: no model-initiated writes before durable approval
+out["STF_API_TOKEN"] = ""      # staging command API stays read-only
+out["STF_TRACE_CONTENT"] = "0"  # export metadata only, never questions or answers
 with open(sys.argv[2], "w") as f:
     f.write("\n".join(f"{k}: {json.dumps(v)}" for k, v in sorted(out.items())) + "\n")
 PY

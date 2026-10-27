@@ -37,6 +37,7 @@ def _offline_env(monkeypatch, tmp_path):
     monkeypatch.setenv("STF_SESSION_SECRET", "test-secret")
     monkeypatch.setenv("STF_SCHOLAR", "0")  # the literature search (scholar.py) stays offline
     monkeypatch.setenv("STF_CRAG", "off")  # no judge call unless a test asks for one (crag.py)
+    monkeypatch.setenv("STF_AGENT_ACTUATION", "")  # Phase 0: model-initiated writes stay frozen
     for k in (
         "GEMINI_API_KEY", "GEMINI_CLOUD_API_KEY", "GEMINI_VERTEX_PROJECT", "GROQ_API_KEY",
         "ELEVENLABS_API_KEY", "SUPABASE_URL",
