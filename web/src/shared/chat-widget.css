@@ -23,13 +23,22 @@
   backdrop-filter: var(--card-blur, blur(18px));
   color: var(--text);
   cursor: pointer;
-  box-shadow: 0 10px 28px -6px rgba(0, 0, 0, 0.4), inset 0 1px 0 var(--card-hi, rgba(255, 255, 255, 0.08));
+  box-shadow: 0 10px 28px -6px rgba(0, 0, 0, 0.45), inset 0 1px 0 var(--card-hi, rgba(255, 255, 255, 0.12));
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+:root[data-theme="light"] .db-float-trigger {
+  box-shadow: 0 4px 16px -2px rgba(15, 30, 65, 0.08), 0 12px 30px -4px rgba(15, 30, 65, 0.12), inset 0 1px 0 #ffffff;
 }
 
 .db-float-trigger:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 34px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 var(--card-hi, rgba(255, 255, 255, 0.1));
+  box-shadow: 0 14px 34px -6px rgba(0, 0, 0, 0.55), inset 0 1px 0 var(--card-hi, rgba(255, 255, 255, 0.16));
+  border-color: var(--accent);
+}
+
+:root[data-theme="light"] .db-float-trigger:hover {
+  box-shadow: 0 6px 20px -2px rgba(15, 30, 65, 0.12), 0 16px 36px -4px rgba(15, 30, 65, 0.16), inset 0 1px 0 #ffffff;
   border-color: var(--accent);
 }
 
@@ -73,27 +82,156 @@
 }
 
 /* --------------------------------------------------------------------------
-   Floating Chat Window (Bottom Right Card)
+   Floating Chat Window (Bottom Right Card) with Liquid Glassmorphism & Resize
    -------------------------------------------------------------------------- */
 .db-float-chat {
   position: fixed;
   bottom: 82px;
   right: 24px;
-  width: 410px;
-  height: 600px;
-  max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 100px);
+  width: var(--float-w, 440px);
+  height: var(--float-h, 640px);
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  min-width: 320px;
+  min-height: 380px;
   z-index: 90;
   display: flex;
   flex-direction: column;
-  border-radius: 16px;
+  border-radius: 26px;
   overflow: hidden;
-  background: var(--card-bg, var(--surface));
-  border: 1px solid var(--border);
-  -webkit-backdrop-filter: var(--card-blur, blur(20px));
-  backdrop-filter: var(--card-blur, blur(20px));
-  box-shadow: 0 24px 50px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--card-line, var(--border)), inset 0 1px 0 var(--card-hi, rgba(255, 255, 255, 0.1));
+  isolation: isolate;
+
+  /* Apple Liquid glass: high-index multi-stop reflection & saturated heavy blur */
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.05) 45%, rgba(0, 0, 0, 0.16) 100%),
+    rgba(24, 32, 44, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.40);
+  -webkit-backdrop-filter: blur(40px) saturate(210%) contrast(106%);
+  backdrop-filter: blur(40px) saturate(210%) contrast(106%);
+  box-shadow:
+    0 32px 80px -16px rgba(0, 0, 0, 0.65),
+    0 12px 32px -8px rgba(0, 0, 0, 0.45),
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.70),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.25);
   animation: db-float-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color 0.18s ease;
+}
+
+/* Liquid glass diffusion underlay */
+.db-float-chat::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--surface) 38%, transparent);
+  -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(28px);
+}
+
+/* Liquid glass specular ambient light sheen */
+.db-float-chat::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 240px;
+  height: 140px;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(140px 90px at 100% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 75%);
+}
+
+:root[data-theme="light"] .db-float-chat {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.65) 50%, rgba(240, 246, 255, 0.78) 100%),
+    color-mix(in srgb, var(--surface) 72%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(36px) saturate(200%) contrast(102%);
+  backdrop-filter: blur(36px) saturate(200%) contrast(102%);
+  box-shadow:
+    0 28px 70px -12px rgba(15, 30, 65, 0.22),
+    0 10px 28px -6px rgba(15, 30, 65, 0.10),
+    inset 0 1px 1.5px 0 #ffffff,
+    inset 0 0 0 1px rgba(255, 255, 255, 0.95);
+}
+
+:root[data-theme="light"] .db-float-chat::before {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+:root[data-theme="light"] .db-float-chat::after {
+  background: radial-gradient(140px 90px at 100% 0%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 75%);
+}
+
+.db-float-chat.resizing {
+  user-select: none;
+  animation: none;
+  transition: none;
+}
+
+/* Floating Chat Resize Handles (anchored at bottom-right) */
+.db-float-grip {
+  position: absolute;
+  z-index: 30;
+  touch-action: none;
+  user-select: none;
+}
+
+.db-float-grip.corner {
+  top: 0;
+  left: 0;
+  width: 24px;
+  height: 24px;
+  cursor: nwse-resize;
+  display: grid;
+  place-items: center;
+  color: var(--faint);
+  border-top-left-radius: 24px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.db-float-grip.corner:hover {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.db-float-grip.corner svg {
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.db-float-grip.corner:hover svg {
+  opacity: 1;
+}
+
+.db-float-grip.left {
+  top: 24px;
+  left: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  transition: background 0.15s ease;
+}
+
+.db-float-grip.left:hover {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.db-float-grip.top {
+  top: 0;
+  left: 24px;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  transition: background 0.15s ease;
+}
+
+.db-float-grip.top:hover {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 @keyframes db-float-in {
@@ -104,15 +242,24 @@
 .db-float-chat-h {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 54px;
-  padding: 0 12px 0 16px;
+  gap: 12px;
+  min-height: 58px;
+  padding: 0 16px 0 34px;
   border-bottom: 1px solid var(--border-soft);
   background: color-mix(in srgb, var(--surface) 60%, transparent);
   flex: none;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
 }
 
-.db-float-chat-h > div {
+.db-float-chat.moving,
+.db-float-chat.moving .db-float-chat-h {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+.db-float-chat-h > div:not(.db-float-chat-actions) {
   flex: 1;
   min-width: 0;
 }
@@ -121,6 +268,7 @@
   display: block;
   font-size: var(--fs-body);
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .db-float-chat-h span {
@@ -133,9 +281,12 @@
 }
 
 .db-float-chat-actions {
+  margin-left: auto;
+  flex: none;
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .db-float-chat-b {
@@ -143,7 +294,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 0 12px 12px;
+  padding: 0 16px 16px;
 }
 
 .db-float-chat-b .ch,
@@ -156,18 +307,36 @@
    Inspector Panel & Pinned Right Sidebar
    -------------------------------------------------------------------------- */
 .db-inspector {
-  position: sticky;
-  top: 0;
-  height: 100vh;
+  position: relative;
+  height: 100%;
   display: flex;
   flex-direction: column;
   min-width: 0;
   padding: 0 14px 14px;
-  background: var(--card-bg, var(--surface));
-  border-left: 1px solid var(--card-line, var(--border));
-  -webkit-backdrop-filter: var(--card-blur, blur(18px));
-  backdrop-filter: var(--card-blur, blur(18px));
+  border-radius: 20px;
+  isolation: isolate;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 40%, rgba(0, 0, 0, 0.15) 100%),
+    color-mix(in srgb, var(--surface) 86%, transparent);
+  border: 1px solid var(--card-line, var(--border));
+  -webkit-backdrop-filter: var(--card-blur, blur(28px));
+  backdrop-filter: var(--card-blur, blur(28px));
+  box-shadow:
+    0 10px 30px -10px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   animation: db-slide 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:root[data-theme="light"] .db-inspector {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.68) 50%, rgba(240, 246, 255, 0.78) 100%),
+    color-mix(in srgb, var(--surface) 72%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 10px 30px -10px rgba(15, 30, 65, 0.14),
+    inset 0 1px 1.5px 0 #ffffff,
+    inset 0 0 0 1px rgba(255, 255, 255, 0.95);
 }
 
 @keyframes db-slide {
@@ -179,24 +348,42 @@
   position: absolute;
   right: 10px;
   left: auto;
-  top: 76px;
-  bottom: 10px;
+  top: 78px;
+  bottom: 12px;
   margin: 0;
-  width: min(420px, calc(100vw - 20px));
+  width: var(--copilot-w, 400px);
+  max-width: calc(100vw - 20px);
   height: auto;
   max-height: none;
   z-index: 8;
   display: flex;
   flex-direction: column;
   padding: 0 14px 14px;
-  border-radius: 18px;
+  border-radius: 24px;
+  isolation: isolate;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.02) 40%, rgba(0, 0, 0, 0.18) 100%),
+    color-mix(in srgb, var(--surface) 90%, transparent);
   border: 1px solid var(--border);
-  box-shadow: -14px 0 40px -14px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  -webkit-backdrop-filter: blur(28px) saturate(185%);
-  backdrop-filter: blur(28px) saturate(185%);
+  -webkit-backdrop-filter: blur(36px) saturate(190%) contrast(106%);
+  backdrop-filter: blur(36px) saturate(190%) contrast(106%);
+  box-shadow:
+    -14px 0 45px -12px rgba(0, 0, 0, 0.7),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   overflow: hidden;
   animation: twin-pinned-slide-right 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:root[data-theme="light"] .twin-pinned-chat {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.65) 50%, rgba(240, 246, 255, 0.78) 100%),
+    color-mix(in srgb, var(--surface) 72%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    -14px 0 40px -12px rgba(15, 30, 65, 0.15),
+    inset 0 1px 1.5px 0 #ffffff,
+    inset 0 0 0 1px rgba(255, 255, 255, 0.95);
 }
 
 @keyframes twin-pinned-slide-right {
@@ -204,25 +391,73 @@
   to { opacity: 1; transform: translateX(0); }
 }
 
+/* Horizontal adjustable spacing grip, identical to sidebar of the twin */
+.copilot-grip {
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  width: 14px;
+  height: 56px;
+  transform: translateY(-50%);
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.copilot-grip i {
+  width: 4px;
+  height: 38px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--text) 34%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg) 60%, transparent);
+  transition: background .15s, height .15s;
+}
+
+.copilot-grip:hover i,
+.copilot-grip.dragging i {
+  background: var(--accent);
+  height: 52px;
+}
+
+.db-inspector.resizing,
+.twin-pinned-chat.resizing {
+  user-select: none;
+  animation: none;
+  transition: none;
+}
+
 .db-inspector-h {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 56px;
+  gap: 12px;
+  min-height: 58px;
   margin: 0 -14px 10px;
-  padding: 0 10px 0 16px;
+  padding: 0 12px 0 18px;
   border-bottom: 1px solid var(--border-soft);
 }
 
-.db-inspector-h > div {
+.db-inspector-h > div:not(.db-inspector-actions) {
   flex: 1;
   min-width: 0;
+}
+
+.db-inspector-actions {
+  margin-left: auto;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .db-inspector-h b {
   display: block;
   font-size: var(--fs-head);
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .db-inspector-h span {
@@ -235,14 +470,64 @@
 }
 
 .db-inspector-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  flex: none;
+}
+
+.db-inspector-ico svg {
+  display: block;
+  margin: auto;
+}
+
+:root[data-theme="light"] .db-inspector-ico {
+  background: color-mix(in srgb, var(--accent) 12%, #ffffff);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(15, 30, 65, 0.06);
+  color: var(--accent);
+}
+
+.db-inspector-h .ui-btn.pin,
+.db-inspector-h .ui-btn.on,
+.db-float-chat-actions .ui-btn.pin,
+.db-float-chat-actions .ui-btn.on {
+  background: var(--btn-glass-active-bg);
+  color: #ffffff;
+  border: var(--btn-glass-active-border);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: var(--accent-weak);
-  color: var(--accent);
-  flex: none;
+  box-shadow: var(--btn-glass-active-shadow);
+  -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
+  transition: transform 0.18s cubic-bezier(.16, 1, .3, 1), box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.db-inspector-h .ui-btn.pin:hover,
+.db-inspector-h .ui-btn.on:hover,
+.db-float-chat-actions .ui-btn.pin:hover,
+.db-float-chat-actions .ui-btn.on:hover {
+  box-shadow: var(--btn-glass-shadow-hover);
+  transform: translateY(-1px) scale(1.05);
+}
+
+:root[data-theme="light"] .db-inspector-h .ui-btn.pin,
+:root[data-theme="light"] .db-inspector-h .ui-btn.on,
+:root[data-theme="light"] .db-float-chat-actions .ui-btn.pin,
+:root[data-theme="light"] .db-float-chat-actions .ui-btn.on {
+  background: var(--btn-glass-active-bg);
+  color: var(--accent-strong, #0058b0);
+  border: var(--btn-glass-active-border);
+  box-shadow: var(--btn-glass-active-shadow);
 }
 
 .db-inspector .ch,
@@ -257,22 +542,83 @@
 }
 
 /* --------------------------------------------------------------------------
-   Mobile Adjustments
+   Responsive & Adaptive Viewports (Desktop, Laptop, Tablet, Mobile)
    -------------------------------------------------------------------------- */
-@media (max-width: 600px) {
+@media (max-width: 1024px) {
+  .db-float-chat {
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 80px);
+  }
+}
+
+@media (max-width: 768px) {
   .db-float-trigger {
     bottom: 16px;
     right: 16px;
-    padding: 0 12px;
+    height: 42px;
+    padding: 0 14px 0 10px;
   }
   .db-float-trigger-label {
     display: none;
   }
   .db-float-chat {
-    bottom: 72px;
-    right: 12px;
-    left: 12px;
-    width: auto;
-    height: calc(100vh - 90px);
+    position: fixed !important;
+    inset: 10px 10px 10px 10px !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    border-radius: 20px !important;
+    z-index: 95 !important;
+  }
+  .db-float-grip {
+    display: none !important;
+  }
+  .db-float-chat-h {
+    padding: 0 14px 0 16px;
+    min-height: 52px;
+  }
+  .twin-pinned-chat {
+    position: fixed !important;
+    inset: 10px 10px 10px 10px !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    z-index: 95 !important;
+    border-radius: 20px !important;
+  }
+  .copilot-grip {
+    display: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .db-float-chat-h,
+  .db-inspector-h {
+    padding: 0 12px !important;
+    gap: 8px !important;
+  }
+  .db-float-chat-h b,
+  .db-inspector-h b {
+    font-size: var(--fs-callout);
+  }
+  .db-float-chat-h span,
+  .db-inspector-h span {
+    font-size: 11px;
+  }
+  .db-float-chat-actions,
+  .db-inspector-actions {
+    gap: 4px !important;
+  }
+  .db-float-chat-actions .ui-btn.ghost span.hide-sm,
+  .db-inspector-actions .ui-btn.ghost span.hide-sm {
+    display: none !important;
+  }
+  .db-float-chat-actions .ui-btn,
+  .db-inspector-actions .ui-btn {
+    padding: 0 6px !important;
   }
 }

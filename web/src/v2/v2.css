@@ -1,0 +1,558 @@
+/* ==========================================================================
+   STF v2 — Tunnel Oven Line (Dynamic & Responsive Liquid Glass Design System)
+   Works across Desktop, Laptop, Tablets, and Mobile.
+   ========================================================================== */
+
+:root {
+  --v2-bg: #030303;
+  --v2-ground-gradient: linear-gradient(135deg, #030303 0%, #1c1c1c 20%, #444444 50%, #686868 78%, #8c8c8c 100%);
+  --v2-surface: rgba(12, 16, 22, 0.44);
+  --v2-surface-hover: rgba(18, 24, 32, 0.55);
+  --v2-border: rgba(255, 255, 255, 0.12);
+  --v2-border-specular: rgba(255, 255, 255, 0.18);
+  --v2-text: #ffffff;
+  --v2-text-muted: #cbd5e1;
+  --v2-accent: #3b82f6;
+  --v2-accent-glow: rgba(59, 130, 246, 0.35);
+  --v2-amber: #f59e0b;
+  --v2-green: #10b981;
+}
+
+:root[data-theme="light"] {
+  --v2-bg: #b7c8d8;
+  --v2-ground-gradient: linear-gradient(180deg, #b7c8d8 0%, #dae2ed 24%, #f6f8ff 50%, #e0e7f2 76%, #bcccdc 100%);
+  --v2-surface: rgba(255, 255, 255, 0.82);
+  --v2-surface-hover: rgba(255, 255, 255, 0.95);
+  --v2-border: rgba(255, 255, 255, 0.75);
+  --v2-border-specular: #ffffff;
+  --v2-text: #0f172a;
+  --v2-text-muted: #475569;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#v2-root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--v2-ground-gradient, var(--v2-bg));
+  color: var(--v2-text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#v2-root canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+/* --------------------------------------------------------------------------
+   HUD Overlay Container
+   -------------------------------------------------------------------------- */
+.v2-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(12px, 2.5vw, 24px);
+  gap: 16px;
+  z-index: 10;
+}
+
+.v2-top,
+.v2-bottom {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.v2-bottom {
+  align-items: flex-end;
+}
+
+/* --------------------------------------------------------------------------
+   Liquid & Optical Vision Glass Cards (Image 1, 2 & 3)
+   -------------------------------------------------------------------------- */
+.v2-card {
+  pointer-events: auto;
+  position: relative;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 35%, rgba(0, 0, 0, 0.15) 100%),
+    var(--v2-surface);
+  border: 1px solid var(--v2-border);
+  border-radius: 18px;
+  padding: 16px 20px;
+  -webkit-backdrop-filter: blur(36px) saturate(190%) brightness(102%);
+  backdrop-filter: blur(36px) saturate(190%) brightness(102%);
+  box-shadow:
+    0 16px 36px -8px rgba(0, 0, 0, 0.45),
+    0 4px 12px -2px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 0 var(--v2-border-specular);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.v2-card:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 20px 44px -8px rgba(0, 0, 0, 0.55),
+    0 6px 16px -2px rgba(0, 0, 0, 0.30),
+    inset 0 1px 0 0 #ffffff;
+}
+
+:root[data-theme="light"] .v2-card {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.90) 0%, rgba(246, 250, 255, 0.68) 40%, rgba(235, 242, 250, 0.55) 100%),
+    rgba(255, 255, 255, 0.70);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 12px 32px -6px rgba(18, 38, 63, 0.08),
+    0 3px 8px -1px rgba(18, 38, 63, 0.03),
+    inset 0 1px 0 0 #ffffff;
+}
+
+:root[data-theme="light"] .v2-title {
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .v2-stat b {
+  color: #0f172a;
+}
+
+.v2-title {
+  font-size: clamp(14px, 1.2vw, 17px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v2-sub {
+  font-size: clamp(11.5px, 0.95vw, 13px);
+  color: var(--v2-text-muted);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.v2-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: 9999px;
+  padding: 3px 11px;
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.35),
+    0 2px 8px -1px rgba(245, 158, 11, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   Zone Status Chips
+   -------------------------------------------------------------------------- */
+.v2-zones {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.v2-chip {
+  font-size: clamp(11px, 0.9vw, 12.5px);
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 9999px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(0, 0, 0, 0.2) 100%),
+    rgba(255, 90, 31, 0.18);
+  border: 1px solid rgba(255, 90, 31, 0.45);
+  color: #ffbba0;
+  font-variant-numeric: tabular-nums;
+  box-shadow:
+    0 6px 16px -2px rgba(255, 90, 31, 0.28),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.60),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.v2-chip:hover {
+  transform: translateY(-1px);
+  background-color: rgba(255, 90, 31, 0.28);
+  border-color: rgba(255, 90, 31, 0.70);
+  color: #ffffff;
+  box-shadow:
+    0 8px 22px -2px rgba(255, 90, 31, 0.40),
+    inset 0 2px 1.5px 0 #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Stats Counters Card
+   -------------------------------------------------------------------------- */
+.v2-stats {
+  display: flex;
+  gap: clamp(12px, 1.8vw, 24px);
+  align-items: center;
+}
+
+.v2-stat {
+  min-width: 78px;
+}
+
+.v2-stat b {
+  display: block;
+  font-size: clamp(18px, 1.6vw, 22px);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.v2-stat span {
+  display: block;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--v2-text-muted);
+  margin-top: 2px;
+}
+
+.v2-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v2-green);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  padding: 4px 12px;
+  border-radius: 9999px;
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.35),
+    0 4px 12px -2px rgba(16, 185, 129, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   VisionOS Docked Controls Tray & Optical Buttons (Image 1)
+   -------------------------------------------------------------------------- */
+.v2-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 60%, rgba(0, 0, 0, 0.25) 100%),
+    rgba(10, 14, 22, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 9999px;
+  padding: 5px 8px;
+  box-shadow:
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.40),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.10),
+    0 8px 24px -4px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="light"] .v2-controls {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.90) 0%, rgba(240, 245, 252, 0.60) 100%),
+    rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    inset 0 1.5px 1.5px 0 #ffffff,
+    0 4px 14px -2px rgba(18, 38, 63, 0.08);
+}
+
+.v2-controls button,
+.v2-controls select {
+  pointer-events: auto;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.06) 45%, rgba(0, 0, 0, 0.18) 100%),
+    rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font: 500 12.5px/1.2 inherit;
+  padding: 8px 16px;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    0 4px 14px -2px rgba(0, 0, 0, 0.45),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.80),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.30);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+:root[data-theme="light"] .v2-controls button,
+:root[data-theme="light"] .v2-controls select {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(245, 248, 252, 0.55) 100%),
+    rgba(255, 255, 255, 0.50);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  color: #0f172a;
+  box-shadow:
+    0 2px 8px -1px rgba(18, 38, 63, 0.08),
+    inset 0 1.5px 1.5px 0 #ffffff;
+}
+
+.v2-controls button:hover,
+.v2-controls select:hover {
+  transform: translateY(-1px);
+  background-color: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow:
+    0 8px 24px -2px rgba(0, 0, 0, 0.55),
+    inset 0 2px 1.5px 0 #ffffff,
+    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme="light"] .v2-controls button:hover,
+:root[data-theme="light"] .v2-controls select:hover {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 248, 252, 0.70) 100%),
+    rgba(255, 255, 255, 0.65);
+  border-color: #ffffff;
+  box-shadow:
+    0 4px 14px -2px rgba(18, 38, 63, 0.12),
+    inset 0 2px 2px 0 #ffffff;
+}
+
+.v2-controls button:active {
+  transform: scale(0.97) translateY(0);
+}
+
+.v2-controls select {
+  padding-right: 28px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+:root[data-theme="light"] .v2-controls select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230f172a' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.v2-controls select option {
+  background: #111827;
+  color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Apple visionOS Spatial Floating Dock (Image 1)
+   -------------------------------------------------------------------------- */
+.v2-dock {
+  pointer-events: auto;
+  position: absolute;
+  left: clamp(14px, 2.5vw, 28px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 6px;
+  border-radius: 9999px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.01) 50%, rgba(0, 0, 0, 0.20) 100%),
+    rgba(12, 16, 22, 0.50);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(36px) saturate(190%) brightness(102%);
+  backdrop-filter: blur(36px) saturate(190%) brightness(102%);
+  box-shadow:
+    0 16px 36px -8px rgba(0, 0, 0, 0.50),
+    0 4px 12px -2px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.20);
+  z-index: 20;
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root[data-theme="light"] .v2-dock {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.90) 0%, rgba(246, 250, 255, 0.68) 100%),
+    rgba(255, 255, 255, 0.70);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 10px 28px -4px rgba(18, 38, 63, 0.08),
+    inset 0 1px 0 0 #ffffff;
+  -webkit-backdrop-filter: blur(32px) saturate(180%) brightness(102%);
+  backdrop-filter: blur(32px) saturate(180%) brightness(102%);
+}
+
+.v2-dock-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--v2-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.v2-dock-btn svg {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.v2-dock-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 4px 12px -2px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
+  transform: scale(1.08);
+}
+
+:root[data-theme="light"] .v2-dock-btn {
+  color: #64748b;
+}
+
+:root[data-theme="light"] .v2-dock-btn:hover {
+  color: #0f172a;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 245, 252, 0.70) 100%),
+    rgba(255, 255, 255, 0.65);
+  border-color: #ffffff;
+  box-shadow:
+    0 4px 14px -2px rgba(18, 38, 63, 0.10),
+    inset 0 1.5px 1.5px 0 #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Legend
+   -------------------------------------------------------------------------- */
+.v2-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 11.5px;
+  color: var(--v2-text-muted);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.v2-legend span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.v2-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 6px;
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVE DESIGN BREAKPOINTS: Desktop, Laptop, Tablet, Mobile
+   -------------------------------------------------------------------------- */
+
+/* Laptop / Medium Desktop (900px - 1200px) */
+@media (max-width: 1200px) {
+  .v2-hud {
+    padding: 16px;
+    gap: 12px;
+  }
+  .v2-card {
+    padding: 12px 16px;
+    border-radius: 18px;
+  }
+}
+
+/* Tablet (640px - 900px) */
+@media (max-width: 900px) {
+  .v2-top,
+  .v2-bottom {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .v2-card {
+    width: 100%;
+  }
+  .v2-zones {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .v2-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .v2-controls {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+/* Mobile Devices (< 640px) */
+@media (max-width: 640px) {
+  .v2-hud {
+    padding: 10px;
+    gap: 8px;
+  }
+  .v2-card {
+    padding: 10px 14px;
+    border-radius: 16px;
+  }
+  .v2-title {
+    font-size: 14px;
+  }
+  .v2-sub {
+    font-size: 11px;
+  }
+  .v2-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 12px;
+  }
+  .v2-stat { min-width: 0; }
+  .v2-controls {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .v2-controls button,
+  .v2-controls select {
+    min-height: 40px;
+    padding: 8px 12px;
+    justify-content: center;
+    text-align: center;
+  }
+  #btn-cam {
+    grid-column: 1 / -1;
+  }
+  .v2-legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 10px;
+    margin-top: 10px !important;
+  }
+}

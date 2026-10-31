@@ -126,6 +126,14 @@ def _open(url: str, read: bool) -> tuple[str, str, str]:
     return final, title, W.html_to_text(raw, PAGE_CHARS)
 
 
+def search_entry(data: dict) -> list[str]:
+    """Google's Search Suggestions of a grounded response: the HTML chip Google renders for its
+    searches (searchEntryPoint.renderedContent), to be shown with the answer as it came."""
+    meta = (data.get("candidates") or [{}])[0].get("groundingMetadata") or {}
+    html = (meta.get("searchEntryPoint") or {}).get("renderedContent")
+    return [html] if isinstance(html, str) and html.strip() else []
+
+
 def _domain_like(s: str) -> bool:
     return bool(re.fullmatch(r"[\w.-]+\.[a-z]{2,}", s.strip().lower()))
 
@@ -254,6 +262,7 @@ def search(
         pages=pages,
         steps=steps,
         via="gemini",
+        suggestions=search_entry(data),
     )
 
 
@@ -351,4 +360,5 @@ def deep(
         pages=" ".join(f.pages for _, f in found),
         steps=[s for _, f in found for s in f.steps],
         via="gemini",
+        suggestions=[s for _, f in found for s in f.suggestions],
     )

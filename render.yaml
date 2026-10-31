@@ -67,11 +67,8 @@ services:
         sync: false
       - key: ELEVENLABS_MODEL
         value: eleven_multilingual_v2
-      - key: UPB_AI_KEY              # the university's AI chat: the last hosted model (Gemini -> Groq -> UPB -> tools)
-        sync: false
-      - key: UPB_AI_URL
-        value: https://ai-chat.uni-paderborn.de
-      - key: OLLAMA_MODEL            # no local model on Render: Gemini, Groq, UPB in turn, then the tools
+      # no UPB_AI_KEY: the university's KI-Chat may not be passed on to a public site's visitors
+      - key: OLLAMA_MODEL            # no local model on Render: Gemini, Groq in turn, then the tools
         value: ""
       - key: SUPABASE_URL            # optional: keep guests, chats and photos in Supabase (docs/DATABASE.md)
         sync: false
@@ -88,10 +85,8 @@ services:
         value: "30"
       # usage traction, consent-gated (services/api/visits.py): a beacon per page visit is stored
       # only after the visitor accepts the banner; needs the visits/app_logs tables (a
-      # supabase/migrations file adds them). STF_GEO=0 stores the IP without the place lookup.
+      # supabase/migrations file adds them). The IP is kept only shortened to its network.
       - key: STF_TRACKING
-        value: "1"
-      - key: STF_GEO
         value: "1"
       - key: STF_TRACK_DAYS
         value: "180"

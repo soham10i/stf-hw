@@ -2,7 +2,7 @@
 // demand response, power quality and the health of the power assets.
 import { useState } from "react";
 import { Chart } from "./Month";
-import { HBar, Plot } from "./Plot";
+import { Donut, HBar, Plot } from "./Plot";
 import { useJson } from "../shared/data";
 
 const BASE = import.meta.env.BASE_URL;
@@ -131,6 +131,23 @@ export function GridPage() {
           <p className="db-note">The PSU's electrolytic capacitors lose half their life for every 10 K (Arrhenius). Dust from the building work
             clogs the cabinet's air filter; a cabinet sensor sees the temperature rise, and the filter is changed in the night gap.
             Capacitor life at this month's rate: <b>{cab.life_years} years</b> with the work orders, <b>{cab.life_years_cf} years</b> without.</p>
+        </section>
+        <section className="db-card"><h3>Clean energy balance</h3>
+          <Donut
+            value={best.self_sufficiency * 100}
+            max={100}
+            size={144}
+            strokeWidth={13}
+            color="#34d399"
+            sublabel="self-sufficiency"
+            badges={[
+              { label: "solar PV", value: `${best.pv_kwh} kWh` },
+              { label: "site load", value: `${best.load_kwh} kWh` },
+            ]}
+          />
+          <p className="db-note" style={{ textAlign: "center", margin: "4px 0 0" }}>
+            {Math.round(best.self_sufficiency * 100)}% covered by on-site PV and battery storage.
+          </p>
         </section>
         <section className="db-card"><h3>PV soiling</h3>
           <Chart h={130} days={false} xLabel="day of the month" yMin={0.8} yMax={1.02} yLabel="performance ratio" xMax={g.meta.days}

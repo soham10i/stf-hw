@@ -41,6 +41,10 @@ def _offline_env(monkeypatch, tmp_path):
     for k in (
         "GEMINI_API_KEY", "GEMINI_CLOUD_API_KEY", "GEMINI_VERTEX_PROJECT", "GROQ_API_KEY",
         "ELEVENLABS_API_KEY", "SUPABASE_URL",
+        # the action ledger stays a throwaway SQLite file (STF_TEST_PG_URL is the one way in)
+        "SUPABASE_DB_URL", "STF_AUDIT_SECRET",
+        # no operator signs in and no action runs unless a test sets them (actions.py)
+        "STF_OPERATORS", "STF_ACTION_TTL_S", "STF_ACTION_OBSERVE_S", "STF_OPERATOR_SESSION_S",
         # traces stay in memory: a test must never export to a real trace store
         "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "PHOENIX_COLLECTOR_ENDPOINT",
         "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "STF_TRACE_CONTENT",

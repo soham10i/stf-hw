@@ -105,7 +105,7 @@ export function Card({ title, children, wide, extra }: { title: string; children
     <motion.section className={`db-card ${wide ? "wide" : ""}`} {...RISE} onPointerMove={move} onPointerLeave={leave}>
       {glow}
       <h3>{title}{help && <HelpDot text={help} about={title} />}{extra}</h3>
-      {children}
+      <div className="db-card-body">{children}</div>
     </motion.section>
   );
 }

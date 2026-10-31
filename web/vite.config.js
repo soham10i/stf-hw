@@ -118,10 +118,16 @@ export default defineConfig(function (_a) {
         // where the app is served: /stf/ locally, /<repo>/ on GitHub Pages (STF_BASE)
         base: env.STF_BASE || "/stf/",
         plugins: __spreadArray([react(), themeInit(), isolation()], (standalone ? [cspMeta()] : []), true),
-        // two pages: the 3D twin (index.html) and the operations dashboard (dashboard.html)
+        // three pages: the 3D twin (index.html), the operations dashboard (dashboard.html) and
+        // the v2 design preview of the tunnel-oven line (v2.html) - the latter is a fully
+        // self-contained folder (src/v2/) that shares only this build config entry
         build: {
             rollupOptions: {
-                input: { main: resolve(__dirname, "index.html"), dashboard: resolve(__dirname, "dashboard.html") },
+                input: {
+                    main: resolve(__dirname, "index.html"),
+                    dashboard: resolve(__dirname, "dashboard.html"),
+                    v2: resolve(__dirname, "v2/index.html"),
+                },
             },
         },
         // The production build, as served to anyone outside this machine (vite preview behind a

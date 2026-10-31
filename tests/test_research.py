@@ -113,6 +113,27 @@ def test_every_branch_failing_still_answers(monkeypatch):
     assert any("every search of the research failed" in s for s in out["steps"])
 
 
+def test_empty_final_writer_returns_the_gathered_research(monkeypatch):
+    chat, _, _ = research_chat()
+    original = chat.post_groq
+
+    def post(url, key, body):
+        system = body["messages"][0]["content"]
+        writing = body.get("tools") != [{"type": "browser_search"}] and not any(
+            marker in system for marker in ("JSON list", "further web searches")
+        )
+        if writing:
+            return {"choices": [{"message": {"content": "", "reasoning": "still thinking"}}]}
+        return original(url, key, body)
+
+    chat.post_groq = post
+    out = ask(chat, "graph", monkeypatch)
+    assert out["model"] == "rules"
+    assert out["answer"].startswith("**Research findings**")
+    assert "PL d needs a PFHd" in out["answer"]
+    assert "returned an empty answer" not in out["answer"]
+
+
 def test_the_token_ceiling_stops_further_branches(monkeypatch):
     monkeypatch.setattr(A, "RESEARCH_TOKENS", 0)
     chat, log, _ = research_chat()

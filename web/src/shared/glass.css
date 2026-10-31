@@ -1,0 +1,601 @@
+/* Glass: three tones of high-resolution frosted glass over a lit gradient ground, on top of Studio.
+   Each tone keeps Studio's layout (studio.css) and sets data-tone on the root (shared/theme.ts):
+
+   - obsidian  the default: extreme dark, a near-black ground lit a soft violet, a lavender accent.
+   - noir      extreme dark: a near-black ground lit cool steel blue and teal, one ice-blue accent.
+   - frost     light: a slate-to-steel ground, steel glass chrome with light text, white data cards.
+
+   What all three add to Studio, after the visionOS-style references: a ground with depth (soft
+   coloured light, so the glass has something to frost), thicker glass (stronger blur and
+   saturation, a sheen across the top-left, a bright rim along the top edge), larger radii, the
+   rail as a floating capsule, the dock as a pill, and the dashboard as one large glass slab with
+   inner tiles and big figures. Text stays at 4.5:1 or better on every fill (figures per tone).
+   The machine's state colours keep their meaning: they are never used as decoration. */
+
+/* ============================================================ tokens */
+:root[data-palette="studio"][data-tone] {
+  --r-bar: 20px;
+  --r-tile: 18px;
+  --r-ctl: 12px;
+  --radius-panel: 20px;
+  --r-slab: 20px;
+  --gap: 12px;
+  --chrome-blur: blur(36px) saturate(190%);
+  --block-blur: blur(32px) saturate(180%);
+  --glass-blur: blur(32px) saturate(180%);
+  /* the pane's light: a subtle sheen from the top left, hairline line along the top */
+  --glass-light:
+    linear-gradient(135deg, var(--glass-sheen) 0%, transparent 42%),
+    linear-gradient(180deg, var(--glass-inner) 0%, transparent 30%);
+  --ring: inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+}
+
+/* noir: text 17.9:1 on the chrome, muted 9.6:1, faint 6.1:1; accent text 9.0:1. The ground is a
+   cool gradient (deep steel blue from the top left, a teal glow at the foot) kept near black. */
+:root[data-palette="studio"][data-tone="noir"] {
+  color-scheme: dark;
+  --ground: #05080c;
+  --bg: #05080c;
+  --surface: #0c0f14;
+  --surface-2: #080b10;
+  --raised: #141820;
+  --hover: #1b2029;
+  --border: #232a35;
+  --border-soft: #161b23;
+  --text: #f4f6f9;
+  --muted: #b4bcc8;
+  --faint: #8a93a1;
+  --accent: #9cc8ff;
+  --accent-strong: #c2dcff;
+  --accent-fill: #2f6fd8;
+  --accent-fill-hover: #3d7ee8;
+  --accent-weak: rgba(156, 200, 255, .13);
+  --accent-grad: linear-gradient(135deg, #3f7ff0 0%, #2b6cb0 55%, #127a8c 100%);
+  --on-accent: #ffffff;
+  --logo-a: #7dd3fc; --logo-b: #5b8def;
+  --ink: #f4f6f9; --sky: #7dd3fc; --violet: #a5b4fc; --cyan: #67e8f9;
+  --grid: #121820; --grid-strong: #28323f; --inset: #000000;
+  --on-ink: #05080c;
+  --ground-light:
+    radial-gradient(65vmax 50vmax at 0% 0%, rgba(30, 66, 102, .55), transparent 60%),
+    radial-gradient(60vmax 45vmax at 100% 100%, rgba(13, 96, 116, .30), transparent 62%),
+    radial-gradient(50vmax 40vmax at 92% 4%, rgba(58, 70, 96, .32), transparent 60%),
+    linear-gradient(165deg, #0a121b 0%, #05080c 52%, #070d14 100%);
+  --viewport:
+    radial-gradient(60vmax 40vmax at 0% 0%, rgba(30, 66, 102, .35), transparent 60%),
+    radial-gradient(ellipse at 50% 30%, #0b111a 0%, #04070b 58%, #000 100%);
+  --dot: rgba(255, 255, 255, .035);
+  --line: rgba(255, 255, 255, .08);
+  --glass-fill: rgba(255, 255, 255, .035);
+  --tile-fill: rgba(255, 255, 255, .045);
+  --chrome-fill: rgba(9, 12, 17, .58);
+  --block-fill: rgba(9, 12, 17, .62);
+  --slab-fill: rgba(12, 16, 22, .50);
+  --glass-rim: rgba(255, 255, 255, .14);
+  --glass-inner: rgba(255, 255, 255, .03);
+  --glass-sheen: rgba(255, 255, 255, .055);
+  --glass-foot: rgba(100, 170, 220, .03);
+  --glass-shadow: 0 1px 1px rgba(0, 0, 0, .5), 0 18px 40px -20px rgba(0, 0, 0, .9), 0 50px 90px -50px rgba(0, 0, 0, 1);
+  --glass-solid: #0a0d12;
+  --glass-edge: rgba(255, 255, 255, .09);
+  --float-shadow: var(--glass-shadow);
+  --scene-cell: #131922;
+  --scene-section: #252e3b;
+  /* the data cards: a tray (the card) holding a lighter body, a header row a shade up */
+  --tray: rgba(4, 6, 9, .55);
+  --card-in: rgba(255, 255, 255, .045);
+  --head-fill: rgba(255, 255, 255, .04);
+  /* tiles in noir stay neutral: colour is for what matters */
+  --tint-1: transparent; --tint-2: transparent; --tint-3: transparent; --tint-4: transparent; --tint-5: transparent;
+}
+
+/* obsidian: Apple Liquid Glass & Grey/White/Slate Studio Gradient (Image 2 style) */
+:root[data-palette="studio"][data-tone="obsidian"],
+:root[data-palette="elevenlabs"] {
+  color-scheme: dark;
+  --ground: #030303;
+  --bg: #030303;
+  --surface: rgba(12, 16, 22, 0.44);
+  --surface-2: rgba(10, 14, 20, 0.55);
+  --raised: rgba(255, 255, 255, 0.06);
+  --hover: rgba(255, 255, 255, 0.10);
+  --border: rgba(255, 255, 255, 0.12);
+  --border-soft: rgba(255, 255, 255, 0.07);
+  --text: #ffffff;
+  --muted: #cbd5e1;
+  --faint: #94a3b8;
+  --accent: #3b82f6;
+  --accent-strong: #60a5fa;
+  --accent-fill: #2563eb;
+  --accent-fill-hover: #1d4ed8;
+  --accent-weak: rgba(59, 130, 246, 0.18);
+  --accent-grad: linear-gradient(135deg, #3b82f6 0%, #2563eb 55%, #1d4ed8 100%);
+  --on-accent: #ffffff;
+  --logo-a: #ffffff; --logo-b: #cbd5e1;
+  --ink: #ffffff; --sky: #38bdf8; --violet: #818cf8; --cyan: #22d3ee;
+  --grid: rgba(255, 255, 255, 0.06); --grid-strong: rgba(255, 255, 255, 0.12); --inset: rgba(10, 14, 20, 0.4);
+  --on-ink: #000000;
+  --ground-gradient: linear-gradient(135deg, #030303 0%, #1c1c1c 20%, #444444 50%, #686868 78%, #8c8c8c 100%);
+  --ground-light: var(--ground-gradient);
+  --viewport: var(--ground-gradient);
+  --dot: rgba(255, 255, 255, 0.04);
+  --line: rgba(255, 255, 255, 0.12);
+  --glass-fill: rgba(255, 255, 255, 0.04);
+  --tile-fill: rgba(255, 255, 255, 0.04);
+  --chrome-fill: rgba(12, 16, 22, 0.48);
+  --block-fill: rgba(10, 14, 20, 0.50);
+  --slab-fill: rgba(10, 14, 20, 0.35);
+  --glass-rim: rgba(255, 255, 255, 0.15);
+  --glass-inner: rgba(255, 255, 255, 0.15);
+  --glass-sheen: rgba(255, 255, 255, 0.05);
+  --glass-foot: rgba(255, 255, 255, 0.02);
+  --glass-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.50), inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
+  --glass-solid: #141820;
+  --glass-edge: rgba(255, 255, 255, 0.12);
+  --float-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.60), inset 0 1px 0 0 rgba(255, 255, 255, 0.22);
+  --scene-cell: #1f2530;
+  --scene-section: #2c3545;
+  --tray: rgba(12, 16, 22, 0.45);
+  --card-in: rgba(255, 255, 255, 0.03);
+  --head-fill: rgba(255, 255, 255, 0.04);
+  --tint-1: transparent; --tint-2: transparent; --tint-3: transparent; --tint-4: transparent; --tint-5: transparent;
+
+  /* Apple Image 2 Liquid Glass Button Tokens */
+  --btn-glass-bg:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(0, 0, 0, 0.10) 100%),
+    rgba(255, 255, 255, 0.04);
+  --btn-glass-bg-hover:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(0, 0, 0, 0.12) 100%),
+    rgba(255, 255, 255, 0.08);
+  --btn-glass-border: 1px solid rgba(255, 255, 255, 0.16);
+  --btn-glass-border-hover: 1px solid rgba(255, 255, 255, 0.32);
+  --btn-glass-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+    0 4px 14px -3px rgba(0, 0, 0, 0.35);
+  --btn-glass-shadow-hover:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.35),
+    0 8px 22px -3px rgba(0, 0, 0, 0.45);
+  --btn-glass-shadow-active:
+    inset 0 1px 0 0 rgba(0, 0, 0, 0.20),
+    0 2px 6px -1px rgba(0, 0, 0, 0.35);
+
+  /* Primary Button: Apple Liquid Glass with Bright White Text & Luminous Specular Rim */
+  --btn-glass-primary-bg:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.06) 50%, rgba(0, 0, 0, 0.08) 100%),
+    rgba(255, 255, 255, 0.06);
+  --btn-glass-primary-bg-hover:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.10) 50%, rgba(0, 0, 0, 0.06) 100%),
+    rgba(255, 255, 255, 0.10);
+  --btn-glass-primary-border: 1px solid rgba(255, 255, 255, 0.30);
+  --btn-glass-primary-border-hover: 1px solid rgba(255, 255, 255, 0.55);
+  --btn-glass-primary-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.40),
+    0 6px 20px -3px rgba(0, 0, 0, 0.40);
+  --btn-glass-primary-shadow-hover:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.60),
+    0 10px 28px -4px rgba(0, 0, 0, 0.50);
+  --btn-glass-primary-color: #ffffff;
+
+  /* Active / Selected Capsule Pill */
+  --btn-glass-active-bg:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.06) 100%);
+  --btn-glass-active-border: 1px solid rgba(255, 255, 255, 0.28);
+  --btn-glass-active-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.35),
+    0 6px 18px -2px rgba(0, 0, 0, 0.40);
+}
+
+/* frost: steel glass, after the steel-glass reference - every surface (the nav, the page bar, the
+   slab, the cards and tables) is translucent steel with light type, over a ground graded from a
+   navy-charcoal top through steel to a pale band at the lower left. The ground is kept darker
+   than the glass, so the glass reads lighter than what is behind it, as in the reference, and
+   the type keeps 4.5:1 or better on it (text ~6.5:1, muted ~5:1, faint ~4.5:1 on a card). */
+:root[data-palette="studio"][data-tone="frost"] {
+  color-scheme: dark;
+  --ground: #47535e;
+  --bg: #47535e;
+  --surface: #4b5762;
+  --surface-2: #44505b;
+  --raised: #55616c;
+  --hover: #5e6a75;
+  --border: rgba(255, 255, 255, .20);
+  --border-soft: rgba(255, 255, 255, .12);
+  --text: #f5f8fa;
+  --muted: #dfe6eb;
+  --faint: #cbd4db;
+  --accent: #cfe4f7;
+  --accent-strong: #e8f2fb;
+  --accent-fill: #3f6f98;
+  --accent-fill-hover: #4a7ba5;
+  --accent-weak: rgba(207, 228, 247, .16);
+  --accent-grad: linear-gradient(180deg, rgba(255, 255, 255, .55) 0%, rgba(214, 228, 240, .32) 100%);
+  --on-accent: #ffffff;
+  --logo-a: #e8f0f7; --logo-b: #a9bccd;
+  --ink: #f5f8fa; --sky: #a5d8f3; --violet: #c9cff6; --cyan: #9ee6f0;
+  --grid: #56626d; --grid-strong: #7a8792; --inset: #2a323b;
+  --on-ink: #2a323b;
+  --ground-light:
+    radial-gradient(60vmax 45vmax at 0% 0%, rgba(12, 22, 32, .90), transparent 58%),
+    radial-gradient(70vmax 50vmax at 100% 0%, rgba(36, 40, 47, .85), transparent 62%),
+    radial-gradient(55vmax 45vmax at 3% 72%, rgba(128, 143, 154, .55), transparent 62%),
+    radial-gradient(50vmax 40vmax at 92% 96%, rgba(52, 64, 76, .55), transparent 62%),
+    linear-gradient(172deg, #262b33 0%, #3b4650 38%, #5a6873 68%, #47535e 100%);
+  --viewport:
+    radial-gradient(60vmax 45vmax at 0% 0%, rgba(14, 24, 34, .55), transparent 60%),
+    radial-gradient(ellipse at 50% 35%, #7f8d98 0%, #5d6a75 60%, #3f4a54 100%);
+  --dot: rgba(255, 255, 255, .05);
+  --line: rgba(255, 255, 255, .16);
+  --glass-fill: rgba(255, 255, 255, .08);
+  --tile-fill: rgba(255, 255, 255, .08);
+  --chrome-fill: rgba(70, 84, 97, .50);
+  --block-fill: rgba(62, 75, 88, .66);
+  --slab-fill: rgba(140, 156, 168, .18);
+  --glass-rim: rgba(255, 255, 255, .42);
+  --glass-inner: rgba(255, 255, 255, .08);
+  --glass-sheen: rgba(255, 255, 255, .10);
+  --glass-foot: rgba(255, 255, 255, .05);
+  --glass-shadow: 0 1px 1px rgba(8, 14, 22, .14), 0 18px 36px -18px rgba(8, 14, 22, .50), 0 44px 80px -46px rgba(8, 14, 22, .60);
+  --glass-solid: #4e5a65;
+  --glass-edge: rgba(255, 255, 255, .18);
+  --float-shadow: var(--glass-shadow);
+  --scene-cell: #6a7782;
+  --scene-section: #8a97a2;
+  --tray: rgba(28, 38, 48, .16);
+  --card-in: rgba(255, 255, 255, .06);
+  --head-fill: rgba(16, 24, 32, .14);
+  --tint-1: rgba(170, 205, 235, .12);
+  --tint-2: rgba(160, 215, 220, .10);
+  --tint-3: rgba(185, 190, 235, .10);
+  --tint-4: rgba(150, 195, 230, .10);
+  --tint-5: rgba(200, 212, 222, .10);
+}
+
+/* the buttons, after the steel-glass reference: a lens of clear glass - shaded under its top rim,
+   lit from below - inside a bright rim and a dark hairline, with a soft drop. The primary and the
+   selected take the same lens with the tone's tint in the glass. */
+:root[data-palette="studio"][data-tone] {
+  --lens-top: rgba(0, 0, 0, .26); --lens-bot: rgba(255, 255, 255, .07); --lens-glow: rgba(205, 220, 240, .20);
+  --lens-rim: rgba(255, 255, 255, .46); --lens-edge: rgba(0, 0, 0, .72); --lens-drop: rgba(0, 0, 0, .60);
+  --lens-text: var(--text); --lens-tint: rgba(255, 255, 255, .06);
+}
+:root[data-palette="studio"][data-tone="noir"] { --lens-tint: rgba(74, 130, 228, .50); }
+:root[data-palette="studio"][data-tone="obsidian"],
+:root[data-palette="elevenlabs"] {
+  --lens-tint: rgba(255, 255, 255, .08);
+  --lens-glow: rgba(255, 255, 255, .12);
+}
+:root[data-palette="studio"][data-tone="frost"] {
+  --lens-top: rgba(20, 30, 40, .26); --lens-bot: rgba(255, 255, 255, .14); --lens-glow: rgba(255, 255, 255, .32);
+  --lens-rim: rgba(255, 255, 255, .88); --lens-edge: rgba(14, 22, 30, .55); --lens-drop: rgba(8, 14, 22, .45);
+  --lens-tint: rgba(255, 255, 255, .16);
+}
+
+/* ============================================================ the ground */
+[data-tone] body::before { background: var(--ground-light), var(--ground); }
+/* a faint grain over the ground, so the gradients never band on a wide screen */
+[data-tone] body::after {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ============================================================ glass, everywhere it is used */
+[data-tone] :is(
+  .glass, .app.immersive .topbar, .app.immersive .rail, .vp-bar, .db-nav, .db-top, .db-inspector,
+  .app.immersive .side.float, .vp-tip, .db-card, .db-kpi, .db-ctl, .db-search, .consent-card
+) {
+  border: 1px solid var(--line);
+  box-shadow: var(--ring), var(--glass-shadow);
+}
+[data-tone] :is(.glass, .app.immersive .topbar, .app.immersive .rail, .vp-bar, .db-nav, .db-top, .db-inspector, .consent-card) {
+  background: var(--glass-light), var(--chrome-fill);
+  -webkit-backdrop-filter: var(--chrome-blur); backdrop-filter: var(--chrome-blur);
+}
+[data-tone] :is(.app.immersive .side.float, .vp-tip) {
+  background: var(--glass-light), var(--block-fill);
+  -webkit-backdrop-filter: var(--block-blur); backdrop-filter: var(--block-blur);
+}
+[data-tone] .app.immersive .side.pinned {
+  background: var(--glass-light), color-mix(in srgb, var(--glass-solid) 90%, transparent);
+  box-shadow: var(--ring), var(--glass-shadow);
+}
+/* menus and pop-overs sit over busy content: nearly solid, so what is behind never reads through */
+[data-tone] :is(.vm-pop, .vp-pop, .theme-pop) {
+  background: var(--glass-light), color-mix(in srgb, var(--glass-solid) 97%, transparent);
+  -webkit-backdrop-filter: var(--block-blur); backdrop-filter: var(--block-blur);
+  border: 1px solid var(--glass-edge); border-radius: var(--r-tile); box-shadow: var(--ring), var(--float-shadow);
+}
+[data-tone] .cx-pop {
+  background:
+    var(--glass-light),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 35%, rgba(0, 0, 0, 0.45) 100%),
+    color-mix(in srgb, var(--glass-solid) 98.5%, transparent);
+  -webkit-backdrop-filter: blur(50px) saturate(220%);
+  backdrop-filter: blur(50px) saturate(220%);
+  border: 1px solid var(--glass-edge);
+  border-top-color: rgba(255, 255, 255, 0.32);
+  border-radius: 20px;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.35), var(--float-shadow);
+  z-index: 95;
+}
+:root[data-theme="light"] .cx-pop,
+[data-tone="frost"] .cx-pop {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(242, 246, 252, 0.92) 100%), rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-top-color: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.9), 0 20px 48px -10px rgba(0, 0, 0, 0.22);
+}
+:root[data-theme="light"] .cx-pop-head b,
+[data-tone="frost"] .cx-pop-head b,
+:root[data-theme="light"] .cx-profiles button b,
+[data-tone="frost"] .cx-profiles button b {
+  color: var(--text);
+}
+
+/* ============================================================ controls */
+/* a plain button: the glass lens */
+[data-tone] :is(.ui-btn, .vp-btn, .vm-btn, .slot, .op, .ord-reset) {
+  border-radius: 9999px;
+  background: var(--btn-glass-bg);
+  border: var(--btn-glass-border);
+  color: var(--text);
+  box-shadow: var(--btn-glass-shadow);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  transition: background .2s ease, border-color .2s ease, transform .18s cubic-bezier(.16, 1, .3, 1), box-shadow .2s ease, color .18s ease;
+}
+:root:not([data-theme="light"]) [data-tone] :is(.ui-btn, .vp-btn, .vm-btn, .slot, .op, .ord-reset) {
+  color: #ffffff;
+  text-shadow: none;
+}
+[data-tone] :is(.ui-btn, .vp-btn, .vm-btn, .slot, .op, .ord-reset):hover:not(:disabled) {
+  background: var(--btn-glass-bg-hover);
+  border: var(--btn-glass-border-hover);
+  box-shadow: var(--btn-glass-shadow-hover);
+  transform: translateY(-1px);
+}
+[data-tone] :is(.ui-btn, .vp-btn, .vm-btn, .slot, .op, .ord-reset):active:not(:disabled) {
+  transform: scale(.97) translateY(0);
+  box-shadow: var(--btn-glass-shadow-active);
+}
+/* the primary action, and whatever is selected: liquid glass with accent infusion and top specular rim */
+[data-tone] :is(.ui-btn.primary, .vp-cta, .op.cycle, .consent-yes, .cx-new) {
+  background: var(--btn-glass-primary-bg);
+  border: var(--btn-glass-primary-border);
+  box-shadow: var(--btn-glass-primary-shadow);
+  color: var(--btn-glass-primary-color, #ffffff);
+  font-weight: 600;
+  text-shadow: none;
+}
+[data-tone] :is(.ui-btn.primary, .vp-cta, .op.cycle, .consent-yes, .cx-new):hover:not(:disabled) {
+  background: var(--btn-glass-primary-bg-hover);
+  border: var(--btn-glass-primary-border-hover);
+  box-shadow: var(--btn-glass-primary-shadow-hover);
+  color: var(--btn-glass-primary-color, #ffffff);
+  transform: translateY(-1px);
+}
+[data-tone] :is(.ui-btn.ghost, .vp-btn.off) {
+  background: transparent; border-color: transparent; box-shadow: none; text-shadow: none; color: var(--muted);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+[data-tone] :is(.ui-btn.ghost, .vp-btn.off):hover {
+  background: var(--btn-glass-bg);
+  border: var(--btn-glass-border);
+  box-shadow: var(--btn-glass-shadow);
+  color: var(--text);
+  -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
+  transform: translateY(-1px);
+}
+/* a segmented control: a sunken track, the selected segment the lens */
+[data-tone] .ui-seg {
+  border-radius: 9999px; padding: 3px; border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, .25), 0 1px 0 rgba(255, 255, 255, .08);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+}
+[data-tone] .ui-seg button {
+  border-radius: 9999px; border: 1px solid transparent; color: var(--muted);
+  transition: all .18s ease;
+}
+[data-tone] .ui-seg button:hover {
+  background: var(--btn-glass-bg);
+  border: var(--btn-glass-border);
+  box-shadow: var(--btn-glass-shadow);
+  color: var(--text);
+}
+[data-tone] :is(.ui-btn[aria-pressed="true"], .ui-btn.on, .vp-btn.on, .vp-btn[aria-pressed="true"], .ui-seg button.on, .ui-seg button[aria-checked="true"], .rail button.on, .vp-speed button.on) {
+  background: var(--btn-glass-active-bg);
+  border: var(--btn-glass-active-border);
+  box-shadow: var(--btn-glass-active-shadow);
+  color: #ffffff;
+  font-weight: 600;
+  text-shadow: none;
+}
+[data-tone] .ui-chip { border-radius: 999px; }
+[data-tone] .ui-chip.accent { background: var(--accent-weak); color: var(--accent); }
+
+/* ============================================================ the twin */
+[data-tone] .viewport, [data-tone] .vp-veil { background: var(--viewport); }
+/* the top bar: a glass capsule */
+[data-tone] .app.immersive .topbar { border-radius: var(--r-bar); height: 56px; }
+[data-tone] .brand-logo { border-radius: 12px; }
+[data-tone] .top-actions .ui-btn { border-radius: 999px; }
+[data-tone] .vm-btn { border-radius: 999px; }
+/* the rail: a floating capsule at the window's left, centred, as tall as its icons */
+[data-tone] .app.immersive .rail {
+  top: 50%; bottom: auto; transform: translateY(-50%) translateZ(0); width: 60px; height: auto; max-height: calc(100vh - 160px);
+  padding: 10px 0; gap: 6px; border-radius: 30px;
+}
+[data-tone] .app.immersive .rail .rail-sp { flex: 0 0 4px; }
+[data-tone] .rail button { width: 42px; height: 42px; border-radius: 50%; }
+[data-tone] .rail button::after { left: 56px; }
+/* the panel beside the rail */
+[data-tone] .app.immersive :is(.side.float, .side.pinned) { left: calc(60px + 2 * var(--gap)); top: calc(56px + 2 * var(--gap)); border-radius: var(--r-bar); }
+[data-tone] .app.immersive .side-grip.closed { left: calc(60px + var(--gap) + 2px); }
+[data-tone] .side-ico { border-radius: 50%; color: var(--on-accent); }
+[data-tone] .side .panel,
+[data-tone] .side :is(.ord-card, .tm-card) {
+  background: var(--glass-light), var(--tile-fill); border-radius: var(--r-tile); box-shadow: var(--ring);
+}
+/* the dock: a pill, like a tab bar */
+/* the dock keeps clear of the floating Ask NEXUS button at the bottom right */
+[data-tone] .vp-dock { right: max(var(--vp-right, 0px), 168px); }
+[data-tone] .vp-bar { height: 54px; border-radius: 999px; padding: 0 8px 0 14px; }
+[data-tone] .vp-bar :is(.vp-btn, .vp-cta) { border-radius: 999px; height: 38px; }
+[data-tone] .vp-speed { border-radius: 999px; }
+[data-tone] .vp-speed button { border-radius: 999px; }
+[data-tone] .vp-progress i { background: var(--accent-grad); }
+[data-tone] .vp-tip { border-radius: 20px; }
+[data-tone] .vp-status > i { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok-fill) 22%, transparent); }
+
+/* ============================================================ the dashboard
+   One glass slab holds the page; the nav floats beside it; the cards are tiles inside it. */
+[data-tone] .db-nav { border-radius: var(--r-slab); padding: 14px 12px; }
+/* the nav and the slab share one inset from the window, top, bottom and between them */
+@media (min-width: 901px) {
+  [data-tone] .db { padding: var(--db-gap, 8px); gap: var(--db-gap, 8px); }
+  [data-tone] .db-nav { margin: 0; top: 0; height: 100%; }
+}
+[data-tone] .db-stage { gap: var(--db-gap, 8px); }
+[data-tone] .db-panes { gap: var(--db-gap, 8px); }
+/* the brand at the nav's top left: the cube and the name, set like the page title */
+[data-tone] .db-brand { gap: 10px; min-height: 52px; padding: 0 4px 12px; border-bottom: 1px solid var(--border-soft); margin-bottom: 8px; align-items: center; box-sizing: border-box; }
+[data-tone] .db-brand .db-brand-logo { display: none; }
+[data-tone] .db-brand .brand-mark { display: block; flex: none; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .35)); }
+[data-tone] .db-brand > div { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 5px; min-width: 0; }
+[data-tone] .db-brand-name {
+  display: block; flex-basis: 100%; font: 600 23px/1 var(--font-display); letter-spacing: -.035em; color: var(--text); margin-bottom: 3px;
+}
+[data-tone] .db-brand > div > b { font-size: 11.5px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+[data-tone] .db-brand > div > b::after { content: "·"; margin-left: 5px; color: var(--faint); }
+[data-tone] .db-brand > div > span { display: inline; font-size: 11.5px; color: var(--faint); }
+[data-tone] :is(.db-nav button, .db-twin) { height: 36px; border-radius: 999px; padding-inline: 12px; }
+[data-tone] .db-nav button.on { color: var(--on-accent); }
+[data-tone] .db-nav button.on svg { color: var(--on-accent); opacity: 1; }
+[data-tone] .db-nav-pill { border-radius: 999px; }
+[data-tone] .db-main {
+  margin: 0; padding: 16px 18px 24px; border-radius: var(--r-slab);
+  background: var(--slab-fill); border: 1px solid var(--line); box-shadow: var(--ring), var(--glass-shadow);
+  height: 100%; min-height: 0; overflow-y: auto; overflow-x: hidden; box-sizing: border-box;
+}
+/* the top bar: wide header spanning the entire dashboard stage */
+[data-tone] .db-top {
+  position: relative; z-index: 10; margin: 0; min-height: 52px; height: 52px; width: 100%;
+  border-radius: var(--r-slab); padding: 0 18px; box-sizing: border-box;
+  border: 1px solid var(--line);
+  background: var(--chrome-fill); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  box-shadow: var(--ring), var(--glass-shadow);
+}
+[data-tone] .db-inspector {
+  align-self: flex-start;
+  height: calc(100% - 56px);
+  border-radius: var(--r-slab);
+}
+[data-tone] .db-title h1 { font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
+[data-tone] .db-top .ui-btn { border-radius: 999px; }
+/* ---- the data, in the tabular style of the references: each card is a tray whose header is a
+   small mono label, holding a body a shade lighter; tables have a header row, ruled rows and
+   mono figures; states are pills; the figure tiles carry a footer strip under the number. */
+[data-tone] .db-kpis { gap: 12px; margin-bottom: 14px; }
+[data-tone] .db-kpi {
+  display: flex; flex-direction: column; overflow: hidden;
+  border-radius: var(--r-tile); padding: 16px 18px 0; min-height: 0;
+  background: var(--glass-light), linear-gradient(140deg, var(--tint, transparent) 0%, transparent 70%), var(--card-in);
+}
+[data-tone] .db-kpi:not(:has(> em)) { padding-bottom: 18px; }
+[data-tone] .db-kpi:nth-child(5n + 1) { --tint: var(--tint-1); }
+[data-tone] .db-kpi:nth-child(5n + 2) { --tint: var(--tint-2); }
+[data-tone] .db-kpi:nth-child(5n + 3) { --tint: var(--tint-3); }
+[data-tone] .db-kpi:nth-child(5n + 4) { --tint: var(--tint-4); }
+[data-tone] .db-kpi:nth-child(5n + 5) { --tint: var(--tint-5); }
+/* a state keeps its own colour: the tile glows in it */
+[data-tone] .db-kpi.ok { --tint: color-mix(in srgb, var(--ok-fill) 22%, transparent); }
+[data-tone] .db-kpi.warn { --tint: color-mix(in srgb, var(--warn-fill) 24%, transparent); }
+[data-tone] :is(.db-kpi.fail, .db-kpi.bad) { --tint: color-mix(in srgb, var(--bad-fill) 24%, transparent); }
+[data-tone] .db-kpi::before { display: none; }
+:root[data-tone] .db .db-kpi > span { font: 600 11px/1.3 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+[data-tone] .db-kpi > span::first-letter { text-transform: uppercase; }
+[data-tone] .db-kpi b {
+  font-family: var(--mono); font-size: clamp(24px, 2.2vw, 32px); font-weight: 600; letter-spacing: -.03em;
+  line-height: 1.05; margin: 12px 0 14px; color: var(--text);
+}
+[data-tone] .db-kpi.ok b, [data-tone] .db-kpi.ok span { color: inherit; }
+[data-tone] .db-kpi > em {
+  margin: auto -18px 0; padding: 9px 18px; font-size: 12px; color: var(--muted);
+  background: var(--tray); border-top: 1px solid var(--line);
+}
+
+[data-tone] .db-grid { gap: 12px; }
+[data-tone] .db-card { border-radius: var(--r-tile); padding: 0 5px 5px; background: var(--glass-light), var(--tray); }
+[data-tone] .db-card > h3 {
+  margin: 0; padding: 13px 13px 11px; min-height: 44px;
+  font: 600 11.5px/1.2 var(--mono); text-transform: uppercase; letter-spacing: .09em; color: var(--muted);
+}
+[data-tone] .db-card > h3 :is(input, button, select, .ui-btn) { text-transform: none; letter-spacing: normal; font-family: var(--font); }
+[data-tone] .db-card-body {
+  display: block; min-width: 0; overflow: auto; padding: 16px 18px;
+  background: var(--card-in); border: 1px solid var(--line); border-radius: calc(var(--r-tile) - 5px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .05);
+}
+/* the pages that build their own cards (no body): the card is the body */
+[data-tone] .db-card:not(:has(> .db-card-body)) { padding: 0 18px 16px; background: var(--glass-light), var(--card-in); }
+[data-tone] .db-card:not(:has(> .db-card-body)) > h3 { margin: 0 -18px 14px; padding-inline: 18px; background: var(--tray); border-bottom: 1px solid var(--line); }
+/* a table that is the whole body runs edge to edge, its header row the body's top */
+[data-tone] .db-card-body:has(> .db-table:only-child) { padding: 0; }
+
+[data-tone] .db-table { border-collapse: separate; border-spacing: 0; font-size: 13.5px; }
+[data-tone] .db-table td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+[data-tone] .db-table thead td {
+  padding: 10px 14px; background: var(--head-fill); border-bottom: 1px solid var(--line);
+  font: 600 11px/1.3 var(--mono); text-transform: uppercase; letter-spacing: .07em; color: var(--faint); white-space: nowrap;
+}
+[data-tone] .db-table thead td:first-child { border-top-left-radius: 10px; }
+[data-tone] .db-table thead td:last-child { border-top-right-radius: 10px; }
+[data-tone] .db-card-body > .db-table:only-child thead td { border-radius: 0; }
+[data-tone] .db-table tbody td:first-child { font-weight: 500; }
+[data-tone] .db-table :is(td.num, td.mono, .mono) { font-family: var(--mono); font-size: 13px; }
+[data-tone] .db-table tbody tr:hover td { background: color-mix(in oklab, var(--text) 4%, transparent); }
+[data-tone] .db-table tbody tr:last-child td { border-bottom: 0; }
+/* a state cell leads with a dot of its colour */
+[data-tone] .db-table td:is(.ok, .warn, .fail):not(.num)::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%;
+  background: currentColor; vertical-align: 1px; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+}
+/* the states as pills: a tinted fill, a hairline in the state's colour */
+[data-tone] .gr-pill {
+  padding: 3px 10px; font-size: 12px; font-weight: 600; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 32%, transparent); background: color-mix(in srgb, currentColor 10%, var(--card-in));
+}
+[data-tone] .rc-badge { border: 1px solid color-mix(in srgb, currentColor 35%, transparent); }
+[data-tone] .db-search { border-radius: 10px; background: color-mix(in srgb, var(--inset) 22%, transparent); color: var(--text); }
+[data-tone] .db-search::placeholder { color: var(--faint); opacity: 1; }
+:root[data-tone] .db .db-title > span { color: var(--muted); }
+[data-tone] .db-bars i, [data-tone] .db-prog i { background: var(--accent-grad); }
+[data-tone] .al-item { border-radius: 14px; background: color-mix(in oklab, var(--text) 5%, transparent); }
+[data-tone] .db-inspector { border-radius: var(--r-slab); margin: 0; align-self: flex-start; height: calc(100% - 56px); }
+[data-tone] .db-float-trigger { border-radius: 999px; background: var(--glass-light), var(--chrome-fill); -webkit-backdrop-filter: var(--chrome-blur); backdrop-filter: var(--chrome-blur); border: 1px solid var(--line); box-shadow: var(--ring), var(--glass-shadow); }
+[data-tone] .consent-card { border-radius: 24px; }
+[data-tone] :is(.consent-yes, .consent-no) { border-radius: 999px; }
+@media (max-width: 900px) {
+  [data-tone] .db-main { margin: 8px; }
+  [data-tone] .db-nav { border-radius: 0 var(--r-slab) var(--r-slab) 0; }
+}
+@media (max-width: 700px) {
+  /* a phone has no room for a slab around the cards: the cards sit on the ground */
+  [data-tone] .db-main { margin: 0; padding: 0 6px 18px; background: none; border: 0; box-shadow: none; border-radius: 0; }
+  /* frost's slate ground is too dark for its text: the page keeps a frosted veil */
+  [data-tone="frost"] .db-main { background: var(--slab-fill); }
+  [data-tone] .db-kpi b { font-size: 24px; }
+  [data-tone] .app.immersive .rail { top: 72px; transform: translateZ(0); height: 52px; width: auto; border-radius: 999px; }
+  [data-tone] .rail button { width: 40px; height: 40px; }
+  [data-tone] .vp-bar { border-radius: 24px; height: auto; }
+  [data-tone] .vp-dock { right: 0; bottom: 72px; }
+}
+
+/* Reduce Transparency and Increase Contrast: the glass becomes solid, the ground stays still */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  [data-tone] :is(
+    .glass, .app.immersive .topbar, .app.immersive .rail, .app.immersive .side.float, .vp-bar, .vp-tip,
+    .db-nav, .db-card, .db-kpi, .db-ctl, .db-search, .db-top, .db-inspector, .db-main, .consent-card
+  ) { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background: var(--surface) !important; border-color: var(--border) !important; }
+  [data-tone] body::after { display: none; }
+}

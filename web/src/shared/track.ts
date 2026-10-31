@@ -36,7 +36,7 @@ export function ensureGuest(page?: string) {
   return guestReady;
 }
 
-/** A page visit, notified to owner immediately and stored if consent given. Fire-and-forget. */
+/** A page visit: stored, and the owner notified, only if consent was given. Fire-and-forget. */
 export function track(page: string, ua = true) {
   if (!HAS_API) return;
   const p = page.trim().slice(0, 200);

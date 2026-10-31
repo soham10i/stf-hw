@@ -48,7 +48,6 @@ The entire digital twin (interactive 3D Three.js frontend + FastAPI physics kern
      STF_MAX_WS_CLIENTS=16
      STF_SESSION_SECRET=any_64_character_random_hex_string
      STF_TRACKING=1
-     STF_GEO=1
      STF_TRACK_DAYS=180
      # security (docs/SECURITY.md): Cloud Run's front end appends the caller's address to
      # X-Forwarded-For, so 1 hop; 2 if a Google load balancer sits in front of the service
@@ -72,7 +71,7 @@ The entire digital twin (interactive 3D Three.js frontend + FastAPI physics kern
      refused at start-up (any visitor could forge cookies signed with it). It matters on Cloud Run: without it, each new instance (and every
      scale-from-zero wake) generates a new cookie-signing secret and every visitor's session
      silently resets. Generate one: `python3 -c "import secrets; print(secrets.token_hex(32))"`.
-     `STF_TRACKING`/`STF_GEO`/`STF_TRACK_DAYS` run the consent-gated usage beacon
+     `STF_TRACKING`/`STF_TRACK_DAYS`/`STF_VISIT_DAYS` run the consent-gated usage beacon
      (services/api/visits.py) — they default to on, so they may be omitted; set
      `STF_TRACKING=0` to answer the beacon with nothing.
      `STF_NOTIFY_*` emails you when a visitor is on the site (one note per guest
@@ -152,7 +151,7 @@ visitor out).
 Run this from the root of `stf-hw` (Cloud Build builds the container; no local Docker needed):
 
 ```bash
-gcloud run deploy stf-live --source . --platform managed --region europe-west1 --allow-unauthenticated --port 10000 --memory 1Gi --cpu 1 --min-instances 0 --max-instances 2 --set-secrets "GEMINI_API_KEY=GEMINI_API_KEY:latest,GROQ_API_KEY=GROQ_API_KEY:latest,ELEVENLABS_API_KEY=ELEVENLABS_API_KEY:latest,UPB_AI_KEY=UPB_AI_KEY:latest,SUPABASE_SERVICE_KEY=SUPABASE_SERVICE_KEY:latest,STF_SESSION_SECRET=STF_SESSION_SECRET:latest,STF_API_TOKEN=STF_API_TOKEN:latest" --set-env-vars "ELEVENLABS_VOICE_ID_01=qFjcP4hHD9WIdODvuJOJ,ELEVENLABS_VOICE_ID_02=bGnz83yTAb7caZSC7BBz,UPB_AI_URL=https://ai-chat.uni-paderborn.de,SUPABASE_URL=https://buiwsvaowyigqpeprike.supabase.co,SUPABASE_BUCKET=captures,STF_DB=auto,STF_MAX_WS_CLIENTS=16,STF_TRACKING=1,STF_GEO=1,STF_TRACK_DAYS=180,STF_PROXY_HOPS=1,STF_API_DOCS=0,STF_NOTIFY_MAX_PER_HOUR=10"
+gcloud run deploy stf-live --source . --platform managed --region europe-west1 --allow-unauthenticated --port 10000 --memory 1Gi --cpu 1 --min-instances 0 --max-instances 2 --set-secrets "GEMINI_API_KEY=GEMINI_API_KEY:latest,GROQ_API_KEY=GROQ_API_KEY:latest,ELEVENLABS_API_KEY=ELEVENLABS_API_KEY:latest,SUPABASE_SERVICE_KEY=SUPABASE_SERVICE_KEY:latest,STF_SESSION_SECRET=STF_SESSION_SECRET:latest,STF_API_TOKEN=STF_API_TOKEN:latest" --set-env-vars "ELEVENLABS_VOICE_ID_01=qFjcP4hHD9WIdODvuJOJ,ELEVENLABS_VOICE_ID_02=bGnz83yTAb7caZSC7BBz,SUPABASE_URL=https://buiwsvaowyigqpeprike.supabase.co,SUPABASE_BUCKET=captures,STF_DB=auto,STF_MAX_WS_CLIENTS=16,STF_TRACKING=1,STF_TRACK_DAYS=180,STF_PROXY_HOPS=1,STF_API_DOCS=0,STF_NOTIFY_MAX_PER_HOUR=10"
 ```
 
 > Optional owner notifications (notify.py): add

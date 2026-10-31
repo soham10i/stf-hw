@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="no-referrer" />
+    <title>STF v2 — Tunnel Oven Line (design preview)</title>
+  </head>
+  <body>
+    <div id="v2-root"></div>
+    <div class="v2-hud">
+      <div class="v2-top">
+        <div class="v2-card">
+          <div class="v2-title">STF v2 — Tunnel Oven Line</div>
+          <div class="v2-sub">continuous bake · feed pusher → 3 zones → flip chute → sort</div>
+          <span class="v2-tag">design preview · P1 blueprint</span>
+        </div>
+        <div class="v2-card v2-zones">
+          <span class="v2-chip" id="zone-0">Z1 ramp</span>
+          <span class="v2-chip" id="zone-1">Z2 soak</span>
+          <span class="v2-chip" id="zone-2">Z3 finish</span>
+        </div>
+      </div>
+      <!-- Apple visionOS Spatial Floating Dock (Image 1) -->
+      <nav class="v2-dock" aria-label="Spatial Controls">
+        <a href="/stf/dashboard.html?p=overview" class="v2-dock-btn" title="Operations Dashboard" aria-label="Dashboard">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </a>
+        <a href="/stf/index.html" class="v2-dock-btn" title="Live 3D Twin" aria-label="3D Twin">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        </a>
+        <button type="button" class="v2-dock-btn" id="v2-dock-cam" title="Reset Camera" aria-label="Reset Camera">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+        </button>
+        <button type="button" class="v2-dock-btn" id="v2-theme-btn" title="Toggle Light / Dark Glass" aria-label="Toggle Theme">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+      </nav>
+      <div class="v2-bottom">
+        <div class="v2-card v2-stats">
+          <div class="v2-stat"><b id="done">0</b><span>cookies done</span></div>
+          <div class="v2-stat"><b id="wip">0</b><span>line WIP</span></div>
+          <div class="v2-stat"><b id="pitch">5.0 s</b><span>pitch</span></div>
+          <div class="v2-stat"><span class="v2-status" id="backpressure">line flowing</span></div>
+        </div>
+        <div class="v2-card">
+          <div class="v2-controls">
+            <button id="btn-play" type="button">Pause</button>
+            <select id="sel-speed" aria-label="speed">
+              <option value="1">1×</option>
+              <option value="2" selected>2×</option>
+              <option value="4">4×</option>
+            </select>
+            <button id="btn-cam" type="button">Reset camera</button>
+          </div>
+          <div class="v2-legend" style="margin-top:8px">
+            <span><i class="v2-dot" style="background:#e8dcc0"></i>dough</span>
+            <span><i class="v2-dot" style="background:#c98a3d"></i>baked</span>
+            <span><i class="v2-dot" style="background:#ff5a1f"></i>zone heater</span>
+            <span><i class="v2-dot" style="background:#1f6f5f"></i>belt</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/v2/main.ts"></script>
+  </body>
+</html>

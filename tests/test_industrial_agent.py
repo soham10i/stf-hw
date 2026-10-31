@@ -50,12 +50,12 @@ def test_action_guard_order_execution_and_verification(clean_guard):
     assert "audit_id" in res
     assert "signature" in res
 
-    # Check audit record
-    records = clean_guard.list_audit_records()
-    assert len(records) == 1
-    rec = clean_guard._audit_trail[0]
-    assert rec.status == "EXECUTED"
-    assert clean_guard.verify_record(rec) is True
+    # the intent is recorded before the order, the outcome after it, as one chain
+    records = clean_guard.records()
+    assert [r.status for r in records] == ["ACCEPTED", "EXECUTED"]
+    assert all(clean_guard.verify_record(r) for r in records)
+    assert records[1].prev_sig == records[0].signature
+    assert clean_guard.verify_chain() is True
 
 
 def test_action_guard_rejects_out_of_bounds_slot(clean_guard):
@@ -67,7 +67,7 @@ def test_action_guard_rejects_out_of_bounds_slot(clean_guard):
     records = clean_guard.list_audit_records()
     assert len(records) == 1
     assert records[0]["status"] == "REJECTED"
-    assert clean_guard.verify_record(clean_guard._audit_trail[0]) is True
+    assert clean_guard.verify_record(clean_guard.records()[0]) is True
 
 
 def test_action_guard_rejects_missing_slot(clean_guard):
@@ -96,7 +96,7 @@ def test_action_guard_emergency_stop_interlock(clean_guard):
 
 def test_action_guard_cryptographic_tamper_detection(clean_guard):
     clean_guard.execute_order(runtime, op="home", slot=None, actor="operator")
-    rec = clean_guard._audit_trail[-1]
+    rec = clean_guard.records()[-1]
     assert clean_guard.verify_record(rec) is True
 
     # Tamper with the record params

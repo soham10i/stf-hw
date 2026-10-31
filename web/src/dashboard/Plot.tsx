@@ -55,6 +55,39 @@ function nearest(x: number[], v: number) {
   return Math.abs(x[lo] - v) <= Math.abs(x[hi] - v) ? lo : hi;
 }
 
+/** Smooth Catmull-Rom spline converting points to cubic Bezier curve segments (Image 3 inspired) */
+function smoothSpline(pts: { x: number; y: number }[], k = 0.2): string {
+  if (pts.length === 0) return "";
+  if (pts.length === 1) return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  if (pts.length === 2) {
+    return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}L${pts[1].x.toFixed(1)},${pts[1].y.toFixed(1)}`;
+  }
+  let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+
+    const cp1x = p1.x + (p2.x - p0.x) * k;
+    const cp1y = p1.y + (p2.y - p0.y) * k;
+    const cp2x = p2.x - (p3.x - p1.x) * k;
+    const cp2y = p2.y - (p3.y - p1.y) * k;
+
+    d += `C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
+function stepSpline(pts: { x: number; y: number }[]): string {
+  if (pts.length === 0) return "";
+  let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  for (let i = 1; i < pts.length; i++) {
+    d += `L${pts[i].x.toFixed(1)},${pts[i - 1].y.toFixed(1)}L${pts[i].x.toFixed(1)},${pts[i].y.toFixed(1)}`;
+  }
+  return d;
+}
+
 export function Plot({ series, xTitle, yTitle, xFmt = fmtNum, yFmt = fmtNum, xMin, xMax, yMin, yMax, bands = [], hlines = [], vmarks = [],
   now, h = 240, legend = true, tipTitle, tipExtra, xTicks }: {
   series: Series[]; xTitle: string; yTitle: string; xFmt?: (v: number) => string; yFmt?: (v: number) => string;
@@ -84,19 +117,37 @@ export function Plot({ series, xTitle, yTitle, xFmt = fmtNum, yFmt = fmtNum, xMi
   }, [series, vis, xMin, xMax, yMin, yMax, hlines]);
   const X = (x: number) => L + ((x - dom.x0) / (dom.x1 - dom.x0)) * (W - L - R);
   const Y = (y: number) => T + (1 - (Math.min(Math.max(y, dom.y0), dom.y1) - dom.y0) / (dom.y1 - dom.y0)) * (h - T - B);
-  const path = (s: Series) => {
-    let d = "", pen = false, py = 0;
+
+  const getSegs = (s: Series) => {
+    const segs: { x: number; y: number }[][] = [];
+    let cur: { x: number; y: number }[] = [];
     const step = Math.max(1, Math.floor(s.x.length / 1200));
     for (let i = 0; i < s.x.length; i += step) {
       const y = s.y[i];
-      if (y === null || !isFinite(y)) { pen = false; continue; }
-      if (s.kind === "step" && pen) d += `L${X(s.x[i]).toFixed(1)},${py.toFixed(1)}`;
-      py = Y(y);
-      d += `${pen ? "L" : "M"}${X(s.x[i]).toFixed(1)},${py.toFixed(1)}`;
-      pen = true;
+      if (y === null || !isFinite(y)) {
+        if (cur.length > 0) { segs.push(cur); cur = []; }
+        continue;
+      }
+      cur.push({ x: X(s.x[i]), y: Y(y) });
     }
-    return d;
+    if (cur.length > 0) segs.push(cur);
+    return segs;
   };
+
+  const linePath = (s: Series) => {
+    const segs = getSegs(s);
+    return segs.map((pts) => s.kind === "step" ? stepSpline(pts) : smoothSpline(pts)).join(" ");
+  };
+
+  const areaPath = (s: Series) => {
+    const segs = getSegs(s);
+    const baseY = Y(Math.max(dom.y0, 0));
+    return segs.map((pts) => {
+      const top = s.kind === "step" ? stepSpline(pts) : smoothSpline(pts);
+      return `${top}L${pts[pts.length - 1].x.toFixed(1)},${baseY.toFixed(1)}L${pts[0].x.toFixed(1)},${baseY.toFixed(1)}Z`;
+    }).join(" ");
+  };
+
   const xt = xTicks ?? niceTicks(dom.x0, dom.x1, W < 560 ? 3 : 6), yt = niceTicks(dom.y0, dom.y1, 4);
   const move = (e: React.MouseEvent) => {
     const r = box.current!.getBoundingClientRect();
@@ -125,13 +176,16 @@ export function Plot({ series, xTitle, yTitle, xFmt = fmtNum, yFmt = fmtNum, xMi
             ? <g key={s.name}>{s.x.map((x, i) => s.y[i] !== null && <circle key={i} cx={X(x)} cy={Y(s.y[i]!)} r={1.8} fill={s.color} opacity={0.6} />)}</g>
             : <g key={s.name}>
                 {s.kind === "area" && <>
-                  {/* the fill fades from the line to the baseline */}
+                  {/* multi-stop translucent luminous gradient matching Image 3 */}
                   <defs><linearGradient id={`${gid}-${k}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" style={{ stopColor: s.color, stopOpacity: 0.34 }} /><stop offset="1" style={{ stopColor: s.color, stopOpacity: 0.02 }} />
+                    <stop offset="0%" stopColor={s.color} stopOpacity={0.38} />
+                    <stop offset="30%" stopColor={s.color} stopOpacity={0.20} />
+                    <stop offset="65%" stopColor={s.color} stopOpacity={0.05} />
+                    <stop offset="100%" stopColor={s.color} stopOpacity={0} />
                   </linearGradient></defs>
-                  <path d={`${path(s)}L${X(s.x[s.x.length - 1])},${Y(Math.max(dom.y0, 0))}L${X(s.x[0])},${Y(Math.max(dom.y0, 0))}Z`} fill={`url(#${gid}-${k})`} />
+                  <path d={areaPath(s)} fill={`url(#${gid}-${k})`} />
                 </>}
-                <path d={path(s)} fill="none" stroke={s.color} strokeWidth={s.width ?? 2} strokeDasharray={s.dash ? "5 4" : undefined}
+                <path d={linePath(s)} fill="none" stroke={s.color} strokeWidth={s.width ?? 2.2} strokeDasharray={s.dash ? "5 4" : undefined}
                   strokeLinejoin="round" strokeLinecap="round" />
               </g>)}
           {(() => {
@@ -227,6 +281,7 @@ export function Bars({ bars, xTitle, yTitle, yMin, yMax, hlines = [], h = 220, y
 }) {
   const [box, W] = useWidth<HTMLDivElement>();
   const [hov, setHov] = useState<number | null>(null);
+  const gid = `bg${useId().replace(/:/g, "")}`;
   const L = 58, R = 16, T = 14, B = 42;
   const vs = bars.map((b) => b.v);
   const y0 = yMin ?? Math.min(0, ...vs), y1 = yMax ?? (Math.max(...vs, ...hlines.map((l) => l.y), 0) * 1.04 || 1);
@@ -238,13 +293,54 @@ export function Bars({ bars, xTitle, yTitle, yMin, yMax, hlines = [], h = 220, y
     <div className="pl">
       <div className="pl-box" ref={box} onMouseLeave={() => setHov(null)}>
         <svg viewBox={`0 0 ${W} ${h}`}>
+          <defs>
+            {bars.map((b, i) => (
+              <linearGradient key={`bg-${i}`} id={`${gid}-${i}`} x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor={b.color} stopOpacity={0.28} />
+                <stop offset="65%" stopColor={b.color} stopOpacity={0.85} />
+                <stop offset="100%" stopColor={b.color} stopOpacity={1} />
+              </linearGradient>
+            ))}
+          </defs>
           {niceTicks(y0, y1, 4).map((v) => <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} className="pl-grid" />
             <text x={L - 7} y={Y(v) + 3.5} textAnchor="end" className="pl-tick">{yFmt(v)}</text></g>)}
-          {bars.map((b, i) => <g key={b.key} onMouseEnter={() => setHov(i)}>
-            <rect x={L + i * bw} y={T} width={bw} height={h - T - B} fill="transparent" />
-            <rect x={L + i * bw + bw * 0.15} y={Math.min(Y(b.v), Y(b0))} width={bw * 0.7} height={Math.max(1, Math.abs(Y(b0) - Y(b.v)))} rx={2} fill={b.color} opacity={hov === null || hov === i ? 0.9 : 0.45} />
-            {i % every === 0 && <text x={L + i * bw + bw / 2} y={h - B + 15} textAnchor="middle" className="pl-tick">{b.label}</text>}
-          </g>)}
+          {bars.map((b, i) => {
+            const barW = Math.max(3, bw * 0.65);
+            const barX = L + i * bw + (bw - barW) / 2;
+            const barY = Math.min(Y(b.v), Y(b0));
+            const barH = Math.max(1, Math.abs(Y(b0) - Y(b.v)));
+            const rx = Math.min(5, barW / 2);
+            const isHov = hov === i;
+            return (
+              <g key={b.key} onMouseEnter={() => setHov(i)}>
+                <rect x={L + i * bw} y={T} width={bw} height={h - T - B} fill="transparent" />
+                <rect
+                  x={barX}
+                  y={barY}
+                  width={barW}
+                  height={barH}
+                  rx={rx}
+                  fill={`url(#${gid}-${i})`}
+                  stroke={isHov ? b.color : "transparent"}
+                  strokeWidth={1}
+                  opacity={hov === null || isHov ? 1 : 0.4}
+                  style={{ transition: "opacity .15s ease" }}
+                />
+                {barH > 4 && (
+                  <rect
+                    x={barX + 0.5}
+                    y={barY}
+                    width={Math.max(1, barW - 1)}
+                    height={1.5}
+                    rx={0.75}
+                    fill="#ffffff"
+                    opacity={isHov ? 0.75 : 0.35}
+                  />
+                )}
+                {i % every === 0 && <text x={L + i * bw + bw / 2} y={h - B + 15} textAnchor="middle" className="pl-tick">{b.label}</text>}
+              </g>
+            );
+          })}
           <line x1={L} x2={W - R} y1={h - B} y2={h - B} className="pl-axis" />
           {hlines.map((l) => <g key={l.label}><line x1={L} x2={W - R} y1={Y(l.y)} y2={Y(l.y)} stroke={l.color} strokeDasharray="6 4" strokeWidth={1.3} />
             <text x={W - R - 4} y={Y(l.y) - 5} textAnchor="end" className="pl-lab" style={{ fill: l.color }}>{l.label} · {yFmt(l.y)}</text></g>)}
@@ -394,3 +490,87 @@ export function HBar({ rows, xTitle, refs = [], fmt = fmtNum, x0 = 0, x1 }: {
     </svg></div></div>
   );
 }
+
+/** Circular Donut / Ring Progress Gauge with rounded caps, subtle track, centered metrics and badge cards (Image 3 inspired). */
+export function Donut({
+  value,
+  max = 100,
+  size = 148,
+  strokeWidth = 14,
+  color = "var(--ok)",
+  label,
+  sublabel,
+  fmt = (v: number) => `${Math.round(v)}%`,
+  badges,
+}: {
+  value: number;
+  max?: number;
+  size?: number;
+  strokeWidth?: number;
+  color?: string;
+  label?: string;
+  sublabel?: string;
+  fmt?: (v: number) => string;
+  badges?: { label: string; value: string }[];
+}) {
+  const gid = `dn${useId().replace(/:/g, "")}`;
+  const r = (size - strokeWidth) / 2;
+  const c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(1, max > 0 ? value / max : 0));
+  const offset = c * (1 - pct);
+  const center = size / 2;
+
+  return (
+    <div className="pl-donut-wrap">
+      <div className="pl-donut-box" style={{ width: size, height: size }}>
+        <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
+          <defs>
+            <linearGradient id={gid} x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0%" stopColor={color} stopOpacity={0.65} />
+              <stop offset="100%" stopColor={color} stopOpacity={1} />
+            </linearGradient>
+          </defs>
+          {/* Background track */}
+          <circle
+            cx={center}
+            cy={center}
+            r={r}
+            fill="none"
+            stroke="color-mix(in srgb, var(--text) 9%, transparent)"
+            strokeWidth={strokeWidth}
+          />
+          {/* Progress arc with rounded ends */}
+          <circle
+            cx={center}
+            cy={center}
+            r={r}
+            fill="none"
+            stroke={`url(#${gid})`}
+            strokeWidth={strokeWidth}
+            strokeDasharray={c}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            transform={`rotate(-90 ${center} ${center})`}
+            style={{ transition: "stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1)" }}
+          />
+        </svg>
+        <div className="pl-donut-center">
+          <span className="pl-donut-val">{fmt(value)}</span>
+          {sublabel && <span className="pl-donut-sub">{sublabel}</span>}
+        </div>
+      </div>
+      {label && <div className="pl-donut-label">{label}</div>}
+      {badges && badges.length > 0 && (
+        <div className="pl-donut-badges">
+          {badges.map((b, i) => (
+            <div key={i} className="pl-donut-badge">
+              <span>{b.label}</span>
+              <b>{b.value}</b>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+

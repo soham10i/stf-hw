@@ -507,6 +507,20 @@ export function Speak({ text, auto = false }: { text: string; auto?: boolean }) 
 /** The figure a quick answer leads with: its first bold value. */
 const leadFigure = (t: string) => /\*\*([^*]{1,40})\*\*/.exec(t)?.[1];
 
+/** Google's Search Suggestions for an answer grounded on Google Search: the HTML Google sent
+    (searchEntryPoint.renderedContent), shown as it came, as Gemini's terms require. A sandboxed
+    frame keeps its styles apart and lets no script run; its links open in a new tab. */
+function SearchSuggestions({ html }: { html: string }) {
+  return (
+    <iframe
+      className="cx-gsearch"
+      title="Google Search suggestions"
+      sandbox="allow-popups allow-popups-to-escape-sandbox"
+      srcDoc={`<!doctype html><base target="_blank"><body style="margin:0;background:transparent">${html}</body>`}
+    />
+  );
+}
+
 export function Message({ turn, go, autoSpeak = false }: { turn: Turn; go: (p: string) => void; autoSpeak?: boolean }) {
   if (turn.role === "user") {
     return (
@@ -565,6 +579,7 @@ function Answer({ turn, go, autoSpeak }: { turn: Turn; go: (p: string) => void; 
         <div className="cx-md"><Md text={fig ? turn.text.replace(`**${fig}**`, fig) : turn.text} cites={turn.cites} /></div>
         {turn.usage?.removed ? <p className="cx-note">ⓘ {turn.usage.removed} page{turn.usage.removed > 1 ? "s" : ""} from forums, social media or unvetted sites {turn.usage.removed > 1 ? "were" : "was"} left out by the source policy.</p> : null}
         {turn.note && <p className={`cx-note ${turn.unverified?.length ? "bad" : ""}`}>{turn.unverified?.length ? "⚠ " : "ⓘ "}{turn.note}</p>}
+        {turn.search_suggestions?.map((html, i) => <SearchSuggestions key={i} html={html} />)}
         {showSrc && turn.cites && turn.cites.length > 0 && <Sources cites={turn.cites} text={turn.text} />}
         {turn.cites && <Trace turn={turn} />}
         <div className="cx-foot">

@@ -95,6 +95,40 @@ def test_duckduckgo_leaves_blocked_hosts_out(monkeypatch):
     assert "-site%3Areddit.com" in sent["q"]
 
 
+def test_duckduckgo_thorough_search_stays_inside_groqs_minute_budget(monkeypatch):
+    pages = [
+        {
+            "title": f"Source {i}",
+            "url": f"https://www.iso.org/source-{i}",
+            "snippet": "summary",
+            "text": f"evidence-{i} " + ("x" * 9000),
+        }
+        for i in range(4)
+    ]
+    monkeypatch.setattr(W, "ddg_search", lambda query, count, level: pages)
+    monkeypatch.setattr(W, "_read_pages", lambda results, fetch, chars: pages)
+    sent = {}
+
+    def post(body):
+        sent.update(body)
+        return {"choices": [{"message": {"content": "Grounded finding."}}]}
+
+    found = W.search_ddg(
+        "complete preventive maintenance report",
+        "large twin context " + ("c" * 20000),
+        post,
+        "openai/gpt-oss-120b",
+        D.PROFILES["thorough"],
+    )
+    user = sent["messages"][1]["content"]
+    system = sent["messages"][0]["content"]
+    assert found.text == "Grounded finding."
+    assert sent["max_tokens"] == D.PROFILES["thorough"].search_tokens
+    assert len(user) <= W.DDG_PROMPT_CHARS
+    assert all(p["url"] in user for p in pages)
+    assert TB.est_tokens(system + user) + sent["max_tokens"] < 8000
+
+
 # ------------------------------------------------------------------ depth
 def test_depth_is_picked_from_the_route_or_the_operator():
     assert D.pick(None, "deep", "research").name == "thorough"

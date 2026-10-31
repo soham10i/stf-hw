@@ -16,7 +16,7 @@ const P: Record<string, string> = {
   wrench: "M14.5 6.5a4 4 0 0 0 5 5L21 13l-8 8-3-3 8-8-1.5-1.5zM10 18l-6 3 3-6",
   check: "M4 12.5 9 17l11-11",
   bell: "M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4",
-  cog: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L15 3h-4l-.3 2.9a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.5 7.5 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1L11 21h4l.3-2.9a7 7 0 0 0 1.7-1l2.4 1 2-3.4z",
+  cog: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33 1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82 1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z",
   database: "M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3",
   list: "M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01",
   activity: "M3 12h4l3-8 4 16 3-8h4",
@@ -74,22 +74,16 @@ const P: Record<string, string> = {
   speaker: "M4 9.5h3.2L12 5.5v13l-4.8-4H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1zM15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11",
   stop: "M8 7h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z",
   // the copilot: continuous twin synchronization ribbon forming a flowing cybernetic "N"
-  copilot: "M5 19L5 7.5C5 5.5 6.5 4 8.5 4C10.5 4 12 5.5 12 7.5L12 16.5C12 18.5 13.5 20 15.5 20C17.5 20 19 18.5 19 16.5L19 5",
+  copilot: "M5.5 18.5V7a1 1 0 0 1 1.7-.7l9.6 11.4a1 1 0 0 0 1.7-.7V5.5",
   broadcast: "M12 12h.01M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8",
 };
 
-/** The NEXUS symbol: continuous cyber-physical synchronization ribbon forming an energetic "N" with central convergence core. */
+/** The NEXUS symbol: continuous cyber-physical synchronization ribbon forming an energetic, balanced "N". */
 export function NexusMark({ size = 18, className }: { size?: number; className?: string }) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* Dynamic Continuous Nexus Möbius Ribbon forming an N */}
-      <path d="M5 19L5 7.5C5 5.5 6.5 4 8.5 4C10.5 4 12 5.5 12 7.5L12 16.5C12 18.5 13.5 20 15.5 20C17.5 20 19 18.5 19 16.5L19 5" />
-      {/* Central Convergence Core */}
-      <circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none" />
-      {/* Terminal Node Pins */}
-      <circle cx="5" cy="19" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="19" cy="5" r="1.5" fill="currentColor" stroke="none" />
+      strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5.5 18.5V7a1 1 0 0 1 1.7-.7l9.6 11.4a1 1 0 0 0 1.7-.7V5.5" />
     </svg>
   );
 }

@@ -11,6 +11,7 @@ import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { CopilotMark, Icon } from "../shared/icons";
 import { usePersistent } from "../shared/persist";
 import { useTheme } from "../shared/theme";
+import { useCopilotResize, useFloatChatResize } from "../shared/chatResize";
 import { Chat } from "../dashboard/Chat";
 import { ComponentView } from "../views/ComponentView";
 import { useComponents } from "../views/componentModel";
@@ -85,6 +86,18 @@ export default function App() {
     setChatPinned(v);
     nudge();
   };
+  const { width: copilotWidth, isDragging: isDraggingCopilot, gripProps: copilotGripProps } = useCopilotResize(400);
+  const {
+    width: floatWidth,
+    height: floatHeight,
+    position: floatPos,
+    corner: floatCorner,
+    isDragging: isFloatResizing,
+    isMoving: isFloatMoving,
+    headerDragProps: floatHeaderDragProps,
+    cycleCorner: cycleFloatCorner,
+    getGripProps: getFloatGripProps,
+  } = useFloatChatResize();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -202,36 +215,120 @@ export default function App() {
 
           {/* Pinned right sidebar: docks on the right side of the 3D twin */}
           {chatOpen && chatPinned && (
-            <aside className="db-inspector twin-pinned-chat" aria-label="NEXUS · Autonomous Twin & Orders">
+            <aside
+              className={`db-inspector twin-pinned-chat ${isDraggingCopilot ? "resizing" : ""}`}
+              aria-label="NEXUS · Autonomous Twin & Orders"
+              style={{ width: `${copilotWidth}px` }}
+            >
+              <div
+                className={`copilot-grip ${isDraggingCopilot ? "dragging" : ""}`}
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Drag to resize copilot panel"
+                title="Drag to resize horizontal spacing"
+                {...copilotGripProps}
+              >
+                <i />
+              </div>
               <div className="db-inspector-h">
-                <span className="db-inspector-ico"><CopilotMark size={17} /></span>
+                <span className="db-inspector-ico"><CopilotMark size={18} /></span>
                 <div><b>NEXUS</b><span>Autonomous Twin & Orders</span></div>
-                <button className="ui-btn icon ghost on" onClick={() => toggleChatPinned(false)} title="Unpin to floating window" aria-label="Unpin to floating window">
-                  <Icon name="pin" size={15} className="db-pinned-icon" />
-                </button>
-                <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html?p=copilot`} title="Open full NEXUS page">
-                  <Icon name="external" size={13} /><span className="hide-sm">Full</span>
-                </a>
-                <button className="ui-btn icon ghost" onClick={() => { setChatOpen(false); nudge(); }} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
+                <div className="db-inspector-actions">
+                  <button className="ui-btn icon ghost on" onClick={() => toggleChatPinned(false)} title="Unpin to floating window" aria-label="Unpin to floating window">
+                    <Icon name="pin" size={15} className="db-pinned-icon" />
+                  </button>
+                  <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html?p=copilot`} title="Open full NEXUS page">
+                    <Icon name="external" size={13} /><span className="hide-sm">Full</span>
+                  </a>
+                  <button className="ui-btn icon ghost" onClick={() => { setChatOpen(false); nudge(); }} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
+                </div>
               </div>
               <Chat page="overview" go={(p) => { window.location.href = `${import.meta.env.BASE_URL}dashboard.html?p=${p}`; }} compact />
             </aside>
           )}
 
-          {/* Floating small chat window: draggable/dockable bottom-right card */}
+          {/* Floating small chat window: resizable card with liquid glassmorphism */}
           {chatOpen && !chatPinned && (
-            <aside className="db-float-chat" aria-label="Floating NEXUS Chat">
-              <div className="db-float-chat-h">
-                <span className="db-inspector-ico"><CopilotMark size={16} /></span>
+            <aside
+              className={`db-float-chat ${isFloatResizing ? "resizing" : ""} ${isFloatMoving ? "moving" : ""}`}
+              aria-label="Floating NEXUS Chat"
+              style={{
+                "--float-w": `${floatWidth}px`,
+                "--float-h": `${floatHeight}px`,
+                width: `${floatWidth}px`,
+                height: `${floatHeight}px`,
+                left: `${floatPos.x}px`,
+                top: `${floatPos.y}px`,
+                bottom: "auto",
+                right: "auto",
+              } as React.CSSProperties}
+            >
+              <div
+                className="db-float-grip corner"
+                role="separator"
+                title="Drag corner to resize window"
+                aria-label="Drag corner to resize window"
+                {...getFloatGripProps("corner")}
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                  <path d="M1 9L9 1M5 9L9 5M9 9L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </div>
+              <div
+                className="db-float-grip left"
+                role="separator"
+                aria-orientation="vertical"
+                title="Drag edge to resize width"
+                aria-label="Drag edge to resize width"
+                {...getFloatGripProps("left")}
+              />
+              <div
+                className="db-float-grip top"
+                role="separator"
+                aria-orientation="horizontal"
+                title="Drag edge to resize height"
+                aria-label="Drag edge to resize height"
+                {...getFloatGripProps("top")}
+              />
+              <div className="db-float-chat-h" {...floatHeaderDragProps} title="Drag to move chat window">
+                <span className="db-inspector-ico"><CopilotMark size={18} /></span>
                 <div><b>NEXUS</b><span>Autonomous Twin & Orders</span></div>
                 <div className="db-float-chat-actions">
-                  <button className="ui-btn icon ghost" onClick={() => toggleChatPinned(true)} title="Pin to right sidebar" aria-label="Pin to right sidebar">
+                  <button
+                    className="ui-btn icon ghost"
+                    onClick={cycleFloatCorner}
+                    title={`Move to next corner (currently: ${floatCorner})`}
+                    aria-label="Move corner"
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
+                    <Icon name="move" size={14} />
+                  </button>
+                  <button
+                    className="ui-btn icon ghost"
+                    onClick={() => toggleChatPinned(true)}
+                    title="Pin to right sidebar"
+                    aria-label="Pin to right sidebar"
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
                     <Icon name="pin" size={15} />
                   </button>
-                  <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html?p=copilot`} title="Open full NEXUS page">
+                  <a
+                    className="ui-btn ghost"
+                    href={`${import.meta.env.BASE_URL}dashboard.html?p=copilot`}
+                    title="Open full NEXUS page"
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
                     <Icon name="external" size={13} /><span className="hide-sm">Full</span>
                   </a>
-                  <button className="ui-btn icon ghost" onClick={() => setChatOpen(false)} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
+                  <button
+                    className="ui-btn icon ghost"
+                    onClick={() => setChatOpen(false)}
+                    aria-label="Close"
+                    title="Close"
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
+                    <Icon name="close" size={15} />
+                  </button>
                 </div>
               </div>
               <div className="db-float-chat-b">

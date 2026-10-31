@@ -10,10 +10,13 @@ import "./styles/analyse.css";
 import "./styles/maintain.css";
 import "./styles/vision.css";
 import "./styles/chat.css";
+import "../shared/chat-widget.css";
 import "./styles/docs.css";
 import "./styles/consent.css";
 import "../shared/studio.css";
+import "../shared/glass.css";
 import "../shared/obsidian.css";
+import "../shared/ground.css";
 import { Dashboard } from "./Dashboard";
 import { applyTheme } from "../shared/theme";
 

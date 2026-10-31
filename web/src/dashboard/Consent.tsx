@@ -1,6 +1,7 @@
 // The consent banner: asked once, on the first visit. It explains the one cookie the site always
 // needs (the signed session that keeps a visitor's orders, chats and photos their own) and asks
-// whether usage may also be measured. Accepting starts the beacon (shared/track.ts); declining
+// whether usage may also be measured - saying exactly what services/api/visits.py stores and
+// public/legal/privacy.html describes (change the three together). Accepting starts the beacon (shared/track.ts); declining
 // is stored too, so the question is not asked again - and nothing is measured, either way the
 // banner never returns until the choice expires.
 import { useEffect, useState } from "react";
@@ -28,9 +29,15 @@ export function ConsentBanner({ page }: { page: string }) {
         </div>
         <p>
           A signed <b>session cookie</b> is always on: it keeps your orders, chats and photos
-          yours alone — nothing works without it. With your OK we also measure which pages are
-          used and the <b>rough region</b> requests come from (never your exact location), to
-          scale and improve the site. No names, no tracking of anyone who says no.
+          yours alone — nothing works without it. With your OK we also store which pages you
+          open and when, your browser type, and your <b>IP address shortened</b> to its network
+          (the last part set to zero), for 90 days; the site's owner gets one email per visit
+          naming the page. No location lookup, no names — and nothing at all if you say no.
+        </p>
+        <p className="consent-links">
+          <a href={`${import.meta.env.BASE_URL}legal/privacy.html`}>Privacy notice</a>
+          {" · "}
+          <a href={`${import.meta.env.BASE_URL}legal/imprint.html`}>Imprint</a>
         </p>
         <div className="consent-actions">
           <button className="consent-yes" onClick={() => answer("accepted")}>Accept</button>

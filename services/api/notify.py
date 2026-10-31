@@ -53,7 +53,7 @@ def local_host(host: str | None) -> bool:
 class Notifier:
     """One email per guest per window. Everything degrades to a log line."""
 
-    def __init__(self, env: dict, geo: object | None = None, now=time.time):
+    def __init__(self, env: dict, now=time.time):
         self.email_to = (env.get("STF_NOTIFY_EMAIL") or "").strip()
         self.smtp_host = (env.get("STF_SMTP_HOST") or "").strip()
         self.smtp_port = int(env.get("STF_SMTP_PORT") or "465")
@@ -69,7 +69,6 @@ class Notifier:
         # throttle alone would let a script send one email per request
         self.max_per_hour = int(env.get("STF_NOTIFY_MAX_PER_HOUR") or "10")
         self._sent: list[float] = []
-        self.geo = geo
         self._now = now
         self._last: dict[str, float] = {}
         self._lock = threading.Lock()
@@ -107,27 +106,25 @@ class Notifier:
         self,
         guest: str | None,
         page: str,
-        ip: str | None,
         ua: str | None,
     ) -> bool:
-        """Called after a beacon was stored. True means a notice went out."""
+        """Called after a beacon was stored, so only for a visitor who accepted the consent
+        banner. True means a notice went out. The note names the session and the page, never
+        the address or a place."""
         if not self.on or not guest or not self._fresh(guest):
             return False
-        place = self.geo.place(ip) if (self.geo and ip) else None
-        where = ", ".join(p for p in (place[2], place[1], place[0]) if p) if place else ""
-        text = self._text(guest, page, where, ua)
+        text = self._text(guest, page, ua)
         return self._send(text)
 
     @staticmethod
-    def _text(guest: str, page: str, where: str, ua: str | None) -> str:
+    def _text(guest: str, page: str, ua: str | None) -> str:
         when = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())
-        page, where, ua = _plain(page, 80), _plain(where, 120), _plain(ua, 120) if ua else ua
+        page, ua = _plain(page, 80), _plain(ua, 120) if ua else ua
         lines = [
             "A visitor is on stf-live right now.",
             "",
             f"  session {guest}",
             f"  page    {page}",
-            f"  where   {where or 'unknown'}",
             f"  when    {when}",
         ]
         if ua:
@@ -171,19 +168,11 @@ class Notifier:
     def _mail(self, text: str, subject: str | None = None) -> bool:
         msg = EmailMessage()
         if subject is None:
-            where = next(
-                (ln.split(None, 1)[1] for ln in text.splitlines() if ln.startswith("  where")), ""
-            )
-            place = where.strip()
-            place = _plain(place, 80)
             session = next(
                 (ln.split(None, 1)[1] for ln in text.splitlines() if ln.startswith("  session")), ""
             ).strip()
             sess_tag = f" [session: {session[:8]}]" if session else ""
-            subject = (
-                f"stf-live: visitor from {place}{sess_tag}"
-                if place else f"stf-live: visitor{sess_tag}"
-            )
+            subject = f"stf-live: visitor{sess_tag}"
         msg["Subject"] = subject
         msg["From"] = self.smtp_user
         msg["To"] = self.email_to
@@ -221,6 +210,6 @@ def _plain(s: str, n: int) -> str:
     return "".join(c if c.isprintable() else " " for c in s)[:n]
 
 
-def notifier_from_env(env: dict | None = None, geo: object | None = None) -> Notifier:
+def notifier_from_env(env: dict | None = None) -> Notifier:
     """The Notifier the environment configures (SMTP and/or webhook; empty = silent)."""
-    return Notifier({**os.environ, **(env or {})}, geo=geo)
+    return Notifier({**os.environ, **(env or {})})

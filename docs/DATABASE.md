@@ -99,10 +99,11 @@ alter table public.documents enable row level security;
 
 `services/api/visits.py` keeps one row per page visit — but only after the visitor accepts the
 banner (`web/src/dashboard/Consent.tsx`). A row is the anonymous guest id, the page, the time,
-the IP and its **coarse** place (country/region/city/coordinates, from ip-api.com, cached by
-/24 for a day; loopback and private addresses are stored as "Local" and never looked up).
-A "no" stores nothing. `STF_TRACKING=0` turns the beacon off entirely, `STF_GEO=0` keeps the IP
-without the place. The same module ships the server's WARNING-and-above logs to an `app_logs`
+the IP **shortened to its network** (the last byte of an IPv4 address, everything past the /48
+of an IPv6 one, set to zero; loopback and private addresses are stored as "local"). The full
+address is never stored or sent anywhere, and no place is looked up. Rows older than
+`STF_VISIT_DAYS` (90) are pruned, and `DELETE /guest` removes a guest's visits at once.
+A "no" stores nothing. `STF_TRACKING=0` turns the beacon off entirely. The same module ships the server's WARNING-and-above logs to an `app_logs`
 table (batched, so logging never slows a request). Both tables live wherever the guests do —
 the migration [`20261019043500_stf_visits_app_logs.sql`](../supabase/migrations/20261019043500_stf_visits_app_logs.sql)
 adds them to Supabase; SQLite creates them on first use. `GET /guest/visits` shows a guest
@@ -175,6 +176,26 @@ the table answers, else the local SQLite file), `pgvector`, `sqlite` or `off`. E
 unreachable project, missing table, missing RPC - degrades one level (pgvector → SQLite →
 BM25-only), never to an error. On a host without `.env`, set `SUPABASE_URL` +
 `SUPABASE_SERVICE_KEY` as usual: `auto` does the rest, no new variables needed.
+
+## The guarded actions' ledger
+
+When the copilot may act (plan: [architecture/guarded-action-plan.md](architecture/guarded-action-plan.md)),
+what it proposed, whether it ran and who decided are kept by `services/api/ledger.py`. The
+migration
+[`20261028120000_stf_actions.sql`](../supabase/migrations/20261028120000_stf_actions.sql) puts
+three tables in a private schema, `agent`, that PostgREST does not serve and the `anon` and
+`authenticated` roles cannot read:
+
+| Table | Rows | Rules |
+|---|---|---|
+| `action_proposals` | one per proposal: kind, params, the payload hash the operator approves, the precheck's verdicts, status, expiry, who decided | the status only moves forward, by a conditional update: of two racing decisions exactly one wins |
+| `action_executions` | one per executed proposal, written before the side effect | a second claim fails, so a re-run reconciles instead of acting twice |
+| `action_audit` | every attempt, accepted or refused, signed with `STF_AUDIT_SECRET` over its fields and the previous record's signature | append-only: a trigger refuses updates and any delete younger than 30 days |
+
+The API reaches the schema over a direct connection, `SUPABASE_DB_URL` (the session pooler), not
+the REST API. Without it a local run keeps the same tables in `<STF_DATA_DIR>/actions.db`; a public
+deployment keeps none, and its actions stay off. A guest's proposals go with the guest
+(`DELETE /guest`, and after `STF_GUEST_DAYS`); the audit keeps only a salted hash of the guest.
 
 ## When sign-in arrives
 

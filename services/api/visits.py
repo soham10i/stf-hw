@@ -1,21 +1,24 @@
 """
 Usage traction, consent-gated (visits.py).
 
-The banner the site shows first (web/src/shared/Consent.tsx) asks the visitor whether their
+The banner the site shows first (web/src/dashboard/Consent.tsx) asks the visitor whether their
 usage may be measured. Only when the answer is "yes" does anything get stored here: one row
 per page visit - the guest id (the same anonymous session id the rest of the API uses, never
-a name or an email), the page, the time, the IP and, looked up from it, an approximation of
-where on Earth the request came from (country/region/city/coordinates, from ip-api.com, cached
-by /24 for a day). "No" stores nothing - the session cookie still works, it is functional.
+a name or an email), the page, the time and the IP shortened to its network (the last byte of
+an IPv4 address, everything past the /48 of an IPv6 one, set to zero: coarse_ip). The full
+address is never stored and never sent anywhere, and no place is looked up from it. "No"
+stores nothing - the session cookie still works, it is functional. The privacy page
+(web/public/legal/privacy.html) describes exactly this; change both together.
 
 The same module also ships the server's WARNING-and-above logs to Supabase
 (SupabaseLogHandler): a logs table beside the visits, so a deployment can watch its health
 from the same project. Everything degrades: no Supabase -> the visits/logs stay in the local
-SQLite (same file the guests use), no network -> the IP is stored without coordinates.
+SQLite (same file the guests use).
 
   STF_TRACKING=1|0       measure usage at all (default 1; 0 answers the beacon with 204)
-  STF_GEO=1|0            resolve IPs to places (default 1; 0 stores the IP only)
   STF_TRACK_DAYS=180     how long the consent cookie is kept
+  STF_VISIT_DAYS=90      how long a visit row and a shipped log line are kept (pruned hourly);
+                         DELETE /guest removes a guest's visits at once
 """
 
 from __future__ import annotations
@@ -30,7 +33,6 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
@@ -41,63 +43,24 @@ from .store import ROOT
 logger = get_logger(__name__)
 
 COOKIE = "stf_consent"
-GEO_URL = "http://ip-api.com/json/{ip}?fields=status,country,regionName,city,lat,lon"
-GEO_TIMEOUT_S = 4
 BATCH = 25  # app-log records per insert
 
 
-# ----------------------------------------------------------------------------- the places
-@dataclass
-class Geo:
-    """IP -> approximate place, cached by /24 prefix for a day: one lookup serves a whole
-    neighbourhood, the free API's rate limit is never approached."""
-
-    on: bool = True
-    _cache: dict[str, tuple[float, tuple | None]] = field(default_factory=dict)
-    _lock: threading.Lock = field(default_factory=threading.Lock)
-    clock: object = field(default=time.time, repr=False)
-
-    @staticmethod
-    def _prefix(ip: str) -> str:
-        try:
-            a = ipaddress.ip_address(ip)
-        except ValueError:
-            return ip
-        if a.version == 4:
-            return ".".join(ip.split(".")[:3]) + ".0/24"
-        return ip[: ip.rfind(":")] or ip
-
-    def place(self, ip: str) -> tuple | None:
-        """(country, region, city, lat, lon) for a public IP; ("Local", "", "", None, None)
-        for a private/loopback one (a developer's machine); None when lookup failed."""
-        try:
-            addr = ipaddress.ip_address(ip)
-        except ValueError:
-            return None
-        if addr.is_private or addr.is_loopback or addr.is_reserved or addr.is_link_local:
-            return ("Local", "", "", None, None)
-        if not self.on:
-            return None
-        key = self._prefix(ip)
-        now = self.clock()
-        with self._lock:
-            hit = self._cache.get(key)
-            if hit and hit[0] > now:
-                return hit[1]
-        found: tuple | None = None
-        try:
-            with urllib.request.urlopen(  # noqa: S310 - the fixed lookup URL
-                GEO_URL.format(ip=urllib.parse.quote(ip)), timeout=GEO_TIMEOUT_S
-            ) as r:
-                j = json.loads(r.read())
-            if j.get("status") == "success":
-                found = (j.get("country"), j.get("regionName"), j.get("city"), j.get("lat"),
-                         j.get("lon"))
-        except (urllib.error.URLError, TimeoutError, ValueError, OSError) as e:
-            logger.debug("geo lookup for %s failed: %s", ip, e)
-        with self._lock:
-            self._cache[key] = (now + 86400.0, found)
-        return found
+# ----------------------------------------------------------------------------- the address
+def coarse_ip(ip: str | None) -> str | None:
+    """An address shortened to its network, as stored: 93.184.216.34 -> 93.184.216.0,
+    2a00:1450:4001:82a::200e -> 2a00:1450:4001::. A private or loopback address (a developer's
+    machine) is "local"; anything that is not an address is dropped."""
+    if not ip:
+        return None
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return None
+    if addr.is_private or addr.is_loopback or addr.is_reserved or addr.is_link_local:
+        return "local"
+    bits = 24 if addr.version == 4 else 48
+    return str(ipaddress.ip_network(f"{addr}/{bits}", strict=False).network_address)
 
 
 # ----------------------------------------------------------------------------- the stores
@@ -116,7 +79,7 @@ class SqliteVisits:
             CREATE TABLE IF NOT EXISTS visits (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               guest TEXT NOT NULL, t REAL NOT NULL, page TEXT NOT NULL,
-              ip TEXT, country TEXT, region TEXT, city TEXT, lat REAL, lon REAL, ua TEXT);
+              ip TEXT, ua TEXT);
             CREATE INDEX IF NOT EXISTS visits_guest_t ON visits (guest, t DESC);
             CREATE TABLE IF NOT EXISTS app_logs (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -128,10 +91,8 @@ class SqliteVisits:
         """Record one page visit (SQLite backend)."""
         with self._lock:
             self._db.execute(
-                "INSERT INTO visits (guest, t, page, ip, country, region, city, lat, lon, ua)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (v["guest"], v["t"], v["page"], v.get("ip"), v.get("country"), v.get("region"),
-                 v.get("city"), v.get("lat"), v.get("lon"), v.get("ua")),
+                "INSERT INTO visits (guest, t, page, ip, ua) VALUES (?, ?, ?, ?, ?)",
+                (v["guest"], v["t"], v["page"], v.get("ip"), v.get("ua")),
             )
 
     def add_logs(self, rows: list[dict]) -> None:
@@ -146,12 +107,22 @@ class SqliteVisits:
         """One guest's visit history (SQLite backend)."""
         with self._lock:
             cur = self._db.execute(
-                "SELECT guest, t, page, ip, country, region, city, lat, lon, ua FROM visits"
+                "SELECT guest, t, page, ip, ua FROM visits"
                 " WHERE guest = ? ORDER BY t DESC LIMIT ?",
                 (guest, limit),
             )
-            cols = ("guest", "t", "page", "ip", "country", "region", "city", "lat", "lon", "ua")
+            cols = ("guest", "t", "page", "ip", "ua")
             return [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]
+
+    def forget(self, guest: str) -> None:
+        with self._lock:
+            self._db.execute("DELETE FROM visits WHERE guest = ?", (guest,))
+
+    def lapse(self, before: float) -> None:
+        """Delete visits and log lines older than `before` (a Unix time)."""
+        with self._lock:
+            self._db.execute("DELETE FROM visits WHERE t < ?", (before,))
+            self._db.execute("DELETE FROM app_logs WHERE t < ?", (before,))
 
 
 class SupabaseVisits:
@@ -205,8 +176,17 @@ class SupabaseVisits:
     def visits(self, guest: str, limit: int = 200) -> list[dict]:
         """One guest's visit history (Supabase backend)."""
         q = urllib.parse.quote(guest, safe="")
-        path = f"visits?select=*&guest=eq.{q}&order=t.desc&limit={int(limit)}"
+        path = f"visits?select=guest,t,page,ip,ua&guest=eq.{q}&order=t.desc&limit={int(limit)}"
         return self._req("GET", path) or []
+
+    def forget(self, guest: str) -> None:
+        self._req("DELETE", f"visits?guest=eq.{urllib.parse.quote(guest, safe='')}")
+
+    def lapse(self, before: float) -> None:
+        """Delete visits and log lines older than `before` (a Unix time)."""
+        when = urllib.parse.quote(_iso(before), safe="")
+        self._req("DELETE", f"visits?t=lt.{when}")
+        self._req("DELETE", f"app_logs?t=lt.{when}")
 
 
 def _iso(t: float) -> str:
@@ -235,14 +215,15 @@ class Visits:
     """Records what was looked at, only after the visitor said yes. Dedupes a guest re-sending
     the same page inside ten seconds, so an SPA's eager beacon cannot fill the table."""
 
-    def __init__(self, env: dict, store: Any = None, note: str = "", geo: Geo | None = None):
+    def __init__(self, env: dict, store: Any = None, note: str = ""):
         if store is not None:
             self.store, self.note = store, note or store.name
         else:
             self.store, self.note = store_from_env(env)
-        self.geo = geo if geo is not None else Geo(on=env.get("STF_GEO", "1") != "0")
         self.on = env.get("STF_TRACKING", "1") != "0"
         self.days = float(env.get("STF_TRACK_DAYS", "180"))
+        self.keep_s = float(env.get("STF_VISIT_DAYS", "90")) * 86400
+        self._pruned = 0.0
         self._last: dict[tuple, float] = {}
         self._lock = threading.Lock()
 
@@ -255,6 +236,13 @@ class Visits:
                 for k in [k for k, t in self._last.items() if now - t > 3600]:
                     self._last.pop(k, None)
         return True
+
+    def forget(self, guest: str) -> None:
+        """A guest's visits, gone at once (DELETE /guest)."""
+        try:
+            self.store.forget(guest)
+        except (sqlite3.Error, urllib.error.URLError, TimeoutError, ValueError, OSError) as e:
+            logger.warning("Could not forget the guest's visits: %s", e)
 
     def record(
         self,
@@ -271,21 +259,18 @@ class Visits:
         now = now if now is not None else time.time()
         if not guest or not self._fresh((guest, page), now):
             return False
-        place = self.geo.place(ip) if ip else None
         row = {
             "guest": guest,
             "t": now,
             "page": page[:200],
-            "ip": ip,
+            "ip": coarse_ip(ip),
             "ua": (ua or "")[:300],
-            "country": place[0] if place else None,
-            "region": place[1] if place else None,
-            "city": place[2] if place else None,
-            "lat": place[3] if place else None,
-            "lon": place[4] if place else None,
         }
         try:
             self.store.add_visit(row)
+            if now - self._pruned > 3600:  # the retention promise, checked at most hourly
+                self._pruned = now
+                self.store.lapse(now - self.keep_s)
         except (sqlite3.Error, urllib.error.URLError, TimeoutError, ValueError, OSError) as e:
             logger.warning("Could not store the visit: %s", e)
         return True

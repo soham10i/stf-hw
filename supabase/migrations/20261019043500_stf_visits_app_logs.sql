@@ -1,6 +1,7 @@
 -- Usage traction (consent-gated) and shipped application logs.
 -- Nothing here is personal: a visit row is the anonymous guest session id, the page, the time,
--- the IP and its coarse place (country/region/city/coordinates). No name, no email, no
+-- the IP (shortened to its network since 20261027120000_stf_visits_coarse_ip.sql, which also
+-- drops the place columns below). No name, no email, no
 -- fingerprint. A visitor who declines the banner is not tracked at all - the API stores no row.
 -- Rows are written only by the API server (the service key); RLS is on with no policies, so the
 -- anon/authenticated roles reach nothing.

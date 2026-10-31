@@ -32,9 +32,11 @@ def scenario(rnd):
     return s
 
 
-def machine(i):
+def machine(i, shift=None):
+    """Machine i; `shift` (month.Month) drifts the plant while keeping machine i's own wear,
+    disturbances and random draws - the same machine, changed only by the shift."""
     rnd = random.Random(1000 + i)
-    m = M.Month(skip_pm=tuple(COMPS), scenario=scenario(rnd), seed=5000 + i, days=DAYS).run()
+    m = M.Month(skip_pm=tuple(COMPS), scenario=scenario(rnd), seed=5000 + i, days=DAYS, shift=shift).run()
     rules = []
     for e in m.events:
         if e["kind"] == "warning":

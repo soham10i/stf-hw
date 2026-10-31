@@ -66,6 +66,9 @@ class Found:
     pages: str = ""  # what was read, for the number check
     steps: list[str] = field(default_factory=list)
     via: str = ""  # which search produced it: "gemini", "groq" or "duckduckgo"
+    # Google's Search Suggestions of a grounded Gemini search (searchEntryPoint.renderedContent):
+    # its terms require showing them, unmodified, with the answer (Message.tsx renders them)
+    suggestions: list[str] = field(default_factory=list)
 
 
 host = SP.host
@@ -294,6 +297,7 @@ Nothing here needs a search API key; the only requirement is one model to read a
   DDG_RESULTS   result links kept per search (default 5)
   DDG_PAGES     of those, how many are fetched and read (default 3)
   DDG_PAGE_CHARS  per fetched page, how much text reaches the model (default 6000)
+  DDG_PROMPT_CHARS  total context/question/page prompt cap (default 14000, about 4700 tokens)
 """
 DDG_URL = "https://html.duckduckgo.com/html/"
 DDG_LITE = "https://lite.duckduckgo.com/lite/"
@@ -304,6 +308,9 @@ UA = (
 DDG_RESULTS = int(os.environ.get("DDG_RESULTS", "5"))
 DDG_PAGES = int(os.environ.get("DDG_PAGES", "3"))
 DDG_PAGE_CHARS = int(os.environ.get("DDG_PAGE_CHARS", "6000"))
+# Groq's free gpt-oss tier allows 8000 tokens/minute. Leave room for the system prompt and
+# answer instead of sending 36k characters plus a 6000-token report request (HTTP 413).
+DDG_PROMPT_CHARS = int(os.environ.get("DDG_PROMPT_CHARS", "14000"))
 DDG_DELAY_S = float(os.environ.get("DDG_DELAY_S", "1.5"))  # between a research's searches
 
 DDG_RULES = """You research a question for the operations copilot of the STF digital twin
@@ -457,21 +464,22 @@ def _read_pages(
 
 def _answer(question: str, context: str, pages: list[dict], post, model: str,
             max_tokens: int = 2500, level: str = "vetted") -> Found:
-    """Prompt the model to synthesize a grounded answer strictly from fetched web pages."""
+    """Prompt the model with bounded context/pages, preserving every page's URL."""
+    context = context[: DDG_PROMPT_CHARS // 4]
+    question = question[:2000]
+    base = f"# CONTEXT\n\n{context}\n\n# QUESTION\n\n{question}\n\n# PAGES READ\n\n"
+    headers = [f"## Page {i}: {p['title']}\n{p['url']}\n" for i, p in enumerate(pages, 1)]
+    fixed = len(base) + sum(len(h) + 2 for h in headers)
+    per_page = max(0, (DDG_PROMPT_CHARS - fixed) // max(1, len(pages)))
     listing = "\n\n".join(
-        f"## Page {i}: {p['title']}\n{p['url']}\n"
-        + (p.get("text") or p.get("snippet") or "(could not be read)")
-        for i, p in enumerate(pages, 1)
+        header + (p.get("text") or p.get("snippet") or "(could not be read)")[:per_page]
+        for header, p in zip(headers, pages, strict=True)
     )
     body = {
         "model": model,
         "messages": [
             {"role": "system", "content": DDG_RULES + "\n" + SP.rules(level)},
-            {
-                "role": "user",
-                "content": f"# CONTEXT\n\n{context}\n\n# QUESTION\n\n{question}"
-                f"\n\n# PAGES READ\n\n{listing}",
-            },
+            {"role": "user", "content": base + listing},
         ],
         "max_tokens": max_tokens,
         "temperature": 0.2,
@@ -524,7 +532,9 @@ def search_ddg(
         logger.warning("DuckDuckGo returned empty results for question %r", question[:60])
         raise RuntimeError("DuckDuckGo returned no results")
     pages = _read_pages(results, depth.pages, depth.page_chars)
-    found = _answer(question, context, pages, post, model, depth.answer_tokens, level)
+    # A search branch writes a short finding, not the final report's full token allowance.
+    output_tokens = min(depth.answer_tokens, depth.search_tokens)
+    found = _answer(question, context, pages, post, model, output_tokens, level)
     found.steps = (
         [f"searched DuckDuckGo: “{question}”"]
         + [f"opened {p['url']}" for p in pages[: depth.pages] if p.get("text")]

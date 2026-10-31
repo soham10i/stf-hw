@@ -230,7 +230,7 @@ function useGridColours() {
   const [c, setC] = useState(read);
   useEffect(() => {
     const mo = new MutationObserver(() => setC(read()));
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-palette"] });
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-palette", "data-tone"] });
     return () => mo.disconnect();
   }, []);
   return c;

@@ -50,6 +50,11 @@ class Population:
     noise: dict = field(default_factory=dict)
     q_scale: float = 0.01
     d_scale: float = 0.3
+    # failure where the RAW signal reaches r_fail (the part does not know about the normal-behaviour
+    # model): in a warm hall that is at less wear, w* = ((r_f e^-beta(T - 21) - 1)/(r_f - 1))^(1/p).
+    # Off: failure at w = 1, as the pipeline was first graded; pdm/drift.py found the gap (a hotter
+    # hall: 15 of 95 failures warned late at any threshold) and grades both.
+    temp_failure: bool = True
 
 
 def _roll_median(x: np.ndarray, w: int = 61) -> np.ndarray:
@@ -147,7 +152,11 @@ def track(X: np.ndarray, k: str, pop: Population, resets: list[int], horizon: in
         # the remaining life: the mixture of first-passage times over the posterior
         draws = RNG.multivariate_normal(x, P, N_DRAW, method="cholesky") if np.all(np.linalg.eigvalsh(P) > 0) \
             else np.tile(x, (N_DRAW, 1))
-        gap = 1.0 - draws[:, 0]
+        w_fail = 1.0
+        if pop.temp_failure:
+            lim = rf / np.exp(pop.beta[k] * (X[t, I_TEMP] - T_REF))
+            w_fail = min(1.2, max(1e-3, (max(lim - 1.0, 0.0) / (rf - 1)) ** (1 / p)))
+        gap = w_fail - draws[:, 0]
         rate = draws[:, 1]
         T = np.full(N_DRAW, np.inf)
         dead = gap <= 0

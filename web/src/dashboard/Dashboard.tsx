@@ -22,7 +22,7 @@ import { ProcessPage } from "./Process";
 import { SchedulerPage } from "./Scheduler";
 import { CopilotPage } from "./Copilot";
 import { Chat } from "./Chat";
-import { CopilotMark, Icon, NexusMark, ThemeMenu } from "../shared/icons";
+import { CopilotMark, Icon, ThemeMenu } from "../shared/icons";
 import { StfLogo, StfMark } from "../shared/Logo";
 import { useScrollMemory } from "../shared/scrollMemory";
 import { useTheme } from "../shared/theme";
@@ -31,6 +31,7 @@ import { ConsentBanner } from "./Consent";
 import { NotifyMenu } from "./NotifyMenu";
 import { cardHelp } from "./guide";
 import { DocsPage, type DocTarget } from "./docs/DocsPage";
+import { useCopilotResize, useFloatChatResize } from "../shared/chatResize";
 
 
 // the docs pages carry KaTeX: loaded when opened
@@ -108,6 +109,18 @@ export function Dashboard() {
   const showAsk = (v: boolean) => { setAskOpen(v); try { localStorage.setItem("stf.db.ask", v ? "1" : "0"); } catch { /* private mode */ } };
   const [pinned, setPinned] = useState(() => { try { return localStorage.getItem("stf.db.pinned") === "1"; } catch { return false; } });
   const togglePinned = (v: boolean) => { setPinned(v); try { localStorage.setItem("stf.db.pinned", v ? "1" : "0"); } catch { /* private mode */ } };
+  const { width: copilotWidth, isDragging: isDraggingCopilot, gripProps: copilotGripProps } = useCopilotResize(400);
+  const {
+    width: floatWidth,
+    height: floatHeight,
+    position: floatPos,
+    corner: floatCorner,
+    isDragging: isFloatResizing,
+    isMoving: isFloatMoving,
+    headerDragProps: floatHeaderDragProps,
+    cycleCorner: cycleFloatCorner,
+    getGripProps: getFloatGripProps,
+  } = useFloatChatResize();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -166,12 +179,15 @@ export function Dashboard() {
   };
   return (
     <MotionConfig reducedMotion="user">
-    <div className={`db ${navOpen ? "" : "nav-min"} ${askOpen && pinned && page !== "copilot" ? "ask" : ""}`}>
+    <div
+      className={`db ${navOpen ? "" : "nav-min"} ${askOpen && pinned && page !== "copilot" ? "ask" : ""}`}
+      style={{ "--copilot-w": `${copilotWidth}px` } as React.CSSProperties}
+    >
       <nav className="db-nav">
         <div className="db-brand">
           <StfLogo className="db-brand-logo" height={32} />
           <StfMark className="brand-mark" size={32} />
-          <div><b>Operations</b><span>Live twin data</span></div>
+          <div><strong className="db-brand-name">STF</strong><b>Operations</b><span>Live twin data</span></div>
         </div>
         <button className="db-nav-toggle" onClick={() => setNavOpen(!navOpen)} aria-expanded={navOpen}
           aria-label={navOpen ? "Collapse navigation" : "Expand navigation"}
@@ -191,9 +207,14 @@ export function Dashboard() {
           </div>
         ))}
         </div>
+        <div className="db-legal">
+          <a href={`${import.meta.env.BASE_URL}legal/privacy.html`}>Privacy</a>
+          <a href={`${import.meta.env.BASE_URL}legal/imprint.html`}>Imprint</a>
+          <a href={`${import.meta.env.BASE_URL}legal/third-party-notices.txt`}>Notices</a>
+        </div>
       </nav>
-      <main className="db-main" onClick={expand}>
-        <div className="db-top">
+      <div className="db-stage">
+        <header className="db-top">
           <div className="db-title"><span>{cur[3]}</span>
             <h1><motion.span key={view} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, ease: "easeOut" }}>{cur[1]}</motion.span></h1></div>
@@ -204,102 +225,188 @@ export function Dashboard() {
               title="How to read this page, and the terms it uses"><Icon name="info" size={15} /><span className="hide-sm">Guide</span></button>
             {guide && <GuideBox page={view} onClose={() => setGuide(false)} />}
           </div>
-          {page !== "copilot" && (
-            <button className={`ui-btn db-ask-btn ${askOpen ? "on" : ""}`} onClick={() => showAsk(!askOpen)} aria-expanded={askOpen}
-              title="Ask NEXUS about this page"><NexusMark size={15} />Ask NEXUS</button>
-          )}
           <NotifyMenu />
           <ThemeMenu theme={theme} setTheme={setTheme} />
-          {(CLOCK_PAGES.includes(view) || AGE_PAGES.includes(view)) && (
-            // the page's own controls: a second row of the header, so the title row never wraps
-            <div className="db-tools">
-              {CLOCK_PAGES.includes(view) && (
-                <div className="db-ctl">
-                  <span>Order</span>
-                  <button className="ui-btn icon" onClick={() => setPlay(!play)} aria-label={play ? "Pause" : "Play"}><Icon name={play ? "pause" : "play"} size={14} /></button>
-                  <input type="range" min={0} max={T} step={0.5} value={t} onChange={(e) => { setPlay(false); setT(+e.target.value); }} aria-label="Order time" />
-                  <span className="mono">{fmtT(t)}</span>
-                </div>
-              )}
-              {AGE_PAGES.includes(view) && (
-                <div className="db-ctl">
-                  <span>Machine age</span>
-                  <input type="range" min={0} max={ageMax} step={1} value={age} onChange={(e) => setAge(+e.target.value)} aria-label="Machine age" />
-                  <span className="mono">{age} sh</span>
-                  <div className="ui-seg" title="Preventive maintenance: parts serviced on schedule, or run until they fail"><button className={pm ? "on" : ""} onClick={() => setPm(true)}>PM on</button><button className={!pm ? "on" : ""} onClick={() => setPm(false)}>off</button></div>
-                </div>
-              )}
+        </header>
+
+        <div className="db-panes">
+          <main className="db-main" onClick={expand}>
+            {(CLOCK_PAGES.includes(view) || AGE_PAGES.includes(view)) && (
+              // the page's own controls: attached to top of content, moving with scroll
+              <div className="db-tools">
+                {CLOCK_PAGES.includes(view) && (
+                  <div className="db-ctl">
+                    <span>Order</span>
+                    <button className="ui-btn icon" onClick={() => setPlay(!play)} aria-label={play ? "Pause" : "Play"}><Icon name={play ? "pause" : "play"} size={14} /></button>
+                    <input type="range" min={0} max={T} step={0.5} value={t} onChange={(e) => { setPlay(false); setT(+e.target.value); }} aria-label="Order time" />
+                    <span className="mono">{fmtT(t)}</span>
+                  </div>
+                )}
+                {AGE_PAGES.includes(view) && (
+                  <div className="db-ctl">
+                    <span>Machine age</span>
+                    <input type="range" min={0} max={ageMax} step={1} value={age} onChange={(e) => setAge(+e.target.value)} aria-label="Machine age" />
+                    <span className="mono">{age} sh</span>
+                    <div className="ui-seg" title="Preventive maintenance: parts serviced on schedule, or run until they fail"><button className={pm ? "on" : ""} onClick={() => setPm(true)}>PM on</button><button className={!pm ? "on" : ""} onClick={() => setPm(false)}>off</button></div>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* the copilot explains itself in its empty chat: its page gives the room to the conversation */}
+            {page === "maintenance" && (
+              <div className="ui-seg db-tabs" role="tablist" aria-label="Maintenance">
+                <button role="tab" aria-selected={mtab === "plan"} className={mtab === "plan" ? "on" : ""} onClick={() => setMtab("plan")}>Service plan</button>
+                <button role="tab" aria-selected={mtab === "pdm"} className={mtab === "pdm" ? "on" : ""} onClick={() => setMtab("pdm")}>Pre-failure window</button>
+                <button role="tab" aria-selected={mtab === "ai"} className={mtab === "ai" ? "on" : ""} onClick={() => setMtab("ai")}>AI predictions</button>
+              </div>
+            )}
+            <PageCtx.Provider value={view}>
+            <div className="db-page" key={view} data-view={view}>
+              {page === "month" && <MonthPage />}
+              {page === "vision" && <VisionPage />}
+              {view === "ai" && <AiPage />}
+              {view === "pdm" && <PdmPage />}
+              {page === "energy" && <GridPage />}
+              {page === "carbon" && <CarbonPage />}
+              {page === "process" && <ProcessPage />}
+              {page === "scheduler" && <SchedulerPage />}
+              {page === "copilot" && <CopilotPage go={(p) => setPage(p as View)} />}
+              {page === "throughput" && <ThroughputPage />}
+              {page === "security" && <SecurityPage />}
+              {page === "hardening" && <HardeningPage />}
+              {page === "validation" && <ValidationPage />}
+              {page === "overview" && <Overview doc={doc} t={t} age={age} pm={pm} go={(p) => setPage(p as View)} />}
+              {page === "production" && <Production doc={doc} t={t} />}
+              {page === "health" && <HealthPage h={doc.health!} age={age} pm={pm} go={(p) => setPage(p as View)} />}
+              {page === "docs" && <DocsPage doc={doc} target={docAt} open={openDoc} />}
+              {page === "docs-degradation" && <Suspense fallback={<div className="db-err">loading…</div>}><DegradationPage h={doc.health!} /></Suspense>}
+              {view === "maintenance" && <MaintenancePage h={doc.health!} lc={doc.lifecycle} age={age} pm={pm} />}
+              {page === "quality" && <Quality doc={doc} t={t} />}
+              {page === "alarms" && <Alarms doc={doc} />}
+              {page === "engineering" && <Engineering doc={doc} />}
+              {page === "data" && <Data doc={doc} src={src} />}
             </div>
+            </PageCtx.Provider>
+          </main>
+
+          {/* Pinned side panel: docks and consumes the dynamic column space */}
+          {askOpen && pinned && page !== "copilot" && (
+            <aside
+              className={`db-inspector ${isDraggingCopilot ? "resizing" : ""}`}
+              aria-label="Ask NEXUS about this page"
+              style={{ width: `${copilotWidth}px` }}
+            >
+              <div
+                className={`copilot-grip ${isDraggingCopilot ? "dragging" : ""}`}
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Drag to resize copilot panel"
+                title="Drag to resize horizontal spacing"
+                {...copilotGripProps}
+              >
+                <i />
+              </div>
+              <div className="db-inspector-h">
+                <span className="db-inspector-ico"><CopilotMark size={18} /></span>
+                <div><b>Ask NEXUS</b><span>about {cur[1]}</span></div>
+                <div className="db-inspector-actions">
+                  <button className="ui-btn icon ghost on" onClick={() => togglePinned(false)} title="Unpin to floating window" aria-label="Unpin to floating window">
+                    <Icon name="pin" size={15} className="db-pinned-icon" />
+                  </button>
+                  <button className="ui-btn ghost" onClick={() => setPage("copilot")} title="Open NEXUS page, with your history">
+                    <Icon name="external" size={13} /><span className="hide-sm">Full</span>
+                  </button>
+                  <button className="ui-btn icon ghost" onClick={() => showAsk(false)} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
+                </div>
+              </div>
+              <Chat key={view} page={view} go={(p) => { setPage(p as View); }} age={age} pm={pm} compact />
+            </aside>
           )}
         </div>
-        {/* the copilot explains itself in its empty chat: its page gives the room to the conversation */}
-        {page === "maintenance" && (
-          <div className="ui-seg db-tabs" role="tablist" aria-label="Maintenance">
-            <button role="tab" aria-selected={mtab === "plan"} className={mtab === "plan" ? "on" : ""} onClick={() => setMtab("plan")}>Service plan</button>
-            <button role="tab" aria-selected={mtab === "pdm"} className={mtab === "pdm" ? "on" : ""} onClick={() => setMtab("pdm")}>Pre-failure window</button>
-            <button role="tab" aria-selected={mtab === "ai"} className={mtab === "ai" ? "on" : ""} onClick={() => setMtab("ai")}>AI predictions</button>
-          </div>
-        )}
-        <PageCtx.Provider value={view}>
-        <div className="db-page" key={view} data-view={view}>
-          {page === "month" && <MonthPage />}
-          {page === "vision" && <VisionPage />}
-          {view === "ai" && <AiPage />}
-          {view === "pdm" && <PdmPage />}
-          {page === "energy" && <GridPage />}
-          {page === "carbon" && <CarbonPage />}
-          {page === "process" && <ProcessPage />}
-          {page === "scheduler" && <SchedulerPage />}
-          {page === "copilot" && <CopilotPage go={(p) => setPage(p as View)} />}
-          {page === "throughput" && <ThroughputPage />}
-          {page === "security" && <SecurityPage />}
-          {page === "hardening" && <HardeningPage />}
-          {page === "validation" && <ValidationPage />}
-          {page === "overview" && <Overview doc={doc} t={t} age={age} pm={pm} go={(p) => setPage(p as View)} />}
-          {page === "production" && <Production doc={doc} t={t} />}
-          {page === "health" && <HealthPage h={doc.health!} age={age} pm={pm} go={(p) => setPage(p as View)} />}
-          {page === "docs" && <DocsPage doc={doc} target={docAt} open={openDoc} />}
-          {page === "docs-degradation" && <Suspense fallback={<div className="db-err">loading…</div>}><DegradationPage h={doc.health!} /></Suspense>}
-          {view === "maintenance" && <MaintenancePage h={doc.health!} lc={doc.lifecycle} age={age} pm={pm} />}
-          {page === "quality" && <Quality doc={doc} t={t} />}
-          {page === "alarms" && <Alarms doc={doc} />}
-          {page === "engineering" && <Engineering doc={doc} />}
-          {page === "data" && <Data doc={doc} src={src} />}
-        </div>
-        </PageCtx.Provider>
-      </main>
-      {/* Pinned side panel: docks and consumes the 400px column space */}
-      {askOpen && pinned && page !== "copilot" && (
-        <aside className="db-inspector" aria-label="Ask NEXUS about this page">
-          <div className="db-inspector-h">
-            <span className="db-inspector-ico"><CopilotMark size={17} /></span>
-            <div><b>Ask NEXUS</b><span>about {cur[1]}</span></div>
-            <button className="ui-btn icon ghost on" onClick={() => togglePinned(false)} title="Unpin to floating window" aria-label="Unpin to floating window">
-              <Icon name="pin" size={15} className="db-pinned-icon" />
-            </button>
-            <button className="ui-btn ghost" onClick={() => setPage("copilot")} title="Open NEXUS page, with your history">
-              <Icon name="external" size={13} /><span className="hide-sm">Full</span>
-            </button>
-            <button className="ui-btn icon ghost" onClick={() => showAsk(false)} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
-          </div>
-          <Chat key={view} page={view} go={(p) => { setPage(p as View); }} age={age} pm={pm} compact />
-        </aside>
-      )}
+      </div>
 
-      {/* Floating chatbot window: small draggable/dockable bottom-right card */}
+      {/* Floating chatbot window: resizable card with liquid glassmorphism */}
       {askOpen && !pinned && page !== "copilot" && (
-        <aside className="db-float-chat" aria-label="Floating NEXUS Chat">
-          <div className="db-float-chat-h">
-            <span className="db-inspector-ico"><CopilotMark size={16} /></span>
+        <aside
+          className={`db-float-chat ${isFloatResizing ? "resizing" : ""} ${isFloatMoving ? "moving" : ""}`}
+          aria-label="Floating NEXUS Chat"
+          style={{
+            "--float-w": `${floatWidth}px`,
+            "--float-h": `${floatHeight}px`,
+            width: `${floatWidth}px`,
+            height: `${floatHeight}px`,
+            left: `${floatPos.x}px`,
+            top: `${floatPos.y}px`,
+            bottom: "auto",
+            right: "auto",
+          } as React.CSSProperties}
+        >
+          <div
+            className="db-float-grip corner"
+            role="separator"
+            title="Drag corner to resize window"
+            aria-label="Drag corner to resize window"
+            {...getFloatGripProps("corner")}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+              <path d="M1 9L9 1M5 9L9 5M9 9L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div
+            className="db-float-grip left"
+            role="separator"
+            aria-orientation="vertical"
+            title="Drag edge to resize width"
+            aria-label="Drag edge to resize width"
+            {...getFloatGripProps("left")}
+          />
+          <div
+            className="db-float-grip top"
+            role="separator"
+            aria-orientation="horizontal"
+            title="Drag edge to resize height"
+            aria-label="Drag edge to resize height"
+            {...getFloatGripProps("top")}
+          />
+          <div className="db-float-chat-h" {...floatHeaderDragProps} title="Drag to move chat window">
+            <span className="db-inspector-ico"><CopilotMark size={18} /></span>
             <div><b>Ask NEXUS</b><span>about {cur[1]}</span></div>
             <div className="db-float-chat-actions">
-              <button className="ui-btn icon ghost" onClick={() => togglePinned(true)} title="Pin to side panel" aria-label="Pin to side panel">
+              <button
+                className="ui-btn icon ghost"
+                onClick={cycleFloatCorner}
+                title={`Move to next corner (currently: ${floatCorner})`}
+                aria-label="Move corner"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <Icon name="move" size={14} />
+              </button>
+              <button
+                className="ui-btn icon ghost"
+                onClick={() => togglePinned(true)}
+                title="Pin to side panel"
+                aria-label="Pin to side panel"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
                 <Icon name="pin" size={15} />
               </button>
-              <button className="ui-btn ghost" onClick={() => setPage("copilot")} title="Open full NEXUS page">
+              <button
+                className="ui-btn ghost"
+                onClick={() => setPage("copilot")}
+                title="Open full NEXUS page"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
                 <Icon name="external" size={13} /><span className="hide-sm">Full</span>
               </button>
-              <button className="ui-btn icon ghost" onClick={() => showAsk(false)} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
+              <button
+                className="ui-btn icon ghost"
+                onClick={() => showAsk(false)}
+                aria-label="Close"
+                title="Close"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <Icon name="close" size={15} />
+              </button>
             </div>
           </div>
           <div className="db-float-chat-b">

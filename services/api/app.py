@@ -21,11 +21,17 @@ Endpoints:
     POST /chat/stt      a recorded question (audio/webm ...) -> its transcript (tts.py)
     GET  /guest         this visitor's guest session: since when, how many visits, which database
     DELETE /guest       forget this guest: its conversations and photos; a new one starts
-    POST /guest/track   usage beacon (consent-gated, visits.py): page + the guest's coarse place;
+    POST /guest/track   usage beacon (consent-gated, visits.py): page + the shortened IP;
                         optionally emails the owner once per guest (notify.py)
     GET  /guest/visits  this guest's own visits, newest first
     GET  /notify/status   owner notifications configured? (email/webhook on, no secrets)
     POST /notify/test   send the owner a test notice (operator only, like /command)
+    POST /operator/session  an operator's key -> a signed 30-minute cookie (operators.py);
+                        GET: who is signed in; DELETE: sign out
+    GET  /actions       proposals, newest first (?status=pending): operators only (actions.py)
+    GET  /actions/{id}  one proposal and its execution: the guest who asked, or an operator
+    POST /actions/{id}/decision  {"verdict": "approve"|"reject", "payload_hash": ...}: an
+                        operator's decision on the exact payload; 403/404/410/409 fail closed
     GET  /copilot/sessions        the guest's chat history
     GET  /copilot/sessions/{id}   one session: its turns and its context store
     DELETE /copilot/sessions/{id}
@@ -51,7 +57,15 @@ import time
 from contextlib import asynccontextmanager
 from typing import Literal
 
-from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    Depends,
+    FastAPI,
+    HTTPException,
+    Query,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -59,10 +73,12 @@ from pydantic import BaseModel, Field
 
 from stf_layout import get_layout
 
+from . import actions as AX
 from . import actuation as ACT
 from . import guests as G
 from . import industrial_io as IIO
 from . import live, wire
+from . import operators as OPS
 from . import security as sec
 from . import usage as U
 from . import visits as VIS
@@ -103,7 +119,7 @@ tts.cap.shared, tts.cap.name = U.shared_from(guests.db), "tts:spoken"
 stt = Stt(settings)
 captures = Captures(settings)
 visits = VIS.Visits({**dotenv(), **os.environ})
-notify = Notifier({**dotenv(), **os.environ}, geo=visits.geo)
+notify = Notifier({**dotenv(), **os.environ})
 # WARNING-and-above logs ship to the same database the visits use (SQLite or Supabase)
 if visits.store.name == "supabase":
     _log_shipper = VIS.SupabaseLogHandler(visits.store)
@@ -239,7 +255,7 @@ SECURITY_HEADERS = {
 
 
 # the paths that serve a guest's own data
-GUEST_PATHS = ("/chat", "/copilot", "/vision", "/twin", "/guest")
+GUEST_PATHS = ("/chat", "/copilot", "/vision", "/twin", "/guest", "/actions")
 
 
 @app.middleware("http")
@@ -293,7 +309,7 @@ class CommandRequest(BaseModel):
 
     op: Literal["retrieve", "store", "home", "cycle"]
     slot: str | None = Field(
-        default=None, pattern=r"^[A-C][1-4]$", description="target slot A1..C4"
+        default=None, pattern=r"^[A-C][1-3]$", description="target slot A1..C3"
     )
 
 
@@ -444,6 +460,129 @@ async def actuation_reset_estop() -> dict:
     """Reset emergency stop safety latch after clearance."""
     ACT.get_guard().reset_emergency_stop(actor="operator")
     return {"status": "EMERGENCY_STOP_CLEARED", "latched": False}
+
+
+# ---------------------------------------------------------------- operators and guarded actions
+_OPERATORS: OPS.Operators | None = None
+# a key is long and random (python -m services.api.operators): a few tries a minute per address
+_signin_limit = sec.RateLimiter(rate=0.1, burst=5)
+
+
+def operators() -> OPS.Operators:
+    """The configured operators (STF_OPERATORS), their cookie signed with a key derived from
+    the audit secret."""
+    global _OPERATORS
+    if _OPERATORS is None:
+        env = {**dotenv(), **os.environ}
+        _OPERATORS = OPS.Operators(env, ACT.get_guard().derive("operator-session"))
+        for problem in _OPERATORS.problems:
+            logger.warning("STF_OPERATORS: %s (skipped)", problem)
+    return _OPERATORS
+
+
+def current_operator(request: Request) -> OPS.Operator | None:
+    """The operator the request's cookie names: never from a header or the body."""
+    return operators().read(request.cookies.get(OPS.COOKIE))
+
+
+def _operator_view(op: OPS.Operator) -> dict:
+    return {"name": op.name, "role": op.role, "expires_at": op.expires_at}
+
+
+class OperatorKey(BaseModel):
+    key: str = Field(min_length=1, max_length=512)
+
+
+@app.post("/operator/session")
+async def operator_sign_in(req: OperatorKey, request: Request) -> JSONResponse:
+    """An operator's key for a short-lived signed cookie; the key is never kept."""
+    if not _same_site(request):
+        return JSONResponse(status_code=403, content={"error": "origin not allowed"})
+    if not _signin_limit.allow(sec.client_ip(request)):
+        return JSONResponse(status_code=429, content={"error": "too many tries"})
+    ops = operators()
+    if not ops.configured:
+        return JSONResponse(status_code=503, content={"error": "no operators are configured"})
+    op = ops.check_key(req.key)
+    if op is None:
+        sec.note("operator: unknown key")
+        return JSONResponse(status_code=401, content={"error": "unknown key"})
+    logger.info("Operator %s signed in (%s)", op.name, op.role)
+    r = JSONResponse(content={"operator": _operator_view(op)})
+    r.headers.append("set-cookie", ops.cookie(op, _https(request)))
+    return r
+
+
+@app.get("/operator/session")
+async def operator_session(request: Request) -> dict:
+    op = current_operator(request)
+    return {"operator": _operator_view(op) if op else None}
+
+
+@app.delete("/operator/session")
+async def operator_sign_out(request: Request) -> JSONResponse:
+    r = JSONResponse(content={"operator": None})
+    r.headers.append("set-cookie", OPS.Operators.clear_cookie(_https(request)))
+    return r
+
+
+async def _actions() -> AX.Actions:
+    """The guarded actions, or 503 with why they are off (settings named, never values)."""
+    acts, why = await asyncio.to_thread(AX.status)
+    if acts is None:
+        raise HTTPException(status_code=503, detail=f"actions are off: {why}")
+    return acts
+
+
+@app.get("/actions")
+async def actions_list(
+    request: Request,
+    status: Literal[
+        "proposed", "pending", "approved", "executing", "done", "refused", "rejected",
+        "expired", "unknown",
+    ] | None = None,
+    limit: int = Query(default=50, ge=1, le=200),
+) -> dict:
+    """The proposals, newest first: an operator's (or viewer's) queue."""
+    if current_operator(request) is None:
+        raise HTTPException(status_code=403, detail="operators only")
+    acts = await _actions()
+    return {"proposals": await asyncio.to_thread(acts.listing, status, limit)}
+
+
+@app.get("/actions/{proposal_id}")
+async def action_get(proposal_id: str, request: Request) -> dict:
+    """One proposal: for the guest who asked (their card) or an operator. Anyone else learns
+    nothing, not even that it exists."""
+    acts = await _actions()
+    allowed = current_operator(request) is not None or await asyncio.to_thread(
+        acts.owned_by, proposal_id, G.current()
+    )
+    view = await asyncio.to_thread(acts.view, proposal_id) if allowed else None
+    if view is None:
+        raise HTTPException(status_code=404, detail="no such proposal")
+    return {"proposal": view}
+
+
+class Decision(BaseModel):
+    verdict: Literal["approve", "reject"]
+    payload_hash: str = Field(max_length=128)  # compared, not validated: a wrong one is a 409
+
+
+@app.post("/actions/{proposal_id}/decision")
+async def action_decide(proposal_id: str, req: Decision, request: Request) -> JSONResponse:
+    """An operator's decision on the exact payload the card showed (actions.decide): 403 not an
+    operator, 404 no proposal, 410 expired, 409 another payload or another decision won."""
+    if not _same_site(request):
+        return JSONResponse(status_code=403, content={"error": "origin not allowed"})
+    op = current_operator(request)
+    if op is None or not op.may_approve:
+        return JSONResponse(status_code=403, content={"error": "only a signed-in operator decides"})
+    acts = await _actions()
+    out = await asyncio.to_thread(acts.decide, proposal_id, req.verdict, req.payload_hash, op)
+    body = {"proposal": out.proposal}
+    body["detail" if out.code == 200 else "error"] = out.detail
+    return JSONResponse(status_code=out.code, content=body)
 
 
 @app.get("/opcua/nodes")
@@ -617,10 +756,11 @@ async def stt_transcribe(request: Request) -> dict:
 async def guest_status(request: Request, page: str = "site") -> dict:
     """This visitor's guest session (guests.py): no personal data, only when and how often."""
     gid = G.current()
-    if gid and notify.may_send(request.headers.get("host")):
-        ip = sec.client_ip(request)
+    # the owner's note only for a visitor who accepted the consent banner (its cookie)
+    agreed = request.cookies.get(VIS.COOKIE) == "accepted"
+    if agreed and gid and notify.may_send(request.headers.get("host")):
         ua = request.headers.get("user-agent")
-        await asyncio.to_thread(notify.visit, gid, page, ip, ua)
+        await asyncio.to_thread(notify.visit, gid, page, ua)
     st = guests.status(gid)
     st["session_id"] = gid
     return st
@@ -628,13 +768,15 @@ async def guest_status(request: Request, page: str = "site") -> dict:
 
 @app.delete("/guest")
 async def guest_forget(request: Request) -> JSONResponse:
-    """Forget this guest: its copilot sessions, its photos and its live twin; the next request
-    starts a new guest."""
+    """Forget this guest: its copilot sessions, its photos, its visits and its live twin; the
+    next request starts a new guest."""
     gid = G.current()
     if gid:
         guests.db.forget(gid)
         captures.forget(gid)
         live.drop(gid)
+        await asyncio.to_thread(visits.forget, gid)
+        await asyncio.to_thread(AX.forget_guest, gid)
     r = JSONResponse(content={"forgotten": True})
     r.headers.append("set-cookie", guests.clear_cookie(_https(request)))
     return r
@@ -651,7 +793,7 @@ class TrackRequest(BaseModel):
 @app.post("/guest/track")
 async def track(req: TrackRequest, request: Request) -> Response:
     """A page visit, stored only with consent (visits.py): the guest's id, the page, the time,
-    the IP and its coarse place. Declined, or switched off (STF_TRACKING=0): an empty 204, no row.
+    the IP shortened to its network. Declined, or switched off (STF_TRACKING=0): no row.
     """
     if not visits.on:
         return Response(status_code=204)
@@ -663,12 +805,12 @@ async def track(req: TrackRequest, request: Request) -> Response:
     kept = await asyncio.to_thread(
         visits.record, gid, req.page, ip, ua if req.ua else None, req.consent
     )
-    # the owner's "someone is on the site" note (notify.py): throttled to one per guest
-    # per STF_NOTIFY_EVERY_HOURS, synchronous with a short timeout, never blocks the beacon;
-    # a localhost request never sends (a local test run cannot spam the mailbox)
-    if gid and notify.may_send(request.headers.get("host")):
+    # the owner's "someone is on the site" note (notify.py): only for a visit kept with
+    # consent, throttled to one per guest per STF_NOTIFY_EVERY_HOURS, synchronous with a short
+    # timeout; a localhost request never sends (a local test run cannot spam the mailbox)
+    if kept and gid and notify.may_send(request.headers.get("host")):
         await asyncio.to_thread(
-            notify.visit, gid, req.page, ip, ua
+            notify.visit, gid, req.page, ua
         )
     return {"kept": bool(kept)}
 

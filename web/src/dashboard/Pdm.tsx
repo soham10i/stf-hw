@@ -3,6 +3,10 @@
 // remaining life as a first-passage distribution, change detection - graded against the U6
 // rules and the neural networks on the same unseen machines, and shown on the two failures of
 // the production months.
+import { Calibrated } from "./Calibrated";
+import { DecideCards } from "./Decide";
+import { DriftCards } from "./Drift";
+import { EdgeCards } from "./Edge";
 import { Plot } from "./Plot";
 import { useJson } from "../shared/data";
 
@@ -56,6 +60,10 @@ export function PdmPage() {
           <p className="hl-cap">16 machines no method saw, {ours.failures} failures. In time = the window opened at least {d.lead_needed_orders} orders (a shift) ahead. The window opens when P(failure within {d.horizon_orders} orders) ≥ {d.p_star}.</p>
         </section>
         <div className="vq-life-pair">{Object.entries(d.showcase).map(([k, s]) => <Failure key={k} s={s} />)}</div>
+        <Calibrated />
+        <DriftCards />
+        <DecideCards />
+        <EdgeCards />
       </div>
     </>
   );

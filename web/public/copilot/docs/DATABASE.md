@@ -99,10 +99,11 @@ alter table public.documents enable row level security;
 
 `services/api/visits.py` keeps one row per page visit — but only after the visitor accepts the
 banner (`web/src/dashboard/Consent.tsx`). A row is the anonymous guest id, the page, the time,
-the IP and its **coarse** place (country/region/city/coordinates, from ip-api.com, cached by
-/24 for a day; loopback and private addresses are stored as "Local" and never looked up).
-A "no" stores nothing. `STF_TRACKING=0` turns the beacon off entirely, `STF_GEO=0` keeps the IP
-without the place. The same module ships the server's WARNING-and-above logs to an `app_logs`
+the IP **shortened to its network** (the last byte of an IPv4 address, everything past the /48
+of an IPv6 one, set to zero; loopback and private addresses are stored as "local"). The full
+address is never stored or sent anywhere, and no place is looked up. Rows older than
+`STF_VISIT_DAYS` (90) are pruned, and `DELETE /guest` removes a guest's visits at once.
+A "no" stores nothing. `STF_TRACKING=0` turns the beacon off entirely. The same module ships the server's WARNING-and-above logs to an `app_logs`
 table (batched, so logging never slows a request). Both tables live wherever the guests do —
 the migration [`20261019043500_stf_visits_app_logs.sql`](../supabase/migrations/20261019043500_stf_visits_app_logs.sql)
 adds them to Supabase; SQLite creates them on first use. `GET /guest/visits` shows a guest

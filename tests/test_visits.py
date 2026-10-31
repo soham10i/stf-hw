@@ -1,8 +1,7 @@
 """Usage traction and log shipping (services/api/visits.py): nothing is stored without consent,
-a private IP is never looked up, the geo cache keeps one query per neighbourhood, visits dedupe,
+the IP is kept only shortened to its network and never sent anywhere, visits dedupe,
 and the log handler batches without raising into the app. No network."""
 
-import json
 import logging
 import sqlite3
 import urllib.error
@@ -19,7 +18,7 @@ def store(tmp_path):
 
 @pytest.fixture(autouse=True)
 def _no_network(monkeypatch):
-    """No test may touch the geo API: the default Geo resolves everything as unreachable."""
+    """Recording a visit makes no network call at all: any attempt fails the test's row."""
     monkeypatch.setattr(
         VIS.urllib.request, "urlopen",
         lambda *a, **k: (_ for _ in ()).throw(urllib.error.URLError("no network in tests")),
@@ -27,76 +26,46 @@ def _no_network(monkeypatch):
 
 
 def test_declined_or_off_stores_nothing(tmp_path):
-    v = VIS.Visits({}, store(tmp_path), geo=VIS.Geo())
+    v = VIS.Visits({}, store(tmp_path))
     assert v.record("g1", "overview", "8.8.8.8", "ua", consent=False) is False
     assert v.record("g1", "overview", "8.8.8.8", "ua", consent=True) is True
     assert len(v.store.visits("g1")) == 1
-    off = VIS.Visits({"STF_TRACKING": "0"}, store(tmp_path / "b"), geo=VIS.Geo())
+    off = VIS.Visits({"STF_TRACKING": "0"}, store(tmp_path / "b"))
     assert off.record("g1", "copilot", "8.8.8.8", "ua", consent=True) is False
 
 
-def test_a_visit_row_holds_the_guest_page_ip_and_place(tmp_path, monkeypatch):
-    v = VIS.Visits({}, store(tmp_path), geo=VIS.Geo())
-    seen = []
-
-    def fake_place(ip):
-        seen.append(ip)
-        return ("Germany", "Bavaria", "Munich", 48.1, 11.6)
-
-    monkeypatch.setattr(v.geo, "place", fake_place)
-    assert v.record("abc123", "copilot", "8.8.8.8", "Mozilla/5.0", consent=True, now=1000.0)
+def test_a_visit_row_holds_the_guest_page_and_the_shortened_ip(tmp_path, monkeypatch):
+    v = VIS.Visits({}, store(tmp_path))
+    called = []
+    monkeypatch.setattr(VIS.urllib.request, "urlopen", lambda *a, **k: called.append(a))
+    assert v.record("abc123", "copilot", "93.184.216.34", "Mozilla/5.0", consent=True, now=1000.0)
     rows = v.store.visits("abc123")
     assert len(rows) == 1
     r = rows[0]
-    assert (r["guest"], r["page"], r["ip"]) == ("abc123", "copilot", "8.8.8.8")
-    assert (r["country"], r["region"], r["city"]) == ("Germany", "Bavaria", "Munich")
-    assert (r["lat"], r["lon"]) == (48.1, 11.6) and r["t"] == 1000.0
-    assert seen == ["8.8.8.8"]
+    assert (r["guest"], r["page"], r["ip"], r["t"]) == ("abc123", "copilot", "93.184.216.0", 1000.0)
+    assert set(r) == {"guest", "t", "page", "ip", "ua"}  # no place of any kind
+    assert called == []  # the address went nowhere
 
 
-def test_private_and_loopback_ips_never_leave_the_machine(tmp_path, monkeypatch):
-    v = VIS.Visits({}, store(tmp_path), geo=VIS.Geo())
-    called = []
-    monkeypatch.setattr(
-        VIS.urllib.request, "urlopen", lambda *a, **k: called.append(a) or None
-    )
+def test_coarse_ip_keeps_only_the_network():
+    assert VIS.coarse_ip("93.184.216.34") == "93.184.216.0"
+    assert VIS.coarse_ip("2a00:1450:4001:82a::200e") == "2a00:1450:4001::"
     for ip in ("127.0.0.1", "10.0.0.5", "192.168.1.20", "::1", "fe80::1"):
-        assert v.geo.place(ip) == ("Local", "", "", None, None), ip
-    assert called == []  # no lookup was even attempted
+        assert VIS.coarse_ip(ip) == "local", ip
+    assert VIS.coarse_ip("not-an-ip") is None and VIS.coarse_ip(None) is None
 
 
-def test_geo_caches_by_prefix_for_a_day(tmp_path, monkeypatch):
-    g = VIS.Geo()
-    calls = []
-
-    class Resp:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *a):
-            return False
-
-        def read(self):
-            calls.append(1)
-            return json.dumps(
-                {"status": "success", "country": "France", "region": "IDF",
-                 "city": "Paris", "lat": 48.8, "lon": 2.3}
-            ).encode()
-
-    monkeypatch.setattr(VIS.urllib.request, "urlopen", lambda *a, **k: Resp())
-    first = g.place("8.8.8.8")
-    assert first[0] == "France" and len(calls) == 1
-    assert g.place("8.8.8.4") == first  # same /24: served from the cache
-    assert len(calls) == 1
-    g.place("1.1.1.1")  # another neighbourhood: one more lookup (the mock answers the same)
-    assert len(calls) == 2
-    assert g.place("not-an-ip") is None
-    off = VIS.Geo(on=False)
-    assert off.place("8.8.8.8") is None
+def test_old_visits_lapse_and_a_forgotten_guest_has_none(tmp_path):
+    v = VIS.Visits({"STF_VISIT_DAYS": "1"}, store(tmp_path))
+    assert v.record("old", "overview", None, None, consent=True, now=1000.0)
+    assert v.record("new", "overview", None, None, consent=True, now=1000.0 + 86400 + 3601)
+    assert v.store.visits("old") == [] and len(v.store.visits("new")) == 1
+    v.forget("new")
+    assert v.store.visits("new") == []
 
 
 def test_visits_dedupe_within_ten_seconds(tmp_path):
-    v = VIS.Visits({}, store(tmp_path), geo=VIS.Geo())
+    v = VIS.Visits({}, store(tmp_path))
     assert v.record("g", "overview", None, None, consent=True, now=100.0)
     assert not v.record("g", "overview", None, None, consent=True, now=105.0)
     assert v.record("g", "copilot", None, None, consent=True, now=105.0)
@@ -109,7 +78,7 @@ def test_visits_dedupe_within_ten_seconds(tmp_path):
 
 
 def test_a_store_failure_does_not_raise(tmp_path, monkeypatch):
-    v = VIS.Visits({}, store(tmp_path), geo=VIS.Geo())
+    v = VIS.Visits({}, store(tmp_path))
     monkeypatch.setattr(
         v.store, "add_visit",
         lambda row: (_ for _ in ()).throw(sqlite3.Error("disk full")),

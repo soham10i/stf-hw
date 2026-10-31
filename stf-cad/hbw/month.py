@@ -141,10 +141,16 @@ def temperature(t_h):
 
 
 class Month:
-    def __init__(self, skip_pm=(), scenario=None, seed=SEED, days=DAYS):
+    def __init__(self, skip_pm=(), scenario=None, seed=SEED, days=DAYS, shift=None):
         """skip_pm: components whose work orders are not done (the
         counterfactual; all of them = a run-to-failure machine for ml/).
-        scenario/seed/days: another machine-month (ml/fleet.py)."""
+        scenario/seed/days: another machine-month (ml/fleet.py).
+        shift: a plant that drifted from the one the models know (pdm/drift.py):
+        temp (deg C added to the hall), sig (x sensor noise), rate (x wear
+        speed), p (x every wear law's exponent). None: the nominal plant."""
+        sh = shift or {}
+        self.d_temp, self.d_sig = float(sh.get("temp", 0.0)), float(sh.get("sig", 1.0))
+        self.d_rate, self.d_p = float(sh.get("rate", 1.0)), float(sh.get("p", 1.0))
         self.scen = scenario or SCENARIO
         self.days = days
         self.rnd = random.Random(seed)
@@ -174,11 +180,14 @@ class Month:
                 m *= mult
         return m
 
+    def _temp(self, t_h):
+        return temperature(t_h) + self.d_temp
+
     def _r(self, k, t_h):
         c = COMP[k]
-        r = 1 + (c["r_fail"] - 1) * min(1.2, self.w[k]) ** c["p"]
+        r = 1 + (c["r_fail"] - 1) * min(1.2, self.w[k]) ** (c["p"] * self.d_p)
         if k in ("belt", "air"):                      # temperature: warmer = more slip, more leak
-            r *= 1 + 0.004 * (temperature(t_h) - 21.0)
+            r *= 1 + 0.004 * (self._temp(t_h) - 21.0)
         return r
 
     def _ev(self, t, kind, what, **kw):
@@ -197,10 +206,10 @@ class Month:
         r_obs = {}
         for k, c in COMP.items():
             use = c["per_order"] * (1 if c["kind"] != "duty" else 1)
-            self.w[k] += use / c["life"] * self._rate(k, day)
+            self.w[k] += use / c["life"] * self._rate(k, day) * self.d_rate
             r = self._r(k, t_h)
             n = max(1, c["per_order"])
-            obs = r * (1 + self.rnd.gauss(0, c["sig"] / math.sqrt(n)))
+            obs = r * (1 + self.rnd.gauss(0, self.d_sig * c["sig"] / math.sqrt(n)))
             a = 1 - (1 - H.EWMA) ** n
             r_obs[k] = obs
             self.ew[k] += a * (obs - self.ew[k])
@@ -278,16 +287,16 @@ class Month:
             a4[fl] = v["mV"] - drift + self.rnd.gauss(0, 5.0)
         bad = sum(1 for fl, mv in a4.items() if C.classify(mv) != v_bin(fl)) * 3
         good = 9 - min(9, scrap + bad)
-        self.raw["temp"].append(round(temperature(t_h), 2))
+        self.raw["temp"].append(round(self._temp(t_h), 2))
         for fl in a4:
             self.raw["a4"][fl].append(round(a4[fl], 1))
         self.raw["i_hbw"].append(round(0.8 * self._r("spindle", t_h) * (1 + self.rnd.gauss(0, 0.01)), 3))
         self.raw["air_duty"].append(round(COMP["air"]["base"] * self._r("air", t_h), 4))
-        self.feat.append([r_obs[k] for k in COMP] + [temperature(t_h), self.raw["i_hbw"][-1], self.raw["air_duty"][-1],
+        self.feat.append([r_obs[k] for k in COMP] + [self._temp(t_h), self.raw["i_hbw"][-1], self.raw["air_duty"][-1],
                           a4["vanilla"], a4["strawberry"], a4["chocolate"], vac, dur / T0])
         rej = 1 if qc else 0
         self.orders.append({"t": round(t_h, 4), "day": day, "shift": shift, "dur": round(dur, 1), "good": good,
-                            "scrap": 9 + rej - good, "returned": 3, "temp": round(temperature(t_h), 1),
+                            "scrap": 9 + rej - good, "returned": 3, "temp": round(self._temp(t_h), 1),
                             "baked": 9 + rej, "qc_fault": qc or ""})
         return t + dur
 

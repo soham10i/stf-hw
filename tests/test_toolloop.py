@@ -110,6 +110,39 @@ def test_the_rounds_run_out_then_one_answer_without_tools():
     assert not c.correct(["7.7"])  # the final answer is not sent back
 
 
+@pytest.mark.parametrize("engine", ["graph", "linear"])
+def test_thought_only_final_answer_hands_over_to_the_next_provider(engine, monkeypatch):
+    chat = make(
+        key="g-key",
+        groq_key="gsk",
+        groq_model="openai/gpt-oss-120b",
+        groq_models=["openai/gpt-oss-120b"],
+    )
+    calls = []
+
+    def gemini_post(url, key, body):
+        calls.append(body)
+        if "tools" not in body:
+            return {
+                "candidates": [{
+                    "finishReason": "MAX_TOKENS",
+                    "content": {
+                        "role": "model",
+                        "parts": [{"text": "still thinking", "thought": True}],
+                    },
+                }]
+            }
+        return gemini(call="machine_health")
+
+    chat.post = gemini_post
+    chat.post_groq = lambda url, key, body: completion(text=GOOD)
+    out = ask(chat, {"question": "which part needs service first?"}, engine, monkeypatch)
+    assert out["answer"] == GOOD
+    assert out["model"] == "groq openai/gpt-oss-120b"
+    assert "returned no answer" not in out["answer"]
+    assert len(calls) == C.MAX_ROUNDS + 2  # tool rounds plus the forced final response
+
+
 def test_an_unknown_tools_arguments_are_empty_not_an_error():
     assert TL._args("{not json") == {} and TL._args('{"a": 1}') == {"a": 1}
     assert TL._args(["x"]) == {}
@@ -176,3 +209,16 @@ def test_upb_answers_carry_upbs_name(monkeypatch):
     chat.post_groq = lambda url, key, body: completion(text=GOOD)
     out = ask(chat, {"question": "which part needs service first?"}, "graph", monkeypatch)
     assert out["model"] == f"upb {chat.c.upb_model}"
+
+
+def test_a_public_deployment_never_offers_the_university_service(monkeypatch):
+    """UPB's KI-Chat may not be passed on: on Cloud Run or Render its key is ignored."""
+    monkeypatch.setenv("UPB_AI_KEY", "upb-key")
+    for k in ("K_SERVICE", "RENDER"):
+        monkeypatch.delenv(k, raising=False)
+    assert C.ChatSettings.from_env().upb_key == "upb-key"  # a member's local run
+    monkeypatch.setenv("K_SERVICE", "stf-live")
+    assert C.ChatSettings.from_env().upb_key is None
+    monkeypatch.delenv("K_SERVICE")
+    monkeypatch.setenv("RENDER", "true")
+    assert C.ChatSettings.from_env().upb_key is None

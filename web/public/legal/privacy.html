@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Notice</title>
+  <link rel="stylesheet" href="legal.css">
+</head>
+<body>
+<!--
+  The privacy notice. It describes what the code does - services/api/visits.py (usage rows),
+  guests.py (the session cookie), captures.py (photos), sessions.py (chats), notify.py (the
+  owner's note), chat.py / tts.py (model and voice providers). Change it with them.
+  Fill the highlighted operator fields (also in imprint.html) before publishing.
+-->
+<main>
+  <nav><a href="../">3D twin</a><a href="../dashboard.html">Dashboard</a><a href="imprint.html">Imprint</a><a href="third-party-notices.txt">Third-party notices</a></nav>
+
+  <h1>Privacy notice</h1>
+  <p class="muted">Last updated 27 October 2026. This site is a personal portfolio project: a digital twin of a
+    simulated fischertechnik training factory with an AI copilot. It sells nothing and shows no advertising.</p>
+
+  <h2>1. Who is responsible</h2>
+  <address>
+    <span class="fill">[Full name]</span><br>
+    <span class="fill">[Street and number]</span><br>
+    <span class="fill">[Postcode and city]</span>, Germany<br>
+    Email: <span class="fill">[contact email]</span>
+  </address>
+  <p>There is no data protection officer; none is required for a private project of this size.</p>
+
+  <h2>2. Opening the site</h2>
+  <p>The site runs on <b>Google Cloud Run</b> (Google Cloud EMEA Ltd., region europe-west1, Belgium). When your
+    browser requests a page, Google's infrastructure receives your IP address, the time, the requested address and
+    your browser's user agent, and writes them to the service's request log. That log is kept for security and for
+    finding faults, and Google Cloud Logging deletes it after 30 days.
+    <br><i>Legal basis:</i> Art. 6(1)(f) GDPR (running the site securely).</p>
+
+  <h2>3. The session cookie (always on)</h2>
+  <p>On your first visit the server sets one cookie, <code>stf_guest</code>: a random identifier with a signature,
+    readable only by the server (HttpOnly). It keeps your copilot conversations, inspection photos and the state of
+    your twin separate from everyone else's. It holds no name, email or address and expires after 30 days without a
+    visit. You can delete it, together with everything kept under it, with the button below.
+    <br><i>Legal basis:</i> § 25(2) no. 2 TDDDG (strictly necessary for the service you request) and Art. 6(1)(f) GDPR.</p>
+  <p><button id="forget" type="button">Delete my data and cookies</button> <span id="forget-out" class="muted" role="status"></span></p>
+  <p>Your browser also stores a few settings locally (light or dark theme, which panels are pinned, your consent
+    choice). They never leave your browser.</p>
+
+  <h2>4. Usage measurement (only if you click “Accept”)</h2>
+  <p>The banner on your first visit asks whether usage may be measured. <b>Only if you accept</b>, the server stores
+    one row per page you open:</p>
+  <ul>
+    <li>the session identifier from section 3,</li>
+    <li>the page and the time,</li>
+    <li>your IP address <b>shortened to its network</b>: the last part is set to zero (for example 93.184.216.<b>0</b>),
+      so it no longer points to one connection. The full address is not stored, and no location is looked up from it,</li>
+    <li>your browser's user agent (the browser and operating system it reports).</li>
+  </ul>
+  <p>The rows are stored in the database described in section 8 and deleted after 90 days, or straight away with the “Delete my data” button in section 3. With your consent, the operator also gets one short email per session, sent through Google's Gmail
+    servers, naming the session identifier, the page and your browser. It contains no address and no location.
+    Your choice is remembered for 180 days in the <code>stf_consent</code> cookie and in local storage. You can withdraw
+    it at any time by clearing this site's cookies and site data; the banner then asks again. Withdrawing does not
+    affect what was processed before.
+    <br><i>Legal basis:</i> your consent, Art. 6(1)(a) GDPR and § 25(1) TDDDG.</p>
+
+  <h2>5. The AI copilot</h2>
+  <p><b>The copilot is an AI system.</b> Its answers are written by a language model from the twin's own data, the
+    project documents and, for some questions, a web search. They can be wrong. Do not rely on them for real
+    machines, safety decisions or anything personal.</p>
+  <p>To answer, the server sends your question and the twin's data needed for it to <b>one</b> of these model
+    providers. It tries them in this order and moves to the next one if a provider is unavailable. If none is
+    available, the twin's own tools answer without any language model.</p>
+  <table>
+    <thead><tr><th>Provider</th><th>What it receives</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td>Google Gemini API / Vertex AI (Google LLC, Google Cloud EMEA Ltd.)</td><td>the question, the twin's data for it, the
+        conversation so far; for web questions it also runs a Google Search</td><td>EU and USA</td></tr>
+      <tr><td>Groq, Inc.</td><td>the same</td><td>USA</td></tr>
+    </tbody>
+  </table>
+  <p>Web searches go out from the server, not your browser, so the search provider does not see your IP address.
+    Your question, the answer and the sources are kept with your session (section 3) so you can see your history,
+    and deleted with it.
+    <br><b>Please do not type personal or confidential information into the copilot.</b>
+    <br><i>Legal basis:</i> Art. 6(1)(b) GDPR (providing the answer you ask for) and Art. 6(1)(f) GDPR.</p>
+
+  <h3>Voice</h3>
+  <p>If you use the microphone or “read aloud”, the recording of your question (for transcription) or the answer's text
+    (for speech) is sent to <b>ElevenLabs, Inc.</b> (USA), or, if it is unavailable, to Groq or Google. The audio
+    is not stored by this site.</p>
+
+  <h2>6. Inspection photos</h2>
+  <p>The twin renders photos of its own virtual cookies and saves them to your session. Only you can see them. They are
+    deleted with the “Delete my data” button, and otherwise removed oldest first once the store holds 2,000 photos.
+    Please upload nothing but the twin's own photos.</p>
+
+  <h2>7. Error logs</h2>
+  <p>Server warnings and errors are stored in the database below for finding faults and deleted after 90 days. They
+    are not meant to contain IP addresses or conversation text.
+    <br><i>Legal basis:</i> Art. 6(1)(f) GDPR.</p>
+
+  <h2>8. Who processes data on the operator's behalf</h2>
+  <table>
+    <thead><tr><th>Service</th><th>Purpose</th><th>Location</th></tr></thead>
+    <tbody>
+      <tr><td>Google Cloud (Cloud Run, Cloud Logging, Vertex AI)</td><td>hosting, request logs, AI models</td><td>Belgium / EU; models EU and USA</td></tr>
+      <tr><td>Supabase, Inc.</td><td>database and file storage for sessions, conversations, photos, usage rows, error logs</td><td>Ireland (eu-west-1)</td></tr>
+      <tr><td>Google (Gemini API, Gmail)</td><td>AI models, the operator's visit email</td><td>USA</td></tr>
+      <tr><td>Groq, Inc.</td><td>AI models</td><td>USA</td></tr>
+      <tr><td>ElevenLabs, Inc.</td><td>speech to text, text to speech</td><td>USA</td></tr>
+    </tbody>
+  </table>
+  <p>Transfers to the USA rely on the EU–U.S. Data Privacy Framework where the provider is certified under it, and
+    otherwise on the EU Standard Contractual Clauses in the provider's data processing terms (Art. 46(2)(c) GDPR).</p>
+
+  <h2>9. Your rights</h2>
+  <p>You have the right to access (Art. 15 GDPR), rectification (Art. 16), erasure (Art. 17), restriction (Art. 18),
+    data portability (Art. 20) and to object to processing based on legitimate interests (Art. 21). Where processing is
+    based on consent, you may withdraw it at any time with effect for the future (Art. 7(3)). Because the site does not
+    know who you are, the quickest way to exercise most of these rights is the “Delete my data” button in section 3. For anything
+    else, write to the address in section 1. You also have the right to lodge a complaint with a data protection
+    supervisory authority, in particular in the EU member state where you live or work.</p>
+
+  <h2>10. Age</h2>
+  <p>This site is not directed at people under 18.</p>
+</main>
+<script>
+  // "Delete my data": the server forgets this session (its conversations, photos and usage rows,
+  // services/api/app.py DELETE /guest, served at the root while the site is under /stf/) and
+  // clears its cookie; the consent choice is cleared here.
+  document.getElementById("forget").addEventListener("click", async () => {
+    const out = document.getElementById("forget-out");
+    let ok = false;
+    try {
+      ok = (await fetch("/guest", { method: "DELETE", credentials: "same-origin" })).ok;
+    } catch (e) { /* the static demo has no server: nothing was stored there */ }
+    try { localStorage.removeItem("stf.consent"); } catch (e) { /* blocked storage */ }
+    document.cookie = "stf_consent=; Path=/; Max-Age=0; SameSite=Lax";
+    out.textContent = ok
+      ? "Done: your session, its conversations, photos and usage rows are deleted."
+      : "Your consent choice is cleared. The server could not be reached; this copy of the site keeps no data.";
+  });
+</script>
+</body>
+</html>

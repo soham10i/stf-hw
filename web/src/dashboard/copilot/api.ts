@@ -45,6 +45,7 @@ export type Turn = {
   tools?: string[]; note?: string; unverified?: string[]; switched?: Switch[]; facts?: [string, string][];
   cites?: Cite[]; ms?: number; pending?: boolean;
   route?: Route; steps?: string[]; thinking?: string; usage?: Usage; trace?: Trace;
+  search_suggestions?: string[];
 };
 export type Fact = [name: string, value: string, source: string];
 export type Session = {
@@ -137,6 +138,7 @@ export type Reply = {
   tools: string[]; facts: [string, string][]; note?: string; unverified?: string[]; switched?: Switch[];
   cites?: Cite[]; session?: { id: string; title: string; facts: number; models: string[] };
   route?: Route; steps?: string[]; thinking?: string; usage?: Usage; trace?: Trace;
+  search_suggestions?: string[];
 };
 const payload = (body: AskBody) => JSON.stringify({
   ...body, session_id: body.session_id ?? undefined,

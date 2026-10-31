@@ -1,0 +1,46 @@
+/* The legal pages (privacy, imprint): plain, readable, light and dark. */
+:root {
+  --bg: #fafafa;
+  --fg: #18181b;
+  --muted: #52525b;
+  --line: #e4e4e7;
+  --accent: #2563eb;
+  --mark: #fef3c7;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0b0d;
+    --fg: #e4e4e7;
+    --muted: #a1a1aa;
+    --line: #27272a;
+    --accent: #60a5fa;
+    --mark: #422006;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
+nav { font-size: 14px; margin-bottom: 32px; display: flex; gap: 16px; flex-wrap: wrap; }
+a { color: var(--accent); }
+h1 { font-size: 28px; line-height: 1.25; margin: 0 0 8px; }
+h2 { font-size: 19px; margin: 36px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+h3 { font-size: 16px; margin: 20px 0 4px; }
+p, li { color: var(--fg); }
+.muted { color: var(--muted); font-size: 14px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0; }
+th, td { text-align: left; vertical-align: top; padding: 8px 8px 8px 0; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 600; }
+.fill { background: var(--mark); padding: 0 4px; border-radius: 3px; }
+address { font-style: normal; }
+@media (max-width: 560px) {
+  table, thead, tbody, tr, th, td { display: block; }
+  thead { display: none; }
+  td { border: 0; padding: 2px 0; }
+  tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
+  td:first-child { font-weight: 600; }
+}

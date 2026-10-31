@@ -116,7 +116,6 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
   const [memory, setMemory] = useState("");
   const [list, setList] = useState<api.Summary[]>([]);
   const [showList, setShowList] = useState(false);
-  const [showCtx, setShowCtx] = useState(false);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [choice, setChoice] = useState<api.Choice>(api.savedChoice.get());
@@ -174,7 +173,8 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
           depth: prefs.depth, audience: prefs.audience, sources: prefs.sources }, live);
         reply = { role: "assistant", text: r.answer, t: now, model: r.model, style: r.style, sources: r.sources, links: r.links,
           tools: r.tools, note: r.note, unverified: r.unverified, switched: r.switched, facts: r.facts, cites: r.cites,
-          route: r.route, steps: r.steps, thinking: r.thinking, usage: r.usage, trace: r.trace };
+          route: r.route, steps: r.steps, thinking: r.thinking, usage: r.usage, trace: r.trace,
+          search_suggestions: r.search_suggestions };
         if (r.session) {
           setSid(r.session.id); api.currentSession.set(r.session.id); setTitle(r.session.title);
           api.session(r.session.id).then((s) => { if (s) { setContext(s.context); setMemory(s.memory ?? ""); } });
@@ -322,24 +322,26 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
             ))}
           </select>
         )}
-        {HAS_API && (
-          <button className={`cx-icon ${compact ? "" : "cx-hist-btn"}`} onClick={() => { setShowList(!showList); refreshList(); }} title="History" aria-label="History">☰</button>
-        )}
-        {compact && turns.length > 0 && <button className="cx-icon" onClick={() => open(null)} title="New chat" aria-label="New chat">＋</button>}
-        {HAS_API && (
-          <button className={`cx-icon ${showSet ? "on" : ""}`} onClick={() => { setShowSet(!showSet); setShowList(false); setShowCtx(false); api.status().then(setStatus); }}
-            title="Answer settings: who is asking, depth, sources, cost" aria-label="Answer settings" aria-expanded={showSet}>
-            <Icon name="cog" size={15} />
-          </button>
-        )}
-        {!compact && (
-          <button className={`cx-icon cx-ctx-btn ${showCtx ? "on" : ""}`} onClick={() => setShowCtx(!showCtx)} title="Context" aria-label="Show the context">
-            ◎ <span>{context.facts.length}</span>
-          </button>
-        )}
+        <div className="cx-head-actions">
+          {HAS_API && (
+            <button className={`cx-icon ${compact ? "" : "cx-hist-btn"}`} onClick={() => { setShowList(!showList); refreshList(); }} title="History" aria-label="History">
+              <Icon name="menu" size={15} />
+            </button>
+          )}
+          {compact && turns.length > 0 && (
+            <button className="cx-icon" onClick={() => open(null)} title="New chat" aria-label="New chat">
+              <Icon name="plus" size={15} />
+            </button>
+          )}
+          {HAS_API && (
+            <button className={`cx-icon ${showSet ? "on" : ""}`} onClick={() => { setShowSet(!showSet); setShowList(false); api.status().then(setStatus); }}
+              title="Answer settings: who is asking, depth, sources, cost" aria-label="Answer settings" aria-expanded={showSet}>
+              <Icon name="cog" size={15} />
+            </button>
+          )}
+        </div>
       </header>
       <AnimatePresence>
-        {!compact && showCtx && <motion.div className="cx-pop right" {...POP}><div className="cx-pop-in">{contextPanel}</div></motion.div>}
         {showList && <motion.div className={`cx-pop ${compact ? "" : "cx-pop-hist"}`} {...POP}><div className="cx-pop-in">{history}</div></motion.div>}
         {showSet && (
           <motion.div className="cx-pop right cx-pop-set" {...POP}>
@@ -387,14 +389,14 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
               </button>
             ))}
           </div>
-          <SettingsChip prefs={prefs} open={showSet} onOpen={() => { setShowSet(!showSet); setShowList(false); setShowCtx(false); api.status().then(setStatus); }} />
+          <SettingsChip prefs={prefs} open={showSet} onOpen={() => { setShowSet(!showSet); setShowList(false); api.status().then(setStatus); }} />
         </div>
       )}
       <form className="cx-composer" onSubmit={(e) => { e.preventDefault(); ask(q); }}>
         <textarea ref={input} value={q} rows={1} placeholder={tab === "voice" ? "…or type" : compact ? "Ask NEXUS or place order…" : "Ask NEXUS anything about the factory — Enter to send"}
           onChange={(e) => setQ(e.target.value)} aria-label="Question"
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(q); } }} />
-        <motion.button type="submit" disabled={!q.trim() || busy} aria-label="Send" whileTap={{ scale: 0.9 }}>{busy ? <span className="cx-spin" /> : "↑"}</motion.button>
+        <motion.button type="submit" disabled={!q.trim() || busy} aria-label="Send" whileTap={{ scale: 0.9 }}>{busy ? <span className="cx-spin" /> : <Icon name="up" size={16} />}</motion.button>
       </form>
     </section>
     </MotionConfig>

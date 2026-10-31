@@ -2,7 +2,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas opcua opcua-check uns uns-check mechanisms guide health-theory bake vision-live vision-adapt sched carbon copilot audit clean
+.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas opcua opcua-check uns uns-check mechanisms guide health-theory bake vision-live vision-adapt sched conformal drift decide edge edge-tpu edge-browser carbon copilot audit clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -96,6 +96,24 @@ vision-lifetime: ## Upgrade 15: a year of camera ageing - both inspection models
 
 pdm: ## Predictive maintenance: the pre-failure window - NBM, physics-informed EKF, first-passage RUL, CUSUM/BOCPD/T^2 (web/public/pdm/pdm.json; FOUNDATION=chronos adds Chronos-Bolt)
 	cd stf-cad/hbw && STF_VARIANT=up7 PDM_FOUNDATION=$(FOUNDATION) PYTHONPATH=. ../../$(PY) -m pdm.run
+
+conformal: ## Trustworthy maintenance T1: conformal intervals, lower bounds and a risk-controlled alarm threshold on top of `make pdm` (web/public/pdm/conformal.json)
+	cd stf-cad/hbw && STF_VARIANT=up7 PYTHONPATH=. ../../$(PY) -m pdm.conformal
+
+drift: ## Trustworthy maintenance T2: the test machines re-run with a drifted plant - do the guarantees hold, is the drift detected, does online recalibration win them back (web/public/pdm/drift.json)
+	cd stf-cad/hbw && STF_VARIANT=up7 PYTHONPATH=. ../../$(PY) -m pdm.drift
+
+decide: ## Trustworthy maintenance T3: the maintenance decision with the calibrated lower bound as its shield - renew tonight or stop now, graded by renewal-reward (web/public/pdm/decide.json)
+	cd stf-cad/hbw && STF_VARIANT=up7 PYTHONPATH=. ../../$(PY) -m pdm.decide
+
+edge: ## Trustworthy maintenance T4: the TCN and the inspection CNN in int8 (integer-only), graded on their decisions; ONNX Runtime fp32/int8 and the statistics timed (needs the [edge] extra; web/public/edge/edge.json)
+	cd stf-cad/hbw && STF_VARIANT=up7 PYTHONPATH=. ../../$(PY) -m edge.run
+
+edge-tpu: ## Trustworthy maintenance T4: both networks as full-int8 TFLite, compiled for the Coral Edge TPU and graded (needs Docker; web/public/edge/tpu.json)
+	cd stf-cad/hbw && STF_VARIANT=up7 PYTHONPATH=. ../../$(PY) -m edge.tpu
+
+edge-browser: ## Trustworthy maintenance T4: the TCN in headless Chrome - TypeScript vs the hand-written WebGPU kernel (needs Chrome; web/public/edge/browser.json)
+	cd web && node scripts/edge-bench.mjs
 
 aas: ## Upgrade 14: generate and verify the Asset Administration Shells (needs the [aas] extra)
 	cd stf-cad/hbw && PYTHONPATH=. ../../$(PY) -m aas.build

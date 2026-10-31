@@ -107,6 +107,7 @@ def test_limits_come_from_the_environment():
 # ------------------------------------------------------------------ a grounded answer
 TEXT = "PL d needs a PFHd from 1e-7 to 1e-6 per hour."
 GOOGLE = "https://vertexaisearch.cloud.google.com/grounding-api-redirect/"
+CHIP = '<style>.chip{}</style><div class="container"><a class="chip" href="https://www.google.com/search?q=PFHd">PFHd</a></div>'
 GROUNDED = {
     "candidates": [
         {
@@ -114,6 +115,7 @@ GROUNDED = {
             "finishReason": "STOP",
             "groundingMetadata": {
                 "webSearchQueries": ["ISO 13849 PL d PFHd"],
+                "searchEntryPoint": {"renderedContent": CHIP},
                 "groundingChunks": [
                     {"web": {"uri": GOOGLE + "AAA", "title": "iso.org"}},
                     {"web": {"uri": GOOGLE + "BBB", "title": "plc-blog.example"}},
@@ -233,6 +235,7 @@ def test_a_search_asks_for_google_search_on_its_allowance_and_counts_the_tokens(
     assert "[ISO 13849-1:2023](https://www.iso.org/standard/73481.html)" in found.text
     assert "searched Google: “ISO 13849 PL d PFHd”" in found.steps
     assert "1e-6" in found.pages and "weighing" not in found.text
+    assert found.suggestions == [CHIP]  # Google's Search Suggestions travel with the answer
     assert (b.used, b.queries, b.left("g")["guest"]) == (1650, 1, BIG.guest - 1650)
 
 
@@ -325,6 +328,7 @@ def test_the_web_is_searched_with_gemini_first_and_the_answer_is_linked(pages):
         not out.get("unverified") and chat.budget.used == 1650
     )  # the figures are in the page read
     assert chat.status()["search"]["budget"]["tokens_day"]["used"] == 1650
+    assert out["search_suggestions"] == [CHIP]  # shown, as Google sent them, with the answer
 
 
 def test_a_spent_budget_or_a_failing_gemini_hands_the_search_to_groq(pages):

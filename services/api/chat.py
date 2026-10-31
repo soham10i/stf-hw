@@ -243,6 +243,12 @@ class ChatSettings:
         if groq_first not in groq_models:
             groq_models.insert(0, groq_first)
         upb_key = env.get("UPB_AI_KEY") or None
+        if upb_key and (env.get("K_SERVICE") or env.get("RENDER")):
+            # the university's KI-Chat is for its members only and may not be passed on
+            # ("Weitergabe des Dienstes"): a public deployment (Cloud Run sets K_SERVICE,
+            # Render sets RENDER) never offers it to visitors, whatever its environment holds
+            logger.warning("UPB_AI_KEY ignored: a public deployment may not pass UPB's service on")
+            upb_key = None
         upb_base = (env.get("UPB_AI_URL") or "https://ai-chat.uni-paderborn.de").rstrip("/")
         upb_url = f"{upb_base}/api/chat/completions"
         upb_model = env.get("UPB_AI_MODEL", "gwdg.latest-basemodel")
@@ -687,8 +693,9 @@ class ModelError(Exception):
         self.cool = cool
 
 
-# the fallback order, the same locally and in production: the cloud models in turn, the
-# university's AI chat (UPB, a fixed credit) last of the hosted ones, then a local model
+# the fallback order: the cloud models in turn, the university's AI chat (UPB, a fixed credit,
+# local runs only - never on a public deployment, ChatSettings.from_env) last of the hosted
+# ones, then a local model
 ORDER = ("gemini", "groq", "upb", "openai", "ollama")
 # how long a provider stays out after it fails: by HTTP status, else a timeout
 COOL = {429: 60.0, 503: 60.0, 401: 3600.0, 402: 3600.0, 403: 3600.0}
@@ -888,15 +895,22 @@ class Chat:
                 )
             )
         )
+        from . import actions as AX
         from . import agent as A  # agent.py builds on this module
 
+        acts, why = AX.status()
         out = {
             "enabled": enabled,
             "model": primary_model,
             "gemini": gemini_on,
             "ollama": ollama_on,
             "engine": A.engine(),  # what runs the copilot's steps: graph (LangGraph) or linear
-            "actuation": {"agent_writes": T.actuation_enabled()},
+            # guarded actions (actions.py): on only with a ledger, a strong audit secret and a
+            # checkpointer; `why` names the missing setting, never a value
+            "actuation": {
+                "agent_writes": T.actuation_enabled(),
+                "actions": {"mode": AX.mode(), "on": acts is not None, "why": why or None},
+            },
             # where each question's trace goes besides the reply (tracing.py), and whether text
             "tracing": {"stores": TR.get().stores, "content": TR.content_allowed()},
         }

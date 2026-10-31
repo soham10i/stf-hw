@@ -86,12 +86,39 @@ def repo(rel):
     return {"value": REPO + rel.replace(" ", "%20"), "_local": os.path.join(ROOT, rel)}
 
 
+# The makers' own documents, linked where they publish them: the repository does not
+# redistribute them (docs/vendor/README.md lists the same sources for a local copy).
+FT_DOCS = "https://www.fischertechnik.de/en/industry-and-universities/technical-documents"
+VENDOR = {
+    "536634-Fabrik_Simulation_24V.pdf": (
+        "https://www.fischertechnik.de/-/media/fischertechnik/fite/service/elearning/simulieren/"
+        "doku-24v/de/536634-fabrik_simulation_24v.pdf", "application/pdf"),
+    "536634-Fabrik_Simulation_24V-Belegungsplan.pdf": (FT_DOCS, "text/html"),
+    "536634-Factory-simulation-24V-extended-description.pdf": (FT_DOCS, "text/html"),
+    "144643-Encodermotor24V.pdf": (FT_DOCS, "text/html"),
+    "37783-Mini-switch.pdf": (FT_DOCS, "text/html"),
+    "36134-Photo-transistor.pdf": (FT_DOCS, "text/html"),
+    "128599-Color-sensor.pdf": (FT_DOCS, "text/html"),
+    "Datenblatt_RevPi_DIO.pdf": (
+        "https://revolutionpi.com/shop/en/mwdownloads/download/link/id/51", "application/pdf"),
+    "Datenblatt_RevPi_Cores.pdf": (
+        "https://revolutionpi.com/fileadmin/downloads/datasheets/Technical_Datasheet_RevPi-Core-all.pdf",
+        "application/pdf"),
+}
+
+
+def vendor(name):
+    """A maker's document, by the address the maker publishes it at (no local copy)."""
+    url, kind = VENDOR[name]
+    return {"value": url, "type": kind}
+
+
 FILES = []          # every file URL used, with the local path it must resolve to
 
 
 def f(x):
     FILES.append(x)
-    return {"value": x["value"], "contentType": smt.content_type(x["value"])}
+    return {"value": x["value"], "contentType": x.get("type") or smt.content_type(x["value"])}
 
 
 def ext_ref(url):
@@ -194,9 +221,9 @@ def part_note(c):
 
 
 def part_document(c):
-    """The part's document as kept in the repository (an AAS file reference must resolve)."""
+    """The part's document, when its maker publishes it (VENDOR)."""
     for name in (c["datasheet"].split(" p.")[0], c.get("install") or ""):
-        if name and os.path.exists(os.path.join(ROOT, "docs", name)):
+        if name in VENDOR:
             return name
     return None
 
@@ -223,8 +250,8 @@ def part_shells():
         family = c.get("family") or "fischertechnik Fabrik Simulation 24V (536634)"
         docs = [(f"{slug}-datasheet", "02-01", {"en": "Technical specification", "de": "Technische Spezifikation"},
                  {"en": f"{c['name']}: {'datasheet' if is_sheet else 'booklet'} ({doc})"},
-                 {"en": f"{maker}'s own publication, as kept in the repository."},
-                 "de" if not is_sheet else "en", repo(f"docs/{doc}"))] if doc else [
+                 {"en": f"{maker}'s own publication, where {maker} publishes it."},
+                 "de" if not is_sheet else "en", vendor(doc))] if doc else [
                 (f"{slug}-design", "02-01", {"en": "Technical specification"}, {"en": "Upgrade plan, as built"},
                  {"en": "The upgrade design this placeholder belongs to."}, "en", repo("docs/UPGRADE_PLAN.md"))]
         sms = [
@@ -358,10 +385,10 @@ def cell_shell(parts, comps):
         ("stf-plc-program", "02-01", {"en": "Technical specification"}, {"en": "PLC program (IEC 61131-3)"},
          {"en": "The generated Structured Text, as compiled by MatIEC."}, "en", site("sil/stf_plc.st")),
         ("ft-536634-booklet", "02-01", {"en": "Technical specification"}, {"en": "Fabrik Simulation 24V, fischertechnik booklet"},
-         {"en": "fischertechnik's publication: the base the model is built from."}, "de", repo("docs/536634-Fabrik_Simulation_24V.pdf")),
+         {"en": "fischertechnik's publication: the base the model is built from."}, "de", vendor("536634-Fabrik_Simulation_24V.pdf")),
         ("ft-536634-assignment", "02-02", {"en": "Drawings, plans"}, {"en": "Assignment plan (Belegungsplan)"},
          {"en": "fischertechnik's I/O assignment of the 24 V factory."}, "de",
-         repo("docs/536634-Fabrik_Simulation_24V-Belegungsplan.pdf")),
+         vendor("536634-Fabrik_Simulation_24V-Belegungsplan.pdf")),
     ]))
     # carbon footprint: the use phase only, from the microgrid's simulated month
     g = grid["scenarios"]["pv+battery"]
@@ -466,7 +493,7 @@ def check(env):
                 walk(v)
     walk(env["submodels"])
     for x in FILES:
-        if not os.path.exists(x["_local"]):
+        if "_local" in x and not os.path.exists(x["_local"]):
             fails.append(f"file not in the repository: {x['value']}")
     return fails, ext
 

@@ -83,7 +83,9 @@ def test_status_and_no_key_answers_from_the_tools():
     st = chat.status()
     assert st.pop("engine") in ("graph", "linear")
     assert st.pop("tracing") == {"stores": [], "content": False}
-    assert st.pop("actuation") == {"agent_writes": False}
+    actuation = st.pop("actuation")
+    assert actuation["agent_writes"] is False
+    assert actuation["actions"]["on"] is False
     assert st == {"enabled": False, "model": None, "gemini": False, "ollama": False}
     out = ask(chat)
     assert out["model"] == "rules" and not calls

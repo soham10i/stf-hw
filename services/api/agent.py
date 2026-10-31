@@ -131,6 +131,7 @@ class Question:
     switched: list[dict] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     web_pages: list[str] = field(default_factory=list)
+    suggestions: list[str] = field(default_factory=list)  # Google's, shown with the answer
     user: str | None = None
     guest: str = ""
     session: dict | None = None
@@ -359,6 +360,7 @@ async def take(q: Question, found: W.Found | None, tool: str) -> W.Found | None:
             q.thinking.append(t)
             q.say("thinking", t)
         q.web_pages.append(found.pages)
+        q.suggestions += found.suggestions
         q.results.insert(0, C.web_result(tool, found))
         q.called.append(tool)
     return found
@@ -496,6 +498,7 @@ async def gather(state: State, q: Question) -> State:
             pages=" ".join(f["found"].pages for f in done),
             steps=[st for f in done for st in f["found"].steps],
             via=done[0]["found"].via,
+            suggestions=[s for f in done for s in f["found"].suggestions],
         )
     else:
         q.notes.append("the web search failed: every search of the research failed")
@@ -595,6 +598,7 @@ async def verify(state: State, q: Question) -> State:
         q.removed += n
         q.results.append(C.web_result("web_search", g))
         q.called.append("web_search")
+    q.suggestions += meta.get("search_suggestions", [])
     if prov == "gemini":
         model = meta.get("model") or chat.c.model
     elif prov == "groq":
@@ -617,8 +621,14 @@ async def verify(state: State, q: Question) -> State:
 
 
 async def tools_only(state: State, q: Question) -> State:
-    """The twin's tools answer, in the rules mode's words: never an error page."""
-    text = C.fallback(q.rules_text, q.results, q.style)
+    """Use gathered research first, then the tools' own words: never an empty error page."""
+    if q.found is not None and q.found.text.strip():
+        text = (
+            "**Research findings** (the final report writer was unavailable):\n\n"
+            + q.found.text.strip()
+        )
+    else:
+        text = C.fallback(q.rules_text, q.results, q.style)
     return {"outcome": {"answer": text, "model": "rules", "note": state.get("why"), "bad": None}}
 
 
@@ -661,6 +671,9 @@ async def respond(state: State, q: Question) -> State:
         out["unverified"] = bad
     if q.switched:
         out["switched"] = q.switched
+    suggestions = list(dict.fromkeys(q.suggestions))  # one chip per distinct set of searches
+    if suggestions:
+        out["search_suggestions"] = suggestions
     # the question's trace so far: every node and call before this one (the root and this
     # node end after the reply is built; out["ms"] is the whole)
     trace = TR.snapshot(q.root)
@@ -688,6 +701,7 @@ async def respond(state: State, q: Question) -> State:
             ms=out["ms"],
             usage=out["usage"],
             trace=trace,
+            search_suggestions=suggestions or None,
         )
         S.remember(session, q.results)
         S.save(chat.store, q.user, session)

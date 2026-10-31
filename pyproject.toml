@@ -15,6 +15,8 @@ api = [
     "uvicorn[standard]>=0.30",
     "websockets>=13",
     "langgraph>=1.2,<2",  # the copilot's steps as a graph (services/api/agent.py)
+    "psycopg[binary]>=3.2,<4",  # the action ledger on Postgres (services/api/ledger.py)
+    "psycopg-pool>=3.2,<4",
     "opentelemetry-sdk>=1.45,<2",  # the copilot's traces (services/api/tracing.py)
     "opentelemetry-exporter-otlp-proto-http>=1.45,<2",
 ]
@@ -32,6 +34,10 @@ uns = [
     "paho-mqtt>=2.1",
     "protobuf>=7.35",
     "cryptography>=42",
+]
+# the networks at the edge: ONNX Runtime fp32 and int8 (stf-cad/hbw/edge, trustworthy maintenance T4)
+edge = [
+    "onnxruntime>=1.20",
 ]
 dev = [
     "pytest>=8.3",

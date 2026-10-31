@@ -109,7 +109,10 @@ def test_unconfigured_service_says_so(monkeypatch):
         assert "not configured" in r.json()["error"]
 
 
-def test_guest_session_load_notifies_owner(client):
+def test_guest_session_load_notifies_owner_only_with_consent(client):
+    r = client.get("/guest?page=twin")  # no consent cookie: the owner hears nothing
+    assert r.status_code == 200 and len(client.sent) == 0  # type: ignore[attr-defined]
+    client.cookies.set("stf_consent", "accepted")
     r = client.get("/guest?page=twin")
     assert r.status_code == 200
     data = r.json()

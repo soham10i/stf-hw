@@ -22,7 +22,7 @@ echo "promoting current tree to $SERVICE ($PROJECT, $REGION); environment carrie
 
 # Plain env carries over; the Secret Manager names arrive via --set-secrets instead
 # (they were plain values before the migration - promote is what removes them).
-SECRET_NAMES="GEMINI_API_KEY GROQ_API_KEY ELEVENLABS_API_KEY UPB_AI_KEY SUPABASE_SERVICE_KEY SUPABASE_SECRET_KEY SUPABASE_DATABASE_PASSWORD STF_SMTP_PASS POSTGRES_PASSWORD REDIS_PASSWORD STF_SESSION_SECRET"
+SECRET_NAMES="GEMINI_API_KEY GROQ_API_KEY ELEVENLABS_API_KEY SUPABASE_SERVICE_KEY SUPABASE_SECRET_KEY SUPABASE_DATABASE_PASSWORD STF_SMTP_PASS POSTGRES_PASSWORD REDIS_PASSWORD STF_SESSION_SECRET"
 gcloud run services describe "$SERVICE" \
   --project "$PROJECT" --region "$REGION" --format=json > "$SPEC_FILE"
 SECRET_NAMES="$SECRET_NAMES" python3 - "$SPEC_FILE" "$ENV_FILE" << 'PY'
@@ -32,7 +32,8 @@ spec = json.load(open(sys.argv[1]))
 env = spec["spec"]["template"]["spec"]["containers"][0].get("env", [])
 out = {}
 for e in env:
-    if "value" in e and "value_from" not in e and e["name"] not in secret_names:
+    # UPB_*: the university's KI-Chat is never passed on to a public service's visitors
+    if "value" in e and "value_from" not in e and e["name"] not in secret_names and not e["name"].startswith("UPB_"):
         out[e["name"]] = e["value"]
 with open(sys.argv[2], "w") as f:
     f.write("\n".join(f"{k}: {json.dumps(v)}" for k, v in sorted(out.items())) + "\n")

@@ -113,7 +113,7 @@ class SimRuntime:
 
         Args:
             op: Operation name ('retrieve', 'store', 'home', or 'cycle').
-            slot: Rack slot target (e.g. 'A1'..'C4'), required for retrieve, store, and cycle.
+            slot: Rack slot target ('A1'..'C3'), required for retrieve, store, and cycle.
 
         Returns:
             Order: The newly created and queued order record.

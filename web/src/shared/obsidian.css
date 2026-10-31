@@ -1,121 +1,179 @@
 /* ==========================================================================
-   STF Obsidian Dark Theme
-   Deep industrial cyber-physical control surface:
-     - Deep obsidian canvas (#08080a)
-     - Crisp dark glass surfaces (#121217) with hairline rim borders (#22222c)
-     - High-contrast pure white typography (#ffffff) with cool slate labels (#8e8e9e)
-     - Electric violet/purple accent (#a855f7 / #9333ea) and neon pink-violet gradients
-     - Clean pill filters, stat cards, and docked panels
+   STF Liquid Glassmorphism Theme (Apple UI - Image 2 inspired)
+   - Background: Cinematic grey, white ambient specular bloom, and nearby cool slate/charcoal gradient
+   - Liquid Glassmorphism: Multi-stop optical reflection, heavy saturated blur, luminous white rim borders
+   - Specular Inner Refraction: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.65)
+   - Fully Curved Geometry: Pill capsule buttons (9999px), smooth 24px-26px glass cards & floating windows
    ========================================================================== */
 
-:root:is([data-palette="obsidian"], [data-palette="elevenlabs"]) {
+:root:is([data-tone="obsidian"], [data-palette="obsidian"]) {
   color-scheme: dark;
-  --ground: #08080a;
-  --bg: #08080a;
-  --surface: #111116;
-  --surface-2: #16161d;
-  --raised: #1c1c25;
-  --hover: #22222f;
-  --border: #22222c;
-  --border-soft: #181822;
+  --ground: #030303;
+  --bg: #030303;
+  /* Image 2 Dark Theme: sleek diagonal charcoal/graphite gradient */
+  --ground-gradient:
+    linear-gradient(135deg, #030303 0%, #1c1c1c 20%, #444444 50%, #686868 78%, #8c8c8c 100%);
+  --surface: rgba(18, 22, 28, 0.60);
+  --surface-2: rgba(14, 18, 24, 0.70);
+  --raised: rgba(255, 255, 255, 0.08);
+  --hover: rgba(255, 255, 255, 0.14);
+  --border: rgba(255, 255, 255, 0.24);
+  --border-soft: rgba(255, 255, 255, 0.14);
   --text: #ffffff;
-  --muted: #8e8e9e;
-  --faint: #5e5e6e;
+  --muted: #cbd5e1;
+  --faint: #94a3b8;
 
-  /* Cyber-Physical Electric Violet Accent */
-  --accent: #a855f7;
-  --accent-strong: #c084fc;
-  --accent-fill: #9333ea;
-  --accent-fill-hover: #a855f7;
-  --accent-weak: rgba(168, 85, 247, 0.16);
+  /* Clean Electric Blue Accent */
+  --accent: #3b82f6;
+  --accent-strong: #60a5fa;
+  --accent-fill: #2563eb;
+  --accent-fill-hover: #1d4ed8;
+  --accent-weak: rgba(59, 130, 246, 0.16);
   --on-accent: #ffffff;
 
-  --ok: #34d399;
-  --ok-weak: rgba(52, 211, 153, 0.14);
-  --ok-fill: #34d399;
-  --warn: #fbbf24;
-  --warn-weak: rgba(251, 191, 36, 0.14);
-  --warn-fill: #fbbf24;
-  --bad: #f87171;
-  --bad-weak: rgba(248, 113, 113, 0.14);
-  --bad-fill: #f87171;
+  --ok: #10b981;
+  --ok-weak: rgba(16, 185, 129, 0.16);
+  --ok-fill: #10b981;
+  --warn: #f59e0b;
+  --warn-weak: rgba(245, 158, 11, 0.16);
+  --warn-fill: #f59e0b;
+  --bad: #ef4444;
+  --bad-weak: rgba(239, 68, 68, 0.16);
+  --bad-fill: #ef4444;
 
   --ink: #ffffff;
   --sky: #38bdf8;
-  --violet: #a855f7;
+  --violet: #818cf8;
   --cyan: #22d3ee;
-  --on-ink: #08080a;
+  --on-ink: #000000;
 
-  /* Card and Panel Glass tokens */
-  --line: #22222c;
-  --card-bg: rgba(17, 17, 22, 0.88);
-  --card-line: #22222c;
-  --card-hi: rgba(255, 255, 255, 0.08);
-  --card-blur: blur(20px);
-  --glass-fill: rgba(18, 18, 24, 0.82);
-  --chrome-fill: rgba(10, 10, 13, 0.90);
-  --block-fill: rgba(16, 16, 22, 0.90);
-  --glass-rim: rgba(255, 255, 255, 0.09);
-  --glass-inner: rgba(255, 255, 255, 0.035);
-  --glass-sheen: rgba(168, 85, 247, 0.07);
-  --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 12px 32px -12px rgba(0, 0, 0, 0.8);
-  --glass-bg: var(--chrome-fill);
-  --glass-solid: #111116;
-  --glass-line: var(--line);
-  --glass-edge: var(--line);
-  --float-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px #22222c;
+  /* Card and Panel Liquid Glass Tokens (Image 2 style) */
+  --line: rgba(255, 255, 255, 0.28);
+  --card-bg:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.03) 45%, rgba(0, 0, 0, 0.16) 100%),
+    rgba(20, 25, 32, 0.50);
+  --card-line: rgba(255, 255, 255, 0.32);
+  --card-hi: rgba(255, 255, 255, 0.60);
+  --card-blur: blur(32px) saturate(200%) contrast(104%);
+  --glass-fill: rgba(255, 255, 255, 0.08);
+  --chrome-fill: rgba(18, 22, 28, 0.55);
+  --block-fill: rgba(16, 20, 26, 0.65);
+  --glass-rim: rgba(255, 255, 255, 0.40);
+  --glass-inner: rgba(255, 255, 255, 0.65);
+  --glass-sheen: rgba(255, 255, 255, 0.20);
+  --glass-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.45), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.55), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.20);
+  --glass-bg: var(--card-bg);
+  --glass-solid: #161b22;
+  --glass-line: var(--card-line);
+  --glass-edge: var(--card-line);
+  --float-shadow: 0 32px 80px -16px rgba(0, 0, 0, 0.65), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.65), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.25);
 
   /* Logos & Dynamic Gradient */
-  --cx-grad: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
-  --logo-a: #a855f7;
-  --logo-b: #ec4899;
+  --cx-grad: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  --logo-a: #ffffff;
+  --logo-b: #9ca3af;
 
-  --viewport: radial-gradient(ellipse at 50% 25%, #13111c 0%, #08080a 75%);
-  --dot: rgba(168, 85, 247, 0.05);
-  --scene-cell: #171622;
-  --scene-section: #2a2538;
+  --viewport: var(--ground-gradient);
+  --dot: rgba(255, 255, 255, 0.04);
+  --scene-cell: #1a2029;
+  --scene-section: #222b37;
+
+  /* Button Tokens: Apple Liquid Glass (Image 2 style) */
+  --btn-glass-bg:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0.10) 100%);
+  --btn-glass-bg-hover:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.20) 100%);
+  --btn-glass-border: 1px solid rgba(255, 255, 255, 0.40);
+  --btn-glass-border-hover: 1px solid rgba(255, 255, 255, 0.65);
+  --btn-glass-shadow:
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.20),
+    0 8px 24px -4px rgba(0, 0, 0, 0.40);
+  --btn-glass-shadow-hover:
+    inset 0 1px 2px 0 #ffffff,
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.30),
+    0 14px 32px -4px rgba(0, 0, 0, 0.50);
+  --btn-glass-shadow-active:
+    inset 0 1px 2px 0 rgba(0, 0, 0, 0.30),
+    0 4px 12px -2px rgba(0, 0, 0, 0.40);
+
+  /* Primary Button: Apple Liquid Glass with Bright White Text */
+  --btn-glass-primary-bg:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.20) 100%);
+  --btn-glass-primary-bg-hover:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.48) 0%, rgba(255, 255, 255, 0.18) 50%, rgba(255, 255, 255, 0.28) 100%);
+  --btn-glass-primary-border: 1px solid rgba(255, 255, 255, 0.60);
+  --btn-glass-primary-border-hover: 1px solid rgba(255, 255, 255, 0.85);
+  --btn-glass-primary-shadow:
+    inset 0 1px 2px 0 #ffffff,
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.25),
+    0 10px 28px -4px rgba(0, 0, 0, 0.45);
+  --btn-glass-primary-shadow-hover:
+    inset 0 1px 2.5px 0 #ffffff,
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.30),
+    0 16px 36px -4px rgba(0, 0, 0, 0.55);
+  --btn-glass-primary-color: #ffffff;
+
+  /* Active / Selected Capsule Pill */
+  --btn-glass-active-bg:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.10) 50%, rgba(255, 255, 255, 0.16) 100%);
+  --btn-glass-active-border: 1px solid rgba(255, 255, 255, 0.50);
+  --btn-glass-active-shadow:
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.70),
+    0 6px 20px -3px rgba(0, 0, 0, 0.35);
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) body {
-  background: var(--ground);
+:is([data-tone="obsidian"], [data-palette="obsidian"]) body {
+  background: var(--ground-gradient);
+  background-attachment: fixed;
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) body::before {
+:is([data-tone="obsidian"], [data-palette="obsidian"]) body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(ellipse 90% 45% at 50% -10%, rgba(168, 85, 247, 0.07), transparent 75%),
-              radial-gradient(ellipse 60% 40% at 90% 20%, rgba(99, 102, 241, 0.05), transparent 70%),
-              var(--ground);
+  background: var(--ground-gradient);
+  background-attachment: fixed;
 }
 
 /* --------------------------------------------------------------------------
-   Cards, KPI Metrics & Panels (Obsidian Dark)
+   Cards, KPI Metrics & Panels (Liquid Glassmorphism)
    -------------------------------------------------------------------------- */
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) :is(.db-card, .db-kpi) {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 20px -8px rgba(0, 0, 0, 0.6);
+:is([data-tone="obsidian"], [data-palette="obsidian"]) :is(.db-card, .db-kpi) {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.03) 45%, rgba(0, 0, 0, 0.16) 100%),
+    rgba(20, 25, 32, 0.50);
+  border: 1px solid rgba(255, 255, 255, 0.30);
+  border-radius: 24px;
+  -webkit-backdrop-filter: blur(32px) saturate(200%) contrast(104%);
+  backdrop-filter: blur(32px) saturate(200%) contrast(104%);
+  box-shadow:
+    0 16px 40px -8px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.20);
   transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) :is(.db-card:hover) {
-  border-color: #2e2e3b;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 24px -10px rgba(0, 0, 0, 0.7);
+:is([data-tone="obsidian"], [data-palette="obsidian"]) :is(.db-card:hover) {
+  border-color: rgba(255, 255, 255, 0.50);
+  box-shadow:
+    0 22px 50px -8px rgba(0, 0, 0, 0.55),
+    inset 0 1px 2px 0 #ffffff,
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px);
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-kpi > b {
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-kpi > b {
   color: #ffffff;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-kpi > span {
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-kpi > span {
   color: var(--muted);
   font-size: 11px;
   text-transform: uppercase;
@@ -123,201 +181,360 @@
   font-weight: 600;
 }
 
-/* Navigation Left Rail */
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-nav {
-  background: #09090c;
-  border-right: 1px solid #1c1c24;
+/* Navigation Left Rail (Liquid Glassmorphism) */
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-nav {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 45%, rgba(0, 0, 0, 0.18) 100%),
+    rgba(18, 22, 28, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 26px;
+  -webkit-backdrop-filter: blur(36px) saturate(200%) contrast(104%);
+  backdrop-filter: blur(36px) saturate(200%) contrast(104%);
+  box-shadow:
+    0 18px 45px -10px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.60),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.25);
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-nav button {
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-nav button {
   color: var(--muted);
-  border-radius: 10px;
+  border-radius: 9999px;
+  height: 38px;
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-nav button:hover {
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-nav button:hover {
   color: #ffffff;
-  background: #14141b;
+  background: rgba(255, 255, 255, 0.10);
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-nav button.on {
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-nav button.on {
   color: #ffffff;
   font-weight: 600;
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-nav-pill {
-  background: #1a1a24;
-  border: 1px solid #282836;
-  border-radius: 9px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-nav-pill {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.14) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 9999px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 1px 0 rgba(255, 255, 255, 0.60);
 }
 
-/* Top bar */
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-top {
-  background: rgba(8, 8, 10, 0.85);
-  border-bottom: 1px solid #1c1c24;
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+/* Top bar (Liquid Glassmorphism) */
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-top {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.03) 45%, rgba(0, 0, 0, 0.16) 100%),
+    rgba(20, 24, 30, 0.50);
+  border: 1px solid rgba(255, 255, 255, 0.30);
+  border-radius: 24px;
+  -webkit-backdrop-filter: blur(32px) saturate(200%) contrast(104%);
+  backdrop-filter: blur(32px) saturate(200%) contrast(104%);
+  box-shadow:
+    0 12px 36px -6px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.20);
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .ui-btn {
-  background: #14141b;
-  border: 1px solid #242430;
-  color: #f0f0f5;
-  border-radius: 8px;
+/* Buttons: Apple Liquid Glass (Image 2 style) */
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .ui-btn {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.08) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  color: #ffffff;
+  border-radius: 9999px;
   font-weight: 500;
-  transition: all 0.15s ease;
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  backdrop-filter: blur(28px) saturate(190%);
+  box-shadow:
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.20),
+    0 8px 24px -4px rgba(0, 0, 0, 0.40);
+  transition: all 0.18s cubic-bezier(.16, 1, .3, 1);
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .ui-btn:hover {
-  background: #1b1b24;
-  border-color: #323242;
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .ui-btn:hover {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.10) 50%, rgba(255, 255, 255, 0.18) 100%);
+  border-color: rgba(255, 255, 255, 0.65);
   color: #ffffff;
+  box-shadow:
+    inset 0 1px 2px 0 #ffffff,
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.25),
+    0 12px 32px -4px rgba(0, 0, 0, 0.50);
+  transform: translateY(-1px);
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .ui-btn.on,
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .ui-btn.primary {
-  background: var(--accent-fill);
-  border-color: var(--accent);
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .ui-btn:active {
+  transform: scale(0.97) translateY(0);
+}
+
+/* Primary Button: Apple Liquid Glass with Bright White Text & Enhanced Luminous Glow */
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .ui-btn.primary {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.20) 100%);
+  border-color: rgba(255, 255, 255, 0.60);
   color: #ffffff;
-  box-shadow: 0 0 16px rgba(168, 85, 247, 0.35);
+  font-weight: 600;
+  box-shadow:
+    inset 0 1px 2px 0 #ffffff,
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.25),
+    0 10px 28px -4px rgba(0, 0, 0, 0.45);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-/* Segmented controls / Tabs (Obsidian pill style) */
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .ui-seg {
-  background: #121217;
-  border: 1px solid #22222b;
-  border-radius: 10px;
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .ui-btn.primary:hover:not(:disabled) {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.48) 0%, rgba(255, 255, 255, 0.18) 50%, rgba(255, 255, 255, 0.28) 100%);
+  border-color: rgba(255, 255, 255, 0.85);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 2.5px 0 #ffffff,
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.30),
+    0 16px 36px -4px rgba(0, 0, 0, 0.55);
+  transform: translateY(-1px);
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .ui-btn.on,
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .ui-btn[aria-pressed="true"] {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.10) 50%, rgba(255, 255, 255, 0.16) 100%);
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 2px 0 #ffffff,
+    0 8px 24px -4px rgba(0, 0, 0, 0.40);
+}
+
+/* Segmented controls / Tabs (Capsule pill style) */
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .ui-seg {
+  background: rgba(18, 22, 28, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 9999px;
   padding: 3px;
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .ui-seg button {
-  border-radius: 7px;
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .ui-seg button {
+  border-radius: 9999px;
   color: var(--muted);
+  font-weight: 500;
+  transition: all 0.18s ease;
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .ui-seg button.on {
-  background: #20202a;
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .ui-seg button:hover {
   color: #ffffff;
-  border: 1px solid #30303e;
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .ui-seg button.on {
+  background: #ffffff;
+  color: #000000;
+  font-weight: 600;
+  border: 1px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* Sliders */
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) input[type="range"]::-webkit-slider-thumb {
-  background: var(--accent);
-  box-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
+:is([data-tone="obsidian"], [data-palette="obsidian"]) input[type="range"]::-webkit-slider-thumb {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* Custom Scrollbars */
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) ::-webkit-scrollbar {
+:is([data-tone="obsidian"], [data-palette="obsidian"]) ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) ::-webkit-scrollbar-track {
+:is([data-tone="obsidian"], [data-palette="obsidian"]) ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) ::-webkit-scrollbar-thumb {
-  background: #242430;
+:is([data-tone="obsidian"], [data-palette="obsidian"]) ::-webkit-scrollbar-thumb {
+  background: #1f1f26;
   border-radius: 3px;
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) ::-webkit-scrollbar-thumb:hover {
-  background: #363648;
+:is([data-tone="obsidian"], [data-palette="obsidian"]) ::-webkit-scrollbar-thumb:hover {
+  background: #33333e;
 }
 
 /* --------------------------------------------------------------------------
-   Floating Chatbot & Pinned Inspector (Obsidian Theme)
+/* --------------------------------------------------------------------------
+   Floating Chatbot & Pinned Inspector (Apple Image 2 Liquid Glass)
    -------------------------------------------------------------------------- */
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-float-trigger {
-  background: #111116;
-  border-color: #242432;
-  box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.75), 0 0 20px rgba(168, 85, 247, 0.15);
-}
-
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-float-trigger:hover {
-  border-color: var(--accent);
-  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.85), 0 0 26px rgba(168, 85, 247, 0.3);
-}
-
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-float-trigger.active {
-  background: #181822;
-  border-color: #a855f7;
-  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.25), 0 12px 30px -6px rgba(0, 0, 0, 0.8);
-}
-
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-float-trigger-mark {
-  background: rgba(168, 85, 247, 0.18);
-  color: #c084fc;
-}
-
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-float-trigger-dot {
-  background: #34d399;
-  box-shadow: 0 0 0 2px #111116, 0 0 8px #34d399;
-}
-
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-float-chat {
-  background: rgba(17, 17, 22, 0.94);
-  border-color: #262634;
-  box-shadow: 0 28px 60px -12px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.07);
-}
-
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-float-chat-h {
-  background: rgba(14, 14, 19, 0.85);
-  border-bottom-color: #1e1e28;
-}
-
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-inspector {
-  background: #0d0d12;
-  border-left-color: #1c1c24;
-}
-
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-inspector-h {
-  border-bottom-color: #1c1c24;
-}
-
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-inspector-ico {
-  background: rgba(168, 85, 247, 0.16);
-  color: #c084fc;
-}
-
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-ask-btn {
-  background: #14141d;
-  border: 1px solid #28283a;
-  color: #f0f0f5;
-}
-
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-ask-btn:hover {
-  border-color: #38bdf8;
-  color: #38bdf8;
-  box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
-}
-
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .db-ask-btn.on {
-  background: linear-gradient(135deg, #9333ea, #6366f1);
-  border-color: #a855f7;
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-float-trigger {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(0, 0, 0, 0.08) 100%),
+    rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  border-radius: 9999px;
   color: #ffffff;
-  box-shadow: 0 0 18px rgba(168, 85, 247, 0.4);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  backdrop-filter: blur(28px) saturate(200%);
+  box-shadow:
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.85),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.25),
+    0 12px 32px -4px rgba(0, 0, 0, 0.40);
+  transition: all 0.18s cubic-bezier(.16, 1, .3, 1);
 }
 
-/* Charts / Plots (ElevenLabs vibrant violet & cyan strokes) */
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .pl-grid {
-  stroke: #181824;
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-float-trigger:hover {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.14) 50%, rgba(0, 0, 0, 0.06) 100%),
+    rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.75);
+  box-shadow:
+    inset 0 1.5px 2.5px 0 #ffffff,
+    inset 0 0 0 1px rgba(255, 255, 255, 0.20),
+    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.25),
+    0 16px 36px -4px rgba(0, 0, 0, 0.48);
+  transform: translateY(-1px);
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .pl-axis {
-  stroke: #252536;
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-float-trigger.active {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.16) 50%, rgba(0, 0, 0, 0.08) 100%),
+    rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.80);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1.5px 2px 0 #ffffff,
+    0 8px 24px -2px rgba(0, 0, 0, 0.45);
 }
 
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .pl-tick,
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .pl-title,
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .pl-row {
-  fill: #8e8e9e;
-}
-
-:is([data-palette="obsidian"], [data-palette="elevenlabs"]) .pl-tip {
-  background: rgba(17, 17, 23, 0.94);
-  border-color: #2a2a3a;
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-float-trigger-mark {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.30);
   color: #ffffff;
 }
 
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-float-trigger.active .db-float-trigger-mark {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-float-trigger-dot {
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(20, 26, 36, 0.8), 0 0 8px #10b981;
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-float-chat {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.05) 45%, rgba(0, 0, 0, 0.16) 100%),
+    rgba(24, 32, 44, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.40);
+  border-radius: 26px;
+  -webkit-backdrop-filter: blur(40px) saturate(210%) contrast(106%);
+  backdrop-filter: blur(40px) saturate(210%) contrast(106%);
+  box-shadow:
+    0 32px 80px -16px rgba(0, 0, 0, 0.65),
+    0 12px 32px -8px rgba(0, 0, 0, 0.45),
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.70),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-float-chat-h {
+  background: rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-float-chat.moving,
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-float-chat.moving .db-float-chat-h {
+  cursor: grabbing !important;
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-inspector,
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .twin-pinned-chat {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.04) 40%, rgba(0, 0, 0, 0.14) 100%),
+    rgba(24, 32, 44, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 24px;
+  -webkit-backdrop-filter: blur(36px) saturate(200%) contrast(106%);
+  backdrop-filter: blur(36px) saturate(200%) contrast(106%);
+  box-shadow:
+    -14px 0 45px -12px rgba(0, 0, 0, 0.65),
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.65),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.20);
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) :is(.db-inspector-h, .twin-pinned-chat-h) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-inspector-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(0, 0, 0, 0.08) 100%),
+    rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #ffffff;
+  box-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.70), 0 2px 8px rgba(0, 0, 0, 0.35);
+  flex: none;
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-inspector-ico svg {
+  display: block;
+  margin: auto;
+}
+
+/* Ask NEXUS Header Button */
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-ask-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: all 0.18s cubic-bezier(.16, 1, .3, 1);
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-ask-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .db-ask-btn.on {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #000000;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(255, 255, 255, 0.2), 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Charts / Plots (Clean subtle hairlines) */
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .pl-grid {
+  stroke: rgba(255, 255, 255, 0.05);
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .pl-axis {
+  stroke: rgba(255, 255, 255, 0.10);
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .pl-tick,
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .pl-title,
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .pl-row {
+  fill: #9ca3af;
+}
+
+:is([data-tone="obsidian"], [data-palette="obsidian"]) .pl-tip {
+  background: rgba(10, 10, 14, 0.95);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}

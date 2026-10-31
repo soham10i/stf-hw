@@ -57,6 +57,14 @@
   color: var(--muted);
 }
 
+.consent-card p.consent-links {
+  margin-top: -6px;
+}
+
+.consent-card p.consent-links a {
+  color: var(--accent, #3b82f6);
+}
+
 .consent-card p b {
   color: var(--text);
   font-weight: 600;

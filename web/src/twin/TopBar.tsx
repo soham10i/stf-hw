@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ThemeId } from "../shared/theme";
-import { Icon, NexusMark, ThemeMenu } from "../shared/icons";
+import { Icon, ThemeMenu } from "../shared/icons";
 import { StfLogo, StfMark } from "../shared/Logo";
 import { fetchGuest, type GuestStatus } from "../shared/session";
 import type { View } from "./registry";
@@ -99,7 +99,7 @@ function SessionChip() {
   );
 }
 
-export function TopBar({ views, view, onView, status, statusTip, theme, setTheme, onOrder, onChat, chatOpen }: {
+export function TopBar({ views, view, onView, status, statusTip, theme, setTheme, onOrder }: {
   views: View[]; view: View; onView: (id: string) => void;
   status: Status; statusTip: string; theme: ThemeId; setTheme: (t: ThemeId) => void; onOrder?: () => void;
   onChat?: () => void; chatOpen?: boolean;
@@ -118,12 +118,9 @@ export function TopBar({ views, view, onView, status, statusTip, theme, setTheme
           <span className="ui-dot" />{CHIP[status][1]}
         </span>
         {onOrder && <button className="ui-btn primary" onClick={onOrder} title="Open the order form" aria-label="New order"><Icon name="plus" size={15} /><span className="hide-sm">New order</span></button>}
-        {onChat && (
-          <button className={`ui-btn db-ask-btn ${chatOpen ? "on" : ""}`} onClick={onChat} aria-expanded={chatOpen}
-            title="Ask NEXUS or place an order"><NexusMark size={15} /><span className="hide-sm">NEXUS</span></button>
-        )}
         <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html`} aria-label="Dashboard"><Icon name="gauge" size={16} /><span className="hide-sm">Dashboard</span></a>
         <ThemeMenu theme={theme} setTheme={setTheme} />
+        <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}legal/imprint.html`} title="Imprint, privacy and notices" aria-label="Imprint and privacy"><Icon name="shield" size={15} /></a>
       </div>
     </header>
   );

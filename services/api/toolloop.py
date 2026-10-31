@@ -26,6 +26,7 @@ import urllib.error
 from dataclasses import dataclass, field
 
 from . import chat as C
+from . import gemini_search as GS
 from . import tools as T
 from . import tracing as TR
 
@@ -75,6 +76,10 @@ class Adapter:
     def text(self, data: dict) -> str:
         raise NotImplementedError
 
+    def empty(self, data: dict) -> bool:
+        """Whether the provider produced thoughts or tools but no answer text."""
+        return False
+
     def keep(self, body: dict, data: dict) -> None:
         """The model's turn that asked for tools, as the API wants it back."""
         raise NotImplementedError
@@ -111,6 +116,8 @@ class Gemini(Adapter):
         data = self.chat._gemini_post(body, meta)
         if meta.get("web"):
             meta["web_sources"] = C.grounding_sources(data) or meta.get("web_sources", [])
+        # with Google Search on, Google's Search Suggestions must be shown with the answer
+        meta.setdefault("search_suggestions", []).extend(GS.search_entry(data))
         return data
 
     def think(self, data):
@@ -121,6 +128,16 @@ class Gemini(Adapter):
 
     def text(self, data):
         return C.parse(data)
+
+    def empty(self, data):
+        if (data.get("promptFeedback") or {}).get("blockReason"):
+            return False  # the safety explanation is a deliberate, usable response
+        return not any(
+            p.get("text", "").strip()
+            for c in data.get("candidates", [])[:1]
+            for p in (c.get("content") or {}).get("parts", [])
+            if not p.get("thought")
+        )
 
     def keep(self, body, data):
         # the model's turn as it came: it may carry thought signatures
@@ -168,6 +185,10 @@ class Completions(Adapter):
 
     def text(self, data):
         return C.parse_groq(data)
+
+    def empty(self, data):
+        content = self._msg(data).get("content") or ""
+        return not C.split_think(content)[1].strip()
 
     def keep(self, body, data):
         # the model's turn as it came, less what the API does not take back
@@ -275,6 +296,10 @@ class Ollama(Completions):
     def text(self, data):
         return C.parse_ollama(data)
 
+    def empty(self, data):
+        content = (data.get("message") or {}).get("content") or ""
+        return not C.split_think(content)[1].strip()
+
     def keep(self, body, data):
         body["messages"].append(data.get("message") or {})
 
@@ -339,6 +364,8 @@ class Conversation:
             calls = a.calls(data)
             if not calls:
                 self.text = a.text(data)
+                if a.empty(data):
+                    raise C.ModelError(f"{a.name} returned thoughts but no answer text")
                 return self.text
             a.keep(self.body, data)
             done = []
@@ -354,7 +381,10 @@ class Conversation:
             a.answer_back(self.body, done)
         a.last_round(self.body)
         self.final = True
-        self.text = a.text(self.post())
+        data = self.post()
+        self.text = a.text(data)
+        if a.empty(data):
+            raise C.ModelError(f"{a.name} returned thoughts but no final answer text")
         return self.text
 
     def correct(self, bad: list[str]) -> bool:
