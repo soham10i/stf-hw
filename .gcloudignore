@@ -31,8 +31,8 @@
 .env
 .env.*
 .data
-/kimi-code/
-/.claude/
+/.*
+/*-code/
 /.ruff_cache/
 /.pytest_cache/
 /*.log

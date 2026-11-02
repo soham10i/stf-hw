@@ -13,7 +13,7 @@ local, uncommitted, awaiting owner review.
    `npm audit` in `web/` (clean).
 3. **Active probes** against a locally built container (`docker build -t stf-pentest .`,
    bound to `127.0.0.1` only) — the safe test environment, no live traffic affected.
-   Script kept at `kimi-code/probe_container.sh` for reuse.
+   Script kept in local audit tools for reuse.
 4. Owner items from 2026-10-22 verified against the live service spec.
 
 ## Results of the pentest probes (container)

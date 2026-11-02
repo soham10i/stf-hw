@@ -189,7 +189,7 @@ arm:         idle ... reject pick at t0+16 ... empty-carrier return at t0+22 ...
 4. PLC states/interlocks — test 4.
 5. Renderer/scene + workers — visual check via `make api` + browser.
 6. OPC UA/AAS/dashboard/docs — additive; screenshot for the owner review bundle.
-7. Full gates + `docs/` note update; leave uncommitted with a summary in `kimi-code/SESSION_LOG.md`.
+7. Full gates + `docs/` note update; leave uncommitted with a summary in session notes.
 
 ## 12. Risks and open questions
 

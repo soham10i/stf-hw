@@ -18,7 +18,7 @@ re-verified in this pass, not assumed.
 Known cosmetic issue: the trigger's `_TRIGGER_ID` label points at a deleted first
 import; it only feeds revision labels. `triggers import` updates by name but ignores
 `build.substitutions` changes, so it was not fixable that way; left as-is, documented
-in `kimi-code/SESSION_LOG.md`.
+in session notes.
 
 ## 2. `.gcloudignore` (staging-deploy blocker)
 

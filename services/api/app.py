@@ -73,25 +73,26 @@ from pydantic import BaseModel, Field
 
 from stf_layout import get_layout
 
-from . import actions as AX
-from . import actuation as ACT
-from . import guests as G
-from . import industrial_io as IIO
-from . import live, wire
-from . import operators as OPS
-from . import security as sec
-from . import usage as U
-from . import visits as VIS
-from . import watchdog as WD
-from .captures import Captures
-from .chat import Chat, ChatRequest, dotenv
-from .factory_db import factory_from
-from .livehub import MAX_MSG as LIVE_MAX_MSG
-from .livehub import LiveHub
-from .logging_config import get_logger
-from .notify import Notifier
-from .runtime import SimRuntime
-from .tts import Stt, Tts, TtsRequest
+from services.api.industrial import actions as AX
+from services.api.industrial import actuation as ACT
+from services.api.storage import guests as G
+from services.api.industrial import industrial_io as IIO
+from services.api.core import live
+from services.api.core import wire
+from services.api.industrial import operators as OPS
+from services.api.security import security as sec
+from services.api.storage import usage as U
+from services.api.storage import visits as VIS
+from services.api.industrial import watchdog as WD
+from services.api.storage.captures import Captures
+from services.api.agent.chat import Chat, ChatRequest, dotenv
+from services.api.storage.factory_db import factory_from
+from services.api.core.livehub import MAX_MSG as LIVE_MAX_MSG
+from services.api.core.livehub import LiveHub
+from services.api.core.logging_config import get_logger
+from services.api.security.notify import Notifier
+from services.api.core.runtime import SimRuntime
+from services.api.voice.tts import Stt, Tts, TtsRequest
 
 logger = get_logger(__name__)
 
@@ -653,7 +654,7 @@ async def chat_status() -> dict:
 async def chat_graph() -> dict:
     """The copilot's steps as a graph (agent.py): the engine that runs them and the Mermaid
     diagram drawn from the compiled graph itself, so the picture cannot drift from the code."""
-    from . import agent as A
+    from services.api.agent import agent as A
 
     return {"engine": A.engine(), "nodes": list(A.NODES), "mermaid": A.mermaid()}
 

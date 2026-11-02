@@ -1,4 +1,4 @@
-"""The council's copilot fixes (kimi-code/COUNCIL_REVIEW.md), pinned by tests:
+"""Architectural copilot review fixes, pinned by tests:
 
 - copilot_setup answers "which model does the local setup use" from the .env / environment;
 - open_page fetches a public page but never a private, local or non-http(s) URL (SSRF guard);

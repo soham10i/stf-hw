@@ -77,8 +77,8 @@ dashboard question
   the fused order with zero code change and zero cost.
 - **Migration paths if credits force a move**: the client speaks the TEI `/rerank`
   protocol, so any replacement needs only the same endpoint - Azure Container Apps on
-  the student credit, a Fly.io machine, or `kimi-code/rerank_server.py` (local
-  sentence-transformers stand-in) for demos on the laptop.
+  the student credit, a Fly.io machine, or a local `rerank_server.py`
+  (sentence-transformers stand-in) for demos on the laptop.
 - **What keeps working no matter what**: pgvector/SQLite hybrid retrieval, the routing,
   the fallback ladder. The reranker is precision icing, never load-bearing.
 
