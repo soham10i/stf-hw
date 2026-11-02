@@ -120,7 +120,7 @@ export function TopBar({ views, view, onView, status, statusTip, theme, setTheme
         {onOrder && <button className="ui-btn primary" onClick={onOrder} title="Open the order form" aria-label="New order"><Icon name="plus" size={15} /><span className="hide-sm">New order</span></button>}
         <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}dashboard.html`} aria-label="Dashboard"><Icon name="gauge" size={16} /><span className="hide-sm">Dashboard</span></a>
         <ThemeMenu theme={theme} setTheme={setTheme} />
-        <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}legal/imprint.html`} title="Imprint, privacy and notices" aria-label="Imprint and privacy"><Icon name="shield" size={15} /></a>
+        <a className="ui-btn ghost" href={`${import.meta.env.BASE_URL}legal/privacy.html`} title="Privacy and notices" aria-label="Privacy and notices"><Icon name="shield" size={15} /></a>
       </div>
     </header>
   );

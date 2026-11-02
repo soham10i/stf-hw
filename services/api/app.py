@@ -1154,6 +1154,12 @@ def _ws_release(ip: str) -> None:
 # One-service deploy: the built web app (npm run build, base /stf/) served by this process,
 # so the page, the REST calls and the WebSocket share one origin. Mounted last: the API
 # routes above take precedence.
+@app.api_route("/stf/legal/imprint.html", methods=["GET", "HEAD"], include_in_schema=False)
+@app.api_route("/legal/imprint.html", methods=["GET", "HEAD"], include_in_schema=False)
+async def hide_imprint() -> Response:
+    """Hidden from production while operator details are being updated."""
+    raise HTTPException(status_code=404, detail="Page not found")
+
 _WEB = os.environ.get("STF_WEB_DIST")
 if _WEB and os.path.isdir(_WEB):
 

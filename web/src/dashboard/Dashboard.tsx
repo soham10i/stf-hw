@@ -209,7 +209,6 @@ export function Dashboard() {
         </div>
         <div className="db-legal">
           <a href={`${import.meta.env.BASE_URL}legal/privacy.html`}>Privacy</a>
-          <a href={`${import.meta.env.BASE_URL}legal/imprint.html`}>Imprint</a>
           <a href={`${import.meta.env.BASE_URL}legal/third-party-notices.txt`}>Notices</a>
         </div>
       </nav>

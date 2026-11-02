@@ -36,8 +36,6 @@ export function ConsentBanner({ page }: { page: string }) {
         </p>
         <p className="consent-links">
           <a href={`${import.meta.env.BASE_URL}legal/privacy.html`}>Privacy notice</a>
-          {" · "}
-          <a href={`${import.meta.env.BASE_URL}legal/imprint.html`}>Imprint</a>
         </p>
         <div className="consent-actions">
           <button className="consent-yes" onClick={() => answer("accepted")}>Accept</button>
