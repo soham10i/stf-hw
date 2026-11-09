@@ -2,7 +2,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: help venv install install-api test test-fast goldens lint fmt up down logs plan sim api web share pages sil vision aas opcua opcua-check uns uns-check mechanisms guide health-theory bake vision-live vision-adapt sched conformal drift decide edge edge-tpu edge-browser carbon copilot audit clean
+.PHONY: help venv install install-api test test-fast goldens lint fmt plan sim api web share pages sil vision aas opcua opcua-check uns uns-check mechanisms guide health-theory bake vision-live vision-adapt sched conformal drift decide edge edge-tpu edge-browser carbon copilot audit clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -31,15 +31,6 @@ lint: ## Lint
 
 fmt: ## Format
 	$(PY) -m ruff format packages services tests
-
-up: ## Start Mosquitto, Redis and TimescaleDB
-	docker compose up -d
-
-down: ## Stop the infrastructure
-	docker compose down
-
-logs: ## Tail infrastructure logs
-	docker compose logs -f
 
 plan: ## Print a trajectory, e.g. make plan SLOT=B2 OP=retrieve
 	@PYTHONPATH=packages $(PY) -c "\
