@@ -76,6 +76,17 @@ inverse Gaussian:
 
 $$T \sim \mathrm{IG}\!\left(\frac{1 - w}{\mu},\ \frac{(1 - w)^2}{\sigma_d^2}\right)$$
 
+The passage is to the part's failure point $w^*$, not to 1: the part fails when its RAW signal
+reaches $r_f$, and the normal-behaviour model has divided the hall temperature out of what the
+filter sees, so in a warm hall the failure comes at less wear:
+
+$$w^*(T) = \left(\frac{r_f\,e^{-\beta (T - 21)} - 1}{r_f - 1}\right)^{1/p}$$
+
+(only the belt and the air system have a temperature effect, $\beta \approx 0.004$ per degC). The
+first version passed to $w = 1$; the drift study of [trustworthy-edge.md](trustworthy-edge.md) found
+the gap - a 6 degC warmer hall left 15 of 95 failures warned late at any threshold - and with $w^*$
+the pipeline is also better on the nominal machines (below).
+
 The filter's posterior over $(w, \mu)$ is sampled and the passages mixed: the remaining life's
 P10, P50 and P90, and $P(T \le H)$ for the decision. The two uncertainty scales (how fast a rate may
 change, how much wear wanders) are calibrated on the population so the P10-P90 interval holds the
@@ -110,20 +121,25 @@ false, at most one per shift. The population machines 0-15 fit everything.
 | Method | In time | Missed | Late | Median lead (orders) | False / 1000 orders | RUL error (orders) | P10-P90 holds |
 |---|---|---|---|---|---|---|---|
 | U6 rules | 100.0 % | 0 | 0 | 687.0 | 0.77 | – | – |
-| Statistical pipeline (this) | 97.9 % | 0 | 2 | 119.0 | 0.86 | 26.9 | 81 % |
-| TCN: semi-supervised | 55.2 % | 32 | 11 | 100.5 | 0.57 | 75.0 | – |
-| TCN: supervised-only | 58.3 % | 30 | 10 | 99.0 | 0.53 | 81.5 | – |
-| TCN: oracle | 54.2 % | 40 | 4 | 87.5 | 0.24 | 48.1 | – |
+| Statistical pipeline (this) | 97.9 % | 0 | 2 | 89.0 | 0.00 | 26.7 | 81 % |
+| ... first version (failure at $w = 1$) | 97.9 % | 0 | 2 | 119.0 | 0.86 | 26.9 | 81 % |
+| TCN: semi-supervised | 66.0 % | 23 | 9 | 122.0 | 0.83 | 69.7 | – |
+| TCN: supervised-only | 64.9 % | 27 | 6 | 148.0 | 0.72 | 78.5 | – |
+| TCN: oracle | 57.4 % | 22 | 18 | 107.5 | 0.29 | 47.6 | – |
 
-94 failures on the 16 unseen machines; $p^* = 0.1$, $H = 90$ orders.
+94 failures on the 16 unseen machines; $p^* = 0.5$ ($0.1$ for the first version), $H = 90$ orders.
+The TCN rows are from its retraining on 2026-10-27: the simulator had changed since it was first
+trained, and on today's machines the old network warned 8 of 94 failures in time
+(see [trustworthy-edge.md](trustworthy-edge.md#t4---edge-inference-make-edge-make-edge-tpu-make-edge-browser)).
 
 What the numbers mean:
 
 - **In time and lead.** The rules warn every failure - but a median of 687 orders (about five
-  production days) early, throwing away that much part life. The pipeline opens the window about
-  a day ahead (119 orders): enough for the night gap, without renewing parts that had days left.
-  It pays for that with slightly more false alarms (0.86 against 0.77 per 1000 orders): $p^*$ was
-  chosen for recall.
+  production days) early, throwing away that much part life. The pipeline opens the window less
+  than a day ahead (89 orders): enough for the night gap, without renewing parts that had days left,
+  and with no false alarms. The first version needed a low $p^* = 0.1$ to warn the belt and the air
+  system in time - it did not know they fail earlier when the hall is warm - and paid for it with
+  0.86 false alarms per 1000 orders, all on the gearbox.
 - **Remaining-life error** is the median prediction's error where the true life is under 300
   orders; the TCN's is from `web/public/ml/results.json`. Physics carries most of it: the threshold
   is known and the state is linear in use.

@@ -530,6 +530,10 @@ U6-04 maintenance plan · U6-05 structure and dynamics report.
   carry over. The network therefore goes in as an advisory remaining-life estimate beside the rules (shadow mode), until it is
   trained on real run-to-failure data. The semi-supervised stages still give a better estimate from the same labels.
 - **Limits.** Everything is trained and tested on simulated machines whose wear laws were written by hand.
+- **Retrained 2026-10-27.** The simulator had changed since this training; on today's machines the network
+  above warned 8 of 94 failures in time. Retrained with the same recipe: 62 of 94 (66 %), remaining-life
+  error 69.7 orders (supervised-only 78.5, every label 47.6). The table above is the first training's
+  record. See [trustworthy-edge.md](maintenance/trustworthy-edge.md#t4---edge-inference-make-edge-make-edge-tpu-make-edge-browser).
 
 ## Upgrade 9: the cell as a microgrid (BUILT)
 

@@ -2,7 +2,7 @@
  * STF v2 — the tunnel-oven line, design preview.
  *
  * A fully self-contained scene (no shared app code): it visualizes the P1 blueprint
- * (docs/blueprints/P1_TUNNEL_OVEN.md) — HBW feed, feed pusher, 3-zone tunnel, flip chute,
+ * (STF-2 tunnel oven design) — HBW feed, feed pusher, 3-zone tunnel, flip chute,
  * sort line and empty-carrier buffer — as an animated loop. World coordinates are the
  * factory frame millimetres of packages/stf_layout/factory.layout.yaml so the preview can be
  * diffed against the future layout file.

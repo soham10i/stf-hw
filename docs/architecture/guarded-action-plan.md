@@ -8,7 +8,7 @@ A restart while an approval is pending loses nothing; a replayed or doubled appr
 nothing twice.
 
 Numbering: this is phase 5 in [agent-graph.md](agent-graph.md) (loop 5) and Phase 2 in
-[the feasibility report](../AGENTIC_SYSTEM_FEASIBILITY_REPORT.md) section 10. Status: **steps 1
+the guarded action specification. Status: **steps 1
 and 2 built** (section 9), steps 3-7 open. Decided: named operator keys, actions off on public
 `stf-live`, 5-minute proposals.
 

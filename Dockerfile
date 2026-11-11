@@ -6,7 +6,7 @@
 
 # Base images are pinned by digest (a tag can be re-pointed): refresh them on a schedule with
 #   docker buildx imagetools inspect python:3.12-slim   (and node:20-slim)
-# so Debian's security fixes arrive (docs/SECURITY_FINDINGS.md, F7).
+# so Debian's security fixes arrive (docs/SECURITY.md).
 
 # ---- 1. the web app, built for the live API (base /stf/) ----
 FROM node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS web

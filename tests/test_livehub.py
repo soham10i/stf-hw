@@ -89,7 +89,7 @@ def test_unknown_role_is_refused(app):
             ws.receive_text()
 
 
-# ---- the abuse limits (docs/SECURITY_FINDINGS.md F1-F4, F8) ----
+# ---- the abuse limits (docs/SECURITY.md) ----
 
 
 @pytest.fixture()

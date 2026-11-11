@@ -4,7 +4,7 @@ How the dashboard's copilot answers from documents, twin data and the web - what
 today, the loops each request flows through, and the design rules that keep retrieval honest
 as the system grows. Companion to the code (`services/api/grounding.py`, `vectors.py`,
 `orchestrate.py`, `chat.py`, `respond.py`, `verify.py`, `source_policy.py`, `sessions.py`)
-and the roadmap in `docs/COPILOT_ROADMAP.md`.
+and the copilot architecture in `docs/copilot/README.md`.
 
 ## 1. The pipeline as built
 
