@@ -98,7 +98,7 @@ export class NetlistSolver {
     return k;
   }
 
-  // ---------------------------------------------------------------- the graph
+  // --- the graph
   /** Replaces the wiring (a wire drawn or removed in the editor). */
   setNets(nets: WireNet[]): void {
     for (const net of nets) for (const c of net.connections) this.row(c, `net "${net.net_id}"`);
@@ -164,7 +164,7 @@ export class NetlistSolver {
     return this.node[this.row(a, "pin")] === this.node[this.row(b, "pin")];
   }
 
-  // ---------------------------------------------------------------- the checks
+  // --- the checks
   /**
    * Checks every node. `pinVolts` / `pinFlags` are the simulation's pin state (the bridge's
    * arrays, indexed like `pins`): a pin flagged high, forced or from telemetry drives its node.

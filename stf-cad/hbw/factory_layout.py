@@ -28,7 +28,7 @@ machine - the photo fixes the arrangement, not millimetres.
 from hbw_model import P
 from variant import UP1
 
-# --- front row: the oven <-> sorting hand-over fixes both placements --------
+# --- front row: the oven <-> sorting hand-over fixes both placements
 SORT_ROT = 90.0
 SORT_TX, SORT_TY = 650.0, 424.0
 OVEN_ROT = 90.0
@@ -41,14 +41,15 @@ OVEN_TY = 10.0
 #   so the workpiece lands on belt, not on its end drum:
 #       SORT_TY + BELT[0] = OVEN_TY + X_LINE - 30
 def _solve_oven_tx():
-    import oven_model as OM, sorting_model as SM
+    import oven_model
+    import sorting_model
     # the oven belt's NOSE tip ends right above the sorting belt's centre line
-    return SORT_TX - (SM.S["BELT"][1] + SM.S["BELT"][3] / 2) + OM.O["BELT_Y"][1]
+    return SORT_TX - (sorting_model.S["BELT"][1] + sorting_model.S["BELT"][3] / 2) + oven_model.O["BELT_Y"][1]
 
 
 OVEN_TX = 1212.0
 OVEN_AT = (OVEN_TX, OVEN_TY)          # the translation part of the oven's placement
-# --- back row -------------------------------------------------------------
+# --- back row
 # 2x oven and sorting line (2026-09-27): the oven is 760 deep, so with its belt
 # meeting the sorting inlet it reaches back into the back row. The VGR stands
 # behind the sorting line, beside the oven; the HBW behind the oven. The corner
@@ -64,8 +65,8 @@ PLC_AT = (60.0, 20.0)
 
 
 def plc_rect():
-    import plc_model as PM
-    return [PLC_AT[0], PLC_AT[1], PM.C["PLATE"][0], PM.C["PLATE"][1]]
+    import plc_model
+    return [PLC_AT[0], PLC_AT[1], plc_model.C["PLATE"][0], plc_model.C["PLATE"][1]]
 
 
 def to_factory_oven(x, y, z=0.0):
@@ -100,8 +101,8 @@ def to_factory_sort(x, y, z=0.0):
 
 
 def sort_rect():
-    import sorting_model as SM
-    sx, sy = SM.S["PLATE"][0], SM.S["PLATE"][1]
+    import sorting_model
+    sx, sy = sorting_model.S["PLATE"][0], sorting_model.S["PLATE"][1]
     xs = [to_factory_sort(x, y)[0] for x in (0, sx) for y in (0, sy)]
     ys = [to_factory_sort(x, y)[1] for x in (0, sx) for y in (0, sy)]
     return [min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys)]
@@ -109,26 +110,26 @@ def sort_rect():
 
 def sort_handovers():
     """The three Lagerstellen, in factory coordinates."""
-    import sorting_model as SM
-    return {k: to_factory_sort(*v) for k, v in SM.handover_points().items()}
+    import sorting_model
+    return {k: to_factory_sort(*v) for k, v in sorting_model.handover_points().items()}
 
 
 def vgr_rect():
-    import vgr_model as VG
+    import vgr_model
     vx, vy = VGR_AT
-    return [vx, vy, VG.V["PLATE"][0], VG.V["PLATE"][1]]
+    return [vx, vy, vgr_model.V["PLATE"][0], vgr_model.V["PLATE"][1]]
 
 
 def oven_rect():
-    import oven_model as OM
-    b = oven_box((0, 0, 0, OM.O["PLATE"][0], OM.O["PLATE"][1], 0))
+    import oven_model
+    b = oven_box((0, 0, 0, oven_model.O["PLATE"][0], oven_model.O["PLATE"][1], 0))
     return [b[0], b[1], b[3] - b[0], b[4] - b[1]]
 
 
 def oven_handover():
     """The oven's hand-over - the extended Ofenschieber - in factory coords."""
-    import oven_model as OM
-    h = OM.handover_point()
+    import oven_model
+    h = oven_model.handover_point()
     return to_factory_oven(h[0], h[1], h[2])
 
 
@@ -139,9 +140,9 @@ def belt_handovers():
 
 
 def vgr_tower():
-    import vgr_model as VG
+    import vgr_model
     vx, vy = VGR_AT
-    return (vx + VG.V["CX"], vy + VG.V["CY"])
+    return (vx + vgr_model.V["CX"], vy + vgr_model.V["CY"])
 
 
 def solve_station(target_xy):
@@ -153,13 +154,15 @@ def solve_station(target_xy):
     the export takes its stops from here rather than from typed-in numbers, so a
     station cannot drift away from the geometry that defines it.
     """
-    import math, vgr_model as VG
+    import math
+
+    import vgr_model
     tx, ty = vgr_tower()
     dx, dy = target_xy[0] - tx, target_xy[1] - ty
     r = math.hypot(dx, dy)
     swivel = math.degrees(math.atan2(dx, -dy))
-    reach = r - VG.cup_radius(0.0)
-    s0, s1 = VG.V["SWIVEL"]; r0, r1 = VG.V["REACH"]
+    reach = r - vgr_model.cup_radius(0.0)
+    s0, s1 = vgr_model.V["SWIVEL"]; r0, r1 = vgr_model.V["REACH"]
     ok = s0 <= swivel <= s1 and r0 <= reach <= r1
     return {"swivel": round(swivel, 3), "reach": round(reach, 3),
             "distance": round(r, 3), "in_envelope": ok}
@@ -167,9 +170,11 @@ def solve_station(target_xy):
 
 def cup_at(swivel_deg, reach):
     """Where the cup actually lands, in factory coordinates."""
-    import math, vgr_model as VG
+    import math
+
+    import vgr_model
     tx, ty = vgr_tower()
-    r = VG.cup_radius(reach)
+    r = vgr_model.cup_radius(reach)
     t = math.radians(swivel_deg)
     return (tx + r * math.sin(t), ty - r * math.cos(t))
 
@@ -183,8 +188,8 @@ def stations():
     for col, pt in sort_handovers().items():
         out[f"bay_{col}"] = {"target": [pt[0], pt[1]], **solve_station(pt[:2])}
     if UP1:
-        import upgrade as U
-        for nm, pt in U.nests().items():
+        import upgrade
+        for nm, pt in upgrade.nests().items():
             out[nm] = {"target": [pt[0], pt[1]], **solve_station(pt)}
     for n in NEIGHBOURS:                       # centre of each reserved footprint
         x, y, w, h = n["rect"]
@@ -202,9 +207,11 @@ def reach_coverage():
     sorting stations are designed, their hand-over ports can be put somewhere the
     arm can get to instead of being discovered unreachable afterwards.
     """
-    import math, vgr_model as VG
+    import math
+
+    import vgr_model
     tx, ty = vgr_tower()
-    r0, r1 = VG.cup_radius(VG.V["REACH"][0]), VG.cup_radius(VG.V["REACH"][1])
+    r0, r1 = vgr_model.cup_radius(vgr_model.V["REACH"][0]), vgr_model.cup_radius(vgr_model.V["REACH"][1])
     out = []
     for n in NEIGHBOURS:
         x, y, w, h = n["rect"]
@@ -305,7 +312,8 @@ def check_cross(tol=0.05):
     """Cross-module interference. Each module passes its own proof; this is the
     pairs. The VGR is checked at BOTH its stations against the module it is
     reaching into and against the other one it might sweep past."""
-    import vgr_model as VG, oven_model as OM
+    import oven_model
+    import vgr_model
     from hbw_model import build as hbw_build
     vx, vy = VGR_AT
     assert abs(_solve_oven_tx() - OVEN_TX) < 1e-6, "oven belt no longer meets the sorting rail"
@@ -323,15 +331,15 @@ def check_cross(tol=0.05):
     # the same spot over the extended tray otherwise. That is a coordination rule
     # between two modules, and this is where it gets enforced.
     oven = []
-    for p in OM.build(sauger=OM.O["SAUGER"][1]):      # slider out, door open
+    for p in oven_model.build(sauger=oven_model.O["SAUGER"][1]):  # slider out, door open
         if p.group == "frame":
             continue
         a = p.local_aabb()
         oven.append((f"OVEN {p.name}", oven_box(a)))
 
-    import sorting_model as SM
+    import sorting_model
     sort = []
-    for p in SM.build():
+    for p in sorting_model.build():
         if p.group == "frame":
             continue
         a = p.local_aabb()
@@ -340,9 +348,9 @@ def check_cross(tol=0.05):
                                         max(c0[0], c1[0]), max(c0[1], c1[1]), a[5])))
 
     bad = []
-    import plc_model as PM
+    import plc_model
     plc = []
-    for p in PM.build():
+    for p in plc_model.build():
         if p.group == "frame":
             continue
         a = p.local_aabb()
@@ -350,10 +358,10 @@ def check_cross(tol=0.05):
                                       a[3] + PLC_AT[0], a[4] + PLC_AT[1], a[5])))
     ups = []
     if UP1:
-        import upgrade as U
-        ups = [(f"UP1 {p.name}", a) for _, p, a in U.factory_parts()]
+        import upgrade
+        ups = [(f"UP1 {p.name}", a) for _, p, a in upgrade.factory_parts()]
         vgr_world = []
-        for p in VG.build():
+        for p in vgr_model.build():
             if p.group == "frame" or p.frame != "world":
                 continue
             a = p.local_aabb()
@@ -378,25 +386,25 @@ def check_cross(tol=0.05):
     for station, st in stations().items():
         if station not in BUILT_STATIONS:
             continue
-        for pl in (VG.V["PLUNGE"][1], 220.0, 190.0, 158.0, VG.V["PLUNGE"][0]):
+        for pl in (vgr_model.V["PLUNGE"][1], 220.0, 190.0, 158.0, vgr_model.V["PLUNGE"][0]):
             if not vgr_plunge_allowed(station, pl):
                 continue
-            vparts = VG.build(st["swivel"], pl, st["reach"])
-            if VG.carry_allowed(pl):
-                vparts = vparts + VG.held_cookie(st["swivel"], pl, st["reach"])
+            vparts = vgr_model.build(st["swivel"], pl, st["reach"])
+            if vgr_model.carry_allowed(pl):
+                vparts = vparts + vgr_model.held_cookie(st["swivel"], pl, st["reach"])
             for p in vparts:
                 if p.group == "frame":
                     continue
-                a = VG.world_aabb(p, st["swivel"])
+                a = vgr_model.world_aabb(p, st["swivel"])
                 va = (a[0] + vx, a[1] + vy, a[2], a[3] + vx, a[4] + vy, a[5])
                 # the part's own (unrotated) box, then where its centre lands
                 la = p.local_aabb()
                 lc = ((la[0] + la[3]) / 2, (la[1] + la[4]) / 2)
                 import math as _m
                 t = _m.radians(st["swivel"]); ct, stt = _m.cos(t), _m.sin(t)
-                dxp, dyp = lc[0] - VG.V["CX"], lc[1] - VG.V["CY"]
-                vc = (vx + VG.V["CX"] + dxp * ct - dyp * stt,
-                      vy + VG.V["CY"] + dxp * stt + dyp * ct)
+                dxp, dyp = lc[0] - vgr_model.V["CX"], lc[1] - vgr_model.V["CY"]
+                vc = (vx + vgr_model.V["CX"] + dxp * ct - dyp * stt,
+                      vy + vgr_model.V["CY"] + dxp * stt + dyp * ct)
                 vh = ((la[3] - la[0]) / 2, (la[4] - la[1]) / 2)
                 ang = 0.0 if p.frame == "world" else st["swivel"]
                 if p.frame == "world":
@@ -416,12 +424,14 @@ def check_cross(tol=0.05):
 
 def vgr_reach_check():
     """The VGR tower must be inside cup reach of the belt's VGR hand-over."""
-    import math, vgr_model as VG
+    import math
+
+    import vgr_model
     vx, vy = VGR_AT
-    tower = (vx + VG.V["CX"], vy + VG.V["CY"])
+    tower = (vx + vgr_model.V["CX"], vy + vgr_model.V["CY"])
     tgt = belt_handovers()["vgr"]
     d = math.hypot(tgt[0] - tower[0], tgt[1] - tower[1])
-    rmin, rmax = VG.cup_radius(VG.V["REACH"][0]), VG.cup_radius(VG.V["REACH"][1])
+    rmin, rmax = vgr_model.cup_radius(vgr_model.V["REACH"][0]), vgr_model.cup_radius(vgr_model.V["REACH"][1])
     return d, rmin, rmax, rmin <= d <= rmax
 
 

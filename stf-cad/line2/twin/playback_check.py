@@ -25,7 +25,7 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "out")
 sys.path.insert(0, HERE)
-import playback as PB                                       # noqa: E402
+import playback  # noqa: E402
 
 TOL_MESH, TOL_CYL = 0.2 + 1e-3, 0.05
 NGON = 96
@@ -64,7 +64,7 @@ def python_boxes(tl, frames):
                 rows[n] = (box(m, cyl), vis, "cyl")
             elif n in tl.spawn:
                 s = tl.spawn[n]
-                base = PB.cylinder_matrix(s["p"], s["s"][0], s["s"][2], s["s"][1])
+                base = playback.cylinder_matrix(s["p"], s["s"][0], s["s"][2], s["s"][1])
                 rows[n] = (box(m @ base, cyl), vis, "cyl")
             elif n in idx:
                 rows[n] = (box(m, v_of(n)), vis, "mesh")
@@ -145,7 +145,7 @@ def check(verbose=True):
 
     ref = json.load(open(os.path.join(OUT, "playback_ref.json")))
     frames = [int(k) for k in ref["frames"]]
-    tl = PB.Timeline()
+    tl = playback.Timeline()
     row("reference", f"FreeCAD player: {ref['objects']} moved objects x {len(frames)} frames", "every mover", ref["objects"] > 0)
     compare("P1 Python", ref, python_boxes(tl, frames), row)
     colours = expected_colours(tl, frames)

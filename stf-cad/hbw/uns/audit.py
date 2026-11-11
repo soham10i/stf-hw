@@ -13,7 +13,7 @@ from collections import defaultdict
 
 from paho.mqtt.subscribeoptions import SubscribeOptions
 
-from uns import sparkplug as SP
+from uns import sparkplug
 from uns.client import connect, make
 
 NODE_KINDS = {"NBIRTH", "NDATA", "NDEATH", "NCMD"}
@@ -75,7 +75,7 @@ def audit(records, namespace="spBv1.0"):
         if parts[0] != namespace:
             continue
         stats["messages"] += 1
-        # ---- STATE
+        # --- STATE
         if parts[1] == "STATE":
             stats["STATE"] += 1
             try:
@@ -100,7 +100,7 @@ def audit(records, namespace="spBv1.0"):
             continue
         kind = parts[2] if len(parts) > 2 else ""
         stats[kind] += 1
-        # ---- topics
+        # --- topics
         dev_ok = (len(parts) == 5) if kind in DEVICE_KINDS else (len(parts) == 4)
         v.check("topic-structure-namespace-device-id-associated-message-types" if kind in DEVICE_KINDS
                 else "topic-structure-namespace-device-id-non-associated-message-types", dev_ok, r["topic"])
@@ -109,9 +109,9 @@ def audit(records, namespace="spBv1.0"):
             continue
         key, device = (parts[1], parts[3]), (parts[4] if len(parts) > 4 else None)
         n = node(key)
-        # ---- payload
+        # --- payload
         try:
-            p = SP.decode(r["raw"])
+            p = sparkplug.decode(r["raw"])
             v.check("message-flow-edge-node-birth-publish-nbirth-payload" if kind == "NBIRTH" else "stf-payload-decodes", True)
         except Exception as e:                          # noqa: BLE001
             v.check("stf-payload-decodes", False, f"{r['topic']}: {e}")
@@ -121,7 +121,7 @@ def audit(records, namespace="spBv1.0"):
             for m in p.metrics:
                 if m.name == REBIRTH:
                     v.check("operational-behavior-data-commands-ncmd-rebirth-verb", kind == "NCMD", r["topic"])
-                    v.check("operational-behavior-data-commands-ncmd-rebirth-value", SP.get_value(m) is True, "rebirth not true")
+                    v.check("operational-behavior-data-commands-ncmd-rebirth-value", sparkplug.get_value(m) is True, "rebirth not true")
                     pending_rebirth[key] = r["t"]
             continue
         if kind == "NDEATH":
@@ -130,7 +130,7 @@ def audit(records, namespace="spBv1.0"):
             v.check("topics-ndeath-seq", not p.HasField("seq"), "NDEATH has a seq")
             only = len(p.metrics) == 1 and p.metrics[0].name == "bdSeq"
             v.check("topics-ndeath-payload", only, f"{[m.name for m in p.metrics]}")
-            bd = SP.get_value(p.metrics[0]) if only else None
+            bd = sparkplug.get_value(p.metrics[0]) if only else None
             if n.get("walk") is not None:
                 v.check("operational-behavior-primary-application-state-with-multiple-servers-walk",
                         r["t"] - n["walk"] < 2.0, f"NDEATH {r['t'] - n['walk']:.2f} s after the host went offline")
@@ -139,7 +139,7 @@ def audit(records, namespace="spBv1.0"):
                 v.check("topics-nbirth-bdseq-matching", bd == n["bd"], f"NDEATH bdSeq {bd}, NBIRTH bdSeq {n['bd']}")
             n.update(born=False, dead_since_birth=True, devices=set(), prev_bd=n["bd"] if not n["dead_since_birth"] else n["prev_bd"])
             continue
-        # ---- every message from the edge node but NDEATH
+        # --- every message from the edge node but NDEATH
         v.check({"NBIRTH": "topics-nbirth-mqtt", "DBIRTH": "topics-dbirth-mqtt", "DDATA": "topics-ddata-mqtt",
                  "NDATA": "topics-ndata-mqtt", "DDEATH": "topics-ddeath-mqtt"}[kind],
                 r["qos"] == 0 and not r["retain"], f"{kind} QoS {r['qos']} retain {r['retain']}")
@@ -156,9 +156,9 @@ def audit(records, namespace="spBv1.0"):
             names = [m.name for m in p.metrics]
             bdm = [m for m in p.metrics if m.name == "bdSeq"]
             v.check("topics-nbirth-bdseq-included", len(bdm) == 1, "no bdSeq")
-            bd = SP.get_value(bdm[0]) if bdm else None
+            bd = sparkplug.get_value(bdm[0]) if bdm else None
             reb = [m for m in p.metrics if m.name == REBIRTH]
-            v.check("topics-nbirth-rebirth-metric", len(reb) == 1 and reb[0].datatype == 11 and SP.get_value(reb[0]) is False,
+            v.check("topics-nbirth-rebirth-metric", len(reb) == 1 and reb[0].datatype == 11 and sparkplug.get_value(reb[0]) is False,
                     "Node Control/Rebirth missing, not boolean or not false")
             v.check("operational-behavior-data-commands-rebirth-name-aliases", all(not m.HasField("alias") for m in reb),
                     "Node Control/Rebirth has an alias")
@@ -174,7 +174,7 @@ def audit(records, namespace="spBv1.0"):
             _birth(v, n, p, None, kind)
             stats["names"] = len(names)
             continue
-        # ---- after the NBIRTH: seq continuity
+        # --- after the NBIRTH: seq continuity
         if n.get("walk") is not None and r["t"] - n["walk"] > 0.5:
             v.check("operational-behavior-primary-application-state-with-multiple-servers-walk", False,
                     f"{kind} {r['t'] - n['walk']:.2f} s after the host went offline")
@@ -202,7 +202,7 @@ def audit(records, namespace="spBv1.0"):
             for m in p.metrics:
                 v.check("topics-nbirth-metric-reqs" if kind == "NDATA" else "topics-dbirth-metric-reqs",
                         m.alias in n["aliases"], f"alias {m.alias} in no birth")
-                val = SP.get_value(m)
+                val = sparkplug.get_value(m)
                 v.check("topics-ddata-payload" if kind == "DDATA" else "operational-behavior-data-publish-nbirth-change",
                         n["last"].get(m.alias, object()) != val, f"{kind} alias {m.alias} repeats its value {val!r}")
                 n["last"][m.alias] = val
@@ -224,4 +224,4 @@ def _birth(v, n, p, device, kind):
         if m.HasField("alias"):
             v.check("payloads-alias-uniqueness", m.alias not in n["aliases"], f"alias {m.alias} used twice")
             n["aliases"][m.alias] = (device, m.name)
-            n["last"][m.alias] = SP.get_value(m)
+            n["last"][m.alias] = sparkplug.get_value(m)

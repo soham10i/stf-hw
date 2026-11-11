@@ -42,19 +42,21 @@ import json
 import math
 import os
 import random
+import re
+import time
 from dataclasses import dataclass, field
 
-import oven_model as OM
+import oven_model
 
 SIG = 5.670e-8                 # W/(m2 K4)
 R_GAS = 8.314                  # J/(mol K)
 K0 = 273.15
 OUT = os.path.join(os.path.dirname(__file__), "..", "..", "web", "public", "bake")
 
-# ------------------------------------------------------------------ parameters
+# --- parameters
 # (value, unit, source). source: "model" = taken from oven_model.py; "assumed" = a typical
 # value, to be measured; "calibrated" = chosen so the nominal bake matches typical practice.
-q = OM.O
+q = oven_model.O
 _ix0 = q["CH_X"][0] + q["WALL"]
 IN_L = (q["CH_X"][1] - _ix0) / 1000                         # m, interior depth (back to mouth)
 IN_W = (q["CH_Y"][1] - q["CH_Y"][0] - 2 * q["WALL"]) / 1000  # m, interior width
@@ -135,7 +137,7 @@ def psat(t_c):
 PSAT100 = psat(100.0)
 
 
-# ------------------------------------------------------------------ the oven and the cookie
+# --- the oven and the cookie
 @dataclass
 class Dough:
     thick: float = 0.008       # m
@@ -401,13 +403,13 @@ def wet_pct(x):
     return 100 * x / (1 + x)
 
 
-# ------------------------------------------------------------------ the cycle around a bake
+# --- the cycle around a bake
 def cycle(wait: float):
     """The segments around one bake, from the oven's step table (motion.OVEN_CYCLE): (seconds,
     door open, tray inside, cookie on the tray). `wait` is how long the presented tray waits
     for the robot to lay the next cookie on it."""
-    import motion as MO
-    d = [r[0] for r in MO.OVEN_CYCLE]
+    import motion
+    d = [r[0] for r in motion.OVEN_CYCLE]
     before = [(d[1], True, True, False), (d[2], True, False, False), (wait, True, False, False),
               (d[3], True, False, True), (d[4], True, True, True)]
     after = [(d[6], True, True, True), (d[7], True, False, True), (d[8] + d[9] + d[10], True, False, True),
@@ -464,8 +466,8 @@ def preheat(amb: float, power: float, dt: float) -> tuple[Oven, float]:
 
 
 def hall(t_h: float) -> float:
-    import month as MN
-    return MN.temperature(t_h)
+    import month
+    return month.temperature(t_h)
 
 
 def run(policy: str, seed: int, n_lots: int = 4, dt: float | None = None, trace: bool = False,
@@ -562,7 +564,7 @@ def run(policy: str, seed: int, n_lots: int = 4, dt: float | None = None, trace:
             "power_learnt": round(sh.power, 3), "trace": tr}
 
 
-# ------------------------------------------------------------------ a nominal bake, and the checks
+# --- a nominal bake, and the checks
 def nominal(n: int | None = None, dt: float | None = None, d: Dough | None = None, power: float = 1.0,
             setpoint: float | None = None, amb: float = 21.0, trace: bool = False) -> dict:
     """One cookie in a settled oven, door shut, no disturbance: when it is done, when its
@@ -727,7 +729,7 @@ def mutations(runs_small: dict) -> list[tuple[str, bool]]:
     return out
 
 
-# ------------------------------------------------------------------ what it means for the cell
+# --- what it means for the cell
 ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 
 
@@ -735,17 +737,17 @@ def throughput(bake_s: float) -> dict:
     """The 12-cookie order through the PLC's own schedule (control.py) with the booklet's 2 s
     demo bake and with the real bake; the oven's own limit; how many ovens the rest of the
     cell could feed."""
-    import control as C
+    import control
     rows = []
     try:
-        for label, b in (("demo bake (lamp, 2 s)", C.BAKE_DEMO), ("real bake", bake_s)):
-            C.BAKE["s"] = b
-            _, ev, T, _ = C.simulate(C.PLC_POLICY)
+        for label, b in (("demo bake (lamp, 2 s)", control.BAKE_DEMO), ("real bake", bake_s)):
+            control.BAKE["s"] = b
+            _, ev, T, _ = control.simulate(control.PLC_POLICY)
             baked = sum(1 for _, w, j in ev if w == "end" and j[0] == "bake")
             rows.append({"case": label, "bake_s": round(b, 1), "order_s": T, "baked": baked,
                          "cookies_h": round(baked * 3600 / T, 1)})
     finally:
-        C.BAKE["s"] = C.BAKE_DEMO
+        control.BAKE["s"] = control.BAKE_DEMO
     before, after = cycle(8.9)
     handling = sum(x[0] for x in before + after)
     per_cookie_rest = rows[0]["order_s"] / rows[0]["baked"]     # what the rest of the cell needs per cookie
@@ -804,7 +806,7 @@ def main() -> int:
     shift_h = runs["ir"][0]["t_s"] / 3600
     kwh_shift = sum(r["heater_kwh"] for r in runs["ir"]) / SHIFTS
     per_h = kwh_shift / shift_h
-    month = cell_month_kwh()
+    cell_kwh = cell_month_kwh()
     oven_month = per_h * 16 * 30 + h["preheat_kwh"] * 30           # two 8 h shifts a day, one preheat
     rest = tp["rows"][0]
     real = tp["rows"][1]
@@ -822,7 +824,7 @@ def main() -> int:
         f"{best['ok_pct']} %: the hardware this upgrade asks for.",
         f"Each cookie costs about {best['wh_per_cookie']:.0f} Wh of heat; the oven holds 180 C on {h['hold_w']:.0f} W and "
         f"preheats in {h['t180'] / 60:.1f} min ({h['preheat_kwh'] * 1000:.0f} Wh). Two shifts a day come to about "
-        f"{oven_month:.0f} kWh a month" + (f", {oven_month / month:.1f} times the rest of the cell's {month:.0f} kWh." if month else "."),
+        f"{oven_month:.0f} kWh a month" + (f", {oven_month / cell_kwh:.1f} times the rest of the cell's {cell_kwh:.0f} kWh." if cell_kwh else "."),
         f"The cell's microgrid was sized for a 5 W lamp: its 600 W inverter cannot run the "
         f"{(V['p_top'] + V['p_bot']):.0f} W of elements. The oven needs its own 230 V supply, or the microgrid resizing.",
         f"After every door opening the air overshoots to at most {max(r['peak_air'] for r in pol):.0f} C, "
@@ -847,7 +849,7 @@ def main() -> int:
         "policies": pol, "shifts": SHIFTS, "lot_size": LOT_SIZE,
         "throughput": tp,
         "energy": {"wh_per_cookie": best["wh_per_cookie"], "hold_w": round(h["hold_w"]), "preheat_kwh": round(h["preheat_kwh"], 3),
-                   "kwh_per_shift_h": round(per_h, 3), "oven_month_kwh": round(oven_month), "cell_month_kwh": month,
+                   "kwh_per_shift_h": round(per_h, 3), "oven_month_kwh": round(oven_month), "cell_month_kwh": cell_kwh,
                    "ledger_kwh": runs["ir"][0]["ledger_kwh"]},
         "checks": {"fails": fails, "mutations": [{"name": n, "caught": ok} for n, ok in muts]},
         "findings": findings,
@@ -858,7 +860,7 @@ def main() -> int:
     with open(os.path.join(OUT, "process.json"), "w") as f:
         json.dump(out, f, separators=(",", ":"))
     write_doc(out)
-    print(f"wrote web/public/bake/process.json and docs/process/README.md in {time.time() - t0:.0f} s")
+    print(f"wrote web/public/bake/process.json and docs/reference/process/README.md in {time.time() - t0:.0f} s")
     for r in pol:
         print(f"  {r['name']:22s} ok {r['ok_pct']:5.1f} %  (fridge {r['ok_pct_fridge']} %)  bake {r['bake_mean']:.0f} +- {r['bake_sd']:.0f} s")
     for f in findings:
@@ -866,7 +868,7 @@ def main() -> int:
     return 1 if fails else 0
 
 
-# ------------------------------------------------------------------ the chapter
+# --- the chapter
 def _line(pattern: str, path: str = "stf-cad/hbw/bake.py") -> str:
     import re
     for i, text in enumerate(open(os.path.join(ROOT, path), encoding="utf-8"), 1):
@@ -875,8 +877,17 @@ def _line(pattern: str, path: str = "stf-cad/hbw/bake.py") -> str:
     raise SystemExit(f"bake.py: '{pattern}' is no longer in {path}")
 
 
+
+def front_matter(md: str, scope: str, module: str, generated_by: str) -> str:
+    """The front matter every docs/reference document starts with (docs/README.md); a
+    regenerated document carries the date it was generated."""
+    title = re.search(r"^#\s+(.+)$", md, re.M).group(1).strip()
+    q = lambda s: '"' + s.replace('"', '\\"') + '"'  # noqa: E731
+    return (f"---\ntitle: {q(title)}\nscope: {q(scope)}\nmodule: {module}\n"
+            f"last_verified: {time.strftime('%Y-%m-%d')}\ngenerated_by: {generated_by}\n---\n\n" + md)
+
 def write_doc(o: dict) -> None:
-    """docs/process/README.md: the model, its equations with their lines, the results."""
+    """docs/reference/process/README.md: the model, its equations with their lines, the results."""
     h, n, tp, e = o["heatup"], o["nominal"], o["throughput"], o["energy"]
     d = o["derived"]
     pol = {r["policy"]: r for r in o["policies"]}
@@ -1055,11 +1066,13 @@ inverter cannot run 1 300 W of elements.
 
 *Generated by `stf-cad/hbw/bake.py` (`make bake`); edit the model, not this file.*
 """
-    path = os.path.join(ROOT, "docs", "process", "README.md")
+    path = os.path.join(ROOT, "docs", "reference", "process", "README.md")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     md = md.replace("{,}", ",")
+    scope = ("The bake as a physical process (Upgrade 19): the oven's heat-up and hold, the cookie's heat "
+             "and water balance, three ways to end a bake, capacity and energy.")
     with open(path, "w", encoding="utf-8") as f:
-        f.write(md)
+        f.write(front_matter(md, scope, "process", "stf-cad/hbw/bake.py"))
 
 
 if __name__ == "__main__":

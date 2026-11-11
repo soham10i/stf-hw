@@ -26,7 +26,7 @@ from itertools import combinations
 
 from variant import UP1, UP3, UP4
 
-# ---------------------------------------------------------------- parameters
+# --- parameters
 P = dict(
     # base plate - enlarged so the oven / VGR / sorting modules chain on in FRONT
     PLATE=(860.0, 640.0, 10.0),
@@ -167,7 +167,8 @@ MOULD_SLOTS = "A1 A2 A3 A4 B1 B2 B3 B4 C1 C2 C3".split()
 FREE_SLOT = "C4"
 # The cookies themselves come from pipeline.py - the ONE place they exist. If a
 # scene invented its own the twelve would silently become thirteen.
-from pipeline import RACK_START, FLAVOURS, RAW_COLOUR   # noqa: E402
+from pipeline import FLAVOURS, RACK_START, RAW_COLOUR  # noqa: E402
+
 COOKIE_SLOTS = [s for s, _ in RACK_START]
 COOKIE_FLAVOUR = dict(RACK_START)
 assert set(COOKIE_SLOTS) <= set(MOULD_SLOTS), "a cookie needs a mould under it"
@@ -195,7 +196,7 @@ def build(travel=665.0, lift=120.0, fork=0.0, carrying=False):
            "slate", "table", note="ft base plate, 900 x 620 - the front half is "
                                   "kept clear for the oven / VGR / sorting modules"))
 
-    # ---------------------------------------------------------------- rack
+    # --- rack
     y0, dy, po, ph = q["RACK_Y0"], q["RACK_DEPTH"], q["POST"], q["POST_H"]
     post_x = [q["BAY_X"][0] - q["BAY_PITCH"] / 2] + \
              [b + q["BAY_PITCH"] / 2 for b in q["BAY_X"]]
@@ -215,7 +216,7 @@ def build(travel=665.0, lift=120.0, fork=0.0, carrying=False):
                        note="red shelf bracket; the 40 mm gap between the pair is "
                             "the passage for the fork table and the Ausleger arm"))
 
-    # --------------------------------------------------- moulds + cookies
+    # --- moulds + cookies
     for sid in MOULD_SLOTS:
         sx, sy, sz = slot_pose(sid)
         mould(out, sid, sx, y0, sz, support=f"shelf_{sid}_L")
@@ -226,7 +227,7 @@ def build(travel=665.0, lift=120.0, fork=0.0, carrying=False):
             cookie(out, sid, sx, sy, sz + q["MOULD"][2], support=f"mould_{sid}_base",
                    lid=RAW_COLOUR)
 
-    # ------------------------------------------------- crane travel rail
+    # --- crane travel rail
     ry, rz_ = q["RAIL_Y"], q["ROD_Z"]
     bx0, bx1 = q["BLK_X"]; bw, bd, bh = q["BLK"]
     for nm, bx in (("L", bx0), ("R", bx1)):
@@ -251,7 +252,7 @@ def build(travel=665.0, lift=120.0, fork=0.0, carrying=False):
            "green", "I1_post", tag="I1",
            note="Mini-Taster 37783, struck by the carriage at the conveyor end"))
 
-    # --------------------------------------------------------- crane body
+    # --- crane body
     cw, cd, ch = q["CAR"]
     A(Part("travel_carriage", "crane", "box", (X - cw / 2, ry - cd / 2, q["CAR_Z"]),
            (cw, cd, ch), "red", "rail", joint="travel"))
@@ -311,7 +312,7 @@ def build(travel=665.0, lift=120.0, fork=0.0, carrying=False):
            "red", "lift_carriage_L", joint="lift",
            note="carries the Ausleger down the centreline, below the table face"))
 
-    # ------------------------------------------------------- ausleger
+    # --- ausleger
     s1w, s1d, s1h = q["S1"]; s2w, s2d, s2h = q["S2"]; tbw, tbd, tbh = q["TABLE"]
     s1y = ry - 80.0                        # 280 .. 440
     A(Part("ausleger_stage1", "fork", "box", (X - s1w / 2, s1y, cb - 20), (s1w, s1d, s1h),
@@ -350,7 +351,7 @@ def build(travel=665.0, lift=120.0, fork=0.0, carrying=False):
                note="Mini-Taster 37783 bolted to the side of the fixed stage, struck "
                     "by a cam on stage 2; entirely below the table's underside"))
 
-    # ------------------------------------------------------- conveyor
+    # --- conveyor
     cx = q["CV_X"]; cy0, cy1 = q["CV_Y"]; cl = cy1 - cy0
     rw, rh, lz = q["CV_RAIL_W"], q["CV_RAIL_H"], q["CV_LEG_H"]
     half = q["CV_GAP"] / 2 + q["CV_STRIP_W"]
@@ -404,7 +405,7 @@ def build(travel=665.0, lift=120.0, fork=0.0, carrying=False):
            note="toothed belt wrapped round both pulleys (this box is its envelope "
                 "for the checker; the viewer draws the actual loop)"))
 
-    # ------------------------------------------------------ belt cover
+    # --- belt cover
     cvy0, cvy1 = q["COVER_Y"]; cvz0, cvz1 = q["COVER_Z"]
     for i, (px_, py_) in enumerate([(rail_x[0], cvy0), (rail_x[0], cvy1 - rw),
                                     (rail_x[1], cvy0), (rail_x[1], cvy1 - rw)], 1):
@@ -447,7 +448,7 @@ def build(travel=665.0, lift=120.0, fork=0.0, carrying=False):
     A(Part("A2_trail_upper", "conveyor", "box", (rail_x[0] + rw - 7.5, 370, lz + rh + 15),
            (7.5, 15, 15), "green", "A1_trail_lower", tag="A2", note="Spursensor, upper track"))
 
-    # ------------------------------------------------------- electrics
+    # --- electrics
     A(Part("adapter_pcb_24V", "control", "box", (230, 20, 0), (160, 100, 22), "green", "plate",
            note="24V Adapterplatine: ST1 20-pol + ST2 14-pol + ST3 34-pol to the PLC"))
     A(Part("terminal_block", "control", "box", (150, 20, 0), (60, 30, 25), "grey", "plate",
@@ -469,7 +470,7 @@ def build(travel=665.0, lift=120.0, fork=0.0, carrying=False):
         out.extend(carried_mould(lift, fork, travel))
     return out
 
-# ------------------------------------------------------------------ checking
+# --- checking
 JOINED = [  # (group,group) pairs allowed to interpenetrate = bolted/bearing joints
     ("rail", "rail"), ("crane", "crane"), ("fork", "fork"), ("crane", "fork"),
     ("chain", "chain"),                 # Upgrade 3: a chain's brackets sit in its own envelope
@@ -587,7 +588,7 @@ def check_carry():
     return fails
 
 
-# ---------------------------------------------------------------- swept path
+# --- swept path
 # The canonical cycle, as (travel, lift, fork, carrying). These are the same
 # named stops the browser drives; keeping ONE list means the animation and the
 # proof cannot describe different motions.

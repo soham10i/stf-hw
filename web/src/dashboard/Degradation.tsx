@@ -13,19 +13,19 @@ function TeX({ s, block }: { s: string; block?: boolean }) {
   const html = useMemo(() => katex.renderToString(s, { displayMode: !!block, throwOnError: false, trust: false, maxExpand: 1000 }), [s, block]);
   return <span className={block ? "dg-tex" : undefined} dangerouslySetInnerHTML={{ __html: html }} />;
 }
-const f = (x: number, d = 3) => (Math.abs(x) >= 1000 ? Math.round(x).toLocaleString() : x.toFixed(d));
+const fmtNum = (x: number, d = 3) => (Math.abs(x) >= 1000 ? Math.round(x).toLocaleString() : x.toFixed(d));
 /** a number inside LaTeX: the thousands comma without math spacing */
-const tn = (x: number) => Math.round(x).toLocaleString("en").replace(/,/g, "{,}");
-const k = (x: number) => (x >= 1000 ? `${(x / 1000).toFixed(x >= 1e5 ? 0 : 1)}k` : `${Math.round(x)}`);
+const texInt = (x: number) => Math.round(x).toLocaleString("en").replace(/,/g, "{,}");
+const kilo = (x: number) => (x >= 1000 ? `${(x / 1000).toFixed(x >= 1e5 ? 0 : 1)}k` : `${Math.round(x)}`);
 
-// ---------------------------------------------------------------- the theory, step by step
+// --- the theory, step by step
 type Step = { n: number; title: string; tex: string; say: string; refs: number[]; live?: (l: Law, T: Theory) => string; mark?: string };
 const STEPS: Step[] = [
   { n: 1, title: "Normalised signal", tex: String.raw`r_n = \frac{y_n}{\bar b}`, refs: [1, 2], mark: "dots",
     say: "Each part's measurement (step time, motor current, compressor duty, colour margin) over its healthy baseline. 1 = as new." },
   { n: 2, title: "Wear path", tex: String.raw`r(n) = 1 + (r_f - 1)\left(\frac{n}{L}\right)^{p}`, refs: [3, 4, 5, 6], mark: "truth",
     say: "Power-law degradation. p = 1 linear (abrasion), p > 1 accelerating (fatigue), p = 10 sudden onset.",
-    live: (l) => String.raw`p = ${l.p},\; L = ${tn(l.life)}` },
+    live: (l) => String.raw`p = ${l.p},\; L = ${texInt(l.life)}` },
   { n: 3, title: "Failure threshold", tex: String.raw`r_f = \min_k \frac{W_k}{b_k}, \qquad T_f = \inf\{\, n : r(n) \ge r_f \,\} = L`, refs: [5], mark: "fail",
     say: "Fails when its tightest step hits its PLC watchdog W, or the breaker trips, the compressor saturates, a colour band is crossed.",
     live: (l) => String.raw`r_f = ${l.r_fail.toFixed(3)}` },
@@ -39,10 +39,10 @@ const STEPS: Step[] = [
     say: "The margin to failure that is left. 100 = new, 0 = failing now." },
   { n: 7, title: "Warning 1: soft limit", tex: String.raw`z_n \ge 1 + s\,(r_f - 1) \;\Rightarrow\; n_s \approx L\,s^{1/p} + \tfrac{1-\lambda}{\lambda}`, refs: [10], mark: "soft",
     say: "Warn when half the margin is used (s = 0.5). The closed form matches the simulation within 1 %.",
-    live: (l) => String.raw`n_s \approx ${tn(l.n_soft_theory)}` },
+    live: (l) => String.raw`n_s \approx ${texInt(l.n_soft_theory)}` },
   { n: 8, title: "Warning 2: trend", tex: String.raw`\hat\beta_n = \frac{z_n - z_{n-W}}{W},\qquad \widehat{\mathrm{RUL}}_n = \frac{r_f - z_n}{\hat\beta_n} < 3\,m`, refs: [11, 12], mark: "trend",
     say: "Slope over W = 400 cycles, extrapolated to the limit; m = uses per shift. Catches sudden onset before the soft limit.",
-    live: (l) => String.raw`3m = ${tn(l.rul_warn)}` },
+    live: (l) => String.raw`3m = ${texInt(l.rul_warn)}` },
   { n: 9, title: "No false alarms", tex: String.raw`\frac{s\,(r_f-1)}{\sigma_z},\qquad \frac{\beta^*}{\sigma_\beta},\quad \beta^* = \frac{r_f-1}{3m},\; \sigma_\beta = \frac{\sqrt2\,\sigma_z}{W}`, refs: [9],
     say: "A healthy machine's distance to each warning, in standard deviations. 60,000 healthy cycles raise none.",
     live: (l) => String.raw`${l.soft_margin_sigma}\sigma,\; ${l.trend_margin_sigma}\sigma` },
@@ -67,10 +67,11 @@ const REFS: [string, string | null][] = [
   ["Saxena, A., Celaya, J., Balaban, E., Goebel, K., Saha, B., Saha, S., Schwabacher, M. (2008). Metrics for evaluating performance of prognostic techniques. Int. Conf. on Prognostics and Health Management (PHM 2008), IEEE.", "10.1109/PHM.2008.4711436"],
 ];
 
-// ---------------------------------------------------------------- live charts
-const MARK_COL: Record<string, string> = { dots: "var(--faint)", truth: "var(--text)", ewma: "var(--accent)", soft: "var(--warn)", fail: "var(--bad)", trend: "#c06bd6" };
+// --- live charts
+const MARK_COL: Record<string, string> = { dots: "var(--faint)", truth: "var(--text)", ewma: "var(--accent)", soft: "var(--warn)", fail: "var(--bad)", trend: "var(--series-5)" };
 /** A step number, as on the equations below. */
-const N = ({ n, c }: { n: number; c?: string }) => <span className="dg-b" style={c ? { background: c } : undefined}>{n}</span>;
+// the step's colour as a ring, the number in ink: a filled badge left light digits on mid-tone fills
+const StepBadge = ({ n, c }: { n: number; c?: string }) => <span className="dg-b" style={c ? { boxShadow: `inset 0 0 0 2px ${c}` } : undefined}>{n}</span>;
 
 function SignalLive({ sim, ref0 }: { sim: DegradeSim; ref0: [number, number][] | null }) {
   const l = sim.law, W = 900, H = 280, L = 58, R = 12, T = 10, B = 42;
@@ -89,7 +90,7 @@ function SignalLive({ sim, ref0 }: { sim: DegradeSim; ref0: [number, number][] |
       <svg viewBox={`0 0 ${W} ${H}`}>
         {(sim.o.degrade ? [1, sim.soft, l.r_fail] : [y0, 1, y1]).filter((v) => v >= y0 && v <= y1).map((v) => (
           <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} className="mo-grid" /><text x={L - 5} y={Y(v) + 3} textAnchor="end" className="mo-ax">{v.toFixed(sim.o.degrade ? 2 : 3)}</text></g>))}
-        {ticks.map((n) => <text key={n} x={X(n)} y={H - B + 15} textAnchor="middle" className="pl-tick">{k(n)}</text>)}
+        {ticks.map((n) => <text key={n} x={X(n)} y={H - B + 15} textAnchor="middle" className="pl-tick">{kilo(n)}</text>)}
         <text x={(L + W - R) / 2} y={H - 6} textAnchor="middle" className="pl-title">uses of the part (cycles)</text>
         <text transform={`translate(13 ${(T + H - B) / 2}) rotate(-90)`} textAnchor="middle" className="pl-title">signal r = measured ÷ healthy</text>
         {sim.soft <= y1 && <><line x1={L} x2={W - R} y1={Y(sim.soft)} y2={Y(sim.soft)} stroke={MARK_COL.soft} strokeDasharray="6 4" />
@@ -108,10 +109,10 @@ function SignalLive({ sim, ref0 }: { sim: DegradeSim; ref0: [number, number][] |
         <circle cx={X(sim.n)} cy={Y(sim.z)} r={4.5} fill={MARK_COL.ewma} className="hl-dot" />
       </svg>
       <div className="mo-legend">
-        <span><N n={4} c={MARK_COL.dots} />measured y</span>
-        {sim.o.degrade && <span><N n={2} c={MARK_COL.truth} />true wear r(n)</span>}
-        <span><N n={5} c={MARK_COL.ewma} />EWMA z</span>
-        <span><N n={8} c={MARK_COL.trend} />trend → RUL</span>
+        <span><StepBadge n={4} c={MARK_COL.dots} />measured y</span>
+        {sim.o.degrade && <span><StepBadge n={2} c={MARK_COL.truth} />true wear r(n)</span>}
+        <span><StepBadge n={5} c={MARK_COL.ewma} />EWMA z</span>
+        <span><StepBadge n={8} c={MARK_COL.trend} />trend → RUL</span>
         {ref0 && <span><i style={{ background: "var(--ok)", opacity: 0.4 }} />health.py's run (same law)</span>}
         <span className="dg-x">x: uses</span>
       </div>
@@ -149,7 +150,7 @@ function Mini({ sim, kind }: { sim: DegradeSim; kind: "hi" | "rul" }) {
   );
 }
 
-// ---------------------------------------------------------------- page
+// --- page
 export function DegradationPage({ h }: { h: HealthDoc }) {
   const th = useJson<Theory>("health/theory.json", "No theory file yet. Run: make health-theory");
   const [part, setPart] = useState("cup");
@@ -199,7 +200,7 @@ export function DegradationPage({ h }: { h: HealthDoc }) {
       <p className="dg-lede">Why a part's health falls, and how the twin knows before it fails — every step below is running live on the chart.</p>
 
       <section className="db-card dg-live">
-        <h3>Live: {hc.name}<span className={`hl-pill ${status}`}>{status === "fail" ? `failed at ${k(sim.fail!)}` : status === "warn" ? `warned (${sim.warn!.by})` : "healthy"}</span></h3>
+        <h3>Live: {hc.name}<span className={`hl-pill ${status}`}>{status === "fail" ? `failed at ${kilo(sim.fail!)}` : status === "warn" ? `warned (${sim.warn!.by})` : "healthy"}</span></h3>
         <div className="dg-ctl">
           <div className="db-chips">{T.components.map((c, i) => (
             <button key={c.id} className={c.id === part ? "on" : ""} onClick={() => setPart(c.id)}>
@@ -215,15 +216,15 @@ export function DegradationPage({ h }: { h: HealthDoc }) {
         </div>
         <SignalLive sim={sim} ref0={ref0} />
         <div className="dg-row">
-          <div className="dg-mini"><h4><N n={6} /> Health index</h4><Mini sim={sim} kind="hi" /></div>
-          <div className="dg-mini"><h4><N n={8} c={MARK_COL.trend} /> Estimated RUL vs true <span className="db-muted">· ±30 % cone</span></h4><Mini sim={sim} kind="rul" /></div>
+          <div className="dg-mini"><h4><StepBadge n={6} /> Health index</h4><Mini sim={sim} kind="hi" /></div>
+          <div className="dg-mini"><h4><StepBadge n={8} c={MARK_COL.trend} /> Estimated RUL vs true <span className="db-muted">· ±30 % cone</span></h4><Mini sim={sim} kind="rul" /></div>
           <div className="dg-read">
             <div><span>cycle n</span><b>{sim.n.toLocaleString()}</b></div>
-            <div><span><N n={4} /> measured y</span><b>{f(sim.y)}</b></div>
-            <div><span><N n={5} c={MARK_COL.ewma} /> EWMA z</span><b>{f(sim.z)}</b></div>
+            <div><span><StepBadge n={4} /> measured y</span><b>{fmtNum(sim.y)}</b></div>
+            <div><span><StepBadge n={5} c={MARK_COL.ewma} /> EWMA z</span><b>{fmtNum(sim.z)}</b></div>
             <div className="dg-eq"><TeX s={String.raw`\mathrm{HI} = 100\,(${law.r_fail.toFixed(2)} - ${sim.z.toFixed(2)})/${(law.r_fail - 1).toFixed(2)} = ${sim.hi.toFixed(0)}`} /></div>
-            <div className="dg-eq">{sim.fail !== null ? <span className="db-muted">failed: no life left</span> : rulSh !== null ? <TeX s={String.raw`\widehat{\mathrm{RUL}} = (r_f - z)/\hat\beta = ${rulSh > 999 ? "\\gg 999" : rulSh.toFixed(1)}\ \text{shifts}`} /> : <span className="db-muted"><N n={8} /> trend needs W = {T.rules.window} cycles</span>}</div>
-            {lead !== null && <div className={lead >= 1 ? "ok" : "bad"}><span><N n={10} /> lead time</span><b>{lead.toFixed(1)} shifts</b></div>}
+            <div className="dg-eq">{sim.fail !== null ? <span className="db-muted">failed: no life left</span> : rulSh !== null ? <TeX s={String.raw`\widehat{\mathrm{RUL}} = (r_f - z)/\hat\beta = ${rulSh > 999 ? "\\gg 999" : rulSh.toFixed(1)}\ \text{shifts}`} /> : <span className="db-muted"><StepBadge n={8} /> trend needs W = {T.rules.window} cycles</span>}</div>
+            {lead !== null && <div className={lead >= 1 ? "ok" : "bad"}><span><StepBadge n={10} /> lead time</span><b>{lead.toFixed(1)} shifts</b></div>}
             {sim.warn && <div><span>warned at · this run</span><b>{sim.warn.n.toLocaleString()}</b></div>}
             {isDefault && law.warn_sim !== null && <div><span>warned at · health.py</span><b>{law.warn_sim.toLocaleString()}</b></div>}
           </div>
@@ -234,7 +235,7 @@ export function DegradationPage({ h }: { h: HealthDoc }) {
       <div className="dg-steps">
         {STEPS.map((s) => (
           <section key={s.n} className="db-card dg-step">
-            <h3><N n={s.n} c={s.mark ? MARK_COL[s.mark] : undefined} />{s.title}
+            <h3><StepBadge n={s.n} c={s.mark ? MARK_COL[s.mark] : undefined} />{s.title}
               <span className="dg-refs">{s.refs.map((r) => <a key={r} href={`#ref-${r}`}>[{r}]</a>)}</span></h3>
             <TeX s={s.tex} block />
             <p>{s.say}</p>
@@ -251,8 +252,8 @@ export function DegradationPage({ h }: { h: HealthDoc }) {
           <tbody>{T.components.map((c, i) => (
             <tr key={c.id} className={c.id === part ? "on" : ""} onClick={() => setPart(c.id)} style={{ cursor: "pointer" }}>
               <td><i className="dg-sw" style={{ background: PART_COL[i] }} />{h.components[i].name.replace(/ \(.*\)$/, "")}</td>
-              <td className="num">{c.p}</td><td className="num">{k(c.life)}</td><td className="num">{c.r_fail.toFixed(2)}</td><td className="num">{(c.sigma * 100).toFixed(1)} %</td>
-              <td className="num">{k(c.n_soft_theory)}</td><td className="num">{c.warn_sim ? k(c.warn_sim) : "–"}{c.warn_by?.startsWith("trend") ? " ·8" : ""}</td>
+              <td className="num">{c.p}</td><td className="num">{kilo(c.life)}</td><td className="num">{c.r_fail.toFixed(2)}</td><td className="num">{(c.sigma * 100).toFixed(1)} %</td>
+              <td className="num">{kilo(c.n_soft_theory)}</td><td className="num">{c.warn_sim ? kilo(c.warn_sim) : "–"}{c.warn_by?.startsWith("trend") ? " ·8" : ""}</td>
               <td className="num">{c.lead_shifts} sh</td><td className="num">{Math.min(c.soft_margin_sigma, c.trend_margin_sigma)} σ</td>
             </tr>))}</tbody>
         </table>

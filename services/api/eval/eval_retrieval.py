@@ -25,55 +25,125 @@ import math
 import os
 import time
 
-from services.api.rag import crag as CR
-from services.api.rag import vectors as V
 from services.api.core.logging_config import get_logger
+from services.api.rag import crag, vectors
 
 logger = get_logger(__name__)
 
 GOLDEN: list[dict[str, str]] = [
     # mode "lex": word overlap exists - BM25 alone should surface the passage
     {"q": "how is the health index of a part calculated?",
-     "file": "docs/maintenance/README.md", "mode": "lex"},
+     "file": "docs/reference/maintenance/README.md", "mode": "lex"},
     {"q": "what does the colour sensor measure in millivolts?",
-     "file": "docs/assistant/machine-sorting-line.md", "mode": "lex"},
+     "file": "docs/reference/machines/sorting-line.md", "mode": "lex"},
     {"q": "how do the inspection camera photos reach the server?",
-     "file": "docs/CAPTURES.md", "mode": "lex"},
+     "file": "docs/reference/operations/captures.md", "mode": "lex"},
     {"q": "what is the PLC's I/O map?",
-     "file": "docs/plc/02-io-map.md", "mode": "lex"},
+     "file": "docs/reference/plc/02-io-map.md", "mode": "lex"},
     {"q": "how does the vacuum gripper robot move the mould?",
-     "file": "docs/assistant/machine-gripper-robot.md", "mode": "lex"},
+     "file": "docs/reference/machines/gripper-robot.md", "mode": "lex"},
     {"q": "what pages does the dashboard have?",
-     "file": "docs/assistant/dashboard-overview.md", "mode": "lex"},
+     "file": "docs/reference/dashboard/overview.md", "mode": "lex"},
     {"q": "how does the guest session cookie work?",
-     "file": "docs/DATABASE.md", "mode": "lex"},
+     "file": "docs/reference/operations/database.md", "mode": "lex"},
     {"q": "what baking temperature and time does the oven use?",
-     "file": "docs/assistant/machine-oven.md", "mode": "lex"},
+     "file": "docs/reference/machines/oven.md", "mode": "lex"},
     # mode "sem": a paraphrase - little word overlap, the vectors must bridge it
     {"q": "why does a belt warn long before it actually fails?",
-     "file": "docs/maintenance/README.md", "mode": "sem"},
+     "file": "docs/reference/maintenance/README.md", "mode": "sem"},
     {"q": "how are cookies checked for colour defects?",
-     "file": "docs/assistant/dashboard-vision.md", "mode": "sem"},
+     "file": "docs/reference/dashboard/vision.md", "mode": "sem"},
     {"q": "where do the spoken answers come from?",
-     "file": "docs/TTS_PIPELINE.md", "mode": "sem"},
+     "file": "docs/reference/copilot/speech-pipeline.md", "mode": "sem"},
     {"q": "what keeps two visitors' data apart?",
-     "file": "docs/DATABASE.md", "mode": "sem"},
+     "file": "docs/reference/operations/database.md", "mode": "sem"},
     {"q": "how is the factory's carbon footprint computed per cookie?",
-     "file": "docs/assistant/dashboard-carbon.md", "mode": "sem"},
+     "file": "docs/reference/dashboard/carbon.md", "mode": "sem"},
     {"q": "what happens when the high-bay crane picks a mould?",
-     "file": "docs/assistant/machine-warehouse.md", "mode": "sem"},
+     "file": "docs/reference/machines/warehouse.md", "mode": "sem"},
     {"q": "how is the simulation's PLC program verified?",
-     "file": "docs/plc/07-verification.md", "mode": "sem"},
+     "file": "docs/reference/plc/07-verification.md", "mode": "sem"},
     {"q": "what is the difference between the real factory and this twin?",
-     "file": "docs/factory-vs-twin.md", "mode": "sem"},
+     "file": "docs/reference/factory/factory-vs-twin.md", "mode": "sem"},
+    # added with the docs reorganisation (2026-11-09): the newly indexed areas (PLC, operations,
+    # architecture, process, vision), and questions with more than one right document ("files")
+    {"q": "what does the PLC do when the emergency stop is pressed?",
+     "files": [
+         "docs/reference/plc/06-safety.md",
+         "docs/reference/twin/panels/safety-security.md",
+     ], "mode": "lex"},
+    {"q": "how is a change promoted from staging to the live service?",
+     "files": ["docs/reference/operations/staging.md"], "mode": "lex"},
+    {"q": "what error code does the API return when the daily question budget is spent?",
+     "files": ["docs/reference/architecture/error-codes.md"], "mode": "lex"},
+    {"q": "which RevPi DIO terminal does each signal land on?",
+     "files": ["docs/reference/architecture/electrics.md"], "mode": "lex"},
+    {"q": "how does the sorting line decide which bay a cookie goes to?",
+     "files": ["docs/reference/machines/sorting-line.md"], "mode": "lex"},
+    {"q": "what does the normal-behaviour model in predictive maintenance do?",
+     "files": ["docs/reference/maintenance/pdm-pipeline.md"], "mode": "lex"},
+    {"q": "why does the inspection camera use a telecentric view?",
+     "files": ["docs/reference/vision/README.md"], "mode": "lex"},
+    {"q": "what are the three policies for ending a bake?",
+     "files": [
+         "docs/reference/process/README.md",
+         "docs/reference/dashboard/process.md",
+     ], "mode": "lex"},
+    {"q": "what parts and connections does the edge computer have?",
+     "files": ["docs/reference/machines/edge-computer.md"], "mode": "lex"},
+    {"q": "how does the cross-encoder reranker on Cloud Run fit the trial budget?",
+     "files": ["docs/reference/operations/gcp-reranker.md"], "mode": "lex"},
+    {"q": "which providers does text to speech use, in order?",
+     "files": ["docs/reference/copilot/speech-pipeline.md"], "mode": "lex"},
+    {"q": "what are the drag chains on the moving axes?",
+     "files": ["docs/reference/twin/panels/remote-io.md"], "mode": "lex"},
+    {"q": "what stops someone from moving an axis by hand into a collision?",
+     "files": ["docs/reference/plc/06-safety.md"], "mode": "sem"},
+    {"q": "how can I try a change privately before the public site gets it?",
+     "files": ["docs/reference/operations/staging.md"], "mode": "sem"},
+    {"q": "what happens to the factory's electricity on a sunny day?",
+     "files": ["docs/reference/dashboard/energy.md"], "mode": "sem"},
+    {"q": "can a learning scheduler beat the PLC's order without getting stuck?",
+     "files": ["docs/reference/dashboard/scheduler.md"], "mode": "sem"},
+    {"q": "how many cookie slots are in the rack?",
+     "files": ["docs/reference/machines/warehouse.md"], "mode": "sem"},
+    {"q": "who decides whether a question is answered from the documents or the web?",
+     "files": [
+         "docs/reference/copilot/README.md",
+         "docs/reference/architecture/rag-system-design.md",
+     ], "mode": "sem"},
+    {"q": "what does one cookie go through from the order to its bay?",
+     "files": [
+         "docs/reference/factory/production-cycle.md",
+         "docs/reference/twin/overview.md",
+     ], "mode": "sem"},
+    {"q": "how does the answer pipeline keep from looping forever?",
+     "files": ["docs/reference/architecture/agent-graph.md"], "mode": "sem"},
+    {"q": "what does the browser get back when a request fails?",
+     "files": ["docs/reference/architecture/error-codes.md"], "mode": "sem"},
+    {"q": "on real hardware, which messages would feed the dashboard?",
+     "files": ["docs/reference/dashboard/data.md"], "mode": "sem"},
+    {"q": "how was the cell made quicker without touching its hardware?",
+     "files": ["docs/reference/dashboard/throughput.md"], "mode": "sem"},
+    {"q": "how does the twin see a part failing before it breaks?",
+     "files": [
+         "docs/reference/maintenance/pdm-pipeline.md",
+         "docs/reference/maintenance/README.md",
+         "docs/reference/dashboard/ai.md",
+     ], "mode": "sem"},
 ]
 
 KS = (1, 3, 5, 8)
 TOP_K = 10  # ranks are computed over the top 10; MRR and nDCG use that window
 
 
+def expected(g: dict) -> list[str]:
+    """The files a question's answer may come from: its "files", or its one "file"."""
+    return list(g.get("files") or [g["file"]])
+
+
 def _ndcg(rel: list[int]) -> float:
-    """nDCG@len(rel) with binary relevance and a single expected file."""
+    """nDCG@len(rel) with binary relevance: any passage of an expected file is relevant."""
     dcg = sum(r / math.log2(i + 2) for i, r in enumerate(rel[:TOP_K]))
     ideal = sum(1.0 / math.log2(i + 2) for i in range(min(sum(rel), TOP_K)))
     return dcg / ideal if ideal else 0.0
@@ -91,7 +161,7 @@ def score(top_k: int = TOP_K, ask=None) -> dict:
         each question goes through corrective retrieval (crag.correct) instead, and its verdict
         is recorded.
     """
-    store = V.get_store()
+    store = vectors.get_store()
     backend = "bm25" if store is None else getattr(store, "name", "sqlite")
     embedder = "none" if store is None else store.embedder.name
     questions = []
@@ -99,16 +169,17 @@ def score(top_k: int = TOP_K, ask=None) -> dict:
     for g in GOLDEN:
         verdict = None
         if ask:
-            j = CR.correct(g["q"], None, ask, k=top_k)
+            j = crag.correct(g["q"], None, ask, k=top_k)
             hits, verdict = j.hits, j.verdict
         else:
-            hits = V.hybrid_search(g["q"], top_k=top_k)
-        ranks = [i + 1 for i, h in enumerate(hits) if h["passage"].file == g["file"]]
-        rel = [1 if h["passage"].file == g["file"] else 0 for h in hits]
+            hits = vectors.hybrid_search(g["q"], top_k=top_k)
+        want = expected(g)
+        ranks = [i + 1 for i, h in enumerate(hits) if h["passage"].file in want]
+        rel = [1 if h["passage"].file in want else 0 for h in hits]
         questions.append(
             {
                 "q": g["q"],
-                "file": g["file"],
+                "file": want[0],
                 "mode": g["mode"],
                 "best_rank": ranks[0] if ranks else None,
                 "hit": {k: bool(ranks and ranks[0] <= k) for k in KS},
@@ -153,10 +224,10 @@ def main() -> None:
 
     ask = None
     if args.judge:
-        from services.api.agent import chat as C
-        from services.api.security import security as sec
+        from services.api.agent import chat as chat_engine
+        from services.api.security import security
 
-        chat = C.Chat(sec.Settings.from_env())
+        chat = chat_engine.Chat(security.Settings.from_env())
         if args.judge != "auto":
             chat.QUICK_ORDER = (args.judge,)
         ask = lambda system, user: chat.quick(system, user)  # noqa: E731

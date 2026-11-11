@@ -17,7 +17,7 @@
 // count is the whole pulses turned since power-up, in float64 underneath. A hard end stop halts
 // the axis where the mechanism ends; reaching it is a crash, counted.
 //
-// The positioning block is what the PLC runs per axis (docs/plc): drive toward a target count,
+// The positioning block is what the PLC runs per axis (docs/reference/plc): drive toward a target count,
 // switch off a brake lead before it, and report where it came to rest; homing drives to the
 // reference switch and zeroes the count there.
 
@@ -40,7 +40,7 @@ export interface MotorSpec {
 /** The fischertechnik 24 V encoder motor 144643 (docs/144643-Encodermotor24V.pdf), driving a
     4 mm-lead spindle. Datasheet: 440 rpm no-load, 1800 g cm stall torque, 0.60 A, 2.03 W peak.
     The spindle's friction is set so the axis runs at the lab-calibrated 214 rpm (14.27 mm/s;
-    docs/HARDWARE_MODEL.md): on a straight speed-torque line that is a load of 1 - 214/440 of
+    docs/reference/factory/hardware-model.md): on a straight speed-torque line that is a load of 1 - 214/440 of
     stall. The no-load current follows from the booklet's 320 mA at that point. The inertia is
     not published: [assumed] 20 ms mechanical time constant. */
 export const FT_ENCODER_MOTOR: MotorSpec = (() => {
@@ -143,7 +143,7 @@ export function stepMotor(
   return { crashed };
 }
 
-// ------------------------------------------------------------------ switches
+// --- switches
 /** A reference switch (the Mini-Taster 37783) on an axis: it closes as the axis passes `at` going
     `toward` it, and opens again `hysteresis` mm back (the switch's differential travel). */
 export interface LimitSwitch {
@@ -157,7 +157,7 @@ export function switchState(sw: LimitSwitch, value: number, wasClosed: boolean):
   return wasClosed ? value < sw.at + sw.hysteresis : value <= sw.at;
 }
 
-// ------------------------------------------------------------------ positioning
+// --- positioning
 /** What the PLC's positioning block is doing for one axis. */
 export type Task =
   | { kind: "idle" }

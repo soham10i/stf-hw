@@ -10,7 +10,7 @@ task interval per scan. clang compiles both to one WebAssembly module with no
 imports: the same binary runs the proof (sil/run.py, under Node) and the
 public twin (web/src/sil).
 
-Tools (not in the repository; see docs/UPGRADE_PLAN.md, Upgrade 13):
+Tools (not in the repository; see docs/reference/factory/upgrades.md, Upgrade 13):
   STF_MATIEC    the MatIEC checkout with a built iec2c   (default ~/workspace/stf-hw/.cache/matiec)
   STF_CLANG     a clang with the wasm32 target            (default Homebrew llvm)
   STF_WASI      the WASI sysroot and runtimes             (default Homebrew wasi-libc / wasi-runtimes)
@@ -21,6 +21,8 @@ import os
 import re
 import shutil
 import subprocess
+
+import control
 
 from sil import iec
 
@@ -111,7 +113,7 @@ def build(out=OUT):
     sha = hashlib.sha256(open(wasm, "rb").read()).hexdigest()[:16]
     meta = {"scan_ms": iec.SCAN_MS, "io": io, "image": IMAGE, "jobs": iec.JOBS,
             "job_units": {j: list(iec.RESERVE[j]) for j in iec.JOBS}, "layout": iec.LAYOUT,
-            "units": iec.C.UNIT_ORDER, "states": starts, "wasm_sha": sha, "st_lines": src.count("\n"),
+            "units": control.UNIT_ORDER, "states": starts, "wasm_sha": sha, "st_lines": src.count("\n"),
             "compiler": "MatIEC iec2c " + subprocess.run([os.path.join(MATIEC, "iec2c"), "-v"],
                                                          capture_output=True, text=True).stdout.split("\n")[0]}
     with open(os.path.join(out, "plc.json"), "w") as f:

@@ -200,7 +200,7 @@ def rects():
             "edge": [EDGE_AT[0], EDGE_AT[1], EDGE_PLATE[0], EDGE_PLATE[1]]}
 
 
-# ---------------------------------------------------------------- beam sag
+# --- beam sag
 def _section(p, bend_axis):
     """(E, I, label) of a member about the axis it bends in. bend_axis is the
     load direction; the member's long axis is its largest box dimension, and
@@ -219,11 +219,11 @@ def sag_report():
     """Deflection at the tool of every oven member that carries a load off its
     support. Reads the member sizes from the model, so base and Upgrade 1 are
     both measured, never typed in."""
-    import oven_model as OM
-    q = OM.O
-    parts = {p.name: p for p in OM.build()}
+    import oven_model
+    q = oven_model.O
+    parts = {p.name: p for p in oven_model.build()}
     XL = q["X_LINE"]
-    sx, _ = OM.nest(OM.STATIONS["saege"])
+    sx, _ = oven_model.nest(oven_model.STATIONS["saege"])
     motor_cx = sx - 45 + q["S_MOTOR"][1] / 2
     rows = []
 
@@ -252,15 +252,16 @@ def sag_report():
     return rows
 
 
-# ------------------------------------------------------------------- check
+# --- check
 def check(verbose=True):
     """Upgrade 1's own proof: plates on the table and clear of every module,
     upgrade parts clear of each other, every nest inside the VGR envelope, the
     air station outside it, every member within its sag limit."""
-    import factory_layout as FL, vgr_model as VG
+    import factory_layout
+    import vgr_model
     fails = []
-    mod_rects = {"hbw": FL.module_rect(), "vgr": FL.vgr_rect(), "oven": FL.oven_rect(),
-                 "sorting": FL.sort_rect(), "plc": FL.plc_rect()}
+    mod_rects = {"hbw": factory_layout.module_rect(), "vgr": factory_layout.vgr_rect(), "oven": factory_layout.oven_rect(),
+                 "sorting": factory_layout.sort_rect(), "plc": factory_layout.plc_rect()}
     for nm, (x, y, w, h) in rects().items():
         if x < 0 or y < 0 or x + w > TABLE[0] or y + h > TABLE[1]:
             fails.append(f"OFF-TABLE {nm}")
@@ -277,12 +278,12 @@ def check(verbose=True):
             d = [min(a[k + 3], b[k + 3]) - max(a[k], b[k]) for k in range(3)]
             if min(d) > 0.05:
                 fails.append(f"INTERFERENCE {pa.name} x {pb.name} = {min(d):.1f} mm")
-    st = FL.stations()
+    st = factory_layout.stations()
     for nm in nests():
         if not st[nm]["in_envelope"]:
             fails.append(f"{nm}: outside the VGR envelope")
-    tx, ty = FL.vgr_tower()
-    rmax = VG.cup_radius(VG.V["REACH"][1]) + VG.V["HEAD"][0] / 2
+    tx, ty = factory_layout.vgr_tower()
+    rmax = vgr_model.cup_radius(vgr_model.V["REACH"][1]) + vgr_model.V["HEAD"][0] / 2
     ax, ay = AIR_AT
     near = math.hypot(min(max(tx, ax), ax + AIR_PLATE[0]) - tx, min(max(ty, ay), ay + AIR_PLATE[1]) - ty)
     if near <= rmax:
@@ -303,16 +304,17 @@ def check(verbose=True):
 
 def report(doc):
     """Before/after numbers for the viewer, computed from the two exports."""
-    import factory_layout as FL, vgr_model as VG
-    st = FL.stations()
-    tx, ty = FL.vgr_tower()
+    import factory_layout
+    import vgr_model
+    st = factory_layout.stations()
+    tx, ty = factory_layout.vgr_tower()
     nest_rows = []
     for nm, (x, y) in nests().items():
         s = st[nm]
         nest_rows.append({"nest": nm, "at": [round(x, 1), round(y, 1)], "swivel": s["swivel"],
-                          "reach": s["reach"], "reach_margin_mm": round(VG.V["REACH"][1] - s["reach"], 1),
-                          "swivel_margin_deg": round(VG.V["SWIVEL"][1] - s["swivel"], 1)})
-    corner = (FL.module_rect()[0], FL.module_rect()[1] + FL.module_rect()[3])
+                          "reach": s["reach"], "reach_margin_mm": round(vgr_model.V["REACH"][1] - s["reach"], 1),
+                          "swivel_margin_deg": round(vgr_model.V["SWIVEL"][1] - s["swivel"], 1)})
+    corner = (factory_layout.module_rect()[0], factory_layout.module_rect()[1] + factory_layout.module_rect()[3])
     corner_area = (TABLE[0] - corner[0]) * (TABLE[1] - corner[1])
     used = BUF_PLATE[0] * BUF_PLATE[1] + AIR_PLATE[0] * AIR_PLATE[1]
     return {"sag": sag_report(), "nests": nest_rows,

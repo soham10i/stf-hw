@@ -34,9 +34,10 @@ import os
 import random
 from datetime import datetime, timedelta
 
-import control as C
-import health as H
-import vc as V
+import control
+import health
+import pipeline
+import vc
 from variant import UP7
 
 assert UP7, "run with STF_VARIANT=up7"
@@ -96,19 +97,19 @@ FEATURES = None     # filled below: the ml/ input columns, in order
 
 def _comp():
     out = {}
-    for c in H.components():
+    for c in health.components():
         r = {"id": c["id"], "name": c["name"], "unit": c["unit"], "kind": c["kind"], "life": c["life"], "p": c["p"],
-             "per_order": H._per_cycle(c), "metric": c["metric"], "part": c["part"]}
+             "per_order": health._per_cycle(c), "metric": c["metric"], "part": c["part"]}
         if c["kind"] in ("time", "current"):
-            sts = H._steps(c["steps"])
-            rf, b, sig = H._baseline(sts)
-            r.update(r_fail=H.ECB_TRIP if c["kind"] == "current" else rf, base=b, sig=sig,
-                     busy=sum(V.phys(s) for s in sts), unit_of="s")
+            sts = health._steps(c["steps"])
+            rf, b, sig = health._baseline(sts)
+            r.update(r_fail=health.ECB_TRIP if c["kind"] == "current" else rf, base=b, sig=sig,
+                     busy=sum(vc.phys(s) for s in sts), unit_of="s")
         elif c["kind"] == "duty":
-            d0 = H.air_duty0()
+            d0 = health.air_duty0()
             r.update(r_fail=1 / d0, base=d0, sig=0.03, busy=0.0, unit_of="duty")
         else:
-            r.update(r_fail=2.0, base=H.colour_margin(), sig=5.0 / H.colour_margin(), busy=0.0, unit_of="mV")
+            r.update(r_fail=2.0, base=health.colour_margin(), sig=5.0 / health.colour_margin(), busy=0.0, unit_of="mV")
         out[c["id"]] = r
     return out
 
@@ -116,15 +117,15 @@ def _comp():
 COMP = _comp()
 FEATURES = [f"r_{k}" for k in COMP] + ["temp_c", "i_hbw_a", "air_duty", "a4_vanilla_mv", "a4_strawberry_mv",
                                        "a4_chocolate_mv", "vacuum_loss", "order_time_ratio"]
-T0 = V.results()[0].makespan
+T0 = vc.results()[0].makespan
 
 
 def _fsm_nominal():
     """Per order, each unit's seconds RUN (its own step), HELD (its job waits
     on another unit's step) and READY, from the PLC's nominal run."""
-    bars, _, T, _ = C.simulate(C.PLC_POLICY)
+    bars, _, T, _ = control.simulate(control.PLC_POLICY)
     out = {}
-    for u in C.UNITS:
+    for u in control.UNITS:
         run = sum(s[3] - s[2] for b in bars for s in b["steps"] if s[0] == u)
         held = sum(b["t1"] - b["t0"] for b in bars if u in b["units"]) - run
         out[u] = {"RUN": run, "HELD": max(0.0, held), "READY": max(0.0, T - run - max(0.0, held))}
@@ -163,7 +164,7 @@ class Month:
         self.failed = {}
         self.orders, self.events, self.sensors = [], [], {k: [] for k in COMP}
         self.raw = {"temp": [], "a4": {"chocolate": [], "strawberry": [], "vanilla": []}, "i_hbw": [], "air_duty": []}
-        self.fsm = {u: {"RUN": 0.0, "HELD": 0.0, "READY": 0.0, "FAULT": 0.0, "ESTOP": 0.0, "MAINT": 0.0} for u in C.UNITS}
+        self.fsm = {u: {"RUN": 0.0, "HELD": 0.0, "READY": 0.0, "FAULT": 0.0, "ESTOP": 0.0, "MAINT": 0.0} for u in control.UNITS}
         self.down = {}                        # cause -> seconds
         self.warned = {}
         self.fixed = {}                       # comp -> day its root cause was fixed
@@ -195,7 +196,7 @@ class Month:
 
     def _stop(self, t, secs, cause, units, state="FAULT"):
         self.down[cause] = self.down.get(cause, 0.0) + secs
-        for u in C.UNITS:
+        for u in control.UNITS:
             self.fsm[u][state if u in units else "HELD"] += secs
         return t + secs
 
@@ -210,14 +211,14 @@ class Month:
             r = self._r(k, t_h)
             n = max(1, c["per_order"])
             obs = r * (1 + self.rnd.gauss(0, self.d_sig * c["sig"] / math.sqrt(n)))
-            a = 1 - (1 - H.EWMA) ** n
+            a = 1 - (1 - health.EWMA) ** n
             r_obs[k] = obs
             self.ew[k] += a * (obs - self.ew[k])
             self.hist[k].append(self.ew[k])
             extra += CRIT.get(c["unit"], 0.2) * max(0.0, r - 1) * c["busy"]
             # health
             rf = c["r_fail"]
-            soft = 1 + H.SOFT * (rf - 1)
+            soft = 1 + health.SOFT * (rf - 1)
             hi = max(0.0, min(1.0, (rf - self.ew[k]) / (rf - 1)))
             # the trend needs history: 40 orders (the U6 proof's 400-use window, or more)
             h = self.hist[k][-40:]
@@ -227,7 +228,7 @@ class Month:
             rul_sh = None if rul_orders is None else rul_orders / per_shift
             self.sensors[k].append((round(t_h, 3), round(obs * (c["base"] if c["unit_of"] == "s" else 1), 4),
                                     round(self.ew[k], 4), round(100 * hi, 1), None if rul_sh is None else round(min(rul_sh, 999), 1)))
-            warn = self.ew[k] >= soft or (rul_sh is not None and rul_sh < H.RUL_WARN_SHIFTS and self.ew[k] > 1 + 0.25 * (rf - 1))
+            warn = self.ew[k] >= soft or (rul_sh is not None and rul_sh < health.RUL_WARN_SHIFTS and self.ew[k] > 1 + 0.25 * (rf - 1))
             if warn and k not in self.warned and k not in self.failed:
                 self.warned[k] = t
                 why = "soft limit" if self.ew[k] >= soft else f"trend: {rul_sh:.1f} shifts left"
@@ -246,7 +247,7 @@ class Month:
                 hrs, sc, what = FAIL.get(k, FAIL_DEFAULT)
                 self._ev(t, "failure", f"FAILURE: {c['name']} - {what}", comp=k, down_h=hrs, scrap=sc)
                 scrap += sc
-                t = self._stop(t, hrs * 3600, f"failure: {c['name']}", {c["unit"]} if c["unit"] in C.UNITS else set(C.UNITS))
+                t = self._stop(t, hrs * 3600, f"failure: {c['name']}", {c["unit"]} if c["unit"] in control.UNITS else set(control.UNITS))
                 self.w[k] = 0.02
                 self.ew[k] = 1.0
                 self.hist[k] = []
@@ -270,10 +271,10 @@ class Month:
         # random faults during the order
         for fid, rate in RATES.items():
             if self.rnd.random() < rate / 100 * dur / 3600:
-                lost = V.results()[1][int(fid[1]) - 1]["lost_s"] * math.exp(self.rnd.gauss(0, 0.3)) + self.rnd.uniform(*RESPONSE)
-                code = V.results()[1][int(fid[1]) - 1]["observed"][0]
+                lost = vc.results()[1][int(fid[1]) - 1]["lost_s"] * math.exp(self.rnd.gauss(0, 0.3)) + self.rnd.uniform(*RESPONSE)
+                code = vc.results()[1][int(fid[1]) - 1]["observed"][0]
                 self._ev(t, "fault", f"{code} {FAULT_NAME[fid]}", code=code, lost_s=round(lost))
-                units = set(C.UNITS) if fid in ("F7", "F6", "F5") else {("crane", "arm", "door", "arm", "arm", "arm", "arm")[int(fid[1]) - 1]}
+                units = set(control.UNITS) if fid in ("F7", "F6", "F5") else {("crane", "arm", "door", "arm", "arm", "arm", "arm")[int(fid[1]) - 1]}
                 t = self._stop(t, lost, f"{fid} {FAULT_NAME[fid]}", units, "ESTOP" if fid == "F7" else "FAULT")
                 if fid == "F7" and self.rnd.random() < 0.05:
                     scrap += 1
@@ -283,9 +284,9 @@ class Month:
                 self.fsm[u][s] += d[s] * ratio
         a4 = {}
         drift = max(0.0, self._r("colour", t_h) - 1) * COMP["colour"]["base"]
-        for fl, v in C.PL.FLAVOURS.items():
+        for fl, v in pipeline.FLAVOURS.items():
             a4[fl] = v["mV"] - drift + self.rnd.gauss(0, 5.0)
-        bad = sum(1 for fl, mv in a4.items() if C.classify(mv) != v_bin(fl)) * 3
+        bad = sum(1 for fl, mv in a4.items() if control.classify(mv) != v_bin(fl)) * 3
         good = 9 - min(9, scrap + bad)
         self.raw["temp"].append(round(self._temp(t_h), 2))
         for fl in a4:
@@ -313,7 +314,7 @@ class Month:
                      w_before=round(self.w[k], 3))
             if when == "now":
                 t = self._stop(t, mins * 60, "planned maintenance (line stopped)",
-                               {c["unit"]} if c["unit"] in C.UNITS else set(C.UNITS), "MAINT")
+                               {c["unit"]} if c["unit"] in control.UNITS else set(control.UNITS), "MAINT")
             self.w[k] = 0.02
             self.ew[k] = 1.0
             self.hist[k] = []
@@ -340,11 +341,11 @@ class Month:
                     t = self._order(t, day, si, end)
                     t += CHANGEOVER
                     self.down["changeover"] = self.down.get("changeover", 0.0) + CHANGEOVER
-                    for u in C.UNITS:
+                    for u in control.UNITS:
                         self.fsm[u]["READY"] += CHANGEOVER
                 if t < end:
                     self.down["end of shift (no room for an order)"] = self.down.get("end of shift (no room for an order)", 0.0) + (end - t)
-                    for u in C.UNITS:
+                    for u in control.UNITS:
                         self.fsm[u]["READY"] += end - t
                 if si == len(SHIFTS) - 1:
                     self._maintenance(end, "night")            # the 22:00-06:00 gap
@@ -352,10 +353,10 @@ class Month:
 
 
 def v_bin(fl):
-    return C.PL.BIN_OF[fl]
+    return pipeline.BIN_OF[fl]
 
 
-# ------------------------------------------------------------- analytics
+# --- analytics
 def analytics(m, cf=None):
     planned = DAYS * len(SHIFTS) * 8 * 3600.0
     n = len(m.orders)
@@ -512,7 +513,7 @@ def main():
         "daily": km["daily"], "daily_cf": kcf["daily"], "pareto": km["pareto"], "pareto_cf": kcf["pareto"],
         "saves": sv, "insights": insights(m, km, kcf, sv), "heat": heat(m),
         "components": [{"id": k, "name": c["name"], "unit": c["unit"], "metric": c["metric"], "r_fail": round(c["r_fail"], 3),
-                        "soft": round(1 + H.SOFT * (c["r_fail"] - 1), 3), "base": round(c["base"], 4), "unit_of": c["unit_of"],
+                        "soft": round(1 + health.SOFT * (c["r_fail"] - 1), 3), "base": round(c["base"], 4), "unit_of": c["unit_of"],
                         "w0": SCENARIO[k]["w0"], "w_end": round(m.w[k], 3),
                         "disturbances": [{"day": d, "x": x, "what": w} for d, x, w in SCENARIO[k]["events"]],
                         "maintenance": sum(1 for e in m.events if e["kind"] == "maintenance" and e.get("comp") == k)}

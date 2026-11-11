@@ -24,7 +24,7 @@ def result():
 def test_golden_sources_are_in_the_knowledge_base():
     # a renamed or dropped doc must update the golden set loudly, not silently
     files = {p.file for p in grounding.get_bm25().passages}
-    missing = [g["file"] for g in ER.GOLDEN if g["file"] not in files]
+    missing = [f for g in ER.GOLDEN for f in ER.expected(g) if f not in files]
     assert not missing, f"golden sources missing from the kb: {missing}"
 
 
@@ -34,7 +34,8 @@ def test_metrics_are_within_bounds(result):
     for mode, m in result["metrics"].items():
         assert 0.0 <= m["hit@1"] <= m["hit@3"] <= m["hit@8"] <= 1.0, mode
         assert 0.0 <= m["mrr"] <= 1.0 and 0.0 <= m["ndcg"] <= 1.0, mode
-        assert m["n"] == (len(ER.GOLDEN) if mode == "all" else len(ER.GOLDEN) // 2)
+        want = [g for g in ER.GOLDEN if mode == "all" or g["mode"] == mode]
+        assert m["n"] == len(want)
 
 
 def test_baseline_floors(result):

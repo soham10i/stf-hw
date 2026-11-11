@@ -18,7 +18,7 @@ import json
 import math
 import os
 
-import health as H
+import health
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "..", "web", "public", "health", "theory.json")
 
@@ -26,26 +26,26 @@ OUT = os.path.join(os.path.dirname(__file__), "..", "..", "web", "public", "heal
 def params(c):
     """(r_fail, sigma) exactly as health.simulate derives them."""
     if c["kind"] in ("time", "current"):
-        r_fail, _, sig = H._baseline(H._steps(c["steps"]))
+        r_fail, _, sig = health._baseline(health._steps(c["steps"]))
         if c["kind"] == "current":
-            r_fail = H.ECB_TRIP
+            r_fail = health.ECB_TRIP
     elif c["kind"] == "duty":
-        r_fail, sig = 1.0 / H.air_duty0(), 0.03
+        r_fail, sig = 1.0 / health.air_duty0(), 0.03
     else:
-        r_fail, sig = 2.0, 5.0 / H.colour_margin()
+        r_fail, sig = 2.0, 5.0 / health.colour_margin()
     return r_fail, sig
 
 
 def main():
-    lam, s, W = H.EWMA, H.SOFT, H.WINDOW
+    lam, s, W = health.EWMA, health.SOFT, health.WINDOW
     lag = (1 - lam) / lam
     rows, fails = [], []
-    for c, sim in zip(H.components(), H.run(), strict=True):
+    for c, sim in zip(health.components(), health.run(), strict=True):
         r_f, sig = params(c)
         L, p = c["life"], c["p"]
         sig_z = sig * math.sqrt(lam / (2 - lam))                 # steady-state EWMA spread
         n_soft = L * s ** (1 / p) + lag                          # the EWMA reaches the soft limit
-        rul_warn = H.RUL_WARN_SHIFTS * sim["per_shift"]
+        rul_warn = health.RUL_WARN_SHIFTS * sim["per_shift"]
         # the trend warning on a healthy machine: slope from two EWMA values W apart
         sig_beta = math.sqrt(2) * sig_z / W
         beta_star = (r_f - 1) / rul_warn                         # slope that predicts < 3 shifts
@@ -64,8 +64,8 @@ def main():
         if min(row["soft_margin_sigma"], row["trend_margin_sigma"]) < 6:
             fails.append(f"{c['id']}: a healthy machine is within 6 sigma of a warning")
     out = {"rules": {"lambda": lam, "soft": s, "window": W,
-                     "rul_warn_shifts": H.RUL_WARN_SHIFTS,
-                     "ewma_lag": round(lag, 1), "healthy_cycles": H.HEALTHY_CYCLES},
+                     "rul_warn_shifts": health.RUL_WARN_SHIFTS,
+                     "ewma_lag": round(lag, 1), "healthy_cycles": health.HEALTHY_CYCLES},
            "components": rows, "fails": fails}
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(out, open(OUT, "w"), indent=1)

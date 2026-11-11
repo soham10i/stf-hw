@@ -27,36 +27,36 @@ animation is the proven path, not a separately-typed one.
 """
 import math
 
-import factory_layout as FL
-import hbw_model as HM
-import oven_model as OM
-import sorting_model as SM
-import vgr_model as VG
+import factory_layout
+import hbw_model
+import oven_model
+import sorting_model
+import vgr_model
 from variant import UP1, UP10
 
-V = VG.V
+V = vgr_model.V
 CUP_DROP = 28.0          # cup underside = plunge - 28
 APPROACH = 45.0          # approach height above contact, before the last plunge
 OVERTRAVEL = 4.0         # carriage travel absorbed by the spring stem at contact
 assert OVERTRAVEL < V["SPRING"]
 
 
-# ------------------------------------------------------------------ heights
+# --- heights
 def cookie_tops():
     """z of the cookie's TOP face at each station - the contact plane."""
-    P = HM.P
+    P = hbw_model.P
     mould_base = 8.0                                    # moulds.size[2]
-    wp = SM.S["WP_H"]
+    wp = sorting_model.S["WP_H"]
     tops = {
         "belt": P["CV_SURF"] + mould_base + wp,         # in its mould on the belt
-        "oven": OM.CUP_TARGETS[OM.O["SAUGER"][0]],      # on the extended tray
+        "oven": oven_model.CUP_TARGETS[oven_model.O["SAUGER"][0]],  # on the extended tray
     }
-    for col, (_, _, z) in SM.handover_points().items():
+    for col, (_, _, z) in sorting_model.handover_points().items():
         tops[f"bay_{col}"] = z                          # on the bay floor
     if UP1:
-        import upgrade as U
-        for nm in U.nests():
-            tops[nm] = U.NEST_TOP + wp                  # on a buffer nest pad
+        import upgrade
+        for nm in upgrade.nests():
+            tops[nm] = upgrade.NEST_TOP + wp            # on a buffer nest pad
     return tops
 
 
@@ -64,7 +64,7 @@ def contact_plunge(station):
     return cookie_tops()[station] + CUP_DROP
 
 
-# ---------------------------------------------------------------- obstacles
+# --- obstacles
 def obstacles(serving=None):
     """Every static part of the other three modules, as factory-frame AABBs,
     with the machines parked the way they are while the VGR works. One process
@@ -79,50 +79,50 @@ _OBST = {}
 
 def _obstacles(serving=None):
     out = []
-    for p in HM.build(HM.P["CV_X"], 260.0, 0.0):        # crane parked at transit
+    for p in hbw_model.build(hbw_model.P["CV_X"], 260.0, 0.0):  # crane parked at transit
         if p.group == "frame":
             continue
         a = p.aabb()
-        c0, c1 = FL.to_factory(a[0], a[1]), FL.to_factory(a[3], a[4])
+        c0, c1 = factory_layout.to_factory(a[0], a[1]), factory_layout.to_factory(a[3], a[4])
         out.append((f"HBW {p.name}", (min(c0[0], c1[0]), min(c0[1], c1[1]), a[2],
                                       max(c0[0], c1[0]), max(c0[1], c1[1]), a[5])))
     # the mould waiting at the VGR end of the belt - the cup must stay OUT of it
-    mx, my = FL.belt_handovers()["vgr"][:2]
-    z0 = HM.P["CV_SURF"]
+    mx, my = factory_layout.belt_handovers()["vgr"][:2]
+    z0 = hbw_model.P["CV_SURF"]
     for nm, (x0, y0, x1, y1, za, zb) in {
             "base": (-30, -32, 30, 32, 0, 8),
             "rim_a": (-30, -32, -25, 32, 8, 20), "rim_b": (25, -32, 30, 32, 8, 20),
             "rim_c": (-25, -32, 25, -27, 8, 20), "rim_d": (-25, 27, 25, 32, 8, 20)}.items():
         out.append((f"MOULD {nm}", (mx + x0, my + y0, z0 + za, mx + x1, my + y1, z0 + zb)))
-    for p in OM.build(sauger=OM.O["SAUGER"][1]):        # its own Sauger at the turntable
+    for p in oven_model.build(sauger=oven_model.O["SAUGER"][1]):  # its own Sauger at the turntable
         if p.group == "frame":
             continue
-        out.append((f"OVEN {p.name}", FL.oven_box(p.local_aabb())))
-    for p in SM.build():
+        out.append((f"OVEN {p.name}", factory_layout.oven_box(p.local_aabb())))
+    for p in sorting_model.build():
         if p.group == "frame":
             continue
         # the cookie the VGR is collecting is the target, not an obstacle
         if serving and serving.startswith("bay_") and p.name.startswith(f"wp_{serving[4:]}_"):
             continue
         a = p.local_aabb()
-        c0, c1 = FL.to_factory_sort(a[0], a[1]), FL.to_factory_sort(a[3], a[4])
+        c0, c1 = factory_layout.to_factory_sort(a[0], a[1]), factory_layout.to_factory_sort(a[3], a[4])
         out.append((f"SORT {p.name}", (min(c0[0], c1[0]), min(c0[1], c1[1]), a[2],
                                        max(c0[0], c1[0]), max(c0[1], c1[1]), a[5])))
     if UP1:
-        import upgrade as U
-        out += [(f"UP1 {p.name}", a) for _, p, a in U.factory_parts()]
+        import upgrade
+        out += [(f"UP1 {p.name}", a) for _, p, a in upgrade.factory_parts()]
     return out
 
 
-# ---------------------------------------------------------------- VGR parts
+# --- VGR parts
 def moving_parts(sw, pz, rr, compress=0.0, carrying=False):
     """Every part that moves with the arm, as (name, centre, half, angle, z0, z1)
     in the factory frame. The cup and the held cookie sit `compress` mm higher
     than the carriage alone would put them: that is the spring stem giving."""
-    parts = [p for p in VG.build(sw, pz, rr) if p.frame != "world"]
+    parts = [p for p in vgr_model.build(sw, pz, rr) if p.frame != "world"]
     if carrying:
-        parts += VG.held_cookie(sw, pz, rr)
-    vx, vy = FL.VGR_AT
+        parts += vgr_model.held_cookie(sw, pz, rr)
+    vx, vy = factory_layout.VGR_AT
     t = math.radians(sw); ct, st = math.cos(t), math.sin(t)
     out = []
     for p in parts:
@@ -147,14 +147,14 @@ def pose_hits(k, obst, tol=0.05):
             dz = min(z1, oa[5]) - max(z0, oa[2])
             if dz <= tol:
                 continue
-            o = FL._obb_hit(c, h, ang, ((oa[0] + oa[3]) / 2, (oa[1] + oa[4]) / 2),
+            o = factory_layout._obb_hit(c, h, ang, ((oa[0] + oa[3]) / 2, (oa[1] + oa[4]) / 2),
                             ((oa[3] - oa[0]) / 2, (oa[4] - oa[1]) / 2), tol)
             if o:
                 hits.append((name, on, round(min(o, dz), 1)))
     return hits
 
 
-# --------------------------------------------------------------------- plan
+# --- plan
 def _leg_clear(a, b, deg_step=2.0, mm_step=4.0):
     n = max(1, int(max(abs(b["sw"] - a["sw"]) / deg_step, abs(b["rr"] - a["rr"]) / mm_step,
                        abs(b["pz"] - a["pz"]) / mm_step)))
@@ -209,7 +209,7 @@ def plan(tour=None):
 
 
 def _plan(tour=None):
-    S = FL.stations()
+    S = factory_layout.stations()
     T = V["TRANSIT"]
     home = {"sw": 0.0, "rr": 0.0, "pz": T}
     keys = []
@@ -255,7 +255,7 @@ def _plan(tour=None):
     return keys
 
 
-# ------------------------------------------------ Upgrade 10: blended legs
+# --- Upgrade 10: blended legs
 # Every tour used to climb to TRANSIT (500 mm, above everything on the table),
 # swing, and come straight down again - three moves one after another, with
 # only one motor running at a time. Upgrade 10 keeps the waypoint count but
@@ -370,9 +370,9 @@ def blend(keys):
 def buffer_tour():
     """Upgrade 1: every nest served both ways - a baked cookie from the rot
     Lagerstelle into the nest, then out of the nest onto the warehouse belt."""
-    import upgrade as U
+    import upgrade
     t = []
-    for i, nm in enumerate(U.nests(), 1):
+    for i, nm in enumerate(upgrade.nests(), 1):
         t += [("bay_rot", "pick", "baked", "rot Lagerstelle"),
               (nm, "place", None, f"buffer nest {i}"),
               (nm, "pick", "baked", f"buffer nest {i}"),
@@ -380,7 +380,7 @@ def buffer_tour():
     return t
 
 
-# -------------------------------------------------------------------- check
+# --- check
 def check(verbose=True, deg_step=1.0, mm_step=2.0, tour=None):
     keys = plan(tour)
     fails = []

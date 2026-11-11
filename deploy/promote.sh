@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Promote the current tree from staging to the public service (docs/STAGING.md).
+# Promote the current tree from staging to the public service (docs/reference/operations/staging.md).
 # Rebuilds stf-live from the same source that just passed on stf-staging, keeping
 # stf-live's existing environment untouched (read at deploy time, never printed,
 # never written to the repo). Cloud Run keeps the previous revision, so rollback is:

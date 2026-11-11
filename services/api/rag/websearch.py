@@ -25,15 +25,20 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
+from html.parser import HTMLParser
 
-from services.api.agent import depth as D
-from services.api.security import netguard as NG
-from . import source_policy as SP
+from services.api.agent import depth as answer_depth
 from services.api.core.logging_config import get_logger
+from services.api.security import netguard
+
+from . import source_policy
 
 logger = get_logger(__name__)
 
-TRUSTED = SP.AUTHORITATIVE + SP.REFERENCE  # kept for callers; the grades are in source_policy
+SEARXNG_URL = os.environ.get("SEARXNG_URL", "http://127.0.0.1:8080")
+
+# kept for callers; the grades are in source_policy
+TRUSTED = source_policy.AUTHORITATIVE + source_policy.REFERENCE
 MAX_SOURCES = 8
 SEARCH_RULES = """You research a question for the operations copilot of the STF digital twin
 (a simulated fischertechnik Smart Tabletop Factory). Search the web, open the most authoritative
@@ -71,12 +76,12 @@ class Found:
     suggestions: list[str] = field(default_factory=list)
 
 
-host = SP.host
+host = source_policy.host
 
 
 def trusted(url: str) -> bool:
     """Whether the host's grade permits fetching the page for evidence."""
-    return SP.grade(url) in ("authoritative", "reference")
+    return source_policy.grade(url) in ("authoritative", "reference")
 
 
 def _clean(text: str) -> str:
@@ -98,8 +103,11 @@ def _sources(msg: dict, text: str) -> list[dict]:
                     "title": (r.get("title") or host(url)).strip(),
                     "cited": False,
                 }
-    rows = [{**v, "grade": SP.grade(v["url"]), "trusted": trusted(v["url"])} for v in out.values()]
-    rows.sort(key=SP.rank_key)
+    rows = [
+        {**v, "grade": source_policy.grade(v["url"]), "trusted": trusted(v["url"])}
+        for v in out.values()
+    ]
+    rows.sort(key=source_policy.rank_key)
     return rows[:MAX_SOURCES]
 
 
@@ -137,7 +145,12 @@ def _call(post, body: dict) -> dict:
 
 
 def search(
-    question: str, context: str, post, model: str, effort: str = "low", max_tokens: int = 2500,
+    question: str,
+    context: str,
+    post,
+    model: str,
+    effort: str = "low",
+    max_tokens: int = 2500,
     level: str = "vetted",
 ) -> Found:
     """Execute a single web search using Groq browser search tools.
@@ -160,7 +173,7 @@ def search(
     body = {
         "model": model,
         "messages": [
-            {"role": "system", "content": SEARCH_RULES + "\n" + SP.rules(level)},
+            {"role": "system", "content": SEARCH_RULES + "\n" + source_policy.rules(level)},
             {"role": "user", "content": f"# CONTEXT\n\n{context}\n\n# QUESTION\n\n{question}"},
         ],
         "tools": [{"type": "browser_search"}],
@@ -229,8 +242,14 @@ def plan(question: str, post, model: str, n: int = 3) -> list[str]:
 
 
 def deep(
-    question: str, context: str, post, model: str, planner: str, emit=None,
-    depth: D.Depth = D.PROFILES["standard"], level: str = "vetted",
+    question: str,
+    context: str,
+    post,
+    model: str,
+    planner: str,
+    emit=None,
+    depth: answer_depth.Depth = answer_depth.PROFILES["standard"],
+    level: str = "vetted",
 ) -> Found:
     """Execute deep research across multiple queries, aggregating findings and citations.
 
@@ -279,7 +298,7 @@ def deep(
     text = "\n\n".join(f"## Finding {i}: {sub}\n\n{f.text}" for i, (sub, f) in enumerate(found, 1))
     return Found(
         text=text,
-        sources=sorted(seen.values(), key=SP.rank_key)[: MAX_SOURCES * 2],
+        sources=sorted(seen.values(), key=source_policy.rank_key)[: MAX_SOURCES * 2],
         reasoning=[r for _, f in found for r in f.reasoning],
         model=model,
         pages=" ".join(f.pages for _, f in found),
@@ -288,7 +307,7 @@ def deep(
     )
 
 
-# ------------------------------------------------------------------ DuckDuckGo (keyless)
+# --- DuckDuckGo (keyless)
 """A free, keyless fallback for both search modes: DuckDuckGo's HTML endpoint lists the
 pages, this process fetches the best of them itself, and a configured model (Groq, UPB or
 the operator's own OpenAI-compatible server) writes the answer up from the fetched text.
@@ -326,7 +345,7 @@ DDG_RULES = """You research a question for the operations copilot of the STF dig
 MAX_PAGE_BYTES = 2_000_000  # a page is read at most this far (the model sees 6000 chars)
 
 
-public_url = NG.public_url  # kept for callers and tests
+public_url = netguard.public_url  # kept for callers and tests
 
 
 def _get(url: str, data: bytes | None = None, timeout: float = 20) -> str:
@@ -338,7 +357,7 @@ def _get(url: str, data: bytes | None = None, timeout: float = 20) -> str:
         method="POST" if data else "GET",
         headers={"User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded"},
     )
-    with NG.opener.open(req, timeout=timeout) as r:  # public peers only (netguard.py)
+    with netguard.opener.open(req, timeout=timeout) as r:  # public peers only (netguard.py)
         raw = r.read(MAX_PAGE_BYTES)
     for enc in ("utf-8", "latin-1"):
         try:
@@ -372,7 +391,7 @@ def ddg_search(query: str, max_results: int = DDG_RESULTS, level: str = "vetted"
         RuntimeError: When DuckDuckGo rate-limits, blocks, or fails to return results.
     """
     logger.debug("Executing DuckDuckGo web search: query=%r", query[:60])
-    q = f"{query} {SP.query_exclusions()}"
+    q = f"{query} {source_policy.query_exclusions()}"
     body = urllib.parse.urlencode({"q": q, "kl": "us-en"}).encode()
     html = ""
     err: Exception | None = None
@@ -398,16 +417,16 @@ def ddg_search(query: str, max_results: int = DDG_RESULTS, level: str = "vetted"
         else r'result-link[^>]*href="([^"]+)"[^>]*>(.*?)</a>'
     )
     snip_rx = (
-        r'result__snippet[^>]*>(.*?)</a>'
+        r"result__snippet[^>]*>(.*?)</a>"
         if "result__a" in html
-        else r'result-snippet[^>]*>(.*?)</td>'
+        else r"result-snippet[^>]*>(.*?)</td>"
     )
     out: list[dict] = []
     snippets = re.findall(snip_rx, html, re.S)
     for i, m in enumerate(re.finditer(link_rx, html, re.S)):
         url = _ddg_link(m.group(1))
         title = re.sub(r"<[^>]+>", "", m.group(2)).strip()
-        if not url.startswith("http") or not title or not SP.allowed(url, level):
+        if not url.startswith("http") or not title or not source_policy.allowed(url, level):
             continue
         snip = re.sub(r"<[^>]+>", "", snippets[i]).strip() if i < len(snippets) else ""
         out.append({"url": url, "title": title, "snippet": snip})
@@ -417,8 +436,142 @@ def ddg_search(query: str, max_results: int = DDG_RESULTS, level: str = "vetted"
     return out
 
 
+def _fetch_searxng(url: str, timeout: float = 12) -> str:
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": UA, "Accept": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa: S310 - internal / configured SearXNG endpoint
+        return r.read(MAX_PAGE_BYTES).decode("utf-8", "replace")
+
+
+def searxng_search(
+    query: str,
+    base_url: str = SEARXNG_URL,
+    max_results: int = DDG_RESULTS,
+    level: str = "vetted",
+) -> list[dict]:
+    """Execute search against a local or remote SearXNG metasearch instance (Google, Bing, arXiv, etc.).
+
+    Args:
+        query: Search keywords or question.
+        base_url: SearXNG instance endpoint (default http://127.0.0.1:8080).
+        max_results: Maximum result items to return.
+        level: Source policy filtering level.
+
+    Returns:
+        list[dict]: List of search result dictionaries containing 'url', 'title', and 'snippet'.
+    """
+    logger.debug("Executing SearXNG web search: query=%r (url=%s)", query[:60], base_url)
+    q = f"{query} {source_policy.query_exclusions()}".strip()
+    params = urllib.parse.urlencode(
+        {
+            "q": q,
+            "format": "json",
+            "language": "en",
+        }
+    )
+    target_url = f"{base_url.rstrip('/')}/search?{params}"
+    try:
+        raw = _fetch_searxng(target_url, timeout=12)
+        data = json.loads(raw)
+    except Exception as e:
+        logger.debug("SearXNG search request failed for query %r: %s", query[:60], e)
+        raise RuntimeError(f"SearXNG failed: {e}") from None
+
+    raw_results = data.get("results") or []
+    out: list[dict] = []
+    for r in raw_results:
+        link = r.get("url")
+        title = r.get("title") or ""
+        snip = r.get("content") or ""
+        if not link or not link.startswith("http") or not title:
+            continue
+        if not source_policy.allowed(link, level):
+            continue
+        out.append(
+            {
+                "url": link,
+                "title": title.strip(),
+                "snippet": snip.strip(),
+                "engine": r.get("engine", "searxng"),
+            }
+        )
+        if len(out) >= max_results:
+            break
+    if not out:
+        raise RuntimeError("SearXNG returned 0 allowed results")
+    logger.debug("SearXNG returned %d results for query %r", len(out), query[:60])
+    return out
+
+
 _TAG = re.compile(r"<[^>]+>")
-_SCRIPT = re.compile(r"(?is)<(script|style|noscript|header|footer|nav)[^>]*>.*?</\1>")
+_SCRIPT = re.compile(r"(?is)<(script|style|noscript|header|footer|nav|aside|svg)[^>]*>.*?</\1>")
+
+
+class HTMLToMarkdown(HTMLParser):
+    """Sanitize HTML into clean, structured markdown with headings, lists, and tables preserved."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.output: list[str] = []
+        self.in_table = False
+        self.table_row: list[str] = []
+        self.table_rows: list[list[str]] = []
+        self.skip_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in ("script", "style", "nav", "footer", "header", "noscript", "aside", "svg"):
+            self.skip_depth += 1
+        elif self.skip_depth == 0:
+            if tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+                lvl = int(tag[1])
+                self.output.append("\n\n" + ("#" * lvl) + " ")
+            elif tag in ("p", "div", "section", "article"):
+                self.output.append("\n\n")
+            elif tag == "li":
+                self.output.append("\n- ")
+            elif tag == "table":
+                self.in_table = True
+                self.table_rows = []
+            elif tag == "tr":
+                self.table_row = []
+            elif tag in ("td", "th"):
+                self.output.append("\x00")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in ("script", "style", "nav", "footer", "header", "noscript", "aside", "svg"):
+            self.skip_depth = max(0, self.skip_depth - 1)
+        elif self.skip_depth == 0:
+            if tag in ("td", "th"):
+                cell: list[str] = []
+                while self.output and self.output[-1] != "\x00":
+                    cell.append(self.output.pop())
+                if self.output and self.output[-1] == "\x00":
+                    self.output.pop()
+                text = "".join(reversed(cell)).strip().replace("|", "\\|")
+                self.table_row.append(re.sub(r"\s+", " ", text))
+            elif tag == "tr":
+                if self.table_row:
+                    self.table_rows.append(self.table_row)
+            elif tag == "table":
+                self.in_table = False
+                if self.table_rows:
+                    cols = max(len(r) for r in self.table_rows)
+                    if cols > 0:
+                        md: list[str] = ["\n\n"]
+                        hdr = self.table_rows[0] + [""] * (cols - len(self.table_rows[0]))
+                        md.append("| " + " | ".join(hdr) + " |\n")
+                        md.append("| " + " | ".join(["---"] * cols) + " |\n")
+                        for row in self.table_rows[1:]:
+                            r = row + [""] * (cols - len(row))
+                            md.append("| " + " | ".join(r) + " |\n")
+                        md.append("\n")
+                        self.output.append("".join(md))
+
+    def handle_data(self, data: str) -> None:
+        if self.skip_depth == 0:
+            self.output.append(data)
 
 
 def fetch_text(url: str, max_chars: int = DDG_PAGE_CHARS) -> str:
@@ -440,11 +593,21 @@ def fetch_text(url: str, max_chars: int = DDG_PAGE_CHARS) -> str:
 
 
 def html_to_text(html: str, max_chars: int = DDG_PAGE_CHARS) -> str:
-    """A page's readable text: scripts, styles and page chrome dropped, tags stripped."""
+    """A page's readable text: structured markdown with headings, lists, tables preserved."""
+    try:
+        p = HTMLToMarkdown()
+        p.feed(html)
+        out = "".join(p.output)
+        out = re.sub(r"[ \t]+", " ", out)
+        out = re.sub(r"\n{3,}", "\n\n", out).strip()
+        if len(out) >= 80:
+            return out[:max_chars]
+    except Exception as e:  # malformed HTML: the plain-text fallback below
+        logger.debug("markdown conversion failed: %s", e)
     import html as _html
 
-    html = _SCRIPT.sub(" ", html)
-    text = _html.unescape(_TAG.sub(" ", html))
+    html_clean = _SCRIPT.sub(" ", html)
+    text = _html.unescape(_TAG.sub(" ", html_clean))
     return re.sub(r"\s+", " ", text).strip()[:max_chars]
 
 
@@ -452,7 +615,7 @@ def _read_pages(
     results: list[dict], fetch: int = DDG_PAGES, chars: int = DDG_PAGE_CHARS
 ) -> list[dict]:
     """Fetch plain text content for the first N search results, the most authoritative first."""
-    results = sorted(results, key=lambda r: SP.RANK[SP.grade(r["url"])])
+    results = sorted(results, key=lambda r: source_policy.RANK[source_policy.grade(r["url"])])
     pages = []
     for i, r in enumerate(results):
         p = dict(r)
@@ -462,8 +625,15 @@ def _read_pages(
     return pages
 
 
-def _answer(question: str, context: str, pages: list[dict], post, model: str,
-            max_tokens: int = 2500, level: str = "vetted") -> Found:
+def _answer(
+    question: str,
+    context: str,
+    pages: list[dict],
+    post,
+    model: str,
+    max_tokens: int = 2500,
+    level: str = "vetted",
+) -> Found:
     """Prompt the model with bounded context/pages, preserving every page's URL."""
     context = context[: DDG_PROMPT_CHARS // 4]
     question = question[:2000]
@@ -475,13 +645,14 @@ def _answer(question: str, context: str, pages: list[dict], post, model: str,
         header + (p.get("text") or p.get("snippet") or "(could not be read)")[:per_page]
         for header, p in zip(headers, pages, strict=True)
     )
+    toks = max(max_tokens, 3500) if "mercury" in model else max_tokens
     body = {
         "model": model,
         "messages": [
-            {"role": "system", "content": DDG_RULES + "\n" + SP.rules(level)},
+            {"role": "system", "content": DDG_RULES + "\n" + source_policy.rules(level)},
             {"role": "user", "content": base + listing},
         ],
-        "max_tokens": max_tokens,
+        "max_tokens": toks,
         "temperature": 0.2,
     }
     data = _call(post, body)
@@ -492,11 +663,17 @@ def _answer(question: str, context: str, pages: list[dict], post, model: str,
         for title, url in re.findall(r"\[([^\]]{1,160})\]\((https?://[^)\s]+)\)", text)
     }
     sources = [
-        {**v, "grade": SP.grade(v["url"]), "trusted": trusted(v["url"])} for v in cited.values()
+        {**v, "grade": source_policy.grade(v["url"]), "trusted": trusted(v["url"])}
+        for v in cited.values()
     ]
     rest = [
-        {"url": p["url"], "title": p["title"], "cited": False, "grade": SP.grade(p["url"]),
-         "trusted": trusted(p["url"])}
+        {
+            "url": p["url"],
+            "title": p["title"],
+            "cited": False,
+            "grade": source_policy.grade(p["url"]),
+            "trusted": trusted(p["url"]),
+        }
         for p in pages
         if p["url"] not in cited
     ]
@@ -512,8 +689,12 @@ def _answer(question: str, context: str, pages: list[dict], post, model: str,
 
 
 def search_ddg(
-    question: str, context: str, post, model: str,
-    depth: D.Depth = D.PROFILES["standard"], level: str = "vetted",
+    question: str,
+    context: str,
+    post,
+    model: str,
+    depth: answer_depth.Depth = answer_depth.PROFILES["standard"],
+    level: str = "vetted",
 ) -> Found:
     """Execute keyless web search: retrieve pages with DuckDuckGo and synthesize with local model.
 
@@ -535,17 +716,49 @@ def search_ddg(
     # A search branch writes a short finding, not the final report's full token allowance.
     output_tokens = min(depth.answer_tokens, depth.search_tokens)
     found = _answer(question, context, pages, post, model, output_tokens, level)
-    found.steps = (
-        [f"searched DuckDuckGo: “{question}”"]
-        + [f"opened {p['url']}" for p in pages[: depth.pages] if p.get("text")]
-    )
+    found.steps = [f"searched DuckDuckGo: “{question}”"] + [
+        f"opened {p['url']}" for p in pages[: depth.pages] if p.get("text")
+    ]
     logger.info("DuckDuckGo search completed: %d sources found", len(found.sources))
     return found
 
 
+def search_searxng(
+    question: str,
+    context: str,
+    post,
+    model: str,
+    depth: answer_depth.Depth = answer_depth.PROFILES["standard"],
+    level: str = "vetted",
+    base_url: str = SEARXNG_URL,
+) -> Found:
+    """Execute SearXNG metasearch across multiple engines and synthesize with model."""
+    logger.info(
+        "Executing SearXNG search: question=%r (model=%s, url=%s)", question[:60], model, base_url
+    )
+    results = searxng_search(question, base_url=base_url, max_results=depth.results, level=level)
+    if not results:
+        raise RuntimeError("SearXNG returned no results")
+    pages = _read_pages(results, depth.pages, depth.page_chars)
+    output_tokens = min(depth.answer_tokens, depth.search_tokens)
+    found = _answer(question, context, pages, post, model, output_tokens, level)
+    found.via = "searxng"
+    found.model = f"searxng {model}"
+    found.steps = [f"searched SearXNG metasearch: “{question}”"] + [
+        f"opened {p['url']}" for p in pages[: depth.pages] if p.get("text")
+    ]
+    logger.info("SearXNG search completed: %d sources found", len(found.sources))
+    return found
+
+
 def deep_ddg(
-    question: str, context: str, post, model: str, emit=None,
-    depth: D.Depth = D.PROFILES["standard"], level: str = "vetted",
+    question: str,
+    context: str,
+    post,
+    model: str,
+    emit=None,
+    depth: answer_depth.Depth = answer_depth.PROFILES["standard"],
+    level: str = "vetted",
 ) -> Found:
     """Execute keyless deep research across multiple sub-queries using DuckDuckGo.
 
@@ -590,7 +803,7 @@ def deep_ddg(
     text = "\n\n".join(f"## Finding {i}: {sub}\n\n{f.text}" for i, (sub, f) in enumerate(found, 1))
     return Found(
         text=text,
-        sources=sorted(seen.values(), key=SP.rank_key)[: MAX_SOURCES * 2],
+        sources=sorted(seen.values(), key=source_policy.rank_key)[: MAX_SOURCES * 2],
         reasoning=[r for _, f in found for r in f.reasoning],
         model=model,
         pages=" ".join(f.pages for _, f in found),

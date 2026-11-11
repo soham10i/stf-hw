@@ -149,13 +149,13 @@
   {
    "q": "what is the ride-through reserve",
    "want": "doc:Upgrade 9",
-   "got": "doc:UPGRADE_PLAN › STF upgrade plan: from training model to industrial practice › Upgrade 9: the cell as a microgrid (BUILT)",
+   "got": "doc:STF upgrade plan: from training model to industrial practice › STF upgrade plan: from training model to industrial practice › Upgrade 9: the cell as a microgrid (BUILT)",
    "ok": true
   },
   {
    "q": "how does the light curtain work",
    "want": "doc:safety",
-   "got": "doc:UPGRADE_PLAN › STF upgrade plan: from training model to industrial practice › Upgrade 2: machine safety (BUILT) › Scope",
+   "got": "doc:STF upgrade plan: from training model to industrial practice › STF upgrade plan: from training model to industrial practice › Upgrade 2: machine safety (BUILT) › Scope",
    "ok": true
   },
   {
@@ -167,7 +167,7 @@
   {
    "q": "how do I deploy the app on render",
    "want": "doc:DEPLOY",
-   "got": "doc:DEPLOY › Deploying the twin › 3. Security on a public host",
+   "got": "doc:Deploying the twin › Deploying the twin › 3. Security on a public host",
    "ok": true
   },
   {

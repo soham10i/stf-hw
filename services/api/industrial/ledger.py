@@ -1,5 +1,5 @@
 """
-The guarded actions' ledger (docs/architecture/guarded-action-plan.md): what the copilot
+The guarded actions' ledger (docs/plans/guarded-action-plan.md): what the copilot
 proposed, whether it ran - at most once - and the signed audit chain of every attempt.
 
 Three tables, the same in both stores (supabase/migrations/20261028120000_stf_actions.sql):
@@ -103,7 +103,7 @@ class Ledger:
 
     prefix = ""
 
-    # -- what a store implements
+    # --- what a store implements
     def _run(self, sql: str, args: tuple = ()) -> tuple[int, list[dict]]:
         raise NotImplementedError
 
@@ -116,7 +116,7 @@ class Ledger:
     def close(self) -> None:
         """Release the connection(s)."""
 
-    # -- helpers
+    # --- helpers
     def _t(self, name: str) -> str:
         return self.prefix + name
 
@@ -135,7 +135,7 @@ class Ledger:
     def _args(self, row: dict, cols: tuple[str, ...]) -> tuple:
         return tuple(self._json(row[c]) if c in JSON_COLS else row[c] for c in cols)
 
-    # -- proposals
+    # --- proposals
     def put_proposal(self, p: dict) -> bool:
         """Store a new proposal; False when one with its id is already there (a re-run)."""
         if p["status"] not in ("proposed", "pending", "refused"):
@@ -177,7 +177,7 @@ class Ledger:
         )
         return n == 1
 
-    # -- executions
+    # --- executions
     def start_execution(self, proposal_id: str, at: float, result: dict | None = None) -> bool:
         """Claim the one execution of a proposal, before acting: False means it was claimed
         already, so the caller must reconcile, never act. `result` holds what a reconciliation
@@ -211,7 +211,7 @@ class Ledger:
         )
         return self._row(rows[0] if rows else None)
 
-    # -- retention
+    # --- retention
     def _drop(self, where: str, arg: Any) -> list[str]:
         with self._atomic() as run:
             _, rows = run(
@@ -228,7 +228,7 @@ class Ledger:
         """Delete proposals made before `before`; the threads whose checkpoints go too."""
         return self._drop("created_at < ?", before)
 
-    # -- the audit chain
+    # --- the audit chain
     def append_audit(self, row: dict, sign: Callable[[dict], str]) -> dict:
         """Append one record to the chain: its prev_sig is the last record's signature, read and
         written in one transaction, so two writers never fork the chain. A record whose id is

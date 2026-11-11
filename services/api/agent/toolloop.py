@@ -25,10 +25,12 @@ import json
 import urllib.error
 from dataclasses import dataclass, field
 
-from . import chat as C
-from services.api.rag import gemini_search as GS
-from . import tools as T
-from services.api.core import tracing as TR
+from services.api.core import tracing
+from services.api.rag import gemini_search
+
+from . import answer_policy
+from . import chat as chat_engine
+from . import tools as twin_tools
 
 
 @dataclass
@@ -84,7 +86,7 @@ class Adapter:
         """The model's turn that asked for tools, as the API wants it back."""
         raise NotImplementedError
 
-    def answer_back(self, body: dict, done: list[tuple[Call, T.Result]]) -> None:
+    def answer_back(self, body: dict, done: list[tuple[Call, twin_tools.Result]]) -> None:
         """The tools' results, in reply to the calls."""
         raise NotImplementedError
 
@@ -104,7 +106,7 @@ class Gemini(Adapter):
 
     def body(self, req, results, meta):
         web = bool(meta.get("web"))
-        body = C.build_body(
+        body = chat_engine.build_body(
             req, results, meta.get("extra", ""), search=self.chat.c.grounding or web,
             functions=not web,
         )
@@ -115,19 +117,19 @@ class Gemini(Adapter):
     def post(self, body, meta):
         data = self.chat._gemini_post(body, meta)
         if meta.get("web"):
-            meta["web_sources"] = C.grounding_sources(data) or meta.get("web_sources", [])
+            meta["web_sources"] = chat_engine.grounding_sources(data) or meta.get("web_sources", [])
         # with Google Search on, Google's Search Suggestions must be shown with the answer
-        meta.setdefault("search_suggestions", []).extend(GS.search_entry(data))
+        meta.setdefault("search_suggestions", []).extend(gemini_search.search_entry(data))
         return data
 
     def think(self, data):
-        return C.thoughts(data)
+        return chat_engine.thoughts(data)
 
     def calls(self, data):
-        return [Call(fc.get("name", ""), fc.get("args") or {}) for fc in C.function_calls(data)]
+        return [Call(fc.get("name", ""), fc.get("args") or {}) for fc in chat_engine.function_calls(data)]
 
     def text(self, data):
-        return C.parse(data)
+        return chat_engine.parse(data)
 
     def empty(self, data):
         if (data.get("promptFeedback") or {}).get("blockReason"):
@@ -165,12 +167,12 @@ class Completions(Adapter):
         raise NotImplementedError
 
     def body(self, req, results, meta):
-        body = C.build_groq_body(req, self.model(meta), results, meta.get("extra", ""))
+        body = chat_engine.build_groq_body(req, self.model(meta), results, meta.get("extra", ""))
         body["max_tokens"] = meta.get("max_tokens") or body["max_tokens"]
         return body
 
     def think(self, data):
-        return C.groq_thinking(data)
+        return chat_engine.groq_thinking(data)
 
     @staticmethod
     def _msg(data: dict) -> dict:
@@ -178,17 +180,20 @@ class Completions(Adapter):
 
     def calls(self, data):
         return [
-            Call((tc.get("function") or {}).get("name", ""),
-                 _args((tc.get("function") or {}).get("arguments") or {}), tc.get("id"))
+            Call(
+                (tc.get("function") or {}).get("name", ""),
+                _args((tc.get("function") or {}).get("arguments") or {}),
+                tc.get("id"),
+            )
             for tc in self._msg(data).get("tool_calls") or []
         ]
 
     def text(self, data):
-        return C.parse_groq(data)
+        return chat_engine.parse_groq(data)
 
     def empty(self, data):
         content = self._msg(data).get("content") or ""
-        return not C.split_think(content)[1].strip()
+        return not chat_engine.split_think(content)[1].strip()
 
     def keep(self, body, data):
         # the model's turn as it came, less what the API does not take back
@@ -216,9 +221,9 @@ class Groq(Completions):
 
     def body(self, req, results, meta):
         if not self.chat.c.groq_key:
-            raise C.ModelError("no Groq API key configured")
+            raise chat_engine.ModelError("no Groq API key configured")
         # Groq's own max_tokens follow the model and the depth (groq_model in _groq_post)
-        return C.build_groq_body(req, self.model(meta), results, meta.get("extra", ""))
+        return chat_engine.build_groq_body(req, self.model(meta), results, meta.get("extra", ""))
 
     def post(self, body, meta):
         return self.chat._groq_post(body, meta)
@@ -232,7 +237,7 @@ class UPB(Completions):
 
     def body(self, req, results, meta):
         if not self.chat.c.upb_key:
-            raise C.ModelError("no UPB API key configured")
+            raise chat_engine.ModelError("no UPB API key configured")
         return super().body(req, results, meta)
 
     def post(self, body, meta):
@@ -250,7 +255,7 @@ class OpenAI(Completions):
 
     def body(self, req, results, meta):
         if not self.chat.c.openai_url:
-            raise C.ModelError("no OpenAI-compatible endpoint configured")
+            raise chat_engine.ModelError("no OpenAI-compatible endpoint configured")
         return super().body(req, results, meta)
 
     def post(self, body, meta):
@@ -267,7 +272,7 @@ class Ollama(Completions):
         return self.chat.c.ollama_model or "qwen2.5:7b-instruct"
 
     def body(self, req, results, meta):
-        body = C.build_ollama_body(req, self.model(meta), results, meta.get("extra", ""))
+        body = chat_engine.build_ollama_body(req, self.model(meta), results, meta.get("extra", ""))
         if meta.get("max_tokens"):  # a small local model: a third of a hosted model's allowance
             body["options"]["num_predict"] = max(600, meta["max_tokens"] // 3)
         return body
@@ -276,29 +281,31 @@ class Ollama(Completions):
         try:
             return self.chat.post_ollama(self.chat.c.ollama_url, body)
         except urllib.error.HTTPError as e:
-            raise C.ModelError(f"the local model answered HTTP {e.code}") from None
+            raise chat_engine.ModelError(f"the local model answered HTTP {e.code}") from None
         except (urllib.error.URLError, TimeoutError):
-            raise C.ModelError(
+            raise chat_engine.ModelError(
                 "the local model did not answer in time (is 'ollama serve' running?)"
             ) from None
 
     def think(self, data):
         msg = data.get("message") or {}
-        return (msg.get("thinking") or C.split_think(msg.get("content") or "")[0]).strip()
+        return (msg.get("thinking") or chat_engine.split_think(msg.get("content") or "")[0]).strip()
 
     def calls(self, data):
         return [
-            Call((tc.get("function") or {}).get("name", ""),
-                 _args((tc.get("function") or {}).get("arguments") or {}))
+            Call(
+                (tc.get("function") or {}).get("name", ""),
+                _args((tc.get("function") or {}).get("arguments") or {}),
+            )
             for tc in (data.get("message") or {}).get("tool_calls") or []
         ]
 
     def text(self, data):
-        return C.parse_ollama(data)
+        return chat_engine.parse_ollama(data)
 
     def empty(self, data):
         content = (data.get("message") or {}).get("content") or ""
-        return not C.split_think(content)[1].strip()
+        return not chat_engine.split_think(content)[1].strip()
 
     def keep(self, body, data):
         body["messages"].append(data.get("message") or {})
@@ -308,9 +315,7 @@ class Ollama(Completions):
             body["messages"].append({"role": "tool", "content": r.as_markdown()})
 
 
-ADAPTERS: dict[str, type[Adapter]] = {
-    a.name: a for a in (Gemini, Groq, UPB, OpenAI, Ollama)
-}
+ADAPTERS: dict[str, type[Adapter]] = {a.name: a for a in (Gemini, Groq, UPB, OpenAI, Ollama)}
 
 
 @dataclass
@@ -320,12 +325,12 @@ class Conversation:
 
     adapter: Adapter
     req: object
-    ctx: T.Ctx
+    ctx: twin_tools.Ctx
     results: list
     called: list[str]
     meta: dict
     body: dict = field(default_factory=dict)
-    rounds: int = C.MAX_ROUNDS + 1
+    rounds: int = chat_engine.MAX_ROUNDS + 1
     last: dict = field(default_factory=dict)
     text: str = ""
     final: bool = False  # the answer came from the last request, without tools
@@ -340,13 +345,13 @@ class Conversation:
     def post(self) -> dict:
         """One request to the model, as a span with the model that answered and its tokens."""
         a = self.adapter
-        with TR.span(f"llm.{a.name}") as s:
+        with tracing.span(f"llm.{a.name}") as s:
             data = self.last = a.post(self.body, self.meta)
             model = self.meta.get("model") or (
                 a.model(self.meta) if isinstance(a, Completions) else a.name
             )
             provider = "vertex" if a.name == "gemini" and self.meta.get("vertex") else a.name
-            TR.model_call(s, provider, model, data)
+            tracing.model_call(s, provider, model, data)
         return data
 
     def run(self) -> str:
@@ -365,15 +370,15 @@ class Conversation:
             if not calls:
                 self.text = a.text(data)
                 if a.empty(data):
-                    raise C.ModelError(f"{a.name} returned thoughts but no answer text")
+                    raise chat_engine.ModelError(f"{a.name} returned thoughts but no answer text")
                 return self.text
             a.keep(self.body, data)
             done = []
             for call in calls:
                 self.say("step", f"called {(call.name or '?').replace('_', ' ')}")
-                with TR.span(f"tool.{call.name or 'unknown'}", stf__tool=call.name) as s:
-                    r = T.call(call.name, call.args, self.ctx)
-                    TR.put(s, stf__facts=len(r.facts))
+                with tracing.span(f"tool.{call.name or 'unknown'}", stf__tool=call.name) as s:
+                    r = twin_tools.call(call.name, call.args, self.ctx)
+                    tracing.put(s, stf__facts=len(r.facts))
                 self.results.append(r)
                 self.called.append(r.tool)
                 call.id = call.id or f"call_{len(self.called)}"
@@ -384,16 +389,22 @@ class Conversation:
         data = self.post()
         self.text = a.text(data)
         if a.empty(data):
-            raise C.ModelError(f"{a.name} returned thoughts but no final answer text")
+            raise chat_engine.ModelError(f"{a.name} returned thoughts but no final answer text")
         return self.text
 
-    def correct(self, bad: list[str]) -> bool:
-        """Send the answer back once with the numbers nothing backs (verify.py). False when the
-        correction was already spent, the answer was the final one, or the response cannot take
-        a reply - the answer then stands, flagged."""
+    def correct(self, bad: list[str], claims: list[str] | None = None) -> bool:
+        """Send the answer back once with the numbers (verify.py) and the claims (claims.py)
+        nothing backs. False when the correction was already spent, the answer was the final
+        one, or the response cannot take a reply - the answer then stands, and the policy
+        (answer_policy.py) strips, hedges or declines it."""
         if self.corrected or self.final or not self.adapter.can_correct(self.last):
             return False
         self.corrected = True
-        self.say("step", f"checking: {', '.join(bad)} not in the evidence - asked to rewrite")
-        self.adapter.correct(self.body, self.last, self.text, C.correction(bad))
+        what = ", ".join(bad) if bad else f"{len(claims or [])} unsupported statements"
+        if bad and claims:
+            what += f" and {len(claims)} unsupported statements"
+        self.say("step", f"checking: {what} not in the evidence - asked to rewrite")
+        message = (answer_policy.correction(bad, claims) if claims
+                   else chat_engine.correction(bad))
+        self.adapter.correct(self.body, self.last, self.text, message)
         return True

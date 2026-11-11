@@ -39,13 +39,13 @@ from multiprocessing import Pool
 HERE = os.path.dirname(os.path.abspath(__file__))
 LINE2 = os.path.dirname(HERE)
 sys.path.insert(0, LINE2)
-import line_model as M                                     # noqa: E402
-import oven_ctrl as OC                                     # noqa: E402
-from twin.sil import build as B                            # noqa: E402
-from twin.sil import port as P                             # noqa: E402
-from twin.sil.plant import SilPlant                        # noqa: E402
+import line_model  # noqa: E402
+import oven_ctrl  # noqa: E402
+from twin.sil import build as sil_build  # noqa: E402
+from twin.sil import port as sil_port  # noqa: E402
+from twin.sil.plant import SilPlant  # noqa: E402
 
-L = M.L
+L = line_model.L
 LIB = os.path.join(HERE, "out", "sil", "libstf2plc.dylib")
 WIN = L["BAKE_MARGIN"]
 C10_TOL = 0.5                                              # K, PLC (10 ms, 2 s PWM) vs ZoneLoop (0.5 s, averaged)
@@ -64,7 +64,7 @@ def warm(lib=LIB, seconds=600.0):
     return s
 
 
-# ---------------------------------------------------------------------------------------------- the checks
+# --- the checks
 def c3_pwm(lib=LIB):
     s = SilPlant(lib=lib)
     s.step(9000)                                          # 90 s: steady, empty band
@@ -104,8 +104,8 @@ def c4_cold(lib=LIB):
     first = next((i for i in range(len(inside)) if all(inside[i:])), None)
     settle = ys[first][0] if first is not None else float("inf")
     over = max(max(y[k] - Ts[k] for _, y in ys) for k in range(3))
-    pl = OC.Plant()
-    h = OC.run(pl, OC.tune(pl), 3600.0, lambda t: [0.0] * 3, T0=[L["T_AMB"]] * 3, ramp=True, record=5.0)
+    pl = oven_ctrl.Plant()
+    h = oven_ctrl.run(pl, oven_ctrl.tune(pl), 3600.0, lambda t: [0.0] * 3, T0=[L["T_AMB"]] * 3, ramp=True, record=5.0)
     ins = [all(abs(r[k] - pl.Ts[k]) <= 2.0 for k in range(3)) for r in h["y"]]
     f2 = next(i for i in range(len(ins)) if all(ins[i:]))
     return settle, over, ready_t, h["t"][f2], max(max(r[k] for r in h["y"]) - pl.Ts[k] for k in range(3))
@@ -201,9 +201,9 @@ def c9_trace(lib=LIB):
 
 def c10_model(lib=LIB, T=3600.0):
     s = SilPlant(lib=lib, dough=C10_STOCK)
-    pl = OC.Plant()
-    zl = OC.ZoneLoop(pl, OC.tune(pl))
-    n = round(OC.CTRL["DT"] / 0.01)
+    pl = oven_ctrl.Plant()
+    zl = oven_ctrl.ZoneLoop(pl, oven_ctrl.tune(pl))
+    n = round(oven_ctrl.CTRL["DT"] / 0.01)
     worst, mism, hold, dry, wdev = [0.0] * 3, 0, 0, None, 0.0
     while s.t < T:
         if s.t >= C10_REFILL and s.stock < s.row_kg:
@@ -221,7 +221,7 @@ def c10_model(lib=LIB, T=3600.0):
     return worst, mism, hold, dry, wdev
 
 
-# ---------------------------------------------------------------------------------------------- C2
+# --- C2
 def _norm(text):
     text = re.sub(r"\(\*.*?\*\)", " ", text, flags=re.S)
     text = re.sub(r"//[^\n]*", " ", text)
@@ -229,10 +229,10 @@ def _norm(text):
 
 
 def c2_identity(src):
-    gen_dir = P.PLC
+    gen_dir = sil_port.PLC
     bad = []
     for f in sorted(os.listdir(gen_dir)):
-        if not f.endswith(".st") or f in P.EXCLUDED or f in ("GVL_IO.st", "DUT_PhysicalAI.st"):
+        if not f.endswith(".st") or f in sil_port.EXCLUDED or f in ("GVL_IO.st", "DUT_PhysicalAI.st"):
             continue
         g = open(os.path.join(gen_dir, f)).read()
         name = re.search(r"^(?:FUNCTION_BLOCK|FUNCTION|PROGRAM)\s+(\w+)", g, re.M).group(1)
@@ -255,7 +255,7 @@ def c2_identity(src):
     return bad
 
 
-# ---------------------------------------------------------------------------------------------- mutants
+# --- mutants
 MUTANTS = {
     "M1 the task clock never advances (fNow_s)": ("FB_Oven.st", r"^fNow_s := fNow_s \+ 0\.01;[^\n]*$", "", "C3"),
     "M2 no power-up ramp start (aSp from 0)": ("FB_Oven.st", r"^IF NOT bInit THEN.*?^END_IF;\n", "", "C8"),
@@ -279,7 +279,7 @@ def run_mutant(name):
     f, pat, rep, test = MUTANTS[name]
     work = tempfile.mkdtemp(prefix="stf2mut_")
     plc = os.path.join(work, "plc")
-    shutil.copytree(P.PLC if not os.environ.get("STF_SIL_PLC") else os.environ["STF_SIL_PLC"], plc)
+    shutil.copytree(sil_port.PLC if not os.environ.get("STF_SIL_PLC") else os.environ["STF_SIL_PLC"], plc)
     new = open(os.path.join(plc, f)).read()
     for p_, r_ in (pat if isinstance(pat, list) else [(pat, rep)]):   # every part of the fix is reverted
         new, n = re.subn(p_, r_, new, flags=re.M | re.S)
@@ -288,7 +288,7 @@ def run_mutant(name):
     open(os.path.join(plc, f), "w").write(new)
     out = os.path.join(work, "sil")
     try:
-        B.build(out, plc)
+        sil_build.build(out, plc)
     except SystemExit as e:
         return name, test, True, f"does not compile: {str(e)[:60]}"
     lib = os.path.join(out, "libstf2plc.dylib")
@@ -318,7 +318,7 @@ def check(verbose=True):
         if not ok:
             fails.append(f"SIL {name}: {value} vs {limit} {note}".strip())
 
-    meta = B.build()
+    meta = sil_build.build()
     row("C1 compiles", f"{meta['st_lines']} lines -> MatIEC 0 errors, {len(meta['warnings'])} warnings -> native lib "
         f"{meta['lib_sha']}; {meta['located']} located", "0 warnings", not meta["warnings"],
         f"stubs: {', '.join(meta['stubs'])}; left out: {', '.join(meta['excluded'])}")

@@ -20,21 +20,26 @@ parts). No node transforms: the web places a mesh exactly where the part's box
 was. Parts that animate by themselves in the web (spindles, belts, springs)
 and parts drawn as a precise FreeCAD component (wiring.fit) are left out.
 """
-import json, os, struct, sys
+import json
+import os
+import struct
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import detail
+import detail_rich
 import FreeCAD as App  # noqa: F401  (must run under freecadcmd)
-import detail, detail_rich, mechanics
-import stf_gltf as SG
-import stf_web_glb as SW
-from hbw_export import col
-import hbw_model as HM
-from hbw_frames import by_frame
-import oven_model as OM
-import sorting_model as SM
-import vgr_model as VG
-import upgrade as U
+import hbw_model
+import mechanics
+import oven_model
+import sorting_model
+import stf_gltf
+import stf_web_glb
+import upgrade
+import vgr_model
 import wiring
+from hbw_export import col
+from hbw_frames import by_frame
 from variant import UP1, UP2, VARIANT
 
 OUT = os.path.expanduser(f"~/workspace/stf-hw/web/public/precise_{VARIANT}.glb")
@@ -42,11 +47,11 @@ SKIP_MECH = ("thread:", "spring", "belt", "chain:")     # animated by the web's 
 HEX_CLASS = {detail_rich.STEEL: "metal", detail_rich.ALU: "metal", detail_rich.RUBBER: "rubber"}
 
 
-class MmGltf(SW.WebGltf):
+class MmGltf(stf_web_glb.WebGltf):
     """WebGltf's PBR material classes, but millimetres and no root rotation."""
 
     def __init__(self):
-        SG.Gltf.__init__(self, 1.0)
+        stf_gltf.Gltf.__init__(self, 1.0)
         self._cls = "plastic"
 
     def blob(self):
@@ -86,8 +91,8 @@ def emit(g, module, p, siblings, at=None, stats=None):
     subs = detail_rich.rich(p, module)
     if subs:
         for nm, shp, hexc in subs:
-            g._cls = HEX_CLASS.get(hexc, SW.material_class(p))
-            pos, nrm, idx = SW.face_mesh(shp, tol)
+            g._cls = HEX_CLASS.get(hexc, stf_web_glb.material_class(p))
+            pos, nrm, idx = stf_web_glb.face_mesh(shp, tol)
             if at:
                 pos = _shift(pos, at)
             m = g.mesh(f"{p.name}.{nm}", pos, nrm, idx, hexc)
@@ -95,10 +100,10 @@ def emit(g, module, p, siblings, at=None, stats=None):
                    extras={"module": module, "part": p.name, "sub": nm})
         stats["rich"] += 1
     else:
-        g._cls = SW.material_class(p)
+        g._cls = stf_web_glb.material_class(p)
         shp = mechanics.guided(p, module, siblings) if module in ("hbw", "vgr", "oven", "sorting") \
             else detail.precise(p, siblings)
-        pos, nrm, idx = SW.face_mesh(shp, tol)
+        pos, nrm, idx = stf_web_glb.face_mesh(shp, tol)
         if at:
             pos = _shift(pos, at)
         m = g.mesh(p.name, pos, nrm, idx, col(p.colour))
@@ -114,15 +119,15 @@ def main():
         f"detail_rich.RICH changed - update detail_rich_names.py: {set(detail_rich.RICH) ^ RICH_NAMES}"
     g = MmGltf()
     st = {"rich": 0, "precise": 0}
-    sib = {p.name: p for p in HM.build()}
+    sib = {p.name: p for p in hbw_model.build()}
     for fr in by_frame().values():
         for p in fr:
             emit(g, "hbw", p, sib, stats=st)
-    for mod, parts in (("vgr", VG.build()), ("oven", OM.build()), ("sorting", SM.build())):
+    for mod, parts in (("vgr", vgr_model.build()), ("oven", oven_model.build()), ("sorting", sorting_model.build())):
         s = {p.name: p for p in parts}
         for p in parts:
             emit(g, mod, p, s, stats=st)
-    for at, parts in ((U.BUF_AT, U.buffer_parts()), (U.AIR_AT, U.air_parts())):
+    for at, parts in ((upgrade.BUF_AT, upgrade.buffer_parts()), (upgrade.AIR_AT, upgrade.air_parts())):
         for p in parts:
             emit(g, "upgrade", p, {}, at=at, stats=st)
     if UP2:

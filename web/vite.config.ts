@@ -16,7 +16,7 @@ const API_PROXY = {
   "/command": API,
   "/orders": API,
   "/health": API,
-  "/chat": API,
+  "/chat": { ...API, ws: true },  // REST and the streamed question (WS /chat/stt/stream)
   "/twin": { ...API, ws: true },  // REST and the live link (WS /twin/live)
   "/copilot": API,
   "/guest": API,

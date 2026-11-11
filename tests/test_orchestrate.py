@@ -68,7 +68,7 @@ def _semantic_hit(monkeypatch):
 
     p = Passage(id=1, doc="Docs", path=["A"], text="t", file="a.md", line=1, anchor="a")
     hit = {"passage": p, "score": 0.4, "cover": 0.1, "vscore": 0.83, "via": "vector", "rrf": 0.1}
-    monkeypatch.setattr(O.V, "hybrid_search", lambda q, top_k=8: [hit])
+    monkeypatch.setattr(O.vectors, "hybrid_search", lambda q, top_k=8: [hit])
 
 
 def test_a_meaning_match_routes_to_docs(monkeypatch):
@@ -90,7 +90,7 @@ def test_routing_survives_a_retrieval_failure(monkeypatch):
     def boom(q, top_k=8):
         raise RuntimeError("store down")
 
-    monkeypatch.setattr(O.V, "hybrid_search", boom)
+    monkeypatch.setattr(O.vectors, "hybrid_search", boom)
     # a question about this twin is answered from the documents no matter what retrieval does
     assert route("what does the crane do in this project?").mode == "docs"
     assert route("what is the weather tomorrow").mode == "web"
@@ -201,7 +201,7 @@ def test_no_model_free_still_explains_from_the_documents():
     assert "What the documents say" in out["answer"]
     assert "$" in out["answer"]  # the equations, quoted with their LaTeX
     assert any(
-        c["kind"] == "doc" and c["file"].startswith("docs/maintenance") for c in out["cites"]
+        c["kind"] == "doc" and c["file"].startswith("docs/reference/maintenance") for c in out["cites"]
     )
 
 

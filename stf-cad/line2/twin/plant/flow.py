@@ -22,7 +22,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 LINE2 = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, LINE2)
-import line_sim as LS                                       # noqa: E402
+import line_sim  # noqa: E402
 
 LOOK = 10.0                                                 # s of machine time the engine runs ahead
 CLOCKED = {"deposit", "starved", "throttled", "band_lost", "grip_fail", "load", "recirc", "qc", "kick", "kick_fail",
@@ -32,14 +32,14 @@ CLOCKED = {"deposit", "starved", "throttled", "band_lost", "grip_fail", "load", 
 class Flow:
     def __init__(self, scenario="nominal_1h", seed=7, horizon=None):
         kw = {} if horizon is None else dict(horizon=horizon)
-        self.gen = LS.flow(scenario, seed, **kw)
+        self.gen = line_sim.flow(scenario, seed, **kw)
         self.scenario, self.seed = scenario, seed
         self.q, self.seq = [], 0
         self.frontier = -1e18                               # machine time the engine has processed up to
         self.kpi = None                                     # line_sim's KPIs once the horizon is reached
         self.pucks, self.band, self.rows, self.log = {}, {}, {}, {}
-        self.dough, self.topping = LS.L["DOUGH_KG"], {f: LS.L["TOP_KG"] for f in LS.F}
-        self.drawer, self.packs, self.cassettes_out = 0, {f: 0 for f in LS.F}, {f: 0 for f in LS.F}
+        self.dough, self.topping = line_sim.L["DOUGH_KG"], {f: line_sim.L["TOP_KG"] for f in line_sim.F}
+        self.drawer, self.packs, self.cassettes_out = 0, {f: 0 for f in line_sim.F}, {f: 0 for f in line_sim.F}
         self.amr = {}
         self.released = []                                  # (t, kind, data) in release order - the audit trail
         self.counts = {}
@@ -121,14 +121,14 @@ class Flow:
                 if kind_ == "reject":
                     self.drawer = 0
                 elif kind_ == "raw" and f == "dough":
-                    self.dough = LS.L["DOUGH_KG"]
+                    self.dough = line_sim.L["DOUGH_KG"]
                 elif kind_ == "raw":
-                    self.topping[f] = LS.L["TOP_KG"]
+                    self.topping[f] = line_sim.L["TOP_KG"]
         elif kind in ("recirc", "grip_fail", "kick_fail", "kick_blocked", "pick_fail", "missed"):
             if d.get("id") in lg:
                 lg[d["id"]]["events"].append((kind, t))
 
-    # ------------------------------------------------------------ what the plant draws
+    # --- what the plant draws
     def puck_cookie(self, pk):
         """(visible, flavour) of the cookie on puck pk."""
         cid = self.pucks.get(pk)

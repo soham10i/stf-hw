@@ -2,6 +2,7 @@
 // reads every series at the pointer, a legend that hides and shows series, and labelled limit
 // lines, bands and events. Plot is the x-y chart; Heat is a rows x time heat map.
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { chartColor } from "../shared/chartColor";
 
 /** The element's width in CSS pixels, so a chart draws at true size (text never scales). */
 export function useWidth<T extends HTMLElement>(fallback = 900) {
@@ -162,30 +163,30 @@ export function Plot({ series, xTitle, yTitle, xFmt = fmtNum, yFmt = fmtNum, xMi
     <div className="pl">
       <div className="pl-box" ref={box} onMouseMove={move} onMouseLeave={() => setHx(null)}>
         <svg viewBox={`0 0 ${W} ${h}`}>
-          {bands.map((b, i) => <g key={i}><rect x={L} width={W - L - R} y={Y(Math.min(b.y1, dom.y1))} height={Math.max(0, Y(Math.max(b.y0, dom.y0)) - Y(Math.min(b.y1, dom.y1)))} fill={b.color} opacity={0.09} />
-            {b.label && <text x={L + 6} y={Y(Math.min(b.y1, dom.y1)) + 12} className="pl-band" style={{ fill: b.color }}>{b.label}</text>}</g>)}
+          {bands.map((b, i) => <g key={i}><rect x={L} width={W - L - R} y={Y(Math.min(b.y1, dom.y1))} height={Math.max(0, Y(Math.max(b.y0, dom.y0)) - Y(Math.min(b.y1, dom.y1)))} fill={chartColor(b.color)} opacity={0.09} />
+            {b.label && <text x={L + 6} y={Y(Math.min(b.y1, dom.y1)) + 12} className="pl-band" style={{ fill: chartColor(b.color) }}>{b.label}</text>}</g>)}
           {yt.map((v) => <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} className="pl-grid" /><text x={L - 7} y={Y(v) + 3.5} textAnchor="end" className="pl-tick">{yFmt(v)}</text></g>)}
           {xt.map((v) => <g key={v}><line x1={X(v)} x2={X(v)} y1={h - B} y2={h - B + 4} className="pl-axis" /><text x={X(v)} y={h - B + 16} textAnchor="middle" className="pl-tick">{xFmt(v)}</text></g>)}
           <line x1={L} x2={W - R} y1={h - B} y2={h - B} className="pl-axis" />
           <text x={(L + W - R) / 2} y={h - 6} textAnchor="middle" className="pl-title">{xTitle}</text>
           <text transform={`translate(13 ${(T + h - B) / 2}) rotate(-90)`} textAnchor="middle" className="pl-title">{yTitle}</text>
           {hlines.filter((l) => l.y >= dom.y0 && l.y <= dom.y1).map((l) => <g key={l.label}>
-            <line x1={L} x2={W - R} y1={Y(l.y)} y2={Y(l.y)} stroke={l.color} strokeDasharray="6 4" strokeWidth={1.3} />
-            <text x={W - R - 4} y={Y(l.y) - 5} textAnchor="end" className="pl-lab" style={{ fill: l.color }}>{l.label} · {yFmt(l.y)}</text></g>)}
+            <line x1={L} x2={W - R} y1={Y(l.y)} y2={Y(l.y)} stroke={chartColor(l.color)} strokeDasharray="6 4" strokeWidth={1.3} />
+            <text x={W - R - 4} y={Y(l.y) - 5} textAnchor="end" className="pl-lab" style={{ fill: chartColor(l.color) }}>{l.label} · {yFmt(l.y)}</text></g>)}
           {vis.map((s, k) => s.kind === "dots"
-            ? <g key={s.name}>{s.x.map((x, i) => s.y[i] !== null && <circle key={i} cx={X(x)} cy={Y(s.y[i]!)} r={1.8} fill={s.color} opacity={0.6} />)}</g>
+            ? <g key={s.name}>{s.x.map((x, i) => s.y[i] !== null && <circle key={i} cx={X(x)} cy={Y(s.y[i]!)} r={1.8} fill={chartColor(s.color)} opacity={0.6} />)}</g>
             : <g key={s.name}>
                 {s.kind === "area" && <>
                   {/* multi-stop translucent luminous gradient matching Image 3 */}
                   <defs><linearGradient id={`${gid}-${k}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={s.color} stopOpacity={0.38} />
-                    <stop offset="30%" stopColor={s.color} stopOpacity={0.20} />
-                    <stop offset="65%" stopColor={s.color} stopOpacity={0.05} />
-                    <stop offset="100%" stopColor={s.color} stopOpacity={0} />
+                    <stop offset="0%" stopColor={chartColor(s.color)} stopOpacity={0.38} />
+                    <stop offset="30%" stopColor={chartColor(s.color)} stopOpacity={0.20} />
+                    <stop offset="65%" stopColor={chartColor(s.color)} stopOpacity={0.05} />
+                    <stop offset="100%" stopColor={chartColor(s.color)} stopOpacity={0} />
                   </linearGradient></defs>
                   <path d={areaPath(s)} fill={`url(#${gid}-${k})`} />
                 </>}
-                <path d={linePath(s)} fill="none" stroke={s.color} strokeWidth={s.width ?? 2.2} strokeDasharray={s.dash ? "5 4" : undefined}
+                <path d={linePath(s)} fill="none" stroke={chartColor(s.color)} strokeWidth={s.width ?? 2.2} strokeDasharray={s.dash ? "5 4" : undefined}
                   strokeLinejoin="round" strokeLinecap="round" />
               </g>)}
           {(() => {
@@ -197,19 +198,19 @@ export function Plot({ series, xTitle, yTitle, xFmt = fmtNum, yFmt = fmtNum, xMi
               let r = 0;
               while (m.label && (rows[r] ?? []).some(([a, b]) => x0 < b + 6 && a < x0 + w + 6)) r++;
               (rows[r] ??= []).push([x0, x0 + w]);
-              return <g key={i}><line x1={X(m.x)} x2={X(m.x)} y1={T} y2={h - B} stroke={m.color} strokeWidth={1.4} />
-                {m.label && <text x={right ? X(m.x) - 5 : X(m.x) + 5} y={h - B - 8 - r * 14} textAnchor={right ? "end" : "start"} className="pl-lab" style={{ fill: m.color }}>{m.label}</text>}</g>;
+              return <g key={i}><line x1={X(m.x)} x2={X(m.x)} y1={T} y2={h - B} stroke={chartColor(m.color)} strokeWidth={1.4} />
+                {m.label && <text x={right ? X(m.x) - 5 : X(m.x) + 5} y={h - B - 8 - r * 14} textAnchor={right ? "end" : "start"} className="pl-lab" style={{ fill: chartColor(m.color) }}>{m.label}</text>}</g>;
             });
           })()}
           {now && <g><line x1={X(now.x)} x2={X(now.x)} y1={T} y2={h - B} className="pl-now" />
             <text x={X(now.x) + 4} y={T + 11} className="pl-lab pl-now-t">{now.label ?? "now"}</text></g>}
           {hx !== null && <g><line x1={X(hx)} x2={X(hx)} y1={T} y2={h - B} className="pl-cross" />
-            {read.map((r) => <circle key={r.s.name} cx={X(r.x)} cy={Y(r.y!)} r={4} fill={r.s.color} className="pl-dot" />)}</g>}
+            {read.map((r) => <circle key={r.s.name} cx={X(r.x)} cy={Y(r.y!)} r={4} fill={chartColor(r.s.color)} className="pl-dot" />)}</g>}
         </svg>
         {hx !== null && read.length > 0 && (
           <div className="pl-tip" style={{ left: `${tipLeft}%`, transform: `translateX(${tipLeft > 60 ? "calc(-100% - 12px)" : "12px"})` }}>
             <b>{tipTitle ? tipTitle(read[0].x) : `${xTitle.split(" (")[0]}: ${xFmt(read[0].x)}`}</b>
-            {read.map((r) => <div key={r.s.name}><i style={{ background: r.s.color }} />{r.s.name}<em>{(r.s.fmt ?? yFmt)(r.y!)}</em></div>)}
+            {read.map((r) => <div key={r.s.name}><i style={{ background: chartColor(r.s.color) }} />{r.s.name}<em>{(r.s.fmt ?? yFmt)(r.y!)}</em></div>)}
             {tipExtra?.(read[0].x).map(([k, v]) => <div key={k}><i />{k}<em>{v}</em></div>)}
           </div>
         )}
@@ -218,7 +219,7 @@ export function Plot({ series, xTitle, yTitle, xFmt = fmtNum, yFmt = fmtNum, xMi
         <div className="pl-legend">{series.map((s) => (
           <button key={s.name} className={off.has(s.name) ? "off" : ""} title="Show / hide"
             onClick={() => setOff((o) => { const n = new Set(o); if (n.has(s.name)) n.delete(s.name); else n.add(s.name); return n; })}>
-            <i style={{ background: s.color, opacity: s.dash ? 0.6 : 1 }} />{s.name}</button>))}</div>
+            <i style={{ background: chartColor(s.color), opacity: s.dash ? 0.6 : 1 }} />{s.name}</button>))}</div>
       )}
     </div>
   );
@@ -296,9 +297,9 @@ export function Bars({ bars, xTitle, yTitle, yMin, yMax, hlines = [], h = 220, y
           <defs>
             {bars.map((b, i) => (
               <linearGradient key={`bg-${i}`} id={`${gid}-${i}`} x1="0" y1="1" x2="0" y2="0">
-                <stop offset="0%" stopColor={b.color} stopOpacity={0.28} />
-                <stop offset="65%" stopColor={b.color} stopOpacity={0.85} />
-                <stop offset="100%" stopColor={b.color} stopOpacity={1} />
+                <stop offset="0%" stopColor={chartColor(b.color)} stopOpacity={0.28} />
+                <stop offset="65%" stopColor={chartColor(b.color)} stopOpacity={0.85} />
+                <stop offset="100%" stopColor={chartColor(b.color)} stopOpacity={1} />
               </linearGradient>
             ))}
           </defs>
@@ -321,7 +322,7 @@ export function Bars({ bars, xTitle, yTitle, yMin, yMax, hlines = [], h = 220, y
                   height={barH}
                   rx={rx}
                   fill={`url(#${gid}-${i})`}
-                  stroke={isHov ? b.color : "transparent"}
+                  stroke={isHov ? chartColor(b.color) : "transparent"}
                   strokeWidth={1}
                   opacity={hov === null || isHov ? 1 : 0.4}
                   style={{ transition: "opacity .15s ease" }}
@@ -342,8 +343,8 @@ export function Bars({ bars, xTitle, yTitle, yMin, yMax, hlines = [], h = 220, y
             );
           })}
           <line x1={L} x2={W - R} y1={h - B} y2={h - B} className="pl-axis" />
-          {hlines.map((l) => <g key={l.label}><line x1={L} x2={W - R} y1={Y(l.y)} y2={Y(l.y)} stroke={l.color} strokeDasharray="6 4" strokeWidth={1.3} />
-            <text x={W - R - 4} y={Y(l.y) - 5} textAnchor="end" className="pl-lab" style={{ fill: l.color }}>{l.label} · {yFmt(l.y)}</text></g>)}
+          {hlines.map((l) => <g key={l.label}><line x1={L} x2={W - R} y1={Y(l.y)} y2={Y(l.y)} stroke={chartColor(l.color)} strokeDasharray="6 4" strokeWidth={1.3} />
+            <text x={W - R - 4} y={Y(l.y) - 5} textAnchor="end" className="pl-lab" style={{ fill: chartColor(l.color) }}>{l.label} · {yFmt(l.y)}</text></g>)}
           <text x={(L + W - R) / 2} y={h - 6} textAnchor="middle" className="pl-title">{xTitle}</text>
           <text transform={`translate(13 ${(T + h - B) / 2}) rotate(-90)`} textAnchor="middle" className="pl-title">{yTitle}</text>
         </svg>
@@ -394,7 +395,7 @@ export function Scatter({ pts, xTitle, yTitle, xFmt = fmtNum, yFmt = fmtNum, xMi
               const ly = [4, -14, 22, -32, 40].map((d) => Y(p.y) + d).find((y) => !hits(y)) ?? Y(p.y) + 4;
               placed.push({ x: x0, y: ly, w: wl });
               return <g key={p.label} onMouseEnter={() => setHov(i)}>
-                <circle cx={X(p.x)} cy={Y(p.y)} r={hov === i ? 9 : 7} fill={p.color} className="pl-dot" />
+                <circle cx={X(p.x)} cy={Y(p.y)} r={hov === i ? 9 : 7} fill={chartColor(p.color)} className="pl-dot" />
                 {ly !== Y(p.y) + 4 && <line x1={X(p.x)} y1={Y(p.y)} x2={X(p.x) + (right ? -10 : 10)} y2={ly - 4} className="pl-axis" />}
                 <text x={X(p.x) + (right ? -12 : 12)} y={ly} textAnchor={right ? "end" : "start"} className="sc-lab">{p.label}</text>
               </g>;
@@ -423,12 +424,12 @@ export function Stacked({ rows, parts, unit = "" }: {
           <div key={r.label} className={`st-row ${r.on ? "on" : ""}`}>
             <span className="st-name" title={r.label}>{r.label}</span>
             <span className="st-bar">{r.v.map((v, i) => v > 0 && (
-              <i key={i} style={{ width: `${(v / tot) * 100}%`, background: parts[i].color }} title={`${parts[i].name}: ${v}${unit} (${Math.round((v / tot) * 100)} %)`}>
+              <i key={i} style={{ width: `${(v / tot) * 100}%`, background: chartColor(parts[i].color) }} title={`${parts[i].name}: ${v}${unit} (${Math.round((v / tot) * 100)} %)`}>
                 {v / tot > 0.07 ? v : ""}</i>))}</span>
           </div>
         );
       })}
-      <div className="pl-legend static">{parts.map((p) => <span key={p.name}><i style={{ background: p.color }} />{p.name}</span>)}</div>
+      <div className="pl-legend static">{parts.map((p) => <span key={p.name}><i style={{ background: chartColor(p.color) }} />{p.name}</span>)}</div>
     </div>
   );
 }
@@ -453,12 +454,12 @@ export function Dumbbell({ rows, a, b, xTitle, fmt = (v: number) => `${Math.roun
             <rect x={0} y={y - RH / 2} width={W} height={RH} fill="transparent" />
             <text x={L - 10} y={y + 4} textAnchor="end" className="pl-row">{fit(r.label, L - 14)}</text>
             <line x1={X(r.a)} x2={X(r.b)} y1={y} y2={y} className="db-gap" />
-            <circle cx={X(r.b)} cy={y} r={6} fill={b.color} className="pl-dot" />
-            <circle cx={X(r.a)} cy={y} r={6} fill={a.color} className="pl-dot" />
+            <circle cx={X(r.b)} cy={y} r={6} fill={chartColor(b.color)} className="pl-dot" />
+            <circle cx={X(r.a)} cy={y} r={6} fill={chartColor(a.color)} className="pl-dot" />
           </g>;
         })}
       </svg></div>
-      <div className="pl-legend static"><span><i style={{ background: a.color, borderRadius: 4 }} />{a.name}</span><span><i style={{ background: b.color, borderRadius: 4 }} />{b.name}</span></div>
+      <div className="pl-legend static"><span><i style={{ background: chartColor(a.color), borderRadius: 4 }} />{a.name}</span><span><i style={{ background: chartColor(b.color), borderRadius: 4 }} />{b.name}</span></div>
     </div>
   );
 }
@@ -482,11 +483,11 @@ export function HBar({ rows, xTitle, refs = [], fmt = fmtNum, x0 = 0, x1 }: {
         return <g key={r.label}><title>{r.tip ?? `${r.label}: ${fmt(r.v)}`}</title>
           {r.on && <rect x={0} y={y} width={W} height={RH} className="rw-hit on" />}
           <text x={L - 10} y={y + RH / 2 + 4} textAnchor="end" className={`pl-row ${r.on ? "on" : ""}`}>{fit(r.label, L - 14)}</text>
-          <rect x={X(x0)} y={y + 5} width={Math.max(1, X(r.v) - X(x0))} height={RH - 10} rx={3} fill={r.color} opacity={0.85} />
+          <rect x={X(x0)} y={y + 5} width={Math.max(1, X(r.v) - X(x0))} height={RH - 10} rx={3} fill={chartColor(r.color)} opacity={0.85} />
           <text x={X(r.v) + 6} y={y + RH / 2 + 4} className="hb-v">{fmt(r.v)}</text></g>;
       })}
-      {refs.map((r, i) => <g key={r.label}><line x1={X(r.v)} x2={X(r.v)} y1={T - 4} y2={T + rows.length * RH} stroke={r.color} strokeDasharray="5 3" strokeWidth={1.4} />
-        <text x={X(r.v)} y={T - 6 - (i % 2) * 0} textAnchor={i % 2 ? "start" : "end"} dx={i % 2 ? 4 : -4} className="pl-lab" style={{ fill: r.color }}>{r.label}</text></g>)}
+      {refs.map((r, i) => <g key={r.label}><line x1={X(r.v)} x2={X(r.v)} y1={T - 4} y2={T + rows.length * RH} stroke={chartColor(r.color)} strokeDasharray="5 3" strokeWidth={1.4} />
+        <text x={X(r.v)} y={T - 6 - (i % 2) * 0} textAnchor={i % 2 ? "start" : "end"} dx={i % 2 ? 4 : -4} className="pl-lab" style={{ fill: chartColor(r.color) }}>{r.label}</text></g>)}
     </svg></div></div>
   );
 }
@@ -526,8 +527,8 @@ export function Donut({
         <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
           <defs>
             <linearGradient id={gid} x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0%" stopColor={color} stopOpacity={0.65} />
-              <stop offset="100%" stopColor={color} stopOpacity={1} />
+              <stop offset="0%" stopColor={chartColor(color)} stopOpacity={0.65} />
+              <stop offset="100%" stopColor={chartColor(color)} stopOpacity={1} />
             </linearGradient>
           </defs>
           {/* Background track */}

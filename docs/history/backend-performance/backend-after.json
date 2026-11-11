@@ -1,0 +1,144 @@
+{
+ "base": "http://127.0.0.1:8010",
+ "server_pid": 53157,
+ "idle": {
+  "cpu_mean_pct": 2.7,
+  "cpu_max_pct": 3.2,
+  "rss_mb": 77.5
+ },
+ "rest": {
+  "/health": {
+   "bytes": 115,
+   "seq_p50_ms": 0.78,
+   "seq_p95_ms": 1.19,
+   "c32_p50_ms": 16.48,
+   "c32_p95_ms": 17.18,
+   "c32_p99_ms": 17.3,
+   "c32_rps": 1872.0,
+   "errors": 0
+  },
+  "/layout": {
+   "bytes": 2366,
+   "seq_p50_ms": 0.85,
+   "seq_p95_ms": 0.98,
+   "c32_p50_ms": 19.21,
+   "c32_p95_ms": 20.11,
+   "c32_p99_ms": 20.24,
+   "c32_rps": 1645.0,
+   "errors": 0
+  },
+  "/orders": {
+   "bytes": 13,
+   "seq_p50_ms": 0.71,
+   "seq_p95_ms": 0.8,
+   "c32_p50_ms": 14.4,
+   "c32_p95_ms": 15.12,
+   "c32_p99_ms": 15.17,
+   "c32_rps": 2151.0,
+   "errors": 0
+  },
+  "/chat/status": {
+   "bytes": 1373,
+   "seq_p50_ms": 0.91,
+   "seq_p95_ms": 1.05,
+   "c32_p50_ms": 18.93,
+   "c32_p95_ms": 21.97,
+   "c32_p99_ms": 23.34,
+   "c32_rps": 1638.0,
+   "errors": 0
+  },
+  "/twin/records": {
+   "bytes": 52,
+   "seq_p50_ms": 84.76,
+   "seq_p95_ms": 199.47,
+   "c32_p50_ms": 411.11,
+   "c32_p95_ms": 569.58,
+   "c32_p99_ms": 602.49,
+   "c32_rps": 70.0,
+   "errors": 0
+  }
+ },
+ "stream": [
+  {
+   "clients": 1,
+   "connected": 1,
+   "errors": [],
+   "fps_mean": 30.0,
+   "fps_min": 30.0,
+   "gap_p50_ms": 33.3,
+   "gap_p95_ms": 34.6,
+   "gap_max_ms": 42.8,
+   "frame_bytes": 882,
+   "kbit_s_per_client": 211.5,
+   "cpu_mean_pct": 4.6,
+   "cpu_max_pct": 15.5,
+   "rss_mb": 87.0
+  },
+  {
+   "clients": 10,
+   "connected": 10,
+   "errors": [],
+   "fps_mean": 30.0,
+   "fps_min": 30.0,
+   "gap_p50_ms": 33.4,
+   "gap_p95_ms": 34.7,
+   "gap_max_ms": 37.3,
+   "frame_bytes": 882,
+   "kbit_s_per_client": 211.5,
+   "cpu_mean_pct": 5.5,
+   "cpu_max_pct": 6.0,
+   "rss_mb": 87.3
+  },
+  {
+   "clients": 50,
+   "connected": 50,
+   "errors": [],
+   "fps_mean": 30.0,
+   "fps_min": 30.0,
+   "gap_p50_ms": 33.3,
+   "gap_p95_ms": 35.8,
+   "gap_max_ms": 40.8,
+   "frame_bytes": 882,
+   "kbit_s_per_client": 211.7,
+   "cpu_mean_pct": 11.7,
+   "cpu_max_pct": 13.0,
+   "rss_mb": 89.5
+  }
+ ],
+ "slow_client": {
+  "clients": 10,
+  "connected": 10,
+  "errors": [],
+  "fps_mean": 30.0,
+  "fps_min": 30.0,
+  "gap_p50_ms": 33.3,
+  "gap_p95_ms": 34.6,
+  "gap_max_ms": 38.6,
+  "frame_bytes": 882,
+  "kbit_s_per_client": 211.6,
+  "cpu_mean_pct": 4.6,
+  "cpu_max_pct": 13.1,
+  "rss_mb": 90.0
+ },
+ "encode": {
+  "json_bytes": 881,
+  "json_gzip_bytes": 325,
+  "msgpack_bytes": 817,
+  "json_encode_us": 16.0,
+  "msgpack_encode_us": 4.0,
+  "keys": [
+   "belt",
+   "busy",
+   "carrier",
+   "joints",
+   "motors",
+   "oven",
+   "sensors",
+   "seq",
+   "t",
+   "tracking_error",
+   "type"
+  ],
+  "per_second_at_30hz_x50_clients_ms": 24.1
+ }
+}

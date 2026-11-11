@@ -11,7 +11,7 @@ import { GeometryPanel } from "../panels/GeometryPanel";
 import { BenchPanel } from "../panels/BenchPanel";
 import { Analysis, Connectivity, PlcTabs, SafetySecurity } from "../panels/merged";
 
-// ---------------------------------------------------------------- views
+// --- views
 export type ViewKind = "machine" | "controller" | "electrics" | "component";
 export type View = { id: string; label: string; kind: ViewKind; group: string; about: string };
 
@@ -44,7 +44,7 @@ export function componentViews(components: Record<string, { name: string; ft: st
   });
 }
 
-// --------------------------------------------------------------- panels
+// --- panels
 export type PanelCtx = {
   doc: CadDoc; scene: SceneDescriptor | null;
   showZones: boolean; setShowZones: (v: boolean) => void;

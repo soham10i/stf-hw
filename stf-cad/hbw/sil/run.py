@@ -27,8 +27,9 @@ import json
 import os
 import subprocess
 
-import control as C
-import vc as V
+import control
+import pipeline
+import vc
 
 from sil import build, iec, plant
 
@@ -53,7 +54,7 @@ FINDINGS = [
 
 def old_program_rejected():
     """F1: the U4 source, compiled as it was."""
-    src = C.st_source(C.sfc())
+    src = control.st_source(control.sfc())
     text = "\n\n".join(src[k] for k in src if k != "MAIN.st") + "\n\n" + src["MAIN.st"]
     work = os.path.join(build.WORK, "u4")
     os.makedirs(work, exist_ok=True)
@@ -72,7 +73,7 @@ def simulate_node(out):
     return json.loads(r.stdout)
 
 
-# ------------------------------------------------------------- decoding
+# --- decoding
 _MOULD = {v: k for k, v in iec.MIX.items()}
 
 
@@ -81,13 +82,13 @@ def decode(job, b):
     out = []
     for kind, v in zip(iec.LAYOUT[job], b, strict=False):
         if kind == "c":
-            out.append(C.CIDS[v - 1] if v else ("next" if job == "present" else None))
+            out.append(control.CIDS[v - 1] if v else ("next" if job == "present" else None))
         elif kind == "m":
             out.append(_MOULD[v] if v else None)
         elif kind == "slot":
-            out.append(C.SLOTS[v - 1])
+            out.append(control.SLOTS[v - 1])
         elif kind == "bay":
-            out.append(C.BAYS[v - 1])
+            out.append(control.BAYS[v - 1])
         elif kind == "src":
             out.append("belt" if v == 1 else f"buf_{v - 1}")
     return (job, tuple(out))
@@ -95,8 +96,8 @@ def decode(job, b):
 
 def check_decisions(events):
     """(1): replay the program's completions through control.py; its starts must match."""
-    pol = C.PLC_POLICY
-    s = C.dispatch(C.initial(), pol)
+    pol = control.PLC_POLICY
+    s = control.dispatch(control.initial(), pol)
     by_scan = {}
     for e in events:
         by_scan.setdefault(e["scan"], []).append(e)
@@ -104,7 +105,7 @@ def check_decisions(events):
     first = True
     for scan in sorted(by_scan):
         evs = by_scan[scan]
-        ends = sorted((e for e in evs if e["kind"] == "end"), key=lambda e: C.UNIT_ORDER.index(e["unit"]))
+        ends = sorted((e for e in evs if e["kind"] == "end"), key=lambda e: control.UNIT_ORDER.index(e["unit"]))
         starts = {decode(e["job"], e["b"]) for e in evs if e["kind"] == "start"}
         if first:
             want = {(j[0], j[1]) for j in s["run"]}
@@ -117,13 +118,13 @@ def check_decisions(events):
                 if job is None:
                     fails.append(f"t={e['t']}: the program ended {key}, which control.py is not running")
                     return fails, n
-                s = C.dispatch(C.complete(s, job, pol), pol)
+                s = control.dispatch(control.complete(s, job, pol), pol)
             want = {(j[0], j[1]) for j in set(s["run"]) - before}
         n += len(starts)
         if starts != want:
             fails.append(f"t={evs[0]['t']}: the program started {sorted(starts)}, control.py {sorted(want)}")
             return fails, n
-    if not C.goal(s):
+    if not control.goal(s):
         fails.append("control.py's replay did not reach the goal")
     return fails, n
 
@@ -131,21 +132,21 @@ def check_decisions(events):
 def check_plant(fin, cookies):
     """(2): the physical end state."""
     fails = []
-    for c in C.PRODUCE:
+    for c in control.PRODUCE:
         i = iec.CIX[c]
-        want = C.BAYS.index(C.PL.BIN_OF[C.FLAV[c]])
+        want = control.BAYS.index(pipeline.BIN_OF[control.FLAV[c]])
         where = [b for b, bay in enumerate(fin["bays"]) if i in bay]
         if where != [want]:
-            fails.append(f"{c} ({C.FLAV[c]}) is in bay {[C.BAYS[b] for b in where]}, not {C.BAYS[want]}")
+            fails.append(f"{c} ({control.FLAV[c]}) is in bay {[control.BAYS[b] for b in where]}, not {control.BAYS[want]}")
         if not fin["baked"].get(str(i)):
             fails.append(f"{c} was never baked")
     stored = {m[1] for m in fin["slots"].values() if m}
-    for c in C.RETURN:
+    for c in control.RETURN:
         if iec.CIX[c] not in stored:
             fails.append(f"{c} did not go back into the rack")
     moulds = [m for m in fin["slots"].values() if m]
-    if len(moulds) != len(C.SLOTS):
-        fails.append(f"{len(moulds)} moulds in the rack, not {len(C.SLOTS)}")
+    if len(moulds) != len(control.SLOTS):
+        fails.append(f"{len(moulds)} moulds in the rack, not {len(control.SLOTS)}")
     for k in ("belt", "line"):
         if fin[k]:
             fails.append(f"left on the {k}: {fin[k]}")
@@ -171,22 +172,22 @@ def run(verbose=True, write=True):
     dec_fails, n_dec = check_decisions(tr["events"])
     fails += dec_fails
     fails += check_plant(tr["final"], params["cookies"])
-    _, _, model_t, _ = C.simulate(C.PLC_POLICY)
+    _, _, model_t, _ = control.simulate(control.PLC_POLICY)
     plc_t = round(tr["done_at"] - tr["homed_at"], 2) if tr["done_at"] else None
-    if plc_t is not None and abs(plc_t - model_t) / model_t > V.TOL_MAKESPAN:
-        fails.append(f"order time {plc_t} s against the model's {model_t} s: beyond {V.TOL_MAKESPAN:.0%}")
+    if plc_t is not None and abs(plc_t - model_t) / model_t > vc.TOL_MAKESPAN:
+        fails.append(f"order time {plc_t} s against the model's {model_t} s: beyond {vc.TOL_MAKESPAN:.0%}")
     out = {
         "variant": "up12", "compiler": meta["compiler"], "wasm_sha": meta["wasm_sha"], "st_lines": meta["st_lines"],
         "scan_ms": meta["scan_ms"], "u4": u4, "findings": [dict(zip(("id", "kind", "text"), f, strict=False)) for f in FINDINGS],
         "homed_at": tr["homed_at"], "done_at": tr["done_at"], "order_s": plc_t, "model_s": model_t,
         "scans": tr["scans"], "wall_ms": tr["wall_ms"], "decisions": n_dec, "jobs": sum(1 for e in tr["events"] if e["kind"] == "end"),
         "events": tr["events"], "plant_log": [{"t": round(e["t"], 2), "text": e["text"]} for e in tr["plant_log"]],
-        "final": {"bays": {C.BAYS[i]: [C.CIDS[c - 1] for c in b] for i, b in enumerate(tr["final"]["bays"])},
-                  "slots": {s: ([_MOULD[m[0]], C.CIDS[m[1] - 1] if m[1] else None] if m else None)
+        "final": {"bays": {control.BAYS[i]: [control.CIDS[c - 1] for c in b] for i, b in enumerate(tr["final"]["bays"])},
+                  "slots": {s: ([_MOULD[m[0]], control.CIDS[m[1] - 1] if m[1] else None] if m else None)
                             for s, m in tr["final"]["slots"].items()}},
         "checks": {"decisions": not dec_fails, "plant": not check_plant(tr["final"], params["cookies"]),
                    "faults": not tr["faults"] and not tr["flags"], "timing": plc_t is not None
-                   and abs(plc_t - model_t) / model_t <= V.TOL_MAKESPAN},
+                   and abs(plc_t - model_t) / model_t <= vc.TOL_MAKESPAN},
         "fails": fails,
     }
     if write:
@@ -203,7 +204,7 @@ def run(verbose=True, write=True):
     return fails
 
 
-# ---------------------------------------------------------- mutation tests
+# --- mutation tests
 # Each mutant breaks the program in one way; the proof must reject every one. (A mutant that
 # makes the crane store in the farthest free slot instead of the nearest is NOT here: with 12
 # moulds and 12 slots there is never more than one free slot to choose, so it is equivalent.)

@@ -31,9 +31,10 @@ controller counts pulses from the inlet barrier to know which ejector to fire.
 Booklet, Erste Schritte: the workpieces START in the Lagerstellen here, and the
 VGR collects them from these bays - which is what closes the factory loop.
 """
-from variant import UP1
 from dataclasses import dataclass
 from itertools import combinations
+
+from variant import UP1
 
 S = dict(
     # 2x the first model's footprint (2026-09-27): longer belt, a real colour
@@ -58,7 +59,8 @@ S = dict(
     COLOUR=(30.0, 15.0, 15.0), CYL=(15.0, 69.0, 20.0), VALVE=(40.0, 15.0, 33.0),
     COMPRESSOR=(66.0, 30.0, 30.0), PCB=(160.0, 100.0, 22.0),
 )
-from pipeline import BAY_START, FLAVOURS, BIN_OF       # noqa: E402
+from pipeline import BAY_START, BIN_OF, FLAVOURS  # noqa: E402
+
 COLOURS = ("weiss", "rot", "blau")
 BAY_FLAVOUR = dict(BAY_START)                          # bin -> flavour resting there
 BAY_TAGS = ("I5", "I6", "I7")
@@ -111,7 +113,7 @@ def build(push=(0.0, 0.0, 0.0)):
 
     A(Part("sorting_plate", "frame", "box", (0, 0, -q["PLATE"][2]), q["PLATE"], "slate", "table"))
 
-    # ------------------------------------------------------- Foerderband
+    # --- Foerderband
     for nm, ry in (("F", by), ("B", by + bw - rt)):
         for j, lx in enumerate((bx, bx + bl - rt)):
             A(Part(f"belt_leg_{nm}{j}", "belt", "box", (lx, ry, 0), (rt, rt, bz - fh),
@@ -135,7 +137,7 @@ def build(push=(0.0, 0.0, 0.0)):
                 "encoder, so the controller counts pulses from the inlet barrier "
                 "to know which ejector to fire."))
 
-    # ------------------------------------------------- inlet + colour + after
+    # --- inlet + colour + after
     for nm, sx, tg, note in (
             ("I2_inlet", q["INLET_X"], "I2", "Lichtschranke Eingang"),
             ("I3_after_colour", q["AFTER_X"], "I3", "Lichtschranke nach Farbsensor")):
@@ -161,7 +163,7 @@ def build(push=(0.0, 0.0, 0.0)):
                 "on this gap and on ambient light. 0-2 VDC at the sensor, "
                 "scaled to the terminal's 0-10 VDC by the adapter PCB."))
 
-    # --------------------------------------------------- ejectors + bays
+    # --- ejectors + bays
     bw_, bd_, bt_ = q["BAY"]; wl = q["WALL"]
     for i, ex in enumerate(q["EJECT_X"]):
         col, tg, btag = COLOURS[i], EJECT_TAGS[i], BAY_TAGS[i]
@@ -201,7 +203,7 @@ def build(push=(0.0, 0.0, 0.0)):
                note=f"{BAY_FLAVOUR[col]} - this bin takes the flavour whose "
                     "reflected brightness the Farbsensor reads here"))
 
-    # --------------------------------------------------------- pneumatics
+    # --- pneumatics
     if not UP1:     # Upgrade 1: fed from the central air station (upgrade.py)
         A(Part("Q2_compressor", "control", "box", (900, 330, 0), q["COMPRESSOR"], "blue", "plate",
                tag="Q2", note="Kompressor (Membranpumpe), 24 V, 0.7 bar"))

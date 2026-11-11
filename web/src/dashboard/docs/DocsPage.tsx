@@ -7,26 +7,27 @@ import { loadJson } from "../../shared/data";
 import type { CadDoc } from "../../shared/model";
 import { Markdown, slug } from "./Markdown";
 import { Architecture, Network, Sfc, type Control } from "./PlcDiagrams";
+import { quiet } from "../../shared/log";
 
 const BASE = import.meta.env.BASE_URL;
 const REPO = "https://github.com/soham10i/stf-hw/blob/main/";
 export type DocTarget = { file: string; anchor?: string; line?: number };
 
-/** Where a document belongs in the library. */
+/** Where a document belongs in the library: its folder under docs/reference/ (docs/README.md). */
+const GROUP: Record<string, string> = {
+  guide: "User guide", plc: "PLC program", vision: "Vision QC", maintenance: "Maintenance", process: "Oven process",
+  copilot: "Copilot", machines: "The machine", factory: "The factory", twin: "The 3D twin", dashboard: "Dashboard pages",
+  operations: "Operations", architecture: "Architecture",
+};
 function group(f: string) {
-  if (f.startsWith("docs/guide/")) return "User guide";
-  if (f.startsWith("docs/plc/")) return "PLC program";
-  if (f.startsWith("docs/vision/")) return "Vision QC";
-  if (f.startsWith("docs/maintenance/")) return "Maintenance";
-  if (f.startsWith("docs/copilot/")) return "Copilot";
-  if (f.startsWith("docs/process/")) return "Oven process";
-  if (f.startsWith("docs/assistant/machine")) return "The machine";
-  if (f.startsWith("docs/assistant/panel") || f.startsWith("docs/assistant/twin")) return "The 3D twin";
-  if (f.startsWith("docs/assistant/dashboard")) return "Dashboard pages";
-  if (f.startsWith("docs/assistant/")) return "Operations";
-  return "Project documents";
+  return GROUP[f.replace(/^docs\/reference\//, "").split("/")[0]] ?? "Project documents";
 }
-const ORDER = ["User guide", "PLC program", "Vision QC", "Maintenance", "Oven process", "Copilot", "The machine", "Operations", "The 3D twin", "Dashboard pages", "Project documents"];
+const ORDER = ["User guide", "The factory", "The machine", "PLC program", "Vision QC", "Maintenance", "Oven process", "Copilot", "The 3D twin", "Dashboard pages", "Operations", "Architecture", "Project documents"];
+type Front = { title: string; scope: string; module: string; last_verified: string; generated_by?: string };
+/** The document without its front matter: those lines blanked, so a cited line is still the file's own line. */
+function withoutFront(text: string) {
+  return text.replace(/^---\n[\s\S]*?\n---\n/, (m) => "\n".repeat(m.split("\n").length - 1));
+}
 
 function useText(file: string | undefined) {
   const [t, setT] = useState<{ file: string; text: string } | null>(null);
@@ -47,13 +48,15 @@ function useText(file: string | undefined) {
 export function DocsPage({ doc, target, open }: { doc: CadDoc; target: DocTarget; open: (t: DocTarget) => void }) {
   const [files, setFiles] = useState<string[]>([]);
   const [titles, setTitles] = useState<Record<string, string>>({});
+  const [fronts, setFronts] = useState<Record<string, Front>>({});
   useEffect(() => {
-    loadJson<{ files: string[]; passages: { file: string; doc: string }[] }>("copilot/kb.json").then((kb) => {
+    loadJson<{ files: string[]; passages: { file: string; doc: string }[]; documents?: Record<string, Front> }>("copilot/kb.json").then((kb) => {
       setFiles(kb.files ?? []);
       const t: Record<string, string> = {};
       for (const p of kb.passages) t[p.file] ??= p.doc;
       setTitles(t);
-    }).catch(() => undefined);
+      setFronts(kb.documents ?? {});
+    }).catch(quiet("docs"));
   }, []);
   const { text, err } = useText(target.file);
   const body = useRef<HTMLDivElement>(null);
@@ -100,12 +103,13 @@ export function DocsPage({ doc, target, open }: { doc: CadDoc; target: DocTarget
     return `${BASE}copilot/${out.join("/")}`;
   };
   const name = (f: string) => titles[f] ?? f.split("/").pop()!.replace(/\.md$/, "");
+  const front = fronts[target.file];
 
   return (
     <div className="doc-layout">
       <nav className="doc-lib" aria-label="Documents">
         {lib.map(([g, fs]) => (
-          <details key={g} open={fs.includes(target.file) || g === "PLC program" || g === "Vision QC" || g === "Maintenance" || g === "Oven process" || g === "Copilot"}>
+          <details key={g} open={fs.includes(target.file) || g === "User guide" || g === "PLC program" || g === "Vision QC" || g === "Maintenance" || g === "Oven process" || g === "Copilot"}>
             <summary>{g} <em>{fs.length}</em></summary>
             {fs.map((f) => (
               <button key={f} className={f === target.file ? "on" : ""} onClick={() => open({ file: f })}>{name(f)}</button>
@@ -116,10 +120,11 @@ export function DocsPage({ doc, target, open }: { doc: CadDoc; target: DocTarget
       <article className="doc-body db-card" ref={body}>
         <div className="doc-src">
           <span className="mono">{target.file}{target.line ? ` · line ${target.line}` : ""}</span>
+          {front && <span className="doc-muted" title={front.scope}>last checked {front.last_verified}{front.generated_by ? ` · generated by ${front.generated_by}` : ""}</span>}
           <a href={`${REPO}${target.file}${target.line ? `#L${target.line}` : ""}`} target="_blank" rel="noopener noreferrer">Open on GitHub ↗</a>
         </div>
         {err ? <p className="doc-muted">{err}</p> : text === null ? <p className="doc-muted">Opening…</p>
-          : <Markdown src={text} hl={target.line} open={follow} block={block} asset={asset} />}
+          : <Markdown src={withoutFront(text)} hl={target.line} open={follow} block={block} asset={asset} />}
       </article>
       {toc.length > 2 && (
         <nav className="doc-toc" aria-label="On this page">

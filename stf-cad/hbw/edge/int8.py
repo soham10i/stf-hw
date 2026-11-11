@@ -19,7 +19,7 @@ import numpy as np
 QMIN, QMAX = -128, 127
 
 
-# ---------------------------------------------------------------- scales
+# --- scales
 def act_params(lo, hi):
     """Affine int8 parameters (scale, zero point) for a tensor observed in [lo, hi]; the range is
     widened to include 0 so that zero (the padding, ReLU's floor) is exact."""
@@ -50,7 +50,7 @@ def bias_q(b, s_in, s_w):
     return np.round(np.asarray(b, np.float64) / (s_in * s_w)).astype(np.int64)
 
 
-# ---------------------------------------------------------------- fixed point
+# --- fixed point
 def multiplier(M):
     """A real multiplier M > 0 as (m0, e): M = m0 * 2^(e - 31), m0 a Q31 integer in [2^30, 2^31)."""
     M = np.atleast_1d(np.asarray(M, np.float64))
@@ -92,7 +92,7 @@ def requantize(acc, m0, e, z_out, relu=False):
     return np.clip(y, z_out if relu else QMIN, QMAX).astype(np.int8)
 
 
-# ---------------------------------------------------------------- layers
+# --- layers
 class Conv:
     """A quantized convolution: 1-D causal dilated (kernel K, left zero padding (K-1) * dil, as
     ml/model.py) or 2-D 'same' 3x3. Built from fp32 weights and the calibrated scales of its
@@ -191,7 +191,7 @@ def logistic(q, s, z):
     return lut[q.astype(np.int64) - QMIN]
 
 
-# ---------------------------------------------------------------- calibration
+# --- calibration
 class Observer:
     """The range of one tensor over the calibration data: min/max, or the 0.01-99.99 %
     percentiles (clips rare outliers, finer steps for the rest)."""

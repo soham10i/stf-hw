@@ -2,7 +2,7 @@
  * STF v2 — the tunnel-oven line, design preview.
  *
  * A fully self-contained scene (no shared app code): it visualizes the P1 blueprint
- * (STF-2 tunnel oven design) — HBW feed, feed pusher, 3-zone tunnel, flip chute,
+ * (docs/plans/p1-tunnel-oven-blueprint.md) — HBW feed, feed pusher, 3-zone tunnel, flip chute,
  * sort line and empty-carrier buffer — as an animated loop. World coordinates are the
  * factory frame millimetres of packages/stf_layout/factory.layout.yaml so the preview can be
  * diffed against the future layout file.
@@ -11,9 +11,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import "./v2.css";
 
-// ---------------------------------------------------------------------------
-// Blueprint constants (CALIBRATE items from the blueprint; sim seconds)
-// ---------------------------------------------------------------------------
+// --- Blueprint constants (CALIBRATE items from the blueprint; sim seconds)
 const PITCH_S = 5; // one carrier enters every 5 s
 const SEG = { hbw: 4.0, pusher: 1.5, tunnel: 15.0, flip: 1.2, sort: 3.5, buffer: 2.0, gap: 1.0 };
 const CYCLE_S =
@@ -31,7 +29,7 @@ const RAW = new THREE.Color("#e8dcc0"); // dough
 const BAKED = new THREE.Color("#c98a3d"); // finished cookie
 
 // factory frame (mm): x along the belts, z = factory -y (depth), y = up
-const P = {
+const POINTS = {
   hbwStart: new THREE.Vector3(400, 0, -110),
   hbwEnd: new THREE.Vector3(500, 0, -110),
   tunnelIn: new THREE.Vector3(545, 0, -215),
@@ -42,9 +40,7 @@ const P = {
   gate: new THREE.Vector3(810, 0, -215), // back-pressure hold point before the exit
 };
 
-// ---------------------------------------------------------------------------
-// Renderer / scene
-// ---------------------------------------------------------------------------
+// --- Renderer / scene
 const root = document.getElementById("v2-root")!;
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -89,9 +85,7 @@ const resize = () => {
 };
 window.addEventListener("resize", resize);
 
-// ---------------------------------------------------------------------------
-// World helpers
-// ---------------------------------------------------------------------------
+// --- World helpers
 const mat = (color: string, opts: THREE.MeshStandardMaterialParameters = {}) =>
   new THREE.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0.15, ...opts });
 
@@ -192,7 +186,7 @@ const gateLight = new THREE.Mesh(
   new THREE.SphereGeometry(6, 16, 12),
   mat("#233047", { emissive: new THREE.Color("#37e08b"), emissiveIntensity: 1.2 }),
 );
-gateLight.position.set(P.gate.x + 16, 18, -215);
+gateLight.position.set(POINTS.gate.x + 16, 18, -215);
 scene.add(gateLight);
 // flip chute ramp + sort belt + reject bin + buffer
 const chute = box([46, 4, 60], new THREE.Vector3(842, 8, -240), mat("#3d4b66"));
@@ -207,14 +201,12 @@ for (let i = 0; i < 3; i++) {
   box([90, 2, 14], new THREE.Vector3(640, 2 + i * 8, -290), mat("#2c3850"));
 } // buffer rails
 
-// ---------------------------------------------------------------------------
-// Carriers (pool). Local clock `t` walks the segment list; the cookie separates
+// --- Carriers (pool). Local clock `t` walks the segment list; the cookie separates
 // at the flip and rides the sort line while the empty carrier takes a buffer slot.
-// ---------------------------------------------------------------------------
 interface Slot { carrier: Carrier | null }
 const slots: Slot[] = [{ carrier: null }, { carrier: null }, { carrier: null }];
 const slotPos = (i: number) =>
-  new THREE.Vector3(P.buffer.x, 6 + i * 8, P.buffer.z);
+  new THREE.Vector3(POINTS.buffer.x, 6 + i * 8, POINTS.buffer.z);
 
 let cookiesDone = 0;
 
@@ -273,18 +265,18 @@ class Carrier {
 
     if (s === 0) {
       const k = local / SEG.hbw;
-      this.group.position.lerpVectors(P.hbwStart, P.hbwEnd, k);
+      this.group.position.lerpVectors(POINTS.hbwStart, POINTS.hbwEnd, k);
     } else if (s === 1) {
       const k = local / SEG.pusher;
-      this.group.position.lerpVectors(P.hbwEnd, P.tunnelIn, k);
+      this.group.position.lerpVectors(POINTS.hbwEnd, POINTS.tunnelIn, k);
     } else if (s === 2) {
       const k = Math.min(local / SEG.tunnel, 1);
-      const x = THREE.MathUtils.lerp(P.tunnelIn.x, P.tunnelOut.x, k);
-      this.group.position.set(x, 6, P.tunnelIn.z);
+      const x = THREE.MathUtils.lerp(POINTS.tunnelIn.x, POINTS.tunnelOut.x, k);
+      this.group.position.set(x, 6, POINTS.tunnelIn.z);
       // bake: colour progresses through the tunnel; hold at the gate when the buffer is full
-      if (x >= P.gate.x && !this.slot && slots.every((sl) => sl.carrier)) {
+      if (x >= POINTS.gate.x && !this.slot && slots.every((sl) => sl.carrier)) {
         this.holding = true;
-        this.group.position.x = P.gate.x;
+        this.group.position.x = POINTS.gate.x;
       }
       (this.cookie.material as THREE.MeshStandardMaterial).color.lerpColors(
         RAW,
@@ -293,7 +285,7 @@ class Carrier {
       );
     } else if (s === 3) {
       const k = local / SEG.flip;
-      this.group.position.copy(P.tunnelOut); // carrier waits at the exit while the cookie tips over
+      this.group.position.copy(POINTS.tunnelOut); // carrier waits at the exit while the cookie tips over
       if (k >= 1 && !this.slot) {
         const free = slots.find((sl) => !sl.carrier) ?? null;
         if (free) {
@@ -309,10 +301,10 @@ class Carrier {
       );
     } else if (s === 4) {
       const k = local / SEG.sort;
-      this.group.position.set(P.tunnelOut.x, 6, P.tunnelIn.z); // parked at the exit
+      this.group.position.set(POINTS.tunnelOut.x, 6, POINTS.tunnelIn.z); // parked at the exit
       this.cookie.position.lerpVectors(
         new THREE.Vector3(6, 9, -50),
-        new THREE.Vector3(6 + (P.sortEnd.x - P.sortStart.x) * k, 9, -50),
+        new THREE.Vector3(6 + (POINTS.sortEnd.x - POINTS.sortStart.x) * k, 9, -50),
         1,
       );
     } else if (s === 5) {
@@ -349,7 +341,7 @@ class Carrier {
     for (let i = 0; i < ZONES.length; i++) {
       const z = ZONES[i];
       const inside =
-        this.group.position.z === P.tunnelIn.z &&
+        this.group.position.z === POINTS.tunnelIn.z &&
         this.group.position.x > z.minX &&
         this.group.position.x < z.maxX;
       const target = inside ? 0.9 + 0.25 * Math.sin(time * 6) : 0.12;
@@ -361,9 +353,7 @@ class Carrier {
 
 const carriers = Array.from({ length: POOL }, (_, i) => new Carrier(i * PITCH_S));
 
-// ---------------------------------------------------------------------------
-// Overlay (DOM, updated per frame)
-// ---------------------------------------------------------------------------
+// --- Overlay (DOM, updated per frame)
 const el = (id: string) => document.getElementById(id)!;
 const chips = ZONES.map((_, i) => el(`zone-${i}`));
 let running = true;

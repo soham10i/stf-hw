@@ -4,13 +4,14 @@
 import { HAS_API } from "./mode";
 import { api } from "./api";
 import type { TwinRecord } from "../scene/store/useCellStore";
+import { quiet } from "./log";
 
 export function postRecord(r: TwinRecord) {
   if (!HAS_API) return;
   const { kind, ...body } = r;
   void fetch(api(kind === "inspection" ? "/twin/inspection" : "/twin/order"), {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), keepalive: true,
-  }).catch(() => undefined);
+  }).catch(quiet("records"));
 }
 
 // What this session did before, as the API stored it under the guest's id (GET /twin/records):
@@ -34,7 +35,7 @@ export function fetchRecords(): Promise<TwinRecords | null> {
   if (!HAS_API) return Promise.resolve(null);
   return fetch(api("/twin/records"))
     .then((r) => (r.ok ? (r.json() as Promise<TwinRecords>) : null))
-    .catch(() => null);
+    .catch(quiet("records", null));
 }
 
 /** A short relative time for a record's timestamptz: "just now", "4 min ago", "3 h ago". */

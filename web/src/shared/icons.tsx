@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { THEMES, type ThemeDef, type ThemeId } from "./theme";
 
-const P: Record<string, string> = {
+const PATHS: Record<string, string> = {
   home: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
   calendar: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
   brain: "M9 3a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 3 3h1V3zM15 3a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-3 3h-1V3z",
@@ -90,14 +90,14 @@ export function NexusMark({ size = 18, className }: { size?: number; className?:
 
 export const CopilotMark = NexusMark;
 
-export function Icon({ name, size = 18, className }: { name: keyof typeof P | string; size?: number; className?: string }) {
+export function Icon({ name, size = 18, className }: { name: keyof typeof PATHS | string; size?: number; className?: string }) {
   if (name === "copilot") {
     return <NexusMark size={size} className={className} />;
   }
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d={P[name] ?? P.info} />
+      <path d={PATHS[name] ?? PATHS.info} />
     </svg>
   );
 }

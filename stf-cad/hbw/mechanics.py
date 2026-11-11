@@ -20,10 +20,9 @@ proves, on the exact B-rep, for every pair:
     pocket is a through-pocket valid at every pose.
 Runs inside FreeCAD.
 """
+import detail
 import FreeCAD as App
 import Part
-
-import detail
 
 V = App.Vector
 _cache = {}
@@ -33,23 +32,23 @@ def _model(module):
     if module in _cache:
         return _cache[module]
     if module == "hbw":
-        import hbw_model as HM
-        from hbw_frames import by_frame, HOME
-        mod = {p.name: p for p in HM.build(**HOME)}
+        import hbw_model
+        from hbw_frames import HOME, by_frame
+        mod = {p.name: p for p in hbw_model.build(**HOME)}
         loc = {p.name: p for fr in by_frame().values() for p in fr}
-        guides = getattr(HM, "GUIDES", [])
+        guides = getattr(hbw_model, "GUIDES", [])
     elif module == "vgr":
-        import vgr_model as VG
-        mod = loc = {p.name: p for p in VG.build()}
-        guides = getattr(VG, "GUIDES", [])
+        import vgr_model
+        mod = loc = {p.name: p for p in vgr_model.build()}
+        guides = getattr(vgr_model, "GUIDES", [])
     elif module == "oven":
-        import oven_model as OM
-        mod = loc = {p.name: p for p in OM.build()}
-        guides = getattr(OM, "GUIDES", [])
+        import oven_model
+        mod = loc = {p.name: p for p in oven_model.build()}
+        guides = getattr(oven_model, "GUIDES", [])
     elif module == "sorting":
-        import sorting_model as SM
-        mod = loc = {p.name: p for p in SM.build()}
-        guides = getattr(SM, "GUIDES", [])
+        import sorting_model
+        mod = loc = {p.name: p for p in sorting_model.build()}
+        guides = getattr(sorting_model, "GUIDES", [])
     else:
         mod = loc = {}
         guides = []

@@ -1,12 +1,12 @@
 # The live twin as ONE container: the FastAPI physics kernel (REST + WebSocket) serving the
-# built web app on the same origin. Used by Cloud Run (docs/GCP_DEPLOY.md) and
+# built web app on the same origin. Used by Cloud Run (docs/reference/operations/gcp-deploy.md) and
 # runnable anywhere:
 #   docker build -t stf-live . && docker run -p 10000:10000 stf-live   ->  http://localhost:10000/
 # No database, Redis or MQTT: the API's runtime keeps its state in memory (services/api/runtime.py).
 
 # Base images are pinned by digest (a tag can be re-pointed): refresh them on a schedule with
 #   docker buildx imagetools inspect python:3.12-slim   (and node:20-slim)
-# so Debian's security fixes arrive (docs/SECURITY.md).
+# so Debian's security fixes arrive (docs/history/2026-10-22-security-findings.md, F7).
 
 # ---- 1. the web app, built for the live API (base /stf/) ----
 FROM node:20-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 AS web
@@ -31,7 +31,7 @@ RUN pip install --no-cache-dir --require-hashes -r requirements-api.txt
 COPY packages/ packages/
 COPY services/ services/
 # the copilot's page guides (tools.page_guide); the twin's data it reads is in web/dist
-COPY docs/assistant/ docs/assistant/
+COPY docs/reference/ docs/reference/
 COPY --from=web /app/web/dist web/dist
 RUN useradd --create-home --uid 10001 stf && chown -R stf /app
 USER stf

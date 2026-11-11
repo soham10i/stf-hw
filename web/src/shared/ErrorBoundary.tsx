@@ -1,13 +1,15 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { log } from "./log";
 
 interface State {
   error: Error | null;
 }
 
-// Surfaces any error thrown inside the 3D tree to the page and the console,
-// instead of letting react-three-fiber's internal handling swallow it into a
-// blank canvas.
-export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
+// Surfaces an error thrown inside its tree to the page and the console: in the 3D view, instead of
+// react-three-fiber swallowing it into a blank canvas; around a dashboard page, so one failing page
+// says so in place instead of unmounting the whole dashboard.
+type Props = { children: ReactNode; what?: string; scope?: string; className?: string };
+export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
 
   static getDerivedStateFromError(error: Error): State {
@@ -15,15 +17,15 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error("3D scene error:", error, info);
+    log.error(this.props.scope ?? "scene", error, info);
   }
 
   render() {
     if (this.state.error) {
       return (
-        <div className="error">
+        <div className={this.props.className ?? "error"} role="alert">
           <div>
-            <strong>3D scene failed to render</strong>
+            <strong>{this.props.what ?? "3D scene"} failed to render</strong>
             <pre style={{ whiteSpace: "pre-wrap", maxWidth: 600 }}>
               {this.state.error.message}
             </pre>

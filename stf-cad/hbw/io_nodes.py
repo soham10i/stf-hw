@@ -119,39 +119,44 @@ def _n_relays(module):
     return len(interlock.relays(module))
 
 
-# ------------------------------------------------------------- placement
+# --- placement
 def _obstacles():
     """Every solid a node could hit, factory frame: all module parts at their
     authoring / parked pose, the PLC cabinet, Upgrade 1's air station and
     buffer, and every swept hazard zone."""
-    import factory_layout as FL, hbw_model as HM, oven_model as OM, sorting_model as SM
-    import vgr_model as VG, upgrade as U, safety as SF
+    import factory_layout
+    import hbw_model
+    import oven_model
+    import safety
+    import sorting_model
+    import upgrade
+    import vgr_model
     boxes = []
-    for p in HM.build(HM.P["CV_X"], 260.0, 0.0):
+    for p in hbw_model.build(hbw_model.P["CV_X"], 260.0, 0.0):
         if p.group == "frame":
             continue
         a = p.aabb()
-        c0, c1 = FL.to_factory(a[0], a[1]), FL.to_factory(a[3], a[4])
+        c0, c1 = factory_layout.to_factory(a[0], a[1]), factory_layout.to_factory(a[3], a[4])
         boxes.append((min(c0[0], c1[0]), min(c0[1], c1[1]), a[2], max(c0[0], c1[0]), max(c0[1], c1[1]), a[5]))
-    vx, vy = FL.VGR_AT
-    for p in VG.build():
+    vx, vy = factory_layout.VGR_AT
+    for p in vgr_model.build():
         if p.group == "frame" or p.frame != "world":
             continue
         a = p.local_aabb()
         boxes.append((a[0] + vx, a[1] + vy, a[2], a[3] + vx, a[4] + vy, a[5]))
-    for p in OM.build():
+    for p in oven_model.build():
         if p.group != "frame":
-            boxes.append(FL.oven_box(p.local_aabb()))
-    for p in SM.build():
+            boxes.append(factory_layout.oven_box(p.local_aabb()))
+    for p in sorting_model.build():
         if p.group == "frame":
             continue
         a = p.local_aabb()
-        c0, c1 = FL.to_factory_sort(a[0], a[1]), FL.to_factory_sort(a[3], a[4])
+        c0, c1 = factory_layout.to_factory_sort(a[0], a[1]), factory_layout.to_factory_sort(a[3], a[4])
         boxes.append((min(c0[0], c1[0]), min(c0[1], c1[1]), a[2], max(c0[0], c1[0]), max(c0[1], c1[1]), a[5]))
-    x, y, w, d = FL.plc_rect()
+    x, y, w, d = factory_layout.plc_rect()
     boxes.append((x, y, -1, x + w, y + d, 400))
-    boxes += [a for _, _, a in U.factory_parts(include_io=False)]
-    zones = SF.hazards()
+    boxes += [a for _, _, a in upgrade.factory_parts(include_io=False)]
+    zones = safety.hazards()
     for h in zones:
         if h["zone"] and not h.get("cyl"):
             boxes.append(tuple(h["zone"]))
@@ -175,12 +180,13 @@ def place(module):
     """Factory (x0, y0, along) of the node: the free spot nearest the PCB."""
     if module in _placed:
         return _placed[module]
-    import factory_layout as FL, wiring as W
+    import factory_layout
+    import wiring
     doc_parts = _module_parts(module)
     pcb = next(d for d in doc_parts if "pcb" in d["n"].lower())
-    pb = W._box_f(pcb, W._tf(module))
+    pb = wiring._box_f(pcb, wiring._tf(module))
     pc = ((pb[0] + pb[3]) / 2, (pb[1] + pb[4]) / 2)
-    rects = {"hbw": FL.module_rect(), "vgr": FL.vgr_rect(), "oven": FL.oven_rect(), "sorting": FL.sort_rect()}
+    rects = {"hbw": factory_layout.module_rect(), "vgr": factory_layout.vgr_rect(), "oven": factory_layout.oven_rect(), "sorting": factory_layout.sort_rect()}
     boxes, poly = _obstacles()
     L, D, H = node_length(module), COUPLER[1], COUPLER[2] + RAIL_H
 
@@ -215,7 +221,7 @@ def place(module):
         # the VGR's plate lies wholly under its own arm's sweep: then the nearest
         # clear spot on the table that is on no OTHER module's plate
         others = [(r[0], r[1], -1, r[0] + r[2], r[1] + r[3], 1000) for m, r in rects.items() if m != module]
-        best = search((0.0, 0.0, FL.PLATE[0], FL.PLATE[1]), others)
+        best = search((0.0, 0.0, factory_layout.PLATE[0], factory_layout.PLATE[1]), others)
         where = "table, off every other plate"
     if best is None:
         raise RuntimeError(f"io_nodes: no free spot for the {module} node")
@@ -225,10 +231,12 @@ def place(module):
 
 def _module_parts(module):
     """The module's parts as exported dicts (for the PCB position)."""
-    import oven_model as OM, sorting_model as SM, vgr_model as VG
+    import oven_model
+    import sorting_model
+    import vgr_model
     from hbw_frames import by_frame
-    src = {"hbw": [p for fr in by_frame().values() for p in fr], "vgr": VG.build(),
-           "oven": OM.build(), "sorting": SM.build()}[module]
+    src = {"hbw": [p for fr in by_frame().values() for p in fr], "vgr": vgr_model.build(),
+           "oven": oven_model.build(), "sorting": sorting_model.build()}[module]
     out = []
     for p in src:
         out.append({"n": p.name, "k": p.kind, "p": list(p.p),

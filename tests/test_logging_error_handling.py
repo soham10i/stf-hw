@@ -56,7 +56,8 @@ def test_global_exception_handler_returns_json_and_logs(caplog):
 
     assert resp.status_code == 500
     data = resp.json()
-    assert data["error"] == "internal_server_error"
+    assert data["code"] == "internal" and data["status"] == 500
+    assert "division" not in data["message"]  # an unknown error's text is never shown
     assert any(
         "Unhandled exception processing GET /orders" in record.message
         for record in caplog.records
@@ -119,7 +120,7 @@ def test_orchestrate_decide_safe_bm25_fallback(caplog):
     from services.api import orchestrate
 
     with patch.object(
-        orchestrate.V, "hybrid_search", side_effect=RuntimeError("Index read failure")
+        orchestrate.vectors, "hybrid_search", side_effect=RuntimeError("Index read failure")
     ):
         with caplog.at_level(logging.WARNING):
             plan = orchestrate.decide("how does the oven work?", ["oven_process"], can_search=False)

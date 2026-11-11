@@ -49,7 +49,7 @@ export function applyFrame(frame: Frame): void {
   hot.busy = frame.busy;
 }
 
-// --- discrete store: a minimal observable for React-side state ---------------
+// --- discrete store: a minimal observable for React-side state
 
 export type ConnState = "connecting" | "open" | "closed";
 

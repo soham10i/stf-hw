@@ -28,15 +28,16 @@ from collections import defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import geom as G
-import line_model as M
+import geom
+import hardware
+import line_model
 
-L = M.L
+L = line_model.L
 OUT = os.path.join(HERE, "motion")
 T_END, DT = 40.0, 0.1
-FLAV = M.FLAV
+FLAV = line_model.FLAV
 
-# ------------------------------------------------------------------ schedule (one place, all in s)
+# --- schedule (one place, all in s)
 KICKS = (6.0, 26.0)
 SEALS = {"weiss": 10.0, "rot": 22.0, "blau": 34.0}
 LIFTS = {f: t + 2.0 for f, t in SEALS.items()}
@@ -77,7 +78,7 @@ PWM = 2.0                                     # s, time-proportioning period of 
 
 def duty():
     """Zone duty = steady load / installed (oven.py) - what the PID settles to in production."""
-    loads, els, _, _ = M.oven_power()
+    loads, els, _, _ = line_model.oven_power()
     return {z["zone"]: z["total"] / sum(e["P"] for e in els if e["zone"] == z["zone"]) for z in loads}
 
 
@@ -88,7 +89,7 @@ def element_on(e, i, t, d):
     """Element i of n in its zone conducts in its slice [i/n, i/n + duty) of the 2 s period - FB_Oven's F_InSlice
     (spreads the phase current)."""
     if not _N_ZONE:
-        for x in M.oven_power()[1]:
+        for x in line_model.oven_power()[1]:
             _N_ZONE[x["zone"]] = _N_ZONE.get(x["zone"], 0) + 1
     u = ((t / PWM) - i / _N_ZONE[e["zone"]]) % 1.0
     return u < d[e["zone"]]
@@ -96,7 +97,7 @@ def element_on(e, i, t, d):
 
 def power_at(t, d):
     """(W total, {phase: A}) of the oven elements + fans at time t."""
-    _, els, plan, _ = M.oven_power()
+    _, els, plan, _ = line_model.oven_power()
     ph = {tg: p for p, items in plan.items() for tg, _ in items}
     amps = {"L1": 0.0, "L2": 0.0, "L3": 0.0}
     W = 0.0
@@ -108,14 +109,14 @@ def power_at(t, d):
             W += e["P"]
             amps[ph[e["tag"]]] += e["P"] / 230.0
     for k in range(len(L["OVEN_ZONES"])):
-        W += M.H.OVEN_FAN["P"]
-        amps[ph[f"QF{k + 1}"]] += M.H.OVEN_FAN["P"] / 230.0
+        W += hardware.OVEN_FAN["P"]
+        amps[ph[f"QF{k + 1}"]] += hardware.OVEN_FAN["P"] / 230.0
     return W, amps
 
 
 def wire_dx(t):
     """The cutting wire sweeps across the die once per row (cam on the roll drive)."""
-    period = L["BAND"]["spacing"] / M.band_v()
+    period = L["BAND"]["spacing"] / line_model.band_v()
     u = t % period
     return (L["DOUGH_SLUG"][0] + 10.0) * (pulse(u, 0.0, 0.3, 0.0, 0.3) - 0.5)
 
@@ -123,28 +124,28 @@ def wire_dx(t):
 def delta_c_pose(t):
     """Delta C: pick cookie k of the row in the window at t_pick, place it 1 s later into the puck at s_place
     (tracking the puck along the bend), back to travel height. Returns (pose, carrying, (row, k))."""
-    T = M.takt()
-    t_enter, s_pl = M.transfer_times()
+    T = line_model.takt()
+    t_enter, s_pl = line_model.transfer_times()
     period = L["BAND"]["rows"] * T
-    st = M.stations()
-    v = M.band_v()
+    st = line_model.stations()
+    v = line_model.band_v()
     xc = L["DELTA_C"]["x"]
-    zt, zb, zp = M.travel_z(xc), M.band_pick_z(), M.pick_z()
+    zt, zb, zp = line_model.travel_z(xc), line_model.band_pick_z(), line_model.pick_z()
     # the pick this cycle belongs to: t_pick = r * period + t_enter + (k+1) T, with u in [-0.5, 3.5) around it
     n = math.floor((t - t_enter + 0.5) / T)                # picks since the row r = 0 ... in takt counts
     t_pick = t_enter + n * T
     r, kk = divmod(n - 1, L["BAND"]["rows"])
     u = t - t_pick
     xp = st["dep"] + v * (t_pick - r * period)              # the cookie's x at the pick moment
-    yp = M.row_y(kk)
+    yp = line_model.row_y(kk)
     sp = lambda tt: (s_pl + L["V"] * (tt - (t_pick + 1.0)))
     def at_s(tt, z):
-        (x, y), _ = M.pos(sp(tt))
+        (x, y), _ = line_model.pos(sp(tt))
         return (x, y, z)
     way = [(-0.5, (xp, yp, zt)), (-0.2, (xp, yp, zb)), (0.0, (xp, yp, zb)), (0.25, (xp + v * 0.25, yp, zt)),
            (0.75, at_s(t_pick + 0.75, zt)), (1.0, at_s(t_pick + 1.0, zp)), (1.1, at_s(t_pick + 1.1, zp)),
-           (1.35, at_s(t_pick + 1.35, zt)), (2.0, (xp + v * T, M.row_y((kk + 1) % L["BAND"]["rows"]), zt)),
-           (3.5, (xp + v * T, M.row_y((kk + 1) % L["BAND"]["rows"]), zt))]
+           (1.35, at_s(t_pick + 1.35, zt)), (2.0, (xp + v * T, line_model.row_y((kk + 1) % L["BAND"]["rows"]), zt)),
+           (3.5, (xp + v * T, line_model.row_y((kk + 1) % L["BAND"]["rows"]), zt))]
     for (ta, a), (tb, b) in zip(way, way[1:]):
         if ta <= u <= tb:
             f = smooth((u - ta) / (tb - ta))
@@ -155,8 +156,8 @@ def delta_c_pose(t):
 def delta_pose(i, t):
     """Effector pose of delta i at time t (pick on the moving belt -> pocket of a lane -> back)."""
     xd = L["DELTA_X"][i]
-    c, _ = M.delta_window(xd)
-    yb, zt, zp, zl = M.y_back(), L["TRAVEL_Z"], M.pick_z(), M.place_z()
+    c, _ = line_model.delta_window(xd)
+    yb, zt, zp, zl = line_model.y_back(), L["TRAVEL_Z"], line_model.pick_z(), line_model.place_z()
     tc = L["T_PICK"]
     k = int((t + DELTA_PHASE[i] * 1.0) // tc)
     u = (t + DELTA_PHASE[i]) % tc
@@ -175,7 +176,7 @@ def delta_pose(i, t):
     return way[-1][1], False
 
 
-# ------------------------------------------------------------------ transforms
+# --- transforms
 def _rot_between(a, b):
     """Rotation matrix taking unit vector a onto unit vector b (Rodrigues)."""
     na, nb = math.sqrt(sum(x * x for x in a)), math.sqrt(sum(x * x for x in b))
@@ -229,7 +230,7 @@ def rigid(base, now):
 
 
 def shifted(p, d):
-    q = M.Part(p.name, p.module, p.group, p.kind, tuple(p.p[i] + d[i] for i in range(3)), p.s, p.colour,
+    q = line_model.Part(p.name, p.module, p.group, p.kind, tuple(p.p[i] + d[i] for i in range(3)), p.s, p.colour,
                joint=p.joint, tag=p.tag, mech=p.mech, hw=p.hw)
     if p.kind == "rod":
         q.s = tuple(p.s[i] + d[i] for i in range(3)) + (p.s[3],)
@@ -237,11 +238,11 @@ def shifted(p, d):
 
 
 def cyl(p, start, axis, length):
-    return M.Part(p.name, p.module, p.group, "cyl", tuple(start), (axis, length, p.s[2]), p.colour, joint=p.joint,
+    return line_model.Part(p.name, p.module, p.group, "cyl", tuple(start), (axis, length, p.s[2]), p.colour, joint=p.joint,
                   hw=p.hw)
 
 
-# ------------------------------------------------------------------ one frame
+# --- one frame
 def reference_events():
     """The event schedule of the 40 s reference run (what timeline.json shows)."""
     return dict(kicks=list(KICKS), seals={f: [SEALS[f]] for f in FLAV}, lifts={f: [LIFTS[f]] for f in FLAV},
@@ -263,16 +264,16 @@ def frame(t, base, ev=None, rows=None, tau=None, band_names=None):
     now, vis = {}, {}
     # chain: pucks + their cookies (a cookie exists on every puck; shown while the puck is loaded)
     loop = []
-    M._pucks(loop.append, tau)
+    line_model._pucks(loop.append, tau)
     shown = {p.name for p in loop}
     for k in range(L["N"]):
         pk = next(p for p in loop if p.name == f"puck_{k:02d}")
         now[pk.name] = pk
-        ck = M.Part(f"cookie_{k:02d}", pk.module, "cookie", "cyl", (pk.p[0], pk.p[1], M.z_seat()),
-                    ("z", L["COOKIE"][1], L["COOKIE"][0]), M.cookie_hex(), joint="loop")
+        ck = line_model.Part(f"cookie_{k:02d}", pk.module, "cookie", "cyl", (pk.p[0], pk.p[1], line_model.z_seat()),
+                    ("z", L["COOKIE"][1], L["COOKIE"][0]), line_model.cookie_hex(), joint="loop")
         now[ck.name] = ck
         vis[ck.name] = ck.name in shown
-        tp = M.Part(f"cookie_{k:02d}_top", pk.module, "cookie", "cyl", (pk.p[0], pk.p[1], M.z_cookie_top()),
+        tp = line_model.Part(f"cookie_{k:02d}_top", pk.module, "cookie", "cyl", (pk.p[0], pk.p[1], line_model.z_cookie_top()),
                     ("z", L["TOPPING"]["h"], L["TOPPING"]["d"]), L["BAKED"][k % 3], joint="loop")
         now[tp.name] = tp
         vis[tp.name] = tp.name in shown
@@ -305,8 +306,8 @@ def frame(t, base, ev=None, rows=None, tau=None, band_names=None):
             now[p.name] = shifted(p, (cx, 0, 0))
     sw = ph["AMR swap"]
     vis[f"cassette_{EXCH_LANE}_active_stack"] = t < sw[0] + sw[1] / 2      # the AMR brings an EMPTY one
-    inner = M.door_stroke("S32") * (1 - ramp(t, *ph["inner door shut"]) + ramp(t, *ph["inner door open"]))
-    outer = M.door_stroke("S31") * (ramp(t, *ph["outer door open"]) - ramp(t, *ph["outer door shut"]))
+    inner = line_model.door_stroke("S32") * (1 - ramp(t, *ph["inner door shut"]) + ramp(t, *ph["inner door open"]))
+    outer = line_model.door_stroke("S31") * (ramp(t, *ph["outer door open"]) - ramp(t, *ph["outer door shut"]))
     now["aldoor_inner"] = shifted(base["aldoor_inner"], (0, inner, 0))
     now["aldoor_out"] = shifted(base["aldoor_out"], (0, outer, 0))
     # delta C: band -> puck
@@ -314,13 +315,13 @@ def frame(t, base, ev=None, rows=None, tau=None, band_names=None):
     pose, carrying, _ = delta_c_pose(tau)
     arms = []
     try:
-        M._delta(arms.append, "delta_C", L["DELTA_C"]["x"], pose, static=False, module="transfer")
+        line_model._delta(arms.append, "delta_C", L["DELTA_C"]["x"], pose, static=False, module="transfer")
         for p in arms:
             p.module = "M4_transfer"
             now[p.name] = p
         cup = now["delta_C_cup_a"]
-        held = M.Part("held_C", "M4_transfer", "cookie", "cyl", (pose[0], pose[1], cup.p[2] - L["COOKIE"][1]),
-                      ("z", L["COOKIE"][1], L["COOKIE"][0]), M.cookie_hex(), joint="held")
+        held = line_model.Part("held_C", "M4_transfer", "cookie", "cyl", (pose[0], pose[1], cup.p[2] - L["COOKIE"][1]),
+                      ("z", L["COOKIE"][1], L["COOKIE"][0]), line_model.cookie_hex(), joint="held")
         now[held.name] = held
         vis[held.name] = carrying
     except ValueError:
@@ -330,7 +331,7 @@ def frame(t, base, ev=None, rows=None, tau=None, band_names=None):
         pose, carrying = delta_pose(i, tau)
         arms = []
         try:
-            M._delta(arms.append, f"delta_{'AB'[i]}", xd, pose, static=False)
+            line_model._delta(arms.append, f"delta_{'AB'[i]}", xd, pose, static=False)
         except ValueError:
             bad.append(f"delta_{'AB'[i]} cannot reach {tuple(round(v) for v in pose)} at tau={tau:.1f}")
             continue
@@ -338,14 +339,14 @@ def frame(t, base, ev=None, rows=None, tau=None, band_names=None):
             p.module = "M6_pick"
             now[p.name] = p
         cup = now[f"delta_{'AB'[i]}_cup_a"]
-        held = M.Part(f"held_{'AB'[i]}", "M6_pick", "cookie", "cyl", (pose[0], pose[1], cup.p[2] - L["COOKIE"][1]),
+        held = line_model.Part(f"held_{'AB'[i]}", "M6_pick", "cookie", "cyl", (pose[0], pose[1], cup.p[2] - L["COOKIE"][1]),
                       ("z", L["COOKIE"][1], L["COOKIE"][0]), L["BAKED"][i], joint="held")
         now[held.name] = held
         vis[held.name] = carrying
     return now, vis, bad
 
 
-# ------------------------------------------------------------------ sweep check
+# --- sweep check
 SKIP_GROUPS = {("puck", "chain"), ("puck", "guide"), ("cookie", "puck"), ("cookie", "chain")}
 
 
@@ -373,7 +374,7 @@ def _exempt(a, b):
         return True                                    # the head seals onto the tray flange
     if a.joint and a.joint == b.joint and not a.joint.startswith(("delta", "loop")):
         return True                                    # one rigid body
-    if M.allowed(a, b):
+    if line_model.allowed(a, b):
         return True
     return False
 
@@ -413,20 +414,20 @@ def sweep(times, base, moving_names):
                 continue                                   # band product vs the machine: line_model.band_clearance
             pa = p.aabb()
             for q in grid.near(pa):
-                if not M._ovl(pa, q.aabb()) or _exempt(p, q):
+                if not line_model._ovl(pa, q.aabb()) or _exempt(p, q):
                     continue
                 pairs += 1
-                if G.interfere(p, q):
+                if geom.interfere(p, q):
                     hits[(p.name, q.name)].append(t)
         lg = Grid(live, 150.0)
         for p in live:
             for q in lg.near(p.aabb()):
-                if id(q) <= id(p) or not M._ovl(p.aabb(), q.aabb()) or _exempt(p, q):
+                if id(q) <= id(p) or not line_model._ovl(p.aabb(), q.aabb()) or _exempt(p, q):
                     continue
                 if p.group == q.group and p.group in ("puck", "cookie"):
                     continue
                 pairs += 1
-                if G.interfere(p, q):
+                if geom.interfere(p, q):
                     hits[tuple(sorted((p.name, q.name)))].append(t)
     return hits, bad, pairs
 
@@ -439,24 +440,24 @@ def band_pose(n, t, t_gone=None):
     top = n.endswith("_top")
     r, k = n[len("band_r"):].split("_")[:2]
     r, k = int(r) - 100, int(k)
-    st = M.stations()
-    v = M.band_v()
-    T = M.takt()
+    st = line_model.stations()
+    v = line_model.band_v()
+    T = line_model.takt()
     period = L["BAND"]["rows"] * T
-    t_enter = M.transfer_times()[0]
+    t_enter = line_model.transfer_times()[0]
     t_in = t - r * period
     t_gone = t_enter + (k + 1) * T if t_gone is None else t_gone   # delta C has it
     vis = 0.0 <= t_in < t_gone
     ti = min(max(t_in, 0.0), t_gone)
-    d, h, col, topped = M.band_state(ti)
-    x = M.g1(st["dep"] + v * ti)
+    d, h, col, topped = line_model.band_state(ti)
+    x = line_model.g1(st["dep"] + v * ti)
     zb = L["BAND"]["z"]
     if top:
         Tp = L["TOPPING"]
-        p = M.Part(n, "M3_oven", "cookie", "cyl", (x, M.row_y(k), zb + round(h, 2)), ("z", Tp["h"], Tp["d"]),
-                   L["BAKED"][M.row_flavour(k)], joint="band")
+        p = line_model.Part(n, "M3_oven", "cookie", "cyl", (x, line_model.row_y(k), zb + round(h, 2)), ("z", Tp["h"], Tp["d"]),
+                   L["BAKED"][line_model.row_flavour(k)], joint="band")
         return p, vis and topped
-    p = M.Part(n, "M3_oven", "cookie", "cyl", (x, M.row_y(k), zb), ("z", round(h, 2), round(d, 2)), col, joint="band")
+    p = line_model.Part(n, "M3_oven", "cookie", "cyl", (x, line_model.row_y(k), zb), ("z", round(h, 2), round(d, 2)), col, joint="band")
     return p, vis
 
 
@@ -464,12 +465,12 @@ def _band_names():
     out = []
     for t in (0.0, T_END / 2, T_END):
         ps = []
-        M._band_product(ps.append, t)
+        line_model._band_product(ps.append, t)
         out += [p.name for p in ps]
     seen = []
     for t in [k * DT for k in range(int(T_END / DT) + 1)][::10]:
         ps = []
-        M._band_product(ps.append, t)
+        line_model._band_product(ps.append, t)
         seen += [p.name for p in ps]
     return sorted(set(out) | set(seen))
 
@@ -478,15 +479,15 @@ BAND_NAMES = _band_names()
 
 
 def _sweep_chunk(times):
-    base = {p.name: p for p in M.build()}
+    base = {p.name: p for p in line_model.build()}
     f0, _, _ = frame(0.0, base)
     h, b, p = sweep(times, base, set(f0))
     return dict(h), b, p
 
 
-# ------------------------------------------------------------------ export
+# --- export
 def main():
-    base = {p.name: p for p in M.build()}
+    base = {p.name: p for p in line_model.build()}
     times = [round(k * DT, 3) for k in range(int(T_END / DT) + 1)]
     f0, _, _ = frame(0.0, base)
     moving = set(f0)
@@ -531,8 +532,8 @@ def main():
                 q, tr = rigid(ref[n], p)
                 track[n].append([round(v, 3) for v in tr] + [round(v, 6) for v in q] + [1 if vis.get(n, True) else 0])
     # screws + brackets ride with the moving body they belong to
-    import joints as J
-    _, B = J.check(verbose=False)
+    import joints
+    _, B = joints.check(verbose=False)
     follow, split = {}, []
     same = lambda u, v: all(x[:7] == y[:7] for x, y in zip(track[u], track[v]))
     for k, f in enumerate(B.fasteners):
@@ -554,7 +555,7 @@ def main():
     d = duty()
     glow, power = {}, []
     idx = defaultdict(int)
-    for e in M.oven_power()[1]:
+    for e in line_model.oven_power()[1]:
         i = idx[e["zone"]]
         idx[e["zone"]] += 1
         glow[f"oven_heater_{e['tag']}"] = dict(on="#ff6a1a", off="#5a2a1c",
@@ -564,9 +565,9 @@ def main():
         power.append([round(W), round(amps["L1"], 2), round(amps["L2"], 2), round(amps["L3"], 2)])
     # zone temperatures: the oven_ctrl zone model driven by exactly the element pulses above (full band), from a
     # 10 min run-in so the PWM ripple is periodic; the TC lag as in FB_Oven
-    import oven_ctrl as OC
-    pl = OC.Plant()
-    els = M.oven_power()[1]
+    import oven_ctrl
+    pl = oven_ctrl.Plant()
+    els = line_model.oven_power()[1]
     order = defaultdict(int)
     ix = []
     for e in els:
@@ -579,7 +580,7 @@ def main():
             for k in range(pl.n):
                 Pk = sum(e["P"] for e, i in zip(els, ix) if e["zone"] == f"Z{k + 1}" and element_on(e, i, t, d))
                 Tz[k] += (Pk - pl.load(k, Tz[k], 1.0)) * sub / pl.C[k]
-                yz[k] += (Tz[k] - yz[k]) * sub / OC.CTRL["TC_TAU"]
+                yz[k] += (Tz[k] - yz[k]) * sub / oven_ctrl.CTRL["TC_TAU"]
         if t >= 0:
             temps.append([round(v, 2) for v in yz])
     os.makedirs(OUT, exist_ok=True)

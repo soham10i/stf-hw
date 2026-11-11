@@ -134,7 +134,7 @@ async def build(server, io=None):
     m = Model()
     N = lambda s: ua.NodeId(s, ns)                              # noqa: E731
 
-    # ---- types
+    # --- types
     unit_t = await server.nodes.base_object_type.add_object_type(N("STFUnitType"), f"{ns}:STFUnitType")
     await unit_t.write_attribute(ua.AttributeIds.Description, ua.DataValue(ua.Variant(
         ua.LocalizedText("A unit sequencer of the PLC program (Upgrade 13): its state machine, job and alarm"))))
@@ -150,7 +150,7 @@ async def build(server, io=None):
     two_t = server.get_node(ua.ObjectIds.TwoStateDiscreteType)
     analog_t = server.get_node(ua.ObjectIds.AnalogUnitType)
 
-    # ---- the cell, in Machinery's Machines folder
+    # --- the cell, in Machinery's Machines folder
     machines = await server.nodes.objects.get_child([f"{mi}:Machines"])
     cell = await machines.add_object(N("Cell"), f"{ns}:STF_Cell")
     await _relink(machines, cell, ua.ObjectIds.Organizes)
@@ -173,7 +173,7 @@ async def build(server, io=None):
     for s in ("NotAvailable", "OutOfService", "Executing", "NotExecuting"):
         m.states[s] = (await _type_child(server, state_t, s)).nodeid
 
-    # ---- the modules: Machinery components
+    # --- the modules: Machinery components
     comps = server.get_node((await instantiate(cell, comps_t, N("Cell.Components"), bname=ua.QualifiedName("Components", mi)))[0])
     for mod, label in MODULES.items():
         mo = await comps.add_object(N(label), f"{ns}:{label}")
@@ -228,7 +228,7 @@ async def build(server, io=None):
                 un = await folders["Units"].add_object(N(f"{label}.Units.{u}"), f"{ns}:{u}", objecttype=unit_t)
                 m.units[u] = {k: await un.get_child([f"{ns}:{k}"]) for k in ("State", "StateText", "Job", "Busy", "Fault", "Alarm")}
 
-    # ---- the safety relay: a cell-wide input, in no module
+    # --- the safety relay: a cell-wide input, in no module
     safety = await cell.add_folder(N("Safety"), f"{ns}:Safety")
     for e in io["ix"]:
         if e["module"] == "cell":
@@ -240,7 +240,7 @@ async def build(server, io=None):
             await _set(node, "0:FalseState", ua.LocalizedText("tripped"), ua.VariantType.LocalizedText)
             m.signals[e["name"]] = node
 
-    # ---- the order
+    # --- the order
     prod = await cell.add_object(N("Production"), f"{ns}:Production")
     for name, vt, default in (("Phase", ua.VariantType.String, "homing"), ("JobsCompleted", ua.VariantType.UInt32, 0),
                               ("MachineTime", ua.VariantType.Double, 0.0), ("OrderTime", ua.VariantType.Double, 0.0),

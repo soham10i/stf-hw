@@ -32,6 +32,9 @@ Endpoints:
     GET  /actions/{id}  one proposal and its execution: the guest who asked, or an operator
     POST /actions/{id}/decision  {"verdict": "approve"|"reject", "payload_hash": ...}: an
                         operator's decision on the exact payload; 403/404/410/409 fail closed
+    GET  /copilot/quality         the answers' quality over time (?hours=24&bucket_s=3600):
+                        groundedness, citations, hallucination and decline rates, latency, cost
+    GET  /copilot/quality/{request_id}  one answer's scores (the X-Request-ID of its reply)
     GET  /copilot/sessions        the guest's chat history
     GET  /copilot/sessions/{id}   one session: its turns and its context store
     DELETE /copilot/sessions/{id}
@@ -41,7 +44,7 @@ Endpoints:
     WS   /twin/live     the live link: the 3D twin's units, order, inspections and camera to the
                         visitor's dashboards, and their commands back (livehub.py)
     GET  /stf/...       the built web app, when STF_WEB_DIST points at it (one-service deploy,
-                        see docs/DEPLOY.md); / redirects there
+                        see docs/reference/operations/deploy.md); / redirects there
 
 The kernel runs on one asyncio task started at app startup; every request and
 socket reads from that single authoritative simulation.
@@ -71,28 +74,30 @@ from fastapi.responses import JSONResponse, RedirectResponse, Response, Streamin
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from stf_layout import get_layout
-
-from services.api.industrial import actions as AX
-from services.api.industrial import actuation as ACT
-from services.api.storage import guests as G
-from services.api.industrial import industrial_io as IIO
-from services.api.core import live
-from services.api.core import wire
-from services.api.industrial import operators as OPS
-from services.api.security import security as sec
-from services.api.storage import usage as U
-from services.api.storage import visits as VIS
-from services.api.industrial import watchdog as WD
-from services.api.storage.captures import Captures
+from services.api.agent import quality as answer_quality
 from services.api.agent.chat import Chat, ChatRequest, dotenv
-from services.api.storage.factory_db import factory_from
+from services.api.core import errors, live, wire
+from services.api.core.errors import AppError, Code, Reason
 from services.api.core.livehub import MAX_MSG as LIVE_MAX_MSG
 from services.api.core.livehub import LiveHub
-from services.api.core.logging_config import get_logger
-from services.api.security.notify import Notifier
+from services.api.core.logging_config import add_sink, get_logger
+from services.api.core.request_context import RequestIdMiddleware
 from services.api.core.runtime import SimRuntime
+from services.api.industrial import actions, actuation, industrial_io
+from services.api.industrial import operators as operator_auth
+from services.api.industrial import watchdog as telemetry_watchdog
+from services.api.security import security
+from services.api.security.notify import Notifier
+from services.api.storage import guests as guest_sessions
+from services.api.storage import quality as quality_log
+from services.api.storage import usage
+from services.api.storage import visits as visit_log
+from services.api.storage.captures import Captures
+from services.api.storage.factory_db import factory_from
+from services.api.voice import spoken
+from services.api.voice.stt_stream import SttStream
 from services.api.voice.tts import Stt, Tts, TtsRequest
+from stf_layout import get_layout
 
 logger = get_logger(__name__)
 
@@ -103,35 +108,39 @@ logger = get_logger(__name__)
 _TIME_SCALE = float(os.environ.get("STF_TIME_SCALE", "1.0"))
 
 runtime = SimRuntime(time_scale=_TIME_SCALE)
-ACT.set_runtime(runtime)
-watchdog = WD.TelemetryWatchdog(runtime)
-WD.set_watchdog(watchdog)
-opcua = IIO.OpcUaBridge()
-aas = IIO.AasBridge()
-settings = sec.Settings.from_env()
-command_guard = sec.CommandGuard(settings)
-ws_clients = sec.ClientCounter(settings.max_ws_clients)
-guests = G.Guests({**dotenv(), **os.environ})
+actuation.set_runtime(runtime)
+watchdog = telemetry_watchdog.TelemetryWatchdog(runtime)
+telemetry_watchdog.set_watchdog(watchdog)
+opcua = industrial_io.OpcUaBridge()
+aas = industrial_io.AasBridge()
+settings = security.Settings.from_env()
+command_guard = security.CommandGuard(settings)
+ws_clients = security.ClientCounter(settings.max_ws_clients)
+guests = guest_sessions.Guests({**dotenv(), **os.environ})
 chat = Chat(settings, store=guests.db)
 factory = factory_from(guests.db)
 tts = Tts(settings)
 # spoken answers a day (paid voices): counted across every instance, like the chat's caps
-tts.cap.shared, tts.cap.name = U.shared_from(guests.db), "tts:spoken"
+tts.cap.shared, tts.cap.name = usage.shared_from(guests.db), "tts:spoken"
 stt = Stt(settings)
+stt_stream = SttStream()
 captures = Captures(settings)
-visits = VIS.Visits({**dotenv(), **os.environ})
+visits = visit_log.Visits({**dotenv(), **os.environ})
+# one row of scores per answer (no words): the dashboard's quality over time
+quality = quality_log.Quality({**dotenv(), **os.environ})
+answer_quality.set_tracker(quality)
 notify = Notifier({**dotenv(), **os.environ})
 # WARNING-and-above logs ship to the same database the visits use (SQLite or Supabase)
 if visits.store.name == "supabase":
-    _log_shipper = VIS.SupabaseLogHandler(visits.store)
+    _log_shipper = visit_log.SupabaseLogHandler(visits.store)
     _log_shipper.setFormatter(logging.Formatter("%(levelname)s [%(name)s]: %(message)s"))
-    get_logger("").addHandler(_log_shipper)
+    add_sink(_log_shipper)
 WS_MAX_MSG = 1024
 # one address may hold only a few frame streams, so one visitor cannot take every slot
 WS_PER_CLIENT = int(os.environ.get("STF_WS_PER_CLIENT", "4"))
 _ws_by_ip: dict[str, int] = {}
 # the live link (/twin/live) has its own limits: all its sockets on this instance, and per address
-live_clients = sec.ClientCounter(int(os.environ.get("STF_MAX_LIVE_CLIENTS", "64")))
+live_clients = security.ClientCounter(int(os.environ.get("STF_MAX_LIVE_CLIENTS", "64")))
 LIVE_PER_CLIENT = int(os.environ.get("STF_LIVE_PER_CLIENT", "6"))
 _live_by_ip: dict[str, int] = {}
 
@@ -167,46 +176,8 @@ app = FastAPI(
 )
 
 
-@app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Global catch-all exception handler logging unexpected 500 errors with full tracebacks."""
-    logger.error(
-        "Unhandled exception processing %s %s: %s", request.method, request.url.path, exc,
-        exc_info=True,
-    )
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": "internal_server_error",
-            "detail": "An unexpected error occurred processing your request.",
-        },
-    )
-
-
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-    """Global HTTP exception handler logging client and server errors with contextual detail."""
-    if exc.status_code >= 500:
-        logger.error(
-            "HTTP error %d on %s %s: %s",
-            exc.status_code,
-            request.method,
-            request.url.path,
-            exc.detail,
-        )
-    else:
-        logger.warning(
-            "HTTP %d on %s %s: %s",
-            exc.status_code,
-            request.method,
-            request.url.path,
-            exc.detail,
-        )
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"error": exc.detail},
-        headers=getattr(exc, "headers", None),
-    )
+errors.install(app)
+app.add_middleware(RequestIdMiddleware)
 
 
 # Only the web app's own origins may call the API from a browser (STF_ALLOWED_ORIGINS).
@@ -222,7 +193,8 @@ app.add_middleware(
         else ""
     ),
     allow_methods=["GET", "POST", "DELETE"],
-    allow_headers=["Content-Type", "X-STF-Token", "X-STF-User"],
+    allow_headers=["Content-Type", "X-STF-Token", "X-STF-User", "X-Request-ID"],
+    expose_headers=["X-Request-ID"],
 )
 
 
@@ -268,15 +240,15 @@ async def guest_session(request: Request, call_next):
     # in a worker thread: a guest the server has not seen yet is looked up and added in the
     # database (Supabase: network round trips), which must not stall the event loop and the stream
     gid, new = await asyncio.to_thread(
-        guests.resolve, request.cookies.get(G.COOKIE), sec.client_ip(request)
+        guests.resolve, request.cookies.get(guest_sessions.COOKIE), security.client_ip(request)
     )
     request.scope["headers"] = [(k, v) for k, v in request.scope["headers"] if k != b"x-stf-user"]
     request.scope["headers"].append((b"x-stf-user", gid.encode()))
-    token = G.bind(gid)
+    token = guest_sessions.bind(gid)
     try:
         response = await call_next(request)
     finally:
-        G.unbind(token)
+        guest_sessions.unbind(token)
     if new and not (request.url.path == "/guest" and request.method == "DELETE"):
         response.headers.append("set-cookie", guests.cookie(gid, _https(request)))
     return response
@@ -291,7 +263,7 @@ async def forwarded_scheme(request: Request, call_next):
     """Behind a trusted proxy (security.proxy_hops) that terminated TLS, the request was HTTPS:
     redirects the app builds (StaticFiles' /stf -> /stf/) keep https. uvicorn itself no longer
     trusts forwarded headers from arbitrary peers (Dockerfile)."""
-    if sec.proxy_hops() and request.headers.get("x-forwarded-proto") == "https":
+    if security.proxy_hops() and request.headers.get("x-forwarded-proto") == "https":
         request.scope["scheme"] = "https"
     return await call_next(request)
 
@@ -332,7 +304,7 @@ async def admin_status() -> dict:
     defences were tripped, and the copilot's budgets in full. Not public: it would tell a
     visitor exactly how to pace an attack at the limits."""
     return {
-        "rejected": dict(sec.COUNTS),
+        "rejected": dict(security.COUNTS),
         "chat": await asyncio.to_thread(chat.status, True),
         "live": {"rooms": len(hub.rooms), "clients": live_clients.n, "frame_clients": ws_clients.n},
     }
@@ -354,10 +326,10 @@ async def orders() -> dict:
 async def command(req: CommandRequest) -> JSONResponse:
     """Queue an operational order (retrieve, store, home, cycle) through the safety guard."""
     logger.info("Command received: op=%s, slot=%s", req.op, req.slot)
-    res = ACT.get_guard().execute_order(runtime, op=req.op, slot=req.slot, actor="operator")
+    res = actuation.get_guard().execute_order(runtime, op=req.op, slot=req.slot, actor="operator")
     if not res.get("accepted"):
         logger.warning("Command rejected by safety guard: %s", res.get("error"))
-        return JSONResponse(status_code=400, content={"error": res.get("error")})
+        raise AppError(Reason.COMMAND_REFUSED, res.get("error"))
     order = res.get("order", {})
     logger.info("Command accepted: order #%d (%s, slot=%s)", order.get("id", 0), req.op, req.slot)
     return JSONResponse(
@@ -373,18 +345,18 @@ async def command(req: CommandRequest) -> JSONResponse:
 @app.delete("/orders/{order_id}", dependencies=[Depends(command_guard)])
 async def cancel_order(order_id: int) -> JSONResponse:
     """Cancel a queued order. Production orders cannot be cancelled."""
-    res = ACT.get_guard().execute_order_cancel(runtime, order_id=order_id, actor="operator")
+    res = actuation.get_guard().execute_order_cancel(runtime, order_id=order_id, actor="operator")
     if not res.get("accepted"):
-        return JSONResponse(status_code=400, content={"error": res.get("error")})
+        raise AppError(Reason.COMMAND_REFUSED, res.get("error"))
     return JSONResponse(content=res)
 
 
 @app.post("/orders/{order_id}/cancel", dependencies=[Depends(command_guard)])
 async def cancel_order_post(order_id: int) -> JSONResponse:
     """Cancel a queued order (POST alias). Production orders cannot be cancelled."""
-    res = ACT.get_guard().execute_order_cancel(runtime, order_id=order_id, actor="operator")
+    res = actuation.get_guard().execute_order_cancel(runtime, order_id=order_id, actor="operator")
     if not res.get("accepted"):
-        return JSONResponse(status_code=400, content={"error": res.get("error")})
+        raise AppError(Reason.COMMAND_REFUSED, res.get("error"))
     return JSONResponse(content=res)
 
 
@@ -404,24 +376,22 @@ async def watchdog_incidents(
     return {"incidents": watchdog.list_incidents(severity=severity, category=category, limit=limit)}
 
 
-_watchdog_limit = sec.RateLimiter(rate=1.0, burst=4)
+_watchdog_limit = security.RateLimiter(rate=1.0, burst=4)
 
 
-def _watchdog_write_ok(request: Request) -> JSONResponse | None:
+def _watchdog_write_ok(request: Request) -> None:
     """A scan or an ack changes the twin's state, like the twin's records: same-site only,
     and not in a flood (an unauthenticated write anyone could otherwise trigger)."""
-    if not sec.origin_ok(settings, request):
-        return JSONResponse(status_code=403, content={"error": "origin not allowed"})
-    if not _watchdog_limit.allow(sec.client_ip(request)):
-        return JSONResponse(status_code=429, content={"error": "too often"})
-    return None
+    if not security.origin_ok(settings, request):
+        raise AppError(Reason.ORIGIN_DENIED, "origin not allowed")
+    if not _watchdog_limit.allow(security.client_ip(request)):
+        raise AppError(Reason.TOO_MANY_REQUESTS, "too often")
 
 
 @app.post("/watchdog/scan")
 async def watchdog_scan(request: Request) -> dict:
     """Trigger an immediate synchronous telemetry evaluation pass."""
-    if refused := _watchdog_write_ok(request):
-        return refused
+    _watchdog_write_ok(request)
     new_incidents = watchdog.scan_once()
     return {
         "scanned": True,
@@ -433,24 +403,23 @@ async def watchdog_scan(request: Request) -> dict:
 @app.post("/watchdog/incidents/{incident_id}/ack")
 async def watchdog_ack(incident_id: str, request: Request) -> JSONResponse:
     """Acknowledge a specific incident detected by the watchdog."""
-    if refused := _watchdog_write_ok(request):
-        return refused
+    _watchdog_write_ok(request)
     ok = watchdog.acknowledge_incident(incident_id)
     if not ok:
-        return JSONResponse(status_code=404, content={"error": "Incident ID not found"})
+        raise AppError(Reason.INCIDENT_NOT_FOUND, "Incident ID not found")
     return JSONResponse(content={"acknowledged": True, "incident_id": incident_id})
 
 
 @app.get("/actuation/audit", dependencies=[Depends(command_guard)])
 async def actuation_audit(limit: int = 50, action: str | None = None) -> dict:
     """Retrieve cryptographically signed IEC 62443 cyber-physical actuation audit log."""
-    return {"records": ACT.get_guard().list_audit_records(limit=limit, action=action)}
+    return {"records": actuation.get_guard().list_audit_records(limit=limit, action=action)}
 
 
 @app.post("/actuation/e-stop", dependencies=[Depends(command_guard)])
 async def actuation_estop() -> dict:
     """Engage emergency stop safety latch, interlocking all physical and simulation motions."""
-    ACT.get_guard().trigger_emergency_stop(
+    actuation.get_guard().trigger_emergency_stop(
         actor="operator", reason="Manual operator e-stop requested"
     )
     return {"status": "EMERGENCY_STOP_ACTIVE", "latched": True}
@@ -459,34 +428,34 @@ async def actuation_estop() -> dict:
 @app.post("/actuation/reset-e-stop", dependencies=[Depends(command_guard)])
 async def actuation_reset_estop() -> dict:
     """Reset emergency stop safety latch after clearance."""
-    ACT.get_guard().reset_emergency_stop(actor="operator")
+    actuation.get_guard().reset_emergency_stop(actor="operator")
     return {"status": "EMERGENCY_STOP_CLEARED", "latched": False}
 
 
-# ---------------------------------------------------------------- operators and guarded actions
-_OPERATORS: OPS.Operators | None = None
+# --- operators and guarded actions
+_OPERATORS: operator_auth.Operators | None = None
 # a key is long and random (python -m services.api.operators): a few tries a minute per address
-_signin_limit = sec.RateLimiter(rate=0.1, burst=5)
+_signin_limit = security.RateLimiter(rate=0.1, burst=5)
 
 
-def operators() -> OPS.Operators:
+def operators() -> operator_auth.Operators:
     """The configured operators (STF_OPERATORS), their cookie signed with a key derived from
     the audit secret."""
     global _OPERATORS
     if _OPERATORS is None:
         env = {**dotenv(), **os.environ}
-        _OPERATORS = OPS.Operators(env, ACT.get_guard().derive("operator-session"))
+        _OPERATORS = operator_auth.Operators(env, actuation.get_guard().derive("operator-session"))
         for problem in _OPERATORS.problems:
             logger.warning("STF_OPERATORS: %s (skipped)", problem)
     return _OPERATORS
 
 
-def current_operator(request: Request) -> OPS.Operator | None:
+def current_operator(request: Request) -> operator_auth.Operator | None:
     """The operator the request's cookie names: never from a header or the body."""
-    return operators().read(request.cookies.get(OPS.COOKIE))
+    return operators().read(request.cookies.get(operator_auth.COOKIE))
 
 
-def _operator_view(op: OPS.Operator) -> dict:
+def _operator_view(op: operator_auth.Operator) -> dict:
     return {"name": op.name, "role": op.role, "expires_at": op.expires_at}
 
 
@@ -498,16 +467,16 @@ class OperatorKey(BaseModel):
 async def operator_sign_in(req: OperatorKey, request: Request) -> JSONResponse:
     """An operator's key for a short-lived signed cookie; the key is never kept."""
     if not _same_site(request):
-        return JSONResponse(status_code=403, content={"error": "origin not allowed"})
-    if not _signin_limit.allow(sec.client_ip(request)):
-        return JSONResponse(status_code=429, content={"error": "too many tries"})
+        raise AppError(Reason.ORIGIN_DENIED, "origin not allowed")
+    if not _signin_limit.allow(security.client_ip(request)):
+        raise AppError(Reason.TOO_MANY_REQUESTS, "too many tries")
     ops = operators()
     if not ops.configured:
-        return JSONResponse(status_code=503, content={"error": "no operators are configured"})
+        raise AppError(Reason.OPERATORS_UNCONFIGURED, "no operators are configured")
     op = ops.check_key(req.key)
     if op is None:
-        sec.note("operator: unknown key")
-        return JSONResponse(status_code=401, content={"error": "unknown key"})
+        security.note("operator: unknown key")
+        raise AppError(Reason.OPERATOR_KEY_UNKNOWN, "unknown key")
     logger.info("Operator %s signed in (%s)", op.name, op.role)
     r = JSONResponse(content={"operator": _operator_view(op)})
     r.headers.append("set-cookie", ops.cookie(op, _https(request)))
@@ -523,15 +492,15 @@ async def operator_session(request: Request) -> dict:
 @app.delete("/operator/session")
 async def operator_sign_out(request: Request) -> JSONResponse:
     r = JSONResponse(content={"operator": None})
-    r.headers.append("set-cookie", OPS.Operators.clear_cookie(_https(request)))
+    r.headers.append("set-cookie", operator_auth.Operators.clear_cookie(_https(request)))
     return r
 
 
-async def _actions() -> AX.Actions:
+async def _actions() -> actions.Actions:
     """The guarded actions, or 503 with why they are off (settings named, never values)."""
-    acts, why = await asyncio.to_thread(AX.status)
+    acts, why = await asyncio.to_thread(actions.status)
     if acts is None:
-        raise HTTPException(status_code=503, detail=f"actions are off: {why}")
+        raise AppError(Reason.ACTIONS_OFF, f"actions are off: {why}")
     return acts
 
 
@@ -546,7 +515,7 @@ async def actions_list(
 ) -> dict:
     """The proposals, newest first: an operator's (or viewer's) queue."""
     if current_operator(request) is None:
-        raise HTTPException(status_code=403, detail="operators only")
+        raise AppError(Reason.OPERATOR_REQUIRED, "operators only")
     acts = await _actions()
     return {"proposals": await asyncio.to_thread(acts.listing, status, limit)}
 
@@ -557,11 +526,11 @@ async def action_get(proposal_id: str, request: Request) -> dict:
     nothing, not even that it exists."""
     acts = await _actions()
     allowed = current_operator(request) is not None or await asyncio.to_thread(
-        acts.owned_by, proposal_id, G.current()
+        acts.owned_by, proposal_id, guest_sessions.current()
     )
     view = await asyncio.to_thread(acts.view, proposal_id) if allowed else None
     if view is None:
-        raise HTTPException(status_code=404, detail="no such proposal")
+        raise AppError(Reason.PROPOSAL_NOT_FOUND, "no such proposal")
     return {"proposal": view}
 
 
@@ -575,15 +544,19 @@ async def action_decide(proposal_id: str, req: Decision, request: Request) -> JS
     """An operator's decision on the exact payload the card showed (actions.decide): 403 not an
     operator, 404 no proposal, 410 expired, 409 another payload or another decision won."""
     if not _same_site(request):
-        return JSONResponse(status_code=403, content={"error": "origin not allowed"})
+        raise AppError(Reason.ORIGIN_DENIED, "origin not allowed")
     op = current_operator(request)
     if op is None or not op.may_approve:
-        return JSONResponse(status_code=403, content={"error": "only a signed-in operator decides"})
+        raise AppError(Reason.OPERATOR_REQUIRED, "only a signed-in operator decides")
     acts = await _actions()
     out = await asyncio.to_thread(acts.decide, proposal_id, req.verdict, req.payload_hash, op)
-    body = {"proposal": out.proposal}
-    body["detail" if out.code == 200 else "error"] = out.detail
-    return JSONResponse(status_code=out.code, content=body)
+    if out.code != 200:
+        code = errors.Code.for_status(out.code)
+        return JSONResponse(
+            status_code=out.code,
+            content=errors.error_body(code, out.detail, proposal=out.proposal),
+        )
+    return JSONResponse(content={"proposal": out.proposal, "detail": out.detail})
 
 
 @app.get("/opcua/nodes")
@@ -599,7 +572,7 @@ async def opcua_read(node_id: str) -> JSONResponse:
         val = opcua.read_node(node_id, runtime)
         return JSONResponse(content={"node_id": node_id, "value": val})
     except KeyError:
-        return JSONResponse(status_code=404, content={"error": f"NodeID '{node_id}' not found"})
+        raise AppError(Reason.NODE_NOT_FOUND, f"NodeID '{node_id}' not found") from None
 
 
 @app.post("/opcua/nodes/{node_id:path}", dependencies=[Depends(command_guard)])
@@ -610,7 +583,7 @@ async def opcua_write(node_id: str, req: dict) -> JSONResponse:
         ok = opcua.write_node(node_id, val, actor="operator")
         return JSONResponse(content={"node_id": node_id, "written": ok, "value": val})
     except (PermissionError, KeyError) as e:
-        return JSONResponse(status_code=400, content={"error": str(e)})
+        raise AppError(Reason.NODE_WRITE_REFUSED, str(e)) from None
 
 
 @app.post("/opcua/methods/{method_id:path}", dependencies=[Depends(command_guard)])
@@ -621,7 +594,7 @@ async def opcua_call(method_id: str, req: dict) -> JSONResponse:
         status_code = 200 if res.get("accepted") else 400
         return JSONResponse(status_code=status_code, content=res)
     except KeyError as e:
-        return JSONResponse(status_code=404, content={"error": str(e)})
+        raise AppError(Reason.NODE_NOT_FOUND, str(e)) from None
 
 
 @app.get("/aas/env")
@@ -637,9 +610,7 @@ async def aas_submodel(submodel_id: str) -> JSONResponse:
         sm = aas.get_submodel(submodel_id, runtime)
         return JSONResponse(content=sm)
     except KeyError:
-        return JSONResponse(
-            status_code=404, content={"error": f"Submodel '{submodel_id}' not found"}
-        )
+        raise AppError(Reason.SUBMODEL_NOT_FOUND, f"Submodel '{submodel_id}' not found") from None
 
 
 @app.get("/chat/status")
@@ -654,9 +625,9 @@ async def chat_status() -> dict:
 async def chat_graph() -> dict:
     """The copilot's steps as a graph (agent.py): the engine that runs them and the Mermaid
     diagram drawn from the compiled graph itself, so the picture cannot drift from the code."""
-    from services.api.agent import agent as A
+    from services.api.agent import agent
 
-    return {"engine": A.engine(), "nodes": list(A.NODES), "mermaid": A.mermaid()}
+    return {"engine": agent.engine(), "nodes": list(agent.NODES), "mermaid": agent.mermaid()}
 
 
 @app.post("/chat")
@@ -664,13 +635,11 @@ async def chat_ask(req: ChatRequest, request: Request) -> dict:
     """The copilot: a language model answering from the twin's tools (chat.py)."""
     try:
         return await chat.ask(req, request)
-    except HTTPException:
-        raise
     except Exception as e:
+        if errors.is_known(e):
+            raise
         logger.error("POST /chat error for question %r: %s", req.question[:60], e, exc_info=True)
-        raise HTTPException(
-            status_code=500, detail="The copilot encountered an unexpected error"
-        ) from e
+        raise AppError(Reason.COPILOT_FAILED, "The copilot encountered an unexpected error") from e
 
 
 @app.post("/chat/stream")
@@ -696,7 +665,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 "POST /chat/stream failed for question %r: %s", req.question[:80], e,
                 exc_info=True,
             )
-            emit("error", {"detail": getattr(e, "detail", None) or "the copilot failed"})
+            emit("error", errors.body_of(e, Reason.COPILOT_FAILED, "the copilot failed"))
         emit("", None)
 
     # started now, so it carries this request's guest (a contextvar) into the answer
@@ -743,22 +712,38 @@ async def tts_stream(req: TtsRequest, request: Request):
 
 @app.get("/chat/stt/status")
 async def stt_status() -> dict:
-    """The transcription providers in order and which are ready (tts.py)."""
-    return stt.status()
+    """The transcription providers in order and which are ready (tts.py), and whether the
+    question can be streamed as it is spoken (stt_stream.py)."""
+    return {**stt.status(), "stream": stt_stream.ready()}
+
+
+@app.websocket("/chat/stt/stream")
+async def stt_stream_ws(websocket: WebSocket) -> None:
+    """A spoken question streamed as it is said; its words come back as they are recognised
+    (stt_stream.py). Same origin rule and rate limit as the one-shot POST /chat/stt."""
+    if not security.ws_origin_ok(settings, websocket):
+        security.note("chat/stt/stream: foreign origin")
+        await websocket.close(code=1008)
+        return
+    if not stt.limiter.allow(security.client_ip(websocket)):
+        await websocket.close(code=1013)
+        return
+    await stt_stream.serve(websocket)
 
 
 @app.post("/chat/stt")
 async def stt_transcribe(request: Request) -> dict:
-    """A spoken question to text, for browsers without speech recognition (tts.py)."""
-    return await stt.transcribe(request)
+    """A spoken question to text, for browsers without speech recognition (tts.py), with the
+    rack's slots and the machines' names written as the factory writes them (spoken.py)."""
+    return spoken.heard(await stt.transcribe(request))
 
 
 @app.get("/guest")
 async def guest_status(request: Request, page: str = "site") -> dict:
     """This visitor's guest session (guests.py): no personal data, only when and how often."""
-    gid = G.current()
+    gid = guest_sessions.current()
     # the owner's note only for a visitor who accepted the consent banner (its cookie)
-    agreed = request.cookies.get(VIS.COOKIE) == "accepted"
+    agreed = request.cookies.get(visit_log.COOKIE) == "accepted"
     if agreed and gid and notify.may_send(request.headers.get("host")):
         ua = request.headers.get("user-agent")
         await asyncio.to_thread(notify.visit, gid, page, ua)
@@ -771,13 +756,13 @@ async def guest_status(request: Request, page: str = "site") -> dict:
 async def guest_forget(request: Request) -> JSONResponse:
     """Forget this guest: its copilot sessions, its photos, its visits and its live twin; the
     next request starts a new guest."""
-    gid = G.current()
+    gid = guest_sessions.current()
     if gid:
         guests.db.forget(gid)
         captures.forget(gid)
         live.drop(gid)
         await asyncio.to_thread(visits.forget, gid)
-        await asyncio.to_thread(AX.forget_guest, gid)
+        await asyncio.to_thread(actions.forget_guest, gid)
     r = JSONResponse(content={"forgotten": True})
     r.headers.append("set-cookie", guests.clear_cookie(_https(request)))
     return r
@@ -798,10 +783,10 @@ async def track(req: TrackRequest, request: Request) -> Response:
     """
     if not visits.on:
         return Response(status_code=204)
-    gid = G.current() or guests.verify(request.cookies.get(G.COOKIE))
+    gid = guest_sessions.current() or guests.verify(request.cookies.get(guest_sessions.COOKIE))
     if not _same_site(request):
         return Response(status_code=403)
-    ip = sec.client_ip(request)
+    ip = security.client_ip(request)
     ua = request.headers.get("user-agent")
     kept = await asyncio.to_thread(
         visits.record, gid, req.page, ip, ua if req.ua else None, req.consent
@@ -819,14 +804,14 @@ async def track(req: TrackRequest, request: Request) -> Response:
 @app.get("/guest/visits")
 async def guest_visits() -> dict:
     """What traction is kept for this guest: their own visits, newest first."""
-    gid = G.current()
+    gid = guest_sessions.current()
     if not gid:
         return {"visits": []}
     try:
         return {"visits": visits.store.visits(gid)}
     except (OSError, ValueError) as e:
         logger.warning("Visits not reachable: %s", e)
-        raise HTTPException(status_code=503, detail="the visits are not reachable") from None
+        raise AppError(Reason.VISITS_UNREACHABLE, "the visits are not reachable") from None
 
 
 @app.get("/notify/status")
@@ -843,15 +828,33 @@ async def notify_test(request: Request) -> dict:
     address it refuses unless STF_NOTIFY_LOCAL=1 arms it - a local test run cannot spam."""
     if not notify.on:
         detail = "owner notifications are not configured (STF_NOTIFY_*)"
-        raise HTTPException(status_code=409, detail=detail)
+        raise AppError(Reason.NOTIFY_REFUSED, detail)
     if not notify.may_send(request.headers.get("host")):
         detail = "refusing to send from a local address (set STF_NOTIFY_LOCAL=1 to arm a test)"
-        raise HTTPException(status_code=409, detail=detail)
+        raise AppError(Reason.NOTIFY_REFUSED, detail)
     sent = await asyncio.to_thread(notify.test)
     if not sent:
         detail = "the notice could not be sent - check the SMTP/webhook settings and the log"
-        raise HTTPException(status_code=502, detail=detail)
+        raise AppError(Reason.NOTIFY_FAILED, detail)
     return {"sent": True, "channels": notify.channels}
+
+
+@app.get("/copilot/quality")
+async def copilot_quality(hours: float = 24.0, bucket_s: float = 3600.0) -> dict:
+    """The copilot's answer quality over the last hours, in buckets (storage/quality.py)."""
+    hours = min(max(hours, 0.1), 24.0 * 90)
+    # at most a few hundred buckets, whatever the window
+    bucket_s = max(bucket_s, 60.0, hours * 3600 / 500)
+    return await asyncio.to_thread(quality.overview, hours, bucket_s)
+
+
+@app.get("/copilot/quality/{request_id}")
+async def copilot_answer_quality(request_id: str) -> dict:
+    """One answer's quality record, by its request id."""
+    row = await asyncio.to_thread(quality.get, request_id[:64])
+    if row is None:
+        raise AppError(Reason.QUALITY_NOT_FOUND, "no quality record for that request id")
+    return row
 
 
 @app.get("/copilot/sessions")
@@ -881,16 +884,16 @@ async def vision_capture(request: Request) -> dict:
 @app.get("/vision/captures")
 async def vision_captures(limit: int = 48) -> dict:
     """The guest's own photos, newest first."""
-    return captures.list(limit, G.current())
+    return captures.list(limit, guest_sessions.current())
 
 
 @app.get("/vision/captures/{cid}.jpg")
 async def vision_capture_image(cid: str):
     """Serve one capture's JPEG (ownership-checked inside captures)."""
-    return captures.image(cid, G.current())
+    return captures.image(cid, guest_sessions.current())
 
 
-_state_limit = sec.RateLimiter(rate=2.0, burst=4)
+_state_limit = security.RateLimiter(rate=2.0, burst=4)
 
 
 class TwinInspection(BaseModel):
@@ -918,30 +921,28 @@ class TwinOrder(BaseModel):
 
 
 def _same_site(request: Request) -> bool:
-    return sec.origin_ok(settings, request)
+    return security.origin_ok(settings, request)
 
 
 # the twin's records: a finished order or an inspected cookie is seconds apart, never 100/s
-_record_limit = sec.RateLimiter(rate=2.0, burst=10)
+_record_limit = security.RateLimiter(rate=2.0, burst=10)
 
 
-def _record_ok(request: Request) -> JSONResponse | None:
+def _record_ok(request: Request) -> None:
     if not _same_site(request):
-        return JSONResponse(status_code=403, content={"error": "origin not allowed"})
-    if not _record_limit.allow(G.current() or sec.client_ip(request)):
-        return JSONResponse(status_code=429, content={"error": "too often"})
-    return None
+        raise AppError(Reason.ORIGIN_DENIED, "origin not allowed")
+    if not _record_limit.allow(guest_sessions.current() or security.client_ip(request)):
+        raise AppError(Reason.TOO_MANY_REQUESTS, "too often")
 
 
 @app.post("/twin/inspection")
 async def twin_inspection(rec: TwinInspection, request: Request) -> JSONResponse:
     """Store a cookie the twin's camera judged, as this guest's (factory_db.py)."""
-    if refused := _record_ok(request):
-        return refused
+    _record_ok(request)
     row = {
         **rec.model_dump(),
         "source": "twin",
-        "owner": G.current() or "",
+        "owner": guest_sessions.current() or "",
         "t": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
         "capture_id": None,
     }
@@ -950,18 +951,17 @@ async def twin_inspection(rec: TwinInspection, request: Request) -> JSONResponse
         return JSONResponse(content={"stored": True})
     except Exception as e:
         logger.error("Failed to store twin inspection: %s", e, exc_info=True)
-        return JSONResponse(status_code=500, content={"error": "failed to store inspection"})
+        raise AppError(Reason.RECORD_NOT_STORED, "failed to store inspection") from None
 
 
 @app.post("/twin/order")
 async def twin_order(rec: TwinOrder, request: Request) -> JSONResponse:
     """Store an order line the twin finished, as this guest's (factory_db.py)."""
-    if refused := _record_ok(request):
-        return refused
+    _record_ok(request)
     row = {
         **rec.model_dump(),
         "source": "twin",
-        "owner": G.current() or "",
+        "owner": guest_sessions.current() or "",
         "t": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
     }
     try:
@@ -969,13 +969,13 @@ async def twin_order(rec: TwinOrder, request: Request) -> JSONResponse:
         return JSONResponse(content={"stored": True})
     except Exception as e:
         logger.error("Failed to store twin order: %s", e, exc_info=True)
-        return JSONResponse(status_code=500, content={"error": "failed to store order"})
+        raise AppError(Reason.RECORD_NOT_STORED, "failed to store order") from None
 
 
 @app.get("/twin/records")
 async def twin_records() -> dict:
     """This guest's own twin records: the orders it finished and the cookies it inspected."""
-    gid = G.current() or ""
+    gid = guest_sessions.current() or ""
     orders, ins = await asyncio.gather(
         asyncio.to_thread(factory.recent, "orders", gid, 50),
         asyncio.to_thread(factory.recent, "inspections", gid, 100),
@@ -987,41 +987,41 @@ async def twin_records() -> dict:
 async def twin_state(request: Request) -> JSONResponse:
     """The open 3D twin's live snapshot, kept per client for that client's chat (live.py)."""
     if not _same_site(request):
-        return JSONResponse(status_code=403, content={"error": "origin not allowed"})
-    client = sec.client_ip(request)
+        raise AppError(Reason.ORIGIN_DENIED, "origin not allowed")
+    client = security.client_ip(request)
     # kept for the guest, so two visitors behind one address each have their own twin
-    client = G.current() or client
+    client = guest_sessions.current() or client
     if not _state_limit.allow(client):
-        return JSONResponse(status_code=429, content={"error": "too often"})
+        raise AppError(Reason.TOO_MANY_REQUESTS, "too often")
     try:
-        raw = await sec.read_body(request, live.MAX_BYTES * 2)
+        raw = await security.read_body(request, live.MAX_BYTES * 2)
     except HTTPException:
-        return JSONResponse(status_code=413, content={"error": "too large"})
+        raise AppError(Reason.BODY_TOO_LARGE, "too large") from None
     try:
         snap = json.loads(raw)
         if not isinstance(snap, dict):
             raise ValueError
         live.put(snap, client)
     except ValueError:
-        return JSONResponse(status_code=400, content={"error": "a JSON object of at most 8 kB"})
+        raise AppError(Code.BAD_REQUEST, "a JSON object of at most 8 kB") from None
     return JSONResponse(content={"ok": True})
 
 
 @app.websocket("/ws")
 async def ws(websocket: WebSocket) -> None:
     """Stream live physics world frames at ~30 Hz to connected front-end clients."""
-    if not sec.ws_origin_ok(settings, websocket):
-        sec.note("ws: foreign origin")
+    if not security.ws_origin_ok(settings, websocket):
+        security.note("ws: foreign origin")
         logger.warning("WebSocket rejected: unauthorized foreign origin")
         await websocket.close(code=1008)
         return
-    ip = sec.client_ip(websocket)
+    ip = security.client_ip(websocket)
     if _ws_by_ip.get(ip, 0) >= WS_PER_CLIENT:
-        sec.note("ws: too many from one client")
+        security.note("ws: too many from one client")
         await websocket.close(code=1013)
         return
     if not ws_clients.try_add():
-        sec.note("ws: too many clients")
+        security.note("ws: too many clients")
         logger.warning("WebSocket rejected: client limit reached (%d)", settings.max_ws_clients)
         await websocket.close(code=1013)
         return
@@ -1073,8 +1073,8 @@ hub = LiveHub()
 async def twin_live(websocket: WebSocket) -> None:
     """The live link (livehub.py): ?role=twin publishes, ?role=dashboard watches and steers.
     One room per guest, so a visitor only sees and steers their own twin."""
-    if not sec.ws_origin_ok(settings, websocket):
-        sec.note("twin/live: foreign origin")
+    if not security.ws_origin_ok(settings, websocket):
+        security.note("twin/live: foreign origin")
         await websocket.close(code=1008)
         return
     role = websocket.query_params.get("role")
@@ -1084,23 +1084,23 @@ async def twin_live(websocket: WebSocket) -> None:
     # the room is the visitor's signed guest id, never their address: people behind one NAT
     # (a campus, an office) must not see or steer each other's twin. The page asks GET /guest
     # first (web/src/shared/liveLink.ts), which issues the cookie.
-    room = guests.verify(websocket.cookies.get(G.COOKIE))
+    room = guests.verify(websocket.cookies.get(guest_sessions.COOKIE))
     if not room:
-        sec.note("twin/live: no guest cookie")
+        security.note("twin/live: no guest cookie")
         await websocket.close(code=1008)
         return
-    ip = sec.client_ip(websocket)
+    ip = security.client_ip(websocket)
     if _live_by_ip.get(ip, 0) >= LIVE_PER_CLIENT:
-        sec.note("twin/live: too many from one client")
+        security.note("twin/live: too many from one client")
         await websocket.close(code=1013)
         return
     if not live_clients.try_add():
-        sec.note("twin/live: too many clients")
+        security.note("twin/live: too many clients")
         await websocket.close(code=1013)
         return
     conn = hub.join(room, websocket, role)
     if conn is None:
-        sec.note("twin/live: room full")
+        security.note("twin/live: room full")
         live_clients.remove()
         await websocket.close(code=1013)
         return
@@ -1158,7 +1158,7 @@ def _ws_release(ip: str) -> None:
 @app.api_route("/legal/imprint.html", methods=["GET", "HEAD"], include_in_schema=False)
 async def hide_imprint() -> Response:
     """Hidden from production while operator details are being updated."""
-    raise HTTPException(status_code=404, detail="Page not found")
+    raise AppError(Code.NOT_FOUND, "Page not found")
 
 _WEB = os.environ.get("STF_WEB_DIST")
 if _WEB and os.path.isdir(_WEB):

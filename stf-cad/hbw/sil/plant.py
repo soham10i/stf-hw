@@ -28,14 +28,16 @@ and that a motor stops when its output drops (vc.py adds the ramps).
 import json
 import os
 
-import control as C
-import hbw_model as HM
-import oven_model as OM
-import pipeline as PL
-import sorting_model as SM
-import vc as V
-import vgr_model as VG
-import vgr_path as VP
+import control
+import factory_layout
+import hbw_model
+import motion
+import oven_model
+import pipeline
+import sorting_model
+import vc
+import vgr_model
+import vgr_path
 
 from sil import iec
 
@@ -50,36 +52,36 @@ def oven_joints():
 
 def params():
     J = oven_joints()
-    cyl = V.PHYS["cyl"]
+    cyl = vc.PHYS["cyl"]
     stations = {}
-    for name, s in VP.FL.stations().items():
+    for name, s in factory_layout.stations().items():
         stations[name] = {"swivel": round(s["swivel"], 3), "reach": round(s["reach"], 3),
-                          "contact": round(VP.contact_plunge(name), 3)}
-    s0 = C.initial()
+                          "contact": round(vgr_path.contact_plunge(name), 3)}
+    s0 = control.initial()
     slots = {}
     for i, sl in enumerate(s0["slots"]):
         if sl:
-            slots[C.SLOTS[i]] = {"mould": iec.MIX[sl[0]], "cookie": iec.CIX[sl[1]] if sl[1] else 0}
-    cookies = {iec.CIX[c]: {"id": c, "flavour": C.FLAV[c], "mV": PL.FLAVOURS[C.FLAV[c]]["mV"],
-                            "colour": PL.FLAVOURS[C.FLAV[c]]["colour"], "baked": c not in C.PRODUCE}
-               for c in C.CIDS}
-    bays = [[iec.CIX[c] for c in s0["bays"][b]] for b in range(len(C.BAYS))]
-    oven_rows = {r: C.MO.OVEN_CYCLE[r][0] for r in (1, 2, 8, 9, 16)}
+            slots[control.SLOTS[i]] = {"mould": iec.MIX[sl[0]], "cookie": iec.CIX[sl[1]] if sl[1] else 0}
+    cookies = {iec.CIX[c]: {"id": c, "flavour": control.FLAV[c], "mV": pipeline.FLAVOURS[control.FLAV[c]]["mV"],
+                            "colour": pipeline.FLAVOURS[control.FLAV[c]]["colour"], "baked": c not in control.PRODUCE}
+               for c in control.CIDS}
+    bays = [[iec.CIX[c] for c in s0["bays"][b]] for b in range(len(control.BAYS))]
+    oven_rows = {r: motion.OVEN_CYCLE[r][0] for r in (1, 2, 8, 9, 16)}
     return {
         "scan_ms": iec.SCAN_MS,
         "hbw": {
-            "v": C.V_HBW, "cv_x": HM.P["CV_X"], "fork_out": HM.P["FORK"][1], "transit": C.TR,
-            "cols": list(HM.P["BAY_X"]), "rows": dict(zip("ABC", HM.P["ROW_Z"], strict=False)), "slots": C.SLOTS,
+            "v": control.V_HBW, "cv_x": hbw_model.P["CV_X"], "fork_out": hbw_model.P["FORK"][1], "transit": control.TR,
+            "cols": list(hbw_model.P["BAY_X"]), "rows": dict(zip("ABC", hbw_model.P["ROW_Z"], strict=False)), "slots": control.SLOTS,
             "belt_z": 90.0,                     # between the 100 (above) and 80 (below) of the conveyor legs
-            "belt": {"v": C.V_BELT, "crane_end": HM.P["PICK_HBW"], "vgr_end": HM.P["PICK_VGR"],
-                     "rp1": HM.RFID_Y[0], "rp2": HM.RFID_Y[1], "rfid_s": V.PHYS["rfid"], "rp_window": 10.0},
+            "belt": {"v": control.V_BELT, "crane_end": hbw_model.P["PICK_HBW"], "vgr_end": hbw_model.P["PICK_VGR"],
+                     "rp1": hbw_model.RFID_Y[0], "rp2": hbw_model.RFID_Y[1], "rfid_s": vc.PHYS["rfid"], "rp_window": 10.0},
             "init": {"travel": 420.0, "lift": 170.0, "fork": 40.0},     # anywhere: homing must cope
         },
         "vgr": {
-            "v_mm": C.V_MM, "v_deg": C.V_DEG, "transit": VG.V["TRANSIT"], "plunge": list(VG.V["PLUNGE"]),
-            "reach": list(VG.V["REACH"]), "stations": stations, "overtravel": VP.OVERTRAVEL,
+            "v_mm": control.V_MM, "v_deg": control.V_DEG, "transit": vgr_model.V["TRANSIT"], "plunge": list(vgr_model.V["PLUNGE"]),
+            "reach": list(vgr_model.V["REACH"]), "stations": stations, "overtravel": vgr_path.OVERTRAVEL,
             "seal": {"swivel": iec.TOL["swivel"] * 2, "reach": iec.TOL["reach"] * 2, "plunge": 1.0},
-            "vac_on": V.PHYS["vac_on"], "vac_off": V.PHYS["vac_off"],
+            "vac_on": vc.PHYS["vac_on"], "vac_off": vc.PHYS["vac_off"],
             "init": {"swivel": 30.0, "reach": 120.0, "plunge": 380.0},
         },
         "oven": {
@@ -91,17 +93,17 @@ def params():
             "lower_s": oven_rows[9] * cyl,
             "turn": {"v": 90.0 / oven_rows[16], "sauger": J["turn"]["stops"]["sauger"],
                      "saege": J["turn"]["stops"]["saege"], "band": J["turn"]["stops"]["band"]},
-            "push_s": C.MO.OVEN_CYCLE[19][0] * cyl,
-            "belt": {"start": OM.O["BELT_Y"][0], "end": OM.O["BELT_Y"][1], "v": C.V_BELT},
-            "bake_s": C.BAKE["s"],
+            "push_s": motion.OVEN_CYCLE[19][0] * cyl,
+            "belt": {"start": oven_model.O["BELT_Y"][0], "end": oven_model.O["BELT_Y"][1], "v": control.V_BELT},
+            "bake_s": control.BAKE["s"],
             "init": {"slider": 300.0, "door": 0.4, "sauger": 200.0, "lower": 0.0, "turn": -40.0, "push": 0.3},
         },
         "sorting": {
-            "v": C.V_BELT, "inlet_x": SM.S["INLET_X"], "sensor_x": SM.S["SENSOR_X"], "after_x": SM.S["AFTER_X"],
-            "eject_x": list(SM.S["EJECT_X"]), "pulse_mm": iec.PULSE_MM, "sensor_window": 20.0,
+            "v": control.V_BELT, "inlet_x": sorting_model.S["INLET_X"], "sensor_x": sorting_model.S["SENSOR_X"], "after_x": sorting_model.S["AFTER_X"],
+            "eject_x": list(sorting_model.S["EJECT_X"]), "pulse_mm": iec.PULSE_MM, "sensor_window": 20.0,
             "eject_window": 20.0, "eject_push_s": 0.2, "barrier_s": 0.3,
             "belt_mv": 1900, "raw_mv": 1500,        # ASSUMED: a bright belt, pale dough
-            "bays": list(C.BAYS), "bay_cap": C.BAY_CAP,
+            "bays": list(control.BAYS), "bay_cap": control.BAY_CAP,
         },
         "cookies": cookies, "slots0": slots, "bays0": bays,
         "moulds": {iec.MIX[m]: m for m in iec.MIX},

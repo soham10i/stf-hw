@@ -4,6 +4,7 @@ Canonical location: services/api/storage/db_seed.py
 """
 
 import sys
+
 import services.api.storage.db_seed as _target_module
 
 globals().update({

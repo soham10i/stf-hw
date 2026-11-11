@@ -22,8 +22,8 @@ import re
 import time
 import uuid
 
-from services.api.rag.grounding import tokenize
 from services.api.core.logging_config import get_logger
+from services.api.rag.grounding import tokenize
 from services.api.storage.store import DocStore
 
 logger = get_logger(__name__)

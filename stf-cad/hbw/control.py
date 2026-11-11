@@ -35,12 +35,12 @@ and the booklet's demo bake (2 s). A real bake only scales the oven's share.
 """
 from dataclasses import dataclass, field
 
-import controller as CT
-import hbw_model as HM
-import motion as MO
-import oven_model as OM
-import pipeline as PL
-import sorting_model as SM
+import controller
+import hbw_model
+import motion
+import oven_model
+import pipeline
+import sorting_model
 from variant import UP1, UP5, UP6, UP10, UP11
 
 V_HBW, V_DEG, V_MM, V_BELT = 150.0, 60.0, 120.0, 50.0
@@ -65,7 +65,7 @@ def timeout(t):
     return round(1.5 * t + 0.5, 1)
 
 
-# ------------------------------------------------------------------ units
+# --- units
 UNITS = {
     "crane":     ("hbw", ("Q3", "Q4", "Q5", "Q6", "Q7", "Q8"), "HBW crane: travel, lift, Ausleger"),
     "belt":      ("hbw", ("Q1", "Q2"), "HBW belt and the two RFID read points"),
@@ -100,7 +100,7 @@ U5_SENSORS = {
 
 def _sigdesc():
     d = {}
-    for m, spec in CT.MODULES.items():
+    for m, spec in controller.MODULES.items():
         for pin in spec["st1"] + spec["st2"]:
             if pin[2] and pin[2][0] in "IQAB":
                 d[(m, pin[2])] = pin[3]
@@ -116,7 +116,7 @@ SIG = _sigdesc()
 
 
 def signals(module):
-    s = set(CT.MODULES[module]["st3"].values())
+    s = set(controller.MODULES[module]["st3"].values())
     if module == "hbw":
         s |= set(RFID)
     s |= set(U5_SENSORS.get(module, {}))
@@ -146,10 +146,10 @@ class Step:
         return None
 
 
-# ------------------------------------------------------------ HBW crane
-CV, TR = HM.P["CV_X"], 260.0
-FORK_OUT = HM.P["FORK"][1]
-ROWS = dict(zip("ABC", HM.P["ROW_Z"]))
+# --- HBW crane
+CV, TR = hbw_model.P["CV_X"], 260.0
+FORK_OUT = hbw_model.P["FORK"][1]
+ROWS = dict(zip("ABC", hbw_model.P["ROW_Z"]))
 # The legs of hbw_model.cycle(), symbolically: every slot uses the same list.
 RETRIEVE = [("cv", "tr", 0), ("col", "tr", 0), ("col", "row-20", 0), ("col", "row-20", 1),
             ("col", "row", 1), ("col", "row", 0), ("col", "tr", 0), ("cv", "tr", 0),
@@ -160,7 +160,7 @@ STORE = [("cv", "tr", 0), ("cv", "80", 0), ("cv", "80", 1), ("cv", "100", 1), ("
 
 
 def _hbw_pose(sym, slot):
-    col = HM.P["BAY_X"][int(slot[1]) - 1]
+    col = hbw_model.P["BAY_X"][int(slot[1]) - 1]
     row = ROWS[slot[0]]
     tv = CV if sym[0] == "cv" else col
     lf = {"tr": TR, "row": row, "row-20": row - 20.0, "100": 100.0, "80": 80.0}[sym[1]]
@@ -247,10 +247,10 @@ def _dual_t(i, j):
     return _DUAL_T[(i, j)]
 
 
-# ------------------------------------------------------------- HBW belt
-BELT_RUN = (HM.P["PICK_VGR"] - HM.P["PICK_HBW"]) / V_BELT
-RP1_Y, RP2_Y = HM.RFID_Y             # read-head centres along the belt, HBW frame
-RP1_FRAC = (RP1_Y - HM.P["PICK_HBW"]) / (HM.P["PICK_VGR"] - HM.P["PICK_HBW"])
+# --- HBW belt
+BELT_RUN = (hbw_model.P["PICK_VGR"] - hbw_model.P["PICK_HBW"]) / V_BELT
+RP1_Y, RP2_Y = hbw_model.RFID_Y      # read-head centres along the belt, HBW frame
+RP1_FRAC = (RP1_Y - hbw_model.P["PICK_HBW"]) / (hbw_model.P["PICK_VGR"] - hbw_model.P["PICK_HBW"])
 
 
 def belt_steps(job):
@@ -265,16 +265,16 @@ def belt_steps(job):
                  ("Q2",), "I2 AND RF1.valid", BELT_RUN, True, ("I2", "RF1"))]
 
 
-# ------------------------------------------------------------------ VGR
+# --- VGR
 _TOURS = {}
 
 
 def _tour_keys(tour):
-    import vgr_path as VP
-    VP.BLEND["on"] = OPT["blend"]
+    import vgr_path
+    vgr_path.BLEND["on"] = OPT["blend"]
     k = (tour, OPT["blend"])
     if k not in _TOURS:
-        _TOURS[k] = VP.plan(list(tour))
+        _TOURS[k] = vgr_path.plan(list(tour))
     return _TOURS[k]
 
 
@@ -329,7 +329,7 @@ def arm_part(job, a, b, part):
     return steps[:cut] if part == "pick" else steps[cut:]
 
 
-# ----------------------------------------------------------------- oven
+# --- oven
 # motion.OVEN_CYCLE row -> (unit, outputs ON, completion, input, supervised).
 # Q13 energised = door open (single-acting: it must stay on to hold it open).
 OVEN_ROWS = {
@@ -367,14 +367,14 @@ OVEN_JOBS = {"present": [1, 2], "bake": [3, 4, 5, 6, 7], "to_tt": [8, 9, 10, 11,
              "saw_eject": [16, 17, 18, 19, 20, 21]}
 
 
-BAKE_DEMO = MO.OVEN_CYCLE[5][0]
+BAKE_DEMO = motion.OVEN_CYCLE[5][0]
 BAKE = {"s": BAKE_DEMO}          # the lamp dwell; the throughput study varies it
 
 
 def oven_steps(job):
     out = []
     for r in OVEN_JOBS[job]:
-        dur, _, say = MO.OVEN_CYCLE[r]
+        dur, _, say = motion.OVEN_CYCLE[r]
         if r == 5:
             dur = BAKE["s"]
         unit, o, done, sig, sup = OVEN_ROWS[r]
@@ -384,10 +384,10 @@ def oven_steps(job):
 
 def ovenbelt_steps():
     return [Step("ovenbelt", "run->I3", "Q3 carries the cookie to I3 and onto the sorting inlet",
-                 ("Q3",), "I3", (OM.O["BELT_Y"][1] - OM.O["BELT_Y"][0]) / V_BELT, True, ("I3",))]
+                 ("Q3",), "I3", (oven_model.O["BELT_Y"][1] - oven_model.O["BELT_Y"][0]) / V_BELT, True, ("I3",))]
 
 
-# -------------------------------------------------------------- sorting
+# --- sorting
 BAND = {"blau": (0, 645), "rot": (645, 1305), "weiss": (1305, 5000)}   # mV, between the nominal readings
 
 
@@ -396,10 +396,10 @@ def classify(mv):
 
 
 def line_steps(bin_):
-    i = SM.COLOURS.index(bin_)
+    i = sorting_model.COLOURS.index(bin_)
     q = ("Q3", "Q4", "Q5")[i]
     lb = ("I5", "I6", "I7")[i]
-    S = SM.S
+    S = sorting_model.S
     return [Step("line", "run->I3", "belt runs the cookie past the colour sensor; A4 sampled until I3",
                  ("Q1",), "I3", (S["AFTER_X"] - S["INLET_X"]) / V_BELT, True, ("I3", "A4")),
             Step("line", "classify", "min(A4) over the pass -> flavour class; compared with the record",
@@ -412,7 +412,7 @@ def line_steps(bin_):
             Step("line", "eject_back", "ejector back", (), "timer", 0.5, False)]
 
 
-# --------------------------------------------------------------- homing
+# --- homing
 HOMING = {
     "crane": [Step("crane", "H:fork", "Ausleger back to its rear stop", ("Q8",), "I6", 115 / V_HBW, True, ("I6",)),
               Step("crane", "H:lift", "lift to the reference switch (direction ASSUMED: down)", ("Q5",), "I4",
@@ -440,16 +440,16 @@ HOMING = {
 }
 
 
-# ------------------------------------------------------ the factory state
-SLOTS = PL.RACK_SLOTS                                  # A1..C4
+# --- the factory state
+SLOTS = pipeline.RACK_SLOTS                            # A1..C4
 MOULD = {s: f"M{i + 1:02d}" for i, s in enumerate(SLOTS)}
-INV = PL.initial_inventory()
+INV = pipeline.initial_inventory()
 FLAV = {c: fl for c, (fl, _) in INV.items()}
 PRODUCE = [c for c, (_, loc) in INV.items() if loc[0] == "rack"]     # production order
 RETURN = [c for c, (_, loc) in INV.items() if loc[0] == "bay"]
 NEST_N = 6 if UP1 else 0
-BAYS = SM.COLOURS
-BAY_CAP = PL.PER_PLACE["bay"]
+BAYS = sorting_model.COLOURS
+BAY_CAP = pipeline.PER_PLACE["bay"]
 
 POLICIES = {
     "prefetch": dict(belt="prefetch", reuse=False, buffer=False,
@@ -537,7 +537,7 @@ def _candidates(s, pol):
     L = s["leave"]
     # 1 sort
     if s["sin"] and ("sin",) not in L:
-        c = s["sin"]; b = PL.BIN_OF[FLAV[c]]
+        c = s["sin"]; b = pipeline.BIN_OF[FLAV[c]]
         room = len(s["bays"][BAYS.index(b)]) + sum(1 for r in s["res"] if r == ("bay", b))
         if room < BAY_CAP:
             yield ("sort", (c, b), ("line",), (("sin",),), (("bay", b),))
@@ -778,8 +778,8 @@ def _where(s):
 def invariants(s):
     cw, mw = _where(s)
     bad = []
-    if len(cw) != PL.N_COOKIES:
-        bad.append(f"{len(cw)} cookies, must be {PL.N_COOKIES}")
+    if len(cw) != pipeline.N_COOKIES:
+        bad.append(f"{len(cw)} cookies, must be {pipeline.N_COOKIES}")
     if len(mw) != len(SLOTS):
         bad.append(f"{len(mw)} moulds, must be {len(SLOTS)}")
     for bi, b in enumerate(BAYS):
@@ -797,7 +797,7 @@ def goal(s):
             s.get("cup"):
         return False
     for c in PRODUCE:
-        if _stage(s, c) != "done" or c not in s["bays"][BAYS.index(PL.BIN_OF[FLAV[c]])]:
+        if _stage(s, c) != "done" or c not in s["bays"][BAYS.index(pipeline.BIN_OF[FLAV[c]])]:
             return False
     return all(_stage(s, c) == "stored" for c in RETURN)
 
@@ -852,7 +852,7 @@ def _trace(parent, f):
     return list(reversed(out))[-14:]
 
 
-# ------------------------------------------------------------ job steps
+# --- job steps
 def job_steps(job):
     """The steps of one job instance, in execution order (segments of several
     units run one after another)."""
@@ -927,7 +927,7 @@ def simulate(pol):
     return bars, events, round(t, 1), s
 
 
-# ---------------------------------------------------------- traceability
+# --- traceability
 def trace(events):
     """Per cookie: its record, built from the read points and the job events
     exactly as the PLC would write it."""
@@ -958,11 +958,11 @@ def trace(events):
             rec[b[0]]["t"]["bake_start" if what == "start" else "bake_end"] = t
         if name == "sort" and what == "end":
             c, bay = b
-            mv = PL.FLAVOURS[FLAV[c]]["mV"]
+            mv = pipeline.FLAVOURS[FLAV[c]]["mV"]
             rec[c]["colour_mV"] = mv
             rec[c]["class"] = classify(mv)
             rec[c]["bin"] = bay
-            rec[c]["verified"] = classify(mv) == PL.BIN_OF[FLAV[c]] == bay
+            rec[c]["verified"] = classify(mv) == pipeline.BIN_OF[FLAV[c]] == bay
             rec[c]["t"]["sorted"] = t
         if name == "bay_to_belt" and what == "end":
             c, bay, m = b
@@ -1011,7 +1011,7 @@ def check_trace(rec):
     return fails
 
 
-# ------------------------------------------------------ state machines
+# --- state machines
 JOB_UNITS = {}          # job name -> the units whose segments it has, in order
 
 
@@ -1088,7 +1088,7 @@ def _sdict(sid, st, job=None):
 def check_sfc(units):
     fails = []
     pairs = {}
-    for m, spec in CT.MODULES.items():
+    for m, spec in controller.MODULES.items():
         pairs[m] = [(r[1], r[2]) for r in spec["relays"].values() if r]
     owned = {}
     for u, (m, outs, _) in UNITS.items():
@@ -1149,7 +1149,7 @@ def check_sfc(units):
     return fails
 
 
-# ----------------------------------------------------------------- alarms
+# --- alarms
 def alarms(units):
     """Every supervised motion's watchdog becomes one alarm per (unit, signal),
     plus the system and traceability alarms."""
@@ -1241,7 +1241,7 @@ def unsupervised(units):
     return out
 
 
-# ------------------------------------------------------------- jogging
+# --- jogging
 JOG = [
     ("crane", "travel", "Q3/Q4", "Ausleger at its rear stop (I6)", "hbw_model.pose_allowed"),
     ("crane", "lift", "Q5/Q6", "Ausleger back, or at a column inside the slot band", "hbw_model.fork_allowed"),
@@ -1276,7 +1276,7 @@ def check_jog():
     return fails
 
 
-# ----------------------------------------------------- IEC 61131-3 source
+# --- IEC 61131-3 source
 def st_source(units):
     """One FUNCTION_BLOCK per unit plus the orchestrator PROGRAM, as text.
     Positioning targets are table lookups, so one program serves every slot,
@@ -1402,7 +1402,7 @@ def st_source(units):
     return files
 
 
-# ------------------------------------------------------------------ check
+# --- check
 def check(verbose=True):
     fails = []
     units = sfc()
@@ -1435,14 +1435,14 @@ def check(verbose=True):
 
 def check_tours():
     """Every VGR tour the orchestrator can command, swept clear by vgr_path."""
-    import vgr_path as VP
+    import vgr_path
     tours = {vgr_tour("belt_to_oven", "belt", "oven")}
     tours |= {vgr_tour("bay_to_belt", f"bay_{b}", "belt") for b in BAYS}
     for i in range(NEST_N):
         tours |= {vgr_tour("belt_to_buf", "belt", f"buf_{i + 1}"), vgr_tour("buf_to_oven", f"buf_{i + 1}", "oven")}
     fails = []
     for t in sorted(tours):
-        f = VP.check(verbose=False, tour=list(t))
+        f = vgr_path.check(verbose=False, tour=list(t))
         fails += [f"TOUR {t[0][0]}->{t[1][0]}: {x}" for x in f[:3]]
     return fails
 
@@ -1495,8 +1495,8 @@ def export():
         "retired": {m: list(q) for m, q in RETIRED.items()},
         "alarms": alarms(units), "unsupervised": unsupervised(units),
         "trace": [rec[c] for c in CIDS], "moulds": MOULD,
-        "rfid": {"y": list(HM.RFID_Y), "pick_hbw": HM.P["PICK_HBW"], "pick_vgr": HM.P["PICK_VGR"],
-                 "reach_y": round(max(p.aabb()[4] for p in HM.build(CV, 80.0, FORK_OUT) if p.joint == "fork"), 1),
+        "rfid": {"y": list(hbw_model.RFID_Y), "pick_hbw": hbw_model.P["PICK_HBW"], "pick_vgr": hbw_model.P["PICK_VGR"],
+                 "reach_y": round(max(p.aabb()[4] for p in hbw_model.build(CV, 80.0, FORK_OUT) if p.joint == "fork"), 1),
                  "belt_speed": V_BELT},
         "read_points": RFID, "bands": BAND,
         "jog": [{"unit": u, "axis": a, "out": q, "when": w, "model": f} for u, a, q, w, f in JOG],

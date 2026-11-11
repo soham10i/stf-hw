@@ -1,6 +1,6 @@
 // The dashboard's user guide: for every page, what it shows, how to read it, what each
 // section means and the terms it uses. The dashboard shows it (the Guide button, and the
-// i on each card); web/scripts/guide-md.ts writes the same text to docs/DASHBOARD_GUIDE.md.
+// i on each card); web/scripts/guide-md.ts writes the same text to docs/reference/guide/dashboard-guide.md.
 
 export type PageGuide = {
   title: string;
@@ -242,7 +242,7 @@ export const GUIDE: Record<string, PageGuide> = {
       ["The two failures", "The spindle and the gearbox, run to failure: the chance of failing within two shifts, and the remaining life with its 80 % range."],
       ["What each step does", "Normal-behaviour model, physics-informed filter, remaining-life distribution, change detection."],
     ],
-    source: "stf-cad/hbw/pdm (make pdm), on the Upgrade 8 fleet; docs/maintenance/pdm-pipeline.md.",
+    source: "stf-cad/hbw/pdm (make pdm), on the Upgrade 8 fleet; docs/reference/maintenance/pdm-pipeline.md.",
     terms: ["RUL", "PM", "Shift"],
   },
 

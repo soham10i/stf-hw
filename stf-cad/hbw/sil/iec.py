@@ -51,25 +51,28 @@ crane, the "reuse" policy): the machine the twin shows.
 import math
 import re
 
-import control as C
-import vc as V
+import control
+import motion
+import pipeline
+import sorting_model
+import vc
 
 SCAN_MS = 5                        # one task: the VGR's commissioned scan (vc.TASK)
-UNIT_IX = {u: i + 1 for i, u in enumerate(C.UNIT_ORDER)}
-MODULE = {u: C.UNITS[u][0] for u in C.UNIT_ORDER}
+UNIT_IX = {u: i + 1 for i, u in enumerate(control.UNIT_ORDER)}
+MODULE = {u: control.UNITS[u][0] for u in control.UNIT_ORDER}
 
 # unit -> axis -> (FB input, output that drives it negative, output that drives it positive, speed)
 AXES = {
-    "crane": {"travel": ("PosTravel", "Q3", "Q4", C.V_HBW), "lift": ("PosLift", "Q5", "Q6", C.V_HBW)},
-    "arm": {"plunge": ("PosPlunge", "Q2", "Q1", C.V_MM), "reach": ("PosReach", "Q3", "Q4", C.V_MM),
-            "swivel": ("PosSwivel", "Q6", "Q5", C.V_DEG)},
+    "crane": {"travel": ("PosTravel", "Q3", "Q4", control.V_HBW), "lift": ("PosLift", "Q5", "Q6", control.V_HBW)},
+    "arm": {"plunge": ("PosPlunge", "Q2", "Q1", control.V_MM), "reach": ("PosReach", "Q3", "Q4", control.V_MM),
+            "swivel": ("PosSwivel", "Q6", "Q5", control.V_DEG)},
 }
 ENCODER = [("crane", "travel"), ("crane", "lift"), ("arm", "plunge"), ("arm", "reach"), ("arm", "swivel")]
 _R_MAX = __import__("vgr_model").cup_radius(__import__("vgr_model").V["REACH"][1])
 # the tolerance every positioning step must stop inside: the crane's as written in the
 # program (control.TOL_MM), the VGR's from the geometry (vc.TOLERANCE: the cup on the cookie)
-TOL = {"travel": C.TOL_MM, "lift": C.TOL_MM, "plunge": V.TOLERANCE["plunge"][0],
-       "reach": V.TOLERANCE["reach"][0], "swivel": math.degrees(V.TOLERANCE["swivel"][0] / _R_MAX)}
+TOL = {"travel": control.TOL_MM, "lift": control.TOL_MM, "plunge": vc.TOLERANCE["plunge"][0],
+       "reach": vc.TOLERANCE["reach"][0], "swivel": math.degrees(vc.TOLERANCE["swivel"][0] / _R_MAX)}
 
 
 def lead(unit, axis):
@@ -77,7 +80,7 @@ def lead(unit, axis):
     return AXES[unit][axis][3] * SCAN_MS / 1000 / 2
 
 
-# ------------------------------------------------------------ jobs
+# --- jobs
 # MAIN's job codes, in the priority order of control._candidates (U12: split + dual, "reuse")
 JOBS = ["sort", "ovenbelt", "saw_eject", "to_tt", "bake", "present", "place_oven", "belt_to_oven",
         "bay_to_belt", "belt_back", "store_retrieve", "belt_fwd", "store", "fetch_empty", "retrieve"]
@@ -88,9 +91,9 @@ RESERVE = {"sort": ("line",), "ovenbelt": ("ovenbelt",), "saw_eject": ("turntabl
            "place_oven": ("arm", "door"), "belt_to_oven": ("arm", "belt"), "bay_to_belt": ("arm", "belt"),
            "belt_back": ("belt",), "store_retrieve": ("crane", "belt"), "belt_fwd": ("belt",),
            "store": ("crane", "belt"), "fetch_empty": ("crane", "belt"), "retrieve": ("crane", "belt")}
-SLOTS = C.SLOTS
+SLOTS = control.SLOTS
 NS = len(SLOTS)
-BAYS = list(C.BAYS)
+BAYS = list(control.BAYS)
 
 
 def bindings(job):
@@ -120,7 +123,7 @@ def bindings(job):
 
 def segments(job):
     """The units that run steps for a job, in order, with the steps of each."""
-    steps = C.job_steps(bindings(job)[0][1])
+    steps = control.job_steps(bindings(job)[0][1])
     order = list(dict.fromkeys(st.unit for st in steps))
     return [(u, [st for st in steps if st.unit == u]) for u in order]
 
@@ -129,7 +132,7 @@ def unit_jobs(u):
     return [j for j in JOBS if any(su == u for su, _ in segments(j))]
 
 
-# ------------------------------------------------------------ helpers
+# --- helpers
 def r(x):
     s = f"{x:.3f}".rstrip("0")
     return s + "0" if s.endswith(".") else s
@@ -142,9 +145,9 @@ def ms(t):
 HOMING_EXTRA = {
     # F7 (found by this upgrade's run): homing ends with the lift on its reference
     # switch at the BOTTOM, but every crane job starts from transit height.
-    "crane": [C.Step("crane", "H:transit", "lift to transit height (the pose every job starts from)", ("Q6",),
-                     f"|pos_lift - {C.TR:.0f}| <= 1 (B3/B4)", C.TR / C.V_HBW, True, ("B3", "B4"),
-                     {"lift": C.TR}, dist={"lift": C.TR})],
+    "crane": [control.Step("crane", "H:transit", "lift to transit height (the pose every job starts from)", ("Q6",),
+                     f"|pos_lift - {control.TR:.0f}| <= 1 (B3/B4)", control.TR / control.V_HBW, True, ("B3", "B4"),
+                     {"lift": control.TR}, dist={"lift": control.TR})],
 }
 
 
@@ -159,21 +162,21 @@ def step_time(st):
     if st.unit == "turntable" and st.key.startswith("row") and int(st.key[3:]) in _TURN:
         stops = {"sauger": 0.0, "saege": -90.0, "band": -180.0}
         a, b = _TURN[int(st.key[3:])]
-        return abs(stops[a] - stops[b]) / (90.0 / C.MO.OVEN_CYCLE[16][0])
+        return abs(stops[a] - stops[b]) / (90.0 / motion.OVEN_CYCLE[16][0])
     return st.t
 
 
 def step_limit(st):
     if st.limit is None:
         return None
-    return C.timeout(step_time(st)) if step_time(st) != st.t else st.limit
+    return control.timeout(step_time(st)) if step_time(st) != st.t else st.limit
 
 
 def homing(u):
-    return list(C.HOMING[u]) + HOMING_EXTRA.get(u, [])
+    return list(control.HOMING[u]) + HOMING_EXTRA.get(u, [])
 
 
-# ------------------------------------------------------------ unit FBs
+# --- unit FBs
 def _cond(u, st, k_tbl, job):
     """The step's completion as ST."""
     d = st.done
@@ -202,7 +205,7 @@ def _cond(u, st, k_tbl, job):
 
 
 def fb(u):
-    m, outs, label = C.UNITS[u]
+    m, outs, label = control.UNITS[u]
     hs = homing(u)
     jobs = unit_jobs(u)
     segs = {j: dict(segments(j))[u] for j in jobs}
@@ -257,7 +260,7 @@ def fb(u):
          "    Cmd : INT;            (* job to start (0 = none), taken when READY *)",
          "    Arg1 : INT;           (* binding: slot / bay / slot pair index *)"]
     for x in sigs:
-        L.append(f"    {x} : BOOL;           (* {C.SIG.get((m, x), '')} *)")
+        L.append(f"    {x} : BOOL;           (* {control.SIG.get((m, x), '')} *)")
     for a, (name, *_ ) in AXES.get(u, {}).items():
         L.append(f"    {name} : REAL;     (* {a}, from the encoder counter *)")
     if u == "belt":
@@ -268,7 +271,7 @@ def fb(u):
         L += ["    A4 : INT;             (* colour sensor, mV *)"]
     L += ["END_VAR", "VAR_OUTPUT"]
     for q in outs:
-        L.append(f"    {q} : BOOL;           (* {C.SIG.get((m, q), '')} *)")
+        L.append(f"    {q} : BOOL;           (* {control.SIG.get((m, q), '')} *)")
     L += ["    Ready, Busy, Done, Fault : BOOL;   (* Done: one scan, when a job ends *)",
           "    Alarm : INT;          (* the state whose watchdog tripped *)",
           "    Sn : INT;             (* the active state *)",
@@ -297,7 +300,7 @@ def fb(u):
                     break
         if u == "line":
             pitch = PULSE_MM
-            n_ej = [round((C.SM.S["EJECT_X"][k] - C.SM.S["AFTER_X"]) / pitch) for k in range(len(BAYS))]
+            n_ej = [round((sorting_model.S["EJECT_X"][k] - sorting_model.S["AFTER_X"]) / pitch) for k in range(len(BAYS))]
             L.append(f"    NEJECT : ARRAY[1..{len(BAYS)}] OF INT := [{', '.join(map(str, n_ej))}];  "
                      f"(* I1 pulses from I3 to each ejector, {PULSE_MM:g} mm per pulse (ASSUMED) *)")
         L.append("END_VAR")
@@ -359,14 +362,14 @@ def fb(u):
 
 
 def segments_of(b):
-    steps = C.job_steps(b)
+    steps = control.job_steps(b)
     order = list(dict.fromkeys(st.unit for st in steps))
     return [(u, [st for st in steps if st.unit == u]) for u in order]
 
 
 # control.BAND as ST: the bay index (BAYS order) of the class the darkest reading falls in
 CLASSIFY = " ELS".join(f"IF MinMv < {hi} THEN Cls := {BAYS.index(b) + 1}; "
-                       for b, (lo, hi) in sorted(C.BAND.items(), key=lambda x: x[1][0])).replace(
+                       for b, (lo, hi) in sorted(control.BAND.items(), key=lambda x: x[1][0])).replace(
     "ELSIF MinMv < 5000 THEN", "ELSE") + "END_IF;"
 PULSE_MM = 5.0          # the Impulstaster: one pulse per 5 mm of sorting belt (ASSUMED)
 
@@ -404,11 +407,11 @@ END_FUNCTION
 """
 
 
-# ------------------------------------------------------------ the I/O image
+# --- the I/O image
 def io_map():
     """Every located variable: the plant reads %QX and writes %IX/%IW/%ID; %MW is the monitor."""
     ins, outs = [], []
-    for u in C.UNIT_ORDER:
+    for u in control.UNIT_ORDER:
         m = MODULE[u]
         src, _ = fb(u)
         decl = src.split("VAR_INPUT")[1].split("END_VAR")[0]
@@ -416,21 +419,21 @@ def io_map():
                          and ln.split(":")[0].strip()[1:].isdigit()}, key=lambda x: int(x[1:])):
             if (m, x) not in ins:
                 ins.append((m, x))
-        for q in C.UNITS[u][1]:
+        for q in control.UNITS[u][1]:
             outs.append((m, q))
     ins += [("hbw", "RF1_Valid"), ("hbw", "RF2_Valid"), ("cell", "SafetyOK")]
     ix = [{"name": f"{m}_{s}", "module": m, "signal": s, "addr": f"%IX{i // 8}.{i % 8}", "bit": i,
-           "desc": C.SIG.get((m, s), "safety relay K0: OK" if s == "SafetyOK" else C.SIG.get((m, s[:3]), ""))}
+           "desc": control.SIG.get((m, s), "safety relay K0: OK" if s == "SafetyOK" else control.SIG.get((m, s[:3]), ""))}
           for i, (m, s) in enumerate(ins)]
     qx = [{"name": f"{m}_{q}", "module": m, "signal": q, "addr": f"%QX{i // 8}.{i % 8}", "bit": i,
-           "desc": C.SIG.get((m, q), "")} for i, (m, q) in enumerate(outs)]
+           "desc": control.SIG.get((m, q), "")} for i, (m, q) in enumerate(outs)]
     iw = [{"name": "hbw_RF2_Tag", "addr": "%IW0", "word": 0, "desc": "RFID RP2: the tag read (mould number)"},
           {"name": "sorting_A4", "addr": "%IW1", "word": 1, "desc": "colour sensor, mV"}]
     idd = [{"name": f"{'hbw' if u == 'crane' else 'vgr'}_{AXES[u][a][0]}", "unit": u, "axis": a,
             "addr": f"%ID{i}", "word": i, "desc": f"{u} {a} encoder position"} for i, (u, a) in enumerate(ENCODER)]
     mw = [{"name": "mon_phase", "addr": "%MW0", "word": 0, "desc": "0 homing, 1 production, 2 order complete"},
           {"name": "mon_jobs", "addr": "%MW1", "word": 1, "desc": "jobs completed"}]
-    for u in C.UNIT_ORDER:
+    for u in control.UNIT_ORDER:
         b = 10 * UNIT_IX[u]
         mw += [{"name": f"mon_{u}_sn", "addr": f"%MW{b}", "word": b, "desc": f"{u}: active state"},
                {"name": f"mon_{u}_job", "addr": f"%MW{b + 1}", "word": b + 1, "desc": f"{u}: job it leads (MAIN code)"}]
@@ -443,12 +446,12 @@ def io_map():
     return {"ix": ix, "qx": qx, "iw": iw, "id": idd, "mw": mw}
 
 
-# ------------------------------------------------------------ MAIN
+# --- MAIN
 RAW, RETURN, RETURNING, STORED, BAKED, DONE = 1, 2, 3, 4, 5, 6
 STAGE = {"raw": RAW, "return": RETURN, "returning": RETURNING, "stored": STORED, "baked": BAKED, "done": DONE}
 OUT_, FILL, IN_ = 1, 2, 3
-CIX = {c: i + 1 for i, c in enumerate(C.CIDS)}
-MIX = {C.MOULD[s]: i + 1 for i, s in enumerate(SLOTS)}
+CIX = {c: i + 1 for i, c in enumerate(control.CIDS)}
+MIX = {control.MOULD[s]: i + 1 for i, s in enumerate(SLOTS)}
 # what each job's binding holds in RB[lead, 1..6] (control.py's job tuple, as indices)
 LAYOUT = {"sort": ("c", "bay"), "ovenbelt": ("c",), "saw_eject": ("c",), "to_tt": ("c",), "bake": ("c",),
           "present": ("c",), "place_oven": ("c", "src"), "belt_to_oven": ("c", "m"), "bay_to_belt": ("c", "bay", "m"),
@@ -461,22 +464,22 @@ def _arr(vals):
 
 
 def main_program():
-    s0 = C.initial()
-    assert C.OPT["split"] and C.OPT["dual"] and C.PLC_POLICY == "reuse", "U13 generates the Upgrade 12 program"
+    s0 = control.initial()
+    assert control.OPT["split"] and control.OPT["dual"] and control.PLC_POLICY == "reuse", "U13 generates the Upgrade 12 program"
     io = io_map()
-    U = {u: UNIT_IX[u] for u in C.UNIT_ORDER}
+    U = {u: UNIT_IX[u] for u in control.UNIT_ORDER}
     slot_m = [MIX[sl[0]] if sl else 0 for sl in s0["slots"]]
     slot_c = [CIX[sl[1]] if sl and sl[1] else 0 for sl in s0["slots"]]
-    cap = C.BAY_CAP
+    cap = control.BAY_CAP
     bay0 = []
     for b in range(len(BAYS)):
         row = [CIX[c] for c in s0["bays"][b]]
         bay0 += row + [0] * (cap - len(row))
     stage0 = [STAGE[x] for x in s0["stage"]]
-    flv = [BAYS.index(C.PL.BIN_OF[C.FLAV[c]]) + 1 for c in C.CIDS]
-    prod = [CIX[c] for c in C.PRODUCE]
-    isret = [c in C.RETURN for c in C.CIDS]
-    dual = [round(C._dual_t(i, j), 3) if i != j else 0.0 for i in range(NS) for j in range(NS)]
+    flv = [BAYS.index(pipeline.BIN_OF[control.FLAV[c]]) + 1 for c in control.CIDS]
+    prod = [CIX[c] for c in control.PRODUCE]
+    isret = [c in control.RETURN for c in control.CIDS]
+    dual = [round(control._dual_t(i, j), 3) if i != j else 0.0 for i in range(NS) for j in range(NS)]
 
     L = ["(* The orchestrator: control.py's dispatcher, statement for statement. Generated by sil/iec.py. *)",
          "PROGRAM MAIN", "VAR"]
@@ -491,9 +494,9 @@ def main_program():
     for x in io["mw"]:
         L.append(f"    {x['name']} AT {x['addr']} : INT;")
     L += ["END_VAR", "VAR"]
-    for u in C.UNIT_ORDER:
+    for u in control.UNIT_ORDER:
         L.append(f"    {u.capitalize()} : FB_{u.capitalize()};")
-    nu = len(C.UNIT_ORDER)
+    nu = len(control.UNIT_ORDER)
     L += [f"    Cmd, Arg, RJ, Seg, Nst : ARRAY[1..{nu}] OF INT;   (* per unit: command; per lead: job, segment, starts *)",
           f"    RB : ARRAY[1..{nu}, 1..6] OF INT;                  (* per lead: the job's binding *)",
           f"    UBusy, Dn, Rdy : ARRAY[1..{nu}] OF BOOL;",
@@ -507,7 +510,7 @@ def main_program():
           "    Tout : BOOL;",
           f"    Bay : ARRAY[1..{len(BAYS)}, 1..{cap}] OF INT := {_arr(bay0)};",
           f"    BayN : ARRAY[1..{len(BAYS)}] OF INT := {_arr([len(x) for x in s0['bays']])};",
-          f"    Stage : ARRAY[1..{len(C.CIDS)}] OF INT := {_arr(stage0)};   (* 1 raw 2 return 3 returning 4 stored 5 baked 6 done *)",
+          f"    Stage : ARRAY[1..{len(control.CIDS)}] OF INT := {_arr(stage0)};   (* 1 raw 2 return 3 returning 4 stored 5 baked 6 done *)",
           "    (* reservations (destinations) and departures (sources) *)",
           f"    ResSlot, LvSlot : ARRAY[1..{NS}] OF BOOL;",
           f"    ResBay : ARRAY[1..{len(BAYS)}] OF INT;",
@@ -519,15 +522,15 @@ def main_program():
           "    BestT : REAL;",
           "END_VAR",
           "VAR CONSTANT",
-          f"    FLV : ARRAY[1..{len(C.CIDS)}] OF INT := {_arr(flv)};   (* cookie -> the bay of its flavour *)",
+          f"    FLV : ARRAY[1..{len(control.CIDS)}] OF INT := {_arr(flv)};   (* cookie -> the bay of its flavour *)",
           f"    PROD : ARRAY[1..{len(prod)}] OF INT := {_arr(prod)};   (* production order *)",
-          f"    ISRET : ARRAY[1..{len(C.CIDS)}] OF BOOL := {_arr(isret)};   (* a cookie that goes into the rack *)",
+          f"    ISRET : ARRAY[1..{len(control.CIDS)}] OF BOOL := {_arr(isret)};   (* a cookie that goes into the rack *)",
           f"    DUALT : ARRAY[1..{NS}, 1..{NS}] OF REAL := [{', '.join(r(x) for x in dual)}];   (* dual-command trip, s *)",
           f"    BAYCAP : INT := {cap};",
           "END_VAR", ""]
     # 1. the sequencers
     L.append("(* 1. the unit sequencers, then their outputs *)")
-    for u in C.UNIT_ORDER:
+    for u in control.UNIT_ORDER:
         m = MODULE[u]
         src, _ = fb(u)
         decl = src.split("VAR_INPUT")[1].split("END_VAR")[0]
@@ -557,7 +560,7 @@ def main_program():
         L.append(f"{u.capitalize()}({', '.join(args)});")
         L.append(f"IF {u.capitalize()}.Busy THEN Cmd[{U[u]}] := 0; END_IF;")
         L.append(f"Dn[{U[u]}] := {u.capitalize()}.Done; Rdy[{U[u]}] := {u.capitalize()}.Ready;")
-        L.append(" ".join(f"{m}_{q} := {u.capitalize()}.{q};" for q in C.UNITS[u][1]))
+        L.append(" ".join(f"{m}_{q} := {u.capitalize()}.{q};" for q in control.UNITS[u][1]))
     L.append("")
     dispatch = _dispatch(U)
     L += ["(* 2. production starts once every unit has homed *)",
@@ -593,7 +596,7 @@ def main_program():
     # monitor
     L.append("(* 4. the monitor *)")
     L.append("mon_phase := Phase; mon_jobs := Jobs;")
-    for u in C.UNIT_ORDER:
+    for u in control.UNIT_ORDER:
         k = U[u]
         L.append(f"mon_{u}_sn := {u.capitalize()}.Sn; mon_{u}_job := RJ[{k}]; mon_{u}_alarm := {u.capitalize()}.Alarm; "
                  f"mon_{u}_seg := Seg[{k}]; mon_{u}_n := Nst[{k}];")
@@ -623,7 +626,7 @@ def _free_units(U, job):
 
 def _pending():
     """control._pending_fill: cookies still to go into the rack, minus moulds earmarked for them."""
-    out = ["Pend := 0;", f"FOR i := 1 TO {len(C.CIDS)} DO IF ISRET[i] AND Stage[i] = {RETURN} THEN Pend := Pend + 1; END_IF; END_FOR;",
+    out = ["Pend := 0;", f"FOR i := 1 TO {len(control.CIDS)} DO IF ISRET[i] AND Stage[i] = {RETURN} THEN Pend := Pend + 1; END_IF; END_FOR;",
            f"IF BinM <> 0 AND BinMode = {FILL} THEN Pend := Pend - 1; END_IF;",
            f"IF BoutM <> 0 AND BoutMode = {FILL} THEN Pend := Pend - 1; END_IF;",
            f"IF RJ[1] = {JOB_IX['fetch_empty']} THEN Pend := Pend - 1; END_IF;"]
@@ -680,7 +683,7 @@ def _dispatch(U):
     # to_make: the next cookie of the production order still raw in the rack
     D += ["    (* the next cookie of the production order that is still raw in the rack, and its slot *)",
           "    tm := 0; ts := 0;",
-          f"    FOR i := 1 TO {len(C.PRODUCE)} DO",
+          f"    FOR i := 1 TO {len(control.PRODUCE)} DO",
           f"        IF tm = 0 AND Stage[PROD[i]] = {RAW} THEN",
           f"            FOR j := 1 TO {NS} DO IF SlotM[j] <> 0 AND SlotC[j] = PROD[i] THEN tm := PROD[i]; ts := j; END_IF; END_FOR;",
           "        END_IF;",
@@ -784,7 +787,7 @@ def project():
     parts = ["(* STF Upgrade 12 - PLC program, IEC 61131-3 Structured Text. Generated by stf-cad/hbw/sil/iec.py *)",
              f"(* from the proven models; compile with MatIEC (iec2c). Task: {SCAN_MS} ms. *)", "", DRIVE]
     starts = {}
-    for u in C.UNIT_ORDER:
+    for u in control.UNIT_ORDER:
         src, st = fb(u)
         parts.append(src)
         starts[u] = st

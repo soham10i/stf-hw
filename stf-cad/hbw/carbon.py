@@ -29,8 +29,8 @@ import json
 import os
 import random
 
-import grid as G
-import month as M
+import grid
+import month
 
 PUB = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "web", "public"))
 OUT = os.path.join(PUB, "carbon", "carbon.json")
@@ -42,19 +42,19 @@ OVEN = "oven (held at 180 C)"
 
 def breakdown(m, s, lp):
     """Emissions per component (g) for one simulated month."""
-    standby = sum(G.STANDBY_W.values()) / G.PSU_EFF
-    inv = G.INV_STANDBY
+    standby = sum(grid.STANDBY_W.values()) / grid.PSU_EFF
+    inv = grid.INV_STANDBY
     share = lp["unit_run_share"]
-    motors = {u: G.UNIT_MOTORS[u] * share[u] for u in G.UNIT_MOTORS}
+    motors = {u: grid.UNIT_MOTORS[u] * share[u] for u in grid.UNIT_MOTORS}
     lamp_valves = lp["production_w"] - sum(motors.values())
     duty = sum(m.raw["air_duty"]) / len(m.raw["air_duty"])
-    comp = G.COMPRESSOR_W * duty
+    comp = grid.COMPRESSOR_W * duty
     prod_parts = {**{f"motor: {u}": w for u, w in motors.items()}, "lamp and valves": lamp_valves, "compressor": comp}
     prod_tot = sum(prod_parts.values())
     out = {"controller, I/O and sensors (standing)": 0.0, "inverter (standing)": 0.0, OVEN: 0.0,
            **{k: 0.0 for k in prod_parts}}
     for L, ov, g, c in zip(s["load"], s["oven"], s["grid"], s["co2"], strict=True):
-        e = max(0.0, g) * G.STEP_H / 1000 * c                     # g CO2e in this step
+        e = max(0.0, g) * grid.STEP_H / 1000 * c                  # g CO2e in this step
         if e <= 0 or L <= 0:
             continue
         out[OVEN] += e * ov / L
@@ -72,9 +72,9 @@ def sleep_profile(orig):
     """The load profile with the cell asleep whenever it has been idle SLEEP_AFTER_H."""
     def lp(m, days):
         load, prod, info = orig(m, days)
-        awake = sum(G.STANDBY_W.values()) / G.PSU_EFF
-        asleep = sum(AWAKE_W.values()) / G.PSU_EFF
-        k_after = int(SLEEP_AFTER_H / G.STEP_H)
+        awake = sum(grid.STANDBY_W.values()) / grid.PSU_EFF
+        asleep = sum(AWAKE_W.values()) / grid.PSU_EFF
+        k_after = int(SLEEP_AFTER_H / grid.STEP_H)
         idle = 0
         load = list(load)
         for k in range(len(load)):
@@ -86,21 +86,21 @@ def sleep_profile(orig):
 
 
 def run(m, weath, scenario, sleep=False, carbon=False):
-    orig_lp, orig_price = G.load_profile, G.price
+    orig_lp, orig_price = grid.load_profile, grid.price
     try:
         if sleep:
-            G.load_profile = sleep_profile(orig_lp)
+            grid.load_profile = sleep_profile(orig_lp)
         if carbon:                                  # plan the battery against carbon, not money
-            G.price = lambda day, h, rnd_day: G.co2(h) / 1000
-        s, lp, *_ = G.simulate(m, scenario, weath)
+            grid.price = lambda day, h, rnd_day: grid.co2(h) / 1000
+        s, lp, *_ = grid.simulate(m, scenario, weath)
     finally:
-        G.load_profile, G.price = orig_lp, orig_price
+        grid.load_profile, grid.price = orig_lp, orig_price
     return s, lp
 
 
 def main():
-    m = M.Month().run()
-    weath = G.weather(random.Random(G.SEED), M.DAYS)
+    m = month.Month().run()
+    weath = grid.weather(random.Random(grid.SEED), month.DAYS)
     good = sum(o["good"] for o in m.orders)
     orders = len(m.orders)
     tp = json.load(open(os.path.join(PUB, "throughput", "throughput.json")))
@@ -113,7 +113,7 @@ def main():
         s, lp = run(m, weath, **kw)
         if kw.get("carbon"):              # planned against carbon, billed at the real prices (the same day-ahead draw)
             s = {**s, "price": series["as built: PV + battery"][0]["price"]}
-        k = G.kpis(s, M.DAYS)
+        k = grid.kpis(s, month.DAYS)
         res[name] = {"co2_kg": k["co2_kg"], "g_per_cookie": round(1000 * k["co2_kg"] / good, 3),
                      "load_kwh": k["load_kwh"], "import_kwh": k["import_kwh"], "cost_eur": k["total_eur"],
                      "wh_per_cookie": round(1000 * k["load_kwh"] / good, 2)}
@@ -142,9 +142,9 @@ def main():
     # the hour of the day: intensity, the cell's import and when it produces
     hours = []
     sg = series["grid only"][0]
-    per_day = int(24 / G.STEP_H)
+    per_day = int(24 / grid.STEP_H)
     for h in range(24):
-        idx = [d * per_day + h * 4 + q for d in range(M.DAYS) for q in range(4)]
+        idx = [d * per_day + h * 4 + q for d in range(month.DAYS) for q in range(4)]
         hours.append({"h": h, "intensity": round(sum(s0["co2"][i] for i in idx) / len(idx), 1),
                       "import_w": round(sum(max(0.0, s0["grid"][i]) for i in idx) / len(idx), 1),
                       "grid_only_w": round(sum(max(0.0, sg["grid"][i]) for i in idx) / len(idx), 1),
@@ -152,17 +152,17 @@ def main():
                       "load_w": round(sum(s0["load"][i] for i in idx) / len(idx), 1)})
     # per day: g per cookie as built
     daily = []
-    for d in range(M.DAYS):
+    for d in range(month.DAYS):
         idx = range(d * per_day, (d + 1) * per_day)
-        e = sum(max(0.0, s0["grid"][i]) * G.STEP_H / 1000 * s0["co2"][i] for i in idx)
+        e = sum(max(0.0, s0["grid"][i]) * grid.STEP_H / 1000 * s0["co2"][i] for i in idx)
         g_d = sum(o["good"] for o in m.orders if o["day"] == d + 1)
         daily.append({"day": d + 1, "g_per_cookie": round(e / g_d, 3) if g_d else None, "weather": weath[d]["kind"]})
     tot = sum(b0.values())
     oven_share = b0[OVEN] / tot
-    out = {"meta": {"days": M.DAYS, "good_cookies": good, "orders": orders, "cookies_per_order": round(good / orders, 2),
+    out = {"meta": {"days": month.DAYS, "good_cookies": good, "orders": orders, "cookies_per_order": round(good / orders, 2),
                     "oven_share": round(oven_share, 3), "real_bake_ratio": round(real, 4),
-                    "sleep_after_h": SLEEP_AFTER_H, "sleep_w": round(sum(AWAKE_W.values()) / G.PSU_EFF, 1),
-                    "awake_w": round(sum(G.STANDBY_W.values()) / G.PSU_EFF, 1), "inverter_w": G.INV_STANDBY,
+                    "sleep_after_h": SLEEP_AFTER_H, "sleep_w": round(sum(AWAKE_W.values()) / grid.PSU_EFF, 1),
+                    "awake_w": round(sum(grid.STANDBY_W.values()) / grid.PSU_EFF, 1), "inverter_w": grid.INV_STANDBY,
                     "u10_gain": round(gain, 3), "scope": "operational, location-based (scope 2); no credit for exported PV",
                     "assumed": "the grid's carbon-intensity profile, every power rating, the sleep figures; the oven held "
                                "at 180 C through both shifts while the cell runs the twin's 2 s demo bake; U10 and the "

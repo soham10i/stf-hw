@@ -6,6 +6,7 @@
 import { HAS_API } from "./mode";
 import { fetchGuest } from "./session";
 import { api } from "./api";
+import { quiet } from "./log";
 
 const LS_KEY = "stf.consent";
 const COOKIE = "stf_consent";
@@ -32,7 +33,7 @@ export function setConsent(c: Consent, days = 180) {
     nobody to attribute to. Once per page load is plenty - the middleware keeps it fresh. */
 let guestReady: Promise<unknown> | null = null;
 export function ensureGuest(page?: string) {
-  guestReady ??= fetchGuest(page).catch(() => undefined);
+  guestReady ??= fetchGuest(page).catch(quiet("guest"));
   return guestReady;
 }
 
@@ -49,5 +50,5 @@ export function track(page: string, ua = true) {
         body: JSON.stringify({ page: p, consent: consent() === "accepted", ua }),
       }),
     )
-    .catch(() => undefined); // traction must never disturb the visit
+    .catch(quiet("track")); // tracking must never disturb the visit
 }

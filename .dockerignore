@@ -1,4 +1,4 @@
-# only web/, packages/, services/ and the copilot's guides (docs/assistant) go into the image
+# only web/, packages/, services/ and the copilot's guides (docs/reference) go into the image
 .git
 .github
 .venv
@@ -11,7 +11,7 @@ web/dist-pages
 web/tsconfig.tsbuildinfo
 stf-cad
 docs/*
-!docs/assistant
+!docs/reference
 tests
 mosquitto
 utils
@@ -19,7 +19,7 @@ utils
 # on Cloud Build's docker builder) and would eat web/public/copilot/docs/**.md - the dashboard
 # Docs page's documents.
 /*.md
-!docs/assistant/*.md
+!docs/reference/**/*.md
 .env
 .env.*
 .data

@@ -33,9 +33,7 @@ OUT_GLB = os.path.join(ROOT, "vgr_fab.glb")
 OUT_JSON = os.path.join(ROOT, "parts.json")
 RENDER_DIR = os.path.join(ROOT, "renders")
 
-# --------------------------------------------------------------------------
-# 1. Dimensions from the source of truth
-# --------------------------------------------------------------------------
+# --- 1. Dimensions from the source of truth
 src = open(MODEL_SRC).read()
 # UP7 is the shipped variant: freeze the conditional to its UP7 value
 src = src.replace("35.0 if UP7 else 40.0", "35.0")
@@ -50,9 +48,7 @@ assert V, "V dict not found in vgr_model.py"
 # Pose for the fabrication model: swivel 0 deg, mid plunge, mid reach
 POSE = dict(swivel=0.0, plunge=320.0, reach=150.0)
 
-# --------------------------------------------------------------------------
-# 2. Materials - industrial selection (see FABRICATION.md for the rationale)
-# --------------------------------------------------------------------------
+# --- 2. Materials - industrial selection (see FABRICATION.md for the rationale)
 def mat_principled(name, base, metallic=0.0, roughness=0.5):
     m = bpy.data.materials.new(name)
     m.use_nodes = True
@@ -64,9 +60,7 @@ def mat_principled(name, base, metallic=0.0, roughness=0.5):
 
 MAT = {}  # filled after the factory reset (materials must outlive it)
 
-# --------------------------------------------------------------------------
-# 3. Scene setup
-# --------------------------------------------------------------------------
+# --- 3. Scene setup
 bpy.ops.wm.read_factory_settings(use_empty=True)
 sc = bpy.context.scene
 sc.unit_settings.system = "METRIC"
@@ -165,30 +159,28 @@ def bolt(name, xy, z_top):
                 "stainless", "80_FASTENERS", "fastener", "ISO 4762 M6x16 shank", vertices=24)
     PARTS.append((name, "fastener", "M6x16 ISO 4762, A4-70", "stainless", "torque 10 Nm"))
 
-# --------------------------------------------------------------------------
-# 4. Assembly (dimensions straight from V; pose swivel 0, plunge 320, reach 150)
-# --------------------------------------------------------------------------
+# --- 4. Assembly (dimensions straight from V; pose swivel 0, plunge 320, reach 150)
 cx, cy = V["CX"], V["CY"]
 pz, rr = POSE["plunge"], POSE["reach"]
 q = V
 
-# ---- frame reference (module plate; not part of the fabrication scope) ----
+# --- frame reference (module plate; not part of the fabrication scope)
 box("vgr_plate", (0, 0, -q["PLATE"][2]), q["PLATE"], "plate", "00_FRAME", "frame", "reference only")
 
-# ---- 10 base (welded to the machine plate) ----
+# --- 10 base (welded to the machine plate)
 cyl("drehkranz_base", (cx, cy, 0), q["BASE_D"], q["BASE_H"], "c45", "10_BASE", "base",
     "CNC turn, bore/face; weld W1")
 # gusset-free stub; weld W1 joins base to plate
 weld_bead_ring("W1_base_to_plate", (cx, cy), 0.5, q["BASE_D"] / 2 - 2)
 
-# ---- 20 turntable (the rotating weldment) ----
+# --- 20 turntable (the rotating weldment)
 cyl("drehkranz_ring", (cx, cy, q["RING_Z"][0]), q["RING_D"], q["RING_Z"][1] - q["RING_Z"][0],
     "c45", "20_TURNTABLE", "turn", "ring gear, teeth m=1.5, hardened 45 HRC")
 cyl("turntable_disc", (cx, cy, q["DISC_Z"][0]), q["RING_D"], q["DISC_Z"][1] - q["DISC_Z"][0],
     "alu6082", "20_TURNTABLE", "turn", "laser-cut 6082 plate; weld W2, then face flat")
 weld_bead_ring("W2_disc_to_ring", (cx, cy), q["DISC_Z"][0], q["RING_D"] / 2 - 2)
 
-# ---- 30 tower ----
+# --- 30 tower
 cz0, cz1 = q["COL_Z"]
 c, i = q["COL"], 0
 for sy in (-1, 1):
@@ -207,7 +199,7 @@ for n, (gx, gy) in enumerate(((-1, -1), (-1, 1), (1, -1), (1, 1)), start=3):
 cyl("plunge_spindle", (cx + 25, cy, cz0), q["SPINDLE_D"], cz1 - cz0, "c45", "30_TOWER",
     "tower", "C45, rolled thread Tr12x4-7e, journals k6", axis="z", vertices=32)
 
-# ---- 40 carriage ----
+# --- 40 carriage
 kw, kd, kh = q["CARR"]
 box("plunge_carriage", (cx - kw / 2, cy - kd / 2, pz), (kw, kd, kh), "alu6082",
     "40_CARRIAGE", "carriage", "6082 machined from solid; 4 guide pockets + 2 bores, one setup")
@@ -217,7 +209,7 @@ sx_ = cx - q["ARM"][0] / 2 - 2 - q["REACH_SPINDLE_D"] / 2 - 2
 box("reach_nut", (sx_ - 10, cy - kd / 2 - 12, pz + 9), (17, 12, 20), "brass",
     "40_CARRIAGE", "carriage", "CuZn39Pb3 nut, thread Tr10x4-7H")
 
-# ---- 50 arm ----
+# --- 50 arm
 aw, ad, ah = q["ARM"]
 ay = cy - q["ARM_FRONT"] - rr            # -100: front face of the arm
 rw, re = q["ARM_RAIL"], q["ARM_END"]
@@ -236,7 +228,7 @@ for nm, by in (("F", ay + 4), ("B", ay + ad - 14)):
 cyl("reach_spindle", (sx_, ay + 4, pz + 19), rd, ad - 4, "c45", "50_ARM", "arm",
     "C45, rolled thread Tr10x4-7e, journals k6", axis="y", vertices=32)
 
-# ---- 60 tool head ----
+# --- 60 tool head
 hw, hd, hh = q["HEAD"]
 box("suction_head", (cx - hw / 2, ay - hd, pz + 6), (hw, hd, hh), "alu6082", "60_TOOL",
     "tool", "6082 machined; stem bore H7", bevel=1.0)
@@ -248,13 +240,13 @@ cyl("suction_cup", (cx, ay - hd / 2, pz - 28), q["CUP_D"], q["CUP_H"], "nbr", "6
 cyl("spring_sleeve", (cx, ay - hd / 2, pz - 16 - 6), q["STEM_D"] + 4, 12, "stainless",
     "60_TOOL", "tool", "1.4310 compression spring, 6 mm travel", axis="z", vertices=24)
 
-# ---- render aid: a held cookie under the cup ----
+# --- render aid: a held cookie under the cup
 cyl("cookie_body", (cx, ay - hd / 2, pz - 28 - 20), 45.0, 16, "dough", "90_RENDER",
     "render", "render aid", axis="z", vertices=48)
 cyl("cookie_top", (cx, ay - hd / 2, pz - 28 - 4), 45.0, 4, "dough", "90_RENDER",
     "render", "render aid", axis="z", vertices=48)
 
-# ---- 80 fasteners: motor flange bolts ----
+# --- 80 fasteners: motor flange bolts
 for n, (bx, by, bz) in enumerate(((193, 192, cz1 + th), (217, 192, cz1 + th),
                                   (193, 208, cz1 + th), (217, 208, cz1 + th)), start=1):
     bolt("B%d_M1_motor" % n, (bx, by), bz)
@@ -262,9 +254,7 @@ for n, (bx, by, bz) in enumerate(((145, 547, pz + 6 + ah), (167, 547, pz + 6 + a
                                   (145, 593, pz + 6 + ah), (167, 593, pz + 6 + ah)), start=5):
     bolt("B%d_M2_motor" % n, (bx, by), bz)
 
-# --------------------------------------------------------------------------
-# 5. Cameras and lights
-# --------------------------------------------------------------------------
+# --- 5. Cameras and lights
 def look_at(obj, target):
     d = Vector(target) - obj.location
     obj.rotation_euler = d.to_track_quat("-Z", "Y").to_euler()
@@ -324,9 +314,7 @@ try:
 except TypeError:
     pass
 
-# --------------------------------------------------------------------------
-# 6. Save, export, render, dump BOM
-# --------------------------------------------------------------------------
+# --- 6. Save, export, render, dump BOM
 os.makedirs(RENDER_DIR, exist_ok=True)
 
 # hide render aids from the GLB (keep in blend)

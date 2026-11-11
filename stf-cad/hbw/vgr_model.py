@@ -20,10 +20,11 @@ Source: occupancyPlanSuctionGripper.ods (all 24 terminals), booklet p.18 photo
 (twin-column tower, Drehkranz gear ring at the base, telescoping arm through a
 clamp carriage, spring stem + suction cup), motor 60x30x30 from 144643.
 """
-from variant import UP1, UP3, UP7
 import math
 from dataclasses import dataclass
 from itertools import combinations
+
+from variant import UP1, UP3, UP7
 
 # Scaled up so the tower stands comparable to the 420 mm rack and the arm can
 # serve all three stations, not just the belt. Cup radius = 168 + reach, i.e.
@@ -133,7 +134,7 @@ def build(swivel=0.0, plunge=250.0, reach=0.0):
 
     A(Part("vgr_plate", "frame", "box", (0, 0, -q["PLATE"][2]), q["PLATE"], "slate", "table"))
 
-    # ------------------------------------------------------------ Drehkranz
+    # --- Drehkranz
     A(Part("drehkranz_base", "base", "cyl", (cx, cy, 0), ("z", q["BASE_H"], q["BASE_D"]),
            "black", "plate", note="fixed bearing seat"))
     A(Part("drehkranz_ring", "turn", "cyl", (cx, cy, q["RING_Z"][0]),
@@ -155,7 +156,7 @@ def build(swivel=0.0, plunge=250.0, reach=0.0):
     A(Part("I3_ref_swivel", "base", "box", (cx - 15, 6, 0), q["SWITCH"], "green", "plate",
            tag="I3", note="Mini-Taster 37783, struck by a cam on the ring"))
 
-    # ---------------------------------------------------------------- tower
+    # --- tower
     cz0, cz1 = q["COL_Z"]
     c, i = q["COL"], 0
     for sy in (-1, 1):
@@ -181,7 +182,7 @@ def build(swivel=0.0, plunge=250.0, reach=0.0):
            q["SWITCH"], "green", "tower_top_plate", frame="swivel", tag="I1",
            note="struck by the carriage at the top of the tower"))
 
-    # ------------------------------------------------------------- carriage
+    # --- carriage
     kw, kd, kh = q["CARR"]
     A(Part("plunge_carriage", "carriage", "box", (cx - kw / 2, cy - kd / 2, pz), (kw, kd, kh),
            "black", "columns", frame="plunge", note="clamp carriage on both columns"))
@@ -199,7 +200,7 @@ def build(swivel=0.0, plunge=250.0, reach=0.0):
     A(Part("I2_ref_reach", "carriage", "box", (cx + 5, cy - kd / 2 - 4, pz + kh),
            q["SWITCH"], "green", "plunge_carriage", frame="plunge", tag="I2"))
 
-    # ------------------------------------------------------------------ arm
+    # --- arm
     aw, ad, ah = q["ARM"]
     ay = cy - q["ARM_FRONT"] - rr            # arm front face
     rw, re = q["ARM_RAIL"], q["ARM_END"]
@@ -240,7 +241,7 @@ def build(swivel=0.0, plunge=250.0, reach=0.0):
            ("z", q["CUP_H"], q["CUP_D"]), "black", "suction_stem", frame="reach", tag="Q8",
            note="cup underside at plunge-28: THAT is the pick plane"))
 
-    # --------------------------------------------------------- pneumatics
+    # --- pneumatics
     if not UP1:     # Upgrade 1: fed from the central air station (upgrade.py)
         A(Part("compressor", "control", "box", (10, 400, 0), (66.0, 30.0, 30.0), "blue", "plate",
                tag="Q7", note="Kompressor - the only unidirectional output on this module"))

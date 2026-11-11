@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Deploy the copilot's reranker to Cloud Run: text-embeddings-inference serving
-# BAAI/bge-reranker-v2-m3 on CPU, scale-to-zero (docs/GCP_RERANKER.md).
+# BAAI/bge-reranker-v2-m3 on CPU, scale-to-zero (docs/reference/operations/gcp-reranker.md).
 #
 # Usage: ./deploy/reranker.sh [PROJECT_ID]   (defaults to gcloud's current project)
 # Needs: gcloud logged in, run.googleapis.com enabled (the stf-live deploy already did).

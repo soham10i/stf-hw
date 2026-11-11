@@ -1,6 +1,8 @@
 """Orthographic sketches + BOM, generated from hbw_model (single source of numbers)."""
-import json, html
-from hbw_model import build, P, fork_allowed
+import html
+import json
+
+from hbw_model import P, build, fork_allowed
 
 GC = {  # group -> (fill, stroke)
     "mould": ("#9aa3ac", "#5c646c"), "cover": ("#606770", "#333"),
@@ -102,8 +104,8 @@ def bom():
 
 def factory_plan():
     """Top view of the whole table, matching the user's sketch."""
-    import factory_layout as FL
-    d = FL.doc(); fw, fh = d["plate"][0], d["plate"][1]
+    import factory_layout
+    d = factory_layout.doc(); fw, fh = d["plate"][0], d["plate"][1]
     M, S = 46, 0.42
     W, H = fw * S + 2 * M, fh * S + 2 * M
     X = lambda v: M + v * S
@@ -128,7 +130,7 @@ def factory_plan():
         if p.group in ("frame",):
             continue
         a = p.aabb()
-        c0 = FL.to_factory(a[0], a[1]); c1 = FL.to_factory(a[3], a[4])
+        c0 = factory_layout.to_factory(a[0], a[1]); c1 = factory_layout.to_factory(a[3], a[4])
         x0, x1 = sorted((c0[0], c1[0])); y0, y1 = sorted((c0[1], c1[1]))
         f, st = GC.get(p.group, ("#888", "#333"))
         if p.tag: f = SENSOR

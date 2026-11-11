@@ -7,7 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Icon } from "../shared/icons";
 import { HAS_API } from "../shared/mode";
-import { api } from "../shared/api";
+import { api, errorOf } from "../shared/api";
+import { quiet } from "../shared/log";
 
 const TOKEN_KEY = "stf.op.token";
 
@@ -41,7 +42,7 @@ export function NotifyMenu() {
   useEffect(() => {
     if (!open || !HAS_API || IS_PROD) return;
     let stale = false;
-    fetch(api("/notify/status")).then((r) => (r.ok ? r.json() : null)).then((s) => { if (!stale && s) setStatus(s); }).catch(() => undefined);
+    fetch(api("/notify/status")).then((r) => (r.ok ? r.json() : null)).then((s) => { if (!stale && s) setStatus(s); }).catch(quiet("notify"));
     return () => { stale = true; };
   }, [open]);
 
@@ -69,11 +70,11 @@ export function NotifyMenu() {
         setPhase("sent");
         setNote("Sent - check the owner's inbox.");
       } else {
-        const body = await r.json().catch(() => ({}));
+        const err = await errorOf(r, `failed (${r.status})`);
         setPhase("error");
         setNote(r.status === 403
           ? "Operator token needed (or use the operator's machine)."
-          : (body.detail ?? `failed (${r.status})`));
+          : err.message);
       }
     } catch {
       setPhase("error");

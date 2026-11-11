@@ -190,7 +190,7 @@ def build(slider=435.0, door=170.0, turn=0.0, sauger=335.0, lower=0.0, push=0.0)
 
     A(Part("oven_plate", "frame", "box", (0, 0, -q["PLATE"][2]), q["PLATE"], "slate", "table"))
 
-    # ------------------------------------------------------------ Brennofen
+    # --- Brennofen
     A(Part("oven_pedestal", "oven", "box", (cx0, cy0, 0), (cx1 - cx0, cy1 - cy0, cz0 - 10),
            "black", "plate", note="lifts the chamber floor to the slider rail"))
     A(Part("oven_floor", "oven", "box", (cx0, cy0, cz0 - 10), (cx1 - cx0, cy1 - cy0, 10),
@@ -212,7 +212,7 @@ def build(slider=435.0, door=170.0, turn=0.0, sauger=335.0, lower=0.0, push=0.0)
            note="Leuchte Ofen - on the roof at the front corner, where it can be seen; "
                 "lit while the oven bakes"))
 
-    # ------------------------------------------------ baking: heat, liner, sensing
+    # --- baking: heat, liner, sensing
     # The chamber walls are a powder-coated steel casing (ft red) with 10 mm ceramic-fibre
     # board inside; a 1.5 mm stainless liner faces the chamber. The floor is stainless.
     LT = q["LINER_T"]; ix0 = cx0 + wl
@@ -284,7 +284,7 @@ def build(slider=435.0, door=170.0, turn=0.0, sauger=335.0, lower=0.0, push=0.0)
     A(Part("door_rod", "door", "cyl", (cx1 + 4, q["TRAY_Y"], door + q["DOOR_H"] - 5), ("z", 165 + gh, 8),
            "steel", "Q13_oven_door", frame="door", note="piston rod up into the door cylinder"))
 
-    # ----------------------------------------------- Ofenschieber (I6 / I7)
+    # --- Ofenschieber (I6 / I7)
     tw, td, th = q["TRAY"]; ty = q["TRAY_Y"]; r0, r1 = q["RAIL_X"]
     A(Part("slider_rail", "slider_fix", "box", (r0, ty - 5, cz0), (r1 - r0, 10, 10),
            "steel", "oven_floor", note="guide from the back of the chamber, through the door "
@@ -318,7 +318,7 @@ def build(slider=435.0, door=170.0, turn=0.0, sauger=335.0, lower=0.0, push=0.0)
                note="Lichtschranke Brennofen - registers the workpiece being LAID on the "
                     "tray (p.34), not its presence" if nm == "rx" else "Lichtschranken-LED"))
 
-    # ------------------------------------------------------------- Sauger
+    # --- Sauger
     ry0, ry1 = q["RAIL_Y"]; rz = q["RAIL_Z"]
     A(Part("sauger_column", "portal", "box", (360, ry0, 0), (15, 15, rz + 15), "ftred", "plate",
            note="the Sauger unit stands on the oven's front face (Abb. 9)"))
@@ -348,7 +348,7 @@ def build(slider=435.0, door=170.0, turn=0.0, sauger=335.0, lower=0.0, push=0.0)
            "black", "Q12_piston_rod", frame="lower", tag="Q11",
            note="Vakuumsauger, Ventil Vakuum; underside at 130 up / 80 down = workpiece top"))
 
-    # ---------------------------------------------------------- Drehtisch
+    # --- Drehtisch
     tx, tyc = q["TT"]; dz0 = Z_W - q["TT_DISC_T"]
     A(Part("drehtisch_base", "turn_fix", "cyl", (tx, tyc, 0), ("z", dz0, q["TT_BASE_D"]), "black",
            "plate", note="Drehkranz bearing + gear"))
@@ -369,7 +369,7 @@ def build(slider=435.0, door=170.0, turn=0.0, sauger=335.0, lower=0.0, push=0.0)
                "green", "plate", tag=tg,
                note=f"Referenzschalter Drehkranz, Position {nm} - a cam under the rim strikes it"))
 
-    # --------------------------------------------------------------- Saege
+    # --- Saege
     sx, sy = nest(STATIONS["saege"])
     A(Part("saw_column", "saw", "box", (290, 355, 0), (20, 68, 200), "black", "plate",
            note="black tower behind the Drehtisch (Abb. 9)"))
@@ -383,7 +383,7 @@ def build(slider=435.0, door=170.0, turn=0.0, sauger=335.0, lower=0.0, push=0.0)
     A(Part("saw_blade", "saw", "cyl", (sx, sy, 86), ("z", 4, 30), "steel", "saw_spindle",
            mech="spin:saw", note="cutter disc, 6 mm above the workpiece top - a simulated process"))
 
-    # ------------------------------------------------ Auswerfer (Q14)
+    # --- Auswerfer (Q14)
     py0 = q["PADDLE_Y"]
     bw_, bh_ = (PF, PF) if PF else (10, 8)
     A(Part("pusher_beam", "push_fix", "box", (310, 360, 104), (XL + 8 - 310, bw_, bh_),
@@ -399,7 +399,7 @@ def build(slider=435.0, door=170.0, turn=0.0, sauger=335.0, lower=0.0, push=0.0)
            "ftred", "pusher_rod", frame="push",
            note="retracted inside the nest's inner radius, so the disc turns freely"))
 
-    # --------------------------------------------------------- Foerderband
+    # --- Foerderband
     b0, b1 = q["BELT_Y"]; bm = q["BELT_MAIN"]; bw = q["BELT_W"]; rt = q["RAIL_T"]; bx0 = XL - bw / 2
     for nm, rx in (("L", bx0 - rt), ("R", bx0 + bw)):
         for j, ly in enumerate((b0, bm - 8)):
@@ -428,7 +428,7 @@ def build(slider=435.0, door=170.0, turn=0.0, sauger=335.0, lower=0.0, push=0.0)
                note="Lichtschranke Ende Foerderband - hands off to the Sortierstrecke"
                if nm == "rx" else "Lichtschranken-LED"))
 
-    # ---------------------------------------------------------- pneumatics
+    # --- pneumatics
     if not UP1:     # Upgrade 1: one central air station feeds every module (upgrade.py)
         A(Part("Q10_compressor", "control", "box", (580, 20, 0), q["COMPRESSOR"], "blue", "plate",
                tag="Q10", note="Kompressor (Membranpumpe), 24 V, 0.7 bar"))

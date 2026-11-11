@@ -148,7 +148,7 @@ def test_action_guard_recipe_adjust(clean_guard):
 def test_action_guard_twin_navigate(clean_guard):
     res = clean_guard.execute_twin_navigate(page="oven", target="door_cylinder", actor="operator")
     assert res["accepted"] is True
-    assert res["page"] == "oven"
+    assert res["page"] == "process"  # the oven's page (core/navigation.py)
 
     # Invalid page rejected
     res = clean_guard.execute_twin_navigate(page="nonexistent_space", actor="operator")
@@ -192,8 +192,8 @@ def test_tool_recipe_adjust_execution():
 def test_tool_twin_navigate_execution():
     ctx = T.Ctx()
     res = T.call("twin_navigate", {"page": "warehouse", "target": "crane"}, ctx)
-    assert "warehouse" in res.text
-    assert res.link["page"] == "warehouse"
+    assert res.text == "Opened the Production page, at the crane."  # the warehouse is on it
+    assert res.link["page"] == "production"
 
 
 def test_routing_actuation_intents():
@@ -216,7 +216,7 @@ def test_routing_actuation_intents():
 
     # Twin navigate route
     routes = T.route("navigate to oven view", ctx)
-    assert ("twin_navigate", {"page": "oven"}) in routes
+    assert routes == [("twin_navigate", {"page": "process"})]
 
 
 # ============================================================================

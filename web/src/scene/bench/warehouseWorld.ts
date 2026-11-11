@@ -21,7 +21,7 @@
 // The belt: one conveyor body over both of the CAD's belt strips (a mould spans the 40 mm gap
 // between them), the side rails as smooth guides, each light barrier a thin beam from its
 // transmitter to its receiver. "Forward" is out of the warehouse, toward the gripper (+y).
-// Its speed: the project's [assumed] 50 mm/s for every belt (docs/UPGRADE_PLAN.md) sets the
+// Its speed: the project's [assumed] 50 mm/s for every belt (docs/reference/factory/upgrades.md) sets the
 // load the motor turns against, as the lab's 214 rpm sets the spindles'.
 import { compose, qaxis, type Pose } from "../../core/math64";
 import type { PartDefinition, PlacedPart, Vec3 } from "../../core/schema";

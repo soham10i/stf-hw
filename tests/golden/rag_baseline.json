@@ -1,0 +1,20 @@
+{
+ "retrieval": {
+  "hit@1": 0.625,
+  "hit@3": 0.725,
+  "hit@8": 0.9,
+  "mrr": 0.708,
+  "ndcg": 0.749
+ },
+ "grounding": {
+  "precision": 1.0,
+  "recall": 0.687,
+  "f1": 0.8145,
+  "false_alarm_rate": 0.0,
+  "hand_recall": 0.8333,
+  "hand_false_alarm_rate": 0.0,
+  "confidence_auroc": 0.9336,
+  "brier": 0.1127,
+  "ece": 0.1106
+ }
+}

@@ -20,7 +20,7 @@ SAMPLE = 1.0
 TOL = 0.05
 
 
-# ------------------------------------------------------------------ helpers
+# --- helpers
 def aabb(p):
     return p.aabb()
 
@@ -52,7 +52,7 @@ def _rect_circle_depth(rx0, ry0, rx1, ry1, cx, cy, r):
     return r + min(cx - rx0, rx1 - cx, cy - ry0, ry1 - cy)
 
 
-# ------------------------------------------------------------- inside tests
+# --- inside tests
 def inside(p, q, tol=TOL):
     """Depth of point q inside solid p (> tol = inside)."""
     x, y, z = q
@@ -179,7 +179,7 @@ def surface(p, step=SAMPLE):
     raise ValueError(p.kind)
 
 
-# ------------------------------------------------------------ pair test
+# --- pair test
 def interfere(a, b, tol=TOL):
     """Penetration depth of solids a and b (0.0 if they do not share volume
     deeper than tol)."""

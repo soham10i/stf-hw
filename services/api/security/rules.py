@@ -25,8 +25,9 @@ import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 
-from fastapi import HTTPException, Request, WebSocket
+from fastapi import Request, WebSocket
 
+from services.api.core.errors import AppError, Reason
 from services.api.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -138,14 +139,14 @@ async def read_body(request: Request, limit: int) -> bytes:
     if declared:
         try:
             if int(declared) > limit:
-                raise HTTPException(status_code=413, detail=f"at most {limit} bytes")
+                raise AppError(Reason.BODY_TOO_LARGE, f"at most {limit} bytes")
         except ValueError:
-            raise HTTPException(status_code=400, detail="bad Content-Length") from None
+            raise AppError(Reason.BAD_CONTENT_LENGTH, "bad Content-Length") from None
     chunks, n = [], 0
     async for chunk in request.stream():
         n += len(chunk)
         if n > limit:
-            raise HTTPException(status_code=413, detail=f"at most {limit} bytes")
+            raise AppError(Reason.BODY_TOO_LARGE, f"at most {limit} bytes")
         chunks.append(chunk)
     return b"".join(chunks)
 
@@ -201,21 +202,22 @@ class CommandGuard:
             request: The incoming FastAPI HTTP request.
 
         Raises:
-            HTTPException: 403 Forbidden if origin is untrusted or host lacks authentication.
-            HTTPException: 429 Too Many Requests if the client rate limit is exceeded.
+            AppError: 403 Forbidden if origin is untrusted or host lacks authentication.
+            AppError: 429 Too Many Requests if the client rate limit is exceeded.
         """
         if not origin_ok(self.settings, request):
             note("command: foreign origin")
-            raise HTTPException(status_code=403, detail="origin not allowed")
+            raise AppError(Reason.ORIGIN_DENIED, "origin not allowed")
         local = is_local_request(request)
         if not (local or token_ok(self.settings, request.headers.get("x-stf-token"))):
             note("command: not local, no token")
-            raise HTTPException(
-                status_code=403, detail="commands need the operator's machine or an operator token"
+            raise AppError(
+                Reason.OPERATOR_REQUIRED,
+                "commands need the operator's machine or an operator token",
             )
         if not self.limiter.allow(client_ip(request)):
             note("command: rate limit")
-            raise HTTPException(status_code=429, detail="too many commands")
+            raise AppError(Reason.TOO_MANY_REQUESTS, "too many commands")
 
 
 def ws_origin_ok(settings: Settings, ws: WebSocket) -> bool:

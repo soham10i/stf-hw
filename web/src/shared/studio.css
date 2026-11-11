@@ -49,107 +49,8 @@
     radial-gradient(60vmax 40vmax at 0% 100%, color-mix(in oklab, var(--cyan) 8%, transparent), transparent 60%);
 }
 
-:root[data-theme="light"][data-palette="studio"] {
-  color-scheme: light;
-  /* Image 1 Light Theme: cool ice-blue to soft white vertical gradient */
-  --ground-gradient: linear-gradient(180deg, #b7c8d8 0%, #dae2ed 24%, #f6f8ff 50%, #e0e7f2 76%, #bcccdc 100%);
-  --ground: #b7c8d8;
-  --bg: #b7c8d8;
-  --ground-light: var(--ground-gradient);
-  --viewport: var(--ground-gradient);
-  --surface: rgba(255, 255, 255, 0.78);
-  --surface-2: rgba(246, 250, 255, 0.60);
-  --raised: rgba(255, 255, 255, 0.88);
-  --hover: rgba(255, 255, 255, 0.95);
-  --border: rgba(255, 255, 255, 0.75);
-  --border-soft: rgba(255, 255, 255, 0.50);
-  --text: #0f172a;
-  --muted: #475569;
-  --faint: #64748b;
-  --accent: #2563eb;
-  --logo-a: #0891b2; --logo-b: #2563eb;
-  --accent-strong: #1d4ed8;
-  --accent-fill: #2563eb;
-  --accent-fill-hover: #1d4ed8;
-  --accent-weak: rgba(37, 99, 235, 0.12);
-  --on-accent: #ffffff;
-  --ok: #16a34a; --ok-weak: rgba(22, 163, 74, .12); --ok-fill: #16a34a;
-  --warn: #d97706; --warn-weak: rgba(217, 119, 6, .13); --warn-fill: #d97706;
-  --bad: #dc2626; --bad-weak: rgba(220, 38, 38, .10); --bad-fill: #dc2626;
-  --ink: #0f172a; --sky: #0284c7;
-  --grid: rgba(255, 255, 255, 0.50); --grid-strong: rgba(255, 255, 255, 0.80); --inset: #090e21;
-  --shadow: 0 10px 30px -4px rgba(18, 38, 63, 0.08), 0 2px 8px -1px rgba(18, 38, 63, 0.04);
-  --dot: rgba(9, 14, 33, 0.04);
-  --violet: #7c3aed; --cyan: #0284c7;
-  --on-ink: #ffffff;
-  /* Image 3 Apple Tinted Glassmorphism tokens */
-  --line: rgba(255, 255, 255, 0.75);
-  --glass-fill: rgba(255, 255, 255, 0.75);
-  --chrome-fill: rgba(255, 255, 255, 0.80);
-  --block-fill: rgba(255, 255, 255, 0.72);
-  --glass-rim: rgba(255, 255, 255, 0.95);
-  --glass-inner: rgba(255, 255, 255, 0.80);
-  --glass-sheen: rgba(255, 255, 255, 0.75);
-  --glass-shadow: 0 10px 30px -4px rgba(18, 38, 63, 0.08), 0 2px 8px -1px rgba(18, 38, 63, 0.04), inset 0 1.5px 1.5px 0 #ffffff;
-  --glass-bg: var(--chrome-fill);
-  --glass-solid: #f6f8fb;
-  --glass-line: var(--line);
-  --glass-edge: var(--line);
-  --float-shadow: 0 20px 50px -10px rgba(18, 38, 63, 0.12), inset 0 1.5px 1.5px 0 #ffffff;
-  --scene-cell: #cdd8e6;
-  --scene-section: #a5b6cb;
-}
-
-:root[data-theme="dark"][data-palette="studio"] {
-  color-scheme: dark;
-  /* Image 2 Dark Theme: sleek diagonal charcoal/graphite gradient */
-  --ground-gradient: linear-gradient(135deg, #030303 0%, #1c1c1c 20%, #444444 50%, #686868 78%, #8c8c8c 100%);
-  --ground: #030303;
-  --bg: #030303;
-  --ground-light: var(--ground-gradient);
-  --viewport: var(--ground-gradient);
-  --surface: rgba(18, 22, 28, 0.60);
-  --surface-2: rgba(14, 18, 24, 0.70);
-  --raised: rgba(255, 255, 255, 0.08);
-  --hover: rgba(255, 255, 255, 0.14);
-  --border: rgba(255, 255, 255, 0.22);
-  --border-soft: rgba(255, 255, 255, 0.14);
-  --text: #f5f5f7;
-  --muted: #c7c7cc;
-  --faint: #a1a1a6;
-  --accent: #4ba3ff;
-  --logo-a: #38bdf8; --logo-b: #60a5fa;
-  --accent-strong: #78b9ff;
-  --accent-fill: #2563eb;
-  --accent-fill-hover: #1d4ed8;
-  --accent-weak: rgba(75, 163, 255, 0.16);
-  --on-accent: #ffffff;
-  --ok: #32d74b; --ok-weak: rgba(50, 215, 75, 0.14); --ok-fill: #32d74b;
-  --warn: #ffb340; --warn-weak: rgba(255, 179, 64, 0.14); --warn-fill: #ffb340;
-  --bad: #ff6961; --bad-weak: rgba(255, 105, 97, 0.15); --bad-fill: #ff6961;
-  --ink: #f5f5f7; --sky: #38bdf8;
-  --grid: rgba(255, 255, 255, 0.08); --grid-strong: rgba(255, 255, 255, 0.16); --inset: #030303;
-  --shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.55), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.40);
-  --dot: rgba(255, 255, 255, 0.04);
-  --violet: #818cf8; --cyan: #22d3ee;
-  --on-ink: #000000;
-  /* Apple liquid glassmorphism tokens for dark theme */
-  --line: rgba(255, 255, 255, 0.22);
-  --glass-fill: rgba(255, 255, 255, 0.08);
-  --chrome-fill: rgba(18, 22, 28, 0.65);
-  --block-fill: rgba(14, 18, 24, 0.62);
-  --glass-rim: rgba(255, 255, 255, 0.45);
-  --glass-inner: rgba(255, 255, 255, 0.50);
-  --glass-sheen: rgba(255, 255, 255, 0.18);
-  --glass-shadow: 0 18px 45px -8px rgba(0, 0, 0, 0.55), inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.48), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.25);
-  --glass-bg: var(--chrome-fill);
-  --glass-solid: #12161f;
-  --glass-line: var(--line);
-  --glass-edge: var(--line);
-  --float-shadow: 0 28px 70px -14px rgba(0, 0, 0, 0.70), inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.55);
-  --scene-cell: #1a202c;
-  --scene-section: #283244;
-}
+/* The light and dark colour tokens are the "Zero" design system's (shared/zero.css, loaded
+   after this file); Studio keeps the layout, shape and type defaults below. */
 
 /* ------------------------------------------------------------------ shared */
 [data-palette="studio"] body { background: var(--ground); }
@@ -233,7 +134,7 @@
 [data-palette="studio"] .ui-btn.on {
   border: var(--btn-glass-active-border);
   background: var(--btn-glass-active-bg);
-  color: #ffffff;
+  color: var(--on-accent);
   font-weight: 600;
   box-shadow: var(--btn-glass-active-shadow);
   text-shadow: none;
@@ -268,10 +169,10 @@
 [data-palette="studio"] :is(.slot.active, .op.retrieve, .slot[aria-checked="true"]) {
   background: var(--btn-glass-active-bg);
   border: var(--btn-glass-active-border);
-  color: #ffffff;
+  color: var(--on-accent);
   font-weight: 600;
   box-shadow: var(--btn-glass-active-shadow);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  text-shadow: none;
 }
 [data-palette="studio"] :is(.slot:hover, .op:hover:not(:disabled)) {
   background: var(--btn-glass-bg-hover);
@@ -297,10 +198,10 @@
 [data-palette="studio"] .ui-seg button.on {
   background: var(--btn-glass-active-bg);
   border: var(--btn-glass-active-border);
-  color: #ffffff;
+  color: var(--on-accent);
   font-weight: 600;
   box-shadow: var(--btn-glass-active-shadow);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  text-shadow: none;
 }
 [data-palette="studio"] .ui-chip { border-radius: 999px; font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
 [data-palette="studio"] :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
@@ -477,7 +378,7 @@
 [data-palette="studio"] :is(.db-nav button, .db-twin) { height: 38px; border-radius: 9999px; color: var(--muted); font-size: 13px; }
 [data-palette="studio"] .db-nav button svg { color: currentColor; opacity: .85; }
 [data-palette="studio"] :is(.db-nav button, .db-twin):hover { background: var(--btn-glass-bg); color: var(--text); }
-[data-palette="studio"] .db-nav button.on { color: #ffffff; font-weight: 600; }
+[data-palette="studio"] .db-nav button.on { color: var(--text); font-weight: 600; }
 [data-palette="studio"] .db-nav-pill {
   border-radius: 9999px;
   background: var(--btn-glass-active-bg);

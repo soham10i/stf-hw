@@ -41,14 +41,15 @@ import math
 import os
 import random
 
-import month as M
+import control
+import month
 
 OUT = os.path.expanduser("~/workspace/stf-hw/web/public/grid")
 STEP_H = 0.25
 N_DAY = 96
 SEED = 90
 
-# ---------------------------------------------------------------- assets (ASSUMED sizes)
+# --- assets (ASSUMED sizes)
 PV_WP = 400.0
 BATT_WH = 1000.0
 SOC_MIN, SOC_MAX = 0.10, 1.00
@@ -64,7 +65,7 @@ DR_FLOOR = {"soc": SOC_MIN}    # how low a DR window may take the battery (Upgra
 DEG_EUR_KWH = 0.06             # battery wear per kWh throughput
 PSU_EFF = 0.90
 
-# ---------------------------------------------------------------- load model (ASSUMED ratings)
+# --- load model (ASSUMED ratings)
 STANDBY_W = {"RevPi Core 3": 4.0, "4 remote I/O nodes": 12.0, "Ethernet switch": 3.0, "safety relay + contactors": 3.0,
              "sensors, light barriers, reeds": 5.0, "2 RFID heads": 4.0, "electronic breaker": 2.0}
 MOTOR_W = 24 * 0.35             # an ft encoder / S-motor running
@@ -73,7 +74,7 @@ UNIT_MOTORS = {"crane": MOTOR_W, "belt": MOTOR_W, "arm": MOTOR_W, "door": MOTOR_
 LAMP_W = 5.0
 COMPRESSOR_W = 24 * 1.5
 
-# ---------------------------------------------------------------- the real oven (Upgrade 19, from bake.py)
+# --- the real oven (Upgrade 19, from bake.py)
 BAKE_F = os.path.join(os.path.dirname(OUT), "bake", "process.json")
 OVEN_SUPPLY = {"ups": False}   # False: its own 230 V circuit behind the meter; True: on the inverter's output
 OVEN_ON = {"on": True}         # False: the cell alone, as Upgrade 9 first sized it
@@ -100,14 +101,14 @@ def oven_profile(days):
     if not OVEN_ON["on"]:
         return [0.0] * (days * N_DAY)
     o = oven_params()
-    h0, h1 = M.SHIFTS[0][0], M.SHIFTS[-1][1]
+    h0, h1 = month.SHIFTS[0][0], month.SHIFTS[-1][1]
     day = [0.0] * N_DAY
     day[int(h0 / STEP_H) - 1] = o["preheat_kwh"] * 1000 / STEP_H
     for k in range(int(h0 / STEP_H), int(h1 / STEP_H)):
         day[k] = o["shift_w"]
     return day * days
 
-# ---------------------------------------------------------------- tariff (ASSUMED, EU dynamic-tariff style)
+# --- tariff (ASSUMED, EU dynamic-tariff style)
 FEED_IN = 0.08
 DEMAND_EUR_KW = 12.0
 
@@ -122,7 +123,7 @@ def co2(h):
     return 300 - 90 * max(0.0, math.sin(math.pi * (h - 7) / 12)) + (110 if 17 <= h < 21 else 0)
 
 
-# ---------------------------------------------------------------- weather and PV
+# --- weather and PV
 def weather(rnd, days):
     out = []
     for d in range(days):
@@ -141,11 +142,11 @@ def irradiance(day, h, cloud, rnd):
     return max(0.0, g * cloud * (1 + rnd.gauss(0, 0.12 if cloud < 0.9 else 0.03)))
 
 
-# ---------------------------------------------------------------- load from the month
+# --- load from the month
 def load_profile(m, days):
-    unit_share = {u: M.FSM0[u]["RUN"] / M.T_MODEL for u in M.FSM0}
+    unit_share = {u: month.FSM0[u]["RUN"] / month.T_MODEL for u in month.FSM0}
     prod_w = sum(UNIT_MOTORS[u] * unit_share[u] for u in UNIT_MOTORS)
-    bake_share = sum(st.t for st in M.C.job_steps(("bake", ("c",), ("door",), (), ())) if st.key == "row5") * 9 / M.T_MODEL
+    bake_share = sum(st.t for st in control.job_steps(("bake", ("c",), ("door",), (), ())) if st.key == "row5") * 9 / month.T_MODEL
     prod_w += LAMP_W * bake_share + 6.0            # the valves
     standby = sum(STANDBY_W.values())
     n = days * N_DAY
@@ -165,7 +166,7 @@ def load_profile(m, days):
                         "psu_eff": PSU_EFF, "inverter_standby_w": INV_STANDBY, "unit_run_share": {u: round(v, 3) for u, v in unit_share.items()}}
 
 
-# ---------------------------------------------------------------- the EMS: a day-ahead dynamic programme
+# --- the EMS: a day-ahead dynamic programme
 LEVELS = 100                     # 10 Wh steps: the smallest charge is 40 W - smooth, and under the peak cap
 DWH = BATT_WH / LEVELS
 
@@ -206,7 +207,7 @@ def plan_day(load_f, pv_f, prices, dr, pv_on=True):
 
 def simulate(m, scenario, weath, rnd_seed=SEED):
     rnd = random.Random(rnd_seed)
-    days = M.DAYS
+    days = month.DAYS
     cell, prod, lp = load_profile(m, days)
     oven = oven_profile(days)
     load = [c + v for c, v in zip(cell, oven, strict=True)]
@@ -276,7 +277,7 @@ def simulate(m, scenario, weath, rnd_seed=SEED):
     return out, lp, soil_log, cycles_wh, cleanings
 
 
-# ---------------------------------------------------------------- power quality
+# --- power quality
 def mains_events(rnd, days):
     """Two outages and eight sags (depth = remaining voltage, EN 50160 style)."""
     ev = [{"kind": "outage", "day": 6, "h": 10.2, "dur_s": 4 * 60}, {"kind": "outage", "day": 19, "h": 15.67, "dur_s": 47 * 60}]
@@ -306,7 +307,7 @@ def ride_through(ev, series, batt):
     if ev["kind"] == "sag" and ev["dur_s"] <= PSU_HOLDUP_S:
         return {"survives": True, "why": "shorter than the PSU's 20 ms hold-up", "oven": oven}
     if not batt:
-        lost = (M.T0 / 2 + 180 if producing else 60)
+        lost = (month.T0 / 2 + 180 if producing else 60)
         return {"survives": False, "why": "24 V collapses: the PLC restarts, every unit re-homes; the order in progress "
                                           "is redone" + (" (a VGR carry drops its cookie)" if producing else ""),
                 "lost_s": round(lost), "producing": producing, "oven": oven}
@@ -321,10 +322,10 @@ def ride_through(ev, series, batt):
             "need_wh": round(need_wh, 1), "have_wh": round(have_wh), "producing": producing, "oven": oven}
 
 
-# ---------------------------------------------------------------- power-asset health
+# --- power-asset health
 def assets(m, weath, soil_log, cycles_wh, series):
-    days = M.DAYS
-    hall = [M.temperature(h) for h in range(days * 24)]
+    days = month.DAYS
+    hall = [month.temperature(h) for h in range(days * 24)]
     out = {}
     # cabinet filter -> cabinet temperature -> PSU capacitor ageing (Arrhenius, 10 K halves the life)
     def cab_run(maintain):
@@ -370,7 +371,7 @@ def assets(m, weath, soil_log, cycles_wh, series):
     return out
 
 
-# ---------------------------------------------------------------- run
+# --- run
 class assets_as:
     """Run with other asset sizes (module globals, as plan_day and simulate read them)."""
 
@@ -410,14 +411,14 @@ def kpis(s, days):
 
 
 def main():
-    m = M.Month().run()
-    weath = weather(random.Random(SEED), M.DAYS)
+    m = month.Month().run()
+    weath = weather(random.Random(SEED), month.DAYS)
     runs = {}
     for sc in ("grid", "pv", "pv+battery"):
         s, lp, soil, cyc, cl = simulate(m, sc, weath)
-        runs[sc] = {"series": s, "kpi": kpis(s, M.DAYS), "soil": soil, "cycles_wh": cyc, "cleanings": cl}
+        runs[sc] = {"series": s, "kpi": kpis(s, month.DAYS), "soil": soil, "cycles_wh": cyc, "cleanings": cl}
     best = runs["pv+battery"]
-    ev_mains = mains_events(random.Random(SEED + 2), M.DAYS)
+    ev_mains = mains_events(random.Random(SEED + 2), month.DAYS)
     pq = []
     for e in ev_mains:
         pq.append({**e, "with_ups": ride_through(e, best["series"], True), "grid_only": ride_through(e, runs["grid"]["series"], False)})
@@ -425,12 +426,12 @@ def main():
     ov = oven_params()
     OVEN_ON["on"] = False
     with assets_as(PEAK_CAP=PEAK_CAP_CELL):
-        cell_only = kpis(simulate(m, "pv+battery", weath)[0], M.DAYS)
+        cell_only = kpis(simulate(m, "pv+battery", weath)[0], month.DAYS)
     OVEN_ON["on"] = True
     OVEN_SUPPLY["ups"] = True
     with assets_as(**RESIZED):
         rs = simulate(m, "pv+battery", weath)[0]
-        rk = kpis(rs, M.DAYS)
+        rk = kpis(rs, month.DAYS)
         r_pq = [ride_through(e, rs, True) for e in ev_mains]
     OVEN_SUPPLY["ups"] = False
     r_saving = runs["grid"]["kpi"]["total_eur"] - rk["total_eur"]
@@ -464,7 +465,7 @@ def main():
              "energy meter (SunSpec/Modbus)": 90}
     saving = runs["grid"]["kpi"]["total_eur"] - best["kpi"]["total_eur"]
     doc = {
-        "meta": {"days": M.DAYS, "step_h": STEP_H, "machine": "Upgrade 7 + the U9 microgrid + the U19 oven", "seed": SEED,
+        "meta": {"days": month.DAYS, "step_h": STEP_H, "machine": "Upgrade 7 + the U9 microgrid + the U19 oven", "seed": SEED,
                  "assets": {"pv_wp": PV_WP, "battery_wh": BATT_WH, "battery_p_w": P_BATT, "inverter_w": INV_W, "reserve": RESERVE,
                             "soc_min": SOC_MIN, "eta": ETA, "peak_cap_w": PEAK_CAP, "dr_cap_w": DR_CAP},
                  "load_model": {**lp, "oven_shift_w": ov["shift_w"], "oven_rated_w": ov["rated_w"],
@@ -480,7 +481,7 @@ def main():
                             "filter-clogging rates, the capacitor rating (8 000 h at 105 C), LFP ageing, the PSU's "
                             "20 ms hold-up and 80 % input limit, the mains events"},
         "scenarios": {k: v["kpi"] for k, v in runs.items()},
-        "series": {"t_h": [round(i * STEP_H, 2) for i in range(M.DAYS * N_DAY)], **best["series"],
+        "series": {"t_h": [round(i * STEP_H, 2) for i in range(month.DAYS * N_DAY)], **best["series"],
                    "grid_only": runs["grid"]["series"]["grid"]},
         "weather": weath, "power_quality": pq, "health": health, "pv_cleaning": clean, "oven_supply": supply,
         "economics": {"capex_eur": capex, "capex_total": sum(capex.values()), "saving_eur_month": round(saving, 2),

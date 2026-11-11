@@ -42,7 +42,7 @@ import hashlib
 import json
 import os
 
-import control as C
+import control
 import vc
 from variant import UP11
 
@@ -51,7 +51,7 @@ PLC_IP = "192.168.10.10"
 FC = {"read_coils": 1, "read_di": 2, "read_hr": 3, "read_ir": 4, "write_coils": 15}
 RELAY_DROP = 0.010            # s: a PCB relay opening after its coil is switched off (ASSUMED)
 
-# ------------------------------------------------------------------ zones
+# --- zones
 ZONES = [
     {"id": "Z0", "name": "Safety (hardwired)", "sl_t": None,
      "assets": ["E-stops ES1-ES3", "door switches SA-SC", "safety relay K0", "contactors K1/K2", "safe exhaust Y1", "reset S3"],
@@ -107,14 +107,14 @@ HMI_TAGS = [
 ]
 
 
-# -------------------------------------------------------- the allow-list
+# --- the allow-list
 def program_access():
     """What the PLC program touches on each node: per module, the signals it
     WRITES (every unit's outputs, driven - on or off - every scan) and READS
     (every signal a state or a homing step waits on, and the system inputs)."""
     wr, rd = {}, {}
-    units = C.sfc()
-    for u, (m, outs, _) in C.UNITS.items():
+    units = control.sfc()
+    for u, (m, outs, _) in control.UNITS.items():
         wr.setdefault(m, set()).update(outs)
         for st in units[u]["states"]:
             rd.setdefault(m, set()).update(st.get("sig", []))
@@ -193,7 +193,7 @@ def check_least_privilege(rules):
                 fails.append(f"LP {m}.{r['signal']}: the program reads it, the allow-list blocks it")
             n_ok += 1
     # spare and retired coils: never writable, from anywhere
-    for m, qs in C.RETIRED.items():
+    for m, qs in control.RETIRED.items():
         for q in qs:
             r = next((x for x in rows if x["module"] == m and x["signal"] == q), None)
             if r and allowed(rules, PLC_IP, vc.IP[m], FC["write_coils"], r["addr"], 1):
@@ -215,12 +215,12 @@ def retired_exposure():
     for r in rows:
         if r["type"] == "DO" and r["signal"] not in wr.get(r["module"], ()):
             out.append({"module": r["module"], "signal": r["signal"], "addr": r["addr"],
-                        "what": C.SIG.get((r["module"], r["signal"]), ""),
-                        "retired": r["signal"] in C.RETIRED.get(r["module"], ())})
+                        "what": control.SIG.get((r["module"], r["signal"]), ""),
+                        "retired": r["signal"] in control.RETIRED.get(r["module"], ())})
     return out
 
 
-# -------------------------------------------------------- default deny
+# --- default deny
 def check_default_deny():
     fails = []
     ids = [z["id"] for z in ZONES]
@@ -250,24 +250,24 @@ def check_default_deny():
 
 def check_safety_independence():
     """No safety function depends on a networked asset."""
-    import safety as S
+    import safety
     fails = []
     net = {a for z in ZONES if z["id"] != "Z0" for a in z["assets"]}
-    sf = S.export()["functions"]
+    sf = safety.export()["functions"]
     for f in sf:
         for dev in f["devices"].replace("->", ",").replace("+", ",").split(","):
             d = dev.strip()
             if any(d and d.split()[0] in a for a in net):
                 fails.append(f"SAFETY {f['id']}: {d} is networked")
     # the one soft link: guard locking is released by the PLC's standstill signal
-    circ = S.circuit()
+    circ = safety.circuit()
     soft = [{"what": "guard locking release", "by": circ["locking"],
              "why": "the PLC is networked: a compromised PLC could release the locks early",
              "still": "the door switches stay in the hardwired K0 chain: opening a door removes the actuator supply at once"}]
     return fails, soft, sf
 
 
-# ------------------------------------------------------------- attacks
+# --- attacks
 def _fork_windows(r):
     """Seconds of the commissioned order during which the Ausleger is out
     (in a slot or at the belt) - when a sideways travel would hit something."""
@@ -315,8 +315,8 @@ def attack_spoof(healthy):
     rows = {}
     n = det = 0
     seen = set()
-    for job in C._representatives():
-        for st in C.job_steps(C._representatives()[job][0]):
+    for job in control._representatives():
+        for st in control.job_steps(control._representatives()[job][0]):
             if not st.supervised or st.limit is None or (st.unit, st.key) in seen:
                 continue
             seen.add((st.unit, st.key))
@@ -341,8 +341,8 @@ def attack_spoof(healthy):
     n_zero = rows.pop("_zero", 0)
     for c in rows.values():
         c["blind"] = c["blind"][:6]
-    fork = next(s for s in C.crane_steps("retrieve", "A1") if s.key == "fork->back")
-    rest = fork.t * (1 - FAST) * C.V_HBW
+    fork = next(s for s in control.crane_steps("retrieve", "A1") if s.key == "fork->back")
+    rest = fork.t * (1 - FAST) * control.V_HBW
     return {
         "id": "A2", "name": "spoofed sensor", "zone": "Z1 (man in the middle between the PLC and a node)",
         "what": "answers 'Ausleger back' (HBW I6) while the fork is still in the slot, so the PLC travels",
@@ -371,7 +371,7 @@ def attack_flood(rows):
 
 
 def attack_program():
-    files = C.st_source(C.sfc())
+    files = control.st_source(control.sfc())
     man = {k: hashlib.sha256(v.encode()).hexdigest() for k, v in sorted(files.items())}
     root = hashlib.sha256("".join(man.values()).encode()).hexdigest()
     return {"id": "A4", "name": "malicious program download", "zone": "Z2/Z4 (a stolen engineering login)",
@@ -449,7 +449,7 @@ def check_sunspec():
     return fails
 
 
-# ------------------------------------------------------------ SL gaps
+# --- SL gaps
 FR = ["FR1 identification and authentication", "FR2 use control", "FR3 system integrity", "FR4 data confidentiality",
       "FR5 restricted data flow", "FR6 timely response to events", "FR7 resource availability"]
 SLC = {   # assumed capability per product class, FR1..FR7
@@ -493,7 +493,7 @@ def check_sl(tbl):
             if r["gap"] and r["countermeasure"] == "-"]
 
 
-# ---------------------------------------------------------- configs
+# --- configs
 def nftables(rules):
     L = ["# cell firewall - generated by stf-cad/hbw/security.py from the program and the register map",
          "table inet stf {", "  chain forward {", "    type filter hook forward priority 0; policy drop;",
@@ -512,7 +512,7 @@ def nftables(rules):
     return "\n".join(L)
 
 
-# ------------------------------------------------------------------ main
+# --- main
 def run():
     assert UP11, "run with STF_VARIANT=up11"
     fails = []
@@ -585,7 +585,7 @@ def main():
         "safety": {"functions": R["sf"], "soft_links": R["soft"]},
         "sl": R["sl"], "attacks": R["attacks"], "findings": findings,
         "manifest": {"files": R["manifest"], "root": R["root"]},
-        "alarms": [a for a in C.alarms(C.sfc()) if a["code"].startswith("SEC-")],
+        "alarms": [a for a in control.alarms(control.sfc()) if a["code"].startswith("SEC-")],
         "proofs": {"least_privilege": "every read and write of the program allowed; no other coil writable",
                    "default_deny": f"{len(R['denied'])} zone pairs denied; {len(R['paths'])} paths from the internet to the cell, "
                                    "each through an authenticated hop",

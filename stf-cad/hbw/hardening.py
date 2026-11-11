@@ -23,9 +23,9 @@ import json
 import os
 import random
 
-import control as C
-import interlock as IL
-import io_nodes as N
+import control
+import interlock
+import io_nodes
 import vc
 from variant import UP12
 
@@ -36,28 +36,28 @@ LEAVES = {("hbw", "Q7"): "I6", ("oven", "Q12"): "I13", ("oven", "Q14"): "I15"}
 
 def _program(opt_on=True):
     """The order as the PLC runs it: (module, step) in start order, homing first."""
-    for m in C.OPT:
-        C.OPT[m] = opt_on
+    for m in control.OPT:
+        control.OPT[m] = opt_on
     try:
-        _, events, _, _ = C.simulate(C.PLC_POLICY)
+        _, events, _, _ = control.simulate(control.PLC_POLICY)
         seq = []
-        for u, sts in C.HOMING.items():
-            seq += [(C.UNITS[u][0], st) for st in sts]
+        for u, sts in control.HOMING.items():
+            seq += [(control.UNITS[u][0], st) for st in sts]
         for t, what, job in events:
             if what == "start":
-                seq += [(C.UNITS[st.unit][0], st) for st in C.job_steps(job)]
+                seq += [(control.UNITS[st.unit][0], st) for st in control.job_steps(job)]
     finally:
-        for m in C.OPT:
-            C.OPT[m] = True
+        for m in control.OPT:
+            control.OPT[m] = True
     return seq
 
 
 def replay(k, seq):
     """Does interlock k ever block a step of the program? -> (steps it guards, blocked [examples])."""
-    mod, outs, perm, _, _ = IL.CANDIDATES[k]
-    import vgr_path as VP
+    mod, outs, perm, _, _ = interlock.CANDIDATES[k]
+    import vgr_path
     sens = {"I6": True, "I10": False, "I13": True, "I15": True}
-    pz = VP.V["TRANSIT"]
+    pz = vgr_path.V["TRANSIT"]
     guarded, blocked = 0, []
     for m, st in seq:
         # at the step's start: outputs that drive a part away from its switch release it
@@ -71,7 +71,7 @@ def replay(k, seq):
             if perm == "POS":
                 ok = False
             elif perm == "TRANSIT":
-                ok = pz >= VP.V["TRANSIT"] - 1.0
+                ok = pz >= vgr_path.V["TRANSIT"] - 1.0
             elif perm.startswith("NOT "):
                 ok = perm[4:] not in st.out
             else:
@@ -86,14 +86,14 @@ def replay(k, seq):
         if st.unit == "arm" and "plunge" in st.target:
             pz = st.target["plunge"]
         if st.key == "H:plunge":
-            pz = VP.V["TRANSIT"]
+            pz = vgr_path.V["TRANSIT"]
     return guarded, blocked
 
 
 def analyse():
     seq_now, seq_u7 = _program(True), _program(False)
     rows = []
-    for k, (mod, outs, perm, contact, why) in IL.CANDIDATES.items():
+    for k, (mod, outs, perm, contact, why) in interlock.CANDIDATES.items():
         g, b = replay(k, seq_now)
         g7, b7 = replay(k, seq_u7)
         if perm == "POS":
@@ -111,37 +111,37 @@ def analyse():
 
 
 def ems():
-    import grid as G
-    import month as M
-    m = M.Month().run()
-    weath = G.weather(random.Random(G.SEED), M.DAYS)
-    ev = G.mains_events(random.Random(G.SEED + 2), M.DAYS)
+    import grid
+    import month
+    m = month.Month().run()
+    weath = grid.weather(random.Random(grid.SEED), month.DAYS)
+    ev = grid.mains_events(random.Random(grid.SEED + 2), month.DAYS)
     out = {}
-    for name, floor in (("U9", G.SOC_MIN), ("U12", G.RESERVE)):
-        G.DR_FLOOR["soc"] = floor
-        s, *_ = G.simulate(m, "pv+battery", weath)
-        k = G.kpis(s, M.DAYS)
+    for name, floor in (("U9", grid.SOC_MIN), ("U12", grid.RESERVE)):
+        grid.DR_FLOOR["soc"] = floor
+        s, *_ = grid.simulate(m, "pv+battery", weath)
+        k = grid.kpis(s, month.DAYS)
         dr_min = min((soc for soc, d in zip(s["soc"], s["dr"]) if d), default=None)
-        rides = sum(1 for e in ev if G.ride_through(e, s, True)["survives"])
+        rides = sum(1 for e in ev if grid.ride_through(e, s, True)["survives"])
         out[name] = {"dr_met": k["dr_met"], "dr_import_wh": k["dr_import_wh"], "total_eur": k["total_eur"],
                      "lowest_soc_in_dr": dr_min, "ride_through": rides, "events": len(ev), "floor": floor}
-    G.DR_FLOOR["soc"] = G.SOC_MIN
+    grid.DR_FLOOR["soc"] = grid.SOC_MIN
     # a forged DR window of any length: how much of the reserve is left?
-    A = (G.RESERVE - G.SOC_MIN) * G.BATT_WH
+    A = (grid.RESERVE - grid.SOC_MIN) * grid.BATT_WH
     out["forged"] = {"reserve_wh": round(A), "left_u9_wh": 0, "left_u12_wh": round(A),
                      "note": "U9: a long enough forged window drains to the 10 % floor; U12: the window stops at the reserve"}
     return out
 
 
 def attacks():
-    import safety as S
-    import security as SEC
+    import safety
+    import security
     healthy, _ = vc.results()
-    a1 = SEC.attack_rogue_write(healthy)
-    ex = SEC.retired_exposure()
-    sf, n_logic = S.check_logic()
-    rules = SEC.allow_list()
-    lp, _ = SEC.check_least_privilege(rules)
+    a1 = security.attack_rogue_write(healthy)
+    ex = security.retired_exposure()
+    sf, n_logic = safety.check_logic()
+    rules = security.allow_list()
+    lp, _ = security.check_least_privilege(rules)
     return [
         {"id": "A1'", "name": "compromised PLC drives the crane sideways with the fork in a shelf",
          "u11": "allowed: the PLC is the one source the allow-list trusts - " + a1["residual"],
@@ -163,11 +163,11 @@ def main():
     fails = []
     rows = analyse()
     adopted = tuple(r["id"] for r in rows if r["adopted"])
-    if adopted != IL.ADOPTED:
-        fails.append(f"INTERLOCK the analysis adopts {adopted}, interlock.ADOPTED says {IL.ADOPTED}")
-    if N.RETIRED != C.RETIRED:
+    if adopted != interlock.ADOPTED:
+        fails.append(f"INTERLOCK the analysis adopts {adopted}, interlock.ADOPTED says {interlock.ADOPTED}")
+    if io_nodes.RETIRED != control.RETIRED:
         fails.append("RETIRED differs between io_nodes and control")
-    fails += N.check(verbose=False)
+    fails += io_nodes.check(verbose=False)
     att = attacks()
     fails += [f"ATTACK {a['id']} not closed" for a in att if not a["closed"]]
     E = ems()
@@ -176,7 +176,7 @@ def main():
     if fails:
         print("\n".join(fails))
         raise SystemExit("hardening: proofs failed - nothing written")
-    relays = {m: [{"id": k, "permissive": p, "contact": c} for k, p, c in IL.relays(m)] for m in N.MODULES}
+    relays = {m: [{"id": k, "permissive": p, "contact": c} for k, p, c in interlock.relays(m)] for m in io_nodes.MODULES}
     n_ad = len(adopted)
     rej = [r for r in rows if not r["adopted"]]
     findings = [
@@ -207,7 +207,7 @@ def main():
          "text": f"{sum(len(v) for v in relays.values())} interface relays on the node rails and one standstill monitor K8 in the "
                  "cabinet; the nodes were re-placed and re-cleared with the relays on them."},
     ]
-    doc = {"meta": {"variant": "up12", "relay": list(N.RELAY),
+    doc = {"meta": {"variant": "up12", "relay": list(io_nodes.RELAY),
                     "assumed": "relay module size; the interlocks protect the machine and are not safety functions (no PL claimed)"},
            "interlocks": rows, "relays": relays, "attacks": att, "ems": E, "findings": findings,
            "program_steps": len(_program(True))}

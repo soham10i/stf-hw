@@ -27,18 +27,9 @@
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
-:root[data-theme="light"] .db-float-trigger {
-  box-shadow: 0 4px 16px -2px rgba(15, 30, 65, 0.08), 0 12px 30px -4px rgba(15, 30, 65, 0.12), inset 0 1px 0 #ffffff;
-}
-
 .db-float-trigger:hover {
   transform: translateY(-2px);
   box-shadow: 0 14px 34px -6px rgba(0, 0, 0, 0.55), inset 0 1px 0 var(--card-hi, rgba(255, 255, 255, 0.16));
-  border-color: var(--accent);
-}
-
-:root[data-theme="light"] .db-float-trigger:hover {
-  box-shadow: 0 6px 20px -2px rgba(15, 30, 65, 0.12), 0 16px 36px -4px rgba(15, 30, 65, 0.16), inset 0 1px 0 #ffffff;
   border-color: var(--accent);
 }
 
@@ -143,28 +134,6 @@
   border-radius: inherit;
   pointer-events: none;
   background: radial-gradient(140px 90px at 100% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 75%);
-}
-
-:root[data-theme="light"] .db-float-chat {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.65) 50%, rgba(240, 246, 255, 0.78) 100%),
-    color-mix(in srgb, var(--surface) 72%, transparent);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  -webkit-backdrop-filter: blur(36px) saturate(200%) contrast(102%);
-  backdrop-filter: blur(36px) saturate(200%) contrast(102%);
-  box-shadow:
-    0 28px 70px -12px rgba(15, 30, 65, 0.22),
-    0 10px 28px -6px rgba(15, 30, 65, 0.10),
-    inset 0 1px 1.5px 0 #ffffff,
-    inset 0 0 0 1px rgba(255, 255, 255, 0.95);
-}
-
-:root[data-theme="light"] .db-float-chat::before {
-  background: rgba(255, 255, 255, 0.35);
-}
-
-:root[data-theme="light"] .db-float-chat::after {
-  background: radial-gradient(140px 90px at 100% 0%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 75%);
 }
 
 .db-float-chat.resizing {
@@ -328,17 +297,6 @@
   animation: db-slide 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-:root[data-theme="light"] .db-inspector {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.68) 50%, rgba(240, 246, 255, 0.78) 100%),
-    color-mix(in srgb, var(--surface) 72%, transparent);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow:
-    0 10px 30px -10px rgba(15, 30, 65, 0.14),
-    inset 0 1px 1.5px 0 #ffffff,
-    inset 0 0 0 1px rgba(255, 255, 255, 0.95);
-}
-
 @keyframes db-slide {
   from { opacity: 0; transform: translateX(12px); }
   to { opacity: 1; transform: translateX(0); }
@@ -373,17 +331,6 @@
     inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   overflow: hidden;
   animation: twin-pinned-slide-right 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-:root[data-theme="light"] .twin-pinned-chat {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.65) 50%, rgba(240, 246, 255, 0.78) 100%),
-    color-mix(in srgb, var(--surface) 72%, transparent);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow:
-    -14px 0 40px -12px rgba(15, 30, 65, 0.15),
-    inset 0 1px 1.5px 0 #ffffff,
-    inset 0 0 0 1px rgba(255, 255, 255, 0.95);
 }
 
 @keyframes twin-pinned-slide-right {
@@ -478,7 +425,7 @@
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  color: var(--text);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   flex: none;
 }
@@ -488,19 +435,12 @@
   margin: auto;
 }
 
-:root[data-theme="light"] .db-inspector-ico {
-  background: color-mix(in srgb, var(--accent) 12%, #ffffff);
-  border-color: rgba(0, 0, 0, 0.08);
-  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(15, 30, 65, 0.06);
-  color: var(--accent);
-}
-
 .db-inspector-h .ui-btn.pin,
 .db-inspector-h .ui-btn.on,
 .db-float-chat-actions .ui-btn.pin,
 .db-float-chat-actions .ui-btn.on {
   background: var(--btn-glass-active-bg);
-  color: #ffffff;
+  color: var(--on-accent);
   border: var(--btn-glass-active-border);
   border-radius: 50%;
   width: 34px;
@@ -518,16 +458,6 @@
 .db-float-chat-actions .ui-btn.on:hover {
   box-shadow: var(--btn-glass-shadow-hover);
   transform: translateY(-1px) scale(1.05);
-}
-
-:root[data-theme="light"] .db-inspector-h .ui-btn.pin,
-:root[data-theme="light"] .db-inspector-h .ui-btn.on,
-:root[data-theme="light"] .db-float-chat-actions .ui-btn.pin,
-:root[data-theme="light"] .db-float-chat-actions .ui-btn.on {
-  background: var(--btn-glass-active-bg);
-  color: var(--accent-strong, #0058b0);
-  border: var(--btn-glass-active-border);
-  box-shadow: var(--btn-glass-active-shadow);
 }
 
 .db-inspector .ch,

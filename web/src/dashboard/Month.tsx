@@ -2,6 +2,7 @@
 // sensor time series, component wear, maintenance, FSM and events. The page
 // reads web/public/month/month.json; the CSVs beside it hold the same data.
 import { Bars, HBar, Heat, Plot, Stacked, fmtNum, useWidth, type Band, type Series as PlotSeries } from "./Plot";
+import { chartColor } from "../shared/chartColor";
 import { useMemo, useState } from "react";
 import { useJson } from "../shared/data";
 
@@ -42,12 +43,10 @@ export function useMonth() {
   return { m, err };
 }
 
-// ------------------------------------------------------------ chart kit
-// Colours that only read on a dark page map to theme tokens, so every chart
-// works in the light theme too; the rest are mid-tone and read on both.
-const THEMED: Record<string, string> = { "#e6f0ff": "var(--ink)", "#f2efe6": "var(--ink)", "#9fd0ff": "var(--sky)",
-  "#7cc3f5": "var(--sky)", "#3a4a5c": "var(--grid-strong)", "#fff": "var(--text)" };
-export const tc = (c: string) => THEMED[c.toLowerCase()] ?? c;
+// --- chart kit
+// Colours on the theme: the shared map (shared/chartColor.ts) turns the dark-tuned hex values into
+// tokens, so every chart reads in light and dark.
+export const themedColor = chartColor;
 type Line = { name: string; x: number[]; y: (number | null)[]; color: string; dash?: boolean; width?: number; kind?: PlotSeries["kind"]; fmt?: (v: number) => string };
 /** Pearson correlation of two series (pairs with a null skipped). */
 function corr(a: (number | null)[], b: (number | null)[]) {
@@ -82,18 +81,18 @@ export function Chart({ lines, h = 180, yLabel, xLabel, hlines = [], marks = [],
   const dayTicks = days ? Array.from({ length: Math.floor(x1 / 24 / step) + 1 }, (_, i) => i * step * 24) : undefined;
   // many marks of one kind (maintenance, failures) are labelled once
   const seen = new Set<string>();
-  const vm = marks.map((m) => { const first = !seen.has(m.label); seen.add(m.label); return { x: m.x, color: tc(m.color), label: first ? m.label : "" }; });
+  const vm = marks.map((m) => { const first = !seen.has(m.label); seen.add(m.label); return { x: m.x, color: themedColor(m.color), label: first ? m.label : "" }; });
   return (
     <Plot h={h + 40} xMin={0} xMax={x1} yMin={yMin} yMax={yMax} xTicks={dayTicks}
       xTitle={days ? "day" : xLabel ?? ""} yTitle={yLabel ?? ""}
       xFmt={days ? (v) => `${Math.floor(v / 24) + 1}` : fmtNum}
       tipTitle={days ? (v) => `day ${Math.floor(v / 24) + 1}, ${String(Math.floor(v % 24)).padStart(2, "0")}:00` : undefined}
-      series={lines.map((l) => ({ name: l.name, x: l.x, y: l.y, color: tc(l.color), dash: l.dash, width: (l.width ?? 1.3) * 1.2, kind: l.kind, fmt: l.fmt }))}
-      hlines={hlines.filter((l) => l.label).map((l) => ({ ...l, color: tc(l.color) }))} vmarks={vm} bands={bands} tipExtra={tipExtra} yFmt={yFmt} />
+      series={lines.map((l) => ({ name: l.name, x: l.x, y: l.y, color: themedColor(l.color), dash: l.dash, width: (l.width ?? 1.3) * 1.2, kind: l.kind, fmt: l.fmt }))}
+      hlines={hlines.filter((l) => l.label).map((l) => ({ ...l, color: themedColor(l.color) }))} vmarks={vm} bands={bands} tipExtra={tipExtra} yFmt={yFmt} />
   );
 }
 
-function Kp({ label, v, cf, fmt = (x: number) => `${x}`, better = "up" }: { label: string; v: number; cf?: number; fmt?: (x: number) => string; better?: "up" | "down" }) {
+function KpiTile({ label, v, cf, fmt = (x: number) => `${x}`, better = "up" }: { label: string; v: number; cf?: number; fmt?: (x: number) => string; better?: "up" | "down" }) {
   const d = cf === undefined ? 0 : v - cf;
   const good = better === "up" ? d > 0 : d < 0;
   return (
@@ -103,7 +102,7 @@ function Kp({ label, v, cf, fmt = (x: number) => `${x}`, better = "up" }: { labe
 }
 const pct = (x: number) => `${(x * 100).toFixed(1)} %`;
 
-// ---------------------------------------------------------------- views
+// --- views
 function Summary({ m }: { m: MonthDoc }) {
   const k = m.kpi, c = m.kpi_cf;
   const minGood = Math.min(...m.daily.map((d) => d.good));
@@ -112,16 +111,16 @@ function Summary({ m }: { m: MonthDoc }) {
   return (
     <>
       <div className="db-kpis">
-        <Kp label="orders" v={k.orders} cf={c.orders} />
-        <Kp label="good cookies" v={k.good} cf={c.good} />
-        <Kp label="OEE" v={k.oee} cf={c.oee} fmt={pct} />
-        <Kp label="availability" v={k.availability} fmt={pct} />
-        <Kp label="performance" v={k.performance} cf={c.performance} fmt={pct} />
-        <Kp label="quality" v={k.quality} fmt={pct} />
-        <Kp label="unplanned stop" v={k.unplanned_h} cf={c.unplanned_h} fmt={(x) => `${x} h`} better="down" />
-        <Kp label="failures" v={k.failures} cf={c.failures} better="down" />
-        <Kp label="MTBF" v={k.mtbf_h} fmt={(x) => `${x} h`} />
-        <Kp label="MTTR" v={k.mttr_min} cf={c.mttr_min} fmt={(x) => `${x} min`} better="down" />
+        <KpiTile label="orders" v={k.orders} cf={c.orders} />
+        <KpiTile label="good cookies" v={k.good} cf={c.good} />
+        <KpiTile label="OEE" v={k.oee} cf={c.oee} fmt={pct} />
+        <KpiTile label="availability" v={k.availability} fmt={pct} />
+        <KpiTile label="performance" v={k.performance} cf={c.performance} fmt={pct} />
+        <KpiTile label="quality" v={k.quality} fmt={pct} />
+        <KpiTile label="unplanned stop" v={k.unplanned_h} cf={c.unplanned_h} fmt={(x) => `${x} h`} better="down" />
+        <KpiTile label="failures" v={k.failures} cf={c.failures} better="down" />
+        <KpiTile label="MTBF" v={k.mtbf_h} fmt={(x) => `${x} h`} />
+        <KpiTile label="MTTR" v={k.mttr_min} cf={c.mttr_min} fmt={(x) => `${x} min`} better="down" />
       </div>
       <div className="db-grid">
         <section className="db-card wide"><h3>Insights</h3>
@@ -260,7 +259,7 @@ function Raw({ m }: { m: MonthDoc }) {
   const vac = m.events.filter((e) => e.code === "VGR-V01");
   const perDay = Array.from({ length: m.meta.days }, (_, d) => vac.filter((e) => Math.floor(e.t / 24) === d).length);
   const cupPm = m.events.find((e) => e.comp === "cup" && e.kind === "maintenance");
-  const FL: [keyof typeof r.a4, string][] = [["vanilla", "#f2efe6"], ["strawberry", "#f4a6bf"], ["chocolate", "#b0773f"]];
+  const FL: [keyof typeof r.a4, string][] = [["vanilla", "var(--flavour-vanilla)"], ["strawberry", "#f4a6bf"], ["chocolate", "#b0773f"]];
   return (
     <div className="db-grid">
       <section className="db-card wide"><h3>Colour sensor A4: each cookie's reading, and its band</h3>
@@ -311,7 +310,8 @@ function Fsm({ m }: { m: MonthDoc }) {
   );
 }
 
-const EV_COL: Record<string, string> = { failure: "#e0503a", fault: "#e07a5a", warning: "#e0a02a", maintenance: "#22c55e", disturbance: "#b07ad6" };
+// events are machine states, so they take the state colours (an icon-free dot is backed by the legend and tooltip)
+const EV_COL: Record<string, string> = { failure: "var(--danger)", fault: "var(--series-2)", warning: "var(--warn)", maintenance: "var(--ok)", disturbance: "var(--series-5)" };
 /** Every event of the month on one time axis, one row per kind. */
 function EventStrip({ m, kinds }: { m: MonthDoc; kinds: string[] }) {
   const [box, W] = useWidth<HTMLDivElement>();
@@ -328,7 +328,7 @@ function EventStrip({ m, kinds }: { m: MonthDoc; kinds: string[] }) {
       {kinds.map((k, i) => <text key={k} x={L - 10} y={T + i * RH + RH / 2 + 4} textAnchor="end" className="pl-row">{k}</text>)}
       {m.events.map((ev, j) => {
         const i = kinds.indexOf(ev.kind);
-        return i < 0 ? null : <circle key={j} cx={X(ev.t)} cy={T + i * RH + RH / 2} r={hov === j ? 7 : 4.5} fill={EV_COL[ev.kind] ?? "#9fd0ff"} opacity={0.85}
+        return i < 0 ? null : <circle key={j} cx={X(ev.t)} cy={T + i * RH + RH / 2} r={hov === j ? 7 : 4.5} fill={EV_COL[ev.kind] ?? chartColor("#9fd0ff")} opacity={0.85}
           onMouseEnter={() => setHov(j)} className="pl-dot" />;
       })}
     </svg>

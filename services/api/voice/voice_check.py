@@ -22,8 +22,8 @@ import re
 import sys
 import time
 
-from services.api.security import security as sec
 from services.api.agent.chat import dotenv
+from services.api.security import security
 from services.api.voice.tts import ElevenLabsStt, ElevenLabsVoice, Stt, Tts, speakable
 
 SENTENCE = (
@@ -50,7 +50,7 @@ def main() -> int:
     """The voice-check CLI: report which TTS/STT providers would answer right now."""
 
     env = {**dotenv(), **os.environ}
-    s = sec.Settings.from_env()
+    s = security.Settings.from_env()
     tts, stt = Tts(s), Stt(s)
     print(
         "text to speech:",

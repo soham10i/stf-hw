@@ -1,7 +1,9 @@
 """
 The copilot's data access: the twin's exports (web/public), read once and shown with feature
 names instead of design-step numbers (names.py), and BM25 search over the documents' passages
-(web/public/copilot/kb.json, built from docs/ by `make copilot`). The tools are in tools.py.
+(web/public/copilot/kb.json, built from docs/reference/ by `make copilot`). Each passage carries its
+document's front matter (docs/README.md): the module it is about, the document's one-line scope
+and the date its text was last checked against the code. The tools are in tools.py.
 """
 
 from __future__ import annotations
@@ -76,6 +78,9 @@ class Passage:
         file: Repository-relative source file path.
         line: Starting line number in the source file.
         anchor: Heading anchor for deep linking in documentation.
+        module: What the document is about (its front matter: oven, plc, dashboard, ...).
+        scope: The document's one-sentence scope.
+        verified: The date the document was last checked against the code (YYYY-MM-DD).
     """
 
     id: int
@@ -85,6 +90,9 @@ class Passage:
     file: str = ""
     line: int = 0
     anchor: str = ""
+    module: str = ""
+    scope: str = ""
+    verified: str = ""
 
 
 class BM25:
@@ -112,8 +120,11 @@ class BM25:
         self.doc_tfs: list[dict[str, int]] = []
 
         for p in passages:
-            path_str = " ".join(str(x) for x in (p.path or []) if x)
-            tokens = tokenize(f"{path_str} {path_str} {p.text}")
+            # the heading path and the document's scope are the passage's context, counted
+            # twice: a passage deep in a document still says what the document is about (the
+            # scope lifted MRR 0.659 -> 0.700 on golden questions it was not tuned on)
+            head = " ".join(str(x) for x in [*(p.path or []), p.scope] if x)
+            tokens = tokenize(f"{head} {head} {p.text}")
             tf: dict[str, int] = {}
             for t in tokens:
                 tf[t] = tf.get(t, 0) + 1
@@ -210,6 +221,7 @@ def get_bm25() -> BM25:
         return _bm25_index
     kb = load_json("copilot/kb.json") or {}
     raw_passages = kb.get("passages", [])
+    documents = kb.get("documents") or {}
     passages = [
         Passage(
             id=p.get("id", i),
@@ -219,6 +231,9 @@ def get_bm25() -> BM25:
             file=p.get("file", ""),
             line=p.get("line", 0),
             anchor=p.get("anchor", ""),
+            module=p.get("module", ""),
+            scope=(documents.get(p.get("file", "")) or {}).get("scope", ""),
+            verified=(documents.get(p.get("file", "")) or {}).get("last_verified", ""),
         )
         for i, p in enumerate(raw_passages)
     ]

@@ -12,7 +12,7 @@ import { HAS_API } from "../shared/mode";
 import { DATA, EXAMPLES, answer as offline, type Ctx, type DataKey } from "../copilot/copilot";
 import { GUIDE } from "./guide";
 import * as api from "./copilot/api";
-import { Md, Message, openSource } from "./copilot/Message";
+import { MarkdownText, Message, openSource } from "./copilot/Message";
 import { Voice } from "./copilot/Voice";
 import { AnswerSettings, SettingsChip } from "./copilot/Settings";
 import { CopilotMark, Icon } from "../shared/icons";
@@ -22,11 +22,12 @@ const TABS: [api.Tab, string, string][] = [
   ["chat", "Chat", "the models answer - whichever is free first"],
   ["voice", "Voice", "speak a question, hear the answer"],
 ];
-// the model control: which engine answers is a server detail (the server walks its chain and
-// answers with the first ready one, so a model at its limit costs one question, never a wait).
-// The UI offers only "the server decides" and "this machine".
+// the model control: which engine answers: Mercury 3 is the default primary model,
+// with automatic fallback to Gemini, Groq, and local.
 const MODELS: [api.Model, string, string][] = [
-  ["auto", "Auto", "the first ready model answers - one at its limit never makes you wait"],
+  ["auto", "Auto · Mercury first", "Mercury 3 diffusion LLM first, with fallback to Gemini, Groq, and local"],
+  ["mercury", "Mercury 3", "Inception Labs diffusion model (1M context)"],
+  ["gemini", "Gemini", "Google Gemini"],
   ["local", "Local", "a model on this machine"],
 ];
 const THINKING: Record<api.Tab, string> = { chat: "Asking the models…", voice: "Thinking…" };
@@ -57,7 +58,7 @@ const PILL = { type: "spring", stiffness: 500, damping: 40 } as const;
 const POP = { initial: { opacity: 0, y: -6, scale: 0.985 }, animate: { opacity: 1, y: 0, scale: 1 },
   exit: { opacity: 0, y: -4, scale: 0.99 }, transition: { duration: 0.16, ease: "easeOut" } } as const;
 // the empty state's example chips, rising one after another
-const EX: Variants = { on: { transition: { staggerChildren: 0.05, delayChildren: 0.15 } } };
+const STAGGER: Variants = { on: { transition: { staggerChildren: 0.05, delayChildren: 0.15 } } };
 const EXI: Variants = { off: { opacity: 0, y: 8 }, on: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } } };
 
 // The session's facts, grouped by where they came from (the tool's source), newest first:
@@ -103,8 +104,14 @@ function CtxFacts({ facts }: { facts: api.Session["context"]["facts"] }) {
   );
 }
 
-export function Chat({ page, go, age = 140, pm = true, compact = false }: {
+/** A spoken answer that moved the operator to another page: the chat that shows it next (the
+    side panel, when the full NEXUS page was left) reads it aloud, for a few seconds only. */
+let speakAfterMove: { text: string; until: number } | null = null;
+
+export function Chat({ page, go, navigate = go, age = 140, pm = true, compact = false }: {
   page: string; go: (p: string) => void; age?: number; pm?: boolean; compact?: boolean;
+  /** open a page because an answer moved there (twin_navigate); keeps the conversation in view */
+  navigate?: (p: string) => void;
 }) {
   const [tab, setTab] = useState<api.Tab>(api.savedTab.get());
   const [model, setModel] = useState<api.Model>(api.savedModel.get());
@@ -128,14 +135,24 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
   const input = useRef<HTMLTextAreaElement>(null);
 
   const refreshList = () => api.sessions().then(setList);
-  const open = async (id: string | null) => {
+  const open = async (id: string | null): Promise<api.Turn[]> => {
     setSid(id); api.currentSession.set(id); setShowList(false); setSpeakNext(null);
-    if (!id) { setTurns([]); setContext(EMPTY); setMemory(""); setTitle(""); return; }
+    if (!id) { setTurns([]); setContext(EMPTY); setMemory(""); setTitle(""); return []; }
     const s = await api.session(id);
-    if (!s) { setSid(null); api.currentSession.set(null); setTurns([]); setContext(EMPTY); return; }
+    if (!s) { setSid(null); api.currentSession.set(null); setTurns([]); setContext(EMPTY); return []; }
     setTurns(s.turns); setContext(s.context); setMemory(s.memory ?? ""); setTitle(s.title);
+    return s.turns;
   };
-  useEffect(() => { api.status().then(setStatus); open(sid); refreshList(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    api.status().then(setStatus); refreshList();
+    // taken at once, so the chat that asked does not also read it once this one has
+    const pending = speakAfterMove && speakAfterMove.until > Date.now() ? speakAfterMove : null;
+    speakAfterMove = null;
+    open(sid).then((loaded) => {
+      const last = pending && [...loaded].reverse().find((t) => t.role === "assistant" && t.text === pending.text);
+      if (last) setSpeakNext(last.t);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { end.current?.scrollIntoView({ block: "end", behavior: "smooth" }); }, [turns]);
   useEffect(() => { api.savedTab.set(tab); }, [tab]);
   useEffect(() => { api.savedModel.set(model); }, [model]);
@@ -152,6 +169,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
     setTurns((m) => [...m, { role: "user", text: t, t: now }, { role: "assistant", text: THINKING[tab], t: now, pending: true }]);
     const t0 = performance.now();
     let reply: api.Turn;
+    let moved: string | undefined;
     try {
       if (!HAS_API) {
         const ctx: Ctx = { age, pm, get: <T,>(k: DataKey) => loadJson<T>(DATA[k]) };
@@ -169,12 +187,14 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
           if (p.thinking) next.thinking = next.thinking ? `${next.thinking}\n\n${p.thinking}` : p.thinking;
           return [...m.slice(0, -1), next];
         });
+        const isVoice = viaVoice || tab === "voice";
         const r = await api.askStream({ question: t, page, provider: api.providerOf(model), session_id: sid, age, pm, mode: choice,
-          depth: prefs.depth, audience: prefs.audience, sources: prefs.sources }, live);
+          depth: prefs.depth, audience: prefs.audience, sources: prefs.sources, voice: isVoice }, live);
         reply = { role: "assistant", text: r.answer, t: now, model: r.model, style: r.style, sources: r.sources, links: r.links,
           tools: r.tools, note: r.note, unverified: r.unverified, switched: r.switched, facts: r.facts, cites: r.cites,
           route: r.route, steps: r.steps, thinking: r.thinking, usage: r.usage, trace: r.trace,
           search_suggestions: r.search_suggestions };
+        moved = r.navigate;
         if (r.session) {
           setSid(r.session.id); api.currentSession.set(r.session.id); setTitle(r.session.title);
           api.session(r.session.id).then((s) => { if (s) { setContext(s.context); setMemory(s.memory ?? ""); } });
@@ -210,6 +230,16 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
     setTurns((m) => [...m.slice(0, -1), reply]);
     setBusy(false);
     if (!viaVoice) input.current?.focus();
+    // the answer moved the operator: open that page. A spoken answer is handed on in case this
+    // chat is replaced by another (the full page gives way to the side panel); when this chat
+    // stays, it reads the answer itself and the hand-over lapses.
+    if (moved && moved !== page) {
+      if (viaVoice) {
+        speakAfterMove = { text: reply.text, until: Date.now() + 15000 };
+        window.setTimeout(() => { if (speakAfterMove?.text === reply.text) speakAfterMove = null; }, 1000);
+      }
+      navigate(moved);
+    }
   };
 
   const examples = useMemo(() => {
@@ -218,7 +248,12 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
     return [...own, ...EXAMPLES].slice(0, 6);
   }, [compact, prefs.audience]);
   const pageTitle = GUIDE[page]?.title;
-  const MODEL_AVAIL: Partial<Record<api.Model, boolean | undefined>> = { auto: true, local: status.ollama };
+  const MODEL_AVAIL: Partial<Record<api.Model, boolean | undefined>> = {
+    auto: true,
+    mercury: status.mercury ?? status.openai,
+    gemini: status.gemini,
+    local: status.ollama,
+  };
 
   const history = (
     <div className="cx-history">
@@ -294,7 +329,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
         <details className="cx-sec cx-ctx-memory">
           <summary><Icon name="copilot" size={14} />What the next model is given</summary>
           <p className="cx-muted">This session's facts, as Markdown - added to the context of the next question, whichever model answers it.</p>
-          <div className="cx-md"><Md text={memory} /></div>
+          <div className="cx-md"><MarkdownText text={memory} /></div>
         </details>
       )}
     </aside>
@@ -361,7 +396,7 @@ export function Chat({ page, go, age = 140, pm = true, compact = false }: {
             <b>{tab === "voice" ? "Ask by voice" : `Ask about ${pageTitle && page !== "copilot" ? `“${pageTitle}”` : "the cell"}`}</b>
             <span>{HERO[prefs.audience]}</span>
             {tab !== "voice" && (
-              <motion.div className="cx-examples" variants={EX} initial="off" animate="on">
+              <motion.div className="cx-examples" variants={STAGGER} initial="off" animate="on">
                 {examples.map((e) => <motion.button key={e} variants={EXI} onClick={() => ask(e)}>{e}</motion.button>)}
               </motion.div>
             )}

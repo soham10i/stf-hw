@@ -19,16 +19,17 @@ import csv
 import re
 from dataclasses import fields
 
-import hbw_model as HM
-import oven_model as OM
-import sorting_model as SM
-import vgr_model as VG
+import hbw_model
+import oven_model
+import sorting_model
+import vgr_model
 
 # Same named-colour -> hex table hbw_export.py uses for the web scene, reused
 # here rather than re-typed, so the table's colours can't drift from the render.
-from hbw_export import COLOUR as NAMED_COLOUR, col as resolve_colour
+from hbw_export import COLOUR as NAMED_COLOUR
+from hbw_export import col as resolve_colour
 
-# --------------------------------------------------------------------------
+# --- datasheet facts
 # Facts pulled from the datasheets in stf-cad/hw/. Every entry here is a
 # claim I can point at a specific document for; nothing here was guessed.
 DATASHEET = {
@@ -273,10 +274,10 @@ def rows_for_module(module: str, parts, home_pose_note: str):
 
 def build_all():
     rows = []
-    rows += rows_for_module("hbw", HM.build(), "default pose: travel=665 lift=120 fork=0 (parked, off the rack)")
-    rows += rows_for_module("vgr", VG.build(0.0, 0.0, 0.0), "swivel=0 plunge=0 reach=0")
-    rows += rows_for_module("oven", OM.build(), "authoring defaults (slider=205 aussen, door=160 open, turn=0, sauger=150 at Drehtisch, lower=0, push=0)")
-    rows += rows_for_module("sorting", SM.build(), "push=(0,0,0)")
+    rows += rows_for_module("hbw", hbw_model.build(), "default pose: travel=665 lift=120 fork=0 (parked, off the rack)")
+    rows += rows_for_module("vgr", vgr_model.build(0.0, 0.0, 0.0), "swivel=0 plunge=0 reach=0")
+    rows += rows_for_module("oven", oven_model.build(), "authoring defaults (slider=205 aussen, door=160 open, turn=0, sauger=150 at Drehtisch, lower=0, push=0)")
+    rows += rows_for_module("sorting", sorting_model.build(), "push=(0,0,0)")
     return rows
 
 
@@ -290,7 +291,7 @@ def write_csv(rows, path):
 
 def write_xlsx(rows, path):
     from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils import get_column_letter
 
     wb = Workbook()

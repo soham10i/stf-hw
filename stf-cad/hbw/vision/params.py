@@ -7,16 +7,16 @@ so the live camera feed draws its images with the same numbers the CNN was train
 import json
 import os
 
-from vision import render as R
+from vision import render
 
-OUT = os.path.join(os.path.dirname(R.__file__), "..", "..", "..", "web", "public", "vision", "render.json")
+OUT = os.path.join(os.path.dirname(render.__file__), "..", "..", "..", "web", "public", "vision", "render.json")
 
 
 def main():
-    out = {"N": R.N, "MM": R.MM, "REF": R.REF, "belt": R.BELT, "wp_d": R.SM.S["WP_D"],
-           "dough": [float(v) for v in R.DOUGH], "colour": {f: [float(v) for v in c] for f, c in R.COLOUR.items()},
-           "flavours": R.FLAVOURS, "conditions": R.CONDITIONS,
-           "ranges": {"narrow": R.NARROW, "wide": R.WIDE, "shift": R.SHIFT}}
+    out = {"N": render.N, "MM": render.MM, "REF": render.REF, "belt": render.BELT, "wp_d": render.SM.S["WP_D"],
+           "dough": [float(v) for v in render.DOUGH], "colour": {f: [float(v) for v in c] for f, c in render.COLOUR.items()},
+           "flavours": render.FLAVOURS, "conditions": render.CONDITIONS,
+           "ranges": {"narrow": render.NARROW, "wide": render.WIDE, "shift": render.SHIFT}}
     json.dump(out, open(OUT, "w"), indent=1)
     print("wrote", os.path.relpath(OUT))
 

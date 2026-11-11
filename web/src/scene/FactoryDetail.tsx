@@ -75,7 +75,7 @@ export function PreciseComp({ fit }: { fit: Fit }) {
   );
 }
 
-// ------------------------------------------------------------- devices
+// --- devices
 /** The fit of a device model (devices.py: RevPi, PSU, adaptor PCB, remote I/O) into the box the
     factory CAD gives it: the device frame stands in the box as it is (its H, B, T along the box's
     x, y, z), or turned a quarter about z when the box lies the other way. A board (`lift`) sits on
@@ -118,9 +118,9 @@ export function deviceOf(name: string): string | null {
   return null;
 }
 
-// ------------------------------------------------------------------- PCB
+// --- PCB
 
-function B({ at, size, colour, metal = false }: {
+function Block({ at, size, colour, metal = false }: {
   at: [number, number, number]; size: [number, number, number]; colour: string; metal?: boolean;
 }) {
   return (
@@ -137,7 +137,7 @@ export function ProfileBox({ p, s }: { p: [number, number, number]; s: [number, 
   const L = s.indexOf(Math.max(...s));                 // the long axis
   const edge = Math.min(...s);
   const slot = edge >= 18 ? 6 : 5, dep = 0.6;
-  const els: JSX.Element[] = [<B key="bar" at={p} size={s} colour="#cfd3d6" metal />];
+  const els: JSX.Element[] = [<Block key="bar" at={p} size={s} colour="#cfd3d6" metal />];
   const others = [0, 1, 2].filter((i) => i !== L);
   let k = 0;
   for (const i of others) {
@@ -146,13 +146,13 @@ export function ProfileBox({ p, s }: { p: [number, number, number]; s: [number, 
       const at = [...p] as [number, number, number], sz = [...s] as [number, number, number];
       sz[i] = dep; at[i] = side ? p[i] + s[i] - dep + 0.2 : p[i] - 0.2;
       sz[j] = slot; at[j] = p[j] + s[j] / 2 - slot / 2;
-      els.push(<B key={`s${k++}`} at={at} size={sz} colour="#2e3236" />);
+      els.push(<Block key={`s${k++}`} at={at} size={sz} colour="#2e3236" />);
     }
   }
   for (const end of [0, 1]) {
     const at = [...p] as [number, number, number], sz = [...s] as [number, number, number];
     sz[L] = 1; at[L] = end ? p[L] + s[L] - 0.6 : p[L] - 0.4;
-    els.push(<B key={`c${end}`} at={at} size={sz} colour="#16181a" />);
+    els.push(<Block key={`c${end}`} at={at} size={sz} colour="#16181a" />);
   }
   return <group>{els}</group>;
 }
@@ -246,7 +246,7 @@ function upgradePart(q: UpPart, module: string, lib: PreciseLib | null) {
     const s = boxSize(q);
     return /^profile(:\d+)?$/.test(q.mech)
       ? <ProfileBox p={q.p} s={s} />
-      : <B at={q.p} size={s} colour={q.c} metal={q.c === "#d6d9da" || q.c === "#aeb4b8"} />;
+      : <Block at={q.p} size={s} colour={q.c} metal={q.c === "#d6d9da" || q.c === "#aeb4b8"} />;
   }
   const [ax, len, dia] = cylSpec(q);
   const c = ax === "z" ? v(q.p[0], q.p[1], q.p[2] + len / 2)
@@ -311,7 +311,7 @@ export function PcbBoard({ p, s }: { p: [number, number, number]; s: [number, nu
   const els: JSX.Element[] = [];
   let k = 0;
   const add = (u: number, w: number, z: number, du: number, dw: number, dz: number, c: string, metal = false) =>
-    els.push(<B key={k++} at={at(u, w, z)} size={sz(du, dw, dz)} colour={c} metal={metal} />);
+    els.push(<Block key={k++} at={at(u, w, z)} size={sz(du, dw, dz)} colour={c} metal={metal} />);
   for (const [u, w] of [[4, 4], [U - 8, 4], [4, Wd - 8], [U - 8, Wd - 8]]) add(u, w, 0, 4, 4, bz, "#c9ced3", true);
   add(0, 0, bz, U, Wd, 1.6, "#1d6b3a");                               // FR4
   const top = bz + 1.6;
@@ -327,7 +327,7 @@ export function PcbBoard({ p, s }: { p: [number, number, number]; s: [number, nu
   return <group>{els}</group>;
 }
 
-// ------------------------------------------------------------------- PLC
+// --- PLC
 export function PlcCabinet({ parts, at }: {
   parts: { n: string; p: [number, number, number]; s: [number, number, number]; c: string; g: string }[];
   at: [number, number];
@@ -338,17 +338,17 @@ export function PlcCabinet({ parts, at }: {
         <Pickable key={q.n} cad={`plc/${q.n}`}>
         <group>
           {deviceOf(q.n)
-            ? <DeviceModel comp={deviceOf(q.n)!} p={q.p} s={q.s} fallback={<B at={q.p} size={q.s} colour={q.c} />} />
-            : <B at={q.p} size={q.s} colour={q.c} metal={q.n === "din_rail"} />}
+            ? <DeviceModel comp={deviceOf(q.n)!} p={q.p} s={q.s} fallback={<Block at={q.p} size={q.s} colour={q.c} />} />
+            : <Block at={q.p} size={q.s} colour={q.c} metal={q.n === "din_rail"} />}
           {q.n.startsWith("revpi") && !deviceOf(q.n) && (() => {
             // front face is UP: two 14-pole spring plugs, the status LEDs
             const [x, y, z] = q.p, [dx, dy, dz] = q.s, t = z + dz;
             return (
               <>
-                <B at={[x + 6, y + 3, t]} size={[36, dy - 6, 9]} colour="#2f8a4f" />
-                <B at={[x + dx - 42, y + 3, t]} size={[36, dy - 6, 9]} colour="#2f8a4f" />
+                <Block at={[x + 6, y + 3, t]} size={[36, dy - 6, 9]} colour="#2f8a4f" />
+                <Block at={[x + dx - 42, y + 3, t]} size={[36, dy - 6, 9]} colour="#2f8a4f" />
                 {[0, 1, 2].map((i) => (
-                  <B key={i} at={[x + dx / 2 - 6 + i * 5, y + dy / 2 - 1.5, t]} size={[3, 3, 1]}
+                  <Block key={i} at={[x + dx / 2 - 6 + i * 5, y + dy / 2 - 1.5, t]} size={[3, 3, 1]}
                      colour={i === 0 ? "#39d353" : i === 1 ? "#f0b429" : "#39d353"} />
                 ))}
               </>
@@ -356,7 +356,7 @@ export function PlcCabinet({ parts, at }: {
           })()}
           {q.n === "psu_wdr120" && !deviceOf(q.n) && (() => {
             const [x, y, z] = q.p, [dx, dy, dz] = q.s, t = z + dz;
-            return <B at={[x + 8, y + 4, t]} size={[dx - 16, dy - 8, 6]} colour="#6b7178" />;
+            return <Block at={[x + 8, y + 4, t]} size={[dx - 16, dy - 8, 6]} colour="#6b7178" />;
           })()}
         </group>
         </Pickable>
@@ -365,7 +365,7 @@ export function PlcCabinet({ parts, at }: {
   );
 }
 
-// ---------------------------------------------------------------- wiring
+// --- wiring
 function rounded(pts: THREE.Vector3[], r = 10) {
   // replace each corner with two points r mm either side: straight runs stay
   // straight and the wire bends round a radius, as a real one does
@@ -481,7 +481,7 @@ export function Wiring({ w, cover = true }: { w: WiringDoc; cover?: boolean }) {
 }
 
 
-// ------------------------------------------------------------------ U11
+// --- U11
 type Box6 = [number, number, number, number, number, number];
 const ZC = { Z0: "#ef4444", Z1: "#3b82f6" };
 

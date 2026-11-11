@@ -37,7 +37,7 @@ export const BRIDGE_MAGIC = 0x53544642; // "STFB"
 export const BRIDGE_VERSION = 2;
 
 /** Header word indices (Int32). */
-export const H = {
+export const HEADER = {
   MAGIC: 0,
   VERSION: 1,
   SEQ: 2,
@@ -57,15 +57,15 @@ export const H = {
 const HEADER_INTS = 16;
 
 /** Scalar indices (Float64). */
-export const S = { SIM_TIME: 0, PUBLISHED_MS: 1, DT: 2, RATE: 3 } as const;
+export const SCALAR = { SIM_TIME: 0, PUBLISHED_MS: 1, DT: 2, RATE: 3 } as const;
 const SCALARS = 4;
 
 /** Doubles per transform: px py pz (mm), qx qy qz qw. */
 export const TRANSFORM_STRIDE = 7;
 /** Doubles per axis, and what each is. */
 export const AXIS_STRIDE = 9;
-export const AX = { POSITION: 0, RPM: 1, CURRENT: 2, VOLTS: 3, COUNT: 4, TASK: 5, ERROR: 6, CRASHES: 7, HOMED: 8 } as const;
-/** AX.TASK's values */
+export const AXIS = { POSITION: 0, RPM: 1, CURRENT: 2, VOLTS: 3, COUNT: 4, TASK: 5, ERROR: 6, CRASHES: 7, HOMED: 8 } as const;
+/** AXIS.TASK's values */
 export const TASKS = ["idle", "jog", "move", "home", "until", "done"] as const;
 
 export const PIN_HIGH = 1 << 0; // the pin reads as logic 1
@@ -150,20 +150,20 @@ export function createBridge(partCapacity: number, pinCapacity: number, preferSh
   const shared = preferShared && canShare();
   const buffer = shared ? new SharedArrayBuffer(layout.byteLength) : new ArrayBuffer(layout.byteLength);
   const v = new BridgeViews(buffer, layout);
-  v.header[H.MAGIC] = BRIDGE_MAGIC;
-  v.header[H.VERSION] = BRIDGE_VERSION;
-  v.header[H.PART_CAPACITY] = partCapacity;
-  v.header[H.PIN_CAPACITY] = pinCapacity;
-  v.header[H.AXIS_CAPACITY] = axisCapacity;
+  v.header[HEADER.MAGIC] = BRIDGE_MAGIC;
+  v.header[HEADER.VERSION] = BRIDGE_VERSION;
+  v.header[HEADER.PART_CAPACITY] = partCapacity;
+  v.header[HEADER.PIN_CAPACITY] = pinCapacity;
+  v.header[HEADER.AXIS_CAPACITY] = axisCapacity;
   return v;
 }
 
 /** Views over a buffer another thread created, after checking it is a bridge of this version. */
 export function attachBridge(buffer: ArrayBuffer | SharedArrayBuffer): BridgeViews {
   const head = new Int32Array(buffer, 0, HEADER_INTS);
-  if (head[H.MAGIC] !== BRIDGE_MAGIC) throw new Error("not a simulation bridge buffer");
-  if (head[H.VERSION] !== BRIDGE_VERSION) throw new Error(`bridge version ${head[H.VERSION]}, expected ${BRIDGE_VERSION}`);
-  return new BridgeViews(buffer, bridgeLayout(head[H.PART_CAPACITY], head[H.PIN_CAPACITY], head[H.AXIS_CAPACITY]));
+  if (head[HEADER.MAGIC] !== BRIDGE_MAGIC) throw new Error("not a simulation bridge buffer");
+  if (head[HEADER.VERSION] !== BRIDGE_VERSION) throw new Error(`bridge version ${head[HEADER.VERSION]}, expected ${BRIDGE_VERSION}`);
+  return new BridgeViews(buffer, bridgeLayout(head[HEADER.PART_CAPACITY], head[HEADER.PIN_CAPACITY], head[HEADER.AXIS_CAPACITY]));
 }
 
 // Atomics need a shared Int32Array; on an ordinary buffer (the transfer fallback, one thread per
@@ -180,7 +180,7 @@ const add = (a: Int32Array, i: number, v: number, shared: boolean) => {
 /** The main thread may not block (Atomics.wait throws there). */
 const MAIN_THREAD = typeof (globalThis as { document?: unknown }).document !== "undefined";
 
-// ------------------------------------------------------------------ the mutex
+// --- the mutex
 /** A mutex on one Int32 word of a shared buffer: 0 free, 1 held. */
 export class SpinMutex {
   constructor(private readonly word: Int32Array, private readonly index: number, private readonly shared = true) {}
@@ -218,7 +218,7 @@ export class SpinMutex {
   }
 }
 
-// ------------------------------------------------------------------ the writer (worker)
+// --- the writer (worker)
 /** The worker's side: publishes the state under the seqlock and drains the UI's inputs. */
 export class BridgeWriter {
   private readonly shared: boolean;
@@ -227,20 +227,20 @@ export class BridgeWriter {
 
   constructor(readonly views: BridgeViews) {
     this.shared = views.shared;
-    this.inputs = new SpinMutex(views.header, H.INPUT_LOCK, this.shared);
+    this.inputs = new SpinMutex(views.header, HEADER.INPUT_LOCK, this.shared);
   }
 
   /** Writes one consistent state: `write` runs between the two sequence bumps. The sequence is
       odd while it runs, so no reader accepts a half-written state. */
   publish(write: (v: BridgeViews) => void): void {
     const h = this.views.header;
-    add(h, H.SEQ, 1, this.shared); // odd: writing
+    add(h, HEADER.SEQ, 1, this.shared); // odd: writing
     try {
       write(this.views);
-      this.views.scalars[S.PUBLISHED_MS] = performance.now();
+      this.views.scalars[SCALAR.PUBLISHED_MS] = performance.now();
     } finally {
-      add(h, H.SEQ, 1, this.shared); // even: stable
-      if (this.shared) Atomics.notify(h, H.SEQ);
+      add(h, HEADER.SEQ, 1, this.shared); // even: stable
+      if (this.shared) Atomics.notify(h, HEADER.SEQ);
     }
   }
 
@@ -249,15 +249,15 @@ export class BridgeWriter {
     if (parts > l.partCapacity || pins > l.pinCapacity || axes > l.axisCapacity) {
       throw new RangeError(`${parts} parts / ${pins} pins / ${axes} axes exceed the bridge's ${l.partCapacity} / ${l.pinCapacity} / ${l.axisCapacity}`);
     }
-    this.views.header[H.PART_COUNT] = parts;
-    this.views.header[H.PIN_COUNT] = pins;
-    this.views.header[H.AXIS_COUNT] = axes;
+    this.views.header[HEADER.PART_COUNT] = parts;
+    this.views.header[HEADER.PIN_COUNT] = pins;
+    this.views.header[HEADER.AXIS_COUNT] = axes;
   }
 
   /** The step counter as two 32-bit words (exact to 2^53 steps). */
   setStep(step: number): void {
-    this.views.header[H.STEP_LO] = step % 0x1_0000_0000 | 0;
-    this.views.header[H.STEP_HI] = Math.floor(step / 0x1_0000_0000);
+    this.views.header[HEADER.STEP_LO] = step % 0x1_0000_0000 | 0;
+    this.views.header[HEADER.STEP_HI] = Math.floor(step / 0x1_0000_0000);
   }
 
   /** The UI's forced inputs, if they changed since the last call: `apply(pin, volts | null)` for
@@ -265,11 +265,11 @@ export class BridgeWriter {
       step) if the UI holds it. */
   drainInputs(apply: (pin: number, volts: number | null) => void): boolean {
     const h = this.views.header;
-    const seq = load(h, H.INPUT_SEQ, this.shared);
+    const seq = load(h, HEADER.INPUT_SEQ, this.shared);
     if (seq === this.lastInputSeq) return false;
     if (!this.inputs.lock(1)) return false;
     try {
-      const n = h[H.PIN_COUNT];
+      const n = h[HEADER.PIN_COUNT];
       for (let i = 0; i < n; i++) apply(i, this.views.inputFlags[i] & INPUT_SET ? this.views.inputVolts[i] : null);
       this.lastInputSeq = seq;
     } finally {
@@ -279,7 +279,7 @@ export class BridgeWriter {
   }
 }
 
-// ------------------------------------------------------------------ the reader (renderer)
+// --- the reader (renderer)
 export interface Snapshot {
   seq: number;
   step: number;
@@ -314,14 +314,14 @@ export class BridgeReader {
 
   constructor(views: BridgeViews) {
     this.views = views;
-    this.inputs = new SpinMutex(views.header, H.INPUT_LOCK, views.shared);
+    this.inputs = new SpinMutex(views.header, HEADER.INPUT_LOCK, views.shared);
   }
 
   /** The transfer fallback: a new copy from the worker replaces the current one. */
   adopt(buffer: ArrayBuffer): void {
     const next = new BridgeViews(buffer, this.views.layout);
     this.views = next;
-    this.inputs = new SpinMutex(next.header, H.INPUT_LOCK, false);
+    this.inputs = new SpinMutex(next.header, HEADER.INPUT_LOCK, false);
   }
 
   /** Copies one consistent state into `out`; false if the writer kept it busy for `retries`
@@ -332,12 +332,12 @@ export class BridgeReader {
     const h = v.header;
     const shared = v.shared;
     for (let attempt = 0; attempt < retries; attempt++) {
-      const s1 = load(h, H.SEQ, shared);
+      const s1 = load(h, HEADER.SEQ, shared);
       if (s1 & 1) continue; // being written
       if (s1 === out.seq && !force) return true; // nothing new
-      const parts = h[H.PART_COUNT];
-      const pins = h[H.PIN_COUNT];
-      const axes = h[H.AXIS_COUNT];
+      const parts = h[HEADER.PART_COUNT];
+      const pins = h[HEADER.PIN_COUNT];
+      const axes = h[HEADER.AXIS_COUNT];
       out.transforms.set(v.transforms.subarray(0, parts * TRANSFORM_STRIDE));
       out.pinVolts.set(v.pinVolts.subarray(0, pins));
       out.pinFlags.set(v.pinFlags.subarray(0, pins));
@@ -345,11 +345,11 @@ export class BridgeReader {
       out.partCount = parts;
       out.pinCount = pins;
       out.axisCount = axes;
-      out.mode = h[H.MODE];
-      out.flags = h[H.FLAGS];
-      out.step = (h[H.STEP_HI] >>> 0) * 0x1_0000_0000 + (h[H.STEP_LO] >>> 0);
-      out.simTime = v.scalars[S.SIM_TIME];
-      const s2 = load(h, H.SEQ, shared);
+      out.mode = h[HEADER.MODE];
+      out.flags = h[HEADER.FLAGS];
+      out.step = (h[HEADER.STEP_HI] >>> 0) * 0x1_0000_0000 + (h[HEADER.STEP_LO] >>> 0);
+      out.simTime = v.scalars[SCALAR.SIM_TIME];
+      const s2 = load(h, HEADER.SEQ, shared);
       if (s1 === s2) {
         out.seq = s1;
         return true;
@@ -382,7 +382,7 @@ export class BridgeReader {
           v.inputFlags[pin] = INPUT_SET;
         }
       }
-      add(v.header, H.INPUT_SEQ, 1, v.shared);
+      add(v.header, HEADER.INPUT_SEQ, 1, v.shared);
       this.pending.clear();
     } finally {
       this.inputs.unlock();

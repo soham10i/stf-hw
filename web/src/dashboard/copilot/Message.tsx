@@ -9,6 +9,7 @@ import * as api from "./api";
 import { speech, speechStream, type Cite as Source, type Mode, type Style, type Trace, type Turn } from "./api";
 import { CopilotMark, Icon } from "../../shared/icons";
 import { TeX, displayBlock, mathSplit } from "../../shared/tex";
+import { quiet } from "../../shared/log";
 
 const STYLE_LABEL: Record<Style, string> = {
   greeting: "hello", quick: "quick answer", compare: "comparison", steps: "steps", status: "live status",
@@ -152,7 +153,7 @@ function Code({ lang, code }: { lang: string; code: string }) {
 
 /** Markdown for model answers: paragraphs, headings, lists (numbered too), tables, fenced code,
     LaTeX ($...$, $$...$$, \(...\), \[...\]), **bold**, *emphasis*, `code`, links, [citations]. */
-export function Md({ text, cites }: { text: string; cites?: Source[] }) {
+export function MarkdownText({ text, cites }: { text: string; cites?: Source[] }) {
   const words = (s: string, k: string) => s.split(/(`[^`]+`|\*\*[^*]+\*\*|\[[^\]]{1,200}\]\(https?:\/\/[^)\s]+\)|\[[^\]]{1,200}\]|\*[^*\s][^*]*\*)/g).map((p, i) => {
     const key = `${k}-${i}`;
     if (p.startsWith("`") && p.endsWith("`") && p.length > 1) return <code key={key}>{p.slice(1, -1)}</code>;
@@ -333,7 +334,7 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
   return (
     <button className={`cx-icon ${done ? "ok" : ""}`} title={done ? "Copied" : label} aria-label={label}
       onClick={() => {
-        navigator.clipboard?.writeText(text).then(() => { setDone(true); window.setTimeout(() => setDone(false), 1400); }).catch(() => undefined);
+        navigator.clipboard?.writeText(text).then(() => { setDone(true); window.setTimeout(() => setDone(false), 1400); }).catch(quiet("clipboard"));
       }}>
       <Icon name={done ? "copied" : "copy"} size={15} />
     </button>
@@ -342,6 +343,8 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
 
 /** The one voice speaking now, app-wide: starting another stops it, so answers never overlap. */
 let speaking: (() => void) | null = null;
+/** Silence the answer being read aloud, if one is: the operator has started to speak. */
+export const stopSpeaking = () => speaking?.();
 
 /** A raw-PCM player: base64 16-bit chunks queued on an AudioContext, each starting where the
     last one ends; the lead-in is the jitter buffer. Chunks may arrive slower than real time,
@@ -382,7 +385,7 @@ function pcmPlayer(rate: number) {
       if (!any || ctx.state === "suspended") return Promise.resolve();
       return new Promise((res) => { onEnd = res; watch(); });
     },
-    stop() { stopped = true; onEnd?.(); void ctx.close().catch(() => {}); },
+    stop() { stopped = true; onEnd?.(); void ctx.close().catch(quiet("audio")); },
   };
 }
 
@@ -576,7 +579,7 @@ function Answer({ turn, go, autoSpeak }: { turn: Turn; go: (p: string) => void; 
         {style === "status" && turn.facts && turn.facts.length > 0 && !/\*\*[^*]+\*\*:/.test(turn.text) ? (
           <div className="cx-grid">{turn.facts.slice(0, 6).map(([k, v]) => <div key={k}><span>{k}</span><b>{v}</b></div>)}</div>
         ) : null}
-        <div className="cx-md"><Md text={fig ? turn.text.replace(`**${fig}**`, fig) : turn.text} cites={turn.cites} /></div>
+        <div className="cx-md"><MarkdownText text={fig ? turn.text.replace(`**${fig}**`, fig) : turn.text} cites={turn.cites} /></div>
         {turn.usage?.removed ? <p className="cx-note">ⓘ {turn.usage.removed} page{turn.usage.removed > 1 ? "s" : ""} from forums, social media or unvetted sites {turn.usage.removed > 1 ? "were" : "was"} left out by the source policy.</p> : null}
         {turn.note && <p className={`cx-note ${turn.unverified?.length ? "bad" : ""}`}>{turn.unverified?.length ? "⚠ " : "ⓘ "}{turn.note}</p>}
         {turn.search_suggestions?.map((html, i) => <SearchSuggestions key={i} html={html} />)}

@@ -13,10 +13,9 @@ HERE = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() els
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "motion"))
 import FreeCAD as App
-
-import line_model as M
-import motion as Mo
-import motion_player as MP
+import line_model
+import motion
+import motion_player
 
 LOG = open("/tmp/validate_motion.out", "w")
 SAMPLE = 1.0
@@ -31,8 +30,8 @@ def log(*a):
 def main():
     fc = os.path.expanduser("~/workspace/stf-factory/cad/line2_precise/STF2_Precise.FCStd")
     doc = App.openDocument(fc)
-    pl = MP.Player(doc, os.path.join(HERE, "motion", "timeline.json"))
-    base = {p.name: p for p in M.build()}
+    pl = motion_player.Player(doc, os.path.join(HERE, "motion", "timeline.json"))
+    base = {p.name: p for p in line_model.build()}
     fails, n_pos, n_brep = [], 0, 0
     if pl.missing:
         fails.append(f"{len(pl.missing)} timeline parts missing in the CAD: {pl.missing[:5]}")
@@ -40,11 +39,11 @@ def main():
     for k in range(pl.n):
         pl.apply(k)
         t = k * pl.dt
-        now, vis, _ = Mo.frame(t, base)
+        now, vis, _ = motion.frame(t, base)
         for n, o in pl.obj.items():
             p = now[n]
             if p.kind == "rod":
-                a, b = Mo.rod_ends(p)
+                a, b = motion.rod_ends(p)
                 mid = App.Vector(*[(a[i] + b[i]) / 2 for i in range(3)])
                 err = (o.Shape.CenterOfMass - mid).Length
             else:
@@ -65,7 +64,7 @@ def main():
                 if not bo.intersect(q.Shape.BoundBox):
                     continue
                 pq = now.get(q.Label) or base.get(q.Label)
-                if pq is None or Mo._exempt(now[n], pq):
+                if pq is None or motion._exempt(now[n], pq):
                     continue
                 n_brep += 1
                 v = o.Shape.common(q.Shape).Volume

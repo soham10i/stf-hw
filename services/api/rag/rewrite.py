@@ -30,7 +30,7 @@ MAX_FIX_DIST = 2
 MIN_TOKEN_LEN = 4
 
 # dashboard page id -> extra vocabulary for that page (page ids: tools.py Ctx.page,
-# the docs/assistant guides). Keep small: terms every question on that page shares.
+# the docs/reference guides). Keep small: terms every question on that page shares.
 PAGE_TERMS: dict[str, tuple[str, ...]] = {
     "dashboard-overview": ("dashboard", "overview", "factory", "line", "cell"),
     "dashboard-quality": ("quality", "inspection", "vision", "cookie", "reject"),

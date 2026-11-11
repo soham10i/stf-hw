@@ -75,7 +75,7 @@ def usage_tokens(data: dict) -> int:
     )
 
 
-# ------------------------------------------------------------------ one question's meter
+# --- one question's meter
 """Every model call a question makes, whoever answers it, adds its tokens to the question's meter
 (a context variable: asyncio.to_thread and the deep research's sub-searches carry it along), so
 the reply can say what it cost: {"tokens", "calls", "by": {provider: tokens}}."""
@@ -122,10 +122,10 @@ def meter_model(provider: str, model: str | None, data: dict) -> dict:
     Only Gemini has a configured price table. Other providers and unknown models are explicitly
     unpriced rather than being reported as zero-cost.
     """
-    from . import model_cost as MC
+    from . import model_cost
 
     billed_gemini = provider in ("gemini", "vertex")
-    row = MC.estimate(model if billed_gemini else None, data)
+    row = model_cost.estimate(model if billed_gemini else None, data)
     m = _METER.get()
     if m is not None:
         m["input_tokens"] = m.get("input_tokens", 0) + row["input_tokens"]
@@ -244,7 +244,7 @@ class TokenBudget:
     shared: Any = field(default=None, repr=False)
     name: str = "gemini"
 
-    # ---------------------------------------------------------------- counting
+    # --- counting
     def _roll(self, now: float) -> None:
         today = time.strftime("%Y-%m-%d", time.gmtime(now))
         if today != self.day:
@@ -309,7 +309,7 @@ class TokenBudget:
                 return name
         return "spent"
 
-    # ---------------------------------------------------------------- allowing
+    # --- allowing
     def allow(self, mode: str, prompt_tokens: int, guest: str | None = None) -> Allowance | None:
         """What a `web` or `deep` search may do now, or None when the budget cannot afford one:
         the tier is spent, no grounded searches are left, or the question does not fit."""

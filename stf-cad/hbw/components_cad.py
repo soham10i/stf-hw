@@ -18,13 +18,17 @@ its datasheet envelope within 0.01 mm, the shaft's across-flats must equal
 4.0 - 2 x 0.7 within 0.01 mm, and the web mesh is tessellated with a 0.01 mm
 chordal tolerance. Nothing is written if a check fails.
 """
-import json, math, os, shutil, sys
+import json
+import math
+import os
+import shutil
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import components
 import FreeCAD as App
 import Part
-
-import components as C
 
 V = App.Vector
 CAD_DIR = os.path.expanduser("~/workspace/stf-factory/cad/components")
@@ -41,7 +45,7 @@ COLOURS = {"ftred": "#d8261c", "black": "#2a2b2e", "ftyellow": "#f2c21b", "red":
            "led_green": "#39d353", "led_amber": "#f0b429", "white": "#ecebe6"}
 
 
-# ----------------------------------------------------------------- helpers
+# --- helpers
 def bevelled_box(L, W, H, e):
     b = Part.makeBox(L, W, H)
     return b.makeChamfer(e, b.Edges) if e > 0 else b
@@ -66,9 +70,9 @@ def hole(d, depth, at, direction):
     return Part.makeCylinder(d / 2, depth + 0.01, at - direction * 0.01, direction)
 
 
-# ------------------------------------------------------------- components
+# --- components
 def encoder_motor():
-    g = lambda k: C.get("encoder_motor", k)
+    g = lambda k: components.get("encoder_motor", k)
     L, W, H = g("L"), g("W"), g("H")
     body = bevelled_box(L, W, H, g("edge"))
     m, i, dp = g("g_mouth"), g("g_inner"), g("g_depth")
@@ -106,7 +110,7 @@ def encoder_motor():
 
 
 def mini_switch():
-    g = lambda k: C.get("mini_switch", k)
+    g = lambda k: components.get("mini_switch", k)
     L, W, H = g("L"), g("W"), g("H")
     body = bevelled_box(L, W, H, g("edge"))
     for zc in (g("contact_z"), g("contact_z") + 4.0, g("contact_z") + 8.0):
@@ -124,7 +128,7 @@ def mini_switch():
 
 
 def phototransistor():
-    g = lambda k: C.get("phototransistor", k)
+    g = lambda k: components.get("phototransistor", k)
     L, W, H = g("L"), g("W"), g("H")
     body = bevelled_box(L, W, H, g("edge"))
     wl, ww, wd = g("win_l"), g("win_w"), g("win_depth")
@@ -142,7 +146,7 @@ def phototransistor():
 
 
 def colour_sensor():
-    g = lambda k: C.get("colour_sensor", k)
+    g = lambda k: components.get("colour_sensor", k)
     L, W, H = g("L"), g("W"), g("H")
     body = bevelled_box(L, W, H, g("edge"))
     body = body.cut(dovetail_along_x(L, W / 2, H, g("g_mouth"), g("g_inner"), g("g_depth")))
@@ -201,7 +205,7 @@ def gear(d, t, teeth, at, axis):
 
 
 def s_motor():
-    g = lambda k: C.get("s_motor", k)
+    g = lambda k: components.get("s_motor", k)
     L, W, H = g("L"), g("W"), g("H")
     body = bevelled_box(L, W, H, g("edge"))
     m, i, dp = g("g_mouth"), g("g_inner"), g("g_depth")
@@ -231,7 +235,7 @@ def s_motor():
 
 
 def compressor():
-    g = lambda k: C.get("compressor", k)
+    g = lambda k: components.get("compressor", k)
     L, W, H = g("L"), g("W"), g("H")
     body = shell(L, W, H, g("edge"), 1.5)
     m, i, dp = g("g_mouth"), g("g_inner"), g("g_depth")
@@ -270,7 +274,7 @@ def compressor():
 
 
 def pneumatic_cylinder():
-    g = lambda k: C.get("pneumatic_cylinder", k)
+    g = lambda k: components.get("pneumatic_cylinder", k)
     L, W, H = g("L"), g("W"), g("H")
     fc, rc = g("cap_front"), g("cap_rear")
     yc, zc = W / 2, H / 2
@@ -303,7 +307,7 @@ def pneumatic_cylinder():
 
 
 def ir_track_sensor():
-    g = lambda k: C.get("ir_track_sensor", k)
+    g = lambda k: components.get("ir_track_sensor", k)
     L, W, H = g("L"), g("W"), g("H")
     body = bevelled_box(L, W, H, g("edge"))
     body = body.cut(dovetail_along_x(L, W / 2, H, 3.2, 4.4, 3.6))
@@ -327,7 +331,7 @@ def ir_track_sensor():
 
 
 def solenoid_valve():
-    g = lambda k: C.get("solenoid_valve", k)
+    g = lambda k: components.get("solenoid_valve", k)
     L, W, H = g("L"), g("W"), g("H")
     t = g("plate_t")
     bracket = Part.makeCompound([Part.makeBox(L, W, t), Part.makeBox(L, W, t, V(0, 0, H - t)),
@@ -359,17 +363,18 @@ BUILDERS = {"encoder_motor": encoder_motor, "mini_switch": mini_switch,
             "pneumatic_cylinder": pneumatic_cylinder, "ir_track_sensor": ir_track_sensor,
             "solenoid_valve": solenoid_valve}
 # the control and power devices: RevPi, PSU, adaptor PCB, remote I/O (devices.py, devices_cad.py)
+import devices  # noqa: E402
 from devices_cad import DEVICE_BUILDERS  # noqa: E402
-import devices as DV  # noqa: E402
+
 BUILDERS.update(DEVICE_BUILDERS)
 
 
-# ----------------------------------------------------------- verification
+# --- verification
 def verify(cid, parts):
     """Exact geometry against the datasheet, to 0.01 mm."""
-    comp = C.COMPONENTS[cid]
+    comp = components.COMPONENTS[cid]
     res, fails = [], []
-    L, W, H = C.get(cid, "L"), C.get(cid, "W"), C.get(cid, "H")
+    L, W, H = components.get(cid, "L"), components.get(cid, "W"), components.get(cid, "H")
     housing = next(s for n, s, *_ in parts if n == "housing")
     bb = housing.optimalBoundingBox(True, False)
     got = (bb.XLength, bb.YLength, bb.ZLength)
@@ -388,9 +393,9 @@ def verify(cid, parts):
         # the outline is scaled off the p.4 drawing with ST3 as the ruler: the other headers, of
         # standard length, must come out of the same drawing within 5 %
         for hdr, poles in (("st1", 20), ("st2", 20)):
-            a, _, b, _ = DV.PCB_PX[hdr]
-            drawn = (b - a) * DV.PCB_MM_PER_PX
-            want = DV.BOX_HEADER(poles)
+            a, _, b, _ = devices.PCB_PX[hdr]
+            drawn = (b - a) * devices.PCB_MM_PER_PX
+            want = devices.BOX_HEADER(poles)
             ok = abs(drawn - want) / want <= 0.05
             res.append({"check": f"ruler: {hdr.upper()} drawn vs a {poles}-pole header", "datasheet_mm": round(want, 2),
                         "model_mm": round(drawn, 3), "ok": ok, "source": "standard"})
@@ -399,7 +404,7 @@ def verify(cid, parts):
     if cid == "revpi_dio":
         # two 14-pole plugs at 3.5 mm: each pole field 49 mm, on a nose that must hold it
         plug = next(s for n, s, *_ in parts if n == "io_plug_1")
-        want = C.get(cid, "io_poles") * C.get(cid, "io_pitch")
+        want = components.get(cid, "io_poles") * components.get(cid, "io_pitch")
         have = plug.BoundBox.XLength
         res.append({"check": "I/O plug pole field (14 x 3.5)", "datasheet_mm": want, "model_mm": round(have, 4),
                     "ok": abs(have - want) <= TOL_MM, "source": "datasheet"})
@@ -408,10 +413,10 @@ def verify(cid, parts):
     if cid == "encoder_motor":
         shaft = next(s for n, s, *_ in parts if n == "output_shaft")
         sb = shaft.optimalBoundingBox(True, False)
-        want = C.get(cid, "shaft_d") - 2 * C.get(cid, "flat")
+        want = components.get(cid, "shaft_d") - 2 * components.get(cid, "flat")
         for lbl, want_, have in (("shaft across flats", want, sb.ZLength),
-                                 ("shaft diameter", C.get(cid, "shaft_d"), sb.YLength),
-                                 ("shaft protrusion", C.get(cid, "shaft_l"), -sb.XMin)):
+                                 ("shaft diameter", components.get(cid, "shaft_d"), sb.YLength),
+                                 ("shaft protrusion", components.get(cid, "shaft_l"), -sb.XMin)):
             ok = abs(want_ - have) <= TOL_MM
             res.append({"check": lbl, "datasheet_mm": round(want_, 3), "model_mm": round(have, 4),
                         "ok": ok})
@@ -420,14 +425,14 @@ def verify(cid, parts):
     return res, fails
 
 
-# ---------------------------------------------------------------- output
+# --- output
 def write_cad(cid, parts):
     import fcstd_colour
     for d in list(App.listDocuments()):
         App.closeDocument(d)
     doc = App.newDocument(cid)
     colour_of = {}
-    cont = doc.addObject("App::Part", f"ft_{C.COMPONENTS[cid]['ft']}_{cid}")
+    cont = doc.addObject("App::Part", f"ft_{components.COMPONENTS[cid]['ft']}_{cid}")
     for n, s, col, mat, inside in parts:
         o = doc.addObject("Part::Feature", n)
         o.Shape = s
@@ -453,14 +458,15 @@ def write_cad(cid, parts):
 
 
 def write_glb(cid, parts):
-    import stf_gltf as SG, stf_web_glb as WG
-    g = WG.WebGltf()
+    import stf_gltf
+    import stf_web_glb
+    g = stf_web_glb.WebGltf()
     kids = []
     for n, s, col, mat, inside in parts:
         # 0.01 mm chord everywhere except swept helices (springs, worms), whose
         # thousands of tiny faces would otherwise weigh megabytes
         swept = n in ("spring", "worm_shaft")
-        pos, nrm, idx = WG.face_mesh(s, (0.05, 0.35) if swept else (0.01, 0.1))
+        pos, nrm, idx = stf_web_glb.face_mesh(s, (0.05, 0.35) if swept else (0.01, 0.1))
         g._cls = "metal" if mat in ("steel", "brass") else "plastic"
         m = g.mesh(n, pos, nrm, idx, COLOURS[col])
         kids.append(g.node(n, mesh=m, extras={"part": n, "material": mat, "colour": COLOURS[col],
@@ -504,13 +510,13 @@ def main():
     if all_fail:
         print("REFUSING to write - components fail their accuracy checks:")
         print("\n".join(all_fail)); sys.exit(1)
-    uses = C.used_in()
+    uses = components.used_in()
     uses.update(device_uses())
     for cid, (parts, res) in built.items():
         fc, st = write_cad(cid, parts)
         glb, ntri = write_glb(cid, parts)
         shutil.copy(st, os.path.join(WEB_DIR, f"{cid}.step"))
-        comp = C.COMPONENTS[cid]
+        comp = components.COMPONENTS[cid]
         bb = App.BoundBox()
         for _, s, *_ in parts:
             bb.add(s.optimalBoundingBox(True, False))

@@ -20,46 +20,46 @@ import shutil
 import subprocess
 import time
 
-import month as M
+import month
 import numpy as np
 import torch
-
-from edge import run as E
-from ml import train as T
+from ml import train as ml_train
 from ml.model import RUL_CAP, WINDOW
 from pdm import data
 
-WORK = os.path.join(E.ROOT, ".cache", "edgetpu")
+from edge import run
+
+WORK = os.path.join(run.ROOT, ".cache", "edgetpu")
 IMAGE = "stf-edgetpu"
 
 
 def export(fleet):
-    from vision import render as R
-    from vision import train as VT
-    W = json.load(open(os.path.join(E.ML, "weights.json")))
+    from vision import render
+    from vision import train as vision_train
+    W = json.load(open(os.path.join(run.ML, "weights.json")))
     mu, sd = np.array(W["ctx_mu"], np.float32), np.array(W["ctx_sd"], np.float32)
-    tcn, cnn = E.tcn_fp32(), E.cnn_fp32()
+    tcn, cnn = run.tcn_fp32(), run.cnn_fp32()
     z = {f"tcn.{k}": v.numpy() for k, v in tcn.state_dict().items() if not k.startswith("dec.")}
     z.update({f"cnn.{k}": v.numpy() for k, v in cnn.state_dict().items()})
     rng = np.random.default_rng(0)
-    xc = np.concatenate([np.ascontiguousarray(E.windows(fleet[i][0], mu, sd)[c][::16]) for i in E.CAL for c in range(len(M.COMP))])
+    xc = np.concatenate([np.ascontiguousarray(run.windows(fleet[i][0], mu, sd)[c][::16]) for i in run.CAL for c in range(len(month.COMP))])
     xc = xc[rng.choice(len(xc), 1500, replace=False)]
-    z["tcn_cal"], z["tcn_cal_rul"] = xc, E.torch_fn(tcn)(xc)[0]
-    z["tcn_nin"], z["tcn_win"], z["rul_cap"] = T.N_IN, WINDOW, RUL_CAP
+    z["tcn_cal"], z["tcn_cal_rul"] = xc, run.torch_fn(tcn)(xc)[0]
+    z["tcn_nin"], z["tcn_win"], z["rul_cap"] = ml_train.N_IN, WINDOW, RUL_CAP
     for i in data.TEST:
-        z[f"tcn_test_{i}"] = T.channels(fleet[i][0], mu, sd)                 # C x T x NIN
-    cal = E.light(cnn, R.dataset(500, VT.SEED + 1, R.TRAIN)[0])
-    z["cnn_cal"], z["cnn_cal_p"] = cal, E.softmax(E.cnn_taps(cnn, cal)["co"].numpy())   # after the light step
-    sets = {"in_domain": R.dataset(VT.TEST_N, VT.SEED + 2, R.TRAIN), "shifted": R.dataset(VT.TEST_N, VT.SEED + 3, R.SHIFT)}
+        z[f"tcn_test_{i}"] = ml_train.channels(fleet[i][0], mu, sd)          # C x T x NIN
+    cal = run.light(cnn, render.dataset(500, vision_train.SEED + 1, render.TRAIN)[0])
+    z["cnn_cal"], z["cnn_cal_p"] = cal, run.softmax(run.cnn_taps(cnn, cal)["co"].numpy())  # after the light step
+    sets = {"in_domain": render.dataset(vision_train.TEST_N, vision_train.SEED + 2, render.TRAIN), "shifted": render.dataset(vision_train.TEST_N, vision_train.SEED + 3, render.SHIFT)}
     for name, (X, _, _) in sets.items():
-        z[f"cnn_{name}"] = E.light(cnn, X)
+        z[f"cnn_{name}"] = run.light(cnn, X)
     os.makedirs(WORK, exist_ok=True)
     np.savez(os.path.join(WORK, "in.npz"), **z)
     return mu, sd, tcn, cnn, sets
 
 
 def container():
-    here = os.path.join(E.HERE, "tpu")
+    here = os.path.join(run.HERE, "tpu")
     if subprocess.run(["docker", "image", "inspect", IMAGE], capture_output=True).returncode:
         subprocess.run(["docker", "build", "--platform", "linux/amd64", "-t", IMAGE, here], check=True)
     subprocess.run(["docker", "run", "--rm", "--platform", "linux/amd64", "-v", f"{os.path.abspath(WORK)}:/work",
@@ -69,31 +69,31 @@ def container():
 
 
 def main():
-    from vision import train as VT
+    from vision import train as vision_train
     t0 = time.time()
-    fleet = data.load(E.CAL + data.TEST)
+    fleet = data.load(run.CAL + data.TEST)
     mu, sd, tcn, cnn, sets = export(fleet)
     rep, out = container()
-    G = E.Graded(fleet, data.TEST)
-    ref = E.predict(E.torch_fn(tcn), fleet, data.TEST, mu, sd)
+    G = run.Graded(fleet, data.TEST)
+    ref = run.predict(run.torch_fn(tcn), fleet, data.TEST, mu, sd)
     lite = {i: (out[f"tcn_test_{i}"], out[f"tcn_test_{i}_cls"]) for i in data.TEST}
-    rep["tcn"]["graded"] = {"fp32": T.evaluate(G, ref, "fp32"), "tflite int8": {**T.evaluate(G, lite, "tflite int8"), **E.agreement(ref, lite)}}
+    rep["tcn"]["graded"] = {"fp32": ml_train.evaluate(G, ref, "fp32"), "tflite int8": {**ml_train.evaluate(G, lite, "tflite int8"), **run.agreement(ref, lite)}}
     rep["cnn"]["graded"] = {}
     for name, (X, yf, yc) in sets.items():
         with torch.no_grad():
             f32 = [torch.softmax(t, 1).numpy() for t in cnn(torch.from_numpy(X))]
         pf, pc = out[f"cnn_{name}_flavour"], out[f"cnn_{name}_condition"]
-        s = VT.score(pf, pc, yf, yc)
-        s["verdicts_changed"] = round(float((VT.verdicts(f32[1]) != VT.verdicts(pc)).mean()), 4)
-        rep["cnn"]["graded"][name] = {"fp32": VT.score(*f32, yf, yc), "tflite int8": s}
+        s = vision_train.score(pf, pc, yf, yc)
+        s["verdicts_changed"] = round(float((vision_train.verdicts(f32[1]) != vision_train.verdicts(pc)).mean()), 4)
+        rep["cnn"]["graded"][name] = {"fp32": vision_train.score(*f32, yf, yc), "tflite int8": s}
     for k in ("tcn", "cnn"):
         for f in (f"stf_{k}_int8.tflite", f"stf_{k}_int8_edgetpu.tflite"):
             if os.path.exists(os.path.join(WORK, f)):
-                shutil.copy(os.path.join(WORK, f), os.path.join(E.OUT, f))
+                shutil.copy(os.path.join(WORK, f), os.path.join(run.OUT, f))
         for e in ("stdout", "stderr"):
             rep[k]["edgetpu"][e] = rep[k]["edgetpu"][e].strip()
     rep["seconds"] = round(time.time() - t0, 1)
-    with open(os.path.join(E.OUT, "tpu.json"), "w") as fh:
+    with open(os.path.join(run.OUT, "tpu.json"), "w") as fh:
         json.dump(rep, fh, separators=(",", ":"))
     g = rep["tcn"]["graded"]
     for k, r in g.items():

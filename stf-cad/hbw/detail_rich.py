@@ -26,10 +26,9 @@ Runs inside FreeCAD.
 """
 import math
 
+import detail
 import FreeCAD as App
 import Part
-
-import detail
 
 V = App.Vector
 RED, BLACK, STEEL, ALU = "#d8261c", "#26272b", "#b9bec4", "#d6d9da"
@@ -103,7 +102,7 @@ def _env(p):
     return detail.envelope(p)
 
 
-# --------------------------------------------------------------- builders
+# --- builders
 def kiln_wall(p):
     env = _env(p)
     x, y, z, dx, dy, dz = _box(p)
@@ -164,7 +163,7 @@ def lamp(p):
     try:
         lens = lens.makeFillet(min(r, lens_h * 0.9) * 0.6,
                                [e for e in lens.Edges if abs(e.BoundBox.ZMin - z) < 1e-6])
-    except Exception:
+    except Exception:  # OCC cannot fillet this lens: keep it flat
         pass
     return [("socket", sock, BLACK), ("lens", lens, LENS)]
 

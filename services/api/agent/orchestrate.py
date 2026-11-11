@@ -36,8 +36,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from services.api.rag import vectors as V
 from services.api.core.logging_config import get_logger
+from services.api.rag import vectors
 
 logger = get_logger(__name__)
 
@@ -52,6 +52,43 @@ GREETING = re.compile(
     r"[\s!.,?]*$",
     re.I,
 )
+CONVERSATIONAL = re.compile(
+    r"^(hi|hello|hey|howdy|greetings|good\s+(morning|afternoon|evening))\b|"
+    r"\b(can you hear me|hear me|can you see me|do you hear me|are you there|you there|"
+    r"testing|mic check|microphone check|sound check|audio check|test 1 2|test 1 2 3|"
+    r"who are you|what is your name|how are you|how's it going|what's up)\b",
+    re.I,
+)
+
+
+def is_conversational(q: str) -> bool:
+    """Determine if a query is a greeting, audio mic check, or conversational ping."""
+    s = q.strip()
+    if GREETING.match(s):
+        return True
+    if CONVERSATIONAL.search(s):
+        tokens = re.findall(r"\w+", s.lower())
+        if len(tokens) <= 12 and not any(
+            t in tokens
+            for t in (
+                "research",
+                "benchmark",
+                "physics",
+                "engine",
+                "accuracy",
+                "motor",
+                "plc",
+                "vgr",
+                "hbw",
+                "oven",
+                "sort",
+                "defect",
+                "metric",
+                "metrics",
+            )
+        ):
+            return True
+    return False
 DEEP = re.compile(
     r"\bdeep(ly)?\s+(research|dive|search)|\bresearch\b.{0,40}\b(this|it|on|into|about)\b|"
     r"\bliterature\b|\bsurvey\b|state of the art|\bcompare\b.{0,40}\b(sources|vendors|standards|"
@@ -127,7 +164,7 @@ def _doc_hit(q: str) -> tuple[float, float, float, str]:
     on the BM25-only shape - routing must never break because retrieval did.
     """
     try:
-        hits = V.hybrid_search(q, top_k=1)
+        hits = vectors.hybrid_search(q, top_k=1)
     except Exception as e:
         logger.warning("Hybrid retrieval failed in router for query %r: %s", q[:50], e)
         hits = []
@@ -199,13 +236,13 @@ def decide(
         return Plan("docs", [*why, "no web search provider is configured: the documents only"], sig)
 
     plan: Plan
-    if choice in ("docs", "web", "deep"):
+    if is_conversational(q):
+        plan = Plan("chat", ["conversational ping: answered directly without research"], sig)
+    elif choice in ("docs", "web", "deep"):
         if choice == "docs":
             plan = Plan("docs", ["you chose Docs: the knowledge base only, no web"], sig)
         else:
             plan = web_or_docs(choice, [f"you chose {choice.capitalize()}"])
-    elif GREETING.match(q):
-        plan = Plan("chat", ["a greeting: no retrieval needed"], sig)
     elif sig["explicit_deep"]:
         plan = web_or_docs("deep", ["the question asks for research across sources"])
     elif sig["explicit_web"]:

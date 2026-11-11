@@ -89,19 +89,21 @@ def allowed(evidence: str, question: str = "") -> set[str]:
     return ok
 
 
-def unverified(answer: str, evidence: str, question: str = "") -> list[str]:
+def unverified(answer: str, evidence: str, question: str = "",
+               ok: set[str] | None = None) -> list[str]:
     """Identify any numbers in an answer that lack mathematical derivation from evidence.
 
     Args:
         answer: Model-generated answer text.
         evidence: Ground-truth tool outputs and citations provided to the model.
         question: User inquiry string.
+        ok: allowed(evidence, question), when the caller checks many texts against one evidence.
 
     Returns:
         list[str]: List of unverified or hallucinated numerical tokens.
     """
     text = LIST_MARK.sub(" ", answer)
-    ok = allowed(evidence, question)
+    ok = allowed(evidence, question) if ok is None else ok
     seen, out = set(), []
     for n in NUM.findall(text):
         s = numbers(n).pop()

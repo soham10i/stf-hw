@@ -34,10 +34,13 @@ an engine choice, never a second implementation.
   gather      the findings in plan order, into the evidence a model writes up
   answer      the model ladder (Gemini lanes, Groq, UPB, an open model, Ollama): each provider
               runs the one tool loop (toolloop.py); a failure hands over to the next
-  verify      the number check (verify.py): an answer with a number nothing backs goes back to
-              the model that wrote it, once; then it stands, flagged
+  verify      the number check (verify.py) and the claim check (claims.py): an answer with a
+              number or a statement nothing backs goes back to the model that wrote it, once;
+              then the policy (answer_policy.py) passes, strips, hedges or declines it, and every
+              supported claim is given its citation
   tools_only  the twin's tools answer: no model is configured, or none answered in time
-  respond     the payload (policy-vetted links, cites, steps, usage), the session and the cache
+  respond     the payload (policy-vetted links, cites, claims, quality, steps, usage), the
+              session and the cache; run() then keeps the answer's quality record (quality.py)
 
 Two kinds of data flow through it. The graph STATE is what the edges decide on and what a
 checkpoint would keep: the route, the research plan and its findings (added together, since
@@ -59,27 +62,27 @@ import time
 from dataclasses import dataclass, field
 from typing import Annotated, Any, TypedDict
 
-from fastapi import HTTPException, Request
+from fastapi import Request
 
-from . import chat as C
-from services.api.rag import crag as CR
-from . import depth as D
-from services.api.rag import gemini_search as GS
-from . import orchestrate as O
-from . import respond as R
-from services.api.rag import scholar as SCH
-from services.api.storage import sessions as S
-from services.api.rag import source_policy as SP
-from services.api.providers import token_budget as TB
-from . import tools as T
-from services.api.core import tracing as TR
-from . import verify as V
-from services.api.rag import websearch as W
+from services.api.core import tracing
+from services.api.core.errors import AppError, Reason
 from services.api.core.logging_config import get_logger
+from services.api.providers import token_budget
+from services.api.rag import crag, gemini_search, scholar, source_policy, websearch
+from services.api.storage import sessions as chat_sessions
+
+from . import answer_policy, confidence, orchestrate, quality
+from . import chat as chat_engine
+from . import claims as claim_check
+from . import depth as answer_depth
+from . import respond as answer_shape
+from . import tools as twin_tools
+from . import verify as faithfulness
 
 logger = get_logger(__name__)
 
 END = "__end__"  # langgraph.graph.END, without importing langgraph
+MAX_JUDGE_CALLS = 2  # small-model calls on claims per question: one per verify pass
 
 try:  # the graph engine is optional: without it the same nodes run as a loop
     from langgraph.graph import END as _END
@@ -153,6 +156,13 @@ class Question:
     gate: Any = None  # research branches at a time (an asyncio.Semaphore)
     ceiling: int = 0  # the research's token ceiling
     branches: int = 0  # research searches planned so far
+    report: Any = None  # the answer's claims, checked (claims.Report)
+    verdict: str | None = None  # how corrective retrieval judged the passages, when it ran
+    judge_calls: int = 0  # small-model calls spent judging claims
+    regenerated: bool = False  # sent back once for an unbacked number or claim
+    decision: Any = None  # what the policy did with the answer (answer_policy.Decision)
+    confidence: float | None = None  # how sure the answer may be (confidence.py)
+    cited_by_model: float | None = None  # the share of claims the model cited itself
 
     def say(self, kind: str, text: str) -> None:
         """Record a progress step and forward it to the client's emit hook."""
@@ -169,30 +179,69 @@ class Question:
         mine = " ".join(t.text for t in req.history if t.role == "user")
         dumps = " ".join(json.dumps(r.as_dict(), ensure_ascii=False) for r in self.results)
         pages = " ".join(self.web_pages)
-        block = C.context_block(req.grounding, req.page, self.results)
+        block = chat_engine.context_block(req.grounding, req.page, self.results)
         return f"{block} {self.memory} {dumps} {pages} {mine}"
 
     def check(self, answer: str) -> list[str]:
         """Claims in the answer the evidence does not support (verify.py)."""
-        return V.unverified(answer, self.evidence(), self.req.question)
+        if self.plan and self.plan.mode == "deep":
+            # Deep research synthesizes broad external literature, benchmark matrices,
+            # and academic metrics not found in local factory twin telemetry.
+            return []
+        return faithfulness.unverified(answer, self.evidence(), self.req.question)
+
+    def passages(self) -> list:
+        """The evidence as labelled passages (claims.py): each retrieved passage, each tool's
+        result, the page's own context, the web pages read and the operator's words."""
+        req = self.req
+        mine = " ".join(t.text for t in req.history if t.role == "user")
+        block = chat_engine.context_block(req.grounding, req.page, None)
+        return claim_check.passages_from(
+            self.results, block, self.memory, f"{req.question} {mine}", self.web_pages
+        )
+
+    def claim_check(self, answer: str, ask=None) -> claim_check.Report:
+        """Every claim of the answer against the evidence (deep research: words only, as the
+        number check skips it there)."""
+        deep = bool(self.plan and self.plan.mode == "deep")
+        return claim_check.check(
+            answer, self.passages(), self.evidence(), self.req.question, ask, numbers=not deep
+        )
+
+    def local(self) -> bool:
+        """The answer rests on this twin's documents and tools, not on a web search."""
+        return bool(self.plan and self.plan.mode in answer_policy.LOCAL_MODES)
+
+    def judge(self):
+        """The claim judge's model call, or None: only for a docs or twin answer, never spoken,
+        at most MAX_JUDGE_CALLS per question (claims.py)."""
+        if (getattr(self.req, "voice", False) or not self.local()
+                or self.judge_calls >= MAX_JUDGE_CALLS or not claim_check.judge_enabled()):
+            return None
+        meta: dict = {}
+
+        def ask(system: str, user: str) -> str:
+            return self.chat.quick(system, user, 300, meta, "claims")
+
+        return ask
 
 
-# ---------------------------------------------------------------------------------- the nodes
+# --- the nodes
 async def prepare(state: State, q: Question) -> State:
     """The session, the rules router's tool calls, and the cache for a repeated question."""
     chat, req, request = q.chat, q.req, q.request
     user = request.headers.get("x-stf-user") or req.user
-    q.user = user if user and S.USER.match(user) else None
+    q.user = user if user and chat_sessions.USER.match(user) else None
     q.guest = q.user or q.client  # whose share of the Gemini token budget the question counts on
-    q.session = S.load(chat.store, q.user, req.session_id, req.page) if q.user else None
-    q.memory = S.context_text(q.session, req.question) if q.session else ""
+    q.session = chat_sessions.load(chat.store, q.user, req.session_id, req.page) if q.user else None
+    q.memory = chat_sessions.context_text(q.session, req.question) if q.session else ""
     if q.session and not req.history:
-        req.history = [C.Turn(role=t["role"], text=t["text"]) for t in S.history(q.session)]
+        req.history = [chat_engine.Turn(role=t["role"], text=t["text"]) for t in chat_sessions.history(q.session)]
 
-    q.ctx = T.Ctx(age=req.age, pm=req.pm, page=req.page, client=q.client)
+    q.ctx = twin_tools.Ctx(age=req.age, pm=req.pm, page=req.page, client=q.client)
     # every Gemini model is cooling down: give small local models the lean retrieval
     lean = chat.has_gemini and not any(ln.pool.available() for ln in chat.lanes)
-    q.rules_text, q.results = T.rules_answer(req.question, q.ctx, lean=lean)
+    q.rules_text, q.results = twin_tools.rules_answer(req.question, q.ctx, lean=lean)
     q.called = [r.tool for r in q.results]
     # identical session-less questions (a double-ask, a voice echo) reuse the answer for
     # cache_ttl_s; never cached when live_state answered (the twin may have moved on). Keyed by
@@ -202,8 +251,17 @@ async def prepare(state: State, q: Question) -> State:
         [req.grounding.model_dump(), [t.model_dump() for t in req.history]], sort_keys=True
     )
     q.cache_key = (
-        q.user or q.client, req.question, req.page, req.provider, req.mode, req.age, req.pm,
-        req.depth, req.audience, q.level, hashlib.sha256(supplied.encode()).hexdigest(),
+        q.user or q.client,
+        req.question,
+        req.page,
+        req.provider,
+        req.mode,
+        req.age,
+        req.pm,
+        req.depth,
+        req.audience,
+        q.level,
+        hashlib.sha256(supplied.encode()).hexdigest(),
     )
     if q.session is None and "live_state" not in q.called:
         hit = chat.cache.get(q.cache_key)
@@ -216,7 +274,7 @@ async def prepare(state: State, q: Question) -> State:
 async def route(state: State, q: Question) -> State:
     """The route (rules, not a model), the answer's style and depth, and the provider ladder."""
     chat, req = q.chat, q.req
-    q.plan = plan = O.decide(
+    q.plan = plan = orchestrate.decide(
         req.question, q.called, req.mode, can_search=chat.can_search()
     )
     if q.emit:
@@ -228,35 +286,70 @@ async def route(state: State, q: Question) -> State:
             q.say("step", f"searched the documents: {n} passages (best match {best:.1f})")
         else:
             q.say("step", f"computed {r.tool.replace('_', ' ')}")
-    q.style = R.classify(req.question, q.called)
-    if plan.mode in ("web", "deep") and q.style not in ("derive", "greeting"):
+    q.style = answer_shape.classify(req.question, q.called)
+    if getattr(req, "voice", False):
+        q.style = "voice" if q.style != "greeting" else "greeting"
+    elif plan.mode in ("web", "deep") and q.style not in ("derive", "greeting"):
         q.style = "research"
-    if q.style in ("derive", "explain", "research") and plan.mode != "chat":
+    if (
+        q.style in ("derive", "explain", "research")
+        and plan.mode != "chat"
+        and not getattr(req, "voice", False)
+    ):
         # an explanation needs the passages that hold the equations: more of them, whole
-        more = T.call("search_docs", {"query": req.question, "k": 6}, q.ctx)
+        more = twin_tools.call("search_docs", {"query": req.question, "k": 6}, q.ctx)
         if q.style == "derive":
-            more = T.equations(more)
+            more = twin_tools.equations(more)
         q.results = [r for r in q.results if r.tool != "search_docs"] + [more]
         q.called = [r.tool for r in q.results]
-    q.dp = dp = D.pick(req.depth, plan.mode, q.style)
-    q.say("step", f"depth: {dp.name} (answers up to {dp.answer_tokens} tokens; sources {q.level})")
-    q.extra = "\n\n".join(
-        x for x in (q.memory, R.instruction(q.style), D.instruction(dp, req.audience)) if x
+    q.dp = dp = answer_depth.pick(req.depth, plan.mode, q.style, voice=getattr(req, "voice", False))
+    is_voice = getattr(req, "voice", False)
+    is_brief = is_voice or q.style in ("greeting", "quick", "status")
+    max_toks = (
+        400
+        if is_voice
+        else (
+            600
+            if is_brief
+            else (
+                int(os.environ.get("MERCURY_MAX_OUTPUT_TOKENS", "32768"))
+                if ((plan.mode == "deep" or dp.name == "thorough") and chat.c.openai_url)
+                else dp.answer_tokens
+            )
+        )
     )
-    q.chain = chat._provider(req.provider)
+    q.say("step", f"depth: {dp.name} (answers up to {max_toks} tokens; sources {q.level})")
+    q.extra = "\n\n".join(
+        x
+        for x in (
+            q.memory,
+            answer_shape.instruction(q.style),
+            answer_depth.instruction(dp, req.audience),
+        )
+        if x
+    )
+    if not req.provider or req.provider == "auto":
+        preferred = "mercury" if chat.c.openai_url else chat.c.deep_provider
+        q.chain = chat._provider(preferred)
+    else:
+        q.chain = chat._provider(req.provider)
     if not q.chain:
-        why = None if req.provider == "rules" else (
-            "No model is configured; answered from the twin's tools."
+        why = (
+            None
+            if req.provider == "rules"
+            else ("No model is configured; answered from the twin's tools.")
         )
         return {"mode": plan.mode, "web": plan.web, "rules": True, "why": why}
     if not chat.cap.take():
-        raise HTTPException(status_code=429, detail="today's question budget is used up")
+        raise AppError(Reason.DAILY_BUDGET_SPENT, "today's question budget is used up")
     # the passages are judged when the answer rests on them; an equation chain keeps its order
     docs = (
-        CR.enabled() and plan.mode in ("docs", "twin") and "search_docs" in q.called
+        crag.enabled()
+        and plan.mode in ("docs", "twin")
+        and "search_docs" in q.called
         and q.style != "derive"
     )
-    TR.here(stf__mode=plan.mode, stf__why=plan.why, stf__style=q.style, stf__depth=dp.name)
+    tracing.here(stf__mode=plan.mode, stf__why=plan.why, stf__style=q.style, stf__depth=dp.name)
     return {"mode": plan.mode, "web": plan.web, "docs": docs}
 
 
@@ -271,11 +364,12 @@ async def docs_rag(state: State, q: Question) -> State:
     meta: dict = {}
 
     def ask(system: str, user: str) -> str:
-        purpose = "judge" if system == CR.JUDGE else "rewrite"
+        purpose = "judge" if system == crag.JUDGE else "rewrite"
         return chat.quick(system, user, 600, meta, purpose)
 
-    j = await asyncio.to_thread(CR.correct, req.question, req.page, ask, k)
-    TR.here(stf__verdict=j.verdict, stf__kept=len(j.hits), stf__rewrites=len(j.rewrites))
+    j = await asyncio.to_thread(crag.correct, req.question, req.page, ask, k)
+    q.verdict = j.verdict
+    tracing.here(stf__verdict=j.verdict, stf__kept=len(j.hits), stf__rewrites=len(j.rewrites))
     if j.verdict == "unjudged":
         q.say("step", "no model free to judge the passages: the search's order stands")
         return {}
@@ -283,11 +377,13 @@ async def docs_rag(state: State, q: Question) -> State:
     if j.rewrites:
         q.say("step", "no passage helped; searched again as: " + "; ".join(j.rewrites))
     q.say("step", f"{who} judged the passages: {j.verdict} ({len(j.hits)} kept)")
-    q.results[i] = T.docs_result(req.question, j.hits, f"{len(j.hits)} passages, {j.verdict}")
+    q.results[i] = twin_tools.docs_result(
+        req.question, j.hits, f"{len(j.hits)} passages, {j.verdict}"
+    )
     if j.verdict == "none":
         can = chat.can_search()
         chosen = req.mode not in (None, "auto")  # the operator asked for the documents
-        if can and not chosen and not O.TWIN.search(req.question):
+        if can and not chosen and not orchestrate.TWIN.search(req.question):
             why = "the passages were judged not to cover it: the web answers"
             q.plan = dataclasses.replace(plan, mode="web", web=True, why=[*plan.why, why])
             if q.emit:
@@ -298,49 +394,55 @@ async def docs_rag(state: State, q: Question) -> State:
     return {}
 
 
-async def ladder(q: Question, req, dp, read: int = GS.READ_PAGES) -> W.Found | None:
+async def ladder(
+    q: Question, req, dp, read: int = gemini_search.READ_PAGES
+) -> websearch.Found | None:
     """One web search in the operator's order (WEB_SEARCH_ORDER, default gemini, groq, ddg):
     Gemini's Google Search on a token budget that shrinks the search as it is used, Groq's
     browser search, and DuckDuckGo (keyless; a configured model writes the fetched pages up).
     Each one that fails or cannot be afforded hands the search to the next; None when all do."""
     chat = q.chat
-    context = C.context_block(q.req.grounding, q.req.page, q.results)
-    sub = req.question if TR.content_allowed() else None  # a research branch's own question
+    context = chat_engine.context_block(q.req.grounding, q.req.page, q.results)
+    sub = req.question if tracing.content_allowed() else None  # a research branch's own question
     for name in chat.c.search_order:
         if not (
-            (name == "gemini" and chat.has_gemini) or (name == "groq" and chat.c.groq_key)
+            (name == "gemini" and chat.has_gemini)
+            or (name == "groq" and chat.c.groq_key)
+            or (name == "searxng" and chat.has_searxng and chat._ddg_writer())
             or name == "ddg"
         ):
             continue
-        with TR.span(f"search.{name}", stf__provider=name, stf__sub=sub) as sp:
+        with tracing.span(f"search.{name}", stf__provider=name, stf__sub=sub) as sp:
             if name == "gemini":
                 found = await chat._web_gemini(
                     req, "web", context, q.guest, q.say, q.notes, dp, q.level, read
                 )
             elif name == "groq":
                 found = await chat._web_groq(req, "web", context, q.say, q.notes, dp, q.level)
+            elif name == "searxng":
+                found = await chat._web_searxng(req, "web", context, q.say, q.notes, dp, q.level)
             else:
                 found = await chat._web_ddg(req, "web", context, q.say, q.notes, dp, q.level)
-            TR.put(sp, stf__found=bool(found), stf__sources=len(found.sources) if found else 0)
+            tracing.put(sp, stf__found=bool(found), stf__sources=len(found.sources) if found else 0)
         if found:
             return found
     return None
 
 
-async def take(q: Question, found: W.Found | None, tool: str) -> W.Found | None:
+async def take(q: Question, found: websearch.Found | None, tool: str) -> websearch.Found | None:
     """What the web found, into the evidence: the source policy, the literature for a thorough
     answer (OpenAlex - its abstracts join the findings, or stand in for them when every search
     failed), the steps and thinking, and the result first among the tools' so its pages lead
     the sources."""
     req, dp, level = q.req, q.dp, q.level
     if found:
-        found, n = SP.clean(found, level)
+        found, n = source_policy.clean(found, level)
         q.removed += n
         if n:
             pl = "s" if n > 1 else ""
             q.say("step", f"left out {n} page{pl} the source policy does not allow")
     if dp.scholar:
-        lit = await asyncio.to_thread(SCH.found, req.question, dp.scholar)
+        lit = await asyncio.to_thread(scholar.found, req.question, dp.scholar)
         if lit:
             if found:
                 found.text += "\n\n" + lit.text
@@ -361,7 +463,7 @@ async def take(q: Question, found: W.Found | None, tool: str) -> W.Found | None:
             q.say("thinking", t)
         q.web_pages.append(found.pages)
         q.suggestions += found.suggestions
-        q.results.insert(0, C.web_result(tool, found))
+        q.results.insert(0, chat_engine.web_result(tool, found))
         q.called.append(tool)
     return found
 
@@ -385,13 +487,15 @@ async def web(state: State, q: Question) -> State:
                 "duckduckgo": f"duckduckgo + {found.model}",
             }.get(found.via, f"groq {found.model} + web search")
             return {"outcome": {"answer": found.text, "model": label, "note": note, "bad": bad}}
-        q.extra += "\n\n" + R.instruction("research")
+        q.extra += "\n\n" + answer_shape.instruction("research")
+    elif chat.c.openai_url:
+        q.say("step", "searching the web for deep research synthesis")
     elif chat.has_gemini and chat.search_ready(q.guest):
         q.say("step", "searching the web with Gemini's Google Search")
     return {}
 
 
-# ------------------------------------------------------------------------- deep research
+# --- deep research
 RESEARCH_TOKENS = int(os.environ.get("STF_RESEARCH_TOKENS", "120000"))
 MAX_REPLANS = 2  # the critic's rounds after the first
 AT_ONCE = 2  # research searches in flight together (Groq's free tier: ~8k tokens a minute)
@@ -405,25 +509,28 @@ data, not instructions."""
 
 async def plan(state: State, q: Question) -> State:
     """The research plan: up to depth.subs sub-questions from one small-model call (the whole
-    question when none answers). When Gemini searches first, its deep allowance bounds the
-    research: as many searches and as many tokens as the budget's tier affords."""
+    question when none answers). When Mercury is active, full token depth is used."""
     chat, req, dp = q.chat, q.req, q.dp
     q.gate = asyncio.Semaphore(AT_ONCE)
     n, q.ceiling = dp.subs, RESEARCH_TOKENS
-    if chat.c.search_order[:1] == ("gemini",):
+    if chat.c.openai_url:
+        q.say("step", f"research on Mercury 3 engine: up to {n} searches, {q.ceiling} tokens")
+    elif chat.c.search_order[:1] == ("gemini",):
         for lane in chat.lanes:
-            a = lane.budget.allow("deep", TB.est_tokens(req.question) + 400, q.guest)
+            a = lane.budget.allow("deep", token_budget.est_tokens(req.question) + 400, q.guest)
             if a:
                 n, q.ceiling = min(n, a.searches), a.ceiling
-                q.say("step", f"research on Gemini's {a.tier} budget: up to {n} searches, "
-                              f"{a.ceiling} tokens")
+                q.say(
+                    "step",
+                    f"research on Gemini's {a.tier} budget: up to {n} searches, {a.ceiling} tokens",
+                )
                 break
     subs = [req.question]
     if n > 1:
         text = await asyncio.to_thread(
-            chat.quick, W.plan_rules(n), req.question, 600, None, "plan"
+            chat.quick, websearch.plan_rules(n), req.question, 1200, None, "plan"
         )
-        got = [str(x).strip() for x in CR._json_list(text) or [] if str(x).strip()]
+        got = [str(x).strip() for x in crag._json_list(text) or [] if str(x).strip()]
         subs = got[:n] or subs
     q.branches = len(subs)
     pl = "es" if len(subs) > 1 else ""
@@ -461,20 +568,28 @@ async def critic(state: State, q: Question) -> State:
         return {"subs": []}
     summary = "\n\n".join(f"## {f['sub']}\n\n{f['found'].text[:700]}" for f in done)
     text = await asyncio.to_thread(
-        q.chat.quick, CRITIC.replace("{n}", str(room)),
-        f"Question: {q.req.question}\n\n# Findings\n\n{summary}", 600, None, "critic",
+        q.chat.quick,
+        CRITIC.replace("{n}", str(room)),
+        f"Question: {q.req.question}\n\n# Findings\n\n{summary}",
+        600,
+        None,
+        "critic",
     )
     asked = {f["sub"].lower() for f in findings}
     more = [
-        x.strip() for x in CR._json_list(text) or []
+        x.strip()
+        for x in crag._json_list(text) or []
         if isinstance(x, str) and x.strip() and x.strip().lower() not in asked
     ][:room]
     if not more:
         q.say("step", "the critic found the findings answer the question")
         return {"subs": []}
     q.branches += len(more)
-    q.say("step", f"the critic found gaps: {len(more)} more search"
-                  f"{'es' if len(more) > 1 else ''}: " + "; ".join(more))
+    q.say(
+        "step",
+        f"the critic found gaps: {len(more)} more search"
+        f"{'es' if len(more) > 1 else ''}: " + "; ".join(more),
+    )
     return {"subs": more, "round": rnd + 1}
 
 
@@ -488,11 +603,11 @@ async def gather(state: State, q: Question) -> State:
         for f in done:
             for src in f["found"].sources:
                 seen.setdefault(src["url"], src)
-        combined = W.Found(
+        combined = websearch.Found(
             text="\n\n".join(
                 f"## Finding {i}: {f['sub']}\n\n{f['found'].text}" for i, f in enumerate(done, 1)
             ),
-            sources=sorted(seen.values(), key=SP.rank_key)[: W.MAX_SOURCES * 2],
+            sources=sorted(seen.values(), key=source_policy.rank_key)[: websearch.MAX_SOURCES * 2],
             reasoning=[r for f in done for r in f["found"].reasoning],
             model=done[0]["found"].model,
             pages=" ".join(f["found"].pages for f in done),
@@ -504,13 +619,16 @@ async def gather(state: State, q: Question) -> State:
         q.notes.append("the web search failed: every search of the research failed")
         q.say("step", "every search of the research failed")
     if await take(q, combined, "web_research"):
-        q.extra += "\n\n" + R.instruction("research")
+        q.extra += "\n\n" + answer_shape.instruction("research")
     return {}
 
 
 WHO = {"gemini": "Gemini", "groq": "Groq", "upb": "UPB AI", "ollama": "the local model"}
 NEXT_NAME = {
-    "groq": "Groq", "upb": "UPB AI", "gemini": "Gemini", "openai": "the open model",
+    "groq": "Groq",
+    "upb": "UPB AI",
+    "gemini": "Gemini",
+    "openai": "the open model",
     "ollama": "local model",
 }
 
@@ -525,37 +643,62 @@ async def answer(state: State, q: Question) -> State:
     if state.get("retry"):
         try:
             await asyncio.to_thread(q.convo.run)
-        except C.ModelError as e:  # the first answer stands, flagged by verify
+        except chat_engine.ModelError as e:  # the first answer stands, flagged by verify
             q.convo.final = True
             q.notes.append(f"the correction failed ({e})")
             q.say("step", f"the correction failed: {e}")
         return {"retry": False}
     t0 = time.monotonic()
+    is_voice = getattr(req, "voice", False)
+    is_brief = is_voice or q.style in ("greeting", "quick", "status")
+    deep = (plan.mode == "deep" or q.style == "derive") and not is_brief
+    deadline_s = 180.0 if deep else (15.0 if is_voice else chat_engine.DEADLINE_S)
     for i, prov in enumerate(q.chain):
-        if time.monotonic() - t0 > C.DEADLINE_S:
-            q.notes.append(f"no model answered within {C.DEADLINE_S:.0f} s")
+        if time.monotonic() - t0 > deadline_s:
+            q.notes.append(f"no model answered within {deadline_s:.0f} s")
             break
         if prov == "ollama" and not await asyncio.to_thread(chat._ollama_alive):
             q.notes.append("the local model is not running")
             q.switched.append({"from": "local model", "to": "next", "why": "not running"})
             continue
-        deep = plan.mode == "deep" or q.style == "derive"
+        if is_voice:
+            ans_tokens = 400
+            gemini_tokens = 512
+        elif is_brief:
+            ans_tokens = 600
+            gemini_tokens = 1024
+        elif deep and prov == "openai":
+            ans_tokens = int(os.environ.get("MERCURY_MAX_OUTPUT_TOKENS", "32768"))
+            gemini_tokens = 24576
+        elif prov == "openai" and dp.name == "thorough":
+            ans_tokens = 16000
+            gemini_tokens = 16384
+        elif prov == "openai" and dp.name == "standard":
+            ans_tokens = 8000
+            gemini_tokens = 8192
+        elif prov == "openai" and dp.name == "brief":
+            ans_tokens = 3000
+            gemini_tokens = 2048
+        else:
+            ans_tokens = dp.answer_tokens
+            gemini_tokens = dp.gemini_tokens
+
         meta: dict = {
-            "max_tokens": dp.answer_tokens,
-            "gemini_tokens": dp.gemini_tokens,
+            "max_tokens": ans_tokens,
+            "gemini_tokens": gemini_tokens,
             "extra": q.extra,
             "emit": q.say,
             "thinking": q.thinking,
             "web": plan.web and q.found is None and prov == "gemini" and chat.search_ready(q.guest),
             "guest": q.guest,
-            "effort": "medium" if deep else dp.effort,
+            "effort": "low" if (is_voice or is_brief) else ("medium" if deep else dp.effort),
             "long": deep or q.style == "research",
-            "deadline": t0 + C.DEADLINE_S,
+            "deadline": t0 + deadline_s,
         }
         try:
             convo = chat.conversation(prov, req, q.ctx, q.results, q.called, meta)
             await asyncio.to_thread(convo.run)
-        except C.ModelError as e:
+        except chat_engine.ModelError as e:
             logger.warning(
                 "LLM provider '%s' failed for question %r: %s", prov, req.question[:60], e
             )
@@ -573,30 +716,58 @@ async def answer(state: State, q: Question) -> State:
         q.convo, q.prov = convo, prov
         return {"retry": False}
     why = (
-        "Every model is busy (" + "; ".join(q.notes)
+        "Every model is busy ("
+        + "; ".join(q.notes)
         + "); answered from the twin's tools and documents."
     )
     return {"rules": True, "why": why}
 
 
 async def verify(state: State, q: Question) -> State:
-    """The number check (verify.py): every number in the answer must be in the evidence. The
-    first time one is not, the answer goes back to the model that wrote it, once
-    (Conversation.correct); after that it stands, flagged as unverified."""
+    """The number check (verify.py) and the claim check (claims.py): every number and every
+    claim of the answer must be backed by the evidence. The first time one is not, the answer
+    goes back to the model that wrote it, once (Conversation.correct). After that the policy
+    (answer_policy.py) passes, strips, hedges or declines it, and every supported claim gets
+    its citation."""
     chat, convo, prov = q.chat, q.convo, q.prov
     bad = q.check(convo.text)
-    if bad and convo.correct(bad):
-        TR.here(stf__unverified=len(bad), stf__corrected=True)
+    text = chat_engine.tidy(convo.text)
+    report = await asyncio.to_thread(q.claim_check, text, q.judge())
+    q.judge_calls += report.judge_calls
+    # unsupported words are sent back only where the evidence is this twin's own, and never
+    # for a spoken answer (its deadline has no room for a second round)
+    redo = (answer_policy.to_correct(report)
+            if q.local() and not getattr(q.req, "voice", False) else [])
+    if (bad or redo) and convo.correct(bad, redo):
+        q.regenerated = True
+        tracing.here(stf__unverified=len(bad), stf__unsupported=len(redo), stf__corrected=True)
         return {"retry": True}
-    TR.here(stf__unverified=len(bad), stf__corrected=convo.corrected)
+    tracing.here(stf__unverified=len(bad), stf__unsupported=len(report.unsupported()),
+                 stf__corrected=convo.corrected)
+    q.cited_by_model = report.cited_by_model()
+    conf = confidence.of(report, bad, q.verdict)
+    decision = answer_policy.decide(text, report, q.plan.mode, conf)
+    if decision.text != text:  # the policy changed the text: check what is shown
+        after = await asyncio.to_thread(q.claim_check, decision.text)
+        report = claim_check.carry(after, report)
+        bad = q.check(decision.text)
+    shown, added = answer_policy.cite(decision.text, report, getattr(q.req, "voice", False))
+    q.report, q.decision = report, decision
+    q.confidence = confidence.of(report, bad, q.verdict)
+    if decision.action != "pass" or added:
+        cited = f", {added} citations added" if added else ""
+        q.say("step", f"claims: {decision.action}{cited}")
+    tracing.here(stf__action=decision.action, stf__confidence=q.confidence)
     meta = convo.meta
     chat.out.pop(prov, None)
     for m, why in meta.get("skipped", []):
         q.switched.append({"from": m, "to": meta.get("model"), "why": why})
     if meta.get("web_sources"):  # Gemini's Google Search grounding
-        g, n = SP.clean(W.Found("", meta["web_sources"], model="gemini"), q.level)
+        g, n = source_policy.clean(
+            websearch.Found("", meta["web_sources"], model="gemini"), q.level
+        )
         q.removed += n
-        q.results.append(C.web_result("web_search", g))
+        q.results.append(chat_engine.web_result("web_search", g))
         q.called.append("web_search")
     q.suggestions += meta.get("search_suggestions", [])
     if prov == "gemini":
@@ -613,11 +784,19 @@ async def verify(state: State, q: Question) -> State:
     warn += [n for n in q.notes if n.startswith("the correction failed")][-1:]
     if bad:
         warn.append(
-            f"Not backed by the twin's data: {', '.join(bad)} - "
-            "check these before relying on them"
+            f"Not backed by the twin's data: {', '.join(bad)} - check these before relying on them"
         )
+    if decision.note:
+        warn.append(decision.note.rstrip("."))
     note = "; ".join(warn) + "." if warn else None
-    return {"outcome": {"answer": C.tidy(convo.text), "model": model, "note": note, "bad": bad}}
+    return {
+        "outcome": {
+            "answer": shown,
+            "model": model,
+            "note": note,
+            "bad": bad,
+        }
+    }
 
 
 async def tools_only(state: State, q: Question) -> State:
@@ -628,7 +807,7 @@ async def tools_only(state: State, q: Question) -> State:
             + q.found.text.strip()
         )
     else:
-        text = C.fallback(q.rules_text, q.results, q.style)
+        text = chat_engine.fallback(q.rules_text, q.results, q.style)
     return {"outcome": {"answer": text, "model": "rules", "note": state.get("why"), "bad": None}}
 
 
@@ -637,10 +816,14 @@ async def respond(state: State, q: Question) -> State:
     turn and the cache entry."""
     chat, req, o = q.chat, q.req, state["outcome"]
     # a model may still link a page the policy does not allow: the link goes
-    text, gone = SP.strip_links(o["answer"], q.level)
+    text, gone = source_policy.strip_links(o["answer"], q.level)
     q.removed += len(gone)
     model, note, bad = o["model"], o.get("note"), o.get("bad")
-    sources, links = C._cite(q.results)
+    if q.report is None and q.plan is not None:  # the rules fallback: scored, never changed
+        q.report = await asyncio.to_thread(q.claim_check, text)
+        q.cited_by_model = q.report.cited_by_model()
+        q.confidence = confidence.of(q.report, bad, q.verdict)
+    sources, links = chat_engine._cite(q.results)
     out = {
         "answer": text,
         "model": model,
@@ -649,9 +832,14 @@ async def respond(state: State, q: Question) -> State:
         "tools": q.called,
         "style": q.style,
         "facts": [
-            f for r in q.results if r.tool not in ("search_docs", *C.WEB_TOOLS) for f in r.facts
+            f
+            for r in q.results
+            if r.tool not in ("search_docs", *chat_engine.WEB_TOOLS)
+            for f in r.facts
         ][:8],
-        "cites": C._cites(q.results),
+        "cites": chat_engine._cites(q.results),
+        "claims": [c.as_dict() for c in q.report.facts()][:24] if q.report else [],
+        "quality": quality.summary(q, bad, o["model"] == "rules"),
         "route": q.plan.as_dict(),
         "steps": q.steps,
         "ms": round(1000 * (time.monotonic() - q.started)),
@@ -663,8 +851,13 @@ async def respond(state: State, q: Question) -> State:
             "removed": q.removed,
         },
     }
+    # the page an accepted twin_navigate moved to: the dashboard opens it (core/navigation.py);
+    # a refused one carries no link, so the view stays where it is
+    moved = [r.link["page"] for r in q.results if r.tool == "twin_navigate" and r.link]
+    if moved:
+        out["navigate"] = moved[-1]
     if q.thinking:
-        out["thinking"] = "\n\n".join(q.thinking)[: C.MAX_THINKING]
+        out["thinking"] = "\n\n".join(q.thinking)[: chat_engine.MAX_THINKING]
     if note:
         out["note"] = note
     if bad:
@@ -676,13 +869,13 @@ async def respond(state: State, q: Question) -> State:
         out["search_suggestions"] = suggestions
     # the question's trace so far: every node and call before this one (the root and this
     # node end after the reply is built; out["ms"] is the whole)
-    trace = TR.snapshot(q.root)
+    trace = tracing.snapshot(q.root)
     if trace:
         out["trace"] = trace
     session = q.session
     if session is not None:
-        S.add_turn(session, "user", req.question)
-        S.add_turn(
+        chat_sessions.add_turn(session, "user", req.question)
+        chat_sessions.add_turn(
             session,
             "assistant",
             text,
@@ -694,6 +887,7 @@ async def respond(state: State, q: Question) -> State:
             tools=q.called,
             note=note,
             unverified=bad,
+            quality=out["quality"],
             switched=q.switched,
             route=out["route"],
             steps=q.steps,
@@ -703,8 +897,8 @@ async def respond(state: State, q: Question) -> State:
             trace=trace,
             search_suggestions=suggestions or None,
         )
-        S.remember(session, q.results)
-        S.save(chat.store, q.user, session)
+        chat_sessions.remember(session, q.results)
+        chat_sessions.save(chat.store, q.user, session)
         out["session"] = {
             "id": session["id"],
             "title": session["title"],
@@ -724,7 +918,7 @@ def traced(name: str, fn):
     """A node run inside its own span, node.<name>, a child of the question's span."""
 
     async def node(state: State, q: Question) -> State:
-        with TR.span(f"node.{name}"):
+        with tracing.span(f"node.{name}"):
             return await fn(state, q)
 
     node.__name__ = fn.__name__
@@ -749,7 +943,7 @@ NODES = {
 NODES = {name: traced(name, fn) for name, fn in NODES.items()}
 
 
-# ---------------------------------------------------------------------------------- the edges
+# --- the edges
 def after_prepare(s: State) -> str:
     return END if "out" in s else "route"
 
@@ -818,7 +1012,7 @@ EDGES: dict[str, tuple] = {
 }
 
 
-# ---------------------------------------------------------------------------------- the engines
+# --- the engines
 def engine() -> str:
     """Which engine runs the nodes: graph (LangGraph) unless STF_AGENT=linear or it is missing."""
     want = os.environ.get("STF_AGENT", "graph").strip().lower()
@@ -873,6 +1067,7 @@ def graph():
         for name, fn in NODES.items():
             g.add_node(name, bind(fn))
         g.add_edge(START, "prepare")
+
         def sends(fn):
             def edge(state: State):
                 to = fn(state)
@@ -894,10 +1089,13 @@ async def run(q: Question) -> dict:
     """Answer one question on the configured engine, inside its trace (tracing.py): the root
     span carries what the trace store needs to find and read it - the route, the model, the
     tokens, the outcome; the question and answer only with STF_TRACE_CONTENT=1."""
-    content = TR.content_allowed()
-    with TR.span(
-        "copilot.question", stf__engine=engine(), stf__page=q.req.page,
-        stf__provider_choice=q.req.provider, langfuse__trace__name="copilot question",
+    content = tracing.content_allowed()
+    with tracing.span(
+        "copilot.question",
+        stf__engine=engine(),
+        stf__page=q.req.page,
+        stf__provider_choice=q.req.provider,
+        langfuse__trace__name="copilot question",
         input__value=q.req.question if content else None,
     ) as root:
         q.root = root
@@ -907,15 +1105,23 @@ async def run(q: Question) -> dict:
         else:
             out = await run_linear(q)
         if q.plan is None and root is not None:  # a cached reply: this question's own trace
-            out = {**out, "trace": TR.snapshot(root)}
-        TR.put(
-            root, stf__mode=(out.get("route") or {}).get("mode"), stf__model=out.get("model"),
-            gen_ai__request__model=out.get("model"), stf__cached=q.plan is None,
-            stf__tokens=q.usage.get("tokens"), stf__unverified=len(out.get("unverified") or []),
-            stf__tools=out.get("tools"), langfuse__user__id=TR.user_id(q.guest or q.client),
+            out = {**out, "trace": tracing.snapshot(root)}
+        tracing.put(
+            root,
+            stf__mode=(out.get("route") or {}).get("mode"),
+            stf__model=out.get("model"),
+            gen_ai__request__model=out.get("model"),
+            stf__cached=q.plan is None,
+            stf__tokens=q.usage.get("tokens"),
+            stf__unverified=len(out.get("unverified") or []),
+            stf__groundedness=(out.get("quality") or {}).get("groundedness"),
+            stf__action=(out.get("quality") or {}).get("action"),
+            stf__tools=out.get("tools"),
+            langfuse__user__id=tracing.user_id(q.guest or q.client),
             langfuse__session__id=(q.session or {}).get("id"),
             output__value=out.get("answer") if content else None,
         )
+    quality.record(q, out, engine(), cached=q.plan is None)
     return out
 
 
@@ -934,6 +1140,11 @@ def mermaid() -> str:
 def start(chat, req, request: Request, emit, client: str) -> Question:
     """A question's working memory, with its token meter started."""
     return Question(
-        chat=chat, req=req, request=request, emit=emit, client=client,
-        usage=TB.meter_start(), level=req.sources or "vetted",
+        chat=chat,
+        req=req,
+        request=request,
+        emit=emit,
+        client=client,
+        usage=token_budget.meter_start(),
+        level=req.sources or "vetted",
     )

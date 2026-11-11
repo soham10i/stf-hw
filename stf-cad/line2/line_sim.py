@@ -35,22 +35,22 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import line_model as M
+import line_model
 
-L = M.L
-F = M.FLAV
+L = line_model.L
+F = line_model.FLAV
 PORT = {"raw": "front", "reject": "front", "cassette": "right", "boxes": "left"}
 
 
 def stations():
-    c, _ = M.delta_window(L["DELTA_X"][0])
+    c, _ = line_model.delta_window(L["DELTA_X"][0])
     st = {
-        "transfer": M.bend_s(L["TRANSFER_TH"][1]),
-        "qc": M.s_back(L["CAM_X"]),
-        "kick": M.s_back(L["KICK_X"]),
+        "transfer": line_model.bend_s(L["TRANSFER_TH"][1]),
+        "qc": line_model.s_back(L["CAM_X"]),
+        "kick": line_model.s_back(L["KICK_X"]),
     }
     for i, xd in enumerate(L["DELTA_X"]):
-        sc = M.s_back(xd)
+        sc = line_model.s_back(xd)
         st[f"d{i}_in"] = sc - c / 2
         st[f"d{i}_out"] = sc + c / 2
     return st
@@ -122,8 +122,8 @@ def flow(name="nominal_1h", seed=7, **kw):
         return kd(*k, n)
     horizon = sc.get("horizon", H1)
     rnd = random.Random(seed)
-    T, Lp, v, P = M.takt(), M.loop_len(), L["V"], L["PITCH"]
-    rf = M.rate_flavour()
+    T, Lp, v, P = line_model.takt(), line_model.loop_len(), L["V"], L["PITCH"]
+    rf = line_model.rate_flavour()
     st = stations()
     down = sc.get("down", {})
     amr_down = sc.get("amr_down", {})
@@ -137,20 +137,20 @@ def flow(name="nominal_1h", seed=7, **kw):
     dough = {"lvl": L["DOUGH_KG"]}
     top = {f: L["TOP_KG"] for f in F}
     band = []                                   # [t_avail, t_expire, flavour, topped] in row order
-    sb = M.stations()
-    vb = M.band_v()
+    sb = line_model.stations()
+    vb = line_model.band_v()
     t_travel = (sb["pick"][0] - sb["dep"]) / vb
     t_window = L["PICK_W"] / vb
     rows = L["BAND"]["rows"]
-    t_row = rows * M.takt()
+    t_row = rows * line_model.takt()
     boxes = {f: L["BOXMAG_CAP"] for f in F}
     active = {f: 0 for f in F}
     standby_full = {f: False for f in F}
     box_fill = {(f, d): 0 for f in F for d in (0, 1)}
     lane_block = {f: 0.0 for f in F}
     rej = {"lvl": 0}
-    reject_cap = M.reject_cap()
-    ccap = M.cass_cap()
+    reject_cap = line_model.reject_cap()
+    ccap = line_model.cass_cap()
     tasks = {}
     amr_free = [0.0] * n_amr
     amr_busy_s = [0.0] * n_amr
@@ -169,8 +169,8 @@ def flow(name="nominal_1h", seed=7, **kw):
     if lock and L.get("CASS_STAGGER"):     # policy: lanes a third of a fill apart
         for j, f in enumerate(F):
             active[f] = j * ccap // len(F)
-    buf = M.transfer_buffer()
-    swap_t = M.cass_swap_t()
+    buf = line_model.transfer_buffer()
+    swap_t = line_model.cass_swap_t()
     pack_s = L["PACK"] / rf
 
     def dispatch(t):
@@ -292,16 +292,16 @@ def flow(name="nominal_1h", seed=7, **kw):
                     continue
                 dough["lvl"] -= 0.0 if ideal else rows * L["DOUGH_M"]
                 if not ideal and dough["lvl"] <= L["REQ_HOPPER"] * L["DOUGH_KG"]:
-                    request("raw", "dough", t + dough["lvl"] / M.dough_rate())
+                    request("raw", "dough", t + dough["lvl"] / line_model.dough_rate())
             cookies = []
             for j in range(rows):
-                f = F[M.row_flavour(j)]
+                f = F[line_model.row_flavour(j)]
                 topped = pre or ideal or top[f] >= L["TOPPING"]["m"]
                 if not pre and not ideal and topped:
                     top[f] -= L["TOPPING"]["m"]
                     if top[f] <= L["REQ_HOPPER"] * L["TOP_KG"]:
                         request("raw", f, t + top[f] / (L["TOPPING"]["m"] * rf))
-                ta = t_dep + t_travel + j * M.takt() * 0       # the whole row enters the window together
+                ta = t_dep + t_travel + j * line_model.takt() * 0  # the whole row enters the window together
                 cid[0] += 1
                 band.append([ta, ta + t_window, f, topped, cid[0], pk, j])
                 cookies.append(dict(id=cid[0], col=j, flav=f, topped=topped))

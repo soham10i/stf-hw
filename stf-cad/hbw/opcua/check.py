@@ -37,16 +37,16 @@ from asyncua.crypto.cert_gen import setup_self_signed_certificate
 from asyncua.server.user_managers import PermissiveUserManager
 from cryptography.x509.oid import ExtendedKeyUsageOID
 
-from opcua import model as M
-from opcua import server as S
+from opcua import model as opcua_model
+from opcua import server as opcua_server
 
-OUT = os.path.join(M.PUBLIC, "opcua")
+OUT = os.path.join(opcua_model.PUBLIC, "opcua")
 PORT = 48401
 SPEED = 40
 log = logging.getLogger("stf.opcua.check")
 
 
-# ------------------------------------------------------------- server-side proofs
+# --- server-side proofs
 async def mandatory_children(server, type_node):
     """Mandatory InstanceDeclarations of a type and all its supertypes, by browse name."""
     out, t = set(), type_node
@@ -96,15 +96,15 @@ async def check_mapping(server, m, io):
         n = m.signals.get(e["name"])
         if n is not None and await n.read_type_definition() != ua.NodeId(ua.ObjectIds.AnalogUnitType):
             fails.append(f"MAPPING {e['name']}: not AnalogUnitType")
-    if sorted(m.units) != sorted(M.UNIT_MODULE):
+    if sorted(m.units) != sorted(opcua_model.UNIT_MODULE):
         fails.append(f"MAPPING units {sorted(m.units)}")
     return fails
 
 
 async def check_machinery(server, m):
     fails = []
-    mi = await server.get_namespace_index(M.MACH_URI)
-    di = await server.get_namespace_index(M.DI_URI)
+    mi = await server.get_namespace_index(opcua_model.MACH_URI)
+    di = await server.get_namespace_index(opcua_model.DI_URI)
     machines = await server.nodes.objects.get_child([f"{mi}:Machines"])
     refs = await machines.get_references(refs=ua.ObjectIds.Organizes, direction=ua.BrowseDirection.Forward)
     if m.cell.nodeid not in [r.NodeId for r in refs]:
@@ -123,7 +123,7 @@ async def check_machinery(server, m):
                 v = None
             if not v or (isinstance(v, ua.LocalizedText) and not v.Text):
                 fails.append(f"MACHINERY Identification {name} is empty")
-        aas = json.load(open(os.path.join(M.PUBLIC, "aas", "stf.aas.json")))
+        aas = json.load(open(os.path.join(opcua_model.PUBLIC, "aas", "stf.aas.json")))
         cell_asset = next(s["assetInformation"]["globalAssetId"] for s in aas["assetAdministrationShells"]
                           if s["assetInformation"]["assetKind"] == "Instance")
         try:
@@ -145,15 +145,15 @@ async def signature(server, nodes):
 
 
 async def check_nodeset(server, m, path):
-    nodes = await M.our_nodes(server, m)
+    nodes = await opcua_model.our_nodes(server, m)
     exp = XmlExporter(server)
     await exp.build_etree(nodes)
     await exp.write_xml(path)
     fresh = Server()
     await fresh.init()
-    await M.load_companions(fresh)
+    await opcua_model.load_companions(fresh)
     await fresh.import_xml(path)
-    ns = await fresh.get_namespace_index(M.NS_URI)
+    ns = await fresh.get_namespace_index(opcua_model.NS_URI)
     if ns != m.ns:
         return [f"NODESET namespace index {ns}, not {m.ns}"], len(nodes)
     again = [fresh.get_node(n.nodeid) for n in nodes]
@@ -162,17 +162,17 @@ async def check_nodeset(server, m, path):
     return [f"NODESET {k}: {a[k]} came back as {b.get(k)}" for k in diff[:5]], len(nodes)
 
 
-# ------------------------------------------------------------- client-side proofs
+# --- client-side proofs
 async def client_cert(name, trusted):
-    d = S.PKI / "clients" / name
+    d = opcua_server.PKI / "clients" / name
     d.mkdir(parents=True, exist_ok=True)
-    (S.PKI / "trusted").mkdir(parents=True, exist_ok=True)
+    (opcua_server.PKI / "trusted").mkdir(parents=True, exist_ok=True)
     key, cert = d / "key.pem", d / "cert.der"
     uri = f"urn:stf-hw:opcua:client:{name}"
     await setup_self_signed_certificate(key, cert, uri, "localhost", [ExtendedKeyUsageOID.CLIENT_AUTH],
                                         {"countryName": "DE", "organizationName": "STF check", "commonName": name})
     if trusted:
-        shutil.copy(cert, S.PKI / "trusted" / f"{name}.der")
+        shutil.copy(cert, opcua_server.PKI / "trusted" / f"{name}.der")
     return uri, key, cert
 
 
@@ -215,7 +215,7 @@ async def check_security(url, good, bad, user, password):
         fails.append(f"SECURITY the trusted operator was refused ({err})")
         return fails, notes, None
     try:
-        n = cl.get_node(ua.NodeId("Production.Phase", 0 + (await cl.get_namespace_index(M.NS_URI))))
+        n = cl.get_node(ua.NodeId("Production.Phase", 0 + (await cl.get_namespace_index(opcua_model.NS_URI))))
         await n.write_value(ua.Variant("hacked", ua.VariantType.String))
         fails.append("SECURITY a variable could be written")
         notes["write"] = "ACCEPTED"
@@ -225,7 +225,7 @@ async def check_security(url, good, bad, user, password):
 
 
 async def check_live(cl, sil, state_id):
-    ns = await cl.get_namespace_index(M.NS_URI)
+    ns = await cl.get_namespace_index(opcua_model.NS_URI)
     phase = cl.get_node(ua.NodeId("Production.Phase", ns))
     crane_job = cl.get_node(ua.NodeId("HBW.Units.crane.Job", ns))
     seen = {"phase": [], "crane": []}
@@ -263,7 +263,7 @@ async def check_live(cl, sil, state_id):
                    "wall_s": round(time.time() - t0, 1), "state": state}
 
 
-# ------------------------------------------------------------- the address space for the twin
+# --- the address space for the twin
 async def tree(server, m):
     """The address space below the cell as JSON: name, node id, class, type, description, unit, signal."""
     sig = {n.nodeid: k for k, n in m.signals.items()}
@@ -295,7 +295,7 @@ async def tree(server, m):
                 e["value"] = v.Text if isinstance(v, ua.LocalizedText) else (
                     f"{v.Low:g} .. {v.High:g}" if isinstance(v, ua.Range) else (
                         v.DisplayName.Text if isinstance(v, ua.EUInformation) else str(v)))
-            except Exception:                    # noqa: BLE001
+            except Exception:                    # noqa: BLE001 - an unreadable value: the node is listed without one
                 pass
         kids = []
         for c in await n.get_children(refs=ua.ObjectIds.HierarchicalReferences):
@@ -308,25 +308,25 @@ async def tree(server, m):
     return await walk(m.cell)
 
 
-# ------------------------------------------------------------- run
+# --- run
 async def run(mutant=None):
     # asyncua logs every refused certificate with a traceback; refusals are what (5) tests
     for name in ("asyncua", "asyncuagds.validate"):
         logging.getLogger(name).setLevel(logging.CRITICAL)
-    io_all = json.load(open(os.path.join(M.PUBLIC, "sil", "plc.json")))
-    sil = json.load(open(os.path.join(M.PUBLIC, "sil", "sil.json")))
+    io_all = json.load(open(os.path.join(opcua_model.PUBLIC, "sil", "plc.json")))
+    sil = json.load(open(os.path.join(opcua_model.PUBLIC, "sil", "sil.json")))
     user, password = "operator", secrets.token_urlsafe(18)
     url = f"opc.tcp://127.0.0.1:{PORT}/stf/"
     # the client certificates first: the server reads its trust list when it is made
     good = await client_cert("operator-pc", trusted=True)
     bad = await client_cert("unknown-pc", trusted=False)
-    server, m = await S.make_server(user, password, url)
+    server, m = await opcua_server.make_server(user, password, url)
     if mutant:
         await mutant(server, m)
-    feed = S.Feed(server, m, io_all["io"], io_all["units"])
-    await S.add_method(server, m, feed)
+    feed = opcua_server.Feed(server, m, io_all["io"], io_all["units"])
+    await opcua_server.add_method(server, m, feed)
     fails, out = [], {}
-    nodes = await M.our_nodes(server, m)
+    nodes = await opcua_model.our_nodes(server, m)
     fails += await check_mapping(server, m, io_all["io"])
     fails += await check_types(server, nodes)
     fails += await check_machinery(server, m)
@@ -366,7 +366,7 @@ async def _m_mandatory(server, m):
 
 
 async def _m_uri(server, m):
-    di = await server.get_namespace_index(M.DI_URI)
+    di = await server.get_namespace_index(opcua_model.DI_URI)
     ident = None
     for r in await m.cell.get_references(refs=ua.NodeId(ua.ObjectIds.HasAddIn)):
         node = server.get_node(r.NodeId)
@@ -387,8 +387,8 @@ MUTANTS = [("OM1", "a PLC signal without a node", _m_signal),
 
 
 async def main():
-    S.bundle_stream()
-    io = json.load(open(os.path.join(M.PUBLIC, "sil", "plc.json")))
+    opcua_server.bundle_stream()
+    io = json.load(open(os.path.join(opcua_model.PUBLIC, "sil", "plc.json")))
     t0 = time.time()
     fails, out = await run()
     muts = []
@@ -396,7 +396,7 @@ async def main():
         f, _ = await run(fn)
         muts.append({"id": mid, "what": what, "caught": bool(f), "by": f[0] if f else None})
     fails += [f"mutant {x['id']} survived: {x['what']}" for x in muts if not x["caught"]]
-    out.update({"mutants": muts, "fails": fails, "endpoint": "opc.tcp://127.0.0.1:4840/stf/", "namespace": M.NS_URI,
+    out.update({"mutants": muts, "fails": fails, "endpoint": "opc.tcp://127.0.0.1:4840/stf/", "namespace": opcua_model.NS_URI,
                 "companions": ["DI 1.04.0", "IA 1.01.4", "Machinery 1.04.0"], "seconds": round(time.time() - t0, 1),
                 "signals": sum(len(v) for k, v in io["io"].items() if k in ("ix", "qx", "iw", "id"))})
     with open(os.path.join(OUT, "opcua.json"), "w") as fh:

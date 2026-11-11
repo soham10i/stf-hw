@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Migrate stf-live's secret env vars into Secret Manager (docs/STAGING.md hardening).
+# Migrate stf-live's secret env vars into Secret Manager (docs/reference/operations/staging.md hardening).
 #
 # What it does, in order:
 #   1. reads stf-live's current environment and copies each SECRET below into a

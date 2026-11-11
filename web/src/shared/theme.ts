@@ -1,48 +1,67 @@
-// The theme, shared by the twin and the dashboard: Studio (shared/studio.css) in its light or dark
-// appearance, which the stylesheets key on as data-theme; and the glass tones (shared/glass.css:
-// Studio's layout with data-tone obsidian, noir or frost). "Studio" follows the system's appearance,
-// as an app should by default; light or dark can be pinned from the theme menu, remembered per
-// browser. Applied before the first paint (public/theme-init.js) and on every change.
+// The theme, shared by the twin and the dashboard: the "Zero" design system (shared/zero.css,
+// docs/12-design-blueprint.md) in its light or dark appearance, which the stylesheets key on as
+// data-theme on <html>. Three choices, as the blueprint asks: System (follows the operating system,
+// the default), Light and Dark, remembered per browser. Applied before the first paint
+// (public/theme-init.js) and on every change.
 import { useEffect, useState } from "react";
 
 export type Appearance = "light" | "dark";
-export type ThemeId = "studio" | "studio-light" | "studio-dark" | "obsidian" | "glass-noir" | "glass-frost";
-/** the Glass tones (shared/glass.css): Studio's layout under a tone of frosted glass */
-export type Tone = "obsidian" | "noir" | "frost";
+export type ThemeId = "system" | "light" | "dark";
 export type ThemeDef = { id: ThemeId; label: string; say: string; appearance: Appearance | "system"; swatch: [string, string, string] };
 
 export const THEMES: ThemeDef[] = [
-  { id: "studio", label: "Auto (System)", say: "Follows system: Light (Image 1) or Dark (Image 2)", appearance: "system", swatch: ["#b7c8d8", "#030303", "#090e21"] },
-  { id: "studio-light", label: "Apple Tinted · Light", say: "Cool ice-blue gradient with Apple tinted glassmorphism (Image 1 & 3)", appearance: "light", swatch: ["#b7c8d8", "#f6f8ff", "#090e21"] },
-  { id: "obsidian", label: "Obsidian Glass · Dark", say: "Sleek graphite gradient with Apple liquid glassmorphism (Image 2 & 3)", appearance: "dark", swatch: ["#030303", "#4a4a4a", "#ffffff"] },
-  { id: "glass-noir", label: "Glass · Noir", say: "Extreme dark: smoked glass on near-black, cool steel-blue light", appearance: "dark", swatch: ["#020204", "#14161d", "#4f8bff"] },
-  { id: "glass-frost", label: "Glass · Steel", say: "Steel glass over slate gradient, light typography", appearance: "dark", swatch: ["#262b33", "#5a6873", "#cfe4f7"] },
+  { id: "system", label: "System", say: "Follows the system setting: light or dark", appearance: "system", swatch: ["#f2f2f2", "#000000", "#0fff4f"] },
+  { id: "light", label: "Light", say: "Off-white surfaces, black ink, lime highlights", appearance: "light", swatch: ["#f2f2f2", "#ffffff", "#0fff4f"] },
+  { id: "dark", label: "Dark", say: "Black surfaces, off-white ink, lime primary", appearance: "dark", swatch: ["#000000", "#1f1f1f", "#0fff4f"] },
 ];
-const TONES: Partial<Record<ThemeId, Tone>> = { obsidian: "obsidian", "glass-noir": "noir", "glass-frost": "frost" };
 const KEY = "stf.theme.v2";
+/** the browser chrome's colour per appearance (the blueprint's --bg) */
+const CHROME: Record<Appearance, string> = { light: "#f2f2f2", dark: "#000000" };
+
+// --- retired themes
+// Every visitor had the old default (Obsidian) stored, so it maps to System rather than pinning
+// everyone to dark; the other themes were picked on purpose and keep their appearance. The same
+// table is in public/theme-init.js, which runs before this module loads.
+const RETIRED: Record<string, ThemeId> = {
+  studio: "system", obsidian: "system", elevenlabs: "system", "glass-dusk": "system",
+  "studio-light": "light", "studio-dark": "dark", "glass-noir": "dark", "glass-frost": "dark",
+};
 
 function saved(): ThemeId {
   try {
     const t = localStorage.getItem(KEY);
-    if (t === "elevenlabs" || t === "glass-dusk") return "obsidian"; // retired theme ids
     if (THEMES.some((x) => x.id === t)) return t as ThemeId;
+    if (t && RETIRED[t]) return RETIRED[t];
   } catch { /* private mode */ }
-  return "obsidian";
+  return "system";
 }
-const systemDark = () => !window.matchMedia?.("(prefers-color-scheme: light)").matches;
-const appearanceOf = (id: ThemeId): Appearance => {
-  const a = THEMES.find((x) => x.id === id)?.appearance ?? "system";
-  return a === "system" ? (systemDark() ? "dark" : "light") : a;
-};
+const systemDark = () => !!window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+const appearanceOf = (id: ThemeId): Appearance => (id === "system" ? (systemDark() ? "dark" : "light") : id);
 
-/** Put the theme on the document: its appearance, and the glass tone if it is one. */
+/** Put the theme on the document: its appearance, and the browser chrome's colour to match. */
 export function applyTheme(id: ThemeId = saved()) {
   const root = document.documentElement;
-  root.dataset.theme = appearanceOf(id);
-  const tone = TONES[id];
+  const appearance = appearanceOf(id);
+  // The swap itself is instant: with every element's colour transition running at once, the page
+  // passes through a half-old, half-new state (and stays there in a window that paints no frames).
+  // Transitions are suspended (zero.css, .theme-switch), the new values committed with one style
+  // flush, and transitions restored.
+  const swap = root.dataset.theme !== undefined && root.dataset.theme !== appearance;
+  if (swap) root.classList.add("theme-switch");
+  root.dataset.theme = appearance;
+  if (swap) {
+    void getComputedStyle(root).color;
+    root.classList.remove("theme-switch");
+  }
+  // the stylesheets scope the design system under one palette name
   root.dataset.palette = "studio";
-  if (tone) root.dataset.tone = tone;
-  else delete root.dataset.tone;
+  let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.name = "theme-color";
+    document.head.appendChild(meta);
+  }
+  meta.content = CHROME[appearance];
 }
 
 export function useTheme() {
@@ -51,11 +70,24 @@ export function useTheme() {
   useEffect(() => {
     // the colour change itself cross-fades across the page (View Transitions, where supported)
     const apply = () => { applyTheme(theme); setAppearance(appearanceOf(theme)); };
-    if (document.startViewTransition) document.startViewTransition(apply);
-    else apply();
+    // The cross-fade only where it can run and is wanted. The browser runs the transition's callback
+    // on its next frame, and a covered or background window may not paint one for a long time (the
+    // theme was saved but not shown), so after 250 ms the change is applied without the fade. Under
+    // reduced motion the blueprint asks for no fade at all. A skipped transition's promise rejects,
+    // which is expected and not an error.
+    let done = false;
+    const once = () => { if (!done) { done = true; apply(); } };
+    // (older browsers have no View Transitions: the typed DOM says it always exists, so ask at runtime)
+    const fade = typeof document.startViewTransition === "function"
+      && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (fade) {
+      const vt = document.startViewTransition(once);
+      vt.ready.catch(() => {});
+      window.setTimeout(() => { if (!done) { vt.skipTransition(); once(); } }, 250);
+    } else once();
     try { localStorage.setItem(KEY, theme); } catch { /* private mode */ }
-    if (THEMES.find((x) => x.id === theme)?.appearance !== "system") return;
-    // System appearance: follow the system as it changes
+    if (theme !== "system") return;
+    // System: follow the operating system as it changes
     const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
     const on = () => { applyTheme(theme); setAppearance(appearanceOf(theme)); };
     mq?.addEventListener("change", on);

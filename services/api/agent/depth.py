@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-LEVELS = ("brief", "standard", "thorough")
+LEVELS = ("brief", "standard", "thorough", "voice")
 AUDIENCES = ("operator", "engineer", "researcher")
 
 
@@ -41,7 +41,26 @@ class Depth:
     length: str  # the length instruction the writer is given
 
 
+VOICE = Depth(
+    name="voice",
+    answer_tokens=400,
+    gemini_tokens=512,
+    effort="low",
+    subs=0,
+    pages=1,
+    page_chars=2000,
+    results=2,
+    search_tokens=800,
+    scholar=0,
+    length=(
+        "LENGTH (voice): answer in at most 60-80 words of natural, spoken English - 1 to 3 "
+        "concise sentences. Never use Markdown tables, bullets, or equations."
+    ),
+)
+
+
 PROFILES: dict[str, Depth] = {
+    "voice": VOICE,
     "brief": Depth(
         name="brief", answer_tokens=1500, gemini_tokens=2048, effort="low", subs=1,
         pages=2, page_chars=4000, results=4, search_tokens=1200, scholar=0,
@@ -58,11 +77,15 @@ PROFILES: dict[str, Depth] = {
         name="thorough", answer_tokens=6000, gemini_tokens=8192, effort="medium", subs=5,
         pages=4, page_chars=9000, results=8, search_tokens=2500, scholar=5,
         length=(
-            "LENGTH (thorough): a researched report of about 700-1500 words in ### sections: "
-            "the answer in two lines first; then the evidence, each claim linked to its source; "
-            "where sources disagree and why; the limits of what is known; what it means for this "
-            "twin; and a closing line that rates the evidence (standards / peer-reviewed / "
-            "manufacturer / other). Do not pad: stop when the evidence runs out."
+            "LENGTH (thorough): an extensive, comprehensive research report (target 2,500–5,000+ words) "
+            "formatted in structured markdown with full sections, comparative tables, and KaTeX/LaTeX mathematical equations: "
+            "1. **Executive answer** in 2-3 bullet points; "
+            "2. **1. What the sources say** with a comprehensive source & engine evaluation matrix table (| Source | Engine(s) evaluated | Test set | Key accuracy metrics | Real-time performance |); "
+            "3. **2. Accuracy metrics – definitions & relevance** with LaTeX display equations ($$...$$) in a structured table (| Metric | Formula (LaTeX) | What it measures | Why it matters for STF |); "
+            "4. **3. Real-time constraints of the STF twin** with timing budget table for PLC/bus/simulation loop latency; "
+            "5. **4. Comparative analysis** with cross-engine accuracy vs. speed matrix table across Bullet, ODE, Vortex, PhysX/Isaac Sim, MuJoCo; "
+            "6. Deep solver mechanics (PGS, LCP, penalty springs, Baumgarte stabilization); "
+            "7. Concrete implementation recommendations for the STF digital twin."
         ),
     ),
 }
@@ -77,14 +100,18 @@ AUDIENCE = {
 }
 
 
-def pick(depth: str | None, mode: str, style: str) -> Depth:
+def pick(
+    depth: str | None, mode: str, style: str, voice: bool = False
+) -> Depth:
     """The depth for this question: the operator's choice, or one set by the route and style."""
-    if depth in PROFILES:
+    if voice:
+        return VOICE
+    if style in ("greeting", "quick", "status") or mode == "chat":
+        return PROFILES["brief"]
+    if depth in PROFILES and depth != "auto":
         return PROFILES[depth]  # type: ignore[index]
     if mode == "deep" or style == "derive":
         return PROFILES["thorough"]
-    if style in ("greeting", "quick", "status") or mode == "chat":
-        return PROFILES["brief"]
     return PROFILES["standard"]
 
 

@@ -23,28 +23,28 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 export class Plant {
   t = 0;
   readonly p: PlantParams;
-  // ---- HBW
+  // --- HBW
   x: number; z: number; y: number;                 // travel, lift, Ausleger
   fork: Mould | null = null;
   slots: Record<string, Mould | null> = {};
   belt: { m: Mould; y: number }[] = [];
   rfDwell = new Map<number, [number, number]>();   // mould -> time in RP1 / RP2 window
-  // ---- VGR
+  // --- VGR
   sw: number; rr: number; pz: number;
   cup = 0;                                         // the cookie held by vacuum
   vacT = 0;                                        // time the vacuum has been on (or off) in this state
-  // ---- oven
+  // --- oven
   slider: number; door: number; sauger: number; lower: number; turn: number; push: number;
   tray = 0; saugerCup = 0; nest = 0; ovenBelt: { c: number; y: number } | null = null;
   bakeAcc = new Map<number, number>();
   baked = new Map<number, boolean>();
-  // ---- sorting
+  // --- sorting
   line: { c: number; x: number }[] = [];
   travel = 0;                                      // sorting belt travel, for the pulse counter
   ejT = [0, 0, 0];
   barT = [0, 0, 0];
   bays: number[][];
-  // ---- bookkeeping
+  // --- bookkeeping
   flags: string[] = [];
   events: PlantEvent[] = [];
   private qi: Record<string, number> = {};
@@ -78,7 +78,7 @@ export class Plant {
   cookieName(c: number) { return this.p.cookies[c]?.id ?? `#${c}`; }
   mouldName(m: number) { return this.p.moulds[m] ?? `M${m}`; }
 
-  // ------------------------------------------------------------------ inputs
+  // --- inputs
   /** Write the plant's state into the PLC's input image. */
   writeInputs(ix: Uint8Array, iw: Int16Array, id: Float32Array) {
     const set = (n: string, v: boolean) => { const b = this.ii[n]; if (b !== undefined) ix[b] = v ? 1 : 0; };
@@ -132,7 +132,7 @@ export class Plant {
     set("cell_SafetyOK", true);
   }
 
-  // ------------------------------------------------------------------ physics
+  // --- physics
   /** Advance dt seconds with the PLC's outputs applied. */
   step(qx: Uint8Array, dt: number) {
     const q = (n: string) => qx[this.qi[n]] === 1;

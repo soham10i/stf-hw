@@ -63,7 +63,7 @@
 .dg-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
 .dg-step p { margin: 6px 0 0; font-size: var(--fs-body); line-height: 1.5; color: var(--muted); }
 .dg-b, .dg-read .dg-b { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--surface-2); color: var(--text); font: 700 var(--fs-caption) var(--font); font-style: normal; margin-right: 6px; vertical-align: 1px; }
-.dg-b[style] { color: var(--bg); }
+.dg-b[style] { background: var(--surface-solid, var(--surface-2)); color: var(--text); }
 .db-card h3 .dg-b { min-width: 22px; height: 22px; border-radius: 11px; font-size: var(--fs-callout); margin-right: 0; }
 .dg-refs { margin-left: auto; font: 500 var(--fs-callout) var(--font); }
 .dg-refs a { color: var(--accent); text-decoration: none; margin-left: 4px; }

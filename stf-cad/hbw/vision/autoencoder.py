@@ -30,14 +30,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from vision import render as R
+from vision import render
 
-OUT = os.path.join(os.path.dirname(R.__file__), "..", "..", "..", "web", "public", "vision", "autoencoder.json")
+OUT = os.path.join(os.path.dirname(render.__file__), "..", "..", "..", "web", "public", "vision", "autoencoder.json")
 SEED = 31
 TRAIN_N, VAL_N, TEST_N = 12000, 2000, 2500
 EPOCHS, BATCH, LR = 18, 128, 2e-3
 DEV = "mps" if torch.backends.mps.is_available() else "cpu"
-OK = R.CONDITIONS.index("ok")
+OK = render.CONDITIONS.index("ok")
 PATCH = 6                                                # px: about 7.5 mm, a chip or a crack's width
 
 
@@ -53,7 +53,7 @@ class AE(nn.Module):
 
     @staticmethod
     def prep(x):                                         # the CNN's own input: light divided out, centred
-        g = x[:, :, :R.REF, :R.REF].mean(dim=(2, 3), keepdim=True)
+        g = x[:, :, :render.REF, :render.REF].mean(dim=(2, 3), keepdim=True)
         return x * (0.5 / (g + 1e-3)) - 0.5
 
     def forward(self, x):
@@ -78,13 +78,13 @@ class AE(nn.Module):
 
 def images(n, seed, ranges, conditions):
     rnd = np.random.default_rng(seed)
-    X = np.empty((n, 3, R.N, R.N), np.float32)
+    X = np.empty((n, 3, render.N, render.N), np.float32)
     yc = np.empty(n, np.int64)
     for i in range(n):
-        f = R.FLAVOURS[i % len(R.FLAVOURS)]
-        c = conditions[(i // len(R.FLAVOURS)) % len(conditions)]
-        X[i] = R.render(f, c, rnd, ranges).transpose(2, 0, 1)
-        yc[i] = R.CONDITIONS.index(c)
+        f = render.FLAVOURS[i % len(render.FLAVOURS)]
+        c = conditions[(i // len(render.FLAVOURS)) % len(conditions)]
+        X[i] = render.render(f, c, rnd, ranges).transpose(2, 0, 1)
+        yc[i] = render.CONDITIONS.index(c)
     return X, yc
 
 
@@ -106,14 +106,14 @@ def auroc(neg, pos):
 
 
 def evaluate(net, thr, seed, ranges):
-    X, yc = images(TEST_N, seed, ranges, R.CONDITIONS)
+    X, yc = images(TEST_N, seed, ranges, render.CONDITIONS)
     s, m = scores(net, X)
     good = s[yc == OK]
     out = {"ok_mean_error": float(m[yc == OK].mean()), "false_alarm": float((good > thr).mean()), "per_defect": {}}
-    for c in R.CONDITIONS:
+    for c in render.CONDITIONS:
         if c == "ok":
             continue
-        bad = s[yc == R.CONDITIONS.index(c)]
+        bad = s[yc == render.CONDITIONS.index(c)]
         out["per_defect"][c] = {"auroc": round(auroc(good, bad), 4), "detected": round(float((bad > thr).mean()), 4)}
     bad_all = s[yc != OK]
     out["auroc"] = round(auroc(good, bad_all), 4)
@@ -128,8 +128,8 @@ def _b64(t):
 def main():
     torch.manual_seed(SEED)
     t0 = time.time()
-    Xtr, _ = images(TRAIN_N, SEED, R.TRAIN, ["ok"])            # good cookies only: no defect labels
-    Xva, _ = images(VAL_N, SEED + 1, R.TRAIN, ["ok"])
+    Xtr, _ = images(TRAIN_N, SEED, render.TRAIN, ["ok"])       # good cookies only: no defect labels
+    Xva, _ = images(VAL_N, SEED + 1, render.TRAIN, ["ok"])
     gen_s = time.time() - t0
     net = AE().to(DEV)
     opt = torch.optim.Adam(net.parameters(), lr=LR)
@@ -158,11 +158,11 @@ def main():
     globals()["DEV"] = "cpu"
     sv, mv = scores(net, Xva)
     thr = float(np.percentile(sv, 99))
-    res = {"in_domain": evaluate(net, thr, SEED + 2, R.TRAIN), "shifted": evaluate(net, thr, SEED + 3, R.SHIFT)}
+    res = {"in_domain": evaluate(net, thr, SEED + 2, render.TRAIN), "shifted": evaluate(net, thr, SEED + 3, render.SHIFT)}
     drift = res["shifted"]["ok_mean_error"] / res["in_domain"]["ok_mean_error"]
     # parity samples for the browser: four images and PyTorch's scores
-    Xp, _ = images(4, SEED + 9, R.TRAIN, ["ok", "cracked", "burnt", "chipped"])
-    W = {"size": R.N, "ref": R.REF, "patch": PATCH, "threshold": thr, "ok_mean_error": float(mv.mean()),
+    Xp, _ = images(4, SEED + 9, render.TRAIN, ["ok", "cracked", "burnt", "chipped"])
+    W = {"size": render.N, "ref": render.REF, "patch": PATCH, "threshold": thr, "ok_mean_error": float(mv.mean()),
          "drift_alarm": float(2.0 * mv.mean()),
          "layers": {n: {"shape": list(m.weight.shape), "w": _b64(m.weight), "b": _b64(m.bias)}
                     for n, m in net.named_children()},

@@ -31,12 +31,12 @@ import sys
 import time
 from functools import partial
 
-import control as C
+import control
 
 sys.setrecursionlimit(20000)
 OUT = os.path.join(os.path.dirname(__file__), "..", "..", "web", "public", "sched", "rl.json")
-AGENT, FALLBACK = "agent", C.PLC_POLICY
-C.POLICIES[AGENT] = dict(belt="prefetch", reuse=True, buffer=True, say="the learning agent's candidate set: every job")
+AGENT, FALLBACK = "agent", control.PLC_POLICY
+control.POLICIES[AGENT] = dict(belt="prefetch", reuse=True, buffer=True, say="the learning agent's candidate set: every job")
 EPISODES = 1000
 SPREAD = 0.20
 ALPHA, GAMMA = 0.2, 1.0
@@ -49,7 +49,7 @@ _DUR = {}
 
 def dur(job):
     if job not in _DUR:
-        _DUR[job] = C._dur(job)
+        _DUR[job] = control._dur(job)
     return _DUR[job]
 
 
@@ -58,19 +58,19 @@ def wide(s):
     make: which free slot a mould is stored in, which raw cookie is retrieved next, which
     empty mould is fetched. (The program takes the first free slot and the production order.)"""
     L, out = s["leave"], []
-    free = [i for i in range(len(C.SLOTS)) if C._free(s, ("slot", i))]
-    raw = [(i, sl) for i, sl in enumerate(s["slots"]) if sl and sl[1] and C._stage(s, sl[1]) == "raw" and ("slot", i) not in L]
+    free = [i for i in range(len(control.SLOTS)) if control._free(s, ("slot", i))]
+    raw = [(i, sl) for i, sl in enumerate(s["slots"]) if sl and sl[1] and control._stage(s, sl[1]) == "raw" and ("slot", i) not in L]
     empty = [(i, sl) for i, sl in enumerate(s["slots"]) if sl and sl[1] is None and ("slot", i) not in L]
-    for j in C._candidates(s, AGENT):
+    for j in control._candidates(s, AGENT):
         name, b, units, src, dst = j
         if name == "store":
-            out += [(name, (b[0], b[1], C.SLOTS[i]), units, src, (("slot", i),)) for i in free]
+            out += [(name, (b[0], b[1], control.SLOTS[i]), units, src, (("slot", i),)) for i in free]
         elif name == "retrieve":
-            out += [(name, (sl[1], sl[0], C.SLOTS[i]), units, (("slot", i),), dst) for i, sl in raw]
+            out += [(name, (sl[1], sl[0], control.SLOTS[i]), units, (("slot", i),), dst) for i, sl in raw]
         elif name == "fetch_empty":
-            out += [(name, (sl[0], C.SLOTS[i]), units, (("slot", i),), dst) for i, sl in empty]
+            out += [(name, (sl[0], control.SLOTS[i]), units, (("slot", i),), dst) for i, sl in empty]
         elif name == "store_retrieve":
-            out += [(name, (b[0], b[1], C.SLOTS[i], sl[1], sl[0], C.SLOTS[k]), units, (("bin",), ("slot", k)), (("slot", i), ("bin",)))
+            out += [(name, (b[0], b[1], control.SLOTS[i], sl[1], sl[0], control.SLOTS[k]), units, (("bin",), ("slot", k)), (("slot", i), ("bin",)))
                     for i in free for k, sl in raw]
         else:
             out.append(j)
@@ -91,7 +91,7 @@ def start(s, job):
     return s
 
 
-# ------------------------------------------------------------------- shield
+# --- shield
 _SAFE = {}
 STATS = {"checked": 0, "explored": 0}
 
@@ -102,13 +102,13 @@ def _fb_safe(f):
     if f in _SAFE:
         return _SAFE[f]
     STATS["explored"] += 1
-    s = C._thaw(f)
-    if C.invariants(s):
+    s = control._thaw(f)
+    if control.invariants(s):
         ok = False
     elif not s["run"]:
-        ok = C.goal(s)
+        ok = control.goal(s)
     else:
-        ok = all(_fb_safe(C._freeze(C.dispatch(C.complete(s, j, FALLBACK), FALLBACK))) for j in s["run"])
+        ok = all(_fb_safe(control._freeze(control.dispatch(control.complete(s, j, FALLBACK), FALLBACK))) for j in s["run"])
     _SAFE[f] = ok
     return ok
 
@@ -116,7 +116,7 @@ def _fb_safe(f):
 def rescuable(s):
     """The fallback could take over right now and finish."""
     STATS["checked"] += 1
-    return _fb_safe(C._freeze(C.dispatch(s, FALLBACK)))
+    return _fb_safe(control._freeze(control.dispatch(s, FALLBACK)))
 
 
 def allowed(s, shield=True):
@@ -146,15 +146,15 @@ def rollout(s, a, ends, t):
     first = True
     while True:
         if not first:
-            s = C.dispatch(s, FALLBACK)
+            s = control.dispatch(s, FALLBACK)
             for j in s["run"]:
                 ends.setdefault(j, t + dur(j))
         first = False
         if not s["run"]:
-            return (t if C.goal(s) else 1e4) - T0[0]
+            return (t if control.goal(s) else 1e4) - T0[0]
         j = min(s["run"], key=lambda q: (ends[q], repr(q)))
         t = ends.pop(j)
-        s = C.complete(s, j, AGENT)
+        s = control.complete(s, j, AGENT)
 
 
 T0 = [0.0]
@@ -169,10 +169,10 @@ def value(Q, f, s, a, ends, t):
     return Q[k]
 
 
-# ------------------------------------------------------------------- episodes
+# --- episodes
 def episode(Q, rng, eps, shield=True, learn=True, spread=SPREAD, record=False):
     """One order. Returns (makespan or None if deadlocked, shield interventions, bars)."""
-    s, t, ends, blocked, bars = C.initial(), 0.0, {}, 0, []
+    s, t, ends, blocked, bars = control.initial(), 0.0, {}, 0, []
     prev = None                               # (state key, action key, time) awaiting its target
     while True:
         # decision phase: the agent may start several jobs at the same instant
@@ -181,7 +181,7 @@ def episode(Q, rng, eps, shield=True, learn=True, spread=SPREAD, record=False):
             blocked += b
             if not opts:
                 break
-            f = C._freeze(s)
+            f = control._freeze(s)
             if learn and rng.random() < eps:
                 a = rng.choice(opts)
             else:
@@ -199,7 +199,7 @@ def episode(Q, rng, eps, shield=True, learn=True, spread=SPREAD, record=False):
             if record:
                 bars.append({"job": a[0], "bind": [str(x) for x in a[1]], "units": list(a[2]), "t0": round(t, 2), "t1": round(t + d, 2)})
         if not s["run"]:
-            done = C.goal(s)
+            done = control.goal(s)
             if learn and prev is not None:
                 pf, pa, pt = prev
                 final = -(t - pt) + (0.0 if done else -2000.0)        # a deadlock costs far more than any order
@@ -207,14 +207,14 @@ def episode(Q, rng, eps, shield=True, learn=True, spread=SPREAD, record=False):
             return (round(t, 1) if done else None), blocked, bars
         job = min(s["run"], key=lambda j: (ends[j], repr(j)))
         t = ends.pop(job)
-        s = C.complete(s, job, AGENT)
-        if C.invariants(s):
+        s = control.complete(s, job, AGENT)
+        if control.invariants(s):
             return None, blocked, bars
 
 
 def fixed(pol, rng, spread=SPREAD):
     """A PLC policy on the same kind of random job times."""
-    s, t, ends = C.dispatch(C.initial(), pol), 0.0, {}
+    s, t, ends = control.dispatch(control.initial(), pol), 0.0, {}
 
     def new(s, t):
         for j in s["run"]:
@@ -224,9 +224,9 @@ def fixed(pol, rng, spread=SPREAD):
     while s["run"]:
         job = min(s["run"], key=lambda j: (ends[j], repr(j)))
         t = ends.pop(job)
-        s = C.dispatch(C.complete(s, job, pol), pol)
+        s = control.dispatch(control.complete(s, job, pol), pol)
         new(s, t)
-    return round(t, 1) if C.goal(s) else None
+    return round(t, 1) if control.goal(s) else None
 
 
 def compare():
@@ -277,7 +277,7 @@ def main():
         ev[k]["nominal"] = nominal[k]
     paired = compare()
     _, _, bars = episode({}, random.Random(0), 0.0, learn=False, spread=0.0, record=True)
-    plc_bars = C.simulate(FALLBACK)[0]
+    plc_bars = control.simulate(FALLBACK)[0]
     crane = {"rollout": round(sum(b["t1"] - b["t0"] for b in bars if "crane" in b["units"]), 1),
              "plc": round(sum(b["t1"] - b["t0"] for b in plc_bars if "crane" in b["units"]), 1)}
     slots = {"rollout": [(b["job"], b["bind"]) for b in bars if b["job"] in ("store", "retrieve", "fetch_empty", "store_retrieve")],
@@ -295,7 +295,7 @@ def main():
                        "first_deadlock_free_from": next((i + 1 for i in range(len(unshielded))
                                                          if all(m is not None for m in unshielded[i:])), None)},
         "eval": ev, "paired": paired, "crane_busy_s": crane, "crane_jobs": slots, "gantt": bars, "gantt_plc": plc_bars,
-        "units": list(C.UNITS),
+        "units": list(control.UNITS),
         "best_training": min(win) if win else None,
     }
     os.makedirs(os.path.dirname(OUT), exist_ok=True)

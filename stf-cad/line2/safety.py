@@ -36,11 +36,11 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import hardware as H
-import line_model as M
-import plc_io as P
+import hardware
+import line_model
+import plc_io
 
-L = M.L
+L = line_model.L
 OUT = os.path.join(HERE, "safety")
 GAP_MAX = 6.0             # mm: ISO 13857 Table 4, e <= 6 -> 10 mm (slot) - nothing hazardous is that close to a wall
 SAG_MAX = 3.0
@@ -57,25 +57,25 @@ HAZARDS = (
     ("mesh band + drums (in-running nips)", lambda p: p.group == "band", "motion", 0.05, None),
     ("depositor feed rolls + cutting wire", lambda p: p.name.startswith(("dep_roll", "dep_wire", "M_dep_rolls")),
      "motion", 0.05, None),
-    ("topping dosing pistons D10", lambda p: p.name.startswith("top_cyl_"), "motion", 0.10, H.cyl_force(10)),
+    ("topping dosing pistons D10", lambda p: p.name.startswith("top_cyl_"), "motion", 0.10, hardware.cyl_force(10)),
     ("oven fan impellers (inside the chamber)", lambda p: p.name.endswith("_imp"), "motion", L["FAN_RUNDOWN"], None),
     ("oven chamber + elements (210 C)", lambda p: p.name.startswith(("oven_heater_", "oven_skid")), "heat", None, None),
-    ("QC kicker D10", lambda p: p.name.startswith("kick_"), "motion", 0.10, H.cyl_force(10)),
+    ("QC kicker D10", lambda p: p.name.startswith("kick_"), "motion", 0.10, hardware.cyl_force(10)),
     ("lane belts (in-running nips)", lambda p: p.name.startswith("lane_") and p.name.endswith("_belt"), "motion",
      0.02, None),
     ("sealers D25 (crush + hot)", lambda p: p.name.startswith("sealer_") and p.name.endswith(("_head", "_cyl", "_rod")),
      "motion", 0.10, None),
     ("stacker lifts D16", lambda p: p.group == "stacker" and p.name.startswith(("stacker_lift", "stacker_rod",
                                                                                 "stacker_plate")),
-     "motion", 0.10, H.cyl_force(16)),
+     "motion", 0.10, hardware.cyl_force(16)),
     ("shuttles + cassettes", lambda p: p.name.startswith(("shuttle_bar", "shuttle_block", "shuttle_plate",
                                                           "M_shuttle")) or p.group == "cassette",
      "motion", 0.05, None),
-    ("tray magazine forks D8", lambda p: p.group == "boxmag" and "_fork_" in p.name, "motion", 0.10, H.cyl_force(8)),
+    ("tray magazine forks D8", lambda p: p.group == "boxmag" and "_fork_" in p.name, "motion", 0.10, hardware.cyl_force(8)),
     ("airlock doors (power-operated, force-limited)", lambda p: p.group == "airlock_door", "motion", 0.10,
-     H.SAFE["airlock_door"]["F_close"]),
+     hardware.SAFE["airlock_door"]["F_close"]),
     ("trapdoor flaps", lambda p: p.group == "trapdoor", "motion", 0.10,
-     H.SAFE["trapdoor"]["T"] / H.SAFE["trapdoor"]["arm"]),
+     hardware.SAFE["trapdoor"]["T"] / hardware.SAFE["trapdoor"]["arm"]),
 )
 
 
@@ -88,7 +88,7 @@ def hazards(parts):
             continue
         port = next((k for k, gs in zone_groups.items() if all(p.group in gs or p.group == "cassette" and "gantry" in gs
                                                                 for p in ps)), None)
-        low = force is not None and force <= H.F_LOW
+        low = force is not None and force <= hardware.F_LOW
         out.append(dict(name=name, parts=ps, kind=kind, t_mech=tm, force=force, low=low, zone=port))
     return out
 
@@ -102,14 +102,14 @@ def _box_dist(a, b):
 
 
 def inner():
-    g = M.guard()
+    g = line_model.guard()
     return dict(x0=g["xLo"] + g["t"], x1=g["xRo"] - g["t"], y0a=g["yF1o"] + g["t"], y0b=g["yF2o"] + g["t"],
                 xs=g["xS"] + g["w"] + g["t"], y1=g["yBo"] - g["t"], z1=L["GUARD_TOP"])
 
 
 def walls():
     """(name, normal axis, band n0..n1, along a0..a1) of each guard wall."""
-    g = M.guard()
+    g = line_model.guard()
     t, w = g["t"], g["w"]
     return [("F1", 1, g["yF1o"], g["yF1"] + w, g["xLo"], g["xS"] + w + t),
             ("step", 0, g["xS"], g["xS"] + w + t, g["yF1o"], g["yF2o"] + t),
@@ -121,14 +121,14 @@ def walls():
 
 def openings():
     """Declared openings: (wall, a0, a1, z0, z1, kind, name)."""
-    g = M.guard()
-    rx0, rx1, rim = M.raw_strip()
+    g = line_model.guard()
+    rx0, rx1, rim = line_model.raw_strip()
     out = [("F1", rx0, rx1, rim, L["GUARD_TOP"], "raw", "raw pour strip (into the dough + topping hoppers only)")]
     for name, (side, y0, y1, z0, z1, tag) in L["PORT_OPEN"].items():
         if L.get("AIRLOCK"):             # the outer airlock door's opening, between the port posts
             out.append((side, y0 + g["w"], y1 - g["w"], z0, min(z1, g["zt"]), "airlock", name))
         else:
-            sec = H.SAFE["light_curtain"]["section"]
+            sec = hardware.SAFE["light_curtain"]["section"]
             out.append((side, y0 + g["w"] + sec[1], y1 - g["w"] - sec[1], z0, min(z1, g["zt"]), "port", name))
     return out
 
@@ -188,7 +188,7 @@ def g2_walls(parts):
 
 def g3_roof(parts):
     ii = inner()
-    g = M.guard()
+    g = line_model.guard()
     X0, X1 = int(g["xLo"]), int(g["xRo"])
     Y0, Y1 = int(g["yF1o"]), int(g["yBo"])
     mask = np.zeros((Y1 - Y0, X1 - X0), dtype=bool)
@@ -218,7 +218,7 @@ def g3_roof(parts):
 
 
 def g4_sag(parts):
-    pc = H.SAFE["pc_panel"]
+    pc = hardware.SAFE["pc_panel"]
     t = pc["t"] / 1000
     D = pc["E"] * t ** 3 / (12 * (1 - pc["nu"] ** 2))
     q = pc["rho"] * 9.81 * t
@@ -231,7 +231,7 @@ def g4_sag(parts):
         Ls = min(p.s[0], p.s[1]) / 1000
         w = 5 * q * Ls ** 4 / (384 * D) * 1000
         b = p.aabb()
-        top = max((q_.aabb()[5] for q_ in below if M._ovl((b[0], b[1], -1e9, b[3], b[4], 1e9), q_.aabb())),
+        top = max((q_.aabb()[5] for q_ in below if line_model._ovl((b[0], b[1], -1e9, b[3], b[4], 1e9), q_.aabb())),
                   default=0.0)
         room = b[2] - top
         if w > worst:
@@ -247,7 +247,7 @@ def g5_doors(parts):
     fails = []
     for tag, wall, x0, x1 in L["DOORS"]:
         d, lk = by.get(f"door_{tag}"), by.get(f"lock_{tag}")
-        yy = M.guard()["yF2" if wall == "F2" else "yB"]
+        yy = line_model.guard()["yF2" if wall == "F2" else "yB"]
         hinge = by.get(f"guard_post_{int(x0)}_{int(yy)}")
         lpost = by.get(f"guard_post_{int(x1 - 20)}_{int(yy)}")
         if not (d and lk and hinge and lpost):
@@ -257,10 +257,10 @@ def g5_doors(parts):
             fails.append(f"G5 door {tag}: leaf not on its hinge post")
         if _box_dist(lk.aabb(), lpost.aabb()) > 1e-6:
             fails.append(f"G5 door {tag}: guard-locking switch not on the lock post")
-    ok = H.SAFE["guard_lock"]["F_hold"] >= F_HOLD_MIN
+    ok = hardware.SAFE["guard_lock"]["F_hold"] >= F_HOLD_MIN
     if not ok:
         fails.append("G5 guard-locking holding force too low")
-    return [("G5 doors", f"{len(L['DOORS'])} doors, each locked", f"F_hold {H.SAFE['guard_lock']['F_hold']:g} >= "
+    return [("G5 doors", f"{len(L['DOORS'])} doors, each locked", f"F_hold {hardware.SAFE['guard_lock']['F_hold']:g} >= "
              f"{F_HOLD_MIN:g} N", not fails, "RFID-coded power-to-unlock switch on every lock post")], fails
 
 
@@ -295,9 +295,9 @@ def g7_cutoff(ios, parts):
     for k in ("K1", "K2", "K3", "K4", "Q19"):
         if k not in so:
             fails.append(f"G7 {k} is not a TwinSAFE output")
-    zs = P.zones(parts)
-    kz = {what.split("-port")[0].split()[-1]: tag for tag, what, _ in P.contactors()[4:]}
-    yz = {port: tag for tag, port in P.zone_valves()}
+    zs = plc_io.zones(parts)
+    kz = {what.split("-port")[0].split()[-1]: tag for tag, what, _ in plc_io.contactors()[4:]}
+    yz = {port: tag for tag, port in plc_io.zone_valves()}
     for port, z in zs.items():
         if not set(z["motors"]) <= step:
             fails.append(f"G7 {port}: zone motors {set(z['motors']) - step} are not steppers on EL7047")
@@ -309,7 +309,7 @@ def g7_cutoff(ios, parts):
     do = {io.tag for io in ios if io.kind == "DO"}
     if not cyl <= do:
         fails.append(f"G7 cylinders without an island valve: {sorted(cyl - do)}")
-    heat = {io.tag for io in P.heaters(ios)}
+    heat = {io.tag for io in plc_io.heaters(ios)}
     stl = {io.tag[:-4] for io in ios if io.tag.endswith(".STL")}
     if heat - stl:
         fails.append(f"G7 heated zones without an STL: {sorted(heat - stl)}")
@@ -321,9 +321,9 @@ def g7_cutoff(ios, parts):
 
 
 def g8_timing():
-    ss1 = P.safety_ss1()
+    ss1 = plc_io.safety_ss1()
     ramp = ss1 - L["SS1_MARGIN"]
-    t_unlock = ss1 + H.SAFE["contactor"]["t_off"] + L["UNLOCK_STILL"]
+    t_unlock = ss1 + hardware.SAFE["contactor"]["t_off"] + L["UNLOCK_STILL"]
     t_run = ramp + max(h[3] or 0 for h in HAZARDS)
     ok = ss1 >= ramp and t_unlock >= t_run
     return [("G8 SS1 + unlock timing", f"SS1 {ss1:.2f} s, unlock >= {t_unlock:.2f} s",
@@ -365,8 +365,8 @@ def _components(free):
 
 def chamber_gaps(parts, hz):
     """Every uncovered region on the faces of each airlock chamber: (port, e, 3-D box of the region)."""
-    g = M.guard()
-    ch = M.airlock_chambers()
+    g = line_model.guard()
+    ch = line_model.airlock_chambers()
     moving = {id(p) for h in hz if not h["low"] for p in h["parts"]}
     fixed = [p for p in parts if id(p) not in moving and p.group not in ("stock", "tray", "puck", "cookie")]
     out = []
@@ -403,7 +403,7 @@ def chamber_gaps(parts, hz):
 def g9_airlocks(parts, hz, ios):
     fails = []
     tags = {io.tag for io in ios}
-    ch = M.airlock_chambers()
+    ch = line_model.airlock_chambers()
     for port, box in ch.items():
         doors = [p for p in parts if p.group == "airlock_door" and p.hw == "airlock_door"]
         need = {"boxes": ["S30"], "out": ["S31", "S32"]}[port]
@@ -434,7 +434,7 @@ def g9_airlocks(parts, hz, ios):
 def g9_ports(parts):
     fails = []
     by = {p.name: p for p in parts}
-    lc = H.SAFE["light_curtain"]
+    lc = hardware.SAFE["light_curtain"]
     for name, (side, y0, y1, zo, tag) in L["PORT_OPEN"].items():
         t_, r_ = by.get(f"lc_{name}_t"), by.get(f"lc_{name}_r")
         if not (t_ and r_):
@@ -463,20 +463,20 @@ def g1_enclosure(hz):
              "guard volume = inner panel faces + roof")], fails
 
 
-# ------------------------------------------------------------------ audit
+# --- audit
 def audit(parts, hz):
     """ISO 13855 / ISO 13857 at every opening. Returns rows (dicts) and findings (str)."""
     rows, finds = [], []
-    lc = H.SAFE["light_curtain"]
-    t_off = H.SAFE["contactor"]["t_off"]
-    g = M.guard()
+    lc = hardware.SAFE["light_curtain"]
+    t_off = hardware.SAFE["contactor"]["t_off"]
+    g = line_model.guard()
     for wall, o0, o1, z0, z1, kind, oname in openings():
         if kind == "raw":
             # declared: the strip opens only into the hopper interiors (walls, lids, 6 mm slots to the rails).
             # Under the dough hopper's safety grid (square e) run the feed rolls: ISO 13857 Table 4 distance.
             grid = next(p for p in parts if p.name == "dep_hopper_grid")
             e = L["DEP_GRID"]
-            need = H.iso13857_distance(e, "square")
+            need = hardware.iso13857_distance(e, "square")
             for h in hz:
                 if h["name"].startswith("depositor"):
                     d = min(grid.aabb()[2] - p.aabb()[5] for p in h["parts"])
@@ -487,7 +487,7 @@ def audit(parts, hz):
                         finds.append(f"{oname}: {h['name']} is {d:.0f} mm under the {e:g} mm grid (< {need:g})")
             continue
         if kind == "airlock":
-            box = M.airlock_chambers()[oname]
+            box = line_model.airlock_chambers()[oname]
             for h in hz:
                 ins = [p for p in h["parts"] if all(p.aabb()[i] < box[i + 3] - 1e-6 and p.aabb()[i + 3] > box[i] + 1e-6
                                                     for i in range(3))]
@@ -502,7 +502,7 @@ def audit(parts, hz):
             for port, e, r in chamber_gaps(parts, hz):
                 if port != oname or e <= 0:
                     continue
-                need = H.iso13857_distance(e, "slot")
+                need = hardware.iso13857_distance(e, "slot")
                 for h in hz:
                     if h["low"] or h["zone"] == oname:
                         continue
@@ -520,7 +520,7 @@ def audit(parts, hz):
         xp = g["xLo"] if wall == "left" else g["xRo"]
         orect = (xp - 0.5, o0, z0, xp + 0.5, o1, z1)
         e = min(o1 - o0, z1 - z0)
-        need_mute = H.iso13857_distance(e, "slot") if e <= 120 else H.ISO13857_ARM
+        need_mute = hardware.iso13857_distance(e, "slot") if e <= 120 else hardware.ISO13857_ARM
         port_zone = oname
         for h in hz:
             if h["low"]:
@@ -530,11 +530,11 @@ def audit(parts, hz):
                 continue
             # not muted: a trip removes all power (STO by K1/K2 + dump) -> ISO 13855 distance
             if h["kind"] == "motion":
-                T = lc["t_resp"] + H.T_LOGIC + t_off + h["t_mech"]
-                S = H.ISO13855["K_hand"] * T + 8 * (lc["d"] - 14)          # K mm/s x T s = mm
+                T = lc["t_resp"] + hardware.T_LOGIC + t_off + h["t_mech"]
+                S = hardware.ISO13855["K_hand"] * T + 8 * (lc["d"] - 14)   # K mm/s x T s = mm
                 if S > 500:
-                    S = max(500.0, H.ISO13855["K_slow"] * T + 8 * (lc["d"] - 14))
-                S = max(S, H.ISO13855["S_min"])
+                    S = max(500.0, hardware.ISO13855["K_slow"] * T + 8 * (lc["d"] - 14))
+                S = max(S, hardware.ISO13855["S_min"])
                 ok = d >= S
                 rows.append(dict(opening=oname, hazard=h["name"], state="curtain active", d_mm=round(d),
                                  need_mm=round(S), rule=f"ISO 13855 T={T * 1000:.0f} ms", ok=ok))
@@ -558,7 +558,7 @@ def audit(parts, hz):
         dz = lc["dead"]
         bar = next(p for p in parts if p.name == f"lc_{oname}_t").aabb()
         for where, gap in (("bottom", dz + bar[2] - z0), ("top", dz + z1 - bar[5])):
-            need = H.iso13857_distance(gap, "slot")
+            need = hardware.iso13857_distance(gap, "slot")
             dmin = min(min(_box_dist(orect, p.aabb()) for p in h["parts"]) for h in hz if not h["low"])
             ok = dmin >= need
             rows.append(dict(opening=oname, hazard=f"dead zone {where} ({gap:.0f} mm slot)", state="always",
@@ -572,11 +572,11 @@ def audit(parts, hz):
         bx, by_, bw_, bd, _ = L["REJECT_BIN"]
         zt = -L["TABLE"][2]
         brushed = "reject_bin_brush_front" in by
-        e = H.SAFE["brush"]["residual"] if brushed else L["REJECT_GAP"]     # under the shutter: 2 mm
-        need = H.iso13857_distance(e, "slot")
+        e = hardware.SAFE["brush"]["residual"] if brushed else L["REJECT_GAP"]  # under the shutter: 2 mm
+        need = hardware.iso13857_distance(e, "slot")
         # the deck is solid: from the slot at the bin's top edge the only path is across the bin to the
         # hole, through the deck, up the (closed sheet) funnel and out of its top
-        hx, hy, ho = M.reject_hole()
+        hx, hy, ho = line_model.reject_hole()
         to_hole = min(hx - bx, bx + bw_ - hx - ho, hy - by_, by_ + bd - hy - ho)
         fn = by["reject_funnel"].aabb()
         up = L["TABLE"][2] + (fn[5] - fn[2])
@@ -596,7 +596,7 @@ def audit(parts, hz):
                              f"ISO 13857 needs {need:.0f} mm")
     else:
         finds.append("reject drawer: pulling the drawer opens the funnel outlet under the deck; no shutter in the CAD")
-    box = M.lift_guard_box() if "lift_guard_floor" in by else None
+    box = line_model.lift_guard_box() if "lift_guard_floor" in by else None
     under = sorted({p.name for h in hz for p in h["parts"] if p.aabb()[2] < -L["TABLE"][2] - 1e-6
                     and not (box and all(box[i] - 1e-6 <= p.aabb()[i] and p.aabb()[i + 3] <= box[i + 3] + 1e-6
                                          for i in range(3)))})
@@ -615,7 +615,7 @@ def g10_under_deck(parts, hz):
         if "lift_guard_floor" not in by:
             fails.append("G10 moving parts under the deck but no lift guard")
         else:
-            box = M.lift_guard_box()
+            box = line_model.lift_guard_box()
             for p in below:
                 a = p.aabb()
                 if not all(box[i] - 1e-6 <= a[i] and a[i + 3] <= box[i + 3] + 1e-6 for i in range(3)):
@@ -632,7 +632,7 @@ def g11_reject(parts, ios):
     """The deck hole under the reject funnel is closed whenever the drawer is not fully in."""
     by = {p.name: p for p in parts}
     fails = []
-    hx, hy, ho = M.reject_hole()
+    hx, hy, ho = line_model.reject_hole()
     sh = by.get("reject_shutter")
     if not sh:
         fails.append("G11 no reject shutter")
@@ -670,7 +670,7 @@ SF = (   # the safety functions as configured in TwinSAFE (SAFETY_CONCEPT.md)
 )
 
 
-# ------------------------------------------------------------------ PL estimate (ISO 13849-1 simplified)
+# --- PL estimate (ISO 13849-1 simplified)
 PLR = dict(SF1="d", SF2="d", SF3="c", SF4="c", SF6="c")
 
 
@@ -679,10 +679,10 @@ def pl_estimate():
     subsystems: MTTFd from B10d and the operations per year, category + DCavg by the architecture,
     PL read (conservatively) from Figure 5; certified devices carry their own PL; Table 11 combines.
     An ESTIMATE on typical data - the real verification is SISTEMA with the bought parts' values."""
-    R, Y = H.RELIAB, H.OP_YEAR
+    R, Y = hardware.RELIAB, hardware.OP_YEAR
     days, hrs = Y["days"], Y["hours"]
-    rf = M.rate_flavour()
-    a_cas = M.cass_cap() * L["PACK"] / rf
+    rf = line_model.rate_flavour()
+    a_cas = line_model.cass_cap() * L["PACK"] / rf
     a_box = L["BOXMAG_CAP"] * L["PACK"] / rf
     n = dict(estop=1 * days, stop=13 * days, heat=3 * days,
              out=3 * 3600 / a_cas * hrs * days,
@@ -692,10 +692,10 @@ def pl_estimate():
         """Electromechanical subsystem: parts_ = catalogue keys in ONE channel."""
         mt = 1 / sum(1 / (R[k]["B10d"] / (0.1 * nop)) for k in parts_)
         mt = min(mt, 100.0)                                   # ISO 13849-1:2015 cap for categories 2 and 3
-        dcl = H.dc_class(dc)
-        key = (cat, dcl if (cat, dcl) in H.PL_FIG5 else "medium")
-        pl = H.PL_FIG5.get(key, {}).get(H.mttfd_class(mt), "-")
-        return dict(sub=name, how=f"cat {cat}, DC {dc:.0%} ({dcl}), MTTFd {mt:.0f} y ({H.mttfd_class(mt)}), "
+        dcl = hardware.dc_class(dc)
+        key = (cat, dcl if (cat, dcl) in hardware.PL_FIG5 else "medium")
+        pl = hardware.PL_FIG5.get(key, {}).get(hardware.mttfd_class(mt), "-")
+        return dict(sub=name, how=f"cat {cat}, DC {dc:.0%} ({dcl}), MTTFd {mt:.0f} y ({hardware.mttfd_class(mt)}), "
                                   f"n_op {nop:.0f}/y", pl=pl)
 
     def cert(name, key):
@@ -718,7 +718,7 @@ def pl_estimate():
     }
     rows, fails = [], []
     for name, (sf, subs) in sfs.items():
-        pl = H.pl_series([x["pl"] for x in subs])
+        pl = hardware.pl_series([x["pl"] for x in subs])
         ok = pl != "-" and "abcde".index(pl) >= "abcde".index(PLR[sf])
         rows.append(dict(function=name, PLr=PLR[sf], PL_est=pl, ok=ok,
                          subsystems=" | ".join(f"{x['sub']}: PL {x['pl']} ({x['how']})" for x in subs)))
@@ -728,9 +728,9 @@ def pl_estimate():
 
 
 def check(verbose=True, write=False):
-    parts = M.build(with_product=False)
-    P.check(verbose=False)
-    ios = P.IOS
+    parts = line_model.build(with_product=False)
+    plc_io.check(verbose=False)
+    ios = plc_io.IOS
     hz = hazards(parts)
     rows, fails = [], []
     for fn in (lambda: g1_enclosure(hz), lambda: g2_walls(parts), lambda: g3_roof(parts), lambda: g4_sag(parts),
@@ -747,7 +747,7 @@ def check(verbose=True, write=False):
                  "PL_est >= PLr", not plf, "simplified method, typical data, Figure 5 read conservatively"))
     if verbose:
         print(f"safety S-1: {len(hz)} hazards, {sum(len(h['parts']) for h in hz)} hazardous parts, "
-              f"{sum(1 for h in hz if h['low'])} low-energy (<= {H.F_LOW:g} N [assumed])")
+              f"{sum(1 for h in hz if h['low'])} low-energy (<= {hardware.F_LOW:g} N [assumed])")
         for name, v, lim, ok, note in rows:
             print(f"  [{'ok' if ok else 'FAIL'}] {name:28s} {v:44s} {lim:30s} {note}")
         print("\n".join(fails) if fails else "ALL SAFETY-HARDWARE PROOFS PASS (enclosure, walls, roof, sag, doors, "

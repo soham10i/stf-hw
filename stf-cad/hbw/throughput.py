@@ -29,7 +29,7 @@ import os
 import statistics
 import time
 
-import control as C
+import control
 import vc
 from variant import UP10
 
@@ -43,19 +43,19 @@ SAY = {"zero": "zero-length legs cost a position check",
 
 def _set(on):
     for m in MEASURES:
-        C.OPT[m] = m in on
+        control.OPT[m] = m in on
 
 
 def _run(on):
     _set(on)
-    bars, events, T, _ = C.simulate(C.PLC_POLICY)
-    r = vc.Run(C.PLC_POLICY).run()
-    busy = {u: round(sum(s[3] - s[2] for b in r.bars for s in b["steps"] if s[0] == u), 1) for u in C.UNITS}
+    bars, events, T, _ = control.simulate(control.PLC_POLICY)
+    r = vc.Run(control.PLC_POLICY).run()
+    busy = {u: round(sum(s[3] - s[2] for b in r.bars for s in b["steps"] if s[0] == u), 1) for u in control.UNITS}
     sorts = sorted(b["t1"] for b in r.bars if b["job"] == "sort")
     gaps = [b - a for a, b in zip(sorts, sorts[1:])]
     return {"on": sorted(on), "model_s": T, "vc_s": round(r.makespan, 1), "busy": busy,
             "cycle_s": round(statistics.median(gaps), 1) if gaps else None,
-            "per_hour": round(len(C.PRODUCE) * 3600 / r.makespan, 1)}, bars, r
+            "per_hour": round(len(control.PRODUCE) * 3600 / r.makespan, 1)}, bars, r
 
 
 def critical_path(bars):
@@ -86,15 +86,15 @@ def critical_path(bars):
 def study(on):
     rows = []
     try:
-        for bake in C.STUDY_BAKES:
-            C.BAKE["s"] = bake
+        for bake in control.STUDY_BAKES:
+            control.BAKE["s"] = bake
             _set(())
-            before = C.simulate(C.PLC_POLICY)[2]
+            before = control.simulate(control.PLC_POLICY)[2]
             _set(on)
-            after = C.simulate(C.PLC_POLICY)[2]
+            after = control.simulate(control.PLC_POLICY)[2]
             rows.append({"bake_s": bake, "before": before, "after": after, "gain": round(1 - after / before, 3)})
     finally:
-        C.BAKE["s"] = C.BAKE_DEMO
+        control.BAKE["s"] = control.BAKE_DEMO
     return rows
 
 
@@ -109,12 +109,12 @@ def main():
     full = set(MEASURES)
     # --- proofs first: nothing is written unless all pass
     _set(full)
-    fails = C.check(verbose=False)
+    fails = control.check(verbose=False)
     fails += vc.check(verbose=False)
     if fails:
         print("\n".join(fails[:20]))
         raise SystemExit("throughput: proofs failed - nothing written")
-    explored = {p: C.explore(p)[0] for p in C.POLICIES if not (C.POLICIES[p]["buffer"] and not C.NEST_N)}
+    explored = {p: control.explore(p)[0] for p in control.POLICIES if not (control.POLICIES[p]["buffer"] and not control.NEST_N)}
     healthy, rows = vc.results()
     perf = vc.performance(healthy, rows)
     # --- ablation
@@ -138,13 +138,13 @@ def main():
     tours = {}
     for nm, on in (("before", ()), ("after", full)):
         _set(on)
-        tours[nm] = {"belt_to_oven": round(sum(s.t for s in C.job_steps(("belt_to_oven", ("c", "M")))) +
-                                           (sum(s.t for s in C.job_steps(("place_oven", ("c", "belt")))) if "split" in on else 0), 2),
-                     "bay_to_belt": round(sum(s.t for s in C.job_steps(("bay_to_belt", ("c", "rot", "M")))), 2)}
+        tours[nm] = {"belt_to_oven": round(sum(s.t for s in control.job_steps(("belt_to_oven", ("c", "M")))) +
+                                           (sum(s.t for s in control.job_steps(("place_oven", ("c", "belt")))) if "split" in on else 0), 2),
+                     "bay_to_belt": round(sum(s.t for s in control.job_steps(("bay_to_belt", ("c", "rot", "M")))), 2)}
     _set(full)
     # OEE before, on the same shift definition (the order + every fault once)
     _set(())
-    hb = vc.Run(C.PLC_POLICY).run()
+    hb = vc.Run(control.PLC_POLICY).run()
     perf_b = vc.performance(hb, vc.run_matrix(hb))
     _set(full)
     bott_b = max(base["busy"], key=base["busy"].get)
@@ -170,7 +170,7 @@ def main():
                  "The critical path is now: " + ", ".join(f"{k} {v} s" for k, v in list(cp_after[1].items())[:3]) +
                  ". The next step is on the warehouse side (a second fork, or retrieving to a staging position), not the VGR."},
         {"title": f"With a real bake the gain shrinks to {round(100 * st[-1]['gain'])} %",
-         "text": f"At the booklet's {C.BAKE_DEMO:.0f} s demo bake the loop limits the order; at {st[-1]['bake_s']:.0f} s the oven does "
+         "text": f"At the booklet's {control.BAKE_DEMO:.0f} s demo bake the loop limits the order; at {st[-1]['bake_s']:.0f} s the oven does "
                  f"({st[-1]['before']} -> {st[-1]['after']} s). The split still helps there: the VGR waits holding the next cookie, "
                  "so the tray is refilled the moment it frees."},
         {"title": "Safety and recovery are unchanged",
@@ -179,9 +179,9 @@ def main():
                  "One new rule: a cookie dropped after the pick has no mould to go back to, so the operator lays it on the presented tray."},
     ]
     doc = {
-        "meta": {"variant": "up10", "policy": C.PLC_POLICY, "cookies": len(C.PRODUCE), "orders_note":
-                 "the 12-cookie order: 9 produced, 3 returned to the rack", "bake_demo_s": C.BAKE_DEMO,
-                 "margin_mm": __import__("vgr_path").MARGIN, "t_zero_s": C.T_ZERO, "t_min_s": C.T_MIN,
+        "meta": {"variant": "up10", "policy": control.PLC_POLICY, "cookies": len(control.PRODUCE), "orders_note":
+                 "the 12-cookie order: 9 produced, 3 returned to the rack", "bake_demo_s": control.BAKE_DEMO,
+                 "margin_mm": __import__("vgr_path").MARGIN, "t_zero_s": control.T_ZERO, "t_min_s": control.T_MIN,
                  "assumed": "as Upgrades 4 and 5: axis speeds and ramps, belt slip, cylinder, vacuum and RFID times, "
                             "the operator's repair and reset times"},
         "measures": [{"id": m, "say": SAY[m], "alone_s": alone[m], "marginal_s": marg[m]} for m in MEASURES],
@@ -192,11 +192,11 @@ def main():
         "study": st,
         "proofs": {"explored_states": explored, "fault_matrix": [{k: r[k] for k in ("id", "fault", "expected", "observed",
                                                                                     "latency_s", "lost_s", "pass")} for r in rows],
-                   "recovery_poses": vc.check_recovery_paths()[1], "vc_vs_model": round(healthy.makespan / C.simulate(C.PLC_POLICY)[2] - 1, 4)},
+                   "recovery_poses": vc.check_recovery_paths()[1], "vc_vs_model": round(healthy.makespan / control.simulate(control.PLC_POLICY)[2] - 1, 4)},
         "oee": {nm: {k: p[k] for k in ("availability", "performance", "quality", "oee", "bottleneck", "makespan", "shift_s")}
                 for nm, p in (("before", perf_b), ("after", perf))},
         "gantt": {"before": _gantt(keep["before (Upgrade 7)"][1]), "after": _gantt(keep["Upgrade 10"][1])},
-        "main_st": C.st_source(C.sfc())["MAIN.st"],
+        "main_st": control.st_source(control.sfc())["MAIN.st"],
         "findings": findings,
     }
     _set(full)

@@ -33,16 +33,16 @@ export function Circuits({ doc }: { doc: ControllerDoc }) {
       </div>
       <svg viewBox="0 0 520 170" className="circuit">
         {c === "power" && (<g>
-          <T x={20} y={30} n="1" /><Diode x={110} y={30} /><Wire d="M40,30 H100 M130,30 H380" /><Net x={380} y={30} t="+24V Motor (relays)" />
-          <T x={20} y={80} n="2" /><Diode x={110} y={80} /><Fuse x={200} y={80} t="0.2 A" /><Wire d="M40,80 H100 M130,80 H185 M225,80 H380" /><Net x={380} y={80} t="+24V Sensor" />
-          <T x={20} y={125} n="3" /><T x={20} y={150} n="4" /><Wire d="M40,125 H90 V160 M40,150 H90" /><Gnd x={90} y={160} />
+          <TerminalBox x={20} y={30} n="1" /><Diode x={110} y={30} /><Wire d="M40,30 H100 M130,30 H380" /><Net x={380} y={30} t="+24V Motor (relays)" />
+          <TerminalBox x={20} y={80} n="2" /><Diode x={110} y={80} /><Fuse x={200} y={80} t="0.2 A" /><Wire d="M40,80 H100 M130,80 H185 M225,80 H380" /><Net x={380} y={80} t="+24V Sensor" />
+          <TerminalBox x={20} y={125} n="3" /><TerminalBox x={20} y={150} n="4" /><Wire d="M40,125 H90 V160 M40,150 H90" /><Gnd x={90} y={160} />
           <text x="150" y="140" className="note">reverse-polarity diodes; sensor rail overload-protected</text>
         </g>)}
         {c === "switch" && (<g>
           <Net x={300} y={25} t="+24V Sensor" rev /><Wire d="M300,25 H200 V60" />
           <path d="M200,60 L230,95" className="blade" /><circle cx="200" cy="100" r="3" className="dot" /><circle cx="235" cy="100" r="3" className="dot" />
           <text x="240" y="98" className="note">3 (NO)</text><text x="160" y="118" className="note">1</text>
-          <Wire d="M200,100 V140 H40" /><T x={20} y={140} n="I" />
+          <Wire d="M200,100 V140 H40" /><TerminalBox x={20} y={140} n="I" />
           <text x="260" y="140" className="note">closed switch → +24 V on the input (P-reading)</text>
         </g>)}
         {c === "barrier" && (<g>
@@ -51,28 +51,28 @@ export function Circuits({ doc }: { doc: ControllerDoc }) {
           <line x1="150" y1="80" x2="150" y2="100" className="blade" /><text x="120" y="118" className="note">E</text>
           <circle cx="260" cy="85" r="15" className="lamp" /><path d="M250,75 L270,95 M270,75 L250,95" className="blade" />
           <Wire d="M260,100 V150" /><Gnd x={260} y={150} /><text x="285" y="90" className="note">lamp</text>
-          <Wire d="M160,140 H40" /><T x={20} y={140} n="I" />
+          <Wire d="M160,140 H40" /><TerminalBox x={20} y={140} n="I" />
           <text x="300" y="130" className="note">max 5 mA through the phototransistor</text>
         </g>)}
         {c === "encoder" && (<g>
           <Net x={40} y={25} t="+24V Sensor" /><Wire d="M160,25 H260 V50" />
           <rect x="235" y="50" width="50" height="30" className="box" /><text x="243" y="70" className="note">push</text>
-          <Wire d="M260,80 V95 H40" /><T x={20} y={95} n="B" />
+          <Wire d="M260,80 V95 H40" /><TerminalBox x={20} y={95} n="B" />
           <rect x="235" y="105" width="50" height="30" className="box" /><text x="245" y="125" className="note">pull</text>
           <Wire d="M260,95 V105 M260,135 V155" /><Gnd x={260} y={155} />
           <text x="310" y="80" className="note">quadrature A/B, 0/24 V, max 1 kHz</text>
           <text x="310" y="100" className="note">B lags A forward, leads reverse</text>
         </g>)}
         {c === "actuator" && (<g>
-          <T x={20} y={50} n="Q" /><Diode x={110} y={50} /><Wire d="M40,50 H100 M130,50 H360 M220,50 V80" />
+          <TerminalBox x={20} y={50} n="Q" /><Diode x={110} y={50} /><Wire d="M40,50 H100 M130,50 H360 M220,50 V80" />
           <rect x="360" y="38" width="90" height="24" className="box" /><text x="380" y="55" className="note">lamp / valve</text>
           <g transform="translate(220,95) rotate(-90)"><Diode x={0} y={0} /></g><Wire d="M220,110 V140" /><Gnd x={220} y={140} />
           <text x="240" y="100" className="note">freewheel diode for inductive loads</text>
         </g>)}
         {c === "motor" && (<g>
-          <T x={20} y={35} n="Qa" /><Diode x={90} y={35} /><Wire d="M40,35 H80 M110,35 H170" />
+          <TerminalBox x={20} y={35} n="Qa" /><Diode x={90} y={35} /><Wire d="M40,35 H80 M110,35 H170" />
           <rect x="170" y="22" width="36" height="26" className="box" /><text x="176" y="40" className="note">Ra</text>
-          <T x={20} y={135} n="Qb" /><Diode x={90} y={135} /><Wire d="M40,135 H80 M110,135 H170" />
+          <TerminalBox x={20} y={135} n="Qb" /><Diode x={90} y={135} /><Wire d="M40,135 H80 M110,135 H170" />
           <rect x="170" y="122" width="36" height="26" className="box" /><text x="176" y="140" className="note">Rb</text>
           <Wire d="M206,35 H260 M206,135 H260" /><Fuse x={300} y={85} t="0.2 A" /><Net x={340} y={85} t="+24V Motor" />
           <Wire d="M260,35 H470 M260,135 H470 M260,35 V70 M260,135 V100 M285,85 H260" />
@@ -87,7 +87,7 @@ export function Circuits({ doc }: { doc: ControllerDoc }) {
 }
 
 const Wire = ({ d }: { d: string }) => <path d={d} className="w" />;
-const T = ({ x, y, n }: { x: number; y: number; n: string }) => (
+const TerminalBox = ({ x, y, n }: { x: number; y: number; n: string }) => (
   <g><rect x={x} y={y - 8} width="18" height="16" className="tbox" /><text x={x - 2} y={y - 12} className="note">{n}</text></g>
 );
 const Diode = ({ x, y }: { x: number; y: number }) => (

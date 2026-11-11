@@ -31,9 +31,10 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 LINE2 = os.path.dirname(HERE)
 sys.path.insert(0, LINE2)
-from twin.plant.core import POOL, TICK, Plant            # noqa: E402
-import geom as G                                         # noqa: E402
-import motion as Mo                                      # noqa: E402
+import geom  # noqa: E402
+import line_model  # noqa: E402
+import motion  # noqa: E402
+from twin.plant.core import POOL, TICK, Plant  # noqa: E402
 
 TL = os.path.join(LINE2, "motion", "timeline.json")
 
@@ -67,7 +68,7 @@ def check(verbose=True):
 
     # L1 replay ------------------------------------------------------------------------------------------------
     tl = json.load(open(TL))
-    p = Plant(events=Mo.reference_events())
+    p = Plant(events=motion.reference_events())
     bad, n_rows = [], 0
     for k in range(tl["frames"]):
         f = p.frame()
@@ -110,7 +111,7 @@ def check(verbose=True):
     hours = 2.0
     T_END = hours * 3600
     issues, n_frames, max_live = [], 0, 0
-    pitch = Mo.M.band_v() * p.period                       # mm between rows on the band (= BAND spacing)
+    pitch = line_model.band_v() * p.period                   # mm between rows on the band (= BAND spacing)
     xs_ok = True
     t_next = dict(kick=20.0, seal=12.0, exchange=60.0)
     lane = 0
@@ -120,7 +121,7 @@ def check(verbose=True):
             p.command("kick")
             t_next["kick"] += 20.0
         if p.t >= t_next["seal"] - 1e-9:
-            p.command("seal", lane=Mo.FLAV[lane % 3])
+            p.command("seal", lane=motion.FLAV[lane % 3])
             lane += 1
             t_next["seal"] += 12.0
         if p.t >= t_next["exchange"] - 1e-9:
@@ -154,12 +155,12 @@ def check(verbose=True):
     # L4 event phases ------------------------------------------------------------------------------------------
     base = Plant().base
     geared = set()
-    f_a, _, _ = Mo.frame(0.0, base, Mo.reference_events(), None, 0.0)
+    f_a, _, _ = motion.frame(0.0, base, motion.reference_events(), None, 0.0)
     ev_parts = {"kick": ["kick_paddle", "kick_rod"]}
-    for fl in Mo.FLAV:
+    for fl in motion.FLAV:
         ev_parts[f"seal {fl}"] = [f"sealer_{fl}_head", f"sealer_{fl}_rod"]
         ev_parts[f"lift {fl}"] = [f"stacker_plate_{fl}", f"stacker_rod_{fl}"]
-    ev_parts["exchange"] = [n for n, q in base.items() if q.joint == f"shuttle_{Mo.EXCH_LANE}"] + \
+    ev_parts["exchange"] = [n for n, q in base.items() if q.joint == f"shuttle_{motion.EXCH_LANE}"] + \
         ["aldoor_inner", "aldoor_out"]
     ev_all = {n for v in ev_parts.values() for n in v}
     geared = {n for n in f_a if n not in ev_all}
@@ -172,19 +173,19 @@ def check(verbose=True):
         e = env.get(name)
         env[name] = b if e is None else [min(e[i], b[i]) for i in range(3)] + [max(e[i], b[i]) for i in range(3, 6)]
 
-    no_ev = dict(kicks=[], seals={fl: [] for fl in Mo.FLAV}, lifts={fl: [] for fl in Mo.FLAV}, exchange=None)
+    no_ev = dict(kicks=[], seals={fl: [] for fl in motion.FLAV}, lifts={fl: [] for fl in motion.FLAV}, exchange=None)
     pp = Plant()
     for kk in range(240):                                   # a full machine cycle (24 s) of the geared parts
         tau = kk * 0.1
-        now, vis, _ = Mo.frame(0.0, base, no_ev, pp._rows(tau), tau)
+        now, vis, _ = motion.frame(0.0, base, no_ev, pp._rows(tau), tau)
         for n in geared:
             if n in now:
                 grow(n, now[n], vis.get(n, True))
     ev_env, ev_frames = {}, {}
-    full = dict(kicks=[1.0], seals={fl: [1.0] for fl in Mo.FLAV}, lifts={fl: [3.0] for fl in Mo.FLAV}, exchange=1.0)
+    full = dict(kicks=[1.0], seals={fl: [1.0] for fl in motion.FLAV}, lifts={fl: [3.0] for fl in motion.FLAV}, exchange=1.0)
     for kk in range(int(45 / 0.1)):                          # every event once, at a fixed tau (its own motion)
         t = kk * 0.1
-        now, vis, _ = Mo.frame(t, base, full, pp._rows(0.0), 0.0)
+        now, vis, _ = motion.frame(t, base, full, pp._rows(0.0), 0.0)
         for n in ev_all:
             if n in now:
                 b = now[n].aabb()
@@ -194,17 +195,17 @@ def check(verbose=True):
     risky = []
     for ename in sorted(ev_all):
         for g in sorted(geared):
-            if g in env and ename in ev_env and Mo.M._ovl(ev_env[ename], env[g]) and \
-                    not Mo._exempt(base.get(ename, f_a[ename]), base.get(g, f_a[g])):
+            if g in env and ename in ev_env and line_model._ovl(ev_env[ename], env[g]) and \
+                    not motion._exempt(base.get(ename, f_a[ename]), base.get(g, f_a[g])):
                 risky.append((ename, g))
     hits = []
     for ename, g in risky:                                   # exact sweep at 8 phases of the 24 s cycle
         for ph in range(8):
             tau0 = ph * 3.0
             for t in ev_frames[ename][::2]:
-                now, vis, _ = Mo.frame(t, base, full, pp._rows(tau0 + t), tau0 + t)
+                now, vis, _ = motion.frame(t, base, full, pp._rows(tau0 + t), tau0 + t)
                 if ename in now and g in now and vis.get(g, True) and vis.get(ename, True) and \
-                        Mo.M._ovl(now[ename].aabb(), now[g].aabb()) and G.interfere(now[ename], now[g]):
+                        line_model._ovl(now[ename].aabb(), now[g].aabb()) and geom.interfere(now[ename], now[g]):
                     hits.append((ename, g, tau0, t))
     row("L4 event phases", f"{len(ev_all)} event parts x {len(geared)} geared parts: {len(risky)} pairs can meet, "
         f"{len(hits)} hits at 8 phases", "0 hits", not hits,

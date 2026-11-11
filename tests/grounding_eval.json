@@ -1,0 +1,62 @@
+{
+  "about": "Hand-labelled claims for the hallucination detector (services/api/eval/eval_grounding.py). Each case is a question - its evidence is what retrieval gives it (the top passages, as the chat would see them) - and claims labelled by hand: `supported` true when that evidence says it, often in other words; false when it is invented, swapped or contradicted. The supported paraphrases measure the detector's false alarms; the rest its misses. Keep the claims out of docs/ (tests/test_docs_corpus.py checks that no evaluation question is quoted there).",
+  "cases": [
+    {"q": "how is the health index of a part calculated?", "claims": [
+      {"text": "The health index is the share of the margin to failure that remains, from 100 for a new part to 0 for one failing now.", "supported": true},
+      {"text": "A part that has already failed shows a health index of 0.", "supported": true},
+      {"text": "The health index is averaged over the last ten orders before it is shown.", "supported": false},
+      {"text": "Parts with a health index under 50 are replaced automatically by the robot.", "supported": false}
+    ]},
+    {"q": "how does the guest session cookie work?", "claims": [
+      {"text": "Until sign-in arrives every visitor is a guest, issued by the server on the browser's first request to the API.", "supported": true},
+      {"text": "The browser keeps the guest in a cookie.", "supported": true},
+      {"text": "The guest cookie expires after 24 hours and the guest is then deleted from the database.", "supported": false},
+      {"text": "Each guest has to confirm an email address before the cookie is issued.", "supported": false}
+    ]},
+    {"q": "what parts and connections does the edge computer have?", "claims": [
+      {"text": "The edge PC has no fan: its finned aluminium lid works as the heat sink.", "supported": true},
+      {"text": "One Ethernet port goes to the cabinet's switch and the other to the site network.", "supported": true},
+      {"text": "The edge PC carries a 512 GB NVMe drive and a graphics card for the vision model.", "supported": false},
+      {"text": "The edge computer is powered by 230 V AC from a wall socket.", "supported": false}
+    ]},
+    {"q": "what are the drag chains on the moving axes?", "claims": [
+      {"text": "Drag chains carry the moving cables for the crane's travel and lift and the robot's plunge and reach.", "supported": true},
+      {"text": "The drag chains are steel links that are greased every week.", "supported": false},
+      {"text": "The robot's cables hang freely from the ceiling instead of riding in a chain.", "supported": false}
+    ]},
+    {"q": "how does the twin see a part failing before it breaks?", "claims": [
+      {"text": "The pre-failure window opens when the chance of a failure within 90 orders reaches the threshold for three orders running.", "supported": true},
+      {"text": "The pre-failure window opens when the failure probability stays above the threshold for twelve orders running.", "supported": false},
+      {"text": "The warning reaches the maintenance team as a text message on their phones.", "supported": false}
+    ]},
+    {"q": "what does the normal-behaviour model in predictive maintenance do?", "claims": [
+      {"text": "Before anything else, the effect of the hall temperature on signals such as belt slip is taken out.", "supported": true},
+      {"text": "The normal-behaviour model is a random forest trained on vibration spectra from accelerometers.", "supported": false}
+    ]},
+    {"q": "what does the colour sensor measure in millivolts?", "claims": [
+      {"text": "The colour sensor gives a brightness reading as a voltage, not a colour.", "supported": true},
+      {"text": "The sensor is an RGB sensor that compares its red and green channels.", "supported": false},
+      {"text": "The sensor is recalibrated by the operator before every shift.", "supported": false}
+    ]},
+    {"q": "what is the difference between the real factory and this twin?", "claims": [
+      {"text": "The vacuum gripper robot is a gantry arm carrying a mould and its cup of dough between the warehouse belt, the oven and the sorting line.", "supported": true},
+      {"text": "The real factory uses a six-axis articulated arm where the twin has a gantry.", "supported": false}
+    ]},
+    {"q": "who decides whether a question is answered from the documents or the web?", "claims": [
+      {"text": "When the first model is busy or offline the next one takes over on its own.", "supported": true},
+      {"text": "An operator must approve each web search before it is run.", "supported": false}
+    ]},
+    {"q": "how is the factory's carbon footprint computed per cookie?", "claims": [
+      {"text": "The page shows the grams per cookie for each day, coloured by the weather.", "supported": true},
+      {"text": "Carbon per cookie uses a fixed grid factor of 400 g for every kilowatt-hour.", "supported": false}
+    ]},
+    {"q": "how do the inspection camera photos reach the server?", "claims": [
+      {"text": "Photo capture can be switched off with a setting.", "supported": true},
+      {"text": "The photos are sent to the server by email once a day.", "supported": false}
+    ]},
+    {"q": "what error code does the API return when the daily question budget is spent?", "claims": [
+      {"text": "A service the API depends on that does not answer gives a 504.", "supported": true},
+      {"text": "A spent budget makes the API answer with status 418.", "supported": false}
+    ]}
+  ]
+}

@@ -4,6 +4,7 @@ Canonical location: services/api/voice/voice_check.py
 """
 
 import sys
+
 import services.api.voice.voice_check as _target_module
 
 globals().update({

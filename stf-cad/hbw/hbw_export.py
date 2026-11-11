@@ -6,18 +6,31 @@ STF_HBW.FCStd. Parts are emitted in LOCAL joint-frame coordinates; the scene
 nests four groups (world -> travel -> lift -> fork) and translates each by the
 live joint value, exactly like the FreeCAD App::Part placements.
 """
-import hashlib, json, os, sys
-from hbw_model import (P, build, check, slot_ids, slot_pose,
-                       MOULD_SLOTS, COOKIE_SLOTS, FREE_SLOT, COOKIE_FLAVOUR)
-from hbw_frames import by_frame, PARENT, AXIS, FRAMES, HOME
-import factory_layout
-import vgr_model as VG
-import oven_model as OM
-import sorting_model as SM
-import pipeline as PL
-import hbw_model as HMOD
+import hashlib
+import json
+import os
+import sys
 
+import factory_layout
+import hbw_model
+import oven_model
+import pipeline
+import sorting_model
+import vgr_model
+from hbw_frames import AXIS, FRAMES, HOME, PARENT, by_frame
+from hbw_model import (
+    COOKIE_FLAVOUR,
+    COOKIE_SLOTS,
+    FREE_SLOT,
+    MOULD_SLOTS,
+    P,
+    build,
+    check,
+    slot_ids,
+    slot_pose,
+)
 from variant import UP1, UP2, UP3, UP4, UP5, UP6, UP7, VARIANT
+
 PUB = os.path.expanduser("~/workspace/stf-hw/web/public")
 # The base export is read by every upgrade for its before/after metrics, and by the
 # FreeCAD build (mcp_build.py): it always lives in web/public.
@@ -47,8 +60,12 @@ def col(name):
 def _upgrade_block(doc):
     """Upgrade 1: its parts (factory frame, translated only), its proofs, and
     before/after numbers measured from BOTH exports - never typed in."""
-    import math, subprocess, upgrade as U, vgr_path
-    fails = U.check(verbose=False) + vgr_path.check_buffer(verbose=False)
+    import math
+    import subprocess
+
+    import upgrade
+    import vgr_path
+    fails = upgrade.check(verbose=False) + vgr_path.check_buffer(verbose=False)
     if fails:
         print("REFUSING to export Upgrade 1 - it fails its proof:"); print("\n".join(fails[:30])); sys.exit(1)
 
@@ -75,9 +92,9 @@ def _upgrade_block(doc):
                 "cable_m": round(sum(L(c["points"]) for c in w["cables"]) / 1000, 2),
                 "cables": len(w["cables"]), "hoses": len(w["hoses"]),
                 "vgr_stations": len(d["factory"]["stations"])}
-    rep = U.report(doc)
+    rep = upgrade.report(doc)
     blk = {"name": "Upgrade 1 - central air, cookie buffer, stiff members",
-           "parts": pj(U.buffer_parts(), U.BUF_AT) + pj(U.air_parts(), U.AIR_AT) + pj(U.edge_parts(), U.EDGE_AT),
+           "parts": pj(upgrade.buffer_parts(), upgrade.BUF_AT) + pj(upgrade.air_parts(), upgrade.AIR_AT) + pj(upgrade.edge_parts(), upgrade.EDGE_AT),
            "report": rep, "sag_before": base_sag,
            "buffer_tour": vgr_path.plan(vgr_path.buffer_tour()),
            "proofs": ["upgrade.check: plates on the table and clear of every module; nests "
@@ -89,7 +106,7 @@ def _upgrade_block(doc):
                       "all four module proofs and the original 42-waypoint tour, unchanged"]}
     import vgr_model as _VG
     blk["guides"] = [{"module": m, "host": h, "guest": g, "kind": k, "clearance_mm": c}
-                     for m, gl in (("vgr", getattr(_VG, "GUIDES", [])), ("hbw", getattr(HMOD, "GUIDES", [])))
+                     for m, gl in (("vgr", getattr(_VG, "GUIDES", [])), ("hbw", getattr(hbw_model, "GUIDES", [])))
                      for h, g, k, c in gl]
     blk["precise"] = {
         "file": "precise_up1.glb",
@@ -187,15 +204,15 @@ def main():
         "slots": {sid: list(slot_pose(sid)) for sid in slot_ids()},
         "parts": parts,
     }
-    # ---- VGR module, in its own local frames ----
+    # --- VGR module, in its own local frames
     import vgr_path
-    vfail = VG.check(verbose=False) + factory_layout.check_stations() \
+    vfail = vgr_model.check(verbose=False) + factory_layout.check_stations() \
         + factory_layout.check_cross() + vgr_path.check(verbose=False)
     if vfail:
         print("REFUSING to export - the VGR fails its clearance proof:")
         print("\n".join(vfail)); sys.exit(1)
     vparts = []
-    for p in VG.build():
+    for p in vgr_model.build():
         vparts.append({
             "n": p.name, "f": p.frame, "g": p.group, "k": p.kind,
             "p": [round(v, 3) for v in p.p],
@@ -204,21 +221,21 @@ def main():
             "mech": p.mech, "note": p.note,
         })
     doc["vgr"] = {
-        "plate": list(VG.V["PLATE"]),
-        "centre": [VG.V["CX"], VG.V["CY"]],
-        "pitch_mm": VG.V["PITCH_MM"],
-        "frames": [{"name": f, "parent": VG.PARENT[f]} for f in VG.FRAMES],
+        "plate": list(vgr_model.V["PLATE"]),
+        "centre": [vgr_model.V["CX"], vgr_model.V["CY"]],
+        "pitch_mm": vgr_model.V["PITCH_MM"],
+        "frames": [{"name": f, "parent": vgr_model.PARENT[f]} for f in vgr_model.FRAMES],
         # Station stops are SOLVED by factory_layout.solve_station() from the
         # belt's own coordinates, never typed in - so the VGR's idea of where
         # the hand-over is cannot drift from the conveyor's.
         "joints": {
-            "swivel": {"kind": "revolute", "limits": list(VG.V["SWIVEL"]),
+            "swivel": {"kind": "revolute", "limits": list(vgr_model.V["SWIVEL"]),
                        "stops": {"home": 0.0,
                                  "belt": factory_layout.stations()["belt"]["swivel"]}},
-            "plunge": {"kind": "prismatic", "limits": list(VG.V["PLUNGE"]),
-                       "stops": {"raised": VG.V["TRANSIT"], "transit": VG.V["TRANSIT"],
+            "plunge": {"kind": "prismatic", "limits": list(vgr_model.V["PLUNGE"]),
+                       "stops": {"raised": vgr_model.V["TRANSIT"], "transit": vgr_model.V["TRANSIT"],
                                  "pick": vgr_path.contact_plunge("belt")}},
-            "reach": {"kind": "prismatic", "limits": list(VG.V["REACH"]),
+            "reach": {"kind": "prismatic", "limits": list(vgr_model.V["REACH"]),
                       "stops": {"retracted": 0.0,
                                 "belt": factory_layout.stations()["belt"]["reach"]}},
         },
@@ -227,20 +244,20 @@ def main():
         # the DELTA from this - it used to subtract the plunge LIMIT (320) from a
         # part set authored at 250, drawing the whole arm 70 mm too low.
         "authoring": {"swivel": 0.0, "plunge": 250.0, "reach": 0.0},
-        "spring": VG.V["SPRING"],
+        "spring": vgr_model.V["SPRING"],
         # The proven tour: every waypoint the viewer plays is one vgr_path.check()
         # swept against the warehouse, the oven and the sorting line.
         "plan": vgr_path.export(),
         "parts": vparts,
     }
 
-    # ---- Oven module (536632) ----
-    ofail = OM.check(verbose=False)
+    # --- Oven module (536632)
+    ofail = oven_model.check(verbose=False)
     if ofail:
         print("REFUSING to export - the oven fails its clearance proof:")
         print("\n".join(ofail)); sys.exit(1)
     oparts = []
-    for p in OM.build():
+    for p in oven_model.build():
         oparts.append({
             "n": p.name, "f": p.frame, "g": p.group, "k": p.kind,
             "p": [round(v, 3) for v in p.p],
@@ -249,42 +266,42 @@ def main():
             "mech": p.mech, "note": p.note,
         })
     doc["oven"] = {
-        "plate": list(OM.O["PLATE"]),
-        "turntable": list(OM.O["TT"]),
-        "frames": [{"name": f, "parent": OM.PARENT[f], "axis": OM.AXES.get(f)}
-                   for f in OM.FRAMES],
-        "authoring": {"slider": OM.O["SLIDER"][1], "door": OM.O["DOOR_Z"][1],
-                      "turn": 0.0, "sauger": OM.O["SAUGER"][1], "lower": 0.0, "push": 0.0},
+        "plate": list(oven_model.O["PLATE"]),
+        "turntable": list(oven_model.O["TT"]),
+        "frames": [{"name": f, "parent": oven_model.PARENT[f], "axis": oven_model.AXES.get(f)}
+                   for f in oven_model.FRAMES],
+        "authoring": {"slider": oven_model.O["SLIDER"][1], "door": oven_model.O["DOOR_Z"][1],
+                      "turn": 0.0, "sauger": oven_model.O["SAUGER"][1], "lower": 0.0, "push": 0.0},
         "joints": {
-            "slider": {"kind": "prismatic", "axis": "+x", "limits": list(OM.O["SLIDER"]),
-                       "stops": {"innen": OM.O["SLIDER"][0], "aussen": OM.O["SLIDER"][1]}},
-            "door": {"kind": "prismatic", "axis": "+z", "limits": list(OM.O["DOOR_Z"]),
-                     "stops": {"shut": OM.O["DOOR_Z"][0], "open": OM.O["DOOR_Z"][1]}},
+            "slider": {"kind": "prismatic", "axis": "+x", "limits": list(oven_model.O["SLIDER"]),
+                       "stops": {"innen": oven_model.O["SLIDER"][0], "aussen": oven_model.O["SLIDER"][1]}},
+            "door": {"kind": "prismatic", "axis": "+z", "limits": list(oven_model.O["DOOR_Z"]),
+                     "stops": {"shut": oven_model.O["DOOR_Z"][0], "open": oven_model.O["DOOR_Z"][1]}},
             # three switch-defined stops (I1 / I4 / I2), each a real turn angle
-            "turn": {"kind": "revolute", "axis": "rz", "limits": list(OM.O["TURN"]),
-                     "stops": dict(OM.STATIONS)},
-            "sauger": {"kind": "prismatic", "axis": "+y", "limits": list(OM.O["SAUGER"]),
-                       "stops": {"oven": OM.O["SAUGER"][0], "turntable": OM.O["SAUGER"][1]}},
+            "turn": {"kind": "revolute", "axis": "rz", "limits": list(oven_model.O["TURN"]),
+                     "stops": dict(oven_model.STATIONS)},
+            "sauger": {"kind": "prismatic", "axis": "+y", "limits": list(oven_model.O["SAUGER"]),
+                       "stops": {"oven": oven_model.O["SAUGER"][0], "turntable": oven_model.O["SAUGER"][1]}},
             # ONE pneumatic stroke: up, or down onto the workpiece top at either stop
-            "lower": {"kind": "prismatic", "axis": "-z", "limits": list(OM.O["LOWER"]),
-                      "stops": {"up": 0.0, "down": OM.O["LOWER"][1]}},
-            "push": {"kind": "prismatic", "axis": "+y", "limits": list(OM.O["PUSH"]),
-                     "stops": {"home": 0.0, "out": OM.O["PUSH"][1]}},
+            "lower": {"kind": "prismatic", "axis": "-z", "limits": list(oven_model.O["LOWER"]),
+                      "stops": {"up": 0.0, "down": oven_model.O["LOWER"][1]}},
+            "push": {"kind": "prismatic", "axis": "+y", "limits": list(oven_model.O["PUSH"]),
+                     "stops": {"home": 0.0, "out": oven_model.O["PUSH"][1]}},
         },
-        "handover": list(OM.handover_point()),
-        "cup_up": OM.O["CUP_UP"], "tray_top": OM.Z_W, "disc_top": OM.Z_W,
-        "wp_h": OM.O["WP_H"],
-        "flow": OM.flow(),
+        "handover": list(oven_model.handover_point()),
+        "cup_up": oven_model.O["CUP_UP"], "tray_top": oven_model.Z_W, "disc_top": oven_model.Z_W,
+        "wp_h": oven_model.O["WP_H"],
+        "flow": oven_model.flow(),
         "parts": oparts,
     }
 
-    # ---- Sorting line (536633) ----
-    sfail = SM.check(verbose=False)
+    # --- Sorting line (536633)
+    sfail = sorting_model.check(verbose=False)
     if sfail:
         print("REFUSING to export - the sorting line fails its clearance proof:")
         print("\n".join(sfail)); sys.exit(1)
     sparts = []
-    for p in SM.build():
+    for p in sorting_model.build():
         sparts.append({
             "n": p.name, "f": p.frame, "g": p.group, "k": p.kind,
             "p": [round(v, 3) for v in p.p],
@@ -293,29 +310,29 @@ def main():
             "mech": p.mech, "note": p.note,
         })
     doc["sorting"] = {
-        "plate": list(SM.S["PLATE"]),
-        "frames": [{"name": f, "parent": SM.PARENT[f]} for f in SM.FRAMES],
-        "joints": {"push": {"kind": "prismatic", "axis": SM.EJECT_AXIS, "limits": list(SM.S["EJECT"]),
-                            "stops": {"home": 0.0, "eject": SM.S["EJECT"][1]}}},
-        "colours": list(SM.COLOURS),
-        "sensor_gap": SM.S["SENSOR_GAP"],
-        "handovers": {k: list(v) for k, v in SM.handover_points().items()},
+        "plate": list(sorting_model.S["PLATE"]),
+        "frames": [{"name": f, "parent": sorting_model.PARENT[f]} for f in sorting_model.FRAMES],
+        "joints": {"push": {"kind": "prismatic", "axis": sorting_model.EJECT_AXIS, "limits": list(sorting_model.S["EJECT"]),
+                            "stops": {"home": 0.0, "eject": sorting_model.S["EJECT"][1]}}},
+        "colours": list(sorting_model.COLOURS),
+        "sensor_gap": sorting_model.S["SENSOR_GAP"],
+        "handovers": {k: list(v) for k, v in sorting_model.handover_points().items()},
         "parts": sparts,
     }
 
-    # ---- the pipeline: inventory + schedule ----
-    pfail = PL.check(verbose=False)
+    # --- the pipeline: inventory + schedule
+    pfail = pipeline.check(verbose=False)
     if pfail:
         print("REFUSING to export - the pipeline is not safe:")
         print("\n".join(pfail)); sys.exit(1)
-    log, final, baked = PL.simulate()
+    log, final, baked = pipeline.simulate()
     doc["pipeline"] = {
-        "flavours": PL.FLAVOURS,
-        "raw_colour": PL.RAW_COLOUR,
+        "flavours": pipeline.FLAVOURS,
+        "raw_colour": pipeline.RAW_COLOUR,
         "baked_at_end": sorted(baked),
-        "n_cookies": PL.N_COOKIES,
-        "resources": PL.RESOURCES,
-        "initial": {k: [v[0], list(v[1])] for k, v in PL.initial_inventory().items()},
+        "n_cookies": pipeline.N_COOKIES,
+        "resources": pipeline.RESOURCES,
+        "initial": {k: [v[0], list(v[1])] for k, v in pipeline.initial_inventory().items()},
         "final": {k: [v[0], list(v[1])] for k, v in final.items()},
         "transfers": log,
         "safety": [
@@ -331,20 +348,21 @@ def main():
         ],
     }
 
-    # ---- precise components, PLC cabinet, wiring (wiring.py) ----
-    import wiring, plc_model as PM
+    # --- precise components, PLC cabinet, wiring (wiring.py)
+    import plc_model
+    import wiring
     for lst in (doc["parts"], doc["vgr"]["parts"], doc["oven"]["parts"], doc["sorting"]["parts"]):
         for d in lst:
             f = wiring.fit(d)
             if f:
                 d["fit"] = f
-    pf = PM.check(verbose=False)
+    pf = plc_model.check(verbose=False)
     if pf:
         print("REFUSING to export - the PLC cabinet fails its check:"); print("\n".join(pf)); sys.exit(1)
-    doc["plc"] = {"at": list(factory_layout.PLC_AT), "plate": list(PM.C["PLATE"]),
+    doc["plc"] = {"at": list(factory_layout.PLC_AT), "plate": list(plc_model.C["PLATE"]),
                   "parts": [{"n": p.name, "f": "world", "g": p.group, "k": "box",
                              "p": [round(v, 3) for v in p.p], "s": list(p.s), "c": col(p.colour),
-                             "tag": "", "mech": "", "note": p.note} for p in PM.build()]}
+                             "tag": "", "mech": "", "note": p.note} for p in plc_model.build()]}
     if UP2:
         import safety
         sf = safety.check(verbose=False)
@@ -358,7 +376,7 @@ def main():
         nf = io_nodes.check(verbose=False)
         if nf:
             print("REFUSING to export Upgrade 3 - the I/O nodes fail:"); print("\n".join(nf)); sys.exit(1)
-        used, rl, free = PM.rail_fill()
+        used, rl, free = plc_model.rail_fill()
         doc["io3"] = {**io_nodes.export(),
                       "rail": {"used_mm": round(used, 1), "length_mm": rl, "free": round(free, 3)},
                       "parts": [{"n": p.name, "f": "world", "g": p.group, "k": p.kind,

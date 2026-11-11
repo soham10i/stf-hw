@@ -47,11 +47,11 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import hardware as H
-import line_model as M
-import oven as OV
+import hardware
+import line_model
+import oven
 
-L = M.L
+L = line_model.L
 OUT = os.path.join(HERE, "oven")
 CTRL = dict(TC_TAU=15.0, ZONE_G=3.0, DT=0.5, TAU_C_X=1.5, DEV_MAX=L["BAKE_MARGIN"], ALARM_MAX=5.0, STB_T=250.0,
             STB_MARGIN=15.0, T_LIMIT=300.0, PWM=2.0, RAMP=10.0, RECOVER_MAX=900.0,
@@ -66,26 +66,26 @@ class Plant:
     """The three zones: state T (air/chamber) and y (TC reading)."""
 
     def __init__(self):
-        self.loads, self.els, _, _ = M.oven_power()
+        self.loads, self.els, _, _ = line_model.oven_power()
         self.n = len(self.loads)
-        self.C = [OV.capacity(L, z["len_mm"], M.band_w()) for z in self.loads]
+        self.C = [oven.capacity(L, z["len_mm"], line_model.band_w()) for z in self.loads]
         self.P = [sum(e["P"] for e in self.els if e["zone"] == z["zone"]) for z in self.loads]
         self.Ts = [z["T"] for z in self.loads]
-        _, _, plan, _ = M.oven_power()
+        _, _, plan, _ = line_model.oven_power()
         self.phase = {tag: ph for ph, items in plan.items() for tag, _ in items}
         self.fans = {tag: w for items in plan.values() for tag, w in items if tag.startswith("QF")}
         # elements per zone in FB_Oven order: element i of n conducts in the PWM slice [i/n, i/n + duty)
         self.zel = [[e for e in self.els if e["zone"] == z["zone"]] for z in self.loads]
         self.Tp = self._product_temps()
         cz = L["CHAMBER"]
-        self.mouth = lambda k, T: OV.mouth_loss(L, T, M.band_w() / 1000, cz["mouth_h"] / 1000)[0] \
+        self.mouth = lambda k, T: oven.mouth_loss(L, T, line_model.band_w() / 1000, cz["mouth_h"] / 1000)[0] \
             if k in (0, self.n - 1) else 0.0
-        zl = M.zone_len()
-        ch = OV.chamber(L, M.band_w(), zl)
-        self.walls = lambda T: OV.wall_loss(L, T, ch["A_wall"], ch["A_out"])[0]
+        zl = line_model.zone_len()
+        ch = oven.chamber(L, line_model.band_w(), zl)
+        self.walls = lambda T: oven.wall_loss(L, T, ch["A_wall"], ch["A_out"])[0]
 
     def _product_temps(self):
-        tr, _ = OV.simulate(L, OV.bake_segments(L, M.bake_t()), record=1.0)
+        tr, _ = oven.simulate(L, oven.bake_segments(L, line_model.bake_t()), record=1.0)
         out = []
         for k in range(len(L["OVEN_ZONES"])):
             rows = [r for r in tr if r[1] == f"Z{k + 1}"]
@@ -174,11 +174,11 @@ class _HeaterBreak:
     raises it when one is (detection)."""
 
     def __init__(self, pl, tp, fail, sign):
-        ct = H.CT_AC
+        ct = hardware.CT_AC
         self.pl, self.fail, self.tau = pl, fail, ct["t_resp"] / 3          # t_resp = 3 time constants (95 %)
         self.err = sign * ct["acc"] * ct["range"]
         self.rI = [math.sqrt(tp.P[k] / pl.P[k]) for k in range(pl.n)]       # resistive: I ~ sqrt(P)
-        self.U = H.SUPPLY["U"]
+        self.U = hardware.SUPPLY["U"]
         self.fail_tag = None
         if fail:
             self.fail_tag = fail[3] if len(fail) > 3 else next(e["tag"] for e in pl.zel[fail[0]] if e["P"] == fail[1])
@@ -227,9 +227,9 @@ class _HeaterBreak:
                 # active probe: a phase alarm the slices cannot resolve (the candidates conduct together, e.g. at
                 # full duty) - each candidate is held off for HB_PROBE s in turn; the short vanishes -> it is the one
                 pr = self.probe[ph]
-                if pr and tt - pr[1] >= H.CT_AC["t_resp"]:          # worst short once the probe has settled
+                if pr and tt - pr[1] >= hardware.CT_AC["t_resp"]:   # worst short once the probe has settled
                     self.probe[ph] = pr = (pr[0], pr[1], max(pr[2], self.fe[ph] - (self.fm[ph] + self.err)))
-                if pr and tt - pr[1] >= CTRL["PWM"] + H.CT_AC["t_resp"]:   # a full period: its slice came
+                if pr and tt - pr[1] >= CTRL["PWM"] + hardware.CT_AC["t_resp"]:  # a full period: its slice came
                     gone = pr[2] < 0.5 * self.thr[ph]
                     c = self.alarm[ph][1]
                     c = {pr[0]} if gone else c - {pr[0]}
@@ -250,7 +250,7 @@ class _HeaterBreak:
                 if self.fe[ph] - (self.fm[ph] + self.err) > self.thr[ph]:
                     self.short[ph] += dt / steps
                     # the reading lags by t_resp: a short now comes from an element on at some time in that window
-                    recent = {x for x in self.on_t if self.pl.phase[x] == ph and self.on_t[x] >= tt - H.CT_AC["t_resp"]}
+                    recent = {x for x in self.on_t if self.pl.phase[x] == ph and self.on_t[x] >= tt - hardware.CT_AC["t_resp"]}
                     self.cand[ph] = recent if self.cand[ph] is None else self.cand[ph] & recent
                     c = self.cand[ph] or set()
                     if self.short[ph] >= CTRL["HB_HOLD"] and c:
@@ -266,7 +266,7 @@ class _HeaterBreak:
                         if len(c) == 1:
                             self.ident.setdefault(next(iter(c)), tt)
                 else:
-                    steady = tt - self.since[ph] >= H.CT_AC["t_resp"]  # the same elements on for t_resp
+                    steady = tt - self.since[ph] >= hardware.CT_AC["t_resp"]  # the same elements on for t_resp
                     if settled and steady and self.fe[ph] - self.fm[ph] < 0.2 * self.thr[ph]:
                         if self.alarm[ph]:                  # conducted while the phase read right: not it
                             c = self.alarm[ph][1] - on[ph]
@@ -393,7 +393,7 @@ def run(pl, gains, t_end, content, T0=None, fail=None, stuck=None, ff=True, reco
 def bake_window():
     """Largest symmetric offset (K, 1 K steps) of every zone set point at which the cookie still bakes."""
     zones0 = [dict(z) for z in L["OVEN_ZONES"]]
-    tb = M.bake_t()
+    tb = line_model.bake_t()
     w = 0
     try:
         for d in range(1, 31):
@@ -401,8 +401,8 @@ def bake_window():
             for sgn in (1, -1):
                 for k, z in enumerate(L["OVEN_ZONES"]):
                     z["T"] = zones0[k]["T"] + sgn * d
-                _, s = OV.simulate(L, OV.bake_segments(L, tb), record=1e9)
-                ok = ok and OV.baked_ok(L, s)
+                _, s = oven.simulate(L, oven.bake_segments(L, tb), record=1e9)
+                ok = ok and oven.baked_ok(L, s)
             if not ok:
                 break
             w = d
@@ -416,8 +416,8 @@ def content_fn(stop=None):
     """f per zone vs t for a band that starts filling at t = 0 (or is full and stops depositing at stop[0] for
     stop[1] s): each zone fills / empties linearly over one zone residence."""
     n = len(L["OVEN_ZONES"])
-    tz = M.bake_t() / n
-    t_in = (M.stations()["zones"][0] - M.stations()["dep"]) / M.band_v()     # die -> zone 1
+    tz = line_model.bake_t() / n
+    t_in = (line_model.stations()["zones"][0] - line_model.stations()["dep"]) / line_model.band_v()  # die -> zone 1
 
     def fill(t, k):
         a = t - t_in - k * tz
@@ -477,7 +477,7 @@ def check(verbose=True, write=True, quick=False):
         row(name, f"max deviation {dev:.1f} K (PI alone {dev0:.1f} K)", f"<= {lim:g} K", dev <= lim,
             "feed-forward of the band content the PLC tracks + PI")
     # S4 heater break: every element, open at t = 600 s in full production
-    tz = M.bake_t() / n
+    tz = line_model.bake_t() / n
     for k in range(n):
         worst = None
         for el in pl.zel[k]:
@@ -492,7 +492,7 @@ def check(verbose=True, write=True, quick=False):
             out = [t for t, r in zip(h["t"], h["T"]) if abs(r[k] - pl.Ts[k]) > lim]
             t_out = (out[-1] - out[0] + 10.0) if out else 0.0
             back = not out or out[-1] < h["t"][-1] - 60.0
-            n_flag = math.ceil((t_out + tz) / M.takt()) if out else 0
+            n_flag = math.ceil((t_out + tz) / line_model.takt()) if out else 0
             ok = (det is not None and det - 600.0 <= CTRL["ALARM_MAX"] and list(named) == [el["tag"]]
                   and t_id - 600.0 <= CTRL["IDENT_MAX"] and back and (not ride or t_out <= CTRL["RECOVER_MAX"]))
             r_ = dict(tag=el["tag"], P=el["P"], ride=ride, det=det, t_id=t_id, t_out=t_out, n_flag=n_flag,

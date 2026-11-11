@@ -14,7 +14,7 @@ import FreeCAD as App
 HERE = os.path.dirname(os.path.abspath(__file__))
 LINE2 = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(LINE2, "motion"))
-import motion_player as MP                                 # noqa: E402
+import motion_player  # noqa: E402
 
 CAD = os.path.expanduser("~/workspace/stf-factory/cad/line2_precise/STF2_Precise.FCStd")
 STEP = 10                                                   # every 10th frame (1 s): 41 frames incl. the first and last
@@ -23,7 +23,7 @@ STEP = 10                                                   # every 10th frame (
 def main():
     t0 = time.time()
     doc = App.openDocument(CAD)
-    p = MP.Player(doc, os.path.join(LINE2, "motion", "timeline.json"))
+    p = motion_player.Player(doc, os.path.join(LINE2, "motion", "timeline.json"))
     objs = {n: o for n, o in p.obj.items()}
     for o, body, _ in p.fol:
         objs[o.Label] = o
