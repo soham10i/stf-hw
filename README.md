@@ -82,9 +82,12 @@
 
 ## 🌟 Key Highlights
 
+* **Zero-Lime Cyber-Physical UI:** High-performance dark industrial aesthetic with `#0fff4f` fluorescent neon highlights, calibrated to WCAG 2.1 AAA contrast on deep OLED black surfaces with liquid glassmorphic HUD controls.
 * **No Disconnected Mocks:** Real S-curve acceleration profiles, motor back-EMF, lead-screw pitches, and belt tooth meshing calculated per frame.
 * **PLC in the Browser:** Production IEC 61131-3 Structured Text compiled by MatIEC to WebAssembly, running against a deterministic plant I/O loop.
-* **Fact-Checked AI Copilot:** Multi-turn operations assistant with one fallback chain, the same locally and in production (Gemini → Groq → UPB AI → local Ollama → the twin's own tools). A rule-based router picks twin data, documents, web search or deep research and says why; the model's thinking streams in and folds away; mathematics renders as LaTeX; every number is checked against the evidence.
+* **LangGraph Agentic Copilot:** Multi-turn operations assistant running as a stateful LangGraph execution graph (`services/api/agent/`) with one fallback chain (Gemini → Groq → UPB AI → local Ollama → the twin's own tools). A rule-based router picks twin data, documents, web search or deep research and explains its reasoning; the model's thinking streams in real time; mathematics renders as LaTeX; every number is mathematically verified against physical telemetry before output.
+* **Answer Quality & Faithfulness Evaluation:** Multi-dimension automated verification scoring grounding faithfulness, numerical precision, and tool-call accuracy.
+* **Low-Latency Streaming Voice:** Pluggable speech pipeline with bidirectional ElevenLabs WebSocket Scribe speech-to-text and streaming text-to-speech.
 * **The Bake as a Process:** The oven is a thermal model built from its own CAD parts. Cookies dry and brown through their thickness, and four ways of ending a bake are compared on the same shifts: from 79.6 % right first time on a timer to 99.1 % with a soft sensor, the camera and two dough sensors.
 * **Vision QC on the Process:** One cookie in every 12 is damaged on purpose (QC testing), and the camera's CNN catches it. The rejected cookie is held at the end of the line and made again.
 * **One Dataset:** The month, energy, bake and inspection data the dashboard shows live in Supabase (SQLite locally); each visitor's twin adds its own orders and inspections.
@@ -224,15 +227,17 @@ flowchart TD
 * **Observable States:** Inspect digital/analog inputs, memory registers, fault flags, and safety interlocks in real time.
 
 ### 3. Grounded Industrial AI Copilot
-* **Zero Hallucination Tolerance:** The copilot is grounded through a dedicated Python domain tool engine ([`services/api/grounding.py`](services/api/rag/grounding.py)) accessing 11 live factory telemetry tools.
-* **Automated Fact Verification:** The server cross-references numerical values in LLM outputs against underlying physical metrics before presenting them to the user.
-* **One Fallback Chain** (`services/api/chat.py`, the same locally and in production):
-  * **Gemini** first, then **Groq** (`openai/gpt-oss-120b`, which returns its reasoning), then **UPB AI** (the university's AI chat, a fixed credit), then a **local Ollama** model.
+* **LangGraph Stateful Agent Graph:** The orchestration engine runs as a compiled LangGraph state graph ([`services/api/agent/graph.py`](services/api/agent/graph.py)) executing discrete nodes (`prepare` → `route` → `tools` → `answer` → `verify`) with deterministic state transitions and recursion safety guards.
+* **Zero Hallucination Tolerance:** Grounded through a dedicated Python domain tool engine ([`services/api/rag/grounding.py`](services/api/rag/grounding.py)) accessing 11 live factory telemetry tools.
+* **Automated Numerical Verification & Self-Correction:** The server cross-references numerical values and engineering assertions in LLM outputs against underlying physical telemetry, automatically rerouting through a correction cycle if unbacked claims are detected.
+* **Answer Quality Evaluation Gate:** Multi-dimensional scoring framework (`services/api/eval/`) evaluating grounding faithfulness, numerical precision, and tool-call accuracy.
+* **One Fallback Chain** (`services/api/agent/` / `services/api/providers/`, identical locally and in production):
+  * **Gemini** first, then **Groq** (`openai/gpt-oss-120b`, which returns its reasoning), then **UPB AI** (university AI chat, fixed credit), then a **local Ollama** model.
   * A provider that hits its limit, runs out of credit or times out is set aside for a while, so it costs one question, not every one.
   * When none can answer, the twin's tools answer, quoting the documents' passages (equations included).
-* **Routed, not guessed** (`services/api/orchestrate.py`): rules decide whether a question needs the twin's data, the documents, a web search (Groq's browser search, every claim linked and graded trusted/unvetted) or deep research, and the answer shows the route and why.
+* **Routed, not guessed** (`services/api/rag/orchestrate.py`): rules decide whether a question needs the twin's data, the documents, a web search (Groq's browser search, every claim linked and graded trusted/unvetted) or deep research, and the answer shows the route and why.
 * **Thinking and LaTeX:** the route, each step and the model's reasoning stream while it works and fold above the answer; mathematics renders with KaTeX, code in copyable blocks.
-* **Voice:** ElevenLabs only listens and speaks (Scribe speech-to-text, voice 01 text-to-speech); it never writes an answer.
+* **Low-Latency Streaming Voice:** Pluggable speech pipeline ([`services/api/voice/`](services/api/voice/)) with bidirectional ElevenLabs WebSocket Scribe STT and low-latency TTS; audio interfaces listen and speak without modifying the underlying reasoning trace.
 * **Context Preservation:** Chat sessions store established technical facts, allowing seamless hand-offs between models without losing context.
 
 ### 4. Predictive Maintenance & Analytics Dashboard
@@ -331,10 +336,15 @@ stf-hw/
 │   ├── stf_kernel/          # Physics engine: trajectories, S-curves, motor dynamics
 │   └── stf_layout/          # Kinematic frame transforms and slot coordinate maps
 ├── services/
-│   ├── api/                 # FastAPI REST & WebSocket server (ports, telemetry, copilot)
-│   │   ├── chat.py          # LLM orchestration, verification, and session management
-│   │   ├── grounding.py     # Deterministic domain tools & BM25 document search
-│   │   └── runtime.py       # Async live factory simulation loop
+│   ├── api/                 # Modular domain architecture (FastAPI REST & WebSockets)
+│   │   ├── agent/           # LangGraph execution graph, tool loops, state machines
+│   │   ├── core/            # Config, telemetry models, database sessions
+│   │   ├── industrial/      # Factory hardware drivers, cycle metrics, machines
+│   │   ├── rag/             # Grounding engine, BM25 retrieval, query rewriting
+│   │   ├── providers/       # LLM provider adapters (Gemini, Groq, UPB, Ollama)
+│   │   ├── voice/           # ElevenLabs WebSocket STT and TTS streaming pipelines
+│   │   ├── eval/            # Answer quality scoring, golden requests, faithfulness
+│   │   └── security/        # Role tokens, rate limiters, origin verification
 │   └── sim/                 # Standalone simulation daemons & testing harnesses
 ├── stf-cad/
 │   ├── hbw/                 # FreeCAD parametric model, collision proofs, and exporters
@@ -344,7 +354,8 @@ stf-hw/
 │   ├── src/
 │   │   ├── scene/           # Three.js / React Three Fiber 3D factory modules
 │   │   ├── dashboard/       # 20+ operations dashboard views, charts, and guides
-│   │   └── copilot/         # Chat client, audio/voice interface, and citation renderer
+│   │   ├── copilot/         # Chat client, audio/voice interface, and citation renderer
+│   │   └── shared/          # Zero-Lime dark cyber-physical theme & design system
 │   └── public/              # Exported CAD meshes, telemetry datasets, and knowledge bases
 ├── supabase/migrations/     # The database's tables: guests, documents, photos, the factory's data
 ├── papers/                  # The papers behind the algorithms (open-access PDFs, read locally)
