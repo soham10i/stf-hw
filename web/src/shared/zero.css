@@ -517,8 +517,19 @@
 :root[data-palette="studio"] .cx-ctx-stats > * { background: var(--surface-solid); border: 1px solid var(--line); border-radius: var(--r-control); box-shadow: none; }
 :root[data-palette="studio"] .cx-ctx-stats b { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
 :root[data-palette="studio"] .cx-sec { background: var(--fill); border-color: var(--line); border-radius: var(--r-control); }
-/* empty state: the lime disc with a black glyph, display title, the questions as capsules */
-:root[data-palette="studio"] .cx-orb { border-radius: 50%; background: var(--brand); color: var(--brand-ink); box-shadow: none; animation: none; }
+/* empty state: refined cybernetic glass orb with fluorescent lime NEXUS mark */
+:root[data-palette="studio"] .cx-orb {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: radial-gradient(circle at 35% 30%, rgba(15, 255, 79, 0.22), rgba(15, 255, 79, 0.05) 60%, rgba(10, 15, 20, 0.85) 100%);
+  border: 1.5px solid rgba(15, 255, 79, 0.45);
+  color: var(--brand);
+  box-shadow: 0 0 24px rgba(15, 255, 79, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+  display: grid;
+  place-items: center;
+  animation: none;
+}
 :root[data-palette="studio"] .cx-hero b { font: 600 var(--fs-title2) / 1.2 var(--font-display); letter-spacing: -.02em; color: var(--ink); }
 :root[data-palette="studio"] .cx-examples { gap: 8px; }
 :root[data-palette="studio"] .cx-examples button {
@@ -529,7 +540,7 @@
 /* messages: the user's bubble is ink-on-primary; NEXUS answers on the solid surface */
 :root[data-palette="studio"] .cx-bubble.user { background: var(--primary); color: var(--primary-ink); box-shadow: none; }
 :root[data-palette="studio"] .cx-bubble:not(.user) { background: var(--surface-solid); border: 1px solid var(--line); box-shadow: none; }
-:root[data-palette="studio"] .cx-avatar { background: var(--brand); color: var(--brand-ink); }
+:root[data-palette="studio"] .cx-avatar { border-radius: 8px; background: rgba(15, 255, 79, 0.16); border: 1px solid rgba(15, 255, 79, 0.4); color: var(--brand); box-shadow: 0 0 10px rgba(15, 255, 79, 0.2); }
 :root[data-palette="studio"] .cx-link, :root[data-palette="studio"] .cx-more { color: var(--accent); }
 /* composer: a field (surface, --field outline, focus ring) with a round send button */
 :root[data-palette="studio"] .cx-composer {
@@ -608,12 +619,11 @@
 @keyframes zero-pop { from { transform: translateY(8px) scale(.98); } }
 :root[data-palette="studio"] :is(.db-float-chat-h, .db-inspector-h) { background: transparent; border-bottom: 1px solid var(--line); }
 :root[data-palette="studio"] :is(.db-float-chat-h, .db-inspector-h) b { font: 600 var(--fs-head) / 1.2 var(--font-display); letter-spacing: -.01em; color: var(--ink); }
-:root[data-palette="studio"] .db-inspector-ico { background: var(--brand); color: var(--brand-ink); box-shadow: none; }
+:root[data-palette="studio"] .db-inspector-ico { border-radius: 10px; background: rgba(15, 255, 79, 0.16); border: 1px solid rgba(15, 255, 79, 0.42); color: var(--brand); box-shadow: 0 0 12px rgba(15, 255, 79, 0.22); }
 :root[data-palette="studio"] :is(.db-inspector-h, .db-float-chat-actions) :is(.ui-btn.pin, .ui-btn.on) {
   background: var(--primary); color: var(--primary-ink); border: 1px solid transparent; box-shadow: none;
 }
-:root[data-palette="studio"] .db-float-grip.corner { color: var(--muted); }
-:root[data-palette="studio"] :is(.db-float-grip.corner, .db-float-grip.left, .db-float-grip.top):hover { color: var(--ink); background: var(--fill-strong); }
+:root[data-palette="studio"] .db-float-grip { display: none !important; }
 /* the launcher: a capsule, the lime mark, ink label */
 :root[data-palette="studio"] .db-float-trigger {
   height: 48px; padding: 0 18px 0 6px; gap: 10px; border-radius: var(--r-round);
@@ -621,10 +631,14 @@
   box-shadow: var(--elevation); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
   font: 600 var(--fs-body) var(--font);
 }
+:root[data-palette="studio"] .app.immersive .db-float-trigger {
+  bottom: 84px;
+  right: 24px;
+}
 :root[data-palette="studio"] .db-float-trigger:hover { border-color: var(--brand); transform: none; box-shadow: var(--elevation); }
 :root[data-palette="studio"] .db-float-trigger.active { background: var(--primary); color: var(--primary-ink); border-color: transparent; box-shadow: var(--elevation); }
-:root[data-palette="studio"] .db-float-trigger-mark { width: 36px; height: 36px; border-radius: 50%; background: var(--brand); color: var(--brand-ink); }
-:root[data-palette="studio"] .db-float-trigger.active .db-float-trigger-mark { background: var(--primary-ink); color: var(--primary); }
+:root[data-palette="studio"] .db-float-trigger-mark { width: 34px; height: 34px; border-radius: 10px; background: rgba(15, 255, 79, 0.18); border: 1px solid rgba(15, 255, 79, 0.45); color: var(--brand); box-shadow: 0 0 12px rgba(15, 255, 79, 0.22); }
+:root[data-palette="studio"] .db-float-trigger.active .db-float-trigger-mark { background: rgba(0, 0, 0, 0.25); color: var(--primary-ink); border-color: rgba(0, 0, 0, 0.3); }
 @media (prefers-reduced-motion: reduce) { :root[data-palette="studio"] .db-float-chat { animation: none; } }
 
 /* ================================================================ charts (blueprint 7.1) */

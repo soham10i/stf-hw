@@ -27,6 +27,12 @@
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
+/* In the 3D twin immersive viewport: float above the bottom dock bar so Wiring and Hazard controls are never obscured */
+.app.immersive .db-float-trigger {
+  bottom: 84px;
+  right: 24px;
+}
+
 .db-float-trigger:hover {
   transform: translateY(-2px);
   box-shadow: 0 14px 34px -6px rgba(0, 0, 0, 0.55), inset 0 1px 0 var(--card-hi, rgba(255, 255, 255, 0.16));
@@ -73,22 +79,23 @@
 }
 
 /* --------------------------------------------------------------------------
-   Floating Chat Window (Bottom Right Card) with Liquid Glassmorphism & Resize
+   Floating Chat Window (Bottom Right Card) with Liquid Glassmorphism
+   Spacious, stable layout anchored cleanly at bottom-right.
    -------------------------------------------------------------------------- */
 .db-float-chat {
   position: fixed;
-  bottom: 82px;
+  bottom: 84px;
   right: 24px;
-  width: var(--float-w, 440px);
-  height: var(--float-h, 640px);
-  max-width: calc(100vw - 24px);
-  max-height: calc(100vh - 24px);
-  min-width: 320px;
-  min-height: 380px;
+  width: var(--float-w, 480px);
+  height: var(--float-h, 720px);
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 104px);
+  min-width: 340px;
+  min-height: 420px;
   z-index: 90;
   display: flex;
   flex-direction: column;
-  border-radius: 26px;
+  border-radius: 24px;
   overflow: hidden;
   isolation: isolate;
 
@@ -107,6 +114,11 @@
     inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.25);
   animation: db-float-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   transition: border-color 0.18s ease;
+}
+
+/* Floating chat handles disabled */
+.db-float-grip {
+  display: none !important;
 }
 
 /* Liquid glass diffusion underlay */
@@ -212,41 +224,42 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 58px;
-  padding: 0 16px 0 34px;
+  height: 60px;
+  min-height: 60px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--border-soft);
   background: color-mix(in srgb, var(--surface) 60%, transparent);
   flex: none;
-  cursor: grab;
-  user-select: none;
-  touch-action: none;
-}
-
-.db-float-chat.moving,
-.db-float-chat.moving .db-float-chat-h {
-  cursor: grabbing !important;
+  cursor: default;
   user-select: none;
 }
 
-.db-float-chat-h > div:not(.db-float-chat-actions) {
+.db-float-chat-title {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
 }
 
-.db-float-chat-h b {
+.db-float-chat-title b {
   display: block;
   font-size: var(--fs-body);
   font-weight: 600;
   letter-spacing: -0.01em;
+  color: var(--text);
+  line-height: 1.25;
 }
 
-.db-float-chat-h span {
+.db-float-chat-title span {
   display: block;
   font-size: var(--fs-caption);
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .db-float-chat-actions {
@@ -422,11 +435,11 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: var(--text);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(15, 255, 79, 0.12);
+  border: 1px solid rgba(15, 255, 79, 0.38);
+  color: var(--brand, #0fff4f);
+  box-shadow: 0 0 12px rgba(15, 255, 79, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   flex: none;
 }
 

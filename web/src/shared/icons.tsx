@@ -82,8 +82,10 @@ const PATHS: Record<string, string> = {
 export function NexusMark({ size = 18, className }: { size?: number; className?: string }) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5.5 18.5V7a1 1 0 0 1 1.7-.7l9.6 11.4a1 1 0 0 0 1.7-.7V5.5" />
+      strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5.5 18.5V6.5l13 11V5.5" />
+      <circle cx="5.5" cy="18.5" r="1.6" fill="currentColor" stroke="none" />
+      <circle cx="18.5" cy="5.5" r="1.6" fill="currentColor" stroke="none" />
     </svg>
   );
 }

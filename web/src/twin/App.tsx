@@ -11,7 +11,7 @@ import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { CopilotMark, Icon } from "../shared/icons";
 import { usePersistent } from "../shared/persist";
 import { useTheme } from "../shared/theme";
-import { useCopilotResize, useFloatChatResize } from "../shared/chatResize";
+import { useCopilotResize } from "../shared/chatResize";
 import { Chat } from "../dashboard/Chat";
 import { ComponentView } from "../views/ComponentView";
 import { useComponents } from "../views/componentModel";
@@ -87,17 +87,6 @@ export default function App() {
     nudge();
   };
   const { width: copilotWidth, isDragging: isDraggingCopilot, gripProps: copilotGripProps } = useCopilotResize(400);
-  const {
-    width: floatWidth,
-    height: floatHeight,
-    position: floatPos,
-    corner: floatCorner,
-    isDragging: isFloatResizing,
-    isMoving: isFloatMoving,
-    headerDragProps: floatHeaderDragProps,
-    cycleCorner: cycleFloatCorner,
-    getGripProps: getFloatGripProps,
-  } = useFloatChatResize();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -247,68 +236,24 @@ export default function App() {
             </aside>
           )}
 
-          {/* Floating small chat window: resizable card with liquid glassmorphism */}
+          {/* Floating small chat window: spacious card with liquid glassmorphism */}
           {chatOpen && !chatPinned && (
             <aside
-              className={`db-float-chat ${isFloatResizing ? "resizing" : ""} ${isFloatMoving ? "moving" : ""}`}
+              className="db-float-chat"
               aria-label="Floating NEXUS Chat"
-              style={{
-                "--float-w": `${floatWidth}px`,
-                "--float-h": `${floatHeight}px`,
-                width: `${floatWidth}px`,
-                height: `${floatHeight}px`,
-                left: `${floatPos.x}px`,
-                top: `${floatPos.y}px`,
-                bottom: "auto",
-                right: "auto",
-              } as React.CSSProperties}
             >
-              <div
-                className="db-float-grip corner"
-                role="separator"
-                title="Drag corner to resize window"
-                aria-label="Drag corner to resize window"
-                {...getFloatGripProps("corner")}
-              >
-                <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-                  <path d="M1 9L9 1M5 9L9 5M9 9L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </div>
-              <div
-                className="db-float-grip left"
-                role="separator"
-                aria-orientation="vertical"
-                title="Drag edge to resize width"
-                aria-label="Drag edge to resize width"
-                {...getFloatGripProps("left")}
-              />
-              <div
-                className="db-float-grip top"
-                role="separator"
-                aria-orientation="horizontal"
-                title="Drag edge to resize height"
-                aria-label="Drag edge to resize height"
-                {...getFloatGripProps("top")}
-              />
-              <div className="db-float-chat-h" {...floatHeaderDragProps} title="Drag to move chat window">
-                <span className="db-inspector-ico"><CopilotMark size={18} /></span>
-                <div><b>NEXUS</b><span>Autonomous Twin & Orders</span></div>
+              <div className="db-float-chat-h">
+                <span className="db-inspector-ico"><CopilotMark size={20} /></span>
+                <div className="db-float-chat-title">
+                  <b>NEXUS</b>
+                  <span>Autonomous Twin & Orders</span>
+                </div>
                 <div className="db-float-chat-actions">
-                  <button
-                    className="ui-btn icon ghost"
-                    onClick={cycleFloatCorner}
-                    title={`Move to next corner (currently: ${floatCorner})`}
-                    aria-label="Move corner"
-                    onPointerDown={(e) => e.stopPropagation()}
-                  >
-                    <Icon name="move" size={14} />
-                  </button>
                   <button
                     className="ui-btn icon ghost"
                     onClick={() => toggleChatPinned(true)}
                     title="Pin to right sidebar"
                     aria-label="Pin to right sidebar"
-                    onPointerDown={(e) => e.stopPropagation()}
                   >
                     <Icon name="pin" size={15} />
                   </button>
@@ -316,7 +261,6 @@ export default function App() {
                     className="ui-btn ghost"
                     href={`${import.meta.env.BASE_URL}dashboard.html?p=copilot`}
                     title="Open full NEXUS page"
-                    onPointerDown={(e) => e.stopPropagation()}
                   >
                     <Icon name="external" size={13} /><span className="hide-sm">Full</span>
                   </a>
@@ -325,7 +269,6 @@ export default function App() {
                     onClick={() => setChatOpen(false)}
                     aria-label="Close"
                     title="Close"
-                    onPointerDown={(e) => e.stopPropagation()}
                   >
                     <Icon name="close" size={15} />
                   </button>
@@ -338,13 +281,13 @@ export default function App() {
           )}
 
           {/* Bottom right floating chatbot launcher button */}
-          {(!chatOpen || !chatPinned) && (
+          {!chatOpen && (
             <button
-              className={`db-float-trigger ${chatOpen ? "active" : ""}`}
-              onClick={() => { setChatOpen(!chatOpen); nudge(); }}
+              className="db-float-trigger"
+              onClick={() => { setChatOpen(true); nudge(); }}
               aria-expanded={chatOpen}
-              aria-label={chatOpen ? "Close NEXUS" : "Open NEXUS"}
-              title={chatOpen ? "Close NEXUS" : "Ask NEXUS & Place Orders"}
+              aria-label="Open NEXUS"
+              title="Ask NEXUS & Place Orders"
             >
               <span className="db-float-trigger-mark">
                 <CopilotMark size={20} />
