@@ -1,7 +1,7 @@
 # STF agentic digital twin — feasibility and corrected implementation plan
 
 **Assessment date:** 26 October 2026  
-**Reviewed proposal:** [Advanced Industrial Agentic Architecture](../../advanced_mcp_langgraph_agentic_plan.md)  
+**Reviewed proposal:** Advanced Industrial Agentic Architecture (historical proposal)  
 **Scope:** architecture, current implementation, live deployment, safety controls, persistence, MCP, model routing, cloud-credit feasibility and delivery sequence  
 **Assessment type:** code and configuration review, read-only live checks, backend test run and official-documentation verification. No application code, cloud configuration or production data was changed.
 
@@ -159,7 +159,7 @@ Both are Groq recorded-request mismatches. This is a **release-gate failure**, e
 
 ## 5. Recommended target architecture
 
-![Recommended STF agentic architecture](../assets/agentic/target-architecture.png)
+*(Architecture diagram reference)*
 
 ### 5.1 Design principles
 
@@ -196,7 +196,7 @@ Use Streamable HTTP at `/mcp`; validate `Origin`, authenticate every connection,
 
 ## 6. Complete corrected workflow
 
-![Corrected information, optimization and controlled-action workflow](../assets/agentic/agentic-workflow.png)
+*(Workflow diagram reference)*
 
 ### 6.1 Information and research path
 
@@ -329,7 +329,7 @@ Actual costs depend on cached input, reasoning tokens, retries, tool loops, sear
 
 ### 9.3 Scenario comparison
 
-![Illustrative 60-day cost scenarios](../assets/agentic/cost-scenarios.png)
+*(Scenario comparison reference)*
 
 | Scenario | Daily model workload | Model cost / day | Model cost / 60 days | Infrastructure allowance | Total illustration |
 |---|---|---:|---:|---:|---:|
@@ -362,7 +362,7 @@ An alerts-only budget does **not** cap usage or spending; it only notifies and c
 
 ## 10. Phased implementation roadmap
 
-![Gated implementation roadmap](../assets/agentic/implementation-roadmap.png)
+*(Roadmap reference)*
 
 **Indicative effort:** approximately **21–33 developer-days** for one developer with the existing foundation. This is a planning range, not a commitment; hardware safety assessment, external review and production certification are excluded.
 
