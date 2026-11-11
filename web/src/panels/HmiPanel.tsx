@@ -40,7 +40,7 @@ export function HmiPanel({ c }: { c: ControlDoc }) {
           {now.map((u) => (
             <tr key={u.unit} title={u.label}>
               <td><span className={`hmi-led ${u.state.toLowerCase()}`} />{u.unit}</td>
-              <td>{u.job ? <span style={{ color: JOB_COL[u.job] }}>{u.job}</span> : <span className="muted">ready</span>}
+              <td>{u.job ? <span className="job-tag"><i style={{ background: JOB_COL[u.job] }} />{u.job}</span> : <span className="muted">ready</span>}
                 <div className="muted small">{u.step ?? (u.state === "HELD" ? "held by its job" : "")}</div></td>
             </tr>
           ))}

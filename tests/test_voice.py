@@ -33,7 +33,7 @@ def test_elevenlabs_never_writes_an_answer():
     for f in API.glob("*.py"):
         if f.name != "tts.py":
             assert "api.elevenlabs.io" not in f.read_text(), f.name
-    chat = C.Chat(C.sec.Settings.from_env(), C.ChatSettings(key="g", model="m", daily_limit=1))
+    chat = C.Chat(C.security.Settings.from_env(), C.ChatSettings(key="g", model="m", daily_limit=1))
     for wanted in ("gemini", "groq", "ollama", "auto", None):
         assert "elevenlabs" not in chat._provider(wanted)
     # its two classes only speak, stream speech, and transcribe
@@ -101,3 +101,43 @@ def test_a_failing_elevenlabs_hands_over_to_groq(monkeypatch):
 def test_word_error_rate():
     assert wer("the belt warns in 0.6 shifts", "The belt warns in 0.6 shifts.") == 0
     assert wer("the belt warns", "the bolt warns") == pytest.approx(1 / 3)
+
+
+def test_voice_mode_token_adaptation():
+    from services.api.agent import depth as D
+    from services.api.agent import orchestrate as O
+    from services.api.agent import respond as R
+    from services.api.agent.chat import ChatRequest, system_for
+
+    # 1. Audio mic test / greeting routes to chat even if mode="deep"
+    p = O.decide("Hello. Can you hear me?", called=[], choice="deep")
+    assert p.mode == "chat"
+    assert "conversational ping" in p.why[0]
+
+    p_test = O.decide("Mic check 1 2", called=[], choice="deep")
+    assert p_test.mode == "chat"
+
+    # 2. Respond classification recognizes mic check as greeting
+    assert R.classify("Hello. Can you hear me?") == "greeting"
+    assert R.classify("Are you there?") == "greeting"
+
+    # 3. Depth pick in voice mode returns VOICE profile (400 tokens)
+    v_dp = D.pick("thorough", mode="deep", style="research", voice=True)
+    assert v_dp.name == "voice"
+    assert v_dp.answer_tokens == 400
+
+    # 4. Greeting in text mode returns brief profile (1500 tokens), not thorough
+    g_dp = D.pick(None, mode="deep", style="greeting", voice=False)
+    assert g_dp.name == "brief"
+
+    # 5. System prompt adapts for voice
+    req_voice = ChatRequest(question="Hello. Can you hear me?", voice=True)
+    assert "NEXUS Voice" in system_for(req_voice)
+
+    # 6. Technical deep research query in text mode stays thorough
+    tech_query = "What is the accuracy vs real-time trade-off in physics engines for industrial digital twins?"
+    p_tech = O.decide(tech_query, called=[], choice="deep")
+    assert p_tech.mode == "deep"
+    req_deep = ChatRequest(question=tech_query, mode="deep", voice=False)
+    assert "Deep Research" in system_for(req_deep)
+

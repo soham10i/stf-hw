@@ -5,7 +5,7 @@
 
 import { applyFrame, store } from "./store";
 import type { Frame } from "./types";
-import { api, apiWs } from "./shared/api";
+import { api, apiWs, errorOf } from "./shared/api";
 
 let ws: WebSocket | null = null;
 let backoff = 500;
@@ -47,8 +47,5 @@ export async function sendCommand(op: string, slot: string | null): Promise<void
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ op, slot }),
   });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? `command failed (${res.status})`);
-  }
+  if (!res.ok) throw await errorOf(res, `command failed (${res.status})`);
 }

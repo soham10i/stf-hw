@@ -18,12 +18,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "hbw"))
 
-import FreeCAD as App
-import Part
-
-import line_model as M
 import detail
 import fcstd_colour
+import FreeCAD as App
+import line_model
+import Part
 
 V = App.Vector
 OUT = os.path.expanduser("~/workspace/stf-factory/cad/line2")
@@ -31,7 +30,7 @@ OUT = os.path.expanduser("~/workspace/stf-factory/cad/line2")
 
 def shape(p):
     if p.kind == "box" and p.mech.startswith("tray:"):
-        M_ = M.L
+        M_ = line_model.L
         s = Part.makeBox(*p.s, V(*p.p))
         n = int(p.mech.split(":")[1])
         cx, cy = p.p[0] + p.s[0] / 2, p.p[1] + p.s[1] / 2
@@ -155,12 +154,12 @@ def containment(parts):
                 fails.append(f"{p.name} is not inside {host} in plan")
     # the top OUTLET of every cassette must be clear: nothing of the cassette above
     # its inner footprint (a pack pushed out of the top would hit it)
-    t = M.L["CASS_WALL"]
+    t = line_model.L["CASS_WALL"]
     for p in parts:
         if p.name.endswith("_wall_front") and p.name.startswith("cassette_"):
             base = p.name[:-11]
             x0, y0, z0 = p.p
-            cw, cd, ch = M.L["CASS"]
+            cw, cd, ch = line_model.L["CASS"]
             inner = (x0 + t, y0 + t, z0 + ch - 1, x0 + cw - t, y0 + cd - t, z0 + ch + 100)
             for q in parts:
                 if q.name.startswith(base + "_") and not q.name.endswith("_stack"):
@@ -172,21 +171,21 @@ def containment(parts):
 
 
 def main():
-    fails = M.check(verbose=False)
+    fails = line_model.check(verbose=False)
     if fails:
         print("REFUSING to build:", fails[:5])
         sys.exit(1)
-    parts = M.build()
+    parts = line_model.build()
     cf, cn = containment(parts)
     if cf:
         print("REFUSING to build - containment:", cf[:6])
         sys.exit(1)
     print(f"containment proof: {cn} contained pairs, zero overlap (cookies in pockets/tubes, stacks on pawls)")
     report = []
-    for mod, ps in M.by_module(parts).items():
+    for mod, ps in line_model.by_module(parts).items():
         fc, st, n = build_doc(mod, ps)
         report.append((mod, n, os.path.getsize(fc) / 1e6, os.path.getsize(st) / 1e6))
-    table = M.Part("table_top", "M1_loop", "table", "box", (0, 0, -M.L["TABLE"][2]), M.L["TABLE"], "#f4f3ef")
+    table = line_model.Part("table_top", "M1_loop", "table", "box", (0, 0, -line_model.L["TABLE"][2]), line_model.L["TABLE"], "#f4f3ef")
     fc, st, n = build_doc("STF2_Line", [table] + parts)
     report.append(("STF2_Line (assembly)", n, os.path.getsize(fc) / 1e6, os.path.getsize(st) / 1e6))
     for r in report:

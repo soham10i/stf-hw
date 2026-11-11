@@ -22,7 +22,8 @@ def test_tuning_cases_route_to_every_needed_tool():
     misses = [
         (c["q"], sorted(set(c["tools"]) - routed(c)))
         for c in SET
-        if not c.get("held_out") and not set(c["tools"]) <= routed(c)
+        # adversarial cases test the answer (a decline, a false premise), not the keywords
+        if not c.get("held_out") and not c.get("adversarial") and not set(c["tools"]) <= routed(c)
     ]
     assert not misses, misses
 
@@ -39,6 +40,7 @@ def test_rules_answers_contain_the_facts():
     for c in SET:
         if (
             c.get("held_out")
+            or c.get("adversarial")
             or c.get("unanswerable")
             or "live_state" in c["tools"]
             or not c.get("facts")

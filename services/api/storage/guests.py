@@ -15,7 +15,7 @@ The database keeps the guests and their documents (the copilot's sessions):
               local run uses. On a host with an ephemeral disk (Render's free tier) it lasts
               until the next deploy.
   SupabaseDb  Postgres on Supabase over its REST API (PostgREST), when SUPABASE_URL and
-              SUPABASE_SERVICE_KEY are set and its tables exist (docs/DATABASE.md has the SQL):
+              SUPABASE_SERVICE_KEY are set and its tables exist (docs/reference/operations/database.md has the SQL):
               survives deploys. Without the tables the API stays on SQLite and says so (GET /guest).
 
 A guest record holds no personal data: when it was made, when last seen, how many visits. It
@@ -40,8 +40,8 @@ import urllib.request
 from typing import Any
 
 from services.api.core import keepalive
-from services.api.security import security as sec
 from services.api.core.logging_config import get_logger
+from services.api.security import security
 from services.api.storage.store import ROOT
 
 logger = get_logger(__name__)
@@ -67,7 +67,7 @@ def _valid_id(s: str) -> bool:
     return len(s) == ID_HEX and all(c in "0123456789abcdef" for c in s)
 
 
-# ----------------------------------------------------------------------------- the databases
+# --- the databases
 class SqliteDb:
     """SQLite-backed database adapter for guest sessions and copilot documents.
 
@@ -223,7 +223,7 @@ class SupabaseDb:
             if e.code in (401, 403):
                 return "Supabase rejected the service key (SUPABASE_SERVICE_KEY)"
             if e.code == 404:
-                return "the Supabase tables are missing (supabase/migrations, docs/DATABASE.md)"
+                return "the Supabase tables are missing (supabase/migrations, docs/reference/operations/database.md)"
             return f"Supabase answered {e.code}"
         except (urllib.error.URLError, TimeoutError, ValueError) as e:
             return f"Supabase is unreachable ({type(e).__name__})"
@@ -323,7 +323,7 @@ def db_from_env(env: dict) -> tuple[Any, str]:
     )
 
 
-# ----------------------------------------------------------------------------- the sessions
+# --- the sessions
 def _secret(env: dict) -> bytes:
     """STF_SESSION_SECRET, else one kept beside the local database (a local run: cookies stay
     valid across restarts); a deployment sets it (render.yaml generates one)."""
@@ -353,7 +353,7 @@ class Guests:
     """Per-visitor identity: HMAC-signed guest cookies backed by the guest database.
 
     Every request resolves to a guest id (creating one on first visit), which is
-    also the owner key for all per-visitor data (docs/DATABASE.md).
+    also the owner key for all per-visitor data (docs/reference/operations/database.md).
     """
 
     def __init__(self, env: dict, db: Any = None, note: str = "") -> None:
@@ -361,7 +361,7 @@ class Guests:
         self.key = _secret(env)
         self.days = float(env.get("STF_GUEST_DAYS", "30"))
         # a new guest per client: a burst of 20, then one a minute (a crawler cannot fill the table)
-        self.limiter = sec.RateLimiter(rate=1 / 60, burst=20)
+        self.limiter = security.RateLimiter(rate=1 / 60, burst=20)
         self._seen: dict[str, float] = {}
         self._made = 0
 

@@ -33,14 +33,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "hbw"))
 
-import FreeCAD as App
-import Part
-
 import fcstd_colour
-import geom as G
-import hardware as H
-import joints as J
-import line_model as M
+import FreeCAD as App
+import geom
+import hardware
+import joints
+import line_model
+import Part
 import plc_io
 import safety
 
@@ -63,23 +62,23 @@ def base_shape(p):
     """The v3 shapes (trays with pockets, tubes, rounded boxes, arcs...) from line_cad."""
     global _line_cad
     if _line_cad is None:
-        import line_cad as lc
-        _line_cad = lc
+        import line_cad
+        _line_cad = line_cad
     return _line_cad.shape(p)
 
 
-# ------------------------------------------------------------------ profiles
+# --- profiles
 def profile_shape(p):
     """B-type slot profile of the part's section, extruded along its long axis."""
-    ser, ax = J.section(p)
-    pr = H.PROFILE[ser]
+    ser, ax = joints.section(p)
+    pr = hardware.PROFILE[ser]
     cross = [i for i in range(3) if i != ax]
     a, b = p.s[cross[0]], p.s[cross[1]]
     Ln = p.s[ax]
     s = Part.makeBox(a, b, Ln)
     cuts = []
-    ua = H.slot_offsets(a, ser)
-    vb = H.slot_offsets(b, ser)
+    ua = hardware.slot_offsets(a, ser)
+    vb = hardware.slot_offsets(b, ser)
     for u in ua:
         for v in vb:
             cuts.append(Part.makeCylinder(pr["core"] / 2, Ln + 2, V(a / 2 + u, b / 2 + v, -1)))
@@ -116,14 +115,14 @@ def profile_shape(p):
 
 
 def _profile_swapped(p, ser, ax, cross):
-    q = M.Part(p.name, p.module, p.group, p.kind, p.p, p.s, mech=p.mech)
+    q = line_model.Part(p.name, p.module, p.group, p.kind, p.p, p.s, mech=p.mech)
     # build with the cross axes in the other order (a proper rotation), same outer box
-    pr = H.PROFILE[ser]
+    pr = hardware.PROFILE[ser]
     c0, c1 = cross[1], cross[0]
     a, b, Ln = p.s[c0], p.s[c1], p.s[ax]
     s = Part.makeBox(a, b, Ln)
     cuts = []
-    ua, vb = H.slot_offsets(a, ser), H.slot_offsets(b, ser)
+    ua, vb = hardware.slot_offsets(a, ser), hardware.slot_offsets(b, ser)
     for u in ua:
         for v in vb:
             cuts.append(Part.makeCylinder(pr["core"] / 2, Ln + 2, V(a / 2 + u, b / 2 + v, -1)))
@@ -150,14 +149,14 @@ def _profile_swapped(p, ser, ax, cross):
 
 
 def shape_of(p):
-    if J.is_profile(p):
+    if joints.is_profile(p):
         return profile_shape(p)
     if p.kind == "box" and not p.mech.startswith("tray:"):
         return Part.makeBox(*p.s, V(*p.p))
     return base_shape(p)
 
 
-# ------------------------------------------------------------------ fasteners
+# --- fasteners
 def _axis(f):
     i = [abs(v) for v in f.axis].index(1.0)
     return i, f.axis[i]
@@ -172,8 +171,8 @@ def _cyl(r, h, base, i, sgn):
 def fastener_shapes(f):
     """Solids of one fastener (head, washer, shank, nut / T-nut)."""
     i, sgn = _axis(f)
-    t = H.THREAD[f.thread]
-    dk, k, _ = H.head(f.thread, f.head_type)
+    t = hardware.THREAD[f.thread]
+    dk, k, _ = hardware.head(f.thread, f.head_type)
     wh = t["washer"][2] if f.washer else 0.0
     h = list(f.head)
     h[i] += sgn * f.cbore
@@ -193,7 +192,7 @@ def fastener_shapes(f):
         sock.Placement = App.Placement(V(*top), rot)
         try:
             hd = hd.cut(sock)
-        except Exception:
+        except Exception:  # OCC cannot cut the socket: keep the head solid
             pass
         out.append(("head", hd))
     elif f.head_type == "button":
@@ -234,8 +233,8 @@ def fastener_shapes(f):
 def holes_for(f, parts_by):
     """(part name, cutting solid) for one fastener: clearance / counterbore / tap / through."""
     i, sgn = _axis(f)
-    t = H.THREAD[f.thread]
-    dk, k, _ = H.head(f.thread, f.head_type)
+    t = hardware.THREAD[f.thread]
+    dk, k, _ = hardware.head(f.thread, f.head_type)
     wh = t["washer"][2] if f.washer else 0.0
     cuts = []
     h = list(f.head)
@@ -260,29 +259,29 @@ def holes_for(f, parts_by):
                 cuts.append((n, _cyl(f.hole / 2, abs(tip[i] - joint_face[i]) + 1, joint_face, i, sgn)))
     elif not f.into.startswith("TNUT") and f.into in parts_by:
         host = parts_by[f.into]
-        if not (J.is_profile(host)):                 # a profile end tap uses its core bore
+        if not (joints.is_profile(host)):            # a profile end tap uses its core bore
             cuts.append((f.into, _cyl(t["tap"] / 2, abs(tip[i] - joint_face[i]) + 1.0 + 2 * t["P"], joint_face, i, sgn)))
     return cuts
 
 
-# ------------------------------------------------------------------ build
+# --- build
 def build_all():
     t0 = time.time()
-    fails = M.check(verbose=False)
-    jf, B = J.check(verbose=False)
+    fails = line_model.check(verbose=False)
+    jf, B = joints.check(verbose=False)
     pf = plc_io.check(verbose=False)
-    sf, finds = safety.check(verbose=False) if M.L.get("SAFE1") else ([], [])
+    sf, finds = safety.check(verbose=False) if line_model.L.get("SAFE1") else ([], [])
     if fails or jf or pf or sf:
         print("REFUSING to build:", (fails + jf + pf + sf)[:6])
         os._exit(1)
-    parts = [p for p in M.build()]                                    # with product (pucks, cookies)
+    parts = [p for p in line_model.build()]                           # with product (pucks, cookies)
     base_shape(parts[0])                                               # load line_cad
     cf, cn = _line_cad.containment(parts)
     if cf:
         print("REFUSING to build - containment:", cf[:6])
         os._exit(1)
     print(f"containment: {cn} contained pairs, zero overlap (cookies in pockets/tubes, stacks on pawls)")
-    deck = M.Part("table_top", "M1_loop", "table", "box", (0.0, 0.0, -L_T), M.L["TABLE"], "#f4f3ef",
+    deck = line_model.Part("table_top", "M1_loop", "table", "box", (0.0, 0.0, -L_T), line_model.L["TABLE"], "#f4f3ef",
                   hw="TABLE_PLATE")
     extra = B.brackets
     solids = {}
@@ -300,7 +299,7 @@ def build_all():
         for q in parts:
             if p is q:
                 continue
-            why = M.allowed(p, q)
+            why = line_model.allowed(p, q)
             if why and why.startswith("through-hole") and p.kind == "cyl" and ("rod" in p.name or "shaft" in p.name):
                 ax, Ln, d = p.s
                 cut_of.setdefault(q.name, []).append(Part.makeCylinder(d / 2 + 1.0, Ln, V(*p.p),
@@ -318,7 +317,7 @@ def build_all():
     for p in parts:
         if "MGN" in p.hw and "block" in p.hw:
             for r in rails:
-                if M.allowed(p, r):
+                if line_model.allowed(p, r):
                     b = r.aabb()
                     cut_of.setdefault(p.name, []).append(Part.makeBox(b[3] - b[0] + 0.2, b[4] - b[1] + 0.2,
                                                                       b[5] - b[2] + 0.2, V(b[0] - 0.1, b[1] - 0.1, b[2] - 0.1)))
@@ -327,7 +326,7 @@ def build_all():
             q = by.get(n)
             if q is not None and "MGN" in q.hw and "rail" in q.hw:
                 i, sgn = _axis(f)
-                dk = H.head(f.thread, f.head_type)[0]
+                dk = hardware.head(f.thread, f.head_type)[0]
                 bb = q.aabb()
                 far = bb[i] if sgn > 0 else bb[i + 3]                 # the rail's top (head side)
                 depth = abs((f.head[i] + sgn * 0.0) - far) + 0.5
@@ -349,7 +348,7 @@ def build_all():
     return parts, extra, deck, solids, fsolids, B
 
 
-L_T = M.L["TABLE"][2]
+L_T = line_model.L["TABLE"][2]
 
 
 def brep_check(parts, extra, deck, solids, fsolids, B):
@@ -372,8 +371,8 @@ def brep_check(parts, extra, deck, solids, fsolids, B):
                 break
             if bb.YMin > ba.YMax - 0.01 or bb.YMax < ba.YMin + 0.01 or bb.ZMin > ba.ZMax - 0.01 or bb.ZMax < ba.ZMin + 0.01:
                 continue
-            fa = pa if isinstance(pa, J.Fastener) else None
-            fb = pb if isinstance(pb, J.Fastener) else None
+            fa = pa if isinstance(pa, joints.Fastener) else None
+            fb = pb if isinstance(pb, joints.Fastener) else None
             if fa is not None and fb is not None and fa is fb:
                 continue                                  # parts of one fastener
             ok_names = set()
@@ -389,16 +388,16 @@ def brep_check(parts, extra, deck, solids, fsolids, B):
             if fa is None and fb is None:
                 if pa.group == "stock" or pb.group == "stock":
                     continue
-                if M.allowed(pa, pb) if (hasattr(pa, "aabb") and hasattr(pb, "aabb") and na != "table_top"
+                if line_model.allowed(pa, pb) if (hasattr(pa, "aabb") and hasattr(pb, "aabb") and na != "table_top"
                                          and nb != "table_top") else False:
                     allowed_n += 1
                     continue
-                if J.body_of(pa) == J.body_of(pb):
+                if joints.body_of(pa) == joints.body_of(pb):
                     continue
             n += 1
             try:
                 v = sa.common(sb).Volume
-            except Exception:
+            except Exception:  # OCC cannot intersect this pair: not counted as a clash
                 continue
             if v > 1e-3:
                 fails.append((na, nb, round(v, 3)))
@@ -412,14 +411,14 @@ def write(parts, extra, deck, solids, fsolids, B):
     import Import
     colour_mod = {}
     report = []
-    groups = M.by_module(parts + [q for q in extra])
+    groups = line_model.by_module(parts + [q for q in extra])
     fmod = {}
     by = {p.name: p for p in parts + extra}
     for name, s, f in fsolids:
         a = f.joint.split("~")[0]
         mod = by[a].module if a in by else by.get(f.joint.split("~")[1], deck).module
         fmod.setdefault(mod, []).append((name, s))
-    for mod in list(M.MODULES) + ["STF2_Precise"]:
+    for mod in list(line_model.MODULES) + ["STF2_Precise"]:
         for d in list(App.listDocuments()):
             App.closeDocument(d)
         doc = App.newDocument(mod)

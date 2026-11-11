@@ -12,22 +12,26 @@ Nested App::Part containers carry the joints, so the assembly poses in the GUI
 exactly as the simulation does. Colours are written afterwards by
 fcstd_colour.py, because a headless FreeCAD has no ViewObject to set them on.
 """
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import FreeCAD as App
-import Part
-
-import hbw_model as HM, vgr_model as VG, oven_model as OM, sorting_model as SM
-import factory_layout as FL
-import vgr_path
 import detail
+import factory_layout
+import FreeCAD as App
+import hbw_model
+import oven_model
+import Part
+import sorting_model
+import vgr_model
+import vgr_path
 from hbw_frames import by_frame as hbw_by_frame
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.expanduser("~/workspace/stf-factory/cad")
 BASE_GREY = "#8d949b"
-SIBLINGS = {p.name: p for p in HM.build()}       # the belt loop finds its pulleys
+SIBLINGS = {p.name: p for p in hbw_model.build()}  # the belt loop finds its pulleys
 V = App.Vector
 COLOURS = {
     "black": "#2b2b2f", "red": "#cf3a2f", "ftred": "#e0492f", "alu": "#d6d9da",
@@ -45,9 +49,9 @@ def shape(p):
 
 
 def main():
-    checks = (("HBW", HM.check(verbose=False)), ("VGR", VG.check(verbose=False)),
-              ("OVEN", OM.check(verbose=False)), ("SORTING", SM.check(verbose=False)),
-              ("CROSS", FL.check_cross() + FL.check_stations()),
+    checks = (("HBW", hbw_model.check(verbose=False)), ("VGR", vgr_model.check(verbose=False)),
+              ("OVEN", oven_model.check(verbose=False)), ("SORTING", sorting_model.check(verbose=False)),
+              ("CROSS", factory_layout.check_cross() + factory_layout.check_stations()),
               ("VGR PATH", vgr_path.check(verbose=False)))
     for name, fails in checks:
         if fails:
@@ -82,9 +86,9 @@ def main():
             parent.addObject(c)
         return c
 
-    # ---------------------------------------------------------------- table
+    # --- table
     table = container("STF_Table")
-    fl = FL.doc()
+    fl = factory_layout.doc()
     fx, fy, ft = fl["plate"]
     tp = doc.addObject("Part::Feature", "Base_Plate")
     tp.Label = "Base_Plate"
@@ -92,10 +96,10 @@ def main():
     table.addObject(tp)
     colour_of[tp.Name] = BASE_GREY
 
-    # ------------------------------------------------------- HBW, articulated
-    hbw = container("HBW_Hochregallager", table, (FL.TX, FL.TY, 0), FL.ROTATE_DEG)
+    # --- HBW, articulated
+    hbw = container("HBW_Hochregallager", table, (factory_layout.TX, factory_layout.TY, 0), factory_layout.ROTATE_DEG)
     hf = hbw_by_frame()
-    j1 = container("J1_Travel_X", hbw, (HM.P["CV_X"], 0, 0))
+    j1 = container("J1_Travel_X", hbw, (hbw_model.P["CV_X"], 0, 0))
     j2 = container("J2_Lift_Z", j1, (0, 0, 120.0))
     j3 = container("J3_Ausleger_Y", j2, (0, 0, 0))
     for p in hf["world"]:  solid(p, hbw)
@@ -103,33 +107,33 @@ def main():
     for p in hf["lift"]:   solid(p, j2)
     for p in hf["fork"]:   solid(p, j3)
 
-    # ------------------------------------------------------- VGR, articulated
-    vx, vy = FL.VGR_AT
+    # --- VGR, articulated
+    vx, vy = factory_layout.VGR_AT
     vgr = container("VGR_Sauggreifer", table, (vx, vy, 0))
-    sw = container("J_Swivel", vgr, (VG.V["CX"], VG.V["CY"], 0))
-    piv = container("_pivot", sw, (-VG.V["CX"], -VG.V["CY"], 0))
+    sw = container("J_Swivel", vgr, (vgr_model.V["CX"], vgr_model.V["CY"], 0))
+    piv = container("_pivot", sw, (-vgr_model.V["CX"], -vgr_model.V["CY"], 0))
     pl = container("J_Plunge", piv, (0, 0, 0))
     rc = container("J_Reach", pl, (0, 0, 0))
-    vp = {f: [] for f in VG.FRAMES}
-    for p in VG.build():
+    vp = {f: [] for f in vgr_model.FRAMES}
+    for p in vgr_model.build():
         vp[p.frame].append(p)
     for p in vp["world"]:  solid(p, vgr)
     for p in vp["swivel"]: solid(p, piv)
     for p in vp["plunge"]: solid(p, pl)
     for p in vp["reach"]:  solid(p, rc)
 
-    # ------------------------------------------------------ Oven, articulated
-    oven = container("OVEN_Brennofen", table, (FL.OVEN_TX, FL.OVEN_TY, 0), FL.OVEN_ROT)
+    # --- Oven, articulated
+    oven = container("OVEN_Brennofen", table, (factory_layout.OVEN_TX, factory_layout.OVEN_TY, 0), factory_layout.OVEN_ROT)
     jsl = container("J_Ofenschieber", oven)
     jdr = container("J_Ofentuer", oven)
-    tcx, tcy = OM.O["TT"]
+    tcx, tcy = oven_model.O["TT"]
     jtu = container("J_Drehkranz", oven, (tcx, tcy, 0))
     jtp = container("_tt_pivot", jtu, (-tcx, -tcy, 0))
     jsa = container("J_Sauger", oven)
     jlo = container("J_Senken", jsa)
     jpu = container("J_Auswerfer", oven)
-    op = {f: [] for f in OM.FRAMES}
-    for p in OM.build():
+    op = {f: [] for f in oven_model.FRAMES}
+    for p in oven_model.build():
         op[p.frame].append(p)
     for f, c in (("world", oven), ("slider", jsl), ("door", jdr),
                  ("turn", jtp), ("sauger", jsa), ("lower", jlo),
@@ -137,23 +141,23 @@ def main():
         for p in op[f]:
             solid(p, c)
 
-    # --------------------------------------------------- Sorting, articulated
+    # --- Sorting, articulated
     sort = container("SORT_Sortierstrecke", table,
-                     (FL.SORT_TX, FL.SORT_TY, 0), FL.SORT_ROT)
-    sp = {f: [] for f in SM.FRAMES}
-    for p in SM.build():
+                     (factory_layout.SORT_TX, factory_layout.SORT_TY, 0), factory_layout.SORT_ROT)
+    sp = {f: [] for f in sorting_model.FRAMES}
+    for p in sorting_model.build():
         sp[p.frame].append(p)
     for p in sp["world"]:
         solid(p, sort)
-    for i, col in enumerate(SM.COLOURS):
+    for i, col in enumerate(sorting_model.COLOURS):
         jc = container(f"J_Auswurf_{col}", sort)
         for p in sp[f"push{i}"]:
             solid(p, jc)
 
-    # ------------------------------------------------------- PLC cabinet
-    import plc_model as PM
-    plc = container("PLC_Schaltschrank", table, (FL.PLC_AT[0], FL.PLC_AT[1], 0))
-    for p in PM.build():
+    # --- PLC cabinet
+    import plc_model
+    plc = container("PLC_Schaltschrank", table, (factory_layout.PLC_AT[0], factory_layout.PLC_AT[1], 0))
+    for p in plc_model.build():
         if p.group != "frame":
             solid(p, plc)
 
@@ -165,7 +169,9 @@ def main():
     Import.export([table], step)          # the App::Part tree, placements included
     doc.saveAs(out)
 
-    import fcstd_colour, shutil
+    import shutil
+
+    import fcstd_colour
     # frame the whole model: union of every solid's GLOBAL bounding box
     bb = App.BoundBox()
     for o in doc.Objects:

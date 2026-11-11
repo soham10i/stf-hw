@@ -9,6 +9,11 @@ the database holds what the dashboard shows - the same files the dashboard reads
 
     PYTHONPATH=packages .venv/bin/python -m services.api.db_seed            (or `make db-seed`)
     ... -m services.api.db_seed --reset     first forget every guest, conversation and photo
+    ... -m services.api.db_seed --kb        only the copilot's vector index (`make db-seed-kb`)
+
+The vector index is built over web/public/copilot/kb.json (docs/reference/, `make copilot`) in the
+configured store (STF_VECTOR_BACKEND: pgvector in Supabase, else SQLite) - the build a first
+question would otherwise do, done ahead so that question is not the slow one.
 
 The factory tables are emptied and loaded again each run, so a run after the simulations change
 brings the database level with them. Prints counts - never a key.
@@ -25,10 +30,11 @@ import time
 import urllib.parse
 import urllib.request
 
-from . import guests as G
-from services.api.storage.captures import jpeg_size, store_from_env
 from services.api.agent.chat import dotenv
+from services.api.storage.captures import jpeg_size, store_from_env
 from services.api.storage.factory_db import TABLES, factory_from
+
+from . import guests as guest_sessions
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 PUB = os.path.join(ROOT, "web", "public")
@@ -192,10 +198,34 @@ def reset(db, caps) -> None:
         caps.forget("sample")
 
 
+def seed_kb() -> int:
+    """Build the copilot's vector index over the knowledge base, in the configured store."""
+    from services.api.rag import grounding, vectors
+
+    passages = grounding.get_bm25().passages
+    modules = sorted({p.module for p in passages if p.module})
+    files = {p.file for p in passages}
+    print(f"knowledge base: {len(passages)} passages from {len(files)} documents "
+          f"({len(modules)} modules)")
+    t0 = time.monotonic()
+    vectors.reset_store()
+    store = vectors.get_store()
+    if store is None:
+        print("  vectors are off (STF_VECTOR_BACKEND / STF_EMBEDDER) or there are no passages")
+        return 1
+    n = store.count()
+    name = getattr(store, "name", "sqlite")
+    print(f"  {name:9s} {n:6d} vectors  {store.embedder.name} embedder  "
+          f"{time.monotonic() - t0:4.1f} s")
+    return 0 if n == len(passages) else 1
+
+
 def main() -> int:
     """The seed CLI: push the demo dataset into the configured database."""
+    if "--kb" in sys.argv:
+        return seed_kb()
     env = {**dotenv(), **os.environ}
-    db, note = G.db_from_env(env)
+    db, note = guest_sessions.db_from_env(env)
     caps = store_from_env(env)
     fac = factory_from(db)
     print(f"database: {db.name} ({note})")

@@ -17,7 +17,12 @@ RevPi terminal, and the rating checks are computed from the sourced values.
 
     python3 electrical.py   ->  ~/workspace/stf-hw/web/public/electrical.json
 """
-import html, json, math, os, re, zipfile
+import html
+import json
+import math
+import os
+import re
+import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 WEB = os.path.expanduser("~/workspace/stf-hw/web/public")
@@ -33,7 +38,7 @@ PLANS = {"hbw": "occupancyPlanHighbayWarehouse.ods", "vgr": "occupancyPlanSuctio
          "oven": "occupancyPlanOven.ods", "sorting": "occupancyPlanSortingStation.ods"}
 
 
-# ------------------------------------------------------------------ the occupancy plans
+# --- the occupancy plans
 def read_plan(path):
     """{board terminal: (signal, revpi terminal or None, revpi channel or None)} from an .ods."""
     x = zipfile.ZipFile(path).read("content.xml").decode()
@@ -60,7 +65,7 @@ def read_plan(path):
     return out
 
 
-# ------------------------------------------------------------------ part definitions
+# --- part definitions
 def pin(n, label, function, kind, volts, vsrc, *, colour=None, max_ma=None, isrc=None):
     p = {"pin_number": n, "label": label, "function": function, "electrical_type": kind,
          "voltage_limits": volts, "voltage_source": vsrc}
@@ -201,7 +206,7 @@ def parts(components):
             rating("Choice", "the factory needs 24 V / 4.8 A (536634 p.2): the WDR-120-24 is the 5 A model", DV),
             rating("Mounting", "vertical, input terminals at the bottom; 40 mm free above", D)], "power")
 
-    # ---- the upgraded factory's parts (sizes and ratings from the upgrade design: ASSUMED parts)
+    # --- the upgraded factory's parts (sizes and ratings from the upgrade design: ASSUMED parts)
     io_note = "750-series-like remote I/O, sized in io_nodes.py - an assumed product, not a datasheet"
     io = lambda pid, name, size, pins_, ratings_: define(pid, name, "", "stf-cad io_nodes.py", size, DS, 40, pins_, ratings_ + [rating("Product", io_note, DS)], "plc")
     io("io_coupler", "Modbus TCP bus coupler", [51.0, 100.0, 72.0],
@@ -257,7 +262,7 @@ def parts(components):
     return P_
 
 
-# ------------------------------------------------------------------ the factory's wiring
+# --- the factory's wiring
 VARIANTS = ("original", "upgraded")
 # Upgrade 1's central air station replaced the module compressors (control.RETIRED)
 RETIRED = {"vgr": ("Q7",), "oven": ("Q10",), "sorting": ("Q2",)}
@@ -362,7 +367,7 @@ def build(controller, components, cad, variant):
         term_of = {v: k for k, v in st3.items() if v}
         retired = RETIRED.get(m, ()) if up else ()
 
-        # ---- power to the board, and the PLC side
+        # --- power to the board, and the PLC side
         if not up:
             plan = read_plan(os.path.join(DOCS, PLANS[m]))
             dio = f"{m}.dio"
@@ -569,11 +574,11 @@ def build(controller, components, cad, variant):
     return defs, placed, nets, contacts, supplies, controls, io, findings
 
 
-# ------------------------------------------------------------------ placement from the CAD
+# --- placement from the CAD
 def placement(placed, cad, findings):
     """Each part where the CAD export draws it: its tagged part's box in factory mm (the module's
     placement applied, a moving frame at its zero pose), and the module's turn as the part's."""
-    import wiring as W
+    import wiring
     srcs = {"hbw": cad["parts"], "vgr": cad["vgr"]["parts"], "oven": cad["oven"]["parts"], "sorting": cad["sorting"]["parts"]}
     turn = {"hbw": cad["factory"]["placement"]["rotate_deg"], "vgr": 0.0, "oven": cad["factory"]["oven_placement"]["rotate_deg"],
             "sorting": cad["factory"]["sort_placement"]["rotate_deg"]}
@@ -607,20 +612,20 @@ def placement(placed, cad, findings):
             src = f"plc/{how}"
         elif isinstance(how, str) and how in io_parts:
             d = io_parts[how]
-            box = W._box_f(d, ident)
+            box = wiring._box_f(d, ident)
             src = f"io3/{how}"
         elif isinstance(how, tuple) and how[0] == "upgrade":
             d = up_parts.get(how[1])
-            box = d and W._box_f(d, ident)
+            box = d and wiring._box_f(d, ident)
             src = d and f"upgrade/{how[1]}"
         elif how is not None and m in srcs:
             d = find(m, how)
             if d is None and isinstance(how, tuple) and how[0] == "name" and m == "vgr":
                 d = up_parts.get(how[1])  # the arm's air pressure switch sits on the air station
                 if d:
-                    box, src = W._box_f(d, ident), f"upgrade/{how[1]}"
+                    box, src = wiring._box_f(d, ident), f"upgrade/{how[1]}"
             elif d is not None:
-                box = W._box_f(d, W._tf(m))
+                box = wiring._box_f(d, wiring._tf(m))
                 frame, deg, src = d.get("f", "world"), turn[m], f"{m}/{d['n']}"
         if box is None:
             p["world_position_mm"], p["world_quaternion"], p["placed"] = [0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], None
@@ -634,7 +639,7 @@ def placement(placed, cad, findings):
         findings.append(f"not in the CAD export, so not placed in 3D: {', '.join(unplaced)}")
 
 
-# ------------------------------------------------------------------ rating checks
+# --- rating checks
 def checks(defs, placed, nets, io, controller, controls, cad, variant):
     out = []
     up = variant == "upgraded"

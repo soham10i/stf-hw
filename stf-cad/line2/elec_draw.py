@@ -17,14 +17,14 @@ from collections import defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import hardware as H
-import line_draw as D
-import line_model as M
-import plc_io as P
+import hardware
+import line_draw
+import line_model
+import plc_io
 
 OUT = os.path.join(HERE, "electrical")
-INK, ACC = D.INK, D.ACCENT
-esc = D.esc
+INK, ACC = line_draw.INK, line_draw.ACCENT
+esc = line_draw.esc
 W, Hh = 420, 297
 
 
@@ -48,21 +48,21 @@ def power_sheet(ios, prows, no, n):
     # mains bus
     b.append(line(30, y0, 30, 250, 0.6))
     b.append(t(22, y0 - 2, "L1 / L2 / L3 / N / PE  400 V 3N~ (CEE 16 A, RCD 30 mA)", "tbs"))
-    safe = any(io.kind in P.SAFE_KINDS for io in ios)
+    safe = any(io.kind in plc_io.SAFE_KINDS for io in ios)
     n_step = sum(1 for io in ios if io.kind == "STEP")
     if safe:
-        zs = P.zones()
-        _, els, plan, _ = M.oven_power()
+        zs = plc_io.zones()
+        _, els, plan, _ = line_model.oven_power()
         phase = {tg: p for p, items in plan.items() for tg, _ in items}
         oz = []
-        for k in range(len(M.L["OVEN_ZONES"])):
+        for k in range(len(line_model.L["OVEN_ZONES"])):
             e_ = [e for e in els if e["zone"] == f"Z{k + 1}"]
             oz.append(f"-FC{10 + k} C16 3p -> -QKH{k + 1} (coil via STB Z{k + 1}) -> " +
                       ", ".join(f"{e['tag']} {e['P']:.0f} W {phase[e['tag']]}" for e in e_) + f", fan QF{k + 1}")
         feeds = [("-QB0", "main switch 4-pole + RCD", None),
                  ("-QK3/4", "oven feed (TwinSAFE, series)", oz + ["each element on its own -QA SSR 25 A; "
                                                                    "details: blueprints/M3_thermal.svg"]),
-                 ("-FC3", "C6 supplies", [f"-TB1 {P.LOGIC_PSU[0]}: 24 V logic + safety (PC, EL, EL69xx/19xx/29xx, "
+                 ("-FC3", "C6 supplies", [f"-TB1 {plc_io.LOGIC_PSU[0]}: 24 V logic + safety (PC, EL, EL69xx/19xx/29xx, "
                                           "sensors, coils, locks, curtains)",
                                           "-TB2 SDR-480-24 (L1, fed via -QK3/-QK4): 24 V heat -> DC SSR + STL -> "
                                           "Q36-38 sealing heads",
@@ -106,16 +106,16 @@ def power_sheet(ios, prows, no, n):
     b.append(t(300, 100, "BUDGETS (plc_io.power, <= 80 % of every rating)", "nh"))
     for k, (name, v, lim, ok, note) in enumerate(prows):
         b.append(t(300, 106 + k * 5.2, f"{'OK ' if ok else 'FAIL'} {name}: {v}  {lim}", "tbs"))
-    return D.sheet(W, Hh, "\n".join(b), "Electrical E01 - power distribution", "single line, derived from plc_io",
+    return line_draw.sheet(W, Hh, "\n".join(b), "Electrical E01 - power distribution", "single line, derived from plc_io",
                    no, n, "none")
 
 
 def safety_sheet(ios, no, n):
     """E04: the TwinSAFE functions, every safe input / output with its device and function."""
-    import safety as S
+    import safety
     b = [t(20, 22, "SAFETY FUNCTIONS (TwinSAFE EL6910) - Upgrade S-1", "nh")]
     y = 30
-    for sf, fn, inp, resp, stop, pl, diag in S.SF:
+    for sf, fn, inp, resp, stop, pl, diag in safety.SF:
         b.append(t(20, y, f"{sf}  {fn}  (PLr {pl}, stop {stop})", "tb"))
         for line_ in (f"in:  {inp}", f"out: {resp}", f"diag: {diag}"):
             y += 4.4
@@ -126,7 +126,7 @@ def safety_sheet(ios, no, n):
     y += 6
     y0, col = y, 0
     off = [0, 10, 30, 56, 98]
-    for io in sorted((io for io in ios if io.kind in P.SAFE_KINDS), key=lambda i: (i.kind, i.slot)):
+    for io in sorted((io for io in ios if io.kind in plc_io.SAFE_KINDS), key=lambda i: (i.kind, i.slot)):
         if y == y0:
             for c_, h_ in zip(off, ["kind", "tag", "terminal", "device / part", "function"]):
                 b.append(t(20 + col * 195 + c_, y, h_, "tb"))
@@ -139,12 +139,12 @@ def safety_sheet(ios, no, n):
             col, y = col + 1, y0
             if col > 1:
                 break
-    return D.sheet(W, Hh, "\n".join(b), "Electrical E04 - safety", "TwinSAFE functions + safe I/O, from safety.py",
+    return line_draw.sheet(W, Hh, "\n".join(b), "Electrical E04 - safety", "TwinSAFE functions + safe I/O, from safety.py",
                    no, n, "none")
 
 
 def cabinet_sheet(lay, dims, no, n):
-    cx, cy, cw, cd, ch = M.L["CAB"]
+    cx, cy, cw, cd, ch = line_model.L["CAB"]
     sc = 1 / 3.0
     ox, oy = 25, 30
     b = [t(20, 22, f"MOUNTING PLATE {cw:g} x {cd:g} (enclosure under the deck, height {ch:g}) - scale 1:3", "nh")]
@@ -154,9 +154,9 @@ def cabinet_sheet(lay, dims, no, n):
                "EL": "#d4e8d4", "CX": "#b8d0f0", "EK": "#b8d0f0"}
     for r in lay:
         yy = oy + (r["y"] - cy) * sc
-        b.append(box(ox + 15 * sc, yy - 1, (cw - 30) * sc, H.RAIL["w"] * sc, "#ffffff", "#9aa3ab", 0.2))
+        b.append(box(ox + 15 * sc, yy - 1, (cw - 30) * sc, hardware.RAIL["w"] * sc, "#ffffff", "#9aa3ab", 0.2))
         if r["row"] < len(lay) - 1:
-            b.append(box(ox + 15 * sc, yy + r["h"] * sc + 1, (cw - 30) * sc, H.DUCT["w"] * sc - 2, "#eef1f4",
+            b.append(box(ox + 15 * sc, yy + r["h"] * sc + 1, (cw - 30) * sc, hardware.DUCT["w"] * sc - 2, "#eef1f4",
                          "#b9bec4", 0.2))
         for d in r["devices"]:
             col = next((c for k, c in colours.items() if d["type"].startswith(k) or k in d["type"]), "#dddddd")
@@ -169,14 +169,14 @@ def cabinet_sheet(lay, dims, no, n):
                                                 f"{r['spare']:.0%} spare", "tbs"))
     th = dims["thermal"]
     notes = [f"Rows use {dims['used_d']:.0f} of {dims['inner_d']:.0f} mm plate depth; every rail keeps >= 20 % spare.",
-             f"Deepest device + rail {max(d['d'] for r in lay for d in r['devices']) + H.RAIL['h']:.0f} mm <= "
+             f"Deepest device + rail {max(d['d'] for r in lay for d in r['devices']) + hardware.RAIL['h']:.0f} mm <= "
              f"{dims['inner_h']:.0f} mm inside height.",
-             f"Heat {th['loss_W']} W: natural dT {th['dT_natural']} K > {H.THERMAL['dT_max']:g} K -> filter fan "
-             f"{H.THERMAL['fan_m3h']:g} m3/h, dT {th['dT']} K.",
+             f"Heat {th['loss_W']} W: natural dT {th['dT_natural']} K > {hardware.THERMAL['dT_max']:g} K -> filter fan "
+             f"{hardware.THERMAL['fan_m3h']:g} m3/h, dT {th['dT']} K.",
              "Ducts 40 x 60 between rows; field cables enter through glands in the front wall."]
-    nb, _ = D.notes_block(ox + cw * sc + 4, oy + 150, 95, notes, "NOTES")
+    nb, _ = line_draw.notes_block(ox + cw * sc + 4, oy + 150, 95, notes, "NOTES")
     b.append(nb)
-    return D.sheet(W, Hh, "\n".join(b), "Electrical E02 - cabinet layout", "DIN rows from plc_io.cabinet()",
+    return line_draw.sheet(W, Hh, "\n".join(b), "Electrical E02 - cabinet layout", "DIN rows from plc_io.cabinet()",
                    no, n, "1:3")
 
 
@@ -208,7 +208,7 @@ def ethercat_sheet(rails, no, n):
            ("edge PC <-> CX2020", "ADS: QC verdicts, pick poses, twin state (TwinCAT ADS router)")]
     for k, (a, bb) in enumerate(net):
         b.append(t(25, y + k * 6, f"{a}  ->  {bb}", "tbs"))
-    return D.sheet(W, Hh, "\n".join(b), "Electrical E03 - EtherCAT + network", "topology from plc_io.terminals()",
+    return line_draw.sheet(W, Hh, "\n".join(b), "Electrical E03 - EtherCAT + network", "topology from plc_io.terminals()",
                    no, n, "none")
 
 
@@ -220,10 +220,10 @@ def terminal_sheets(ios, wires, rails, start, n):
             name, ch = io.slot.split(" ch")
             by_term[name].append((int(ch), io))
     order = [(nm, typ) for rail in rails for typ, nm, _ in rail if nm in by_term or typ.startswith("EL") and nm]
-    order = [(nm, typ) for nm, typ in order if typ in H.BECKHOFF and H.BECKHOFF[typ]["ch"] > 0]
+    order = [(nm, typ) for nm, typ in order if typ in hardware.BECKHOFF and hardware.BECKHOFF[typ]["ch"] > 0]
     pages, cur, used = [], [], 0
     for nm, typ in order:
-        rows = H.BECKHOFF[typ]["ch"] + 2
+        rows = hardware.BECKHOFF[typ]["ch"] + 2
         if used + rows > 44:
             pages.append(cur)
             cur, used = [], 0
@@ -239,13 +239,13 @@ def terminal_sheets(ios, wires, rails, start, n):
         heads = ["terminal", "ch", "tag", "part", "description", "cable", "length", "cores"]
         for nm, typ in pg:
             b.append(box(18, y - 4, 384, 5.5, "#f3f5f8", INK, 0.15))
-            b.append(t(20, y, f"{nm}  {typ}  {H.BECKHOFF[typ]['desc']}", "tb"))
+            b.append(t(20, y, f"{nm}  {typ}  {hardware.BECKHOFF[typ]['desc']}", "tb"))
             y += 5.5
             for c_, h_ in zip(cols, heads):
                 b.append(t(c_, y, h_, "tbs"))
             y += 4.2
             chs = dict(by_term.get(nm, []))
-            for ch in range(1, H.BECKHOFF[typ]["ch"] + 1):
+            for ch in range(1, hardware.BECKHOFF[typ]["ch"] + 1):
                 io = chs.get(ch)
                 if io is None:
                     vals = [nm, str(ch), "spare", "", "", "", "", ""]
@@ -257,21 +257,21 @@ def terminal_sheets(ios, wires, rails, start, n):
                     b.append(t(c_, y, v, "tbs"))
                 y += 3.6
             y += 3
-        out.append(D.sheet(W, Hh, "\n".join(b), f"Electrical E1{pi} - terminal plan", "every channel -> tag -> cable",
+        out.append(line_draw.sheet(W, Hh, "\n".join(b), f"Electrical E1{pi} - terminal plan", "every channel -> tag -> cable",
                            start + pi, n, "none"))
     return out
 
 
 def main():
-    if P.check(verbose=False):
+    if plc_io.check(verbose=False):
         raise SystemExit("REFUSING: plc_io proofs fail")
-    ios = P.IOS
-    rails, _, _ = P.terminals(ios)
-    prows, _ = P.power(ios)
-    lay, _, dims = P.cabinet(rails)
-    wires, _ = P.wiring(ios)
+    ios = plc_io.IOS
+    rails, _, _ = plc_io.terminals(ios)
+    prows, _ = plc_io.power(ios)
+    lay, _, dims = plc_io.cabinet(rails)
+    wires, _ = plc_io.wiring(ios)
     os.makedirs(OUT, exist_ok=True)
-    safe = any(io.kind in P.SAFE_KINDS for io in ios)
+    safe = any(io.kind in plc_io.SAFE_KINDS for io in ios)
     first = 5 if safe else 4
     term = terminal_sheets(ios, wires, rails, first, 0)
     n = first - 1 + len(term)

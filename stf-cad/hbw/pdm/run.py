@@ -21,12 +21,11 @@ import os
 import time
 from multiprocessing import Pool
 
-import month as M
+import month
 import numpy as np
 
-from pdm import data
-from pdm import model as Mo
-from pdm import stats as S
+from pdm import data, stats
+from pdm import model as pdm_model
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "..", "..", "web", "public", "pdm")
 ML_RESULTS = os.path.join(os.path.dirname(__file__), "..", "..", "..", "web", "public", "ml", "results.json")
@@ -67,7 +66,7 @@ def summarise(name, leads, false, missed, orders, **extra):
 
 def _machine_tracks(args):
     i, X, F, pop = args
-    return i, {k: Mo.track(X, k, pop, [f + 1 for f, kk in F if kk == k], horizon=HORIZON) for k in Mo.COMPS}
+    return i, {k: pdm_model.track(X, k, pop, [f + 1 for f, kk in F if kk == k], horizon=HORIZON) for k in pdm_model.COMPS}
 
 
 def tracks(fleet, ids, pop):
@@ -88,9 +87,9 @@ def grade(fleet, ids, trk, p_star, name, with_rul=True):
         X, F, _ = fleet[i]
         n = len(X)
         orders += n
-        for k in Mo.COMPS:
+        for k in pdm_model.COMPS:
             tr = trk[(i, k)]
-            l, fa, mi = decisions(Mo.alarms(tr, p_star), n, F, k)
+            l, fa, mi = decisions(pdm_model.alarms(tr, p_star), n, F, k)
             leads += l; false += fa; missed += mi
             # the remaining life where it is known and under the cap
             fi = sorted(f for f, kk in F if kk == k)
@@ -114,7 +113,7 @@ def rules(fleet, ids):
     for i in ids:
         X, F, R = fleet[i]
         orders += len(X)
-        for k in Mo.COMPS:
+        for k in pdm_model.COMPS:
             l, fa, mi = decisions(sorted(o for o, kk in R if kk == k), len(X), F, k)
             leads += l; false += fa; missed += mi
     return summarise("U6 rules (EWMA + soft limit + trend)", leads, false, missed, orders)
@@ -127,17 +126,17 @@ def detection(fleet, ids, trk):
     for i in ids:
         X, F, _ = fleet[i]
         n = len(X)
-        E = np.stack([trk[(i, k)].innov for k in Mo.COMPS], 1)
-        stat, lim = S.t2(E)
+        E = np.stack([trk[(i, k)].innov for k in pdm_model.COMPS], 1)
+        stat, lim = stats.t2(E)
         out["t2"]["exceed"] += int((stat > lim).sum()); out["t2"]["orders"] += n
         out["t2"]["limit"] = round(lim, 2)
-        for k in Mo.COMPS:
+        for k in pdm_model.COMPS:
             fi = sorted(f for f, kk in F if kk == k)
             reset = np.zeros(n, bool)
             for f in fi:
                 if f + 1 < n:
                     reset[f + 1] = True
-            _, a = S.cusum(trk[(i, k)].innov, reset=reset)
+            _, a = stats.cusum(trk[(i, k)].innov, reset=reset)
             # orders more than RUL_CAP from any failure: where nothing should be found
             far = np.ones(n, bool)
             for f in fi:
@@ -158,26 +157,26 @@ def detection(fleet, ids, trk):
 
 def showcase(pop, p_star):
     """The two months without the two saves: the spindle and the gearbox run to failure."""
-    cf = M.Month(skip_pm=M.SAVES).run()
+    cf = month.Month(skip_pm=month.SAVES).run()
     X = np.array(cf.feat, dtype=float)
     ts = [o["t"] for o in cf.orders]
     out = {}
-    for k in M.SAVES:
+    for k in month.SAVES:
         fi = sorted(f for f, kk in cf.fail_idx if kk == k)
-        tr = Mo.track(X, k, pop, [f + 1 for f in fi], horizon=HORIZON)
-        al = Mo.alarms(tr, p_star)
+        tr = pdm_model.track(X, k, pop, [f + 1 for f in fi], horizon=HORIZON)
+        al = pdm_model.alarms(tr, p_star)
         f = fi[0] if fi else None
         first = next((a for a in al if f is None or a <= f), None)
         warn = next((e for e in cf.events if e["kind"] == "warning" and e.get("comp") == k), None)
         w_i = next((j for j, t in enumerate(ts) if warn and t >= warn["t"]), None)
         reset = np.zeros(len(X), bool)
-        _, ca = S.cusum(tr.innov, reset=reset)
+        _, ca = stats.cusum(tr.innov, reset=reset)
         onset = int(np.argmax(ca)) if ca.any() else None
-        cp, _ = S.bocpd(np.nan_to_num(tr.innov), hazard=1 / 1000)
+        cp, _ = stats.bocpd(np.nan_to_num(tr.innov), hazard=1 / 1000)
         step = max(1, len(X) // 600)
         sl = slice(0, len(X), step)
         out[k] = {
-            "name": M.COMP[k]["name"], "fail_order": f, "fail_h": ts[f] if f is not None else None,
+            "name": month.COMP[k]["name"], "fail_order": f, "fail_h": ts[f] if f is not None else None,
             "window_order": first, "window_h": ts[first] if first is not None else None,
             "rule_order": w_i, "rule_h": warn["t"] if warn else None,
             "cusum_onset_order": onset, "cusum_onset_h": ts[onset] if onset is not None else None,
@@ -198,9 +197,9 @@ def showcase(pop, p_star):
 def main():
     t0 = time.time()
     fleet = data.load()
-    pop = Mo.fit_population(fleet, data.FIT)
+    pop = pdm_model.fit_population(fleet, data.FIT)
     print("normal-behaviour model (log r per degC):", {k: round(v, 4) for k, v in pop.beta.items() if abs(v) > 1e-4})
-    Mo.calibrate_noise(fleet, data.FIT, pop)
+    pdm_model.calibrate_noise(fleet, data.FIT, pop)
     # the uncertainty scales: the P10-P90 interval should hold the true life 80 % of the time, at
     # the least median error - judged on the population only
     calib, fit_trk = [], None
@@ -231,18 +230,18 @@ def main():
         # the foundation model's second opinion, on the same health states and the same decision
         from dataclasses import replace
 
-        from pdm import foundation as FM
-        fm = FM.Chronos()
-        fm_trk = {key: replace(tr, p_fail=FM.p_fail_series(fm, tr.w, HORIZON)) for key, tr in test_trk.items()}
+        from pdm import foundation
+        fm = foundation.Chronos()
+        fm_trk = {key: replace(tr, p_fail=foundation.p_fail_series(fm, tr.w, HORIZON)) for key, tr in test_trk.items()}
         extra.append(grade(fleet, data.TEST, fm_trk, p_star, "Chronos-Bolt zero-shot on the health state", with_rul=False))
     det = detection(fleet, data.TEST, test_trk)
     ml = json.load(open(ML_RESULTS))["results"] if os.path.exists(ML_RESULTS) else []
     per_comp = {}
-    for k in Mo.COMPS:
+    for k in pdm_model.COMPS:
         l_all, mi_all, fa_all = [], 0, 0
         for i in data.TEST:
             X, F, _ = fleet[i]
-            l, fa, mi = decisions(Mo.alarms(test_trk[(i, k)], p_star), len(X), F, k)
+            l, fa, mi = decisions(pdm_model.alarms(test_trk[(i, k)], p_star), len(X), F, k)
             l_all += l; mi_all += mi; fa_all += fa
         nf = len(l_all) + mi_all
         if nf:

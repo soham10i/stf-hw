@@ -34,7 +34,7 @@ var API_PROXY = {
     "/command": API,
     "/orders": API,
     "/health": API,
-    "/chat": API,
+    "/chat": __assign(__assign({}, API), { ws: true }), // REST and the streamed question (WS /chat/stt/stream)
     "/twin": __assign(__assign({}, API), { ws: true }), // REST and the live link (WS /twin/live)
     "/copilot": API,
     "/guest": API,

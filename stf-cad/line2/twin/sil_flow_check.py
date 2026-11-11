@@ -32,13 +32,13 @@ from multiprocessing import Pool
 HERE = os.path.dirname(os.path.abspath(__file__))
 LINE2 = os.path.dirname(HERE)
 sys.path.insert(0, LINE2)
-import line_model as M                                     # noqa: E402
-import line_sim as LS                                      # noqa: E402
-from twin.sil import build as B                            # noqa: E402
-from twin.sil import port as P                             # noqa: E402
-from twin.sil.line import SilLine                          # noqa: E402
+import line_model  # noqa: E402
+import line_sim  # noqa: E402
+from twin.sil import build as sil_build  # noqa: E402
+from twin.sil import port as sil_port  # noqa: E402
+from twin.sil.line import SilLine  # noqa: E402
 
-L = M.L
+L = line_model.L
 LIB = os.path.join(HERE, "out", "sil", "libstf2plc.dylib")
 T_END = 3600.0
 TOL = 0.011                                                # s: one 10 ms scan
@@ -47,7 +47,7 @@ TIMED = ("deposit", "load", "grip_fail", "qc", "kick", "kick_fail", "pick", "pic
 
 
 def reference():
-    ev, g = [], LS.flow("nominal_1h", 7, outcomes="keyed", ideal=True)
+    ev, g = [], line_sim.flow("nominal_1h", 7, outcomes="keyed", ideal=True)
     while True:
         try:
             ev.append(next(g))
@@ -74,11 +74,11 @@ def key(kind, d, ids=None):
     if kind in ("kick", "kick_fail"):
         return (kind, d["pk"])
     if kind == "pick":
-        return (kind, d["pk"], d["d"], d["lane"] if isinstance(d["lane"], int) else M.FLAV.index(d["lane"]))
+        return (kind, d["pk"], d["d"], d["lane"] if isinstance(d["lane"], int) else line_model.FLAV.index(d["lane"]))
     if kind == "pick_fail":
         return (kind, d["pk"], d["d"])
     if kind == "pack":
-        return (kind, d["lane"] if isinstance(d["lane"], int) else M.FLAV.index(d["lane"]))
+        return (kind, d["lane"] if isinstance(d["lane"], int) else line_model.FLAV.index(d["lane"]))
 
 
 def compare(ref_ev, ids, log):
@@ -121,13 +121,13 @@ def lost_ref(ref_ev, ids):
     return sorted(ids[d["id"]] for t, k, d in ref_ev if k == "band_lost" and t < T_END)
 
 
-# ---------------------------------------------------------------------------------------------- mutants
+# --- mutants
 MUTANTS = {
     "N1 the band ratio rounded to 0.001 mm/s (finding 17)": (
         "FB_Band.st", r"RatioNumerator := [0-9.]+,\s*RatioDenominator := \d+\)",
-        f"RatioNumerator := {round(M.band_v() * 1000):.1f}, RatioDenominator := {round(L['V'] * 1000)})"),
+        f"RatioNumerator := {round(line_model.band_v() * 1000):.1f}, RatioDenominator := {round(L['V'] * 1000)})"),
     "N2 the puck loop taken as N x P (finding 16)": (
-        "FB_Arrivals.st", r"\b" + re.escape(f"{M.loop_len():.9f}") + r"\b", f"{L['N'] * L['PITCH']:.9f}"),
+        "FB_Arrivals.st", r"\b" + re.escape(f"{line_model.loop_len():.9f}") + r"\b", f"{L['N'] * L['PITCH']:.9f}"),
     "N3 the kicker fires at the passed cookies": (
         "FB_QC.st", r"aPuck\[pk\]\.nVerdict = 2 THEN", "aPuck[pk].nVerdict = 1 THEN"),
     "N4 a failed pick not taken back (the tray fill)": (
@@ -141,7 +141,7 @@ def run_mutant(name, ref):
     f, pat, rep = MUTANTS[name]
     work = tempfile.mkdtemp(prefix="stf2fmut_")
     plc = os.path.join(work, "plc")
-    shutil.copytree(P.PLC, plc)
+    shutil.copytree(sil_port.PLC, plc)
     src = open(os.path.join(plc, f)).read()
     new, n = re.subn(pat, rep, src, flags=re.M)
     if n == 0:
@@ -149,7 +149,7 @@ def run_mutant(name, ref):
     open(os.path.join(plc, f), "w").write(new)
     out = os.path.join(work, "sil")
     try:
-        B.build(out, plc)
+        sil_build.build(out, plc)
     except SystemExit as e:
         return name, True, f"does not compile: {str(e)[:60]}"
     r = run_line(os.path.join(out, "libstf2plc.dylib"))
@@ -174,7 +174,7 @@ def check(verbose=True):
             fails.append(f"SIL flow {name}: {value} vs {limit} {note}".strip())
 
     if not os.path.exists(LIB):
-        B.build()
+        sil_build.build()
     ref = reference()
     ref_ev, ids, k = ref
     with Pool(min(os.cpu_count() or 4, len(MUTANTS) + 1)) as pool:
@@ -226,16 +226,16 @@ def check(verbose=True):
 
 
 def LS_T_ROW():
-    return L["BAND"]["rows"] * M.takt()
+    return L["BAND"]["rows"] * line_model.takt()
 
 
 def travel_t():
-    sb = M.stations()
-    return (sb["pick"][0] - sb["dep"]) / M.band_v()
+    sb = line_model.stations()
+    return (sb["pick"][0] - sb["dep"]) / line_model.band_v()
 
 
 def window_t():
-    return L["PICK_W"] / M.band_v()
+    return L["PICK_W"] / line_model.band_v()
 
 
 if __name__ == "__main__":

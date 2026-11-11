@@ -38,9 +38,7 @@ MARKS = (P1, P2, P3)
 SHORT = 10
 
 
-# ---------------------------------------------------------------------------
-# vocabularies
-
+# --- vocabularies
 GREEK = {
     "alpha": "alpha", "beta": "beta", "gamma": "gamma", "delta": "delta",
     "epsilon": "epsilon", "varepsilon": "epsilon", "zeta": "zeta", "eta": "eta",
@@ -184,9 +182,7 @@ _CMD_RE = re.compile(r"\\([A-Za-z]+)\*?|\\.")  # \name, \[, \\, \%, \,, ...
 _NUM_RE = re.compile(r"\d[\d,]*(?:\.\d+)?|\.\d+")
 
 
-# ---------------------------------------------------------------------------
-# tokenizer
-
+# --- tokenizer
 def _tokenize(s: str) -> list[tuple[str, str]]:
     toks: list[tuple[str, str]] = []
     i, n = 0, len(s)
@@ -262,9 +258,7 @@ def _number_words(raw: str) -> list[str]:
     return [raw]
 
 
-# ---------------------------------------------------------------------------
-# parser
-
+# --- parser
 class _P:
     """Recursive-descent parser state over the token stream (mathspeak conversion)."""
 
@@ -483,7 +477,7 @@ class _P:
             raise Unsupported(f"token {val!r}")
         return self.command(val)
 
-    # -- commands -----------------------------------------------------------
+    # --- commands
 
     def command(self, name: str) -> list[str]:
         """Speak one LaTeX command (spacing ignored, names and functions translated)."""
@@ -624,7 +618,7 @@ class _P:
             return [WORDS[name]]
         raise Unsupported(f"\\{name}")
 
-    # -- structure: groups, del, fractions ------------------------------------
+    # --- structure: groups, del, fractions
 
     def group(self, delim: str, words: list[str], before: str | None) -> list[str]:
         """A bracketed group as a lecturer says it: "the quantity ..." with a breath at its
@@ -696,7 +690,7 @@ class _P:
             return num + ["over"] + den
         return ["the fraction"] + num + ["over"] + under + ([] if compound(d) else [P1])
 
-    # -- \mathrm / \text content: units if it looks like units, else text ----
+    # --- \mathrm / \text content: units if it looks like units, else text
 
     def text_like(self) -> list[str]:
         """\\mathrm / \\text / \\mathbf / ... content: units when the wrapper is one
@@ -735,7 +729,7 @@ class _P:
                 depth -= 1
             out.append(t)
 
-    # -- unit grammar --------------------------------------------------------
+    # --- unit grammar
 
     def units(self, group_end: str | None) -> list[str]:
         """A unit expression; raises Unsupported if the content is not units."""

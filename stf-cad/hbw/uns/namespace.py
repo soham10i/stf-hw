@@ -70,7 +70,7 @@ def catalogue():
     names = state_names()
     ms: list[Metric] = []
 
-    # ---- the edge node: identity, the order, the safety relay, the Node Control commands
+    # --- the edge node: identity, the order, the safety relay, the Node Control commands
     ms += [Metric(BDSEQ, UINT64, None), Metric(REBIRTH, BOOLEAN, None, lambda d: False),
            Metric(RESTART, BOOLEAN, None, lambda d: False,
                   props={"description": "write true: the simulated order restarts from power-up"}),
@@ -89,7 +89,7 @@ def catalogue():
             ms.append(Metric(f"Safety/{e['signal']}", BOOLEAN, None, (lambda i: lambda d: bool(d["ix"][i]))(i),
                              props={"description": e["desc"], "address": e["addr"]}))
 
-    # ---- the modules: one device each
+    # --- the modules: one device each
     for mod, dev in DEVICES.items():
         for area, folder in (("ix", "Inputs"), ("qx", "Outputs")):
             for i, e in enumerate(io[area]):

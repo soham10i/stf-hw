@@ -4,6 +4,7 @@ Canonical location: services/api/storage/db_check.py
 """
 
 import sys
+
 import services.api.storage.db_check as _target_module
 
 globals().update({

@@ -1,5 +1,5 @@
 """
-Who may approve a guarded action (docs/architecture/guarded-action-plan.md): named operators,
+Who may approve a guarded action (docs/plans/guarded-action-plan.md): named operators,
 each with a key, exchanged for a short-lived signed cookie.
 
 STF_OPERATORS   "name:role:sha256(key)" entries, separated by commas or new lines. A role is

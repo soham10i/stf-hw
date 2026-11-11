@@ -16,7 +16,7 @@
 /web/tsconfig.node.tsbuildinfo
 /stf-cad
 /docs/*
-!/docs/assistant
+!/docs/reference
 /tests
 /mosquitto
 /utils
@@ -27,7 +27,7 @@
 # .dockerignore with the same any-depth matching, unlike a local Docker Desktop build
 # (where `*.md` matched root only).
 /*.md
-!/docs/assistant/*.md
+!/docs/reference/**/*.md
 .env
 .env.*
 .data

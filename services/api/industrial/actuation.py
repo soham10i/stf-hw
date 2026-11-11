@@ -30,9 +30,11 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
 
-from . import ledger as L
+from services.api.core import navigation
 from services.api.core.logging_config import get_logger
 from services.api.storage.store import ROOT
+
+from . import ledger as action_ledger
 
 if TYPE_CHECKING:
     from services.api.core.runtime import SimRuntime
@@ -50,7 +52,7 @@ def get_runtime() -> SimRuntime | None:
     try:
         from services.api import app
         return getattr(app, "runtime", None)
-    except Exception:
+    except ImportError:
         return None
 
 
@@ -71,7 +73,7 @@ def get_hub() -> Any | None:
     try:
         from services.api import app
         return getattr(app, "hub", None)
-    except Exception:
+    except ImportError:
         return None
 
 
@@ -85,20 +87,10 @@ VALID_OPS = {"retrieve", "store", "home", "cycle"}
 SLOT_RE = re.compile(r"^[A-C][1-3]$", re.I)  # the rack's nine slots; POST /command says the same
 ALARM_CODE_RE = re.compile(r"^[A-Z]{3}-[A-Z0-9]{2,4}$", re.I)
 MAX_PENDING_ORDERS = 10
-VALID_PAGES = {
-    "overview",
-    "warehouse",
-    "oven",
-    "quality",
-    "analytics",
-    "security",
-    "settings",
-    "3d",
-    "twin",
-}
+VALID_PAGES = navigation.PAGES  # the dashboard's pages (core/navigation.py)
 
 
-# ------------------------------------------------------------------------------ the precheck
+# --- the precheck
 # Every safety and bounds condition is one named rule with one refusal, so a refusal says which
 # rule spoke, the approval card can list each rule's verdict, and a test can remove one rule and
 # watch its payload get through (tests/test_actions_precheck.py).
@@ -241,7 +233,7 @@ def _within(key: str, lo: float, hi: float, refusal: str) -> Callable[[Check], s
 
 def _page_known(c: Check) -> str | None:
     page = c.params.get("page")
-    if not page or not isinstance(page, str) or page.strip().lower() not in VALID_PAGES:
+    if navigation.resolve(page) not in VALID_PAGES:  # a page's id, or a name for it ("oven")
         return f"Target page '{page}' not recognized in digital twin navigation map"
     return None
 
@@ -252,7 +244,7 @@ _RECIPE = frozenset({"recipe_adjust"})
 
 RULES: list[Rule] = [
     Rule("actor_present", None, _actor_present),
-    Rule("estop_clear", None, _estop_clear, exempt=frozenset({"reset_emergency_stop"})),
+    Rule("estop_clear", None, _estop_clear, exempt=frozenset({"reset_emergency_stop", "twin_navigate"})),
     Rule("op_known", _SUBMIT, _op_known),
     Rule("slot_required", _SUBMIT, _slot_required),
     Rule("slot_in_rack", _SUBMIT, _slot_in_rack),
@@ -420,7 +412,7 @@ def audit_secret(env: dict) -> tuple[bytes, str | None]:
         return s.encode(), None
     if s:
         logger.error("STF_AUDIT_SECRET is short or a placeholder: ignored")
-    if L.public_deployment(env):
+    if action_ledger.public_deployment(env):
         problem = "STF_AUDIT_SECRET is missing or weak: guarded actions are off"
         logger.error("%s (signing with a key for this process only)", problem)
         return secrets.token_hex(32).encode(), problem
@@ -448,7 +440,7 @@ class ActionGuard:
     def __init__(
         self,
         secret_key: str | None = None,
-        audit: L.Ledger | MemoryAudit | None = None,
+        audit: action_ledger.Ledger | MemoryAudit | None = None,
         env: dict | None = None,
     ) -> None:
         if secret_key:  # a test's own key
@@ -456,7 +448,7 @@ class ActionGuard:
         else:
             self._secret, self.secret_problem = audit_secret(os.environ if env is None else env)
         self.audit = audit if audit is not None else MemoryAudit()
-        self.ledger: L.Ledger | None = audit if isinstance(audit, L.Ledger) else None
+        self.ledger: action_ledger.Ledger | None = audit if isinstance(audit, action_ledger.Ledger) else None
         self.ledger_note = "" if self.ledger else "memory"
         self._emergency_latched: bool = False
         self._active_recipe: dict[str, Any] = {
@@ -516,7 +508,8 @@ class ActionGuard:
             active_id = active.id if active else None
             state_blob = f"{carrier}|{oven}|{pending_count}|{active_id}"
             return hashlib.sha256(state_blob.encode("utf-8")).hexdigest()[:16]
-        except Exception:
+        except Exception as e:  # the hash marks the audit record; a failure must not stop it
+            logger.debug("state hash failed: %s", e)
             return "HASH_ERR"
 
     def derive(self, label: str) -> bytes:
@@ -651,21 +644,27 @@ class ActionGuard:
             verified = observe_order(runtime, order.id, op, slot_clean) is not None
             status = "EXECUTED" if verified else "FAILED"
             audit = self._append_audit(
-                actor, "order_submit", params, pre_hash, post_hash, status,
+                actor,
+                "order_submit",
+                params,
+                pre_hash,
+                post_hash,
+                status,
                 None if verified else "The runtime does not hold the order it accepted",
             )
 
-            # Live 3D twin synchronization via LiveHub
             live_synced = False
             hub = get_hub()
             if hub:
                 try:
-                    hub.dispatch_command({
-                        "type": "simulate",
-                        "flavour": flavour_clean,
-                        "qty": qty_clean,
-                        "slot": slot_clean,
-                    })
+                    hub.dispatch_command(
+                        {
+                            "type": "simulate",
+                            "flavour": flavour_clean,
+                            "qty": qty_clean,
+                            "slot": slot_clean,
+                        }
+                    )
                     live_synced = True
                 except Exception as e:
                     logger.warning("Could not dispatch simulate command to live twin: %s", e)
@@ -719,10 +718,12 @@ class ActionGuard:
         hub = get_hub()
         if hub:
             try:
-                hub.dispatch_command({
-                    "type": "cancel_order",
-                    "id": order_dict.get("id") if order_dict else order_id,
-                })
+                hub.dispatch_command(
+                    {
+                        "type": "cancel_order",
+                        "id": order_dict.get("id") if order_dict else order_id,
+                    }
+                )
             except Exception as e:
                 logger.warning("Could not dispatch cancel_order to live twin: %s", e)
 
@@ -750,7 +751,12 @@ class ActionGuard:
 
         self._acknowledged_alarms.add(code_clean)
         audit = self._append_audit(
-            actor, "alarm_ack", params, "ALARM_ACTIVE", "ALARM_ACKNOWLEDGED", "EXECUTED",
+            actor,
+            "alarm_ack",
+            params,
+            "ALARM_ACTIVE",
+            "ALARM_ACKNOWLEDGED",
+            "EXECUTED",
             f"Acknowledged by {actor}: {note or 'Routine clear'}",
         )
         return {
@@ -778,11 +784,13 @@ class ActionGuard:
                 self._active_recipe[key] = float(val) if isinstance(val, (int, float)) else val
 
         audit = self._append_audit(
-            actor, "recipe_adjust", recipe,
+            actor,
+            "recipe_adjust",
+            recipe,
             hashlib.sha256(json.dumps(pre_state, sort_keys=True).encode()).hexdigest()[:16],
-            hashlib.sha256(
-                json.dumps(self._active_recipe, sort_keys=True).encode()
-            ).hexdigest()[:16],
+            hashlib.sha256(json.dumps(self._active_recipe, sort_keys=True).encode()).hexdigest()[
+                :16
+            ],
             "EXECUTED",
         )
         return {
@@ -799,7 +807,9 @@ class ActionGuard:
         actor: str = "operator",
     ) -> dict[str, Any]:
         """Navigate 3D twin or dashboard viewport to focal station or anomaly."""
-        page_clean = page.strip().lower()
+        # a name for a page ("oven") is its page ("process"); an unknown one stays as asked, so
+        # the page_known rule refuses it under its own name
+        page_clean = navigation.resolve(page) or page.strip().lower()
         params = {"page": page_clean, "target": target}
         safe, reason = self.validate_preconditions("twin_navigate", params, actor)
         if not safe:
@@ -846,7 +856,7 @@ def get_guard() -> ActionGuard:
     deployment with SUPABASE_DB_URL, a SQLite file locally, memory where there is neither."""
     global _GUARD
     if _GUARD is None:
-        ledger, note = L.ledger_from_env(dict(os.environ))
+        ledger, note = action_ledger.ledger_from_env(dict(os.environ))
         logger.info("Action ledger: %s", note)
         _GUARD = ActionGuard(audit=ledger)
         _GUARD.ledger_note = note

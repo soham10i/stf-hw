@@ -28,7 +28,7 @@ export const DATA: Record<DataKey, string> = {
   security: "security/security.json", kb: "copilot/kb.json",
 };
 
-// ------------------------------------------------------------------ text search (BM25)
+// --- text search (BM25)
 const STOP = new Set("a an the of to in on at for and or is are was were be been it its this that what which who how why when where do does did can could should would will i we you my our your there their than then with from by as into about any much many".split(" "));
 export function tokens(s: string) {
   return s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9äöüß ]+/g, " ").split(/\s+/)
@@ -62,7 +62,7 @@ export class Bm25 {
   }
 }
 
-// ------------------------------------------------------------------ tools
+// --- tools
 const pct = (x: number, d = 0) => `${(x * 100).toFixed(d)} %`;
 const short = (s: string) => s.replace(/ \(.*\)$/, "");
 const PART_WORDS: [RegExp, string][] = [

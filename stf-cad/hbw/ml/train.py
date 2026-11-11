@@ -40,11 +40,11 @@ import math
 import os
 import time
 
+import month
 import numpy as np
 import torch
 import torch.nn.functional as F
 
-import month as M
 from ml import fleet
 from ml.model import CH, RUL_CAP, WINDOW, Net, n_params
 
@@ -57,8 +57,8 @@ SEED = 7
 DEV = "mps" if torch.backends.mps.is_available() else "cpu"
 COMPS = fleet.COMPS
 C = len(COMPS)
-R_FAIL = np.array([M.COMP[k]["r_fail"] for k in COMPS], dtype=np.float32)
-I_TEMP, I_VAC, I_OT = M.FEATURES.index("temp_c"), M.FEATURES.index("vacuum_loss"), M.FEATURES.index("order_time_ratio")
+R_FAIL = np.array([month.COMP[k]["r_fail"] for k in COMPS], dtype=np.float32)
+I_TEMP, I_VAC, I_OT = month.FEATURES.index("temp_c"), month.FEATURES.index("vacuum_loss"), month.FEATURES.index("order_time_ratio")
 INPUTS = ["h", "temp_c (normalised)", "vacuum_loss", "order_time_ratio (normalised)"] + [f"is_{k}" for k in COMPS]
 N_IN = len(INPUTS)
 NEAR_W = 10.0
@@ -339,7 +339,7 @@ def per_component(D, preds, runs):
 def export_weights(net, D):
     sd = {k: v.detach().cpu().numpy() for k, v in net.state_dict().items()}
     r = lambda a: np.round(np.asarray(a, dtype=np.float64), 6).tolist()
-    return {"features": M.FEATURES, "components": COMPS, "inputs": INPUTS, "window": WINDOW, "rul_cap": RUL_CAP,
+    return {"features": month.FEATURES, "components": COMPS, "inputs": INPUTS, "window": WINDOW, "rul_cap": RUL_CAP,
             "ch": CH, "r_fail": r(R_FAIL), "ctx_mu": r(D.ctx_mu), "ctx_sd": r(D.ctx_sd),
             "i_temp": I_TEMP, "i_vac": I_VAC, "i_ot": I_OT, "alarm_rul": ALARM_RUL, "alarm_run": ALARM_RUN,
             "conv": [{"w": r(sd[f"c{i}.conv.weight"]), "b": r(sd[f"c{i}.conv.bias"]), "dil": d}
@@ -389,7 +389,7 @@ def main():
     for nm, m_ in (("semi", teacher), ("sup", sup), ("oracle", orc)):
         torch.save(m_.state_dict(), os.path.join(ck, f"{nm}.pt"))
     net = teacher.cpu().eval()
-    # ---- deploy: ONNX for the RevPi, JSON for the browser, both checked
+    # --- deploy: ONNX for the RevPi, JSON for the browser, both checked
     os.makedirs(OUT, exist_ok=True)
     probe = torch.from_numpy(np.ascontiguousarray(D.V[test[0]][:, 500]))              # C x N_IN x W: one order
     onnx_path = os.path.join(OUT, "stf_pm_tcn.onnx")
@@ -402,7 +402,7 @@ def main():
         onnx_err = float(np.abs(o - net(probe)[0].numpy()).max())
     W = export_weights(net, D)
     # the dashboard's month (Upgrade 7, with maintenance): raw inputs, and PyTorch's answer for the parity check
-    mm = M.Month().run()
+    mm = month.Month().run()
     mx = np.array(mm.feat, dtype=np.float32)
     s = channels(mx, D.ctx_mu, D.ctx_sd)
     pad = np.concatenate([np.repeat(s[:, :1], WINDOW - 1, axis=1), s], axis=1)

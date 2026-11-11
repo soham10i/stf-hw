@@ -36,21 +36,19 @@ import json
 import os
 import time
 
-import month as M
+import month
 import numpy as np
 
-from pdm import conformal as K
-from pdm import cp, data
-from pdm import drift as D
-from pdm import model as Mo
+from pdm import conformal, cp, data, drift
+from pdm import model as pdm_model
 
 DAY_S = 16 * 3600.0                 # production seconds per day (06-22)
-I_OT = M.FEATURES.index("order_time_ratio")
+I_OT = month.FEATURES.index("order_time_ratio")
 
 
 def gaps(X):
     """Per order: the index of the first order after the next night gap (len(X) if none)."""
-    secs = np.cumsum(X[:, I_OT] * M.T0 + M.CHANGEOVER)
+    secs = np.cumsum(X[:, I_OT] * month.T0 + month.CHANGEOVER)
     day = (secs // DAY_S).astype(int)
     nxt = np.full(len(X), len(X))
     for t in range(len(X) - 2, -1, -1):
@@ -62,8 +60,8 @@ def lower_bounds(trk, i, k, q):
     """The calibrated lower bound on remaining life (orders) at every order of machine i, part k
     (per part x predicted life, pdm/conformal.py)."""
     tr = trk[(i, k)]
-    c = Mo.COMPS.index(k)
-    b = np.digitize(tr.p50, K.LIFE_BINS)
+    c = pdm_model.COMPS.index(k)
+    b = np.digitize(tr.p50, conformal.LIFE_BINS)
     q1 = np.array([x["q1"] for x in q["comp"][k]["bins"]])[b]
     return np.expm1(np.maximum(cp.log_life(tr.p10) - q1, 0.0))
 
@@ -123,9 +121,9 @@ def cost_alpha(k):
     """The risk-neutral shield level of part k: wait while P(fail before the gap) <= the cost of
     stopping now over the cost of failing (production hours; a scrapped cookie as one order's time),
     i.e. alpha_k = C_stop / C_fail, kept in [0.01, 0.5]."""
-    h, sc, _ = M.FAIL.get(k, M.FAIL_DEFAULT)
-    fail_h = h + sc * (M.T0 + M.CHANGEOVER) / 9 / 3600
-    return float(min(0.5, max(0.01, (M.PM_MIN.get(k, 30) / 60) / fail_h)))
+    h, sc, _ = month.FAIL.get(k, month.FAIL_DEFAULT)
+    fail_h = h + sc * (month.T0 + month.CHANGEOVER) / 9 / 3600
+    return float(min(0.5, max(0.01, (month.PM_MIN.get(k, 30) / 60) / fail_h)))
 
 
 def grade(fleet, trk, q, p_star, policies=POLICIES):
@@ -138,10 +136,10 @@ def grade(fleet, trk, q, p_star, policies=POLICIES):
         for i in sorted(fleet):
             X, F, Rw = fleet[i]
             g = gaps(X)
-            for k in Mo.COMPS:
+            for k in pdm_model.COMPS:
                 tr = trk[(i, k)]
                 lb = lower_bounds(trk, i, k, q[k] if k in q else q)
-                al = set(Mo.alarms(tr, p_star))
+                al = set(pdm_model.alarms(tr, p_star))
                 win = np.zeros(len(X), bool)
                 if al:
                     win[sorted(al)] = True
@@ -154,12 +152,12 @@ def grade(fleet, trk, q, p_star, policies=POLICIES):
                     life.append((end - s + 1) / (f - s + 1))
                     if how == "fail":
                         fails += 1
-                        h, sc, _ = M.FAIL.get(k, M.FAIL_DEFAULT)
+                        h, sc, _ = month.FAIL.get(k, month.FAIL_DEFAULT)
                         down_h += h
                         scrap += sc
                     elif how == "stop":
                         stops += 1
-                        down_h += M.PM_MIN.get(k, 30) / 60
+                        down_h += month.PM_MIN.get(k, 30) / 60
                     else:
                         gaps_n += 1
         per = 1000 / max(1, orders)
@@ -174,21 +172,21 @@ def grade(fleet, trk, q, p_star, policies=POLICIES):
 
 def main():
     t0 = time.time()
-    fleets = D.load()
-    _, pop, _ = K.population()
-    cal_fleet = data.load(K.CAL)
-    trk_cal = K.tracks(cal_fleet, pop, K.CAL)
-    cal = K.points(cal_fleet, K.CAL, trk_cal)
-    q = K.fit(cal)
-    q_sweep = {a: K.fit(cal, a) for a in SWEEP}
-    alphas = {k: cost_alpha(k) for k in Mo.COMPS}
-    q_cost = {k: K.fit(cal, a) for k, a in alphas.items()}
-    with open(os.path.join(K.OUT, "conformal.json")) as fh:
+    fleets = drift.load()
+    _, pop, _ = conformal.population()
+    cal_fleet = data.load(conformal.CAL)
+    trk_cal = conformal.tracks(cal_fleet, pop, conformal.CAL)
+    cal = conformal.points(cal_fleet, conformal.CAL, trk_cal)
+    q = conformal.fit(cal)
+    q_sweep = {a: conformal.fit(cal, a) for a in SWEEP}
+    alphas = {k: cost_alpha(k) for k in pdm_model.COMPS}
+    q_cost = {k: conformal.fit(cal, a) for k, a in alphas.items()}
+    with open(os.path.join(conformal.OUT, "conformal.json")) as fh:
         p_star = json.load(fh)["risk_control"]["p_star"]
-    doc = {"alpha": K.ALPHA, "p_star": p_star, "policies": POLICIES, "shifts": {}, "say": D.SAY,
-           "pm_min": M.PM_MIN, "fail": {k: v[:2] for k, v in M.FAIL.items()}, "cost_alpha": alphas, "sweep": {}}
+    doc = {"alpha": conformal.ALPHA, "p_star": p_star, "policies": POLICIES, "shifts": {}, "say": drift.SAY,
+           "pm_min": month.PM_MIN, "fail": {k: v[:2] for k, v in month.FAIL.items()}, "cost_alpha": alphas, "sweep": {}}
     for name, fl in fleets.items():
-        trk = K.tracks(fl, pop, data.TEST, tag=None if name == "nominal" else f"drift:{name}")
+        trk = conformal.tracks(fl, pop, data.TEST, tag=None if name == "nominal" else f"drift:{name}")
         doc["shifts"][name] = grade(fl, trk, q, p_star)
         doc["shifts"][name]["window + cost-aware shield"] = grade(fl, trk, q_cost, p_star, ["window + shield"])["window + shield"]
         doc["sweep"][name] = {str(a): grade(fl, trk, qa, p_star, ["window + shield"])["window + shield"] for a, qa in q_sweep.items()}
@@ -203,7 +201,7 @@ def main():
         print(f"   nominal shield alpha {a}: fail/1000 {r['failures_per_1000']}  down h/1000 {r['down_h_per_1000']}  "
               f"life used {r['life_used_median']}  waits failed {r['waits_failed']}/{r['waits']}")
     doc["seconds"] = round(time.time() - t0, 1)
-    with open(os.path.join(K.OUT, "decide.json"), "w") as fh:
+    with open(os.path.join(conformal.OUT, "decide.json"), "w") as fh:
         json.dump(doc, fh, separators=(",", ":"))
     print(f"  {doc['seconds']} s")
     return doc

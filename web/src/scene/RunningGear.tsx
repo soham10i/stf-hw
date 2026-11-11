@@ -17,9 +17,9 @@ type Kind = "rod" | "screw" | "profile";
 type Guide = { part: CadPart; axis: Axis; lo: number; hi: number; c: [number, number]; half: [number, number]; kind: Kind };
 type Ride = { g: Guide; lo: number; hi: number };
 
-const AX: Axis[] = [0, 1, 2];
+const AXES: Axis[] = [0, 1, 2];
 const NAME = ["x", "y", "z"] as const;
-const others = (a: Axis) => AX.filter((i) => i !== a) as [Axis, Axis];
+const others = (a: Axis) => AXES.filter((i) => i !== a) as [Axis, Axis];
 
 /** A part that something can run along: long, straight and round, or a long profile. */
 function guideOf(p: CadPart): Guide | null {
@@ -32,7 +32,7 @@ function guideOf(p: CadPart): Guide | null {
   }
   if (p.k === "box" && p.mech.startsWith("profile")) {
     const s = boxSize(p);
-    const axis = AX.reduce((a, b) => (s[b] > s[a] ? b : a), 0 as Axis), [i, j] = others(axis);
+    const axis = AXES.reduce((a, b) => (s[b] > s[a] ? b : a), 0 as Axis), [i, j] = others(axis);
     if (s[axis] < 150 || s[axis] < 6 * Math.max(s[i], s[j])) return null;
     return { part: p, axis, lo: p.p[axis], hi: p.p[axis] + s[axis],
       c: [p.p[i] + s[i] / 2, p.p[j] + s[j] / 2], half: [s[i] / 2, s[j] / 2], kind: "profile" };

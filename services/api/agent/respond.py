@@ -21,8 +21,14 @@ from __future__ import annotations
 
 import re
 
+from services.api.agent.orchestrate import is_conversational
+
 STYLES = {
     "greeting": "Answer with one or two friendly sentences; say what you can help with.",
+    "voice": (
+        "Answer for voice: speak naturally and conversationally in 1 to 3 short sentences "
+        "(under 60-80 words). No markdown tables, no bullet points, no display equations."
+    ),
     "quick": "Lead with the key figure in **bold** and its unit, then one sentence on what it "
     "means. At most 40 words.",
     "compare": "Answer with a markdown table: one row per item compared, one column per measure, "
@@ -38,9 +44,17 @@ STYLES = {
     "symbol once (inline $...$). Use the exact equations and numbers in CONTEXT, cite each step's "
     "source, and end with a short worked example from CONTEXT's numbers. Code, if any, in a "
     "fenced block with its language. Up to 450 words.",
-    "research": "Answer in short sections with ### headings: what the sources say (every claim "
-    "linked to its page), where they agree or differ, and what it means for this twin. Up to 350 "
-    "words.",
+    "research": (
+        "Provide an extensive, publication-grade Deep Research Report (target 2,500–5,000+ words) "
+        "formatted in structured Markdown with comprehensive comparative tables and mathematical derivations. "
+        "Structure your report as follows:\n"
+        "1. **Executive answer**: 2-3 high-density bullet points summarizing the core findings and numerical takeaways.\n"
+        "2. **1. What the sources say**: A detailed Markdown table (| Source | Engine(s) evaluated | Test set | Key accuracy metrics | Real-time performance |) followed by evidence analysis.\n"
+        "3. **2. Accuracy metrics – definitions & relevance**: Rigorous mathematical formulations with KaTeX/LaTeX block equations ($$...$$ on own line) and inline math ($...$) in a detailed table (| Metric | Formula (LaTeX) | What it measures | Why it matters for STF |), followed by physical derivations for RMSE, DTW, penetration depth $\\delta$, contact impulse/force, friction angle error $\\Delta\\theta$, energy loss, and momentum transfer efficiency.\n"
+        "4. **3. Real-time constraints of the STF twin**: Timing breakdown and numerical bounds table for PLC/bus/simulation loop latency (e.g. 10 ms PLC cycle, 5 ms sub-task, bus round-trip latency).\n"
+        "5. **4. Comparative analysis**: Cross-engine benchmark table comparing Bullet, ODE, Vortex, PhysX / Isaac Sim, and MuJoCo on contact accuracy, penetration depth, solve speed (Hz on CPU/GPU), and typical digital twin use cases, followed by deep solver mechanics (PGS, LCP, penalty springs, Baumgarte stabilization).\n"
+        "6. **5. Implementation & verification recommendations**: Concrete architectural recommendations for predictive accuracy vs. deterministic cycle time."
+    ),
     "answer": "Answer plainly and briefly.",
 }
 DERIVE = re.compile(
@@ -96,7 +110,7 @@ def classify(question: str, tools: list[str] | None = None) -> str:
         'list', 'explain', 'quick', or 'answer').
     """
     q = question.strip()
-    if GREETING.match(q):
+    if is_conversational(q):
         return "greeting"
     if DERIVE.search(q):
         return "derive"

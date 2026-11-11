@@ -26,12 +26,12 @@ from collections import defaultdict
 HERE = os.path.dirname(os.path.abspath(__file__))
 LINE2 = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, LINE2)
-import line_model as M                                     # noqa: E402
-import motion as Mo                                        # noqa: E402
+import line_model  # noqa: E402
+import motion  # noqa: E402
 
-L = M.L
+L = line_model.L
 TICK = 0.01                                                # s, the PLC task
-FRAME_DT = Mo.DT                                           # s, one frame = one timeline frame (0.1 s)
+FRAME_DT = motion.DT                                       # s, one frame = one timeline frame (0.1 s)
 MASTER_RAMP = 0.5                                          # s, master 0 <-> V (MC_MoveVelocity / MC_Stop) [assumed]
 POOL = 27                                                  # band-row names in the scene
 ROW0 = 75                                                  # the first pool slot (band_r075): rows 75 .. 101
@@ -51,7 +51,7 @@ FROZEN = ("cookie_hex", "delta_reach_radius", "stations", "band_v", "takt", "tra
 def _freeze():
     import functools
     for name in FROZEN:
-        for mod in (M, Mo):
+        for mod in (line_model, motion):
             f = getattr(mod, name, None)
             if callable(f) and not hasattr(f, "cache_info"):
                 setattr(mod, name, functools.lru_cache(maxsize=None)(f))
@@ -97,8 +97,8 @@ class Plant:
         """flow: a twin.plant.flow.Flow (DT-3b) - the product flow decides what exists and fires kick / seal /
         exchange; oven_mode 'pi' (default with a flow): FB_Oven's closed loop (oven_ctrl.ZoneLoop) on the band
         content the flow really put there; 'reference': the steady duty of timeline.json."""
-        self.base = {p.name: p for p in M.build()}
-        f0, _, _ = Mo.frame(0.0, self.base)
+        self.base = {p.name: p for p in line_model.build()}
+        f0, _, _ = motion.frame(0.0, self.base)
         self.moving = set(f0)
         self.ref = dict(self.base)
         self.spawn = []
@@ -106,22 +106,22 @@ class Plant:
             if n not in self.base:
                 self.ref[n] = p
                 self.spawn.append(n)
-        self.reshape = {"kick_rod"} | {f"sealer_{f}_rod" for f in Mo.FLAV} | {f"stacker_rod_{f}" for f in Mo.FLAV} | \
+        self.reshape = {"kick_rod"} | {f"sealer_{f}_rod" for f in motion.FLAV} | {f"stacker_rod_{f}" for f in motion.FLAV} | \
             {n for n in FULL_NAMES if not n.endswith("_top")}
         # pool names the reference window never shows: their base pose (the viewer creates them from the hello)
         self.extra = []
         for n in FULL_NAMES:
             if n not in self.ref:
-                q, _ = Mo.band_pose(n, 0.0)
+                q, _ = motion.band_pose(n, 0.0)
                 self.ref[n] = q
                 self.extra.append(dict(name=n, kind="cyl", p=list(q.p), s=list(q.s), colour=q.colour,
                                        reshaped=not n.endswith("_top")))
-        self.period = L["BAND"]["rows"] * M.takt()
-        self.t_enter = M.transfer_times()[0]
+        self.period = L["BAND"]["rows"] * line_model.takt()
+        self.t_enter = line_model.transfer_times()[0]
         self.t = 0.0
         self.ticks = 0
         self.master = MasterAxis()
-        self.ev = dict(kicks=[], seals={f: [] for f in Mo.FLAV}, lifts={f: [] for f in Mo.FLAV}, exchange=None)
+        self.ev = dict(kicks=[], seals={f: [] for f in motion.FLAV}, lifts={f: [] for f in motion.FLAV}, exchange=None)
         if events is not None:                             # e.g. motion.reference_events()
             self.ev = json.loads(json.dumps(events))
         self.log = []                                      # (t, command, args) - what the controller asked for
@@ -134,7 +134,7 @@ class Plant:
         if flow is not None:
             flow.release(0.0)
 
-    # ------------------------------------------------------------ commands (what the PLC / operator can ask)
+    # --- commands (what the PLC / operator can ask)
     def command(self, name, **kw):
         """kick | seal(lane) | exchange | master(on) | speed(factor). Returns (ok, message)."""
         t = round(self.t, 6)
@@ -142,7 +142,7 @@ class Plant:
             self.ev["kicks"].append(t)
         elif name == "seal":
             lane = kw.get("lane")
-            if lane not in Mo.FLAV:
+            if lane not in motion.FLAV:
                 return False, f"unknown lane {lane!r}"
             self.ev["seals"][lane].append(t)
             self.ev["lifts"][lane].append(t + 2.0)         # the stacker lifts the sealed pack 2 s later (FB_Lane)
@@ -167,21 +167,21 @@ class Plant:
     def exchange_active(self):
         if self.ev["exchange"] is None:
             return False
-        ph = Mo.exchange(self.ev["exchange"])
+        ph = motion.exchange(self.ev["exchange"])
         return ph[0][1] <= self.t < ph[-1][1] + ph[-1][2]
 
-    # ------------------------------------------------------------ oven
+    # --- oven
     def _oven_init(self):
-        import oven_ctrl as OC
-        self.pl = OC.Plant()
-        self.tc_tau = OC.CTRL["TC_TAU"]
-        self.els = M.oven_power()[1]
+        import oven_ctrl
+        self.pl = oven_ctrl.Plant()
+        self.tc_tau = oven_ctrl.CTRL["TC_TAU"]
+        self.els = line_model.oven_power()[1]
         order = defaultdict(int)
         self.ix = []
         for e in self.els:
             self.ix.append(order[e["zone"]])
             order[e["zone"]] += 1
-        self.duty = Mo.duty()
+        self.duty = motion.duty()
         self.Tz, self.yz = list(self.pl.Ts), list(self.pl.Ts)
         for k in range(int(600 / FRAME_DT)):               # run-in, as motion.py: the PWM ripple is periodic at t = 0
             self._oven_block(-600.0 + k * FRAME_DT)
@@ -194,19 +194,19 @@ class Plant:
         for _ in range(int(FRAME_DT / sub)):
             for k in range(self.pl.n):
                 Pk = sum(e["P"] for e, i in zip(self.els, self.ix)
-                         if e["zone"] == f"Z{k + 1}" and Mo.element_on(e, i, t, self.duty))
+                         if e["zone"] == f"Z{k + 1}" and motion.element_on(e, i, t, self.duty))
                 self.Tz[k] += (Pk - self.pl.load(k, self.Tz[k], 1.0)) * sub / self.pl.C[k]
                 self.yz[k] += (self.Tz[k] - self.yz[k]) * sub / self.tc_tau
 
-    # ------------------------------------------------------------ DT-3b: the oven under FB_Oven's closed loop
+    # --- DT-3b: the oven under FB_Oven's closed loop
     def _pi_init(self):
-        import oven_ctrl as OC
-        self.OC = OC
-        self.gains = OC.tune(self.pl)
-        self.zl = OC.ZoneLoop(self.pl, self.gains)
-        st = M.stations()
-        self.z0, self.zlen = st["zones"], M.zone_len()
-        self.dep_x, self.vb = st["dep"], M.band_v()
+        import oven_ctrl
+        self.OC = oven_ctrl
+        self.gains = oven_ctrl.tune(self.pl)
+        self.zl = oven_ctrl.ZoneLoop(self.pl, self.gains)
+        st = line_model.stations()
+        self.z0, self.zlen = st["zones"], line_model.zone_len()
+        self.dep_x, self.vb = st["dep"], line_model.band_v()
         self.rows_full = self.zlen / (self.vb * self.period)   # rows a full zone holds
         full = [1.0] * self.pl.n
         for _ in range(int(600 / self.OC.CTRL["DT"])):      # run-in on a full band: the PLC has been running
@@ -226,7 +226,7 @@ class Plant:
                     f[k] += len(present) / cols / self.rows_full
         return [min(v, 1.0) for v in f]
 
-    # ------------------------------------------------------------ time
+    # --- time
     def step(self, n=1):
         for _ in range(n):
             t0 = round(self.t, 6)
@@ -239,7 +239,7 @@ class Plant:
                         self.command("kick")
                     elif kind == "pack":
                         self.command("seal", lane=d["lane"])
-                    elif kind == "exchange" and d["lane"] == Mo.EXCH_LANE:
+                    elif kind == "exchange" and d["lane"] == motion.EXCH_LANE:
                         self.command("exchange")
                     elif kind == "load":
                         self._bake_log(d["id"])
@@ -270,7 +270,7 @@ class Plant:
         e["zone_dev"] = dev
         e["flagged"] = any(d is not None and d > L["BAKE_MARGIN"] for d in dev)
 
-    # ------------------------------------------------------------ band-row pool
+    # --- band-row pool
     def _rows(self, tau):
         def rows(name):
             r_slot = int(name[len("band_r"):].split("_")[0]) - 100
@@ -279,7 +279,7 @@ class Plant:
             r = r_slot + POOL * m
             shift = (r - r_slot) * self.period                  # row r at tau looks like row r_slot at tau - shift
             # with a flow the cookie leaves the band when the flow says (it may wait for a grip retry): no schedule
-            return Mo.band_pose(name, tau - shift, math.inf if self.flow is not None else None)
+            return motion.band_pose(name, tau - shift, math.inf if self.flow is not None else None)
         return rows
 
     def row_of(self, name, tau):
@@ -299,7 +299,7 @@ class Plant:
                 if n in track:
                     track[n][7] = 1 if vis else 0
             if vis:
-                paint[f"cookie_{k:02d}_top"] = L["BAKED"][Mo.FLAV.index(flav)]
+                paint[f"cookie_{k:02d}_top"] = L["BAKED"][motion.FLAV.index(flav)]
         for n, r_ in list(track.items()):
             if not n.startswith("band_r"):
                 continue
@@ -325,12 +325,12 @@ class Plant:
                        flagged=sum(1 for e in fl.log.values() if e.get("flagged")))
         return paint, summary
 
-    # ------------------------------------------------------------ frame
+    # --- frame
     def frame(self):
         """The current frame: {track: {name: row}, glow: {name: 0/1}, power: [W, A1, A2, A3], temps: [..],
         t, tau, master: {...}, bad: [unreachable poses]} - rows in timeline.json's format."""
         t, tau = self.t, self.master.tau
-        now, vis, bad = Mo.frame(t, self.base, self.ev, self._rows(tau), tau, FULL_NAMES)
+        now, vis, bad = motion.frame(t, self.base, self.ev, self._rows(tau), tau, FULL_NAMES)
         track = {}
         for n, p in now.items():
             if n in self.reshape:
@@ -340,13 +340,13 @@ class Plant:
                     e["vis"] = 1 if vis.get(n, True) else 0
                 track[n] = e
             else:
-                q, tr = Mo.rigid(self.ref[n], p)
+                q, tr = motion.rigid(self.ref[n], p)
                 track[n] = [round(v, 3) for v in tr] + [round(v, 6) for v in q] + [1 if vis.get(n, True) else 0]
         duty = self.duties if self.oven_mode == "pi" else self.duty
         glow = {}
         for e, i in zip(self.els, self.ix):
-            glow[f"oven_heater_{e['tag']}"] = 1 if Mo.element_on(e, i, t, duty) else 0
-        W, amps = Mo.power_at(t, duty)
+            glow[f"oven_heater_{e['tag']}"] = 1 if motion.element_on(e, i, t, duty) else 0
+        W, amps = motion.power_at(t, duty)
         paint, flow = {}, None
         if self.flow is not None:
             paint, flow = self._flow_view(track, tau)

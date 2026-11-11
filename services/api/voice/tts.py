@@ -34,17 +34,18 @@ import urllib.request
 import uuid
 from pathlib import Path
 
-from fastapi import HTTPException, Request
+from fastapi import Request
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
-from . import fluent_math
-from . import mathspeak
-from services.api.providers import gemini_pool as GP
-from services.api.security import security as sec
 from services.api.agent.chat import DailyCap, dotenv
-from services.api.voice.fluent_math import MATH_RX
+from services.api.core.errors import AppError, Reason, ServiceError, error_body
 from services.api.core.logging_config import get_logger
+from services.api.providers import gemini_pool
+from services.api.security import security
+from services.api.voice.fluent_math import MATH_RX
+
+from . import fluent_math, mathspeak
 
 logger = get_logger(__name__)
 
@@ -200,9 +201,15 @@ def _post(url: str, key: str, body: dict) -> dict:
         return json.loads(r.read())
 
 
-# ------------------------------------------------------------------ the providers
-class Unavailable(Exception):
+# --- the providers
+def _voice_failed(message: str) -> dict:
+    return error_body(Reason.VOICE_UNAVAILABLE.code, message, Reason.VOICE_UNAVAILABLE)
+
+
+class Unavailable(ServiceError):
     """A provider cannot speak now (no key, every model at its limit, not installed)."""
+
+    code, reason = Reason.VOICE_UNAVAILABLE.code, Reason.VOICE_UNAVAILABLE
 
 
 class GeminiVoice:
@@ -211,7 +218,7 @@ class GeminiVoice:
     name = "gemini"
 
     def __init__(self, key: str | None, models: list[str], post) -> None:
-        self.key, self.pool, self.post = key, GP.Pool(models), post
+        self.key, self.pool, self.post = key, gemini_pool.Pool(models), post
 
     def ready(self) -> bool:
         """Whether a Gemini key is configured (the Gemini TTS lane)."""
@@ -235,7 +242,7 @@ class GeminiVoice:
             data, model = self.pool.call(
                 lambda url, b: self.post(url, self.key, b), self._body(text, voice), accept=audio_of
             )
-        except GP.AllBusy as e:
+        except gemini_pool.AllBusy as e:
             raise Unavailable(f"every Gemini voice is at its limit: {e}") from None
         return audio_of(data), "audio/wav", model
 
@@ -246,7 +253,7 @@ class GeminiVoice:
             raise Unavailable("no Gemini key")
         body = self._body(text, voice)
         for model in self.pool.available():
-            url = GP.API.format(model=model).replace(
+            url = gemini_pool.API.format(model=model).replace(
                 ":generateContent", ":streamGenerateContent?alt=sse"
             )
             req = urllib.request.Request(
@@ -267,11 +274,11 @@ class GeminiVoice:
             except urllib.error.HTTPError as e:
                 if e.code not in (429, 500, 503, 404):
                     raise
-                self.pool.out(model, GP.cooldown_of(e), f"HTTP {e.code}")
+                self.pool.out(model, gemini_pool.cooldown_of(e), f"HTTP {e.code}")
             except (urllib.error.URLError, TimeoutError):
                 self.pool.out(model, 300.0, "no answer in time")
                 raise
-        raise GP.AllBusy("every Gemini voice is at its limit")
+        raise gemini_pool.AllBusy("every Gemini voice is at its limit")
 
 
 def _sse_audio(resp):
@@ -488,7 +495,7 @@ class Tts:
 
     def __init__(
         self,
-        settings: sec.Settings,
+        settings: security.Settings,
         key: str | None = None,
         models: list[str] | None = None,
         daily_limit: int | None = None,
@@ -498,7 +505,7 @@ class Tts:
         self.s = settings
         self.key = key if key is not None else (env.get("GEMINI_API_KEY") or None)
         self.post = _post
-        tts_models = models or GP.models_from_env("GEMINI_TTS_MODELS", GP.TTS, env)
+        tts_models = models or gemini_pool.models_from_env("GEMINI_TTS_MODELS", gemini_pool.TTS, env)
         self.gemini = GeminiVoice(self.key, tts_models, lambda url, k, b: self.post(url, k, b))
         self.groq = GroqVoice(env)
         self.pool = self.gemini.pool
@@ -514,7 +521,7 @@ class Tts:
         self.providers = [all_[p] for p in order if p in all_]
         self.cap = DailyCap(daily_limit or int(env.get("GEMINI_TTS_DAILY_LIMIT", "100")))
         # per client: 3 at once, then one per 10 s
-        self.limiter = sec.RateLimiter(rate=0.1, burst=3)
+        self.limiter = security.RateLimiter(rate=0.1, burst=3)
 
     def status(self) -> dict:
         """The /chat/tts/status payload: which providers can speak, the voice list."""
@@ -530,12 +537,13 @@ class Tts:
         if (
             origin
             and origin not in self.s.allowed_origins
-            and sec._host(origin.split("://", 1)[-1]) != sec._host(request.headers.get("host"))
+            and security._host(origin.split("://", 1)[-1])
+            != security._host(request.headers.get("host"))
         ):
-            raise HTTPException(status_code=403, detail="origin not allowed")
+            raise AppError(Reason.ORIGIN_DENIED, "origin not allowed")
 
     def _client_of(self, request: Request) -> str:
-        client = sec.client_ip(request)
+        client = security.client_ip(request)
         return client
 
     async def speak(self, req: TtsRequest, request: Request) -> Response:
@@ -544,18 +552,16 @@ class Tts:
         client = self._client_of(request)
         ready = [p for p in self.providers if p.ready()]
         if not ready:
-            raise HTTPException(
-                status_code=503, detail="no voice on the server: use the browser's voice"
+            raise AppError(
+                Reason.VOICE_UNAVAILABLE, "no voice on the server: use the browser's voice"
             )
         if not self.limiter.allow(client):
-            raise HTTPException(
-                status_code=429, detail="too many spoken answers: wait a few seconds"
-            )
+            raise AppError(Reason.TOO_MANY_REQUESTS, "too many spoken answers: wait a few seconds")
         text = speakable(await fluent_math.verbalize_fluent(req.text))
         if not text:
-            raise HTTPException(status_code=400, detail="nothing to say")
+            raise AppError(Reason.NOTHING_TO_SAY, "nothing to say")
         if not self.cap.take():
-            raise HTTPException(status_code=429, detail="today's spoken-answer budget is used up")
+            raise AppError(Reason.DAILY_BUDGET_SPENT, "today's spoken-answer budget is used up")
         why = []
         for p in ready:
             try:
@@ -596,9 +602,9 @@ class Tts:
                 logger.warning("TTS provider '%s' failed: %s", p.name, e)
                 why.append(f"{p.name} did not answer")
         logger.error("All ready TTS providers failed to synthesize speech: %s", "; ".join(why))
-        raise HTTPException(status_code=503, detail="no voice could speak: " + "; ".join(why))
+        raise AppError(Reason.VOICE_UNAVAILABLE, "no voice could speak: " + "; ".join(why))
 
-    # -------------------------------------------------------------- the streaming reader
+    # --- the streaming reader
     async def stream(self, req: TtsRequest, request: Request) -> StreamingResponse:
         """POST /chat/tts/stream: the same answer read aloud as it is synthesised - SSE of
         `meta` (pcm rate / file mime), `chunk` (base64 audio) and `end`. Chunks are raw PCM
@@ -607,17 +613,15 @@ class Tts:
         self._check_origin(request)
         client = self._client_of(request)
         if not self.limiter.allow(client):
-            raise HTTPException(
-                status_code=429, detail="too many spoken answers: wait a few seconds"
-            )
+            raise AppError(Reason.TOO_MANY_REQUESTS, "too many spoken answers: wait a few seconds")
         text = speakable(await fluent_math.verbalize_fluent(req.text))
         if not text:
-            raise HTTPException(status_code=400, detail="nothing to say")
+            raise AppError(Reason.NOTHING_TO_SAY, "nothing to say")
         if not self.cap.take():
-            raise HTTPException(status_code=429, detail="today's spoken-answer budget is used up")
+            raise AppError(Reason.DAILY_BUDGET_SPENT, "today's spoken-answer budget is used up")
         if not any(p.ready() for p in self.providers):
-            raise HTTPException(
-                status_code=503, detail="no voice on the server: use the browser's voice"
+            raise AppError(
+                Reason.VOICE_UNAVAILABLE, "no voice on the server: use the browser's voice"
             )
         voice = req.voice if req.voice in VOICES else "Kore"
         return StreamingResponse(
@@ -657,7 +661,7 @@ class Tts:
                     _cache_put(key, meta, bytes(collected))
                     return meta, bytes(collected)
                 why.append(f"{p.name} produced no audio")
-            except GP.AllBusy as e:
+            except gemini_pool.AllBusy as e:
                 why.append(f"every Gemini voice is at its limit: {e}")
             except Unavailable as e:
                 why.append(str(e))
@@ -703,14 +707,12 @@ class Tts:
         if len(sentences) <= 1:
             one = await asyncio.to_thread(self._synth_one, text, voice)
             if one is None:
-                yield self._sse("error", {"detail": "no voice could speak"})
+                yield self._sse("error", _voice_failed("no voice could speak"))
                 return
             meta, audio = one
             yield self._sse("meta", meta)
             for i in range(0, len(audio), 32768):
-                yield self._sse(
-                        "chunk", {"b64": base64.b64encode(audio[i : i + 32768]).decode()}
-                    )
+                yield self._sse("chunk", {"b64": base64.b64encode(audio[i : i + 32768]).decode()})
             yield self._sse("end", {})
             return
 
@@ -719,8 +721,10 @@ class Tts:
         async def one(i: int):
             """Synthesize sentence i with its neighbours as prosody context."""
             s = sentences[i]
-            ctx = (sentences[i - 1] if i else None,
-                   sentences[i + 1] if i + 1 < len(sentences) else None)
+            ctx = (
+                sentences[i - 1] if i else None,
+                sentences[i + 1] if i + 1 < len(sentences) else None,
+            )
             async with sem:
                 try:
                     return await asyncio.to_thread(self._synth_one, s, voice, ctx)
@@ -750,13 +754,13 @@ class Tts:
             if spoken:
                 yield self._sse("end", {})
             else:
-                yield self._sse("error", {"detail": "no voice could speak the answer"})
+                yield self._sse("error", _voice_failed("no voice could speak the answer"))
         finally:
             for t in tasks:
                 t.cancel()  # the client went away: stop whatever is still synthesizing
 
 
-# ------------------------------------------------------------------ the spoken cache
+# --- the spoken cache
 # Whole answers that were already synthesised, keyed by voice+text hash: a repeated phrase costs
 # nothing and starts instantly. PCM plus a small meta file, in the system temp dir, pruned to
 # the newest CACHE_MAX entries.
@@ -787,7 +791,7 @@ def _cache_put(key: str, meta: dict, pcm: bytes) -> None:
         pass
 
 
-# ------------------------------------------------------------------ speech to text
+# --- speech to text
 STT_MODELS = [
     "gemini-3.5-flash-lite",
     "gemini-3.1-flash-lite",
@@ -855,7 +859,7 @@ class Stt:
     elevenlabs,groq,gemini) - ElevenLabs Scribe, Groq Whisper, then the Gemini speech models.
     A provider without a key, at its limit or failing is passed over."""
 
-    def __init__(self, settings: sec.Settings, key: str | None = None) -> None:
+    def __init__(self, settings: security.Settings, key: str | None = None) -> None:
         env = {**dotenv(), **os.environ}
         self.s = settings
         self.eleven = ElevenLabsStt(env)
@@ -865,8 +869,10 @@ class Stt:
         self.key = key if key is not None else (env.get("GEMINI_API_KEY") or None)
         self.groq_key = env.get("GROQ_API_KEY") or env.get("GROK_API_KEY") or None
         self.groq_model = env.get("GROQ_STT_MODEL", "whisper-large-v3-turbo")
-        self.pool = GP.Pool(GP.models_from_env("GEMINI_STT_MODELS", STT_MODELS, env))
-        self.limiter = sec.RateLimiter(rate=0.2, burst=4)
+        self.pool = gemini_pool.Pool(
+            gemini_pool.models_from_env("GEMINI_STT_MODELS", STT_MODELS, env)
+        )
+        self.limiter = security.RateLimiter(rate=0.2, burst=4)
         self.post = _post
 
     def status(self) -> dict:
@@ -927,23 +933,24 @@ class Stt:
         if (
             origin
             and origin not in self.s.allowed_origins
-            and sec._host(origin.split("://", 1)[-1]) != sec._host(request.headers.get("host"))
+            and security._host(origin.split("://", 1)[-1])
+            != security._host(request.headers.get("host"))
         ):
-            raise HTTPException(status_code=403, detail="origin not allowed")
+            raise AppError(Reason.ORIGIN_DENIED, "origin not allowed")
         if not self.status()["enabled"]:
-            raise HTTPException(
-                status_code=503,
-                detail="no transcription on the server: use the browser's recognition",
+            raise AppError(
+                Reason.TRANSCRIBER_UNAVAILABLE,
+                "no transcription on the server: use the browser's recognition",
             )
-        client = sec.client_ip(request)
+        client = security.client_ip(request)
         if not self.limiter.allow(client):
-            raise HTTPException(status_code=429, detail="too many recordings: wait a few seconds")
+            raise AppError(Reason.TOO_MANY_REQUESTS, "too many recordings: wait a few seconds")
         mime = (request.headers.get("content-type") or "").split(";")[0].strip()
         if mime not in STT_TYPES:
-            raise HTTPException(status_code=415, detail=f"send one of {', '.join(STT_TYPES)}")
-        audio = await sec.read_body(request, STT_MAX_BYTES)
+            raise AppError(Reason.AUDIO_TYPE_UNSUPPORTED, f"send one of {', '.join(STT_TYPES)}")
+        audio = await security.read_body(request, STT_MAX_BYTES)
         if not audio:
-            raise HTTPException(status_code=413, detail="a recording of at most 2 MB")
+            raise AppError(Reason.BODY_TOO_LARGE, "a recording of at most 2 MB")
 
         # ElevenLabs Scribe, then Groq Whisper, then the Gemini pool (STT_PROVIDERS)
         why: list[str] = []
@@ -980,8 +987,9 @@ class Stt:
                 break  # the Gemini pool below
         if not self.key or "gemini" not in self.order:
             logger.error("STT transcription failed on all primary providers: %s", "; ".join(why))
-            raise HTTPException(
-                status_code=503, detail="transcription failed: " + ("; ".join(why) or "no provider")
+            raise AppError(
+                Reason.TRANSCRIBER_UNAVAILABLE,
+                "transcription failed: " + ("; ".join(why) or "no provider"),
             )
 
         body = {
@@ -1024,16 +1032,16 @@ class Stt:
             transcript = text_of(data)
             logger.info("Transcribed audio via Gemini (%s): %r", model, transcript[:60])
             return {"text": transcript[:500], "model": model}
-        except GP.AllBusy as e:
+        except gemini_pool.AllBusy as e:
             logger.warning("All Gemini transcription models busy: %s", e)
-            raise HTTPException(
-                status_code=503, detail=f"every transcription model is at its limit: {e}"
+            raise AppError(
+                Reason.TRANSCRIBER_UNAVAILABLE, f"every transcription model is at its limit: {e}"
             ) from None
         except urllib.error.HTTPError as e:
             logger.error("Gemini transcription HTTP error %d", e.code)
-            raise HTTPException(
-                status_code=502, detail=f"transcription answered HTTP {e.code}"
+            raise AppError(
+                Reason.TRANSCRIBER_FAILED, f"transcription answered HTTP {e.code}"
             ) from None
         except (urllib.error.URLError, TimeoutError) as e:
             logger.error("Gemini transcription connection error: %s", e)
-            raise HTTPException(status_code=504, detail="transcription did not answer") from None
+            raise AppError(Reason.TRANSCRIBER_TIMEOUT, "transcription did not answer") from None

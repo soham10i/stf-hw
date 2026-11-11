@@ -50,10 +50,9 @@ from multiprocessing import Pool
 
 import numpy as np
 
-from pdm import conformal as K
-from pdm import cp, data
-from pdm import model as Mo
-from pdm import run as R
+from pdm import conformal, cp, data
+from pdm import model as pdm_model
+from pdm import run as pdm_run
 
 SHIFTS = {
     "hot":   {"temp": 6.0},
@@ -72,7 +71,7 @@ GAMMA = 0.02          # ACI step
 ETA = 0.2             # online p* step
 
 
-# ---------------------------------------------------------------- the shifted fleets
+# --- the shifted fleets
 
 def _one(args):
     name, i = args
@@ -105,14 +104,14 @@ def with_times(p):
     return p
 
 
-# ---------------------------------------------------------------- 2 detection from the inputs
+# --- 2 detection from the inputs
 
 def innovation_blocks(trk, ids):
     """Per machine: per block, the median over its orders of the median squared innovation
     across the parts."""
     out = {}
     for i in ids:
-        E = np.stack([trk[(i, k)].innov for k in Mo.COMPS], 1)
+        E = np.stack([trk[(i, k)].innov for k in pdm_model.COMPS], 1)
         e2 = np.nanmedian(E ** 2, axis=1)[BURN:]
         nb = len(e2) // BLOCK
         out[i] = np.median(e2[: nb * BLOCK].reshape(nb, BLOCK), axis=1)
@@ -131,11 +130,11 @@ def detect_inputs(ref_blocks, blocks, rng):
             "median_delay_orders": float(np.median(hit)) if hit else None, "first": first}
 
 
-# ---------------------------------------------------------------- 3 detection from the outcomes
+# --- 3 detection from the outcomes
 
 def stretch_scores(p):
     """Per labelled stretch (one failure): its mean lower-bound score and the order it failed at."""
-    s = K.lower_scores(p)
+    s = conformal.lower_scores(p)
     segs = np.unique(p["seg"])
     return np.array([s[p["seg"] == g].mean() for g in segs]), np.array([p["fail"][p["seg"] == g][0] for g in segs])
 
@@ -152,22 +151,22 @@ def detect_outcomes(cal, test, rng):
             "log_m": [round(float(v), 2) for v in lm]}
 
 
-# ---------------------------------------------------------------- 4 recovery with delayed labels
+# --- 4 recovery with delayed labels
 
 def online(cal, test, kind, per_part):
     """Intervals (kind "cqr") or lower bounds (kind "lower") on the test fleet's clock: a point at
     order t is served the quantile computed after the last failure before t. Weighted conformal
     + ACI, pooled or per part. Returns a boolean 'covered' per test point."""
-    score = K.cqr_scores if kind == "cqr" else K.lower_scores
+    score = conformal.cqr_scores if kind == "cqr" else conformal.lower_scores
     s_cal, s_new = score(cal), score(test)
     segs = np.unique(test["seg"])
     end = {g: int(test["fail"][test["seg"] == g][0]) for g in segs}
     events = sorted(segs, key=lambda g: end[g])
     t_ev = np.array([end[g] for g in events])
     idx = np.searchsorted(t_ev, test["t"], side="left")          # failures known before the point
-    C = len(Mo.COMPS)
+    C = len(pdm_model.COMPS)
     qs = np.empty((len(events) + 1, C))
-    alpha = K.ALPHA
+    alpha = conformal.ALPHA
     new_s, new_c, new_seg, new_j = [], [], [], []
     for j in range(len(events) + 1):
         w = np.concatenate([np.full(len(s_cal), RHO ** j)] + [np.full(len(a), RHO ** (j - b)) for a, b in zip(new_s, new_j)])
@@ -177,32 +176,32 @@ def online(cal, test, kind, per_part):
         pooled = cp.weighted_q(s, w, alpha)
         for c in range(C):
             m = comp == c
-            own = per_part and len(np.unique(seg[m])) >= K.MIN_SEG
+            own = per_part and len(np.unique(seg[m])) >= conformal.MIN_SEG
             qs[j, c] = cp.weighted_q(s[m], w[m], alpha) if own else pooled
         if j == len(events):
             break
         m = test["seg"] == events[j]
         new_s.append(s_new[m]); new_c.append(test["comp"][m]); new_seg.append(test["seg"][m] + 100_000); new_j.append(j + 1)
         err = float((s_new[m] > qs[idx[m], test["comp"][m]]).mean())     # served before this failure
-        alpha = cp.aci_step(alpha, K.ALPHA, err, GAMMA)
+        alpha = cp.aci_step(alpha, conformal.ALPHA, err, GAMMA)
     return s_new <= qs[idx, test["comp"]]
 
 
 def static(cal, test):
     """T1's best static method (per part x predicted life), applied unchanged."""
-    iv = K.apply(test, K.fit(cal))["component_life"]
+    iv = conformal.apply(test, conformal.fit(cal))["component_life"]
     y = cp.log_life(test["rul"])
     return (iv["lo"] <= y) & (y <= iv["hi"]), y >= iv["lb"]
 
 
 def report(test, cov):
     last = test["rul"] < 45
-    per = [cov[test["comp"] == c].mean() for c in range(len(Mo.COMPS)) if (test["comp"] == c).any()]
+    per = [cov[test["comp"] == c].mean() for c in range(len(pdm_model.COMPS)) if (test["comp"] == c).any()]
     return {"all": round(float(cov.mean()), 3), "last_shift": round(float(cov[last].mean()), 3),
             "worst_part": round(float(min(per)), 3)}
 
 
-# ---------------------------------------------------------------- 5 the decision, online
+# --- 5 the decision, online
 
 def _alarms(p_fail, th, start, stop):
     run = 0
@@ -224,22 +223,22 @@ def online_p_star(fleet, trk, p0):
         prev = [ff for ff, kk in fleet[i][1] if kk == k and ff < f]
         start = (max(prev) + 1) if prev else 0
         a = _alarms(trk[(i, k)].p_fail, th, start, f + 1)
-        late.append(0 if a is not None and f - a >= R.CRIT else 1)
-        p = float(np.clip(p - ETA * (late[-1] - K.ALPHA_LATE), 0.01, 0.8))
+        late.append(0 if a is not None and f - a >= pdm_run.CRIT else 1)
+        p = float(np.clip(p - ETA * (late[-1] - conformal.ALPHA_LATE), 0.01, 0.8))
         th[f + 1:] = p
     false, orders = 0, 0
     for i in ids:
         X, F, _ = fleet[i]
         n = len(X)
         orders += n
-        for k in Mo.COMPS:
+        for k in pdm_model.COMPS:
             pf = trk[(i, k)].p_fail
             al, run = [], 0
             for t in range(n):
                 run = run + 1 if pf[t] >= th[t] else 0
                 if run >= 3:
                     al.append(t)
-            false += R.decisions(al, n, F, k)[1]
+            false += pdm_run.decisions(al, n, F, k)[1]
     return {"late": int(sum(late)), "failures": len(late), "late_share": round(float(np.mean(late)), 4),
             "false_per_1000": round(1000 * false / max(1, orders), 2), "p_star_end": round(p, 3)}
 
@@ -248,26 +247,26 @@ def hindsight(fleet, trk):
     """The late share and false alarms of every fixed p*, on the shifted fleet itself: is there a
     threshold that would have saved it?"""
     out = []
-    for p in K.P_FINE:
-        loss, false, orders = K.late_losses(fleet, sorted(fleet), trk, p)
+    for p in conformal.P_FINE:
+        loss, false, orders = conformal.late_losses(fleet, sorted(fleet), trk, p)
         out.append({"p_star": p, "late_share": round(float(loss.mean()), 4), "false_per_1000": round(1000 * false / orders, 2)})
-    ok = [r for r in out if r["late_share"] <= K.ALPHA_LATE]
+    ok = [r for r in out if r["late_share"] <= conformal.ALPHA_LATE]
     return {"best": min(ok, key=lambda r: r["false_per_1000"]) if ok else None, "lowest_late": min(out, key=lambda r: r["late_share"])}
 
 
-# ---------------------------------------------------------------- run
+# --- run
 
 def study(fleets, pop, cal_fleet, rng, label):
     """Every measurement, for one model of the filter (its own calibration and risk-controlled p*)."""
     tag = "temp_failure" if pop.temp_failure else ""
-    trk_cal = K.tracks(cal_fleet, pop, K.CAL)
-    cal = K.points(cal_fleet, K.CAL, trk_cal)
-    p_crc, _, _ = K.risk_control(cal_fleet, trk_cal)
-    ref_blocks = innovation_blocks(trk_cal, K.CAL)
+    trk_cal = conformal.tracks(cal_fleet, pop, conformal.CAL)
+    cal = conformal.points(cal_fleet, conformal.CAL, trk_cal)
+    p_crc, _, _ = conformal.risk_control(cal_fleet, trk_cal)
+    ref_blocks = innovation_blocks(trk_cal, conformal.CAL)
     out = {"p_star_static": p_crc, "shifts": {}}
     for name, fl in fleets.items():
-        trk = K.tracks(fl, pop, data.TEST, tag=None if name == "nominal" else f"drift:{name}")
-        test = with_times(K.points(fl, data.TEST, trk))
+        trk = conformal.tracks(fl, pop, data.TEST, tag=None if name == "nominal" else f"drift:{name}")
+        test = with_times(conformal.points(fl, data.TEST, trk))
         iv_s, lb_s = static(cal, test)
         iv_a, lb_a = online(cal, test, "cqr", True), online(cal, test, "lower", True)
         di = detect_inputs(ref_blocks, innovation_blocks(trk, data.TEST), rng)
@@ -286,7 +285,7 @@ def study(fleets, pop, cal_fleet, rng, label):
                             "weighted_aci_per_part": report(test, lb_a),
                             "detect_then_adapt": report(test, np.where(on, lb_a, lb_s))},
             "adapted_share": round(float(on.mean()), 3),
-            "decision": {"static": K.decision_on(fl, data.TEST, trk, p_crc, "static"),
+            "decision": {"static": conformal.decision_on(fl, data.TEST, trk, p_crc, "static"),
                          "online": online_p_star(fl, trk, p_crc), "hindsight": hindsight(fl, trk)},
             "detect_inputs": {k: v for k, v in di.items() if k != "first"},
             "detect_outcomes": do,
@@ -308,16 +307,16 @@ def main():
     t0 = time.time()
     rng = np.random.default_rng(23)
     fleets = load()
-    _, pop, _ = K.population()
-    cal_fleet = data.load(K.CAL)
-    doc = {"say": SAY, "alpha": K.ALPHA, "alpha_late": K.ALPHA_LATE, "burn": BURN, "block": BLOCK, "delta": DELTA,
+    _, pop, _ = conformal.population()
+    cal_fleet = data.load(conformal.CAL)
+    doc = {"say": SAY, "alpha": conformal.ALPHA, "alpha_late": conformal.ALPHA_LATE, "burn": BURN, "block": BLOCK, "delta": DELTA,
            "rho": RHO, "gamma": GAMMA, "eta": ETA, "models": {}}
     pop.temp_failure = False
     doc["models"]["standard"] = study(fleets, pop, cal_fleet, rng, "failure at w = 1, as first graded")
     pop.temp_failure = True
     doc["models"]["temp_failure"] = study(fleets, pop, cal_fleet, rng, "failure on the raw signal")
     doc["seconds"] = round(time.time() - t0, 1)
-    with open(os.path.join(K.OUT, "drift.json"), "w") as fh:
+    with open(os.path.join(conformal.OUT, "drift.json"), "w") as fh:
         json.dump(doc, fh, separators=(",", ":"), default=float)
     print(f"  {doc['seconds']} s")
     return doc

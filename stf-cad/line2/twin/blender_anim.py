@@ -23,8 +23,8 @@ from bpy_extras import anim_utils
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import blender_load as BL                                   # noqa: E402
-import playback as PB                                       # noqa: E402
+import blender_load  # noqa: E402
+import playback  # noqa: E402
 
 MM = 0.001                                                  # Blender scene in metres (the importer converts)
 OUT = os.path.join(HERE, "out")
@@ -98,8 +98,8 @@ def key_matrices(obj, worlds):
 
 
 def build():
-    st = BL.load()
-    tl = PB.Timeline()
+    st = blender_load.load()
+    tl = playback.Timeline()
     sc = bpy.context.scene
     sc.render.fps, sc.frame_start, sc.frame_end = int(round(1 / tl.dt)), 1, tl.n
     S = np.diag([MM, MM, MM, 1.0])
@@ -148,7 +148,7 @@ def build():
                 worlds = [S @ f[n][1] for f in frames]
             else:
                 s = tl.spawn[n]
-                base = PB.cylinder_matrix(s["p"], s["s"][0], s["s"][2], s["s"][1])
+                base = playback.cylinder_matrix(s["p"], s["s"][0], s["s"][2], s["s"][1])
                 worlds = [S @ f[n][1] @ base for f in frames]
             o.matrix_world = mathutils.Matrix(worlds[0].tolist())
             key_matrices(o, worlds)

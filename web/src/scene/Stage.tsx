@@ -220,17 +220,27 @@ function useCameraRig(doc: CadDoc): [number, number, number] {
   return useMemo(() => [first.cx, first.y, -first.cy], [first]);
 }
 
-/** The ground grid's colours from the theme (--scene-cell, --scene-section in shared/studio.css),
- *  re-read when the theme changes; the earlier neutral greys where a palette sets none. */
+/** The scene's colours and light from the theme tokens (shared/zero.css: --scene-*), re-read when
+ *  the theme changes, so the 3D view never keeps a second palette of its own; neutral greys where a
+ *  token is missing. */
 function useGridColours() {
   const read = () => {
     const cs = getComputedStyle(document.documentElement);
-    return { cell: cs.getPropertyValue("--scene-cell").trim() || "#c9d0d4", section: cs.getPropertyValue("--scene-section").trim() || "#98a2a8" };
+    const v = (name: string, fallback: string) => cs.getPropertyValue(name).trim() || fallback;
+    const n = (name: string, fallback: number) => {
+      const x = parseFloat(cs.getPropertyValue(name));
+      return Number.isFinite(x) ? x : fallback;
+    };
+    return {
+      cell: v("--scene-cell", "#c9d0d4"), section: v("--scene-section", "#98a2a8"),
+      sky: v("--scene-sky", "#dfe6ea"), floor: v("--scene-floor", "#4a4a4a"),
+      hemi: n("--scene-hemi", 1.2), key: n("--scene-key", 2.1),
+    };
   };
   const [c, setC] = useState(read);
   useEffect(() => {
     const mo = new MutationObserver(() => setC(read()));
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-palette", "data-tone"] });
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-palette"] });
     return () => mo.disconnect();
   }, []);
   return c;
@@ -265,14 +275,14 @@ export function HbwCadStage({ doc, showZones = false, netZones = false, showCove
       {/* the camera stays above the table: from below, the parts that reach through the plates
           showed through it, and no one inspects a machine from under its table */}
       <OrbitControls makeDefault target={target} enableDamping maxPolarAngle={Math.PI / 2 - 0.06} />
-      <hemisphereLight args={["#dfe6ea", "#4a4a4a", 1.2]} />
+      <hemisphereLight args={[grid.sky, grid.floor, grid.hemi]} />
       {/* studio light panels for the physically based component materials */}
       <Environment resolution={256}>
         <Lightformer intensity={2.2} position={[0, 6, 3]} scale={[12, 4, 1]} />
         <Lightformer intensity={1.2} position={[-8, 3, -2]} rotation-y={Math.PI / 2} scale={[8, 4, 1]} />
         <Lightformer intensity={1.2} position={[8, 3, 2]} rotation-y={-Math.PI / 2} scale={[8, 4, 1]} />
       </Environment>
-      <directionalLight position={[7, 9, 5]} intensity={2.1} castShadow />
+      <directionalLight position={[7, 9, 5]} intensity={grid.key} castShadow />
       <directionalLight position={[-5, 4, -4]} intensity={0.5} />
       <Grid
         args={[24, 24]}

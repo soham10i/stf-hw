@@ -31,11 +31,11 @@ The pre-failure window, per component, order by order.
 """
 from dataclasses import dataclass, field
 
-import month as M
+import month
 import numpy as np
 
-COMPS = list(M.COMP)
-I_TEMP = M.FEATURES.index("temp_c")
+COMPS = list(month.COMP)
+I_TEMP = month.FEATURES.index("temp_c")
 T_REF = 21.0
 N_DRAW = 300
 RNG = np.random.default_rng(11)
@@ -103,7 +103,7 @@ def track(X: np.ndarray, k: str, pop: Population, resets: list[int], horizon: in
     """Run the filter over one machine for component k. `resets`: orders at which the part was
     renewed (the maintenance log), after which the state restarts at a new part."""
     c = COMPS.index(k)
-    C = M.COMP[k]
+    C = month.COMP[k]
     p, rf, s = float(C["p"]), float(C["r_fail"]), max(pop.noise[k], 1e-4)
     nu = C["per_order"] / C["life"]                          # nominal wear per order (rate 1)
     q_rate = (pop.q_scale * nu) ** 2                         # the rate's random walk per order

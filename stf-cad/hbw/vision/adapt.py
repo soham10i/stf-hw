@@ -36,11 +36,23 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from vision import render as R
+from vision import render
 from vision.autoencoder import AE
-from vision.train import BATCH, BN_STATE, EPOCHS, LR, PRECISE_N, Net, n_params, predict, score, settle, verdicts
+from vision.train import (
+    BATCH,
+    BN_STATE,
+    EPOCHS,
+    LR,
+    PRECISE_N,
+    Net,
+    n_params,
+    predict,
+    score,
+    settle,
+    verdicts,
+)
 
-OUT = os.path.join(os.path.dirname(R.__file__), "..", "..", "..", "web", "public", "vision", "adapt.json")
+OUT = os.path.join(os.path.dirname(render.__file__), "..", "..", "..", "web", "public", "vision", "adapt.json")
 ORACLE = os.path.join(os.path.dirname(BN_STATE), "vision_oracle_bn.pt")
 SEED = 41
 TRAIN_N, VAL_N, TEST_N = 24000, 3000, 3000
@@ -56,12 +68,12 @@ HEAD = ("fc", "flav", "cond")
 def stream(n, seed, ranges, defect=DEFECT_RATE):
     """n frames as a line delivers them: flavours in turn, a defect with probability `defect`."""
     rnd = np.random.default_rng(seed)
-    X = np.empty((n, 3, R.N, R.N), np.float32)
+    X = np.empty((n, 3, render.N, render.N), np.float32)
     yf, yc = np.empty(n, np.int64), np.empty(n, np.int64)
     for i in range(n):
-        f = i % len(R.FLAVOURS)
-        c = 1 + int(rnd.integers(len(R.CONDITIONS) - 1)) if rnd.random() < defect else 0
-        X[i] = R.render(R.FLAVOURS[f], R.CONDITIONS[c], rnd, ranges).transpose(2, 0, 1)
+        f = i % len(render.FLAVOURS)
+        c = 1 + int(rnd.integers(len(render.CONDITIONS) - 1)) if rnd.random() < defect else 0
+        X[i] = render.render(render.FLAVOURS[f], render.CONDITIONS[c], rnd, ranges).transpose(2, 0, 1)
         yf[i], yc[i] = f, c
     return X, yf, yc
 
@@ -80,9 +92,9 @@ def train_oracle():
     """train.py's recipe on old + new conditions, precise BN; cached."""
     if os.path.exists(ORACLE):
         return load(torch.load(ORACLE))
-    parts = [R.dataset(TRAIN_N // 2, SEED + k, r) for k, r in enumerate((R.WIDE, R.SHIFT))]
+    parts = [render.dataset(TRAIN_N // 2, SEED + k, r) for k, r in enumerate((render.WIDE, render.SHIFT))]
     X, yf, yc = (np.concatenate([p[i] for p in parts]) for i in range(3))
-    Xva, fva, cva = R.dataset(VAL_N, SEED + 10, R.SHIFT)
+    Xva, fva, cva = render.dataset(VAL_N, SEED + 10, render.SHIFT)
     torch.manual_seed(SEED)
     net = Net(ref=True).to(DEV)
     opt = torch.optim.Adam(net.parameters(), lr=LR)
@@ -165,12 +177,12 @@ def head_fit(net, X, yf, yc, replay, epochs, lr=1e-3, seed=0):
 
 def labelled(k, seed):
     rnd = np.random.default_rng(seed)
-    n = k * len(R.CONDITIONS)
-    X = np.empty((n, 3, R.N, R.N), np.float32)
+    n = k * len(render.CONDITIONS)
+    X = np.empty((n, 3, render.N, render.N), np.float32)
     yf, yc = np.empty(n, np.int64), np.empty(n, np.int64)
     for i in range(n):
-        f, c = int(rnd.integers(len(R.FLAVOURS))), i % len(R.CONDITIONS)
-        X[i] = R.render(R.FLAVOURS[f], R.CONDITIONS[c], rnd, R.SHIFT).transpose(2, 0, 1)
+        f, c = int(rnd.integers(len(render.FLAVOURS))), i % len(render.CONDITIONS)
+        X[i] = render.render(render.FLAVOURS[f], render.CONDITIONS[c], rnd, render.SHIFT).transpose(2, 0, 1)
         yf[i], yc[i] = f, c
     return X, yf, yc
 
@@ -186,7 +198,7 @@ def brief(net, tests):
 def tradeoff(net, X, yc):
     """Escapes and false rejects as the pass threshold on p(ok) rises."""
     pc = predict(net, X)[1]
-    ok, bad = pc[:, R.CONDITIONS.index("ok")], yc != R.CONDITIONS.index("ok")
+    ok, bad = pc[:, render.CONDITIONS.index("ok")], yc != render.CONDITIONS.index("ok")
     return [{"p": p, "escapes": round(float(((ok >= p) & bad).sum() / bad.sum()), 4),
              "false_rejects": round(float(((ok < p) & ~bad).sum() / (~bad).sum()), 4)} for p in THRESHOLDS]
 
@@ -219,7 +231,7 @@ def guarded(net, ae, thr, X, yc):
     v = verdicts(predict(net, X)[1])
     with torch.no_grad():
         a = np.concatenate([ae.score(torch.from_numpy(X[i:i + 500]).to(DEV))[0].cpu().numpy() for i in range(0, len(X), 500)])
-    ok = R.CONDITIONS.index("ok")
+    ok = render.CONDITIONS.index("ok")
     bad, good = yc != ok, yc == ok
     out = {}
     for name, vv in (("CNN alone", v), ("CNN + autoencoder", np.where((v == "pass") & (a > thr), "check", v))):
@@ -238,16 +250,16 @@ def main():
     t0 = time.time()
     src = load(torch.load(BN_STATE))                            # settled statistics (train.py saves it settled)
     dep = deployed()
-    tests = {"old line": R.dataset(TEST_N, SEED + 2, R.WIDE), "new line": R.dataset(TEST_N, SEED + 3, R.SHIFT),
-             "new line, as delivered": stream(TEST_N, SEED + 5, R.SHIFT)}
-    U = stream(U_N, SEED + 4, R.SHIFT)[0]                          # unlabelled: the labels are never read
-    replay = R.dataset(4000, SEED + 7, R.WIDE)
+    tests = {"old line": render.dataset(TEST_N, SEED + 2, render.WIDE), "new line": render.dataset(TEST_N, SEED + 3, render.SHIFT),
+             "new line, as delivered": stream(TEST_N, SEED + 5, render.SHIFT)}
+    U = stream(U_N, SEED + 4, render.SHIFT)[0]                     # unlabelled: the labels are never read
+    replay = render.dataset(4000, SEED + 7, render.WIDE)
     res = {"deployed": brief(dep, tests), "source": brief(src, tests)}
     ada = settle(src, U)
     res["adabn"] = brief(ada, tests)
     pf, pc = predict(src, U)
     p = pc.argmax(1)
-    w = 1.0 / np.bincount(p, minlength=len(R.CONDITIONS))[p]
+    w = 1.0 / np.bincount(p, minlength=len(render.CONDITIONS))[p]
     bal = U[np.random.default_rng(1).choice(len(U), len(U), p=w / w.sum())]
     res["adabn, balanced"] = brief(settle(src, bal), tests)
     res["tent"] = brief(tent(ada, U), tests)
@@ -259,7 +271,7 @@ def main():
                 for r in range(REPEATS)]
         avg = {d: {m: round(float(np.mean([x[d][m] for x in runs])), 4) for m in ("condition_acc", "false_reject", "escape_rate")} for d in tests}
         sd = {d: round(float(np.std([x[d]["condition_acc"] for x in runs])), 4) for d in tests}
-        curve.append({"k": k, "labels": k * len(R.CONDITIONS), **avg, "sd": sd})
+        curve.append({"k": k, "labels": k * len(render.CONDITIONS), **avg, "sd": sd})
         if k == 10:
             res["few labels"] = runs[0]
     oracle = train_oracle()
@@ -269,7 +281,7 @@ def main():
     ae, thr = autoencoder()
     guard = {"deployed": guarded(dep, ae, thr, Xd, cd), "source": guarded(src, ae, thr, Xd, cd)}
     meta = {"source_params": n_params(src), "u_n": U_N, "defect_rate": DEFECT_RATE, "self_kept": int(keep.sum()),
-            "predicted_mix": np.bincount(p, minlength=len(R.CONDITIONS)).tolist(), "ks": KS, "repeats": REPEATS,
+            "predicted_mix": np.bincount(p, minlength=len(render.CONDITIONS)).tolist(), "ks": KS, "repeats": REPEATS,
             "precise_bn": PRECISE_N, "seconds": round(time.time() - t0), "device": DEV,
             "methods": {"deployed": "the deployed network (lagging batch-norm statistics: fails safe)",
                         "source": "the same recipe with settled statistics (precise BN): the starting point of every adaptation",
@@ -280,7 +292,7 @@ def main():
                         "few labels": "final layers fine-tuned on 10 labelled frames per condition, old images replayed",
                         "retrained": "trained from scratch on old + new conditions"},
             "limits": "rendered images only: the method, not the accuracy on a real camera"}
-    W = {"classes": {"flavour": R.FLAVOURS, "condition": R.CONDITIONS}, "size": R.N, "ref": R.REF,
+    W = {"classes": {"flavour": render.FLAVOURS, "condition": render.CONDITIONS}, "size": render.N, "ref": render.REF,
          "pass_p": 0.5, "sure_p": 0.6, "layers": {}, "bn": [], "adabn": []}
     for name in ("c1", "c2", "c3", "c4", "fc", "flav", "cond"):
         m = getattr(src, name)
@@ -288,7 +300,7 @@ def main():
     for bn, ab in zip(src.bn, ada.bn, strict=True):
         W["bn"].append({"gamma": _b64(bn.weight), "beta": _b64(bn.bias), "mean": _b64(bn.running_mean), "var": _b64(bn.running_var), "eps": bn.eps})
         W["adabn"].append({"mean": _b64(ab.running_mean), "var": _b64(ab.running_var)})
-    Xp, _, _ = stream(6, SEED + 90, R.SHIFT, defect=0.5)
+    Xp, _, _ = stream(6, SEED + 90, render.SHIFT, defect=0.5)
     with torch.no_grad():
         s, a = src(torch.from_numpy(Xp).to(DEV)), ada(torch.from_numpy(Xp).to(DEV))
     W["parity"] = {"images": [_b64(torch.from_numpy(x)) for x in Xp],

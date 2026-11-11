@@ -46,7 +46,7 @@ export default function App() {
     if (machine.doc) { const id = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 50); return () => window.clearTimeout(id); }
   }, [machine.doc]);
 
-  // ------------------------------------------------------------ the view
+  // --- the view
   const views = useMemo(() => [MACHINE_VIEW, CONTROLLER_VIEW, ELECTRICS_VIEW, ...componentViews(comps.doc?.components)], [comps.doc]);
   const [viewId, setViewId] = useState(() => new URLSearchParams(location.search).get("view") ?? MACHINE_VIEW.id);
   const view = views.find((v) => v.id === viewId) ?? MACHINE_VIEW;
@@ -57,7 +57,7 @@ export default function App() {
     history.replaceState(null, "", `${location.pathname}${q.toString() ? "?" + q : ""}`);
   }, [view.id]);
 
-  // ----------------------------------------------------------- the panels
+  // --- the panels
   const [showZones, setShowZones] = usePersistent("stf.zones", true);
   const [showCover, setShowCover] = usePersistent("stf.cover", true);
   const [open, setOpen] = usePersistent("stf.side.open", window.innerWidth >= 900);

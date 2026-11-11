@@ -3,7 +3,7 @@ Kept-alive HTTPS for the backend's Supabase calls: a drop-in for `urllib.request
 
 urllib opens a new TCP + TLS connection for every request. To Supabase that handshake costs as
 much as the query itself: measured 120 ms per query on a new connection against 60 ms on a kept
-one (tests/perf/bench_backend.py, docs/perf/). Here each worker thread keeps one connection per
+one (tests/perf/bench_backend.py, docs/history/backend-performance/). Here each worker thread keeps one connection per
 host and reuses it; the request and the response are urllib's own types, so a caller changes one
 line:
 

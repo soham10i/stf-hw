@@ -35,7 +35,7 @@ type GridDoc = {
 };
 
 type Sc = GridDoc["scenarios"][string];
-const W = (v: number) => `${Math.round(v)} W`;
+const watts = (v: number) => `${Math.round(v)} W`;
 const NAME: Record<string, string> = { grid: "grid only", pv: "PV only", "pv+battery": "PV + battery + EMS" };
 
 export function GridPage() {
@@ -74,12 +74,12 @@ export function GridPage() {
           <span className="db-muted">({g.weather[day - 1].kind}{sl(S.dr).some(Boolean) ? " · demand-response event" : ""})</span></h3>
           {/* supply and demand as filled areas (PV, the site's load), the flows that balance them as lines */}
           <Chart h={250} days={false} xLabel="hour of the day" yLabel="power (W)" xMax={24} yFmt={(v) => `${Math.round(v)}`}
-            lines={[{ name: "PV", x: hx, y: sl(S.pv), color: "#f2c230", width: 1.8, kind: "area", fmt: W },
-                    { name: S.oven ? "site load (cell + oven)" : "cell load", x: hx, y: sl(S.load), color: "#8fb8ff", width: 1.8, kind: "area", fmt: W },
-                    ...(S.oven ? [{ name: "oven", x: hx, y: sl(S.oven), color: "#f08a4b", width: 1.6, fmt: W }] : []),
-                    { name: "grid (+ import, − export)", x: hx, y: sl(S.grid), color: "#5b8cff", width: 2.4, fmt: W },
-                    { name: "battery (+ charge)", x: hx, y: sl(S.batt), color: "#34d399", width: 2.2, fmt: W },
-                    { name: "grid only (no PV, no battery)", x: hx, y: sl(S.grid_only), color: "#f87171", dash: true, width: 1.4, fmt: W }]}
+            lines={[{ name: "PV", x: hx, y: sl(S.pv), color: "#f2c230", width: 1.8, kind: "area", fmt: watts },
+                    { name: S.oven ? "site load (cell + oven)" : "cell load", x: hx, y: sl(S.load), color: "#8fb8ff", width: 1.8, kind: "area", fmt: watts },
+                    ...(S.oven ? [{ name: "oven", x: hx, y: sl(S.oven), color: "#f08a4b", width: 1.6, fmt: watts }] : []),
+                    { name: "grid (+ import, − export)", x: hx, y: sl(S.grid), color: "#5b8cff", width: 2.4, fmt: watts },
+                    { name: "battery (+ charge)", x: hx, y: sl(S.batt), color: "#34d399", width: 2.2, fmt: watts },
+                    { name: "grid only (no PV, no battery)", x: hx, y: sl(S.grid_only), color: "#f87171", dash: true, width: 1.4, fmt: watts }]}
             hlines={[{ y: g.meta.assets.peak_cap_w, color: "#e0a02a", label: "peak cap" }, { y: 0, color: "#3a4a5c", label: "" }]}
             marks={hx.filter((_, i) => sl(S.dr)[i] && !sl(S.dr)[i - 1]).map((x) => ({ x, color: "#b07ad6", label: "DR event" }))} />
           <div className="gr-pair">

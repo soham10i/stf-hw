@@ -23,7 +23,7 @@ import type { CadDoc, PlanKey } from "../shared/model";
 
 
 
-// --- the cycle -----------------------------------------------------------------
+// --- the cycle
 // One timeline drives the whole table:
 //   crane lifts the mould (raw cookie) out of B2 -> hands it to the belt -> belt
 //   carries it to the VGR point -> the VGR plays its PROVEN tour
@@ -84,7 +84,7 @@ export function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[],
   ) => out.push({ t, l, f, b, held, slot, cookie: st.cookie, cc: st.cc, ...vv,
                   taken: st.taken, ovenIn: st.ovenIn, ovenGo: st.ovenGo, say });
 
-  // ---- warehouse -> belt -> VGR point (raw cookie) ----
+  // --- warehouse -> belt -> VGR point (raw cookie)
   if (fromRest) {
     // the previous cycle stowed the empty mould and came straight here to rest: the pick starts
     // at once, no park detour
@@ -106,7 +106,7 @@ export function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[],
   k(T.conveyor, L.transit, F.retracted, hb, "belt", FROM, V0, "raise clear");
   k(T.conveyor, L.transit, F.retracted, vg, "belt", FROM, V0, "Q1 belt forward — through the hood to I3 at the VGR point");
 
-  // ---- the empty mould: back into its slot, and out again for the baked cookie ----
+  // --- the empty mould: back into its slot, and out again for the baked cookie
   // The VGR holds its pose (vv) while the crane works; nothing else moves.
   const stowEmpty = (vv: VV, rest: string | null) => {
     k(T.conveyor, L.transit, F.retracted, hb, "belt", FROM, vv, "Q2 belt reverse — the empty mould rides back to the crane");
@@ -146,7 +146,7 @@ export function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[],
     k(T.conveyor, L.transit, F.retracted, vg, "belt", FROM, vv, "Q1 belt forward — the empty mould waits at the VGR point (I3)");
   };
 
-  // ---- the VGR's proven tour ----
+  // --- the VGR's proven tour
   let stowed = false, fetched = false, toBay = false;
   for (let i = 1; i < plan.length; i++) {
     const p = plan[i], q = plan[i - 1];
@@ -176,7 +176,7 @@ export function script(doc: CadDoc, FROM: string, free: string, plan: PlanKey[],
     return out;
   }
 
-  // ---- the BAKED cookie goes back into the rack in its mould ----
+  // --- the BAKED cookie goes back into the rack in its mould
   const back = "the finished cookie";
   k(T.conveyor, L.transit, F.retracted, hb, "belt", FROM, V0, `Q2 belt reverse — ${back} rides back to the crane`);
   k(T.conveyor, L.belt_under, F.retracted, hb, "belt", FROM, V0, "descend below the mould");

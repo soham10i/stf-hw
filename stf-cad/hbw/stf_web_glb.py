@@ -22,24 +22,29 @@ part finds its row in the parts table.
 
 Refuses to export unless every clearance proof passes, like every generator.
 """
-import argparse, json, math, os, struct, sys
+import argparse
+import json
+import math
+import os
+import struct
+import sys
 from types import SimpleNamespace
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:                       # inside freecadcmd: tessellate the PRECISE B-rep
-    import FreeCAD as App  # noqa: F401
     import detail
+    import FreeCAD as App  # noqa: F401
     PRECISE = True
 except ImportError:        # plain python: the proven box/cylinder envelopes
     PRECISE = False
 
-import stf_gltf as SG
-import parts_table as PT
-import factory_layout as FL
-import hbw_model as HM
-import oven_model as OM
-import sorting_model as SM
-import vgr_model as VG
+import factory_layout
+import hbw_model
+import oven_model
+import parts_table
+import sorting_model
+import stf_gltf
+import vgr_model
 
 DEFAULT_OUT = os.path.expanduser("~/workspace/stf-factory/web/public/assets")
 
@@ -72,7 +77,7 @@ def _linear(v):
     return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
 
 
-class WebGltf(SG.Gltf):
+class WebGltf(stf_gltf.Gltf):
     """Gltf with PBR material classes and a binary .glb writer."""
 
     def __init__(self):
@@ -111,7 +116,7 @@ class WebGltf(SG.Gltf):
             kind = ("thread" if p.mech.startswith("thread:") else
                     "spring" if p.mech == "spring" else p.kind)
             pos, nrm, idx = face_mesh(shp, self.TOLS[kind])
-            m = self.mesh(p.name, pos, nrm, idx, p.c if hasattr(p, "c") else SG.COLOUR(p.colour))
+            m = self.mesh(p.name, pos, nrm, idx, p.c if hasattr(p, "c") else stf_gltf.COLOUR(p.colour))
             ex = {"module": getattr(self, "module", ""), "part": p.name, "group": p.group,
                   "support": p.support, "io": p.tag, "note": p.note}
             return self.node(p.name, mesh=m, extras=ex)
@@ -184,14 +189,14 @@ def face_mesh(shape, tol):
 
 
 # the belt loop needs to know where its two pulleys are
-SIBLINGS = {p.name: p for p in HM.build()}
+SIBLINGS = {p.name: p for p in hbw_model.build()}
 
 
 def joint_table():
     """What the viewer's sliders drive. `node` is the glTF node name; `axis` is
     in that node's local (factory, Z-up) frame; value -> node transform is
     position = sign * (value - offset) mm, or rotation = value deg."""
-    P, V = HM.P, VG.V
+    P, V = hbw_model.P, vgr_model.V
     return [
         {"module": "hbw", "joint": "travel", "node": "J1_Travel_X", "kind": "prismatic",
          "axis": "x", "sign": 1, "offset": 0.0, "limits": list(P["TRAVEL"]),
@@ -226,9 +231,9 @@ def main():
               "or pass --envelope if the box/cylinder version is really wanted.")
         sys.exit(2)
 
-    for name, fails in (("HBW", HM.check(verbose=False)), ("VGR", VG.check(verbose=False)),
-                        ("OVEN", OM.check(verbose=False)), ("SORTING", SM.check(verbose=False)),
-                        ("CROSS", FL.check_cross() + FL.check_stations())):
+    for name, fails in (("HBW", hbw_model.check(verbose=False)), ("VGR", vgr_model.check(verbose=False)),
+                        ("OVEN", oven_model.check(verbose=False)), ("SORTING", sorting_model.check(verbose=False)),
+                        ("CROSS", factory_layout.check_cross() + factory_layout.check_stations())):
         if fails:
             print(f"REFUSING to export - {name} fails its clearance proof:")
             print("\n".join(fails)); sys.exit(1)
@@ -238,7 +243,7 @@ def main():
     pose = SimpleNamespace(travel=home["travel"], lift=home["lift"], fork=home["fork"],
                            swivel=home["swivel"], plunge=home["plunge"], reach=home["reach"])
     g = WebGltf()
-    roots = SG.build_roots(g, pose)
+    roots = stf_gltf.build_roots(g, pose)
     blob = g.glb(roots)
 
     os.makedirs(a.out_dir, exist_ok=True)
@@ -246,7 +251,7 @@ def main():
     with open(glb_path, "wb") as fh:
         fh.write(blob)
 
-    rows = PT.build_all()
+    rows = parts_table.build_all()
     side = {
         "units": "mm (table); the .glb itself is in metres",
         "source": "stf-cad/hbw - hbw_model, vgr_model, oven_model, sorting_model",

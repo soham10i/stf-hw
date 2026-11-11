@@ -14,14 +14,14 @@ timeline() -> {machine: [(t_seconds, {joint: value})]}; pose_at(t) interpolates
 linearly; apply(doc, pose) moves the App::Part joints of STF_Factory_MCP.
 Plain Python (no FreeCAD) except apply().
 """
-import vgr_model as VG
-import oven_model as OM
-import sorting_model as SM
-import hbw_model as HM
+import hbw_model
+import oven_model
+import sorting_model
+import vgr_model
 import vgr_path
 
 # (seconds for the move, {joint: target}, what the booklet says happens)
-O = OM.O
+O = oven_model.O
 S_IN, S_OUT = O["SLIDER"]
 D_SHUT, D_OPEN = O["DOOR_Z"]
 SG_OVEN, SG_TT = O["SAUGER"]
@@ -78,7 +78,7 @@ def check_oven(steps=12):
         for k in range(steps + 1):
             u = k / steps
             p = {j: a[j] + (b[j] - a[j]) * u for j in a}
-            if not OM.pose_allowed(p["slider"], p["door"], p["turn"], p["sauger"], p["lower"], p["push"]):
+            if not oven_model.pose_allowed(p["slider"], p["door"], p["turn"], p["sauger"], p["lower"], p["push"]):
                 fails.append(f"oven: '{s1}' passes a forbidden pose at u={u:.2f}: {p}")
                 break
     return fails
@@ -103,7 +103,7 @@ def vgr_keys(speed_deg=60.0, speed_mm=120.0):
 
 def hbw_keys(speed=150.0):
     out, t, prev = [], 0.0, None
-    for tr, lf, fk, _ in HM.cycle():
+    for tr, lf, fk, _ in hbw_model.cycle():
         cur = dict(travel=tr, lift=lf, fork=fk)
         if prev is not None:
             t += max(max(abs(cur[j] - prev[j]) for j in cur) / speed, 0.4)
@@ -114,13 +114,13 @@ def hbw_keys(speed=150.0):
 
 def sorting_keys():
     out, t = [(0.0, dict(push0=0.0, push1=0.0, push2=0.0), "belt runs")], 0.0
-    e = SM.S["EJECT"][1]
-    for i, col in enumerate(SM.COLOURS):
+    e = sorting_model.S["EJECT"][1]
+    for i, col in enumerate(sorting_model.COLOURS):
         for dur, v in ((2.0, 0.0), (0.5, e), (0.5, 0.0)):
             t += dur
             pose = dict(push0=0.0, push1=0.0, push2=0.0)
             pose[f"push{i}"] = v
-            if not SM.pose_allowed((pose["push0"], pose["push1"], pose["push2"])):
+            if not sorting_model.pose_allowed((pose["push0"], pose["push1"], pose["push2"])):
                 raise AssertionError("sorting: two ejectors at once")
             out.append((t, pose, f"eject {col}"))
     return out
@@ -143,7 +143,7 @@ def pose_at(keys, t):
     return dict(keys[-1][1])
 
 
-# ------------------------------------------------------------- FreeCAD side
+# --- FreeCAD side
 def apply(doc, poses):
     """poses: {machine: {joint: value}}. Moves the joint containers; values are
     absolute joint coordinates in the models' own units."""
@@ -157,7 +157,7 @@ def apply(doc, poses):
         g("J3_Ausleger_Y").Placement = App.Placement(Vc(0, p["fork"], 0), R())
     if "vgr" in poses:
         p = poses["vgr"]
-        a = VG.V
+        a = vgr_model.V
         g("J_Swivel").Placement = App.Placement(Vc(a["CX"], a["CY"], 0), R(Vc(0, 0, 1), p["swivel"]))
         g("J_Plunge").Placement = App.Placement(Vc(0, 0, p["plunge"] - 250.0), R())
         g("J_Reach").Placement = App.Placement(Vc(0, -p["reach"], 0), R())
@@ -175,7 +175,7 @@ def apply(doc, poses):
         g("J_Auswerfer").Placement = App.Placement(Vc(0, p["push"], 0), R())
     if "sorting" in poses:
         p = poses["sorting"]
-        for i, col in enumerate(SM.COLOURS):
+        for i, col in enumerate(sorting_model.COLOURS):
             g(f"J_Auswurf_{col}").Placement = App.Placement(Vc(0, -p[f"push{i}"], 0), R())
 
 

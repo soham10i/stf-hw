@@ -24,6 +24,11 @@ PREFIXES = (
     "STF_",
     "SUPABASE_",
     "UPB_",
+    "OPENAI_",
+    "MERCURY_",
+    "Mercury_",
+    "DEEP_",
+    "SEARXNG_",
     "WEB_",
     "LANGFUSE_",  # copilot traces (tracing.py)
     "PHOENIX_",

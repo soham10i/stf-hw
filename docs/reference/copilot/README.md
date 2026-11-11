@@ -1,0 +1,185 @@
+---
+title: "Copilot: how a question is answered"
+scope: "The copilot answers questions about the twin in plain words, with every figure checked and every source named."
+module: copilot
+last_verified: 2026-10-18
+---
+
+# Copilot: how a question is answered
+
+The copilot answers questions about the twin in plain words, with every figure checked and every
+source named. This chapter describes what happens between the question and the answer: how the
+server decides where an answer comes from (the twin's data, its documents, the web, or a piece
+of research), which model writes it, what the operator sees while it works, and what is kept
+afterwards.
+
+![An answer to "the complete math behind preventive maintenance": the route and the model's thinking folded above the derivation, every equation rendered](../../images/docs/copilot-thinking.jpg)
+
+## The route: decided by the server, not the model
+
+Before any model is asked, the server decides which kind of answer the question needs
+(`services/api/orchestrate.py`, `decide()`). The decision is made by rules anyone can read, and
+the answer carries it: the route chip on the answer, and the reasons under **How this answer was
+made**. A model never decides on its own to spend a web search.
+
+| Route | When | What answers |
+|---|---|---|
+| conversation | a greeting or thanks | the model alone |
+| twin data | a tool computes the question's figures: health, alarms, OEE, energy, carbon, the scheduler, vision, security, the live twin | the twin's tools; the documents explain them |
+| documents | how something in this project works, and the knowledge base matches it well | the knowledge base (BM25), quoted with file and line |
+| web search | the outside world: a standard, a vendor, general practice, anything recent | one web search; every claim linked to its page |
+| deep research | the question asks for research: "deep research", "survey", "compare sources" | sub-questions, each searched, written up together with the documents |
+
+The signals are weighed in this order:
+
+1. **The operator's choice.** Auto, Docs, Web or Deep, under the conversation. Docs never
+   searches the web; Web and Deep always do.
+2. **A greeting** needs no retrieval.
+3. **An explicit request**: "deep research", "survey" or "compare sources" is research;
+   "search the web", "latest", "news", a recent year or a price is the web.
+4. **The twin's own data.** If the rules router called a tool that computes the twin's figures,
+   the answer starts from them. When the question asks *how* such a figure is computed and the
+   documents match, the documents come first and the twin's figures are the worked example.
+5. **The documents' match.** The best passage's BM25 score and the share of the question's
+   words it holds. A score of at least 6 with half the words, or 12 on its own, means the
+   documents cover the question.
+6. **Outside knowledge.** A standard (ISO 13849, IEC 62443), a vendor or "in general", with no
+   very strong match (score 12 and three quarters of the words), goes to the web. A question
+   about this twin (its parts, pages, alarm codes, PLC) never does: no web page knows it.
+
+**Why the order.** The twin's own data and documents come first because only they are true of
+this twin; the web is used for what they cannot hold. A web search costs about 30,000 tokens,
+fifteen times a documents answer, so it is spent only when the documents cannot answer. Research
+costs several searches, so it runs only when asked for. Without a search provider, a web question
+is answered from the documents and the answer says so.
+
+## Which model writes it
+
+One fallback chain, the same locally and in production (`chat.ORDER`):
+
+1. **Gemini**: the pool of Gemini models, each with its own daily quota.
+2. **Groq**: `openai/gpt-oss-120b` first, which returns its reasoning; then `qwen/qwen3.8-27b` and
+   `openai/gpt-oss-20b`. Each has its own per-minute limit, so one at its limit hands over to the
+   next. If all are limited and Groq asks for a wait of 12 s or less, the server waits once.
+3. **UPB AI**: the university's AI chat (`UPB_AI_KEY`, a fixed credit), the last hosted model.
+4. **Local**: a model on this machine through Ollama (not on Render).
+5. **The twin's tools**: when none can answer. For a question about how something works, they
+   quote the documents' passages, equations included, rather than a one-line status.
+
+The tab above the conversation puts its provider first; the rest follow in this order.
+
+**Availability is remembered.** A provider that fails is set aside for a while and tried last
+until then, so a limit costs one question, not every one:
+
+| Failure | Set aside for |
+|---|---|
+| At its rate limit | as long as it asks, else 60 s |
+| Credit used up, or the key refused | an hour |
+| No answer in time | 2 min |
+
+A provider that answers is first in line again. `GET /chat/status` shows the chain as it stands
+(`order`: each provider, ready or back in so many seconds), and `make model-check` asks each one a
+tiny question and prints which answer, without printing a key.
+
+The hand-over stops after 75 s, including a local model that is still answering.
+
+## While it works: the thinking
+
+The answer streams (`POST /chat/stream`, server-sent events): the route and its reasons first,
+then each step as it happens (the documents searched, the tools called, the model asked, a
+model at its limit, a search run), then the model's own reasoning, then the answer. The panel
+is open while the copilot works and folds above the answer when it arrives; it stays with the
+answer in the history.
+
+Where the reasoning comes from:
+
+- **gpt-oss on Groq**: its `reasoning` field.
+- **qwen3 or a local thinking model**: its `<think>` block.
+- **Gemini**: the thought summaries (`includeThoughts`).
+
+A model that returns no reasoning shows only the route and the steps.
+
+## How an answer is written
+
+- **Mathematics** is LaTeX: `$...$` inline and `$$...$$` displayed. The chat and the Docs page
+  draw it with KaTeX. The knowledge base keeps each passage's LaTeX as written, so a model is
+  given the equations exactly.
+- **A question about the mathematics** ("how is it calculated", "the math behind") is a
+  *derivation*. The model is given the best document's equations in order, not only the
+  passages that share the question's words. It answers in numbered steps, one sentence and one
+  equation each, and ends with a worked example from the twin's numbers.
+- **Code** is a fenced block with its language and a copy button.
+- **Numbers are checked.** Every number in an answer must appear in what the model was given:
+  the tools' results, the documents' passages, the web pages it read, or the question. If one
+  does not, the model is asked once to rewrite; if it still does not, the answer flags it.
+- **Claims are checked.** Every sentence, list item or table row that states something is
+  scored against the passages and tool results it could come from (`services/api/agent/claims.py`):
+  the weighted share of its words found there, with rare words counting most. A rare word that
+  no evidence holds, such as a swapped part name, caps the claim at *unsure*. A claim the words
+  leave unsure goes to a small model in one call, when one is free. Greetings, questions back,
+  "I don't know" and lines marked "in general" are not checked.
+- **What is not backed is handled** (`services/api/agent/answer_policy.py`). An answer that is
+  mostly unbacked, or that has a claim the judge rejected, goes back to its model once. After
+  that, one or two invented sentences among backed ones are removed. An answer the sources
+  hardly back is replaced by saying the documents do not cover it, with the closest passages.
+  Anything else stays, with a note naming what is not backed. Web answers are only ever noted.
+- **Every backed claim is cited.** A supported claim from a document or web page that the model
+  left uncited gets that passage's label in brackets, which the chat shows as a numbered
+  source. A tool's reading is not marked inline: the answer's facts list shows where it came from.
+- **Each answer is scored.** The reply carries `quality`: how many claims, how many backed
+  (groundedness), the share cited, the numbers not backed, the retrieval verdict, what the
+  policy did, and a confidence. The confidence is fitted on labelled answers and is the chance
+  that every claim is backed. One row of these scores per request id, with no words, is kept for
+  90 days. `GET /copilot/quality` shows them over time; `GET /copilot/quality/{request_id}`
+  shows one answer, by the `X-Request-ID` of its reply.
+
+## The web: search and deep research
+
+Web search uses Groq's built-in browser search (`services/api/websearch.py`): the gpt-oss model
+searches, opens and reads pages on Groq's side, and the API returns every page it read. The
+model is told to link every claim to its page, prefer primary sources, and keep anything about
+the twin to the twin's own documents.
+
+- **Sources** are graded by their host:
+  - *trusted*: standards bodies, public agencies, publishers of peer-reviewed work,
+    manufacturers' documentation, encyclopaedias;
+  - *unvetted*: anything else, shown so the operator can judge it.
+- **Deep research** splits the question into up to three web searches, runs each, and the
+  chosen model writes the findings up with the documents' passages.
+- **Without Groq**, Gemini's built-in Google Search does the search, with its grounding
+  sources.
+
+**Limits.** On Groq's free tier, each model allows a few thousand input tokens a minute. One web
+search uses about 30,000, so after one search the next waits a few minutes. Research takes
+several searches. When a search is refused, the answer comes from the documents and says so.
+
+## What is kept, and for whom
+
+Every visitor is a guest of their own, identified by a signed cookie. A guest's conversations
+and inspection photos are theirs alone. The database is Supabase Postgres when it is configured
+(SQLite otherwise); `make db-check` runs a round trip through it.
+
+Each answer is kept with its conversation, together with:
+
+- the route and its reasons;
+- the steps;
+- the model's thinking;
+- the sources;
+- the time it took.
+
+The facts it established are kept as the conversation's context; the next model is given them
+as Markdown.
+
+## Sources
+
+- `services/api/orchestrate.py`: the route.
+- `services/api/chat.py`: the models, the hand-over, the stream, the number check.
+- `services/api/websearch.py`: web search and research.
+- `services/api/respond.py`: the answer's format by kind of question.
+- `services/api/agent/claims.py`, `answer_policy.py`, `confidence.py`, `quality.py`: the claim
+  check, what happens to an unbacked claim, the confidence and the per-answer scores.
+- `services/api/storage/quality.py`: the score rows, kept in SQLite or Supabase.
+- `services/api/eval/eval_grounding.py`: the claim check and the confidence on labelled answers.
+- `web/src/dashboard/copilot/Message.tsx`: the thinking panel, LaTeX and code.
+- `web/src/shared/tex.tsx`: LaTeX.
+- `tests/test_orchestrate.py`: the routes, the hand-over, the search, the stream.

@@ -16,40 +16,40 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import hardware as H
-import line_draw as D
-import line_model as M
-import oven as OV
+import hardware
+import line_draw
+import line_model
+import oven
 
-L = M.L
+L = line_model.L
 OUT = os.path.join(HERE, "oven")
-PH = M.PHASE_RGB
+PH = line_model.PHASE_RGB
 PHN = {"L1": "brown", "L2": "black", "L3": "grey"}
 ITEM_C = dict(product="#c0562f", band="#8b9196", walls="#e0a02a", mouth="#1f63c4", exhaust="#6aa84f")
 
 
 def esc(t):
-    return D.esc(t)
+    return line_draw.esc(t)
 
 
 def data():
-    tb, tc = M.bake_t(), M.cool_t()
-    st = M.stations()
-    v = M.band_v()
-    t_loop = (M.s_back(L["DELTA_X"][1]) - M.bend_s(L["TRANSFER_TH"][1])) / L["V"]
-    tg, tn = M.band_gaps()
+    tb, tc = line_model.bake_t(), line_model.cool_t()
+    st = line_model.stations()
+    v = line_model.band_v()
+    t_loop = (line_model.s_back(L["DELTA_X"][1]) - line_model.bend_s(L["TRANSFER_TH"][1])) / L["V"]
+    tg, tn = line_model.band_gaps()
     tw = L["PICK_W"] / v
-    trace, _ = OV.profile(L, tb, tc, [("pick window", tw, "loop"), ("loop", t_loop, "loop")], record=1.0, t_gap=tg, t_nose=tn)
+    trace, _ = oven.profile(L, tb, tc, [("pick window", tw, "loop"), ("loop", t_loop, "loop")], record=1.0, t_gap=tg, t_nose=tn)
     x_in = st["o0"] + L["CHAMBER"]["insul"]
     rows = []
     for r in trace:
         t = r[0]
         x = x_in + v * t if t <= tb + tg + tc + tn + tw + 1e-6 else None
         rows.append(dict(t=t, x=x, seg=r[1], top=r[2], core=r[3], bot=r[4], water=r[5], colour=r[6], q=r[7]))
-    loads, els, plan, _ = M.oven_power()
-    warm = OV.warmup(L, loads, els, M.band_w(), curves=True)
+    loads, els, plan, _ = line_model.oven_power()
+    warm = oven.warmup(L, loads, els, line_model.band_w(), curves=True)
     return dict(tb=tb, tc=tc, st=st, v=v, rows=rows, loads=loads, els=els, plan=plan, warm=warm, t_loop=t_loop,
-                bands=OV.band_temps(L, tb / len(L["OVEN_ZONES"])))
+                bands=oven.band_temps(L, tb / len(L["OVEN_ZONES"])))
 
 
 def axis_ticks(lo, hi, n=6):
@@ -78,15 +78,15 @@ class Plot:
         return self.y + self.h - (v - self.yr[0]) / (self.yr[1] - self.yr[0]) * self.h
 
     def frame(self, xlabel, ylabel, xt=None, yt=None):
-        o = [f'<rect x="{self.x}" y="{self.y}" width="{self.w}" height="{self.h}" fill="none" stroke="{D.INK}" stroke-width=".25"/>']
+        o = [f'<rect x="{self.x}" y="{self.y}" width="{self.w}" height="{self.h}" fill="none" stroke="{line_draw.INK}" stroke-width=".25"/>']
         for t in (xt if xt is not None else axis_ticks(*self.xr)):
             X = self.px(t)
-            o.append(f'<line x1="{X:.2f}" y1="{self.y + self.h}" x2="{X:.2f}" y2="{self.y + self.h + 1.2}" stroke="{D.INK}" stroke-width=".2"/>')
+            o.append(f'<line x1="{X:.2f}" y1="{self.y + self.h}" x2="{X:.2f}" y2="{self.y + self.h + 1.2}" stroke="{line_draw.INK}" stroke-width=".2"/>')
             o.append(f'<line x1="{X:.2f}" y1="{self.y}" x2="{X:.2f}" y2="{self.y + self.h}" stroke="#d9dde2" stroke-width=".12"/>')
             o.append(f'<text x="{X:.2f}" y="{self.y + self.h + 4}" class="dt" text-anchor="middle">{t:g}</text>')
         for t in (yt if yt is not None else axis_ticks(*self.yr)):
             Y = self.py(t)
-            o.append(f'<line x1="{self.x - 1.2}" y1="{Y:.2f}" x2="{self.x}" y2="{Y:.2f}" stroke="{D.INK}" stroke-width=".2"/>')
+            o.append(f'<line x1="{self.x - 1.2}" y1="{Y:.2f}" x2="{self.x}" y2="{Y:.2f}" stroke="{line_draw.INK}" stroke-width=".2"/>')
             o.append(f'<line x1="{self.x}" y1="{Y:.2f}" x2="{self.x + self.w}" y2="{Y:.2f}" stroke="#d9dde2" stroke-width=".12"/>')
             o.append(f'<text x="{self.x - 2}" y="{Y + 0.8:.2f}" class="dt" text-anchor="end">{t:g}</text>')
         o.append(f'<text x="{self.x + self.w / 2}" y="{self.y + self.h + 8}" class="dt" text-anchor="middle">{esc(xlabel)}</text>')
@@ -121,7 +121,7 @@ def profile_panel(d, x0, y0, w, h):
     P = Plot(x0, y0 + 32, w, h - 74, (xa, xb), (0, 240))
     o = [f'<text x="{x0}" y="{y0 + 3}" class="vt">A  TEMPERATURE ALONG THE BAND - what the cookie sees, x = machine position (mm)</text>']
     ins = L["CHAMBER"]["insul"]
-    zl = M.zone_len()
+    zl = line_model.zone_len()
     shade = ["#fde3d6", "#fbd0bb", "#f8bea1"]
     for k, Z in enumerate(L["OVEN_ZONES"]):
         a = st["zones"][k]
@@ -146,7 +146,7 @@ def profile_panel(d, x0, y0, w, h):
         air += [(a, Z["T"]), (a + zl, Z["T"])]
     air += [(st["o1"], L["T_AMB"]), (xb, L["T_AMB"])]
     o.append(P.line(air, "#b03a2e", .35, "1.6,.9"))
-    tau = L["BAND"]["m_area"] * H.BAND_MESH["cp"] / (2 * L["OVEN_H"]["bot"])      # oven.band_temps, sampled
+    tau = L["BAND"]["m_area"] * hardware.BAND_MESH["cp"] / (2 * L["OVEN_H"]["bot"])  # oven.band_temps, sampled
     bpts, Tb = [(st["dep"], L["T_AMB"]), (st["zones"][0], L["T_AMB"])], L["T_AMB"]
     for k, Z in enumerate(L["OVEN_ZONES"]):
         T0 = Tb
@@ -173,7 +173,7 @@ def profile_panel(d, x0, y0, w, h):
     for face, yy in (("top", y0 + 9), ("bot", y0 + 18)):
         o.append(f'<text x="{x0 - 1}" y="{yy + 1}" class="dt" text-anchor="end">{face} elements</text>')
         for k in range(len(L["OVEN_ZONES"])):
-            for e, x in M.element_x(k, face):
+            for e, x in line_model.element_x(k, face):
                 ph = next(p for p, items in d["plan"].items() if any(t == e["tag"] for t, _ in items))
                 X = P.px(x)
                 o.append(f'<rect x="{X - 2.2:.2f}" y="{yy - 2.4}" width="4.4" height="4.8" rx=".6" fill="{PH[ph]}"/>')
@@ -182,14 +182,14 @@ def profile_panel(d, x0, y0, w, h):
     for k in range(len(L["OVEN_ZONES"])):
         X = P.px(st["zones"][k] + zl / 2)
         o.append(f'<circle cx="{X:.2f}" cy="{y0 + 26}" r="1.6" fill="none" stroke="#5b6168" stroke-width=".3"/>'
-                 f'<text x="{X + 2.4:.2f}" y="{y0 + 26.8}" class="dt" style="font-size:1.7px">fan QF{k + 1} ({H.OVEN_FAN["P"]:g} W)</text>')
+                 f'<text x="{X + 2.4:.2f}" y="{y0 + 26.8}" class="dt" style="font-size:1.7px">fan QF{k + 1} ({hardware.OVEN_FAN["P"]:g} W)</text>')
     # the cookies themselves, coloured by oven.py, one per row pitch
     yc = P.y + P.h + 22
     o.append(f'<text x="{x0 - 1}" y="{yc + 1}" class="dt" text-anchor="end">the cookie</text>')
     x = st["dep"]
     sp = L["BAND"]["spacing"]
     while x <= st["pick"][1]:
-        dd, hh, col, topped = M.band_state((x - st["dep"]) / v)
+        dd, hh, col, topped = line_model.band_state((x - st["dep"]) / v)
         r = dd / 2 * P.w / (xb - xa)
         o.append(f'<circle cx="{P.px(x):.2f}" cy="{yc}" r="{r:.2f}" fill="{col}" stroke="#5b4a30" stroke-width=".12"/>')
         if topped:
@@ -203,7 +203,7 @@ def profile_panel(d, x0, y0, w, h):
 
 
 def energy_panel(d, x0, y0, w, h):
-    o = [f'<text x="{x0}" y="{y0 + 3}" class="vt">B  WHERE THE HEAT GOES (steady, {3600 / M.takt():.0f} cookies/h)</text>']
+    o = [f'<text x="{x0}" y="{y0 + 3}" class="vt">B  WHERE THE HEAT GOES (steady, {3600 / line_model.takt():.0f} cookies/h)</text>']
     loads, els = d["loads"], d["els"]
     inst = {z["zone"]: sum(e["P"] for e in els if e["zone"] == z["zone"]) for z in loads}
     top = max(inst.values()) * 1.1
@@ -224,21 +224,21 @@ def energy_panel(d, x0, y0, w, h):
                          f'style="fill:#fff;font-size:1.9px">{val:.0f}</text>')
             y += val
         ins_ = inst[z["zone"]]
-        o.append(f'<line x1="{xc - bw / 2 - 2:.2f}" y1="{P.py(ins_):.2f}" x2="{xc + bw / 2 + 2:.2f}" y2="{P.py(ins_):.2f}" stroke="{D.INK}" stroke-width=".4"/>')
+        o.append(f'<line x1="{xc - bw / 2 - 2:.2f}" y1="{P.py(ins_):.2f}" x2="{xc + bw / 2 + 2:.2f}" y2="{P.py(ins_):.2f}" stroke="{line_draw.INK}" stroke-width=".4"/>')
         o.append(f'<line x1="{xc - bw / 2 - 2:.2f}" y1="{P.py(L["HEADROOM"] * ins_):.2f}" x2="{xc + bw / 2 + 2:.2f}" '
-                 f'y2="{P.py(L["HEADROOM"] * ins_):.2f}" stroke="{D.INK}" stroke-width=".25" stroke-dasharray="1,.7"/>')
+                 f'y2="{P.py(L["HEADROOM"] * ins_):.2f}" stroke="{line_draw.INK}" stroke-width=".25" stroke-dasharray="1,.7"/>')
         o.append(f'<text x="{xc:.2f}" y="{P.py(ins_) - 1:.2f}" class="dt" text-anchor="middle">installed {ins_:.0f} W</text>')
         o.append(f'<text x="{xc:.2f}" y="{P.y + P.h + 4}" class="dt" text-anchor="middle" style="font-weight:700">'
                  f'{z["zone"]} {z["T"]:g} C  ({z["total"] / ins_:.0%})</text>')
     o.append(legend(x0 + 14, y0 + h - 4 + 3, []))
     items = [(k, ITEM_C[k], "box") for k in ("product", "band", "walls", "mouth", "exhaust")] + \
-        [(f"installed / {L['HEADROOM']:.0%} limit", D.INK, "dash")]
+        [(f"installed / {L['HEADROOM']:.0%} limit", line_draw.INK, "dash")]
     o.append(legend(P.x + P.w - 30, P.y + 4, items))
     return "\n".join(o)
 
 
 def phase_panel(d, x0, y0, w, h):
-    S = H.SUPPLY
+    S = hardware.SUPPLY
     o = [f'<text x="{x0}" y="{y0 + 3}" class="vt">C  400 V 3N~ - LOAD PER PHASE (every element on)</text>']
     lim = S["load_max"] * S["I"]
     P = Plot(x0 + 12, y0 + 10, w - 16, h - 24, (0, 3), (0, S["I"]))
@@ -271,16 +271,16 @@ def single_line(d, x0, y0, w, h):
     o = [f'<text x="{x0}" y="{y0 + 3}" class="vt">D  POWER DISTRIBUTION (single line)</text>']
 
     def box(x, y, bw, bh, t1, t2="", fill="#fff"):
-        s = f'<rect x="{x:.2f}" y="{y:.2f}" width="{bw}" height="{bh}" fill="{fill}" stroke="{D.INK}" stroke-width=".25" rx=".6"/>'
+        s = f'<rect x="{x:.2f}" y="{y:.2f}" width="{bw}" height="{bh}" fill="{fill}" stroke="{line_draw.INK}" stroke-width=".25" rx=".6"/>'
         s += f'<text x="{x + bw / 2:.2f}" y="{y + bh / 2 - (0.4 if t2 else -0.8):.2f}" class="dt" text-anchor="middle" style="font-weight:700">{esc(t1)}</text>'
         if t2:
             s += f'<text x="{x + bw / 2:.2f}" y="{y + bh / 2 + 2.6:.2f}" class="dt" text-anchor="middle" style="font-size:1.8px">{esc(t2)}</text>'
         return s
 
-    def ln(x1, y1, x2, y2, c=D.INK, wd=.35):
+    def ln(x1, y1, x2, y2, c=line_draw.INK, wd=.35):
         return f'<line x1="{x1:.2f}" y1="{y1:.2f}" x2="{x2:.2f}" y2="{y2:.2f}" stroke="{c}" stroke-width="{wd}"/>'
 
-    S = H.SUPPLY
+    S = hardware.SUPPLY
     yy = y0 + 8
     bw, bh = 34, 8
     cx = x0 + 2
@@ -311,7 +311,7 @@ def single_line(d, x0, y0, w, h):
             if e is None:
                 o.append(box(xbus + 66, ey, 26, 5, f"-KAQF{k + 1} relay", "", "#f3f4f5"))
                 o.append(ln(xbus + 92, ey + 2.5, xbus + 96, ey + 2.5))
-                o.append(box(xbus + 96, ey, 30, 5, f"fan QF{k + 1} {H.OVEN_FAN['P']:g} W"))
+                o.append(box(xbus + 96, ey, 30, 5, f"fan QF{k + 1} {hardware.OVEN_FAN['P']:g} W"))
                 ph = phase_of[f"QF{k + 1}"]
             else:
                 o.append(box(xbus + 66, ey, 26, 5, f"-QA{e['tag']} SSR 25 A", "", "#f3f4f5"))
@@ -343,17 +343,17 @@ def warm_panel(d, x0, y0, w, h):
 def notes(d):
     loads, els = d["loads"], d["els"]
     tot = sum(z["total"] for z in loads)
-    inst = sum(e["P"] for e in els) + 3 * H.OVEN_FAN["P"]
-    _, s = OV.simulate(L, OV.bake_segments(L, d["tb"]), record=1e9)
+    inst = sum(e["P"] for e in els) + 3 * hardware.OVEN_FAN["P"]
+    _, s = oven.simulate(L, oven.bake_segments(L, d["tb"]), record=1e9)
     return [
         f"Recipe: zones {' / '.join(f'{z['T']:g}' for z in L['OVEN_ZONES'])} C, impingement {L['OVEN_H']['top']:g} W/m2K "
-        f"top / {L['OVEN_H']['bot']:g} through the mesh; bake {d['tb']:.0f} s = {M.zone_len():.0f} mm per zone at "
+        f"top / {L['OVEN_H']['bot']:g} through the mesh; bake {d['tb']:.0f} s = {line_model.zone_len():.0f} mm per zone at "
         f"{d['v']:.3f} mm/s.",
         f"Result (oven.py): core held at >= {L['BAKE_Q']['core_min']:g} C for {s['core_hold']:.0f} s, water "
         f"{L['DOUGH']['w0']:.0%} -> {s['moisture']:.1%}, top colour index {s['colour']:.2f} (1.0 = golden).",
         f"The core sits at 100 C while it still holds water: the heat goes into evaporation (the flat part of the "
         f"core curve) - that is why a thin cookie bakes in minutes and the old 20 mm puck never could.",
-        f"Steady heat {tot:.0f} W ({tot * M.takt() / 3600:.2f} Wh per cookie); installed {inst:.0f} W in {len(els)} tubular "
+        f"Steady heat {tot:.0f} W ({tot * line_model.takt() / 3600:.2f} Wh per cookie); installed {inst:.0f} W in {len(els)} tubular "
         f"elements + 3 fans; zone 1 carries {loads[0]['total'] / tot:.0%} - it heats the cold dough and the cold band.",
         f"Each element has its own SSR; each zone has a 3-pole C16, a zone contactor KHn whose coil runs through the "
         f"zone's STB (SF4, own thermocouple element) and the line contactors K3/K4 (SF1) upstream.",
@@ -375,7 +375,7 @@ def write_csv(d):
 
 
 def write_report(d):
-    S = H.SUPPLY
+    S = hardware.SUPPLY
     lines = ["# STF-2 band oven - heat and power (generated by oven_draw.py from oven.py)", ""]
     lines += [f"- {n}" for n in notes(d)] + ["", "## Zones", "",
                                               "| zone | set C | length mm | product W | band W | walls W | mouths W | exhaust W | "
@@ -397,7 +397,7 @@ def write_report(d):
 
 
 def main():
-    rows, fails = M.oven_proofs()
+    rows, fails = line_model.oven_proofs()
     if fails:
         print("REFUSED - the oven proofs fail:\n" + "\n".join(fails))
         return 1
@@ -408,13 +408,13 @@ def main():
     body.append(phase_panel(d, 170, 214, 110, 96))
     body.append(warm_panel(d, 20, 318, 140, 92))
     body.append(single_line(d, 292, 214, 290, 150))
-    nb, _ = D.notes_block(170, 322, 118, notes(d), "WHAT THE SHEET SAYS")
+    nb, _ = line_draw.notes_block(170, 322, 118, notes(d), "WHAT THE SHEET SAYS")
     body.append(nb)
-    svg = D.sheet(W, Hh, "\n".join(body), "M3 BAND OVEN - HEAT + POWER",
+    svg = line_draw.sheet(W, Hh, "\n".join(body), "M3 BAND OVEN - HEAT + POWER",
                   f"{len(d['els'])} elements, {sum(e['P'] for e in d['els']) / 1000:.1f} kW, 3 zones, 400 V 3N~ - oven.py",
                   "M3-T", "-", "charts (not to scale)")
-    os.makedirs(D.OUT, exist_ok=True)
-    open(os.path.join(D.OUT, "M3_thermal.svg"), "w").write(svg)
+    os.makedirs(line_draw.OUT, exist_ok=True)
+    open(os.path.join(line_draw.OUT, "M3_thermal.svg"), "w").write(svg)
     write_csv(d)
     write_report(d)
     cf = control_sheet()
@@ -427,34 +427,34 @@ def main():
 
 
 
-# ------------------------------------------------------------------ control sheet (upgrade O-2, oven_ctrl.py)
+# --- control sheet (upgrade O-2, oven_ctrl.py)
 def control_sheet():
-    import oven_ctrl as OC
-    pl = OC.Plant()
-    gains = OC.tune(pl)
+    import oven_ctrl
+    pl = oven_ctrl.Plant()
+    gains = oven_ctrl.tune(pl)
     n = pl.n
     cols = ["#b03a2e", "#d98a5a", "#e0a02a"]
     full = lambda t: [1.0] * n
     sc = {
-        "S1": OC.run(pl, gains, 2400.0, lambda t: [0.0] * n, T0=[L["T_AMB"]] * n, ramp=True, record=5.0),
-        "S2": OC.run(pl, gains, 1500.0, OC.content_fn(), record=5.0),
-        "S2pi": OC.run(pl, gains, 1500.0, OC.content_fn(), ff=False, record=5.0),
-        "S3": OC.run(pl, gains, 2400.0, OC.content_fn((0.0, 600.0)), record=5.0),
-        "S3pi": OC.run(pl, gains, 2400.0, OC.content_fn((0.0, 600.0)), ff=False, record=5.0),
-        "S4": OC.run(pl, gains, 1500.0, full, fail=(0, max(e["P"] for e in pl.els if e["zone"] == "Z1"), 600.0), record=2.0),
-        "S5": OC.run(pl, gains, 900.0, full, stuck=(0, 300.0), record=2.0),
+        "S1": oven_ctrl.run(pl, gains, 2400.0, lambda t: [0.0] * n, T0=[L["T_AMB"]] * n, ramp=True, record=5.0),
+        "S2": oven_ctrl.run(pl, gains, 1500.0, oven_ctrl.content_fn(), record=5.0),
+        "S2pi": oven_ctrl.run(pl, gains, 1500.0, oven_ctrl.content_fn(), ff=False, record=5.0),
+        "S3": oven_ctrl.run(pl, gains, 2400.0, oven_ctrl.content_fn((0.0, 600.0)), record=5.0),
+        "S3pi": oven_ctrl.run(pl, gains, 2400.0, oven_ctrl.content_fn((0.0, 600.0)), ff=False, record=5.0),
+        "S4": oven_ctrl.run(pl, gains, 1500.0, full, fail=(0, max(e["P"] for e in pl.els if e["zone"] == "Z1"), 600.0), record=2.0),
+        "S5": oven_ctrl.run(pl, gains, 900.0, full, stuck=(0, 300.0), record=2.0),
     }
     # S6: the worst corner of the mismatch sweep - the PLC's model is 20 % off, the feed-forward learns
-    mm = OC.CTRL["MM"]
-    tp = OC.Mismatch(pl, 1 - mm["cf"], 1 + mm["lb"], 1 + mm["lp"], 1 - mm["pf"], 1 + mm["tf"])
-    ad = OC.adapt0(n)
-    h1 = OC.run(pl, gains, 3600.0, lambda t: [0.0] * n, T0=[L["T_AMB"]] * n, ramp=True, true=tp, adapt=ad)
-    h2 = OC.run(pl, gains, 3600.0, OC.content_fn(), T0=h1["T"][-1], true=tp, adapt=ad)
-    sc["S6"] = OC.run(pl, gains, 2400.0, OC.content_fn((0.0, 600.0)), T0=h2["T"][-1], true=tp, adapt=ad, I0=h2["I"],
+    mm = oven_ctrl.CTRL["MM"]
+    tp = oven_ctrl.Mismatch(pl, 1 - mm["cf"], 1 + mm["lb"], 1 + mm["lp"], 1 - mm["pf"], 1 + mm["tf"])
+    ad = oven_ctrl.adapt0(n)
+    h1 = oven_ctrl.run(pl, gains, 3600.0, lambda t: [0.0] * n, T0=[L["T_AMB"]] * n, ramp=True, true=tp, adapt=ad)
+    h2 = oven_ctrl.run(pl, gains, 3600.0, oven_ctrl.content_fn(), T0=h1["T"][-1], true=tp, adapt=ad)
+    sc["S6"] = oven_ctrl.run(pl, gains, 2400.0, oven_ctrl.content_fn((0.0, 600.0)), T0=h2["T"][-1], true=tp, adapt=ad, I0=h2["I"],
                       record=5.0)
-    r1 = OC.run(pl, gains, 3600.0, lambda t: [0.0] * n, T0=[L["T_AMB"]] * n, ramp=True, true=tp, learn=False)
-    r2 = OC.run(pl, gains, 3600.0, OC.content_fn(), T0=r1["T"][-1], true=tp, learn=False, I0=r1["I"])
-    sc["S6raw"] = OC.run(pl, gains, 2400.0, OC.content_fn((0.0, 600.0)), T0=r2["T"][-1], true=tp, learn=False,
+    r1 = oven_ctrl.run(pl, gains, 3600.0, lambda t: [0.0] * n, T0=[L["T_AMB"]] * n, ramp=True, true=tp, learn=False)
+    r2 = oven_ctrl.run(pl, gains, 3600.0, oven_ctrl.content_fn(), T0=r1["T"][-1], true=tp, learn=False, I0=r1["I"])
+    sc["S6raw"] = oven_ctrl.run(pl, gains, 2400.0, oven_ctrl.content_fn((0.0, 600.0)), T0=r2["T"][-1], true=tp, learn=False,
                          I0=r2["I"], record=5.0)
     win = L["BAKE_MARGIN"]
     body = []
@@ -484,7 +484,7 @@ def control_sheet():
         return "\n".join(o)
 
     def s1_extra(P):
-        return "".join(P.line([(t / 60, min(pl.Ts[k], L["T_AMB"] + OC.CTRL["RAMP"] * t / 60)) for t in sc["S1"]["t"]],
+        return "".join(P.line([(t / 60, min(pl.Ts[k], L["T_AMB"] + oven_ctrl.CTRL["RAMP"] * t / 60)) for t in sc["S1"]["t"]],
                               "#1f63c4", .25, ".8,.6") for k in range(n))
 
     big = max(pl.zel[0], key=lambda e: e["P"])
@@ -502,10 +502,10 @@ def control_sheet():
 
     def s5_extra(P):
         tt = sc["S5"]["trip_t"][0]
-        o = [f'<line x1="{P.x}" y1="{P.py(OC.CTRL["STB_T"]):.2f}" x2="{P.x + P.w}" y2="{P.py(OC.CTRL["STB_T"]):.2f}" stroke="#b03a2e" stroke-width=".3" stroke-dasharray="1.2,.8"/>'
-             f'<text x="{P.x + 1}" y="{P.py(OC.CTRL["STB_T"]) - 1:.2f}" class="dt" style="fill:#b03a2e">STB {OC.CTRL["STB_T"]:g} C (SF4)</text>',
-             f'<line x1="{P.x}" y1="{P.py(OC.CTRL["T_LIMIT"]):.2f}" x2="{P.x + P.w}" y2="{P.py(OC.CTRL["T_LIMIT"]):.2f}" stroke="#1b2330" stroke-width=".3"/>'
-             f'<text x="{P.x + 1}" y="{P.py(OC.CTRL["T_LIMIT"]) - 1:.2f}" class="dt">limit {OC.CTRL["T_LIMIT"]:g} C</text>',
+        o = [f'<line x1="{P.x}" y1="{P.py(oven_ctrl.CTRL["STB_T"]):.2f}" x2="{P.x + P.w}" y2="{P.py(oven_ctrl.CTRL["STB_T"]):.2f}" stroke="#b03a2e" stroke-width=".3" stroke-dasharray="1.2,.8"/>'
+             f'<text x="{P.x + 1}" y="{P.py(oven_ctrl.CTRL["STB_T"]) - 1:.2f}" class="dt" style="fill:#b03a2e">STB {oven_ctrl.CTRL["STB_T"]:g} C (SF4)</text>',
+             f'<line x1="{P.x}" y1="{P.py(oven_ctrl.CTRL["T_LIMIT"]):.2f}" x2="{P.x + P.w}" y2="{P.py(oven_ctrl.CTRL["T_LIMIT"]):.2f}" stroke="#1b2330" stroke-width=".3"/>'
+             f'<text x="{P.x + 1}" y="{P.py(oven_ctrl.CTRL["T_LIMIT"]) - 1:.2f}" class="dt">limit {oven_ctrl.CTRL["T_LIMIT"]:g} C</text>',
              f'<line x1="{P.px(5):.2f}" y1="{P.y}" x2="{P.px(5):.2f}" y2="{P.y + P.h}" stroke="#1b2330" stroke-width=".3"/>'
              f'<text x="{P.px(5) + 1:.2f}" y="{P.y + P.h - 3}" class="dt">Z1 SSRs fail ON</text>']
         if tt:
@@ -532,18 +532,18 @@ def control_sheet():
             "  " + ", ".join(f"Z{k + 1} W0 {ad['W0'][k]:+.0f} W a1 {ad['a1'][k]:.2f}" for k in range(n)),
             "FB_Oven keeps both PERSISTENT: the next start begins learned.",
             "The commissioning hour (before learning) is flagged by its bake log."])))
-    rows, fails, _ = OC.check(verbose=False, write=False)
+    rows, fails, _ = oven_ctrl.check(verbose=False, write=False)
     lines = [f"{'OK' if ok else 'FAIL'} - {nm}: {v} ({lim})" for nm, v, lim, ok, _ in rows]
     lines += ["Model: one lumped node per zone (oven.capacity, oven.wall_loss / mouth_loss, the band and product loads "
               "of oven.zone_loads), zone-to-zone air exchange, TC lag. Assumed: ZONE_G, TC_TAU, the STB / limit "
               "temperatures - MEASURE (oven_ctrl.py header).",
               "FB_Oven runs exactly this: feed-forward of the band content (learned W0 / a1) + PI + anti-windup + "
               "set-point ramp + heater-break check on the phase currents (BC1-3); plc/FB_Oven.st carries the gains."]
-    nb, _ = D.notes_block(400, 150, 172, lines, "PROOFS (oven_ctrl.py)")
+    nb, _ = line_draw.notes_block(400, 150, 172, lines, "PROOFS (oven_ctrl.py)")
     body.append(nb)
-    svg = D.sheet(594, 420, "\n".join(body), "M3 OVEN CONTROL - ZONES IN TIME",
+    svg = line_draw.sheet(594, 420, "\n".join(body), "M3 OVEN CONTROL - ZONES IN TIME",
                   "learning feed-forward + PI per zone, heater break, 6 scenarios, STB - oven_ctrl.py", "M3-C", "-", "charts (not to scale)")
-    open(os.path.join(D.OUT, "M3_control.svg"), "w").write(svg)
+    open(os.path.join(line_draw.OUT, "M3_control.svg"), "w").write(svg)
     return fails
 
 

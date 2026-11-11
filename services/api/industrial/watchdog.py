@@ -25,7 +25,6 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-# Operational safety envelopes
 MAX_SAFE_OVEN_TEMP_C = 220.0
 MIN_ACTIVE_OVEN_TEMP_C = 140.0
 MAX_ORDER_EXECUTION_TIME_S = 180.0
@@ -109,14 +108,12 @@ class TelemetryWatchdog:
         new_incidents: list[Incident] = []
         now = time.time()
 
-        # 1. Evaluate runtime availability
         if not self.runtime:
             from services.api.industrial.actuation import get_runtime
             self.runtime = get_runtime()
         if not self.runtime:
             return new_incidents
 
-        # 2. Check Emergency Stop Interlock
         from services.api.industrial.actuation import get_guard
         guard = get_guard()
         if guard.emergency_latched:
@@ -131,12 +128,9 @@ class TelemetryWatchdog:
                 now=now,
             )
 
-        # 3. Check Live Oven & Thermal Envelopes
         try:
             oven_state = getattr(self.runtime, "_oven", {})
             lamp_on = bool(oven_state.get("lamp", False))
-            # Simulated temperature approximation or live thermal readout
-            # When oven lamp is on, nominal bake temp is ~195°C; check door
             door = float(oven_state.get("door", 1.0))
             if lamp_on and door > 0.1:
                 # Door open while heater active represents thermal loss and safety hazard
@@ -153,7 +147,6 @@ class TelemetryWatchdog:
         except Exception as e:
             logger.debug("Watchdog oven check exception: %s", e)
 
-        # 4. Check Active Order Duration & Stall
         try:
             active_order = getattr(self.runtime, "_active", None)
             if active_order:
@@ -175,7 +168,6 @@ class TelemetryWatchdog:
         except Exception as e:
             logger.debug("Watchdog order stall check exception: %s", e)
 
-        # 5. Check Wear & Predictive Maintenance
         try:
             from services.api.agent.tools import MACHINE, _comp_at, load_json
             data = load_json(MACHINE)

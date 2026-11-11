@@ -25,10 +25,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 os.environ.setdefault("STF_VARIANT", "up12")
 
+import chains  # noqa: E402
 import FreeCAD as App  # noqa: E402
 import Part  # noqa: E402
-
-import chains  # noqa: E402
 from components_cad import COLOURS, bevelled_box  # noqa: E402
 
 V = App.Vector
@@ -44,7 +43,7 @@ def part_note(name):
     return next((p.get("note", "") for p in PARTS if p["n"] == name), "")
 
 
-# ================================================================ the drag chain
+# --- the drag chain
 LIFT = chains.HBW["lift"]
 CH_R, CH_H, CH_W, CH_L = LIFT["R"], LIFT["h"], LIFT["w"], chains.length(LIFT)
 CH_N = 29                                                # links: the chain length in ~15 mm pitches
@@ -103,7 +102,7 @@ def drag_chain():
     return parts
 
 
-# ================================================================ the lift's spindle drive
+# --- the lift's spindle drive
 SP_D, SP_PITCH = 12.0, 4.0                               # hbw_model.py: LIFT_SPINDLE_D, PITCH_MM
 SP_LEN, SP_DEPTH = 160.0, 0.9                            # a 160 mm stretch of it; thread depth assumed
 NUT_AF, NUT_H = 22.0, 20.0                               # the nut's hex (assumed)
@@ -138,7 +137,7 @@ def lift_screw():
             ("bearing_block", bearing, "black", "abs", True)]
 
 
-# ================================================================ the RFID read head
+# --- the RFID read head
 RF_L, RF_W, RF_H = 36.0, 40.0, 24.0                      # hbw_model.py: size ASSUMED
 RF_GAP = 10.0                                            # head face to mould base
 
@@ -158,7 +157,7 @@ def rfid_head():
             ("tag", tag, "tag", "pom", False)]
 
 
-# ================================================================ the records
+# --- the records
 def mm(v):
     return round(v, 3)
 
@@ -284,12 +283,12 @@ def verify(cid, parts):
 def write_glb(cid, parts):
     """As components_cad.write_glb. The chain's links are meshed where they are built (u0); the
     viewer moves each from that pose along the chain's path (the motion record)."""
-    import stf_web_glb as WG
-    g = WG.WebGltf()
+    import stf_web_glb
+    g = stf_web_glb.WebGltf()
     kids = []
     for n, s, col, mat, inside in parts:
         swept = n in ("spindle",)
-        pos, nrm, idx = WG.face_mesh(s, (0.05, 0.35) if swept else (0.01, 0.1))
+        pos, nrm, idx = stf_web_glb.face_mesh(s, (0.05, 0.35) if swept else (0.01, 0.1))
         g._cls = "metal" if mat in ("steel", "brass") else "plastic"
         m = g.mesh(n, pos, nrm, idx, COLOURS[col])
         kids.append(g.node(n, mesh=m, extras={"part": n, "material": mat, "colour": COLOURS[col], "inside_envelope": inside}))

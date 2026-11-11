@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import "@fontsource-variable/geist";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/space-grotesk";
 import "@fontsource-variable/geist-mono";
 import "../shared/theme.css";
 import "../index.css";
@@ -14,9 +15,7 @@ import "../shared/chat-widget.css";
 import "./styles/docs.css";
 import "./styles/consent.css";
 import "../shared/studio.css";
-import "../shared/glass.css";
-import "../shared/obsidian.css";
-import "../shared/ground.css";
+import "../shared/zero.css";
 import { Dashboard } from "./Dashboard";
 import { applyTheme } from "../shared/theme";
 

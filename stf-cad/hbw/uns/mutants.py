@@ -1,5 +1,5 @@
 """Edge nodes that each break one Sparkplug rule: uns/check.py must catch every one."""
-from uns import namespace as N
+from uns import namespace
 from uns.edge import Edge
 
 
@@ -14,7 +14,7 @@ class NamesInData(Edge):
                     self.birth()
                 return
             vals = self.values(d)
-            for dev in (None, *N.DEVICES.values()):
+            for dev in (None, *namespace.DEVICES.values()):
                 changed = [(m.name, m.alias, m.dtype, vals[(dev, m.name)], None) for m in self.devices[dev]
                            if vals[(dev, m.name)] != self.last.get((dev, m.name))]
                 if changed:
@@ -39,7 +39,7 @@ class WrongBdSeq(Edge):
 
     def birth_metrics(self, device, vals):
         ms = super().birth_metrics(device, vals)
-        return [(n, a, t, (v + 1) % 256 if n == N.BDSEQ else v, p) for n, a, t, v, p in ms]
+        return [(n, a, t, (v + 1) % 256 if n == namespace.BDSEQ else v, p) for n, a, t, v, p in ms]
 
 
 class NoHostWait(Edge):

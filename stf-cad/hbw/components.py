@@ -179,13 +179,11 @@ COMPONENTS = {
         ] + FT_GROOVE,
     },
 
-    # ------------------------------------------------------------------
-    # The five further components of the booklet's Bauteilbeschreibung
+    # --- The five further components of the booklet's Bauteilbeschreibung
     # (536634 p.8-11). No ft datasheet for these is in stf/docs/hw, and the
     # booklet prints ratings and principles but NO dimensions - so every
     # size below is "assumed" (measure) or "photo" (read off the booklet
     # picture), and only the ratings are authoritative.
-    # ------------------------------------------------------------------
     "s_motor": {
         "ft": "S-24V",
         "name": "S-Motor 24V",
@@ -377,6 +375,7 @@ COMPONENTS = {
 # the control and power devices the components hang on (devices.py): the same table, the same
 # rules, built and checked by the same components_cad.py
 from devices import DEVICES  # noqa: E402 - devices.py imports this module's dim() and source tags
+
 COMPONENTS.update(DEVICES)
 
 
@@ -390,10 +389,10 @@ def get(cid, key):
 def used_in():
     """Where each component sits in the factory model - joined from the same
     parts table the CAD tab and the spreadsheet use."""
-    import parts_table as PT
+    import parts_table
     out = {cid: [] for cid in COMPONENTS}
     ft_to = {c["ft"]: cid for cid, c in COMPONENTS.items()}
-    for r in PT.build_all():
+    for r in parts_table.build_all():
         cid = ft_to.get(r["ft_part_no"])
         if cid:
             out[cid].append({"module": r["module"], "part": r["part_name"],

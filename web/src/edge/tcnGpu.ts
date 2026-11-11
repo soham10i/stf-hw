@@ -10,7 +10,7 @@
 //
 // TILE: each thread computes TILE output channels at one time step, so an input value loaded from
 // workgroup memory feeds TILE multiply-adds (TILE = 1 is the plain kernel). The roofline in
-// docs/maintenance/trustworthy-edge.md is why that matters: the plain kernel does two loads per
+// docs/reference/maintenance/trustworthy-edge.md is why that matters: the plain kernel does two loads per
 // multiply-add and is limited by loads, not by arithmetic.
 import type { Weights } from "../dashboard/ml";
 

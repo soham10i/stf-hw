@@ -14,11 +14,10 @@ grade the model honestly on machines it never saw.
 """
 import random
 
+import month
 import numpy as np
 
-import month as M
-
-COMPS = list(M.COMP)
+COMPS = list(month.COMP)
 DAYS = 45
 
 
@@ -36,7 +35,7 @@ def machine(i, shift=None):
     """Machine i; `shift` (month.Month) drifts the plant while keeping machine i's own wear,
     disturbances and random draws - the same machine, changed only by the shift."""
     rnd = random.Random(1000 + i)
-    m = M.Month(skip_pm=tuple(COMPS), scenario=scenario(rnd), seed=5000 + i, days=DAYS, shift=shift).run()
+    m = month.Month(skip_pm=tuple(COMPS), scenario=scenario(rnd), seed=5000 + i, days=DAYS, shift=shift).run()
     rules = []
     for e in m.events:
         if e["kind"] == "warning":

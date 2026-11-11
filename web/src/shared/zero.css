@@ -1,0 +1,659 @@
+/* The "Zero" design system (the portable "Zero" theme blueprint: tokens, type, shape, surfaces, components).
+   This file is the one source of the theme's values. It is imported last by the twin (main.tsx)
+   and the dashboard (dashboard/main.tsx), so its tokens and component rules win over theme.css and
+   studio.css, which keep the layout. Components read the tokens; nothing here is meant to be
+   repeated as a literal elsewhere.
+
+   - Two inks, one signal colour: black / off-white carry text; lime (--brand) marks one thing per
+     view - the primary action, the active state or the headline figure.
+   - Lime is never text on a light surface. In light mode it is a fill under black text, or the text
+     of a black button; in dark mode it is the primary and the link colour.
+   - Light and dark are tuned separately, not inverted.
+   - Status colours (--ok / --warn / --bad / --offline) are kept for machine state only, never for
+     a series; selection is always lime.
+
+   The appearance comes from data-theme on <html>, which public/theme-init.js sets before the first
+   paint from the stored choice or the system setting (shared/theme.ts afterwards). */
+
+/* ================================================================ tokens: light (default) */
+:root,
+:root[data-palette="studio"][data-theme="light"] {
+  color-scheme: light;
+  --bg: #f2f2f2;
+  --surface-solid: #ffffff;
+  --surface-raised: #fafafa;
+  --glass: rgba(255, 255, 255, 0.92);
+  --glass-strong: rgba(255, 255, 255, 0.96);
+  --glass-border: rgba(0, 0, 0, 0.07);
+  --glass-shadow: rgba(0, 0, 0, 0.06);
+  --line: rgba(0, 0, 0, 0.08);
+  --field: #8c8c8c;            /* input outline, 3.4:1 on white */
+  --fill: rgba(0, 0, 0, 0.045);
+  --fill-strong: rgba(0, 0, 0, 0.085);
+  --ink: #000000;              /* 18.8:1 */
+  --muted: #595959;            /* 6.3:1 */
+  --brand: #0fff4f;            /* fills, rings, highlights only */
+  --brand-ink: #000000;        /* text on brand fills */
+  --primary: #000000;          /* primary button bg */
+  --primary-ink: #0fff4f;      /* primary button text */
+  --accent: #3d5c00;           /* links / focus ring, 6.9:1 */
+  --warn: #a34a00;
+  --danger: #c4000f;
+  --danger-ink: #ffffff;
+  --ring: rgba(61, 92, 0, 0.35);
+  --chart-grid: #e6e6e6;
+  --chart-neutral: #999999;
+  --heat-1: #ebff99; --heat-2: #0fff4f; --heat-3: #8fb300; --heat-4: #4d6100;
+  --wallpaper:
+    radial-gradient(62rem 44rem at 92% -10%, rgba(15, 255, 79, 0.5), transparent 62%),
+    radial-gradient(40rem 32rem at 8% 0%, rgba(15, 255, 79, 0.16), transparent 60%),
+    radial-gradient(52rem 42rem at -4% 108%, rgba(153, 153, 153, 0.32), transparent 62%),
+    radial-gradient(36rem 30rem at 70% 70%, rgba(15, 255, 79, 0.1), transparent 60%),
+    linear-gradient(180deg, #f8f8f8 0%, #f2f2f2 48%, #e8e8e8 100%);
+
+  /* machine state (blueprint 2.1): always shipped with an icon and a label */
+  --ok: #1a7f37;
+  --bad: var(--danger);
+  --offline: #595959;
+  /* categorical series (blueprint 2.2): fixed order, a colour follows its entity */
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100; --series-5: #e87ba4;
+  /* the companion shade of a hue, for a page that draws a pair (shared/chartColor.ts): darker here */
+  --series-1-soft: #1d4f8f; --series-3-soft: #0f6e4c; --series-4-soft: #8a6200;
+  --flavour-vanilla: #d6c49c;  /* the cream cookie, dark enough to see on white */
+  /* the 3D scene (blueprint 8) */
+  --scene-bg: var(--bg);
+  --scene-section: #d9d9d9;    /* major grid line */
+  --scene-cell: #e6e6e6;       /* minor grid line */
+  --scene-material: #cfcfcf;
+  --scene-hover: #000000;
+  --scene-sky: #ffffff; --scene-floor: #bbbbbb; --scene-hemi: 0.9; --scene-key: 1.2;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23595959' stroke-width='2' stroke-linecap='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  --inset: #141414;            /* code and instrument wells: dark in both appearances */
+}
+
+/* ================================================================ tokens: dark */
+:root[data-palette="studio"][data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #000000;
+  --surface-solid: #141414;
+  --surface-raised: #1f1f1f;
+  --glass: rgba(20, 20, 20, 0.9);
+  --glass-strong: rgba(31, 31, 31, 0.94);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: rgba(0, 0, 0, 0.6);
+  --line: rgba(255, 255, 255, 0.09);
+  --field: #6e6e6e;
+  --fill: rgba(255, 255, 255, 0.06);
+  --fill-strong: rgba(255, 255, 255, 0.11);
+  --ink: #f2f2f2;              /* 16.5:1 */
+  --muted: #999999;            /* 6.5:1 (5.8:1 on raised) */
+  --brand: #0fff4f;
+  --brand-ink: #000000;
+  --primary: #0fff4f;
+  --primary-ink: #000000;
+  --accent: #0fff4f;           /* 15.7:1 */
+  --warn: #ffb340;
+  --danger: #ff6961;
+  --danger-ink: #2b0003;
+  --ring: rgba(15, 255, 79, 0.35);
+  --chart-grid: #262626;
+  --chart-neutral: #999999;
+  --heat-1: #3d4d00; --heat-2: #7a9900; --heat-3: #b3e000; --heat-4: #e0ff66;
+  --wallpaper:
+    radial-gradient(62rem 44rem at 92% -10%, rgba(15, 255, 79, 0.17), transparent 62%),
+    radial-gradient(40rem 32rem at 8% 0%, rgba(15, 255, 79, 0.05), transparent 60%),
+    radial-gradient(52rem 42rem at -4% 108%, rgba(153, 153, 153, 0.15), transparent 62%),
+    radial-gradient(36rem 30rem at 70% 70%, rgba(15, 255, 79, 0.06), transparent 60%),
+    linear-gradient(180deg, #0b0b0b 0%, #000000 55%, #050505 100%);
+
+  --ok: #3fb950;
+  --bad: var(--danger);
+  --offline: #999999;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; --series-5: #d55181;
+  --series-1-soft: #9fc8f5; --series-3-soft: #7fd9b0; --series-4-soft: #e8c66a;
+  --flavour-vanilla: #f2efe6;
+  --scene-bg: #050505;
+  --scene-section: #1f1f1f;
+  --scene-cell: #141414;
+  --scene-material: #3a3a3a;
+  --scene-hover: #f2f2f2;
+  --scene-sky: #9a9a9a; --scene-floor: #111111; --scene-hemi: 0.5; --scene-key: 0.9;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23999999' stroke-width='2' stroke-linecap='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  --inset: #050505;
+}
+
+/* ================================================================ derived tokens
+   Shape, type and elevation, and the names the older stylesheets speak, all expressed in the
+   tokens above so the two appearances stay in step. */
+:root,
+:root[data-palette="studio"][data-theme] {
+  /* elevation: one shadow recipe only */
+  --elevation: 0 1px 2px var(--glass-shadow), 0 12px 32px -12px var(--glass-shadow);
+  --blur: blur(20px) saturate(140%);
+  /* shape: cards 24, controls 12, segmented 10/8, buttons and chips round */
+  --r-card: 24px;
+  --r-control: 12px;
+  --r-seg: 10px;
+  --r-seg-item: 8px;
+  --r-round: 9999px;
+  /* spacing: 4 px base; card padding 24 (16 on phones); 20 between cards; 16 overlay inset */
+  --space: 4px;
+  --pad-card: 20px;
+  --gap-cards: 12px;
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --t-micro: .18s;
+
+  /* type: Inter for text, Space Grotesk for display; the code face stays Geist Mono */
+  --font: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk Variable", "Inter Variable", system-ui, sans-serif;
+  --mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+  --fs-caption: 12px;          /* caption / axis */
+  --fs-callout: 13px;          /* label */
+  --fs-label: 12px;            /* section labels (caption role) */
+  --fs-body: 14px;             /* body */
+  --fs-head: 15px;
+  --fs-title3: 18px;           /* section heading */
+  --fs-title2: 20px;
+  --fs-title1: 28px;           /* display */
+
+  /* the older names, mapped onto the tokens */
+  --ground: var(--bg);
+  --ground-gradient: var(--bg);
+  --ground-light: none;
+  --viewport: var(--scene-bg);
+  --surface: var(--glass);
+  --surface-2: var(--glass-strong);
+  --raised: var(--fill);
+  --hover: var(--fill-strong);
+  --border: var(--line);
+  --border-soft: var(--line);
+  --text: var(--ink);
+  --faint: var(--muted);
+  --accent-strong: var(--accent);
+  --accent-fill: var(--primary);
+  --accent-fill-hover: var(--primary);
+  --accent-weak: color-mix(in srgb, var(--brand) 24%, transparent);
+  --on-accent: var(--primary-ink);
+  --on-ink: var(--bg);
+  --ok-weak: color-mix(in srgb, var(--ok) 14%, transparent);
+  --warn-weak: color-mix(in srgb, var(--warn) 14%, transparent);
+  --bad-weak: color-mix(in srgb, var(--danger) 12%, transparent);
+  --ok-fill: var(--ok); --warn-fill: var(--warn); --bad-fill: var(--danger);
+  --amber: var(--warn);
+  --sky: var(--series-1); --cyan: var(--series-3); --violet: var(--series-5);
+  --logo-a: var(--ink); --logo-b: var(--ink);
+  --grid: var(--chart-grid);
+  --grid-strong: var(--fill-strong);
+  --shadow: var(--elevation);
+  --dot: transparent;
+  --panel: var(--glass);
+  --glass-fill: var(--glass);
+  --chrome-fill: var(--glass-strong);
+  --block-fill: var(--glass-strong);
+  --glass-bg: var(--glass-strong);
+  --glass-solid: var(--surface-solid);
+  --glass-rim: transparent;
+  --glass-inner: transparent;
+  --glass-sheen: transparent;
+  --glass-light: none;
+  --glass-line: var(--glass-border);
+  --glass-edge: var(--glass-border);
+  --float-shadow: var(--elevation);
+  --glass-blur: var(--blur);
+  --chrome-blur: var(--blur);
+  --block-blur: var(--blur);
+  --radius: var(--r-control);
+  --radius-sm: var(--r-seg-item);
+  --radius-panel: var(--r-card);
+  --r-bar: var(--r-card);
+  --r-tile: var(--r-card);
+  --r-ctl: var(--r-control);
+  --gap: 16px;
+  /* controls: the secondary button is the liquid capsule, the primary a solid fill */
+  --btn-shadow: none;
+  --btn-shadow-hover: none;
+  --btn-glass-bg: var(--fill);
+  --btn-glass-bg-hover: var(--fill-strong);
+  --btn-glass-border: 1px solid var(--line);
+  --btn-glass-border-hover: 1px solid var(--brand);
+  --btn-glass-shadow: none;
+  --btn-glass-shadow-hover: none;
+  --btn-glass-shadow-active: none;
+  --btn-glass-primary-bg: var(--primary);
+  --btn-glass-primary-bg-hover: color-mix(in srgb, var(--primary) 86%, var(--surface-solid));
+  --btn-glass-primary-border: 1px solid transparent;
+  --btn-glass-primary-border-hover: 1px solid transparent;
+  --btn-glass-primary-shadow: none;
+  --btn-glass-primary-shadow-hover: none;
+  --btn-glass-primary-color: var(--primary-ink);
+  --btn-glass-active-bg: var(--primary);
+  --btn-glass-active-border: 1px solid transparent;
+  --btn-glass-active-shadow: none;
+  font-family: var(--font);
+  font-size: var(--fs-body);
+}
+
+/* ================================================================ page and ground */
+:root[data-palette="studio"] { background: var(--bg); }
+:root[data-palette="studio"] body {
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font);
+  font-feature-settings: "kern", "ss01", "cv11";
+}
+/* the wallpaper sits on one fixed layer behind everything and drifts slowly (transform only) */
+:root[data-palette="studio"] body::before { display: none; }
+:root[data-palette="studio"] body::after {
+  content: ""; position: fixed; inset: -12%; z-index: -1; pointer-events: none;
+  background: var(--wallpaper);
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-palette="studio"] body::after { animation: zero-drift 40s ease-in-out infinite alternate; }
+}
+@keyframes zero-drift {
+  50% { transform: translate3d(-3%, 2%, 0) scale(1.05); }
+  to { transform: translate3d(2%, -2%, 0) scale(1.02); }
+}
+:root[data-palette="studio"] ::selection { background: var(--accent-weak); color: var(--ink); }
+:root[data-palette="studio"] :is(h1, h2, h3, .display) { font-family: var(--font-display); }
+:root[data-palette="studio"] :is(table, .mono, code, .num, [class*="num"], .db-kpi b) { font-variant-numeric: tabular-nums; }
+:root[data-palette="studio"] a { color: var(--accent); }
+
+/* focus: one visible ring on everything that is not a text field */
+:root[data-palette="studio"] :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+:root[data-palette="studio"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select):focus-visible { outline: none; }
+
+/* ================================================================ surfaces ("liquid glass") */
+/* cards: the content blocks */
+:root[data-palette="studio"] :is(.db-card, .db-kpi, .db-ctl, .db-search, .side .panel, .side .ord-card, .side .tm-card) {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--elevation);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+}
+/* chrome and overlays on the 3D view: the stronger glass */
+:root[data-palette="studio"] :is(
+  .glass, .app.immersive .topbar, .app.immersive .rail, .vp-bar, .db-nav, .db-top, .db-inspector,
+  .app.immersive .side.float, .app.immersive .side.pinned, .vp-tip, .consent-card, .db-guide
+) {
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--elevation);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+}
+/* menus are solid: a nested blur samples nothing */
+:root[data-palette="studio"] :is(.vm-pop, .vp-pop, .theme-pop) {
+  background: var(--surface-solid); border: 1px solid var(--glass-border); border-radius: var(--r-control); box-shadow: var(--elevation);
+}
+/* Reduced transparency (the OS setting, or data-transparency="reduced"): solid surfaces */
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-palette="studio"] { --surface: var(--surface-solid); --glass: var(--surface-solid); --glass-strong: var(--surface-solid); }
+  :root[data-palette="studio"] body::after { display: none; }
+}
+:root[data-palette="studio"][data-transparency="reduced"] { --surface: var(--surface-solid); --glass: var(--surface-solid); --glass-strong: var(--surface-solid); }
+:root[data-transparency="reduced"] :is(.glass, .db-card, .db-kpi, .db-nav, .db-top, .topbar, .rail, .side, .vp-bar) {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+@media (forced-colors: active) {
+  :root[data-palette="studio"] :is(.glass, .db-card, .db-kpi, .db-nav, .db-top, .topbar, .rail, .side, .vp-bar) { border: 1px solid CanvasText; }
+}
+
+/* ================================================================ buttons */
+/* secondary: the liquid capsule, ink text */
+:root[data-palette="studio"] .ui-btn {
+  min-height: 44px; height: auto; padding: 0 18px; border-radius: var(--r-round);
+  background: var(--fill); border: 1px solid var(--line); color: var(--ink);
+  box-shadow: none; text-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  font: 500 var(--fs-body) / 1 var(--font);
+  transition: background-color var(--t-micro) var(--ease), border-color var(--t-micro) var(--ease), color var(--t-micro) var(--ease), transform var(--t-micro) var(--ease);
+}
+:root[data-palette="studio"] .ui-btn:hover { background: var(--fill-strong); border-color: var(--brand); box-shadow: none; transform: none; color: var(--ink); }
+:root[data-palette="studio"] .ui-btn:active { transform: translateY(0.5px); box-shadow: none; }
+:root[data-palette="studio"] .ui-btn.icon,
+:root[data-palette="studio"] .top-actions .ui-btn.icon,
+:root[data-palette="studio"] .db-top .db-ctl .ui-btn.icon { width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: var(--r-round); }
+:root[data-palette="studio"] .top-actions .ui-btn { height: 44px; }
+:root[data-palette="studio"] .ui-btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+:root[data-palette="studio"] .ui-btn.ghost:hover { background: var(--fill); border-color: var(--line); color: var(--ink); }
+/* primary: one per view */
+:root[data-palette="studio"] :is(.ui-btn.primary, .vp-cta, .op.cycle) {
+  min-height: 46px; padding: 0 20px; border: 1px solid transparent; border-radius: var(--r-round);
+  background: var(--primary); color: var(--primary-ink);
+  font: 600 var(--fs-body) / 1 var(--font); box-shadow: none; text-shadow: none;
+}
+:root[data-palette="studio"] :is(.ui-btn.primary, .vp-cta, .op.cycle):hover:not(:disabled) {
+  background: var(--btn-glass-primary-bg-hover); color: var(--primary-ink); border-color: transparent; box-shadow: none; transform: none;
+}
+:root[data-palette="studio"] :is(.ui-btn.primary, .vp-cta, .op.cycle):active:not(:disabled) { transform: translateY(0.5px); }
+/* danger: confirm destructive actions */
+:root[data-palette="studio"] :is(.ui-btn.danger, .ui-btn.bad) { background: var(--danger); color: var(--danger-ink); border-color: transparent; font-weight: 600; }
+:root[data-palette="studio"] :is(.ui-btn.danger, .ui-btn.bad):hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 88%, var(--surface-solid)); color: var(--danger-ink); border-color: transparent; }
+/* pressed and selected: the primary fill */
+:root[data-palette="studio"] :is(.ui-btn.on, .ui-btn[aria-pressed="true"], .slot.active, .op.retrieve, .slot[aria-checked="true"]) {
+  background: var(--primary); color: var(--primary-ink); border: 1px solid transparent; font-weight: 600; box-shadow: none; text-shadow: none;
+}
+:root[data-palette="studio"] :is(.op, .slot) { border: 1px solid var(--line); background: var(--fill); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-palette="studio"] :is(.slot:hover, .op:hover:not(:disabled)) { background: var(--fill-strong); border-color: var(--brand); box-shadow: none; transform: none; }
+:root[data-palette="studio"] :is(.ui-btn, .op, .slot, .vp-btn):disabled { opacity: .5; cursor: not-allowed; }
+
+/* ================================================================ segmented control */
+:root[data-palette="studio"] .ui-seg {
+  gap: 2px; padding: 2px; border: 0; border-radius: var(--r-seg);
+  background: var(--fill); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+:root[data-palette="studio"] .ui-seg button {
+  height: 32px; padding: 0 12px; border: 0; border-radius: var(--r-seg-item);
+  background: transparent; color: var(--muted); font: 600 var(--fs-caption) / 1 var(--font); box-shadow: none; text-shadow: none;
+}
+:root[data-palette="studio"] .ui-seg button:hover { background: var(--fill-strong); color: var(--ink); border: 0; box-shadow: none; }
+:root[data-palette="studio"] :is(.ui-seg button.on, .ui-seg button[aria-pressed="true"]) {
+  background: var(--primary); color: var(--primary-ink); border: 0; box-shadow: none; text-shadow: none;
+}
+
+/* ================================================================ fields */
+:root[data-palette="studio"] :is(.ui-select, .side input[type="number"], .side input[type="text"], .side select, .db-main input[type="text"], .db-main input[type="number"], .db-main input[type="search"], .db-main select) {
+  height: 48px; padding: 0 14px; border-radius: var(--r-control);
+  border: 1px solid var(--field); background-color: var(--surface-solid); color: var(--ink);
+  font: 400 var(--fs-body) var(--font); box-shadow: none;
+  transition: border-color var(--t-micro) var(--ease), box-shadow var(--t-micro) var(--ease);
+}
+:root[data-palette="studio"] :is(.ui-select, .side select, .db-main select) {
+  appearance: none; padding-right: 38px; background: var(--surface-solid) var(--chevron) no-repeat right 14px center;
+}
+:root[data-palette="studio"] .ui-select:hover { border-color: var(--ink); box-shadow: none; }
+:root[data-palette="studio"] :is(.ui-select, .side input, .side select, .db-main input, .db-main select, textarea):focus-visible {
+  border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); outline: none;
+}
+:root[data-palette="studio"] :is(input[type="range"], input[type="checkbox"], input[type="radio"]) { accent-color: var(--primary); }
+
+/* ================================================================ chips */
+:root[data-palette="studio"] .ui-chip {
+  height: 24px; padding: 0 10px; border-radius: var(--r-round);
+  font: 600 var(--fs-caption) / 1 var(--font); letter-spacing: 0; text-transform: none;
+  background: var(--fill); color: var(--muted);
+}
+:root[data-palette="studio"] .ui-chip.ok { background: var(--ok-weak); color: var(--ok); }
+:root[data-palette="studio"] .ui-chip.warn { background: var(--warn-weak); color: var(--warn); }
+:root[data-palette="studio"] .ui-chip.bad { background: var(--bad-weak); color: var(--danger); }
+/* the brand chip: the single highlight per card */
+:root[data-palette="studio"] :is(.ui-chip.accent, .ui-chip.brand) { background: var(--brand); color: var(--brand-ink); }
+
+/* ================================================================ type roles */
+/* section labels: the caption role, not mono capitals */
+:root[data-palette="studio"] :is(
+  .side .panel h3, .np-h, .db-group-h, .db-title > span, .vm-group, .vm-list em, .theme-pop > em, .al-detail b
+) {
+  font: 500 var(--fs-label) / 1.4 var(--font); letter-spacing: .02em; text-transform: none; color: var(--muted);
+}
+:root[data-palette="studio"] .db-title h1 { font: 600 var(--fs-title1) / 1.1 var(--font-display); letter-spacing: -.02em; }
+:root[data-palette="studio"] :is(.db-card h3, .side .panel h2, .side :is(.ord-card, .tm-card) h3) {
+  font: 600 var(--fs-title3) / 1.25 var(--font-display); letter-spacing: -.01em; text-transform: none; color: var(--ink);
+}
+:root[data-palette="studio"] :is(.side-head b, .db-brand b, .brand b) { font-family: var(--font-display); font-weight: 600; letter-spacing: -.02em; }
+:root[data-palette="studio"] :is(.top-guest, .top-status, .vp-status b) { font-family: var(--font); letter-spacing: .02em; text-transform: none; }
+
+/* ================================================================ cards and KPI tiles */
+:root[data-palette="studio"] :is(.db-card, .db-kpi) { border-radius: var(--r-card); }
+:root[data-palette="studio"] .db-card { padding: var(--pad-card); }
+:root[data-palette="studio"] .db-kpi { padding: 16px var(--pad-card); }
+:root[data-palette="studio"] .db-kpi:hover { transform: none; }
+/* a tile's state keeps its small bar and its words; the tile itself stays neutral */
+:root[data-palette="studio"] .db-kpi:is(.ok, .warn, .fail) {
+  background: var(--glass); border-color: var(--glass-border); box-shadow: var(--elevation);
+}
+:root[data-palette="studio"] .db-kpi:is(.ok, .warn, .fail) b { color: var(--ink); text-shadow: none; }
+:root[data-palette="studio"] .db-kpi:is(.ok, .warn, .fail) span { color: var(--muted); letter-spacing: 0; }
+/* the page sits on the wallpaper: no slab behind the cards */
+:root[data-palette="studio"] .db-main { background: transparent; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-palette="studio"] .db-kpi > span { font: 500 var(--fs-callout) / 1.3 var(--font); letter-spacing: 0; text-transform: none; color: var(--muted); }
+:root[data-palette="studio"] .db-kpi b {
+  font: 600 clamp(32px, 2.6vw, 40px) / 1 var(--font-display); letter-spacing: -.02em; margin: 12px 0 8px; color: var(--ink);
+}
+:root[data-palette="studio"] .db-kpi em { font-size: var(--fs-caption); font-style: normal; color: var(--muted); }
+:root[data-palette="studio"] .db-kpis { gap: var(--gap-cards); margin-bottom: var(--gap-cards); }
+:root[data-palette="studio"] .db-grid { gap: var(--gap-cards); }
+@media (max-width: 700px) {
+  :root[data-palette="studio"] { --pad-card: 16px; }
+}
+
+/* ================================================================ dashboard layout */
+:root[data-palette="studio"] .db,
+:root[data-palette="studio"] .db.ask { grid-template-columns: 272px minmax(0, 1fr); }
+:root[data-palette="studio"] .db-main { min-width: 0; }
+/* the page bar's menus open over the cards below it (the cards' blur makes each its own layer) */
+:root[data-palette="studio"] .db-top { border-radius: var(--r-card); z-index: 6; }
+@media (min-width: 901px) { :root[data-palette="studio"] .db-top { position: relative; } }
+:root[data-palette="studio"] .db-top .db-ctl > span:first-child { font: 500 var(--fs-callout) / 1 var(--font); letter-spacing: 0; text-transform: none; color: var(--muted); }
+/* nav: the active item is a strong fill with a 3 px lime bar on its left edge, ink text */
+:root[data-palette="studio"] :is(.db-nav button, .db-twin) { height: 40px; border-radius: var(--r-control); color: var(--muted); font: 500 var(--fs-body) var(--font); }
+:root[data-palette="studio"] :is(.db-nav button, .db-twin):hover { background: var(--fill); color: var(--ink); }
+:root[data-palette="studio"] :is(.db-nav button.on, .db-nav button[aria-current="page"]) { color: var(--ink); font-weight: 600; }
+:root[data-palette="studio"] .db-nav-pill {
+  border-radius: var(--r-control); background: var(--fill-strong); border: 0; box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none; overflow: hidden;
+}
+:root[data-palette="studio"] .db-nav-pill::before {
+  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--brand);
+}
+:root[data-palette="studio"] .db-nav-toggle { color: var(--muted); font: 400 var(--fs-callout) var(--font); }
+:root[data-palette="studio"] .db-nav-toggle:hover { background: var(--fill); color: var(--ink); }
+:root[data-palette="studio"] .db-nav-toggle::after { background: var(--line); }
+
+/* ================================================================ the twin's chrome */
+:root[data-palette="studio"] .rail button { border-radius: var(--r-control); color: var(--muted); position: relative; }
+:root[data-palette="studio"] .rail button:hover { background: var(--fill); color: var(--ink); }
+:root[data-palette="studio"] .rail button.on { background: var(--fill-strong); color: var(--ink); }
+:root[data-palette="studio"] .rail button.on::before {
+  display: block; content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--brand);
+}
+:root[data-palette="studio"] .rail button::after { background: var(--surface-solid); color: var(--ink); border: 1px solid var(--glass-border); box-shadow: var(--elevation); border-radius: var(--r-control); }
+:root[data-palette="studio"] .side-ico { background: var(--brand); color: var(--brand-ink); }
+:root[data-palette="studio"] :is(.np-zones, .np-out, .plc-io, .plc-log, .ord-ins li) { background: var(--fill); border-color: var(--line); border-radius: var(--r-control); }
+:root[data-palette="studio"] .side .tag { font: 600 var(--fs-caption) var(--font); letter-spacing: 0; text-transform: none; }
+:root[data-palette="studio"] .vp-btn { border-radius: var(--r-round); background: var(--fill); color: var(--ink); border: 1px solid transparent; }
+:root[data-palette="studio"] .vp-btn:hover { background: var(--fill-strong); border-color: var(--brand); }
+:root[data-palette="studio"] .vp-btn.off { background: transparent; color: var(--muted); }
+:root[data-palette="studio"] :is(.vp-btn.on, .vp-btn[aria-pressed="true"]) { background: var(--primary); color: var(--primary-ink); border-color: transparent; }
+:root[data-palette="studio"] .vp-tip { color: var(--ink); }
+:root[data-palette="studio"] .vp-progress i, :root[data-palette="studio"] .vp-veil-bar i { background: var(--brand); }
+:root[data-palette="studio"] .vm-btn { background: var(--fill); }
+:root[data-palette="studio"] .vm-btn:hover { background: var(--fill-strong); }
+:root[data-palette="studio"] .consent-yes { background: var(--primary); color: var(--primary-ink); border-radius: var(--r-round); font-weight: 600; }
+:root[data-palette="studio"] .consent-no { background: var(--fill); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-round); }
+:root[data-palette="studio"] .consent-no:hover { background: var(--fill-strong); border-color: var(--brand); }
+
+/* ================================================================ feedback */
+/* error banner: tinted danger, a leading icon in the markup, role="alert" */
+:root[data-palette="studio"] :is(.viewport .error, .db-error, .error-banner) {
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface-solid));
+  color: var(--danger); border-radius: var(--r-control);
+}
+/* the theme menu: rows highlight with the fill, the choice keeps its check mark */
+:root[data-palette="studio"] .theme-pop button { border-radius: var(--r-seg-item); }
+:root[data-palette="studio"] :is(.theme-pop button:hover, .theme-pop button:focus-visible) { background: var(--fill-strong); color: var(--ink); }
+:root[data-palette="studio"] .theme-pop button[aria-checked="true"] .theme-check { color: var(--accent); font-weight: 700; }
+
+/* ================================================================ NEXUS copilot
+   The chat panels, buttons and composer, on the same tokens as the rest of the page. */
+:root[data-palette="studio"] {
+  /* the dashboard's card variables (shell.css), mapped onto the glass tokens */
+  --card-bg: var(--glass);
+  --card-line: var(--glass-border);
+  --card-hi: transparent;
+  --card-blur: var(--blur);
+  --card-light: transparent;
+  --lift: var(--elevation);
+}
+:root[data-palette="studio"] .cx { --cx-r: var(--r-card); --cx-grad: var(--primary); }
+:root[data-palette="studio"] :is(.cx-side, .cx-main, .cx-context) {
+  background: var(--glass); border: 1px solid var(--glass-border); box-shadow: var(--elevation);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+}
+:root[data-palette="studio"] .cx-side { padding: 16px; }
+:root[data-palette="studio"] .cx-context { padding: 20px; }
+/* new chat: the page's primary action */
+:root[data-palette="studio"] .cx-new {
+  min-height: 46px; height: auto; border: 1px solid transparent; border-radius: var(--r-round);
+  background: var(--primary); color: var(--primary-ink); font: 600 var(--fs-body) var(--font);
+  box-shadow: none; text-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+:root[data-palette="studio"] .cx-new:hover { background: var(--btn-glass-primary-bg-hover); border-color: transparent; box-shadow: none; transform: none; }
+:root[data-palette="studio"] .cx-new:active { transform: translateY(0.5px); }
+/* history rows */
+:root[data-palette="studio"] .cx-hist:hover { background: var(--fill); }
+:root[data-palette="studio"] .cx-hist.on { background: var(--fill-strong); }
+/* Chat / Voice: the segmented control */
+:root[data-palette="studio"] .cx-tabs { height: auto; gap: 2px; padding: 2px; border: 0; border-radius: var(--r-seg); background: var(--fill); }
+:root[data-palette="studio"] .cx-tabs button { height: 32px; padding: 0 14px; border-radius: var(--r-seg-item); color: var(--muted); font: 600 var(--fs-caption) var(--font); }
+:root[data-palette="studio"] .cx-tabs button:hover { color: var(--ink); }
+:root[data-palette="studio"] .cx-tabs button.on { color: var(--primary-ink); }
+:root[data-palette="studio"] .cx-tabs .cx-pill { border-radius: var(--r-seg-item); background: var(--primary); box-shadow: none; }
+:root[data-palette="studio"] .cx-choice .cx-pill { background: var(--fill-strong); box-shadow: none; }
+:root[data-palette="studio"] .cx-head { border-bottom-color: var(--line); }
+/* the context counters: small tiles on the fill */
+:root[data-palette="studio"] .cx-ctx-stats > * { background: var(--surface-solid); border: 1px solid var(--line); border-radius: var(--r-control); box-shadow: none; }
+:root[data-palette="studio"] .cx-ctx-stats b { font-family: var(--font-display); font-variant-numeric: tabular-nums; }
+:root[data-palette="studio"] .cx-sec { background: var(--fill); border-color: var(--line); border-radius: var(--r-control); }
+/* empty state: the lime disc with a black glyph, display title, the questions as capsules */
+:root[data-palette="studio"] .cx-orb { border-radius: 50%; background: var(--brand); color: var(--brand-ink); box-shadow: none; animation: none; }
+:root[data-palette="studio"] .cx-hero b { font: 600 var(--fs-title2) / 1.2 var(--font-display); letter-spacing: -.02em; color: var(--ink); }
+:root[data-palette="studio"] .cx-examples { gap: 8px; }
+:root[data-palette="studio"] .cx-examples button {
+  min-height: 40px; padding: 0 16px; border-radius: var(--r-round);
+  background: var(--fill); border: 1px solid var(--line); color: var(--ink); font: 400 var(--fs-body) var(--font);
+}
+:root[data-palette="studio"] .cx-examples button:hover { background: var(--fill-strong); border-color: var(--brand); color: var(--ink); transform: none; }
+/* messages: the user's bubble is ink-on-primary; NEXUS answers on the solid surface */
+:root[data-palette="studio"] .cx-bubble.user { background: var(--primary); color: var(--primary-ink); box-shadow: none; }
+:root[data-palette="studio"] .cx-bubble:not(.user) { background: var(--surface-solid); border: 1px solid var(--line); box-shadow: none; }
+:root[data-palette="studio"] .cx-avatar { background: var(--brand); color: var(--brand-ink); }
+:root[data-palette="studio"] .cx-link, :root[data-palette="studio"] .cx-more { color: var(--accent); }
+/* composer: a field (surface, --field outline, focus ring) with a round send button */
+:root[data-palette="studio"] .cx-composer {
+  min-height: 52px; padding: 6px 6px 6px 18px; border-radius: var(--r-round);
+  border: 1px solid var(--field); background: var(--surface-solid); box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+:root[data-palette="studio"] .cx-composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+:root[data-palette="studio"] .cx-composer textarea::placeholder { color: var(--muted); opacity: 1; }
+:root[data-palette="studio"] .cx-composer button { width: 40px; height: 40px; }
+:root[data-palette="studio"] .cx-composer button:not(:disabled) {
+  background: var(--primary); color: var(--primary-ink); border: 1px solid transparent; box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+:root[data-palette="studio"] .cx-composer button:not(:disabled) svg { color: var(--primary-ink); }
+:root[data-palette="studio"] .cx-composer button:not(:disabled):hover { background: var(--btn-glass-primary-bg-hover); transform: none; border-color: transparent; box-shadow: none; }
+:root[data-palette="studio"] .cx-composer button:disabled { background: var(--fill); border: 1px solid transparent; box-shadow: none; opacity: 1; }
+:root[data-palette="studio"] .cx-composer button:disabled svg { color: var(--muted); opacity: 1; }
+:root[data-palette="studio"] .cx-mic { background: var(--primary); color: var(--primary-ink); }
+:root[data-palette="studio"] .cx-mic.listening { background: var(--danger); color: var(--danger-ink); }
+
+/* ================================================================ dashboard frame: one inset, one gutter
+   The sidebar, the page bar and the cards share a 12 px frame: the sidebar's top meets the page
+   bar's top, and the cards line up with the page bar's left and right edges. */
+:root[data-palette="studio"] .db { padding: 12px; column-gap: 12px; }
+:root[data-palette="studio"] .db.nav-min,
+:root[data-palette="studio"] .db.ask.nav-min { grid-template-columns: 76px minmax(0, 1fr); }
+:root[data-palette="studio"] .db-nav { margin: 0; top: 0; height: calc(100vh - 24px); padding: 12px 10px; }
+:root[data-palette="studio"] .db-main { padding: 0 0 24px; }
+:root[data-palette="studio"] .db-top { margin: 0 0 var(--gap-cards); }
+:root[data-palette="studio"] .db-kpis { margin-bottom: var(--gap-cards); }
+/* collapse: a plain row like the items under it, no card around it */
+:root[data-palette="studio"] .db-nav-toggle {
+  height: 40px; margin: 4px 0 8px; border: 0; border-radius: var(--r-control); background: none; box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+:root[data-palette="studio"] .db-nav-toggle::after { left: 0; right: 0; bottom: -4px; }
+/* collapsed: centred icons, and the current page keeps its fill and lime bar */
+:root[data-palette="studio"] .db.nav-min .db-nav { padding: 12px 8px; }
+:root[data-palette="studio"] .db.nav-min :is(.db-nav button, .db-nav-toggle, .db-twin) { justify-content: center; padding: 0; }
+:root[data-palette="studio"] .db.nav-min .db-nav button.on { background: var(--fill-strong); position: relative; }
+:root[data-palette="studio"] .db.nav-min .db-nav button.on::before {
+  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--brand);
+}
+:root[data-palette="studio"] .db.nav-min .db-group-h { display: none; }
+/* Phones (the dashboard's own 900 px breakpoint, shell.css): one column, and the sidebar is the
+   strip of named pages shell.css draws, scrolled sideways. The desktop columns above (and Studio's)
+   out-rank shell.css's phone rule, so it is restated here at this file's weight. */
+@media (max-width: 900px) {
+  :root[data-palette="studio"] :is(.db, .db.ask, .db.nav-min, .db.ask.nav-min) { grid-template-columns: minmax(0, 1fr); padding: 0; column-gap: 0; }
+  :root[data-palette="studio"] .db-nav {
+    position: sticky; top: 0; z-index: 7; height: auto; margin: 0; padding: 8px 10px; border-radius: 0;
+    border-width: 0 0 1px; flex-direction: row; overflow-x: auto;
+  }
+  :root[data-palette="studio"] .db.nav-min :is(.db-nav button, .db-twin) { padding: 0 12px; justify-content: flex-start; }
+  :root[data-palette="studio"] .db.nav-min .db-nav-toggle { display: none; }
+  :root[data-palette="studio"] .db-main { padding: 12px 12px 88px; }
+  :root[data-palette="studio"] .db-top { margin: 0 0 var(--gap-cards); top: 0; flex-wrap: wrap; }
+  :root[data-palette="studio"] .db-top .ui-btn.icon { width: 40px; height: 40px; min-height: 40px; }
+  :root[data-palette="studio"] .db-title { min-width: 0; }
+}
+
+/* ================================================================ NEXUS windows
+   The floating chat, its launcher, the pinned inspector and the twin's pinned chat (chat-widget.css
+   keeps their layout and resizing). Solid, not glass: over the moving 3D canvas a translucent
+   window shows the model through the text, and its blur samples unevenly behind a scrolling log. */
+:root[data-palette="studio"] :is(.db-float-chat, .db-inspector, .twin-pinned-chat) {
+  background: var(--surface-solid); border: 1px solid var(--glass-border); border-radius: var(--r-card);
+  box-shadow: 0 1px 2px var(--glass-shadow), 0 24px 56px -16px var(--glass-shadow), 0 12px 32px -12px var(--glass-shadow);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+:root[data-palette="studio"] .db-float-chat { animation: zero-pop .24s var(--ease) both; }
+:root[data-palette="studio"] .db-float-chat.resizing { animation: none; }
+:root[data-palette="studio"] :is(.db-float-chat, .db-inspector, .twin-pinned-chat)::before,
+:root[data-palette="studio"] :is(.db-float-chat, .db-inspector, .twin-pinned-chat)::after { display: none; }
+@keyframes zero-pop { from { transform: translateY(8px) scale(.98); } }
+:root[data-palette="studio"] :is(.db-float-chat-h, .db-inspector-h) { background: transparent; border-bottom: 1px solid var(--line); }
+:root[data-palette="studio"] :is(.db-float-chat-h, .db-inspector-h) b { font: 600 var(--fs-head) / 1.2 var(--font-display); letter-spacing: -.01em; color: var(--ink); }
+:root[data-palette="studio"] .db-inspector-ico { background: var(--brand); color: var(--brand-ink); box-shadow: none; }
+:root[data-palette="studio"] :is(.db-inspector-h, .db-float-chat-actions) :is(.ui-btn.pin, .ui-btn.on) {
+  background: var(--primary); color: var(--primary-ink); border: 1px solid transparent; box-shadow: none;
+}
+:root[data-palette="studio"] .db-float-grip.corner { color: var(--muted); }
+:root[data-palette="studio"] :is(.db-float-grip.corner, .db-float-grip.left, .db-float-grip.top):hover { color: var(--ink); background: var(--fill-strong); }
+/* the launcher: a capsule, the lime mark, ink label */
+:root[data-palette="studio"] .db-float-trigger {
+  height: 48px; padding: 0 18px 0 6px; gap: 10px; border-radius: var(--r-round);
+  background: var(--glass-strong); border: 1px solid var(--glass-border); color: var(--ink);
+  box-shadow: var(--elevation); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  font: 600 var(--fs-body) var(--font);
+}
+:root[data-palette="studio"] .db-float-trigger:hover { border-color: var(--brand); transform: none; box-shadow: var(--elevation); }
+:root[data-palette="studio"] .db-float-trigger.active { background: var(--primary); color: var(--primary-ink); border-color: transparent; box-shadow: var(--elevation); }
+:root[data-palette="studio"] .db-float-trigger-mark { width: 36px; height: 36px; border-radius: 50%; background: var(--brand); color: var(--brand-ink); }
+:root[data-palette="studio"] .db-float-trigger.active .db-float-trigger-mark { background: var(--primary-ink); color: var(--primary); }
+@media (prefers-reduced-motion: reduce) { :root[data-palette="studio"] .db-float-chat { animation: none; } }
+
+/* ================================================================ charts (blueprint 7.1) */
+:root[data-palette="studio"] .pl-grid { stroke: var(--chart-grid); }
+:root[data-palette="studio"] .pl-axis { stroke: var(--line); }
+:root[data-palette="studio"] .pl-cross { stroke: var(--muted); }
+:root[data-palette="studio"] .pl-tip { background: var(--surface-solid); color: var(--ink); border: 1px solid var(--glass-border); box-shadow: var(--elevation); border-radius: var(--r-control); }
+
+/* ================================================================ job tags
+   A unit's current job: ink text after a dot in the job's colour (text never takes a series colour). */
+.job-tag { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); }
+.job-tag > i { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+
+/* ================================================================ theme swap
+   Set for the instant the appearance changes (shared/theme.ts applyTheme): no element animates its
+   colours from the old theme to the new one. */
+.theme-switch, .theme-switch *, .theme-switch *::before, .theme-switch *::after { transition: none !important; }
+
+/* ================================================================ twin side panel on phones
+   On a phone the rail is a strip along the top, so the panel no longer needs the 48 px left offset
+   (twin.css) that left the Orders panel clipped at its right edge. The panel spans the screen, and
+   the order grid's tracks may shrink (1fr alone keeps each track at least its widest label). */
+.ord-flavours { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ord-flavours .slot { min-width: 0; }
+.side-body { min-width: 0; }
+@media (max-width: 768px) {
+  :root[data-palette="studio"] .app :is(.side.float, .side.pinned) {
+    left: 8px !important; right: 8px !important; max-width: calc(100vw - 16px) !important;
+  }
+  :root[data-palette="studio"] .ord-head { flex-wrap: wrap; }
+  :root[data-palette="studio"] .ord-flavours .slot { padding: 10px 2px; gap: 4px; font-size: var(--fs-callout); }
+}

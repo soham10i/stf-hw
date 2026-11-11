@@ -30,8 +30,8 @@ operator's repair time, and the node watchdog.
 """
 import math
 
-import control as C
-import io_nodes as N
+import control
+import io_nodes
 from variant import UP5, UP7
 
 SCAN = {"default": 0.010}          # PLC task per unit, s (ACCURACY may shorten one)
@@ -46,7 +46,7 @@ TOL_MAKESPAN = 0.10                # the measured order time must be within 10 %
 PHYS = {
     "a_mm": {"travel": 1500.0, "lift": 1500.0, "plunge": 1200.0, "reach": 1200.0},   # mm/s^2
     "a_deg": {"swivel": 600.0},                                                        # deg/s^2
-    "v": {"travel": C.V_HBW, "lift": C.V_HBW, "plunge": C.V_MM, "reach": C.V_MM, "swivel": C.V_DEG},
+    "v": {"travel": control.V_HBW, "lift": control.V_HBW, "plunge": control.V_MM, "reach": control.V_MM, "swivel": control.V_DEG},
     "spin_up": 0.08,          # s: a relay-switched motor to speed, for switch-ended moves
     "belt_slip": 0.03,        # the belts run 3 % slow under load
     "cyl": 0.8,               # a cylinder at 0.7 bar reaches its reed in 80 % of the booklet time
@@ -81,13 +81,13 @@ def _trap(d, v, a):
     return d / v + v / a if d >= v * v / a else 2.0 * math.sqrt(d / a)
 
 
-# ------------------------------------------------------------- accuracy
+# --- accuracy
 def accuracy():
     """Bang-bang positioning over Modbus: the PLC switches the relay off a
     brake lead before the target; the scan phase leaves +-v*scan/2."""
     rows, task = [], {}
-    import vgr_model as VG
-    r_max = VG.cup_radius(VG.V["REACH"][1])
+    import vgr_model
+    r_max = vgr_model.cup_radius(vgr_model.V["REACH"][1])
     for ax, v in PHYS["v"].items():
         a = PHYS["a_deg"].get(ax) or PHYS["a_mm"][ax]
         tol, why = TOLERANCE[ax]
@@ -114,7 +114,7 @@ def scan_of(unit):
     return TASK.get(unit, SCAN["default"])
 
 
-# ---------------------------------------------------------------- plant
+# --- plant
 def phys(st):
     """The plant's time for one step, from its outputs, its signal and its travel."""
     if st.dist:
@@ -130,7 +130,7 @@ def phys(st):
         return st.t / (1 - PHYS["belt_slip"])
     if st.key == "eject":
         return PHYS["eject"]
-    if st.done in C.U5_ROWS.values() or st.done in ("I10", "I11", "I12", "I13", "I14", "I15"):
+    if st.done in control.U5_ROWS.values() or st.done in ("I10", "I11", "I12", "I13", "I14", "I15"):
         return st.t * PHYS["cyl"]
     if not st.motion:
         return st.t
@@ -147,13 +147,13 @@ def pneumatic(st):
     return bool(set(st.out) & PNEU.get(st.unit, set()))
 
 
-# ------------------------------------------------------------------ run
+# --- run
 class Run:
     """The orchestrator of control.py driven step by step against the plant."""
 
     def __init__(self, pol="reuse", fault=None):
         self.pol, self.fault = pol, fault or {}
-        self.s = C.dispatch(C.initial(), pol)
+        self.s = control.dispatch(control.initial(), pol)
         self.t = 0.0
         self.jobs = {}                  # job -> {"steps", "pc", "t0", "t1"}
         self.hold = 0.0                 # no step starts before this
@@ -190,7 +190,7 @@ class Run:
     def _inject(self, job, J, st, t0):
         self.fired = True
         f = self.fault
-        units = C.sfc()
+        units = control.sfc()
         if f["kind"] == "never":
             trip = _q(t0 + st.limit, scan_of(st.unit))
             code = _code_for(units, job, J, st)
@@ -208,7 +208,7 @@ class Run:
             ack = trip + REPAIR
             # retrace the tour to transit height, re-home the arm, restart the arm segment
             done_arm = [x for x in J["steps"][:J["pc"] + 1] if x.unit == "arm"]
-            retrace = sum(phys(x) for x in done_arm) / 2 + sum(phys(h) for h in C.HOMING["arm"])
+            retrace = sum(phys(x) for x in done_arm) / 2 + sum(phys(h) for h in control.HOMING["arm"])
             self.fault_at, self.trip, self.ack = drop, trip, ack
             self.hold = max(self.hold, ack)
             J["restart"] = _arm_restart(job, J, ack + retrace)
@@ -245,8 +245,8 @@ class Run:
             m = f["module"]
             trip = _q(T0 + MB_TIMEOUT, SCAN["default"])
             self._alarm("SYS-04", trip, "system", f"{m} node lost (Modbus timeout)")
-            mods = {u for u, (mm, _, _) in C.UNITS.items() if mm == m}
-            rehome = max(sum(phys(h) for h in C.HOMING[u]) for u in mods)
+            mods = {u for u, (mm, _, _) in control.UNITS.items() if mm == m}
+            rehome = max(sum(phys(h) for h in control.HOMING[u]) for u in mods)
             ack = T0 + D + RESET
             for job, J in self.jobs.items():
                 st = J["steps"][J["pc"]]
@@ -285,7 +285,7 @@ class Run:
                     self.t = f["at"]
                     self._timed_fault()
                     continue
-            job = min(self.jobs, key=lambda j: (self.jobs[j]["t1"], C.UNIT_ORDER.index(j[2][0])))
+            job = min(self.jobs, key=lambda j: (self.jobs[j]["t1"], control.UNIT_ORDER.index(j[2][0])))
             J = self.jobs[job]
             self.t = J["t1"]
             if "restart" in J:
@@ -300,20 +300,20 @@ class Run:
             self.bars.append({"job": job[0], "bind": [str(x) for x in job[1]], "units": list(job[2]),
                               "t0": J["start"], "t1": round(self.t, 2), "steps": J["bars"]})
             del self.jobs[job]
-            self.s = C.dispatch(C.complete(self.s, job, self.pol), self.pol)
-            bad = C.invariants(self.s)
+            self.s = control.dispatch(control.complete(self.s, job, self.pol), self.pol)
+            bad = control.invariants(self.s)
             if bad:
                 raise AssertionError("; ".join(bad))
             for j in self.s["run"]:
                 if j not in self.jobs:
                     self._start_job(j)
-        if not C.goal(self.s):
+        if not control.goal(self.s):
             raise AssertionError("the order did not complete")
         return self
 
     def _start_job(self, job):
         self.count[job[0]] = self.count.get(job[0], 0) + 1
-        self.jobs[job] = {"steps": C.job_steps(job), "pc": 0, "n": self.count[job[0]],
+        self.jobs[job] = {"steps": control.job_steps(job), "pc": 0, "n": self.count[job[0]],
                           "start": round(max(self.t, self.hold), 2), "bars": []}
         self.events.append((round(max(self.t, self.hold), 2), "start", job))
         self._begin(job, self.t)
@@ -337,23 +337,23 @@ def _code_for(units, job, J, st):
     """The alarm the PLC raises for this step: the one whose steps list its SFC state."""
     k = [x for x in J["steps"][:J["pc"] + 1] if x.unit == st.unit]
     sid = st.key if st.key.startswith("H:") else f"{job[0]}.{len(k):02d}"
-    for a in C.alarms(units):
+    for a in control.alarms(units):
         if a["unit"] == st.unit and sid in a["steps"]:     # state ids repeat across units
             return a["code"]
     return "?"
 
 
-# ----------------------------------------------------------- fault matrix
+# --- fault matrix
 def matrix():
     """(id, fault, what the plant does, the injection, the expected alarm, the detection bound)."""
     return [
         ("F1", "stuck switch", "crane I6 (Ausleger back) never makes",
-         {"kind": "never", "job": "store_retrieve" if C.OPT["dual"] else "retrieve", "n": 1 if C.OPT["dual"] else 2,
+         {"kind": "never", "job": "store_retrieve" if control.OPT["dual"] else "retrieve", "n": 1 if control.OPT["dual"] else 2,
           "unit": "crane", "key": "fork->back"}, ("crane", "I6")),
         ("F2", "motor stall", "VGR swivel motor stalls: B5/B6 stop counting",
          {"kind": "never", "job": "belt_to_oven", "n": 2, "unit": "arm", "out": "Q5"}, ("arm", "B5")),
         ("F3", "cylinder never arrives", "oven door cylinder sticks shut (I10 never)",
-         {"kind": "never", "job": "present" if C.OPT["split"] else "belt_to_oven", "n": 3, "unit": "door",
+         {"kind": "never", "job": "present" if control.OPT["split"] else "belt_to_oven", "n": 3, "unit": "door",
           "key": "row1"}, ("door", "I10")),
         ("F4", "lost vacuum", "cup seal breaks while carrying a raw cookie", {"kind": "vac", "job": "belt_to_oven", "n": 4},
          ("system", "VGR-V01")),
@@ -369,18 +369,18 @@ def _expected_code(units, exp):
     unit, sig = exp
     if unit == "system":
         return sig
-    for a in C.alarms(units):
+    for a in control.alarms(units):
         if a["unit"] == unit and sig in a["cause"] + a["text"]:
             return a["code"]
     return "?"
 
 
 def run_matrix(healthy):
-    units = C.sfc()
+    units = control.sfc()
     rows = []
     for fid, name, what, inj, exp in matrix():
         want = _expected_code(units, exp)
-        r = Run(C.PLC_POLICY, dict(inj)).run()
+        r = Run(control.PLC_POLICY, dict(inj)).run()
         fails = []
         got = r.alarms[0]["code"] if r.alarms else None
         if got != want:
@@ -390,14 +390,14 @@ def run_matrix(healthy):
         latency = round(r.trip - r.fault_at, 3) if r.fired else None
         bound = None
         if inj["kind"] == "never":
-            st_limit = max(a["limit"] or 0 for a in C.alarms(units) if a["code"] == want) if want != "?" else 0
+            st_limit = max(a["limit"] or 0 for a in control.alarms(units) if a["code"] == want) if want != "?" else 0
             bound = st_limit + 2 * BUS + 0.02
         else:
             bound = 0.1
         if latency is None or latency > bound:
             fails.append(f"detected after {latency} s, bound {bound} s")
-        rec = C.trace(r.events)
-        tf = C.check_trace(rec)
+        rec = control.trace(r.events)
+        tf = control.check_trace(rec)
         if tf:
             fails.append(f"records after recovery: {tf[0]}")
         rows.append({"id": fid, "fault": name, "what": what, "expected": want,
@@ -430,22 +430,22 @@ def before_sensors(healthy):
     bars = healthy.bars
     out = []
     # F3 without the door reed: row1 is only timed, so the slider (row2, I7) drives into the shut door
-    b = [x for x in bars if x["job"] == ("present" if C.OPT["split"] else "belt_to_oven")][2]
+    b = [x for x in bars if x["job"] == ("present" if control.OPT["split"] else "belt_to_oven")][2]
     r1 = next(s for s in b["steps"] if s[1] == "row1")
-    lim2 = next(s for s in C.oven_steps("present") if s.key == "row2").limit
+    lim2 = next(s for s in control.oven_steps("present") if s.key == "row2").limit
     out.append({"id": "F3", "detected": "OVN-D watchdog on I7 (the slider)", "after_s": round(r1[3] - r1[2] + lim2, 2),
                 "harm": "the Ofenschieber drives into the shut door for its whole watchdog time"})
     # F4 without the vacuum switch: nothing notices until that cookie's oven-belt I3 never comes
     b = [x for x in bars if x["job"] == "belt_to_oven"][3]
     c = b["bind"][0]
     ob = next(x for x in bars if x["job"] == "ovenbelt" and x["bind"][0] == c)
-    lim = C.ovenbelt_steps()[0].limit
+    lim = control.ovenbelt_steps()[0].limit
     out.append({"id": "F4", "detected": "OVN-B watchdog on I3 (oven belt end)", "after_s": round(ob["t0"] + lim - b["t0"], 1),
                 "harm": "a bake, a Sauger transfer and a saw cycle run empty; the record says 'baked'"})
     return out
 
 
-# ---------------------------------------------------------- signal map
+# --- signal map
 IP = {"hbw": "192.168.10.11", "vgr": "192.168.10.12", "oven": "192.168.10.13", "sorting": "192.168.10.14"}
 TABLE = {"DO": ("coil", 0), "DI": ("discrete input", 10000), "AI": ("input register", 30000),
          "CNT": ("input register", 30000), "IOL": ("holding register", 40000)}
@@ -453,9 +453,9 @@ TABLE = {"DO": ("coil", 0), "DI": ("discrete input", 10000), "AI": ("input regis
 
 def signal_map():
     rows = []
-    for m in N.MODULES:
+    for m in io_nodes.MODULES:
         nxt = {"DO": 0, "DI": 0, "AI": 0, "CNT": 100, "IOL": 0}
-        for sid, t, chans in N.slices(m):
+        for sid, t, chans in io_nodes.slices(m):
             for k, sg in enumerate(chans):
                 tbl, base = TABLE[t]
                 width = {"CNT": 2, "IOL": 8}.get(t, 1)
@@ -465,7 +465,7 @@ def signal_map():
                     continue
                 rows.append({"tag": f"{m.upper()}_{sg.replace('/', '_')}", "module": m, "signal": sg, "type": t,
                              "node": IP[m], "slice": sid, "ch": k + 1, "table": tbl, "addr": addr, "regs": width,
-                             "twin": f"{m}.{sg}", "desc": C.SIG.get((m, sg.split("/")[0]), "")})
+                             "twin": f"{m}.{sg}", "desc": control.SIG.get((m, sg.split("/")[0]), "")})
     return rows
 
 
@@ -478,8 +478,8 @@ def check_map(rows):
             fails.append(f"MAP {r['tag']}: address {key} used twice")
         seen.add(key)
     mapped = {(r["module"], s) for r in rows for s in r["signal"].split("/")}
-    for u, d in C.sfc().items():
-        m = C.UNITS[u][0]
+    for u, d in control.sfc().items():
+        m = control.UNITS[u][0]
         for st in d["states"]:
             for q in st["out"]:
                 if (m, q) not in mapped:
@@ -492,19 +492,19 @@ def check_map(rows):
     return fails
 
 
-# ------------------------------------------------------ recovery paths
+# --- recovery paths
 def check_recovery_paths():
     """From every waypoint of every VGR tour, and the middle of every leg,
     plunging straight up to transit height is clear."""
-    import vgr_path as VP
-    T = VP.V["TRANSIT"]
-    tours = {C.vgr_tour("belt_to_oven", "belt", "oven")}
-    tours |= {C.vgr_tour("bay_to_belt", f"bay_{b}", "belt") for b in C.BAYS}
-    for i in range(C.NEST_N):
-        tours |= {C.vgr_tour("belt_to_buf", "belt", f"buf_{i + 1}"), C.vgr_tour("buf_to_oven", f"buf_{i + 1}", "oven")}
+    import vgr_path
+    T = vgr_path.V["TRANSIT"]
+    tours = {control.vgr_tour("belt_to_oven", "belt", "oven")}
+    tours |= {control.vgr_tour("bay_to_belt", f"bay_{b}", "belt") for b in control.BAYS}
+    for i in range(control.NEST_N):
+        tours |= {control.vgr_tour("belt_to_buf", "belt", f"buf_{i + 1}"), control.vgr_tour("buf_to_oven", f"buf_{i + 1}", "oven")}
     fails, n = [], 0
     for t in sorted(tours):
-        keys = C._tour_keys(t)
+        keys = control._tour_keys(t)
         poses = list(keys)
         for a, b in zip(keys, keys[1:]):
             poses.append({**a, **{x: (a[x] + b[x]) / 2 for x in ("sw", "rr", "pz", "compress")},
@@ -513,38 +513,38 @@ def check_recovery_paths():
             if k["pz"] >= T - 1e-6:
                 continue
             n += 1
-            if not VP._leg_clear(k, {**k, "pz": T, "compress": 0.0}):
+            if not vgr_path._leg_clear(k, {**k, "pz": T, "compress": 0.0}):
                 fails.append(f"RECOVERY {t[0][0]}->{t[1][0]}: plunging up from sw={k['sw']:.1f} "
                              f"rr={k['rr']:.0f} pz={k['pz']:.0f} hits something")
     return fails, n
 
 
-# ---------------------------------------------------------- performance
+# --- performance
 def performance(healthy, rows):
-    busy = {u: round(sum(s[3] - s[2] for b in healthy.bars for s in b["steps"] if s[0] == u), 1) for u in C.UNITS}
+    busy = {u: round(sum(s[3] - s[2] for b in healthy.bars for s in b["steps"] if s[0] == u), 1) for u in control.UNITS}
     bott = max(busy, key=busy.get)
     T = healthy.makespan
     lost = sum(r["lost_s"] for r in rows)
-    good = sum(1 for r in C.trace(healthy.events).values() if r.get("verified"))
+    good = sum(1 for r in control.trace(healthy.events).values() if r.get("verified"))
     A = T / (T + lost)
     P = busy[bott] / T
-    Q = good / len(C.PRODUCE)
-    buf = Run("buffer").run().makespan if C.NEST_N else None
-    return {"makespan": T, "model": C.simulate(C.PLC_POLICY)[2], "busy": busy, "bottleneck": bott,
+    Q = good / len(control.PRODUCE)
+    buf = Run("buffer").run().makespan if control.NEST_N else None
+    return {"makespan": T, "model": control.simulate(control.PLC_POLICY)[2], "busy": busy, "bottleneck": bott,
             "availability": round(A, 3), "performance": round(P, 3), "quality": round(Q, 3),
             "oee": round(A * P * Q, 3), "shift_s": round(T + lost, 1), "buffer_makespan": buf,
             "oee_note": "a shift = the 12-cookie order with every fault of the matrix once; "
                         "performance = the bottleneck's busy time / the order time; quality = A4-verified / made"}
 
 
-# ---------------------------------------------------------------- check
+# --- check
 _CACHE = {}
 
 
 def results():
     if "r" in _CACHE:
         return _CACHE["r"]
-    healthy = Run(C.PLC_POLICY).run()
+    healthy = Run(control.PLC_POLICY).run()
     rows = run_matrix(healthy)
     _CACHE["r"] = (healthy, rows)
     return _CACHE["r"]
@@ -553,7 +553,7 @@ def results():
 def check(verbose=True):
     fails = []
     healthy, rows = results()
-    model = C.simulate(C.PLC_POLICY)[2]
+    model = control.simulate(control.PLC_POLICY)[2]
     dev = abs(healthy.makespan - model) / model
     if dev > TOL_MAKESPAN:
         fails.append(f"TIME the commissioned order took {healthy.makespan} s, the model {model} s ({dev:.1%})")
@@ -589,12 +589,12 @@ def check(verbose=True):
 def export():
     healthy, rows = results()
     return {
-        "scan_ms": {u: round(scan_of(u) * 1000) for u in C.UNITS}, "bus_ms": BUS * 1000,
+        "scan_ms": {u: round(scan_of(u) * 1000) for u in control.UNITS}, "bus_ms": BUS * 1000,
         "node_wd_ms": NODE_WD * 1000, "mb_timeout_ms": MB_TIMEOUT * 1000, "repair_s": REPAIR, "reset_s": RESET,
         "phys": PHYS, "accuracy": ACC, "tol_makespan": TOL_MAKESPAN,
         "healthy": {"makespan": healthy.makespan, "worst_watchdog": _CACHE.get("worst"), "bars": [{k: v for k, v in b.items() if k != "steps"} for b in healthy.bars]},
         "matrix": rows, "before": before_sensors(healthy),
-        "sensors": {m: {s: {"part": p, "what": w} for s, (p, w) in d.items()} for m, d in C.U5_SENSORS.items()},
+        "sensors": {m: {s: {"part": p, "what": w} for s, (p, w) in d.items()} for m, d in control.U5_SENSORS.items()},
         "map": signal_map(), "performance": performance(healthy, rows), "ip": IP,
         "assumed": "accelerations, belt slip, cylinder/vacuum/RFID times, the operator's repair (30 s) and reset (10 s), "
                    "the node watchdog (100 ms) and the Modbus timeout (50 ms)",

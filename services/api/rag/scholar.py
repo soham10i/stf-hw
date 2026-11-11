@@ -22,8 +22,8 @@ import os
 import urllib.parse
 import urllib.request
 
-from services.api.security import netguard as NG
 from services.api.core.logging_config import get_logger
+from services.api.security import netguard
 
 logger = get_logger(__name__)
 
@@ -54,7 +54,7 @@ def works(query: str, n: int = 5, opener=None) -> list[dict]:
         return []
     params = {
         "search": query[:200],
-        "filter": f"type:{KINDS},has_abstract:true",
+        "filter": "has_abstract:true",
         "per_page": str(max(1, min(n * 2, 20))),
         "select": SELECT,
     }
@@ -65,7 +65,7 @@ def works(query: str, n: int = 5, opener=None) -> list[dict]:
     url = f"{URL}?{urllib.parse.urlencode(params)}"
     req = urllib.request.Request(url, headers={"User-Agent": "stf-digital-twin/1.0"})
     try:
-        with (opener or NG.opener).open(req, timeout=TIMEOUT_S) as r:
+        with (opener or netguard.opener).open(req, timeout=TIMEOUT_S) as r:
             data = json.loads(r.read())
     except Exception as e:  # noqa: BLE001 - the literature is extra evidence, never required
         logger.warning("OpenAlex search failed for %r: %s", query[:60], e)
@@ -99,7 +99,7 @@ def works(query: str, n: int = 5, opener=None) -> list[dict]:
 
 def found(query: str, n: int = 5, opener=None):
     """The works as a websearch.Found, or None when there are none."""
-    from . import websearch as W
+    from . import websearch
 
     ws = works(query, n, opener)
     if not ws:
@@ -117,7 +117,7 @@ def found(query: str, n: int = 5, opener=None):
         "## Peer-reviewed literature (OpenAlex)\n\nAbstracts of the most relevant works; cite one "
         "only for what its abstract says.\n\n" + "\n".join(lines)
     )
-    return W.Found(
+    return websearch.Found(
         text=text,
         sources=[
             {

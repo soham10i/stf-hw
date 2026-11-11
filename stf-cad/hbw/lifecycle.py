@@ -20,8 +20,8 @@ section area, and the reach.
 """
 import math
 
-import control as C
-import vc as V
+import control
+import vc
 from variant import UP7
 
 REACH = 850.0          # ISO 13857 upper-limb reach through an opening, mm
@@ -33,26 +33,26 @@ F_MIN = 20.0           # Hz: the natural period must fit twice into the 0.1 s ra
 G = 9810.0             # mm/s^2
 
 
-# ------------------------------------------------------------ tolerances
+# --- tolerances
 def chains():
-    import hbw_model as HM
-    import vgr_model as VG
-    import sorting_model as SM
-    q = HM.P
-    acc = {a["axis"]: a["error_mm"] for a in V.ACC}
-    cup = VG.V["CUP_D"]
+    import hbw_model
+    import sorting_model
+    import vgr_model
+    q = hbw_model.P
+    acc = {a["axis"]: a["error_mm"] for a in vc.ACC}
+    cup = vgr_model.V["CUP_D"]
     wp = q["WP_D"]
     pocket_y = max(q["MOULD"][0], q["MOULD"][1]) - 2 * q["RIM_T"]
     seat = 0.2 if UP7 else (pocket_y - wp) / 2
-    belt_w = SM.S["BELT"][3]
-    bay_play = 0.5 if UP7 else (belt_w - SM.S["WP_D"]) / 2
-    reach_y = max(p.aabb()[4] for p in HM.build(q["CV_X"], 80.0, q["FORK"][1]) if p.joint == "fork")
+    belt_w = sorting_model.S["BELT"][3]
+    bay_play = 0.5 if UP7 else (belt_w - sorting_model.S["WP_D"]) / 2
+    reach_y = max(p.aabb()[4] for p in hbw_model.build(q["CV_X"], 80.0, q["FORK"][1]) if p.joint == "fork")
     rows = [
         ("T1", "fork table in the shelf gap (per side)", (q["SHELF_GAP"] - q["TABLE"][0]) / 2, [
             ("shelf bracket position (ft assembly)", 0.5), ("fork table width (moulded)", 0.2),
             ("lateral play of the Ausleger stages", 0.5), ("travel stop (U5 accuracy)", acc["travel"]),
             ("rack post spacing on the plate", 1.0)], None),
-        ("T2", "RP1 read head vs the Ausleger's reach", HM.RFID_Y[0] - 20 - reach_y, [
+        ("T2", "RP1 read head vs the Ausleger's reach", hbw_model.RFID_Y[0] - 20 - reach_y, [
             ("I5 switch actuation spread", 1.5), ("stage 2 length", 0.5), ("head bracket position", 1.0),
             ("belt frame on the plate", 1.0)], None),
         ("T3", "VGR cup seal on a cookie in its mould", (wp - cup) / 2, [
@@ -78,36 +78,39 @@ def chains():
 
 def base_chains():
     """The same chains on Upgrade 6's hardware (as found), for the before/after."""
-    import subprocess, json, sys, os
+    import json
+    import os
+    import subprocess
+    import sys
     r = subprocess.run([sys.executable, "-c", "import json, lifecycle; print(json.dumps(lifecycle.chains()))"],
                        env={**os.environ, "STF_VARIANT": "up6"}, capture_output=True, text=True, check=True,
                        cwd=os.path.dirname(os.path.abspath(__file__)))
     return json.loads(r.stdout.strip().splitlines()[-1])
 
 
-# ---------------------------------------------------------------- access
+# --- access
 SERVICE = ("pcb", "valve", "motor", "compressor", "coupler")
 
 
 def access(doc):
-    import safety as SF
-    import wiring as W
-    import upgrade as U
-    import io_nodes as N
+    import io_nodes
+    import safety
+    import upgrade
+    import wiring
     boxes = []
     for m, parts in (("hbw", doc["parts"]), ("vgr", doc["vgr"]["parts"]), ("oven", doc["oven"]["parts"]),
                      ("sorting", doc["sorting"]["parts"])):
         for d in parts:
             if d["g"] == "frame" or d.get("f", "world") != "world" or d["n"].startswith("chain_"):
                 continue
-            boxes.append((m, d["n"], W._box_f(d, W._tf(m))))
-    for mod, p, a in U.factory_parts(include_io=False):
+            boxes.append((m, d["n"], wiring._box_f(d, wiring._tf(m))))
+    for mod, p, a in upgrade.factory_parts(include_io=False):
         boxes.append((mod, p.name, list(a)))
-    for m in N.MODULES:
-        for p in N.parts(m):
+    for m in io_nodes.MODULES:
+        for p in io_nodes.parts(m):
             boxes.append(("io", p.name, list(p.local_aabb())))
-    x0g, y0g, x1g, y1g = SF.outline()
-    top = SF.H
+    x0g, y0g, x1g, y1g = safety.outline()
+    top = safety.H
     rows = []
     for m, n, b in boxes:
         if not any(k in n.lower() for k in SERVICE):
@@ -136,7 +139,7 @@ def access(doc):
                     break
         cx, cy = (b[0] + b[3]) / 2, (b[1] + b[4]) / 2
         best = None
-        for did, (wall, (a0, a1), what) in SF.DOORS.items():
+        for did, (wall, (a0, a1), what) in safety.DOORS.items():
             wx = x0g if wall == "front" else x1g
             dy = 0.0 if a0 <= cy <= a1 else min(abs(cy - a0), abs(cy - a1))
             d = math.hypot(cx - wx, dy)
@@ -149,7 +152,7 @@ def access(doc):
     return rows
 
 
-# ---------------------------------------------------------------- spares
+# --- spares
 CATS = [
     ("motor", lambda n, t: "motor" in n and not n.endswith(("_mount", "_shaft")), "ft encoder / S-motor 24 V"),
     ("reference switch", lambda n, t: n.startswith(("I1_", "I4_", "I5_", "I6_", "I2_ref", "I3_ref", "I7_", "I8_")) and "ref" in n,
@@ -177,7 +180,7 @@ def spares(doc, health):
         if q:
             rows.append({"item": cat, "what": what, "qty": len(q), "wear": False, "per_year": None,
                          "stock": 1, "examples": q[:4]})
-    n_reed = sum(len(v) for v in C.U5_SENSORS.values())
+    n_reed = sum(len(v) for v in control.U5_SENSORS.values())
     rows.append({"item": "reed / vacuum / pressure switch", "what": "Upgrade 5 sensors", "qty": n_reed, "wear": False,
                  "per_year": None, "stock": 2, "examples": []})
     rows.append({"item": "drag chain", "what": "Upgrade 3 carriers", "qty": len(doc.get("chains", {}).get("chains", {})),
@@ -205,7 +208,7 @@ def plan(health, acc):
     return rows
 
 
-# ------------------------------------------------------------- structure
+# --- structure
 def _mass(parts, fill=None):
     g = 0.0
     for p in parts:
@@ -225,9 +228,9 @@ def _mass(parts, fill=None):
 
 
 def structure():
-    import vgr_model as VG
-    import hbw_model as HM
-    import upgrade as U
+    import hbw_model
+    import upgrade
+    import vgr_model
     rows = []
 
     def member(name, what, L, E, I, m_tip, m_beam, a, section, note=""):
@@ -239,47 +242,47 @@ def structure():
                      "m_tip_g": round(m_tip * 1000), "a_ms2": round(a / 1000, 2), "defl_mm": round(d, 3),
                      "f1_hz": round(f, 1), "ok": d <= DEFL_DYN and f >= F_MIN, "note": note})
 
-    vg = VG.build(0.0, 500.0, 400.0)
+    vg = vgr_model.build(0.0, 500.0, 400.0)
     reach = [p for p in vg if p.frame == "reach"]
     tool = [p for p in reach if p.group in ("tool",) or p.name.startswith(("suction", "arm_end_F"))]
     rails = [p for p in reach if p.name.startswith("arm_rail")]
     m_tip = _mass(tool) + 0.010
     m_rails = _mass(rails)
-    L_arm = VG.V["ARM_FRONT"] + VG.V["REACH"][1]
+    L_arm = vgr_model.V["ARM_FRONT"] + vgr_model.V["REACH"][1]
     r = 0.57
-    a_t = math.radians(V.PHYS["a_deg"]["swivel"]) * r * 1000
+    a_t = math.radians(vc.PHYS["a_deg"]["swivel"]) * r * 1000
     Iz = 2 * (12 ** 4 / 12 + 144 * 9 ** 2)
     member("VGR arm, sideways", "swivel acceleration at full reach", L_arm, E_AL, Iz, m_tip, m_rails, a_t,
            "2 alu bars 12x12, 18 mm apart")
     member("VGR arm, vertical", "gravity + plunge acceleration", L_arm, E_AL, 2 * 12 ** 4 / 12, m_tip, m_rails,
-           G + V.PHYS["a_mm"]["plunge"], "2 alu bars 12x12")
+           G + vc.PHYS["a_mm"]["plunge"], "2 alu bars 12x12")
     moving = [p for p in vg if p.frame in ("plunge", "reach")]
     m_mov = _mass(moving) + 0.010
     cols = [p for p in vg if p.name.startswith("tower_column")]
-    Ic = 4 * (I_PROF[15] + A_PROF[15] * (VG.V["COL_DX"] / 2) ** 2)
-    member("VGR tower", "swivel acceleration of the carriage + arm at the top", VG.V["COL_Z"][1] - VG.V["COL_Z"][0],
-           E_AL, Ic, m_mov, _mass(cols), math.radians(V.PHYS["a_deg"]["swivel"]) * 0.25 * 1000,
+    Ic = 4 * (I_PROF[15] + A_PROF[15] * (vgr_model.V["COL_DX"] / 2) ** 2)
+    member("VGR tower", "swivel acceleration of the carriage + arm at the top", vgr_model.V["COL_Z"][1] - vgr_model.V["COL_Z"][0],
+           E_AL, Ic, m_mov, _mass(cols), math.radians(vc.PHYS["a_deg"]["swivel"]) * 0.25 * 1000,
            "4 x 15x15 profile")
-    hb = HM.build(HM.P["CV_X"], HM.P["LIFT"][1], 0.0, carrying=True)
+    hb = hbw_model.build(hbw_model.P["CV_X"], hbw_model.P["LIFT"][1], 0.0, carrying=True)
     lift = [p for p in hb if p.joint in ("lift", "fork")] + [p for p in hb if p.group in ("load", "load_wp")]
     mast = [p for p in hb if p.name.startswith("mast_tube")]
-    Im = 4 * (I_PROF[15] + A_PROF[15] * HM.P["TUBE_DX"] ** 2)
-    member("HBW mast", "travel acceleration, carriage at the top", HM.P["TUBE_Z"][1] - HM.P["TUBE_Z"][0], E_AL, Im,
-           _mass(lift), _mass(mast), V.PHYS["a_mm"]["travel"], "4 x 15x15 profile")
+    Im = 4 * (I_PROF[15] + A_PROF[15] * hbw_model.P["TUBE_DX"] ** 2)
+    member("HBW mast", "travel acceleration, carriage at the top", hbw_model.P["TUBE_Z"][1] - hbw_model.P["TUBE_Z"][0], E_AL, Im,
+           _mass(lift), _mass(mast), vc.PHYS["a_mm"]["travel"], "4 x 15x15 profile")
     load = [p for p in hb if p.group in ("load", "load_wp")]
     fork = [p for p in hb if p.joint == "fork"]
     st2 = next(p for p in hb if p.name == "ausleger_stage2")
-    member("Ausleger stage 2", "mould + cookie, gravity + lift", HM.P["FORK"][1] + 40, E_AL,
+    member("Ausleger stage 2", "mould + cookie, gravity + lift", hbw_model.P["FORK"][1] + 40, E_AL,
            st2.s[0] * st2.s[2] ** 3 / 12, _mass(load) + _mass([p for p in fork if p.name == "fork_table"]),
-           _mass([st2]), G + V.PHYS["a_mm"]["lift"], f"alu {st2.s[0]:.0f}x{st2.s[2]:.0f}")
+           _mass([st2]), G + vc.PHYS["a_mm"]["lift"], f"alu {st2.s[0]:.0f}x{st2.s[2]:.0f}")
     st1 = next(p for p in hb if p.name == "ausleger_stage1")
     if UP7:
         E1, I1, sec1 = E_AL, I_PROF[20], "20x20 profile (U7: replaces the ft block, same envelope)"
     else:
         E1, I1, sec1 = E_PA, st1.s[0] * st1.s[2] ** 3 / 12, f"PA6 ft block {st1.s[0]:.0f}x{st1.s[2]:.0f}"
     member("Ausleger stage 1", "stage 2 + mould + cookie, gravity + lift", st1.s[1], E1, I1,
-           _mass(load) + _mass(fork), _mass([st1]), G + V.PHYS["a_mm"]["lift"], sec1)
-    for s in U.sag_report():
+           _mass(load) + _mass(fork), _mass([st1]), G + vc.PHYS["a_mm"]["lift"], sec1)
+    for s in upgrade.sag_report():
         if s["case"] == "cantilever":
             m = s["F_N"] / 9.81
             member(f"oven {s['member']}", s["carries"], s["L_mm"], s["E_MPa"], s["I_mm4"], m, 0.0, G, s["section"],
@@ -287,7 +290,7 @@ def structure():
     return rows
 
 
-# ------------------------------------------------------------------ check
+# --- check
 def check(doc, health, verbose=True):
     fails = []
     ch = chains()

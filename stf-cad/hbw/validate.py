@@ -19,12 +19,13 @@ proofs from the outside, in five parts:
                 three deployments (PyTorch, ONNX, the browser's JSON weights) agree,
                 pytest, and the web build
 
-Writes docs/VALIDATION.md and web/public/validation/validation.json.
+Writes docs/reference/factory/validation.md and web/public/validation/validation.json.
 """
 import concurrent.futures as cf
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -47,7 +48,7 @@ def sha(path):
     return hashlib.sha256(open(path, "rb").read()).hexdigest()[:16]
 
 
-# ------------------------------------------------------------ A regression
+# --- A regression
 EXPORT_DIR = os.path.join(HERE, ".cache", "exports")      # re-proven exports never touch web/public
 
 
@@ -61,7 +62,7 @@ def job_export(v):
             "tail": (out + err).strip().splitlines()[-3:] if rc else []}
 
 
-# ------------------------------------------------------ in-process jobs
+# --- in-process jobs
 # run as:  STF_VARIANT=... python validate.py --job <name>   -> one JSON line on stdout
 def _job(name):
     return {"security": j_security, "throughput": j_throughput, "mc": j_mc, "mutants": j_mutants,
@@ -69,28 +70,28 @@ def _job(name):
 
 
 def j_security():
-    import security as S
-    fails, R = S.run()
+    import security as safety
+    fails, R = safety.run()
     return {"fails": fails, "rules": len(R["rules"]), "accesses": R["n_access"], "attacks": len(R["attacks"]),
             "contained": sum(a["blocked"] for a in R["attacks"]), "exposed": [f"{e['module']}.{e['signal']}" for e in R["exposed"]],
             "denied_pairs": len(R["denied"])}
 
 
 def j_throughput():
-    import control as C
+    import control
     d = json.load(open(os.path.join(PUB, "throughput", "throughput.json")))
     out = {"fails": []}
-    after = C.simulate(C.PLC_POLICY)[2]
-    for m in C.OPT:
-        C.OPT[m] = False
-    before = C.simulate(C.PLC_POLICY)[2]
-    for m in C.OPT:
-        C.OPT[m] = True
+    after = control.simulate(control.PLC_POLICY)[2]
+    for m in control.OPT:
+        control.OPT[m] = False
+    before = control.simulate(control.PLC_POLICY)[2]
+    for m in control.OPT:
+        control.OPT[m] = True
     pub_b = d["ablation"][0]["model_s"]
     pub_a = d["ablation"][-1]["model_s"]
     if abs(before - pub_b) > 0.05 or abs(after - pub_a) > 0.05:
         out["fails"].append(f"published {pub_b} -> {pub_a} s, fresh {before} -> {after} s")
-    n = C.explore("reuse")[0]
+    n = control.explore("reuse")[0]
     if n != d["proofs"]["explored_states"]["reuse"]:
         out["fails"].append(f"explored states {n}, published {d['proofs']['explored_states']['reuse']}")
     out.update(before=before, after=after, states=n)
@@ -100,19 +101,20 @@ def j_throughput():
 def j_mc():
     """+-20 % on every plant step, 25 seeds, with and without Upgrade 10."""
     import random
-    import control as C
+
+    import control
     import vc
     orig = vc.phys
     res = {}
     for name, on in (("before", False), ("after", True)):
-        for m in C.OPT:
-            C.OPT[m] = on
+        for m in control.OPT:
+            control.OPT[m] = on
         spans, trips, worst = [], 0, 0.0
         for seed in range(25):
             rng = random.Random(seed)
             vc.phys = lambda st, _o=orig, _r=rng: _o(st) * _r.uniform(0.8, 1.2)
             try:
-                r = vc.Run(C.PLC_POLICY).run()
+                r = vc.Run(control.PLC_POLICY).run()
             finally:
                 vc.phys = orig
             spans.append(r.makespan)
@@ -126,8 +128,8 @@ def j_mc():
         spans.sort()
         res[name] = {"runs": len(spans), "min": spans[0], "median": spans[len(spans) // 2], "max": spans[-1],
                      "false_trips": trips, "worst_watchdog_use": round(worst, 3)}
-    for m in C.OPT:
-        C.OPT[m] = True
+    for m in control.OPT:
+        control.OPT[m] = True
     fails = [f"{k}: {v['false_trips']} false watchdog trips" for k, v in res.items() if v["false_trips"]]
     if res["after"]["max"] >= res["before"]["min"]:
         fails.append("the U10 spread overlaps the U7 spread: the gain is not robust")
@@ -136,44 +138,44 @@ def j_mc():
 
 def j_mutants():
     """Plant a defect in each proof; each must be caught."""
-    import control as C
-    import safety as S
-    import security as SEC
-    import vgr_path as VP
+    import control
+    import safety
+    import security
+    import vgr_path
     rows = []
 
     def row(mid, proof, defect, caught, how):
         rows.append({"id": mid, "proof": proof, "defect": defect, "caught": bool(caught), "how": how})
 
     # M1 the dispatcher gives the arm a second job while it holds a cookie
-    orig = C._candidates
+    orig = control._candidates
 
     def mut(s, pol):
         yield from orig(s, pol)
         bo = s["bout"]
         if s.get("cup") and bo and bo[1] is None and bo[2] == "fill":
-            for bi, b in enumerate(C.BAYS):
-                c = next((c for c in s["bays"][bi] if C._stage(s, c) == "return"), None)
+            for bi, b in enumerate(control.BAYS):
+                c = next((c for c in s["bays"][bi] if control._stage(s, c) == "return"), None)
                 if c:
                     yield ("bay_to_belt", (c, b, bo[0]), ("arm", "belt"), (("bay", b),), ())
                     break
-    C._candidates = mut
+    control._candidates = mut
     try:
-        _, f, _ = C.explore("reuse")
+        _, f, _ = control.explore("reuse")
     finally:
-        C._candidates = orig
+        control._candidates = orig
     row("M1", "U4/U10 exhaustive explorer", "the arm is given a bay pick while its cup holds a cookie", f,
         f[0][:90] if f else "survived")
     # M2 the belt policy that lets two moulds on the belt
-    _, f, _ = C.explore("prefetch")
+    _, f, _ = control.explore("prefetch")
     row("M2", "U4 exhaustive explorer", "prefetch: a second mould on the belt", f, (f[0][:90] if f else "survived"))
     # M3 a VGR motion step without its watchdog
-    lim = C.Step.limit
-    C.Step.limit = property(lambda st: None if st.unit == "arm" else lim.fget(st))
+    lim = control.Step.limit
+    control.Step.limit = property(lambda st: None if st.unit == "arm" else lim.fget(st))
     try:
-        f = C.check_sfc(C.sfc())
+        f = control.check_sfc(control.sfc())
     finally:
-        C.Step.limit = lim
+        control.Step.limit = lim
     row("M3", "U4 state-machine proof", "the VGR's motion steps lose their timeouts", f, f[0][:90] if f else "survived")
     # M4 the blended crossing flown at 100 mm: inside the plunge's joint limits (84 mm), so only the
     # collision sweep can catch it - the carried cookie clips the HBW light barrier. (60 mm was first
@@ -181,46 +183,46 @@ def j_mutants():
     # (80 mm lower than planned is still clear: the search never goes below the higher station,
     # so the crossing height is set by that floor, not by an obstacle - that mutant was no defect.)
     tour = [("belt", "pick", "raw", "s"), ("oven", "place", None, "t")]
-    keys = VP.plan(tour)
+    keys = vgr_path.plan(tour)
     low = [dict(k) for k in keys]
     for k in low[10:12]:                     # the two crossing waypoints between the stations
         k["pz"] = 100.0
-    op = VP.plan
-    VP.plan = lambda t=None: low
+    op = vgr_path.plan
+    vgr_path.plan = lambda t=None: low
     try:
-        f = VP.check(verbose=False, tour=tour)
+        f = vgr_path.check(verbose=False, tour=tour)
     finally:
-        VP.plan = op
+        vgr_path.plan = op
     row("M4", "U10 swept-path proof (SAT)", "the blended crossing flown at 100 mm (inside the joint limits)", f, f[0][:90] if f else "survived")
     # M5 a spare coil added to the Modbus allow-list; M6 one program rule removed
-    rules = SEC.allow_list()
+    rules = security.allow_list()
     extra = rules + [{"node": "192.168.10.12", "module": "vgr", "fc": 15, "fn": "write_coils", "start": 6, "count": 1}]
-    f, _ = SEC.check_least_privilege(extra)
+    f, _ = security.check_least_privilege(extra)
     row("M5", "U11 least privilege", "the retired VGR compressor coil made writable", f, f[0][:90] if f else "survived")
-    f, _ = SEC.check_least_privilege(rules[1:])
+    f, _ = security.check_least_privilege(rules[1:])
     row("M6", "U11 least privilege", "the HBW write rule removed", f, f[0][:90] if f else "survived")
     # M7 an unauthenticated conduit from the internet straight into the cell
-    SEC.CONDUITS.append({"id": "CX", "a": "Z5", "b": "Z1", "flow": "vendor VPN", "proto": "Modbus", "auth": "none", "dpi": "-"})
+    security.CONDUITS.append({"id": "CX", "a": "Z5", "b": "Z1", "flow": "vendor VPN", "proto": "Modbus", "auth": "none", "dpi": "-"})
     try:
-        f, _, _ = SEC.check_default_deny()
+        f, _, _ = security.check_default_deny()
     finally:
-        SEC.CONDUITS.pop()
+        security.CONDUITS.pop()
     row("M7", "U11 default deny", "a vendor VPN straight into cell control", f, f[0][:90] if f else "survived")
     # M8 the safety relay ignores its second channel
-    en = S.enable
-    S.enable = lambda st: all(st["estop_ok"][0]) and all(st["door_closed"][0]) and all(st["locked"]) and \
+    en = safety.enable
+    safety.enable = lambda st: all(st["estop_ok"][0]) and all(st["door_closed"][0]) and all(st["locked"]) and \
         st["reset_since_trip"] and st["edm_closed"]
     try:
-        f, _ = S.check_logic()
+        f, _ = safety.check_logic()
     finally:
-        S.enable = en
+        safety.enable = en
     row("M8", "U2 safety logic (exhaustive)", "the relay reads only channel 1", f, f[0][:90] if f else "survived")
     # M9 the SunSpec reserve made writable by the EMS
-    SEC.SUNSPEC_124[5] = ("MinRsvPct", 7, True)
+    security.SUNSPEC_124[5] = ("MinRsvPct", 7, True)
     try:
-        f = SEC.check_sunspec()
+        f = security.check_sunspec()
     finally:
-        SEC.SUNSPEC_124[5] = ("MinRsvPct", 7, False)
+        security.SUNSPEC_124[5] = ("MinRsvPct", 7, False)
     row("M9", "U11 SunSpec allow-list", "the EMS may write the battery reserve", f, f[0][:90] if f else "survived")
     return {"fails": [f"{r['id']} survived: {r['defect']}" for r in rows if not r["caught"]], "rows": rows}
 
@@ -229,29 +231,29 @@ def j_ml():
     import numpy as np
     import onnx
     import torch
-    from onnx.reference import ReferenceEvaluator
-    from ml import train as T
+    from ml import train as ml_train
     from ml.model import Net
+    from onnx.reference import ReferenceEvaluator
     W = json.load(open(os.path.join(PUB, "ml", "weights.json")))
     Mi = json.load(open(os.path.join(PUB, "ml", "month_inputs.json")))
-    net = Net(T.N_IN, 1)
+    net = Net(ml_train.N_IN, 1)
     net.load_state_dict(torch.load(os.path.join(HERE, "ml", "ckpt", "semi.pt"), map_location="cpu", weights_only=True))
     net.eval()
     x = np.array(Mi["x"], dtype=np.float32)
-    s = T.channels(x, np.array(W["ctx_mu"], dtype=np.float32), np.array(W["ctx_sd"], dtype=np.float32))
-    pad = np.concatenate([np.repeat(s[:, :1], T.WINDOW - 1, axis=1), s], axis=1)
-    V = np.lib.stride_tricks.sliding_window_view(pad, T.WINDOW, axis=1)
+    s = ml_train.channels(x, np.array(W["ctx_mu"], dtype=np.float32), np.array(W["ctx_sd"], dtype=np.float32))
+    pad = np.concatenate([np.repeat(s[:, :1], ml_train.WINDOW - 1, axis=1), s], axis=1)
+    V = np.lib.stride_tricks.sliding_window_view(pad, ml_train.WINDOW, axis=1)
     idx = np.linspace(0, x.shape[0] - 1, 60).astype(int)
     with torch.no_grad():
-        pt = np.stack([net(torch.from_numpy(np.ascontiguousarray(V[c][idx])))[0][:, 0].numpy() for c in range(T.C)], 1)
+        pt = np.stack([net(torch.from_numpy(np.ascontiguousarray(V[c][idx])))[0][:, 0].numpy() for c in range(ml_train.C)], 1)
     stored = np.array(Mi["torch_rul"])[idx]
     onx = ReferenceEvaluator(onnx.load(os.path.join(PUB, "ml", "stf_pm_tcn.onnx")))
-    ox = np.stack([onx.run(None, {"x": np.ascontiguousarray(V[c][idx])})[0][:, 0] for c in range(T.C)], 1)
-    js = np.stack([[_np_forward(W, V[c][i]) for c in range(T.C)] for i in idx])
+    ox = np.stack([onx.run(None, {"x": np.ascontiguousarray(V[c][idx])})[0][:, 0] for c in range(ml_train.C)], 1)
+    js = np.stack([[_np_forward(W, V[c][i]) for c in range(ml_train.C)] for i in idx])
     e = {"pytorch_vs_stored": float(np.abs(pt - stored).max()), "onnx_vs_pytorch": float(np.abs(ox - pt).max()),
          "json_vs_pytorch": float(np.abs(js - pt).max())}
     fails = [f"{k} = {v:.4f} orders" for k, v in e.items() if v > 0.01]
-    return {"fails": fails, "checked_windows": int(len(idx) * T.C), **{k: round(v, 6) for k, v in e.items()}}
+    return {"fails": fails, "checked_windows": int(len(idx) * ml_train.C), **{k: round(v, 6) for k, v in e.items()}}
 
 
 def _np_forward(W, x):
@@ -282,7 +284,7 @@ def job(name, variant):
     return name, r
 
 
-# ------------------------------------------------------------ E data
+# --- E data
 def job_data():
     out = {"fails": []}
     mj = os.path.join(PUB, "month", "month.json")
@@ -309,7 +311,7 @@ def job_data():
     return out
 
 
-# ------------------------------------------------------------------ main
+# --- main
 def main():
     t0 = time.time()
     base = json.load(open(BASE_F))
@@ -338,10 +340,22 @@ def main():
     R["date"] = time.strftime("%Y-%m-%d %H:%M")
     os.makedirs(os.path.join(PUB, "validation"), exist_ok=True)
     json.dump(R, open(os.path.join(PUB, "validation", "validation.json"), "w"), indent=1)
-    open(os.path.join(ROOT, "docs", "VALIDATION.md"), "w").write(report(R))
+    scope = ("The latest validation run of the machine's upgrades: every variant rebuilt, the plant varied, "
+             "defects planted, and which checks passed.")
+    open(os.path.join(ROOT, "docs", "reference", "factory", "validation.md"), "w").write(
+        front_matter(report(R), scope, "factory", "stf-cad/hbw/validate.py"))
     print("\n".join(fails) if fails else f"VALIDATION OK ({R['minutes']} min)")
     return 1 if fails else 0
 
+
+
+def front_matter(md: str, scope: str, module: str, generated_by: str) -> str:
+    """The front matter every docs/reference document starts with (docs/README.md); a
+    regenerated document carries the date it was generated."""
+    title = re.search(r"^#\s+(.+)$", md, re.M).group(1).strip()
+    q = lambda s: '"' + s.replace('"', '\\"') + '"'  # noqa: E731
+    return (f"---\ntitle: {q(title)}\nscope: {q(scope)}\nmodule: {module}\n"
+            f"last_verified: {time.strftime('%Y-%m-%d')}\ngenerated_by: {generated_by}\n---\n\n" + md)
 
 def report(R):
     J = R["jobs"]

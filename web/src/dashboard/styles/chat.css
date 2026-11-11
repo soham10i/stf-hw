@@ -43,12 +43,12 @@
   border-radius: 9999px;
   border: var(--btn-glass-primary-border);
   background: var(--btn-glass-primary-bg);
-  color: #fff;
+  color: var(--on-accent);
   font: 600 var(--fs-body) var(--font);
   cursor: pointer;
   margin-bottom: 10px;
   box-shadow: var(--btn-glass-primary-shadow);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  text-shadow: none;
   -webkit-backdrop-filter: blur(16px) saturate(160%); backdrop-filter: blur(16px) saturate(160%);
   transition: transform .18s cubic-bezier(.16, 1, .3, 1), background .2s, border-color .2s, box-shadow .2s;
 }
@@ -179,10 +179,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   z-index: -1;
 }
-:root[data-theme="light"] .cx-pill {
-  background: #ffffff;
-  box-shadow: 0 2px 8px rgba(10, 25, 60, 0.08), 0 1px 2px rgba(10, 25, 60, 0.04), inset 0 1px 0 #ffffff;
-}
 .cx-choice .cx-pill { border-radius: 9999px; background: var(--raised); box-shadow: 0 1px 3px rgba(0, 0, 0, .14); }
 .cx-tabs .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-weak); }
 .cx-tabs .dot.off { background: var(--faint); box-shadow: none; }
@@ -212,11 +208,6 @@
   -webkit-backdrop-filter: var(--card-blur, blur(16px));
   backdrop-filter: var(--card-blur, blur(16px));
   box-shadow: inset 0 1px 0 var(--card-hi, rgba(255, 255, 255, 0.1)), 0 4px 20px -8px rgba(0, 0, 0, 0.4);
-}
-:root[data-theme="light"] .cx-bubble.bot {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: inset 0 1px 0 #ffffff, 0 4px 14px -3px rgba(15, 30, 65, 0.06);
 }
 /* the assistant's answer carries the card light: a soft accent sheen behind the bubble */
 .cx-row.bot { position: relative; }
@@ -327,11 +318,6 @@
   min-height: 48px;
   box-sizing: border-box;
 }
-:root[data-theme="light"] .cx-composer {
-  background: rgba(255, 255, 255, 0.90);
-  border-color: rgba(0, 0, 0, 0.12);
-  box-shadow: 0 4px 16px -2px rgba(15, 30, 65, 0.08), inset 0 1px 0 #ffffff;
-}
 :is(.cx.compact, .cx-main.compact) .cx-composer {
   margin: 0;
   width: 100%;
@@ -399,15 +385,6 @@
   opacity: 0.7;
   display: block;
 }
-:root[data-theme="light"] .cx-composer button:disabled {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.08);
-  color: rgba(0, 0, 0, 0.35);
-  opacity: 0.7;
-}
-:root[data-theme="light"] .cx-composer button:disabled svg {
-  color: rgba(0, 0, 0, 0.35);
-}
 .cx-composer button:not(:disabled) {
   border: var(--btn-glass-primary-border);
   background: var(--btn-glass-primary-bg);
@@ -445,6 +422,10 @@
 .cx-mic.busy, .cx-mic.transcribing { opacity: .7; }
 .cx-mic .ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid #ff3b30; animation: cx-ring 1.6s ease-out infinite; }
 .cx-mic .r2 { animation-delay: .8s; }
+/* the speaker's level while listening (Voice.tsx sets --lvl, 0..1): a soft halo that grows with it */
+.cx-mic.listening { box-shadow: 0 0 0 calc(var(--lvl, 0) * 16px) rgba(255, 59, 48, .28); transition: transform .15s, box-shadow 80ms linear; }
+.cx-asked { font-style: normal; color: var(--faint); }
+@media (prefers-reduced-motion: reduce) { .cx-mic.listening { transition: none; } }
 @keyframes cx-ring { from { transform: scale(1); opacity: .8; } to { transform: scale(1.8); opacity: 0; } }
 
 /* ------------------------------------------------ context */
@@ -624,7 +605,7 @@
   font-size: var(--fs-title3, 15px);
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: #ffffff;
+  color: var(--text);
 }
 .cx-pop-head .cx-icon {
   width: 28px;
@@ -641,7 +622,7 @@
 }
 .cx-pop-head .cx-icon:hover {
   background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  color: var(--text);
   transform: scale(1.05);
 }
 .cx-settings section {
@@ -684,7 +665,7 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .cx-profiles button b {
-  color: #ffffff;
+  color: var(--text);
   font-size: var(--fs-body, 13px);
   font-weight: 600;
   margin-top: 2px;
@@ -700,12 +681,12 @@
 }
 .cx-profiles button.on {
   border-color: rgba(156, 200, 255, 0.65);
-  background: linear-gradient(135deg, rgba(63, 127, 240, 0.28) 0%, rgba(43, 108, 176, 0.16) 100%);
-  color: #ffffff;
+  background: var(--primary);
+  color: var(--text);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 16px rgba(47, 111, 216, 0.28);
 }
 .cx-profiles button.on b {
-  color: #ffffff;
+  color: var(--on-accent);
 }
 .cx-profiles button.on svg {
   color: var(--accent);
@@ -740,7 +721,7 @@
   transition: color .15s ease;
 }
 .cx-seg button:hover {
-  color: #ffffff;
+  color: var(--text);
 }
 .cx-seg button.on {
   color: #ffffff;

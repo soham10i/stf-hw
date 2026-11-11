@@ -11,8 +11,13 @@ Per question, through the same Chat.ask the dashboard uses:
   faithful   every number in the answer is backed by what the tools returned (verify.py: the
              same check the chat runs before it shows an answer)
   declines   an out-of-scope question is answered with "I don't know" or the like, not made up
+  grounding  what the chat's own claim check (claims.py) made of the answer: its groundedness,
+             the share of claims cited, the unsupported claims left, what the policy did and
+             the confidence - the payload's `quality`, so offline and online scores agree
 Held-out questions are reported apart: they were not used to tune the router, so they show how
-the model copes with paraphrases. Writes .cache/copilot_eval_<provider>.json.
+the model copes with paraphrases. Adversarial cases (a false premise, an injected instruction,
+a question about another world) are reported apart too. Writes
+.cache/copilot_eval_<provider>.json; eval_gate.py compares two such reports.
 """
 
 from __future__ import annotations
@@ -22,25 +27,20 @@ import asyncio
 import datetime as dt
 import json
 import os
-import re
 import subprocess
 import time
 
 from starlette.requests import Request
 
-from services.api.agent import chat as C
+from services.api.agent import chat as chat_engine
+from services.api.agent import claims as claim_check
+from services.api.agent import tools as twin_tools
+from services.api.agent import verify as faithfulness
 from services.api.core import live
-from services.api.security import security as sec
-from services.api.agent import tools as T
-from services.api.agent import verify as V
+from services.api.security import security
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-DECLINE = re.compile(
-    r"(don.?t|do not|does not|doesn.?t) (know|have|cover)|not (covered|available|in the)"
-    r"|no (data|information|tool)"
-    r"|cannot (answer|find)|outside|not part of",
-    re.I,
-)
+DECLINE = claim_check.DECLINE  # the same test the claim check uses to leave a decline unchecked
 
 
 def _req(client: str = "127.0.0.1") -> Request:
@@ -61,7 +61,7 @@ def score(case: dict, out: dict, evidence: str) -> dict:
     called = set(out.get("tools", []))
     need = set(case["tools"])
     facts_ok = all(f.lower() in ans.lower() for f in case.get("facts", []))
-    invented = V.unverified(ans, evidence, case["q"])  # the check the chat itself runs
+    invented = faithfulness.unverified(ans, evidence, case["q"])  # the check the chat itself runs
     route = (out.get("route") or {}).get("mode") or "unknown"
     spans = (out.get("trace") or {}).get("spans") or []
     searches = [s for s in spans if s.get("name", "").startswith("search.")]
@@ -77,6 +77,8 @@ def score(case: dict, out: dict, evidence: str) -> dict:
         "faithful": not invented,
         "invented_numbers": invented[:8],
         "declines": bool(DECLINE.search(ans)) if case.get("unanswerable") else None,
+        "adversarial": bool(case.get("adversarial")),
+        **grounding(out),
         "model": out.get("model"),
         "note": out.get("note"),
         "usage": out.get("usage") or {},
@@ -84,6 +86,49 @@ def score(case: dict, out: dict, evidence: str) -> dict:
         "search_failures": sum((s.get("attrs") or {}).get("stf.found") is False for s in searches),
         "web_sources": sum((s.get("attrs") or {}).get("stf.sources") or 0 for s in searches),
         "answer": ans,
+    }
+
+
+def grounding(out: dict) -> dict:
+    """The answer's claim scores, as the chat itself reported them (agent/quality.py)."""
+    q = out.get("quality") or {}
+    return {
+        "claims": q.get("claims"),
+        "unsupported": q.get("unsupported"),
+        "groundedness": q.get("groundedness"),
+        "citation_coverage": q.get("citation_coverage"),
+        "action": q.get("action"),
+        "regenerated": q.get("regenerated"),
+        "confidence": q.get("confidence"),
+    }
+
+
+def _mean(xs: list) -> float | None:
+    xs = [x for x in xs if x is not None]
+    return round(sum(xs) / len(xs), 4) if xs else None
+
+
+def grounding_summary(rows: list[dict]) -> dict:
+    """The answers' grounding: mean groundedness and citation coverage over the answers that
+    state something checkable, the share still carrying an unsupported claim or an unbacked
+    number (the hallucination rate), the policy's actions and the mean confidence."""
+    checked = [r for r in rows if r.get("claims")]
+    actions: dict[str, int] = {}
+    for r in rows:
+        if r.get("action"):
+            actions[r["action"]] = actions.get(r["action"], 0) + 1
+    n = len(rows)
+    return {
+        "answers": n,
+        "checked": len(checked),
+        "groundedness": _mean([r.get("groundedness") for r in checked]),
+        "citation_coverage": _mean([r.get("citation_coverage") for r in checked]),
+        "hallucination_rate": round(sum(
+            1 for r in rows if (r.get("unsupported") or 0) > 0 or not r.get("faithful", True)
+        ) / n, 4) if n else None,
+        "regenerated": sum(1 for r in rows if r.get("regenerated")),
+        "confidence": _mean([r.get("confidence") for r in rows]),
+        "actions": actions,
     }
 
 
@@ -132,8 +177,9 @@ def summarize(rows: list[dict], provider: str) -> dict:
             },
         }
 
-    tune = [r for r in rows if not r["held_out"]]
-    held = [r for r in rows if r["held_out"]]
+    tune = [r for r in rows if not r["held_out"] and not r.get("adversarial")]
+    held = [r for r in rows if r["held_out"] and not r.get("adversarial")]
+    adv = [r for r in rows if r.get("adversarial")]
     modes = sorted({r.get("requested_route", r["route"]) for r in rows})
     return {
         "provider": provider,
@@ -141,6 +187,8 @@ def summarize(rows: list[dict], provider: str) -> dict:
         "fell_back": sum(1 for r in rows if r["note"]),
         "tuning": {k: rate(tune, k) for k in ("tools_ok", "facts_ok", "faithful", "declines")},
         "held_out": {k: rate(held, k) for k in ("tools_ok", "facts_ok", "faithful")},
+        "adversarial": {k: rate(adv, k) for k in ("facts_ok", "faithful", "declines")},
+        "grounding": grounding_summary(rows),
         "mean_s": round(sum(r["s"] for r in rows) / max(1, len(rows)), 3),
         "overall": route_row(rows),
         "by_route": {
@@ -167,10 +215,10 @@ def main() -> None:
     if a.engine:
         os.environ["STF_AGENT"] = a.engine
 
-    chat = C.Chat(sec.Settings.from_env())
-    chat.limiter = sec.RateLimiter(rate=1000, burst=1000)  # the eval is one trusted client
+    chat = chat_engine.Chat(security.Settings.from_env())
+    chat.limiter = security.RateLimiter(rate=1000, burst=1000)  # the eval is one trusted client
     evidence: list[str] = []
-    real_call = T.call
+    real_call = twin_tools.call
 
     def recording_call(name, args, ctx):  # keep what every tool returned
         """Wrap a tool call, appending its result to the evidence log."""
@@ -178,7 +226,7 @@ def main() -> None:
         evidence.append(json.dumps(r.as_dict(), ensure_ascii=False))
         return r
 
-    T.call = recording_call
+    twin_tools.call = recording_call
     live.put(
         {
             "step": "baking",
@@ -208,7 +256,7 @@ def main() -> None:
             },
             "127.0.0.1",
         )
-        req = C.ChatRequest(
+        req = chat_engine.ChatRequest(
             question=c["q"], page=c.get("page"), provider=a.provider,
             mode=c.get("mode"), depth=c.get("depth"),
         )
@@ -249,7 +297,7 @@ def main() -> None:
         "cases": os.path.relpath(a.cases, ROOT),
         "engine": a.engine or os.environ.get("STF_AGENT", "graph"),
         "tag": a.tag or a.provider,
-        "agent_actuation": T.actuation_enabled(),
+        "agent_actuation": twin_tools.actuation_enabled(),
         "cost_basis": "estimated model list price; excludes grounding, infrastructure, tax and FX",
     }
     path = a.output or os.path.join(ROOT, ".cache", f"copilot_eval_{metadata['tag']}.json")

@@ -10,7 +10,7 @@ on:
   # Schedule disabled: stop recurring keep-warm pings to Cloud Run/server
   # schedule:
   #   # Every 5 minutes. GitHub may delay scheduled runs under heavy load;
-  #   # a Cloud Scheduler job (docs/GCP_DEPLOY.md) is the stricter option.
+  #   # a Cloud Scheduler job (docs/reference/operations/gcp-deploy.md) is the stricter option.
   #   - cron: "2-59/5 * * * *"
   workflow_dispatch: # manual trigger from the Actions tab
 

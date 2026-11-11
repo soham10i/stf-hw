@@ -17,7 +17,7 @@ guest who took it (guests.py), and a guest sees and opens only their own. Two st
                     (Render's free tier) loses them at the next deploy.
   SupabaseCaptures  when SUPABASE_URL and SUPABASE_SERVICE_KEY are set: the JPEG in a PRIVATE
                     Storage bucket (SUPABASE_BUCKET, default "captures"), the record in the
-                    table `captures` (docs/CAPTURES.md has its SQL). The service key stays on the
+                    table `captures` (docs/reference/operations/captures.md has its SQL). The service key stays on the
                     server; the browser only ever talks to this API.
 
 Uploads come from any visitor's browser, so each one is checked: the app's own origin, a real
@@ -36,15 +36,17 @@ import urllib.request
 import uuid
 from typing import Protocol
 
-from fastapi import HTTPException, Request
+from fastapi import Request
 from fastapi.responses import Response
 
-from . import guests
-from services.api.core import keepalive
-from services.api.security import security as sec
 from services.api.agent.chat import DailyCap, dotenv
+from services.api.core import keepalive
+from services.api.core.errors import AppError, Code, Reason
 from services.api.core.logging_config import get_logger
+from services.api.security import security
 from services.api.storage.store import ROOT
+
+from . import guests
 
 logger = get_logger(__name__)
 
@@ -315,54 +317,55 @@ class Captures:
     """The /vision/capture endpoint's guard: origin and content validation, per-client and
     daily caps, then a validated hand-off to the CaptureStore."""
 
-    def __init__(self, settings: sec.Settings, store: CaptureStore | None = None) -> None:
+    def __init__(self, settings: security.Settings, store: CaptureStore | None = None) -> None:
         env = {**dotenv(), **os.environ}
         self.s = settings
         self.store = store or store_from_env(env)
         self.on = env.get("STF_CAPTURES", "1").lower() not in ("0", "false", "no")
         self.cap = DailyCap(int(env.get("STF_CAPTURE_DAILY", "500")))
         # per client: a burst of 4, then one every 3 s (a cookie passes the camera far less often)
-        self.limiter = sec.RateLimiter(rate=1 / 3, burst=4)
+        self.limiter = security.RateLimiter(rate=1 / 3, burst=4)
 
     def status(self) -> dict:
         """The /chat-free status payload for the capture pipeline."""
         return {"enabled": self.on, "store": self.store.name, "max_bytes": MAX_BYTES}
 
     def _client(self, request: Request) -> str:
-        client = sec.client_ip(request)
+        client = security.client_ip(request)
         return client
 
     async def upload(self, request: Request) -> dict:
-        """Validate and store one camera photo; raises HTTPException on any check failure."""
+        """Validate and store one camera photo; raises AppError on any check failure."""
         if not self.on:
-            raise HTTPException(status_code=503, detail="photo capture is off on this server")
+            raise AppError(Reason.CAPTURE_OFF, "photo capture is off on this server")
         origin = request.headers.get("origin")
         if (
             origin
             and origin not in self.s.allowed_origins
-            and sec._host(origin.split("://", 1)[-1]) != sec._host(request.headers.get("host"))
+            and security._host(origin.split("://", 1)[-1])
+            != security._host(request.headers.get("host"))
         ):
-            raise HTTPException(status_code=403, detail="origin not allowed")
+            raise AppError(Reason.ORIGIN_DENIED, "origin not allowed")
         if (request.headers.get("content-type") or "").split(";")[0].strip() != "image/jpeg":
-            raise HTTPException(status_code=415, detail="a JPEG (image/jpeg) is expected")
+            raise AppError(Reason.PHOTO_TYPE_UNSUPPORTED, "a JPEG (image/jpeg) is expected")
         q = request.query_params
         flavour, source = q.get("flavour", ""), q.get("source", "twin")
         if flavour not in FLAVOURS or source not in SOURCES:
-            raise HTTPException(status_code=400, detail="unknown flavour or source")
+            raise AppError(Reason.PHOTO_INVALID, "unknown flavour or source")
         try:
             n = int(q.get("n", "0"))
         except ValueError:
             n = 0
         if not self.limiter.allow(self._client(request)):
-            raise HTTPException(status_code=429, detail="too many photos: wait a few seconds")
-        body = await sec.read_body(request, MAX_BYTES)
+            raise AppError(Reason.TOO_MANY_REQUESTS, "too many photos: wait a few seconds")
+        body = await security.read_body(request, MAX_BYTES)
         if not MIN_BYTES <= len(body) <= MAX_BYTES:
-            raise HTTPException(status_code=413, detail=f"a photo of at most {MAX_BYTES} bytes")
+            raise AppError(Reason.BODY_TOO_LARGE, f"a photo of at most {MAX_BYTES} bytes")
         size = jpeg_size(body)
         if not size or not (32 <= size[0] <= 1024 and 32 <= size[1] <= 1024):
-            raise HTTPException(status_code=400, detail="not a JPEG of 32 to 1024 px")
+            raise AppError(Reason.PHOTO_INVALID, "not a JPEG of 32 to 1024 px")
         if not self.cap.take():
-            raise HTTPException(status_code=429, detail="today's photo budget is used up")
+            raise AppError(Reason.DAILY_BUDGET_SPENT, "today's photo budget is used up")
         rec = {
             "id": uuid.uuid4().hex,
             "t": time.time(),
@@ -386,8 +389,8 @@ class Captures:
             )
         except (OSError, urllib.error.URLError, TimeoutError) as e:
             logger.error("Failed to store inspection capture %s: %s", rec["id"], e)
-            raise HTTPException(
-                status_code=502, detail=f"the photo store did not answer ({type(e).__name__})"
+            raise AppError(
+                Code.UPSTREAM_FAILED, f"the photo store did not answer ({type(e).__name__})"
             ) from None
         return rec
 
@@ -434,17 +437,17 @@ class Captures:
             Response: Raw image/jpeg HTTP response with cache control headers.
 
         Raises:
-            HTTPException: 404 if the photo does not exist or owner does not match.
+            AppError: 404 if the photo does not exist or owner does not match.
         """
         if not ID.match(id) or not owner:
-            raise HTTPException(status_code=404, detail="no such photo")
+            raise AppError(Reason.PHOTO_NOT_FOUND, "no such photo")
         try:
             b = self.store.get(id, owner)
         except (OSError, urllib.error.URLError, TimeoutError) as e:
             logger.warning("Failed to retrieve capture image %s: %s", id, e)
             b = None
         if not b:
-            raise HTTPException(status_code=404, detail="no such photo")
+            raise AppError(Reason.PHOTO_NOT_FOUND, "no such photo")
         return Response(
             b,
             media_type="image/jpeg",

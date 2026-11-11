@@ -1,0 +1,27 @@
+{
+ "weights": {
+  "bias": -6.148,
+  "groundedness": 1.7404,
+  "min_support": 2.5124,
+  "unsupported_share": -1.473,
+  "numbers_ok": 1.9462,
+  "cited": 0.3,
+  "retrieval": 0.5,
+  "declined": 0.3411
+ },
+ "features": [
+  "groundedness",
+  "min_support",
+  "unsupported_share",
+  "numbers_ok",
+  "cited",
+  "retrieval",
+  "declined"
+ ],
+ "kept_at_default": [
+  "cited",
+  "retrieval"
+ ],
+ "fitted_on": 183,
+ "by": "services/api/eval/eval_grounding.py --fit"
+}

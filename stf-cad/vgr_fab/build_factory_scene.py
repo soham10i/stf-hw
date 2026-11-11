@@ -26,7 +26,7 @@ sc.unit_settings.system = "METRIC"
 sc.unit_settings.length_unit = "MILLIMETERS"
 sc.unit_settings.scale_length = 0.001
 
-# ---------------------------------------------------------------- import
+# --- import
 bpy.ops.import_scene.gltf(filepath=SRC)
 imported = list(bpy.data.objects)
 meshes = [o for o in imported if o.type == "MESH"]
@@ -37,6 +37,7 @@ print("STF_IMPORT meshes=%d materials=%d" % (len(meshes), len(bpy.data.materials
 # Blender the factory lies on its back. Convert the whole import to Z-up mm in
 # one shot per mesh:  world' = S(0.001) x Rx(+90 deg) x world,  then bake.
 import math
+
 from mathutils import Matrix
 
 S_MM = Matrix.Scale(0.001, 4)
@@ -69,7 +70,7 @@ print("STF_BBOX min=%s max=%s size=%s" % (tuple(round(v, 1) for v in mins),
                                           tuple(round(v, 1) for v in maxs),
                                           tuple(round(v, 1) for v in size)))
 
-# ------------------------------------------------- industrial PBR materials
+# --- industrial PBR materials
 def upgrade(mat):
     """Map the exported colour-name materials to industrial PBR."""
     name = (mat.name or "").lower()
@@ -97,7 +98,7 @@ def upgrade(mat):
 for m in bpy.data.materials:
     upgrade(m)
 
-# ------------------------------------------------------------ organisation
+# --- organisation
 fab = bpy.data.collections.new("STF_FACTORY")
 sc.collection.children.link(fab)
 for o in meshes:
@@ -105,7 +106,7 @@ for o in meshes:
         c.objects.unlink(o)
     fab.objects.link(o)
 
-# ---------------------------------------------------------- floor + backdrop
+# --- floor + backdrop
 floor_mat = bpy.data.materials.new("floor polymer")
 floor_mat.use_nodes = True
 fbsdf = floor_mat.node_tree.nodes["Principled BSDF"]
@@ -117,7 +118,7 @@ floor.name = "STF_floor"
 floor.scale = (size.x * 1.6, size.y * 1.6, 1)
 floor.data.materials.append(floor_mat)
 
-# ------------------------------------------------------------------ cameras
+# --- cameras
 def look_at(obj, target):
     d = Vector(target) - obj.location
     obj.rotation_euler = d.to_track_quat("-Z", "Y").to_euler()
@@ -142,7 +143,7 @@ vc = vgr.matrix_world.translation if vgr else c
 cam_vgr = camera("CAM_vgr_detail", vc + Vector((0.55, -0.7, 0.45)) * diag * 0.55,
                  vc + Vector((0, 0, 0.05)) * diag, lens=70)
 
-# ------------------------------------------------------------------- lights
+# --- lights
 def area(name, loc, energy, size_l, color, target):
     data = bpy.data.lights.new(name, "AREA")
     data.energy = energy
@@ -168,7 +169,7 @@ sun_o = bpy.data.objects.new("SUN_key", sun)
 sun_o.rotation_euler = (0.65, 0.15, -0.6)
 sc.collection.objects.link(sun_o)
 
-# ------------------------------------------------------------------- render
+# --- render
 sc.render.engine = "BLENDER_EEVEE"
 sc.render.resolution_x = 1920
 sc.render.resolution_y = 1440

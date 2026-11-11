@@ -34,8 +34,8 @@
 <p align="center">
   <a href="https://stf-live-500754517962.europe-west1.run.app/stf/"><b>🚀 Live Production Twin + AI Copilot</b></a> •
   <a href="https://stf-twin.onrender.com/"><b>🌐 In-Browser Demo</b></a> •
-  <a href="docs/DASHBOARD_GUIDE.md"><b>📖 Operations Guide</b></a> •
-  <a href="docs/DEPLOY.md"><b>🚀 Deployment</b></a> •
+  <a href="docs/reference/guide/dashboard-guide.md"><b>📖 Operations Guide</b></a> •
+  <a href="docs/reference/operations/deploy.md"><b>🚀 Deployment</b></a> •
   <a href="#quick-start"><b>💻 Quick Start</b></a>
 </p>
 
@@ -224,7 +224,7 @@ flowchart TD
 * **Observable States:** Inspect digital/analog inputs, memory registers, fault flags, and safety interlocks in real time.
 
 ### 3. Grounded Industrial AI Copilot
-* **Zero Hallucination Tolerance:** The copilot is grounded through a dedicated Python domain tool engine ([`services/api/grounding.py`](services/api/grounding.py)) accessing 11 live factory telemetry tools.
+* **Zero Hallucination Tolerance:** The copilot is grounded through a dedicated Python domain tool engine ([`services/api/grounding.py`](services/api/rag/grounding.py)) accessing 11 live factory telemetry tools.
 * **Automated Fact Verification:** The server cross-references numerical values in LLM outputs against underlying physical metrics before presenting them to the user.
 * **One Fallback Chain** (`services/api/chat.py`, the same locally and in production):
   * **Gemini** first, then **Groq** (`openai/gpt-oss-120b`, which returns its reasoning), then **UPB AI** (the university's AI chat, a fixed credit), then a **local Ollama** model.
@@ -240,8 +240,8 @@ flowchart TD
 * **Remaining Useful Life (RUL):** Predicts wear runways on conveyor belts, vacuum seals, and mechanical drives.
 * **Environmental & Financial Metrics:** Tracks carbon grams per cookie, dynamic electricity tariff scheduling, and microgrid renewable utilization.
 * **Full Month Simulation:** Accelerated playback of 720 hours of production with controllable fault injection (motor jams, photo-sensor occlusion, air pressure loss), and QC testing: one damaged cookie in every 12, as in the twin.
-* **The Bake as a Process (Upgrade 19):** oven heat-up, door losses, the cookie's water and colour, four ways to end a bake, capacity (5.5 cookies/h with a real 10-min bake) and energy (about 51 Wh per cookie) - [`docs/process/README.md`](docs/process/README.md).
-* **The Mathematics, Written Down:** preventive maintenance ([`docs/maintenance/README.md`](docs/maintenance/README.md)) and the bake, every equation with the line that computes it; the papers behind them in [`papers/`](papers/README.md).
+* **The Bake as a Process (Upgrade 19):** oven heat-up, door losses, the cookie's water and colour, four ways to end a bake, capacity (5.5 cookies/h with a real 10-min bake) and energy (about 51 Wh per cookie) - [`docs/reference/process/README.md`](docs/reference/process/README.md).
+* **The Mathematics, Written Down:** preventive maintenance ([`docs/reference/maintenance/README.md`](docs/reference/maintenance/README.md)) and the bake, every equation with the line that computes it; the papers behind them in [`papers/`](papers/README.md).
 
 ### 5. Industry 4.0 & Cyber-Physical Security
 * **Asset Administration Shells (AAS):** IDTA-compliant submodels for Digital Nameplate, Handover Documentation, and Carbon Footprint.
@@ -315,7 +315,7 @@ make voice-check
 
 ### The database
 
-Guests, their conversations and photos, and the factory's data (the month, the energy month, the bakes, the camera's inspections) live in Supabase when `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` are set, else in a local SQLite file ([`docs/DATABASE.md`](docs/DATABASE.md)). Load the factory's data from the simulations (`RESET=1` first forgets every guest, chat and photo):
+Guests, their conversations and photos, and the factory's data (the month, the energy month, the bakes, the camera's inspections) live in Supabase when `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` are set, else in a local SQLite file ([`docs/reference/operations/database.md`](docs/reference/operations/database.md)). Load the factory's data from the simulations (`RESET=1` first forgets every guest, chat and photo):
 
 ```bash
 make db-seed
@@ -375,16 +375,16 @@ python3 stf-cad/hbw/validate.py
 
 ## 📚 Documentation Directory
 
-* 📘 [Operations Dashboard Guide](docs/DASHBOARD_GUIDE.md) — Comprehensive walkthrough of all 20+ dashboard pages.
-* 🚀 [Deployment Guide](docs/DEPLOY.md) — Production deployment with Docker, Google Cloud Run, Render, and GitHub Pages.
-* 🛡️ [Security & OT Architecture](docs/SECURITY.md) — IEC 62443 zone modeling, rate limits, and access tokens.
-* 📐 [Hardware Ground Truth](docs/FACTORY_GROUND_TRUTH.md) — Physical specifications and factory dimensions.
-* 🎙️ [Voice & TTS Pipeline](docs/TTS_PIPELINE.md) — Speech-to-text and text-to-speech audio architecture.
-* 📜 [Upgrade Roadmap](docs/UPGRADE_PLAN.md) — Evolution of the digital twin across 19 development stages.
-* 🔥 [The Bake as a Process](docs/process/README.md) — The oven and cookie model, four ways to end a bake, capacity and energy.
-* 🧮 [Preventive Maintenance: the Mathematics](docs/maintenance/README.md) — Every equation of the health model, with a worked example.
-* 📷 [Vision QC](docs/vision/README.md) — The camera, its models, QC testing and the vision-driven reject.
-* 🤖 [The Copilot](docs/copilot/README.md) — How a question is routed and answered, the fallback chain, thinking and web search.
-* 🗄️ [Guests and the Database](docs/DATABASE.md) — Guest sessions, Supabase or SQLite, and the factory's tables.
+* 📘 [Operations Dashboard Guide](docs/reference/guide/dashboard-guide.md) — Comprehensive walkthrough of all 20+ dashboard pages.
+* 🚀 [Deployment Guide](docs/reference/operations/deploy.md) — Production deployment with Docker, Google Cloud Run, Render, and GitHub Pages.
+* 🛡️ [Security & OT Architecture](docs/reference/operations/security.md) — IEC 62443 zone modeling, rate limits, and access tokens.
+* 📐 [Hardware Ground Truth](docs/reference/factory/ground-truth.md) — Physical specifications and factory dimensions.
+* 🎙️ [Voice & TTS Pipeline](docs/reference/copilot/speech-pipeline.md) — Speech-to-text and text-to-speech audio architecture.
+* 📜 [Upgrade Roadmap](docs/reference/factory/upgrades.md) — Evolution of the digital twin across 19 development stages.
+* 🔥 [The Bake as a Process](docs/reference/process/README.md) — The oven and cookie model, four ways to end a bake, capacity and energy.
+* 🧮 [Preventive Maintenance: the Mathematics](docs/reference/maintenance/README.md) — Every equation of the health model, with a worked example.
+* 📷 [Vision QC](docs/reference/vision/README.md) — The camera, its models, QC testing and the vision-driven reject.
+* 🤖 [The Copilot](docs/reference/copilot/README.md) — How a question is routed and answered, the fallback chain, thinking and web search.
+* 🗄️ [Guests and the Database](docs/reference/operations/database.md) — Guest sessions, Supabase or SQLite, and the factory's tables.
 * 📄 [Papers](papers/README.md) — The literature behind the time-series model, maintenance, vision and the scheduler.
 ---

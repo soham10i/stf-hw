@@ -9,11 +9,10 @@ Front features sit in pockets with their faces flush, so the envelope is the dev
 Every device carries an identification plate ("id_plate"): the place for its IEC 61406
 identification link (the QR code that resolves to its Asset Administration Shell, aas/build.py).
 """
-import Part
+import components
+import devices
 import FreeCAD as App
-
-import components as C
-import devices as DV
+import Part
 
 V = App.Vector
 
@@ -36,7 +35,7 @@ def din_profile(cid, L, W, H, base_t=None, nose_h=None):
         pts = [V(0, 0, 0), V(L, 0, 0), V(L, 0, base_t), V(a + nose_h, 0, base_t), V(a + nose_h, 0, H),
                V(a, 0, H), V(a, 0, base_t), V(0, 0, base_t), V(0, 0, 0)]
         sol = Part.Face(Part.makePolygon(pts)).extrude(V(0, W, 0))
-    rw, rd = C.get(cid, "rail_w"), C.get(cid, "rail_d")
+    rw, rd = components.get(cid, "rail_w"), components.get(cid, "rail_d")
     return sol.cut(box((L - rw) / 2, -1, -1, rw, W + 2, rd + 1))
 
 
@@ -87,9 +86,9 @@ def screw_terminal(x0, y0, z_top, poles, pitch, d, h, along="y"):
     raise ValueError(along)
 
 
-# ------------------------------------------------------------------ RevPi
+# --- RevPi
 def _revpi(cid):
-    g = lambda k: C.get(cid, k)
+    g = lambda k: components.get(cid, k)
     L, W, H = g("L"), g("W"), g("H")
     base_t, nose_h = g("base_t"), g("nose_h")
     a = (L - nose_h) / 2
@@ -151,10 +150,10 @@ def revpi_core():
     return _revpi("revpi_core")
 
 
-# ------------------------------------------------------------------ PSU
+# --- PSU
 def psu_wdr120():
     cid = "psu_wdr120"
-    g = lambda k: C.get(cid, k)
+    g = lambda k: components.get(cid, k)
     L, W, H = g("L"), g("W"), g("H")
     case = din_profile(cid, L, W, H)
     parts = []
@@ -185,11 +184,11 @@ def psu_wdr120():
         [("id_plate", plate, "label", "IEC 61406 identification plate", True)]
 
 
-# ------------------------------------------------------------------ the adaptor PCB
+# --- the adaptor PCB
 def adaptor_pcb():
     cid = "adaptor_pcb"
-    g = lambda k: C.get(cid, k)
-    s, X = DV.PCB_MM_PER_PX, DV.PCB_PX
+    g = lambda k: components.get(cid, k)
+    s, X = devices.PCB_MM_PER_PX, devices.PCB_PX
     bx0, by0, bx1, by1 = X["board"]
     mx = lambda px: (px - bx0) * s
     my = lambda py: (by1 - py) * s                  # drawing y runs down; the terminal strip at -Y
@@ -212,7 +211,7 @@ def adaptor_pcb():
     hw, hh = g("hdr_w"), g("hdr_h")
     for name, poles in (("st1", 20), ("st2", 20), ("st3", 34)):
         a, ya, b, yb = X[name]
-        length = DV.BOX_HEADER(poles)
+        length = devices.BOX_HEADER(poles)
         x0, y0 = mx(a), my(yb) + ((yb - ya) * s - hw) / 2
         shroud = box(x0, y0, T, length, hw, hh).cut(box(x0 + 1.2, y0 + 1.2, T + 1.5, length - 2.4, hw - 2.4, hh))
         shroud = shroud.cut(box(x0 + length / 2 - 2.25, y0 - 0.1, T + 4, 4.5, 1.4, hh))   # the polarising key
@@ -253,10 +252,10 @@ def adaptor_pcb():
         [("id_plate", id_plate(mx(860), my(140), T + 0.35, 14, 10), "label", "IEC 61406 identification plate", False)]
 
 
-# ------------------------------------------------------------------ remote I/O
+# --- remote I/O
 def io_coupler():
     cid = "io_coupler"
-    g = lambda k: C.get(cid, k)
+    g = lambda k: components.get(cid, k)
     L, W, H = g("L"), g("W"), g("H")
     hous = din_profile(cid, L, W, H)
     parts = []
@@ -282,7 +281,7 @@ def io_coupler():
 
 def io_slice():
     cid = "io_slice"
-    g = lambda k: C.get(cid, k)
+    g = lambda k: components.get(cid, k)
     L, W, H = g("L"), g("W"), g("H")
     hous = din_profile(cid, L, W, H)
     parts = []

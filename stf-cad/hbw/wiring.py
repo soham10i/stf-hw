@@ -12,12 +12,12 @@ wires()      one cable per I/O-tagged static part to its module's 24 V adapter
              cabinet, run round the table edge.
 """
 import itertools
-import math
 import json
+import math
 import os
 from types import SimpleNamespace
 
-import factory_layout as FL
+import factory_layout
 from variant import UP3, UP4, UP5
 
 KIND_TO_COMP = {
@@ -52,8 +52,8 @@ def dims_of(d):
 
 def fit(d):
     """d: an exported part dict. Returns the fit block or None."""
-    import parts_table as PT
-    kind = PT._kind(SimpleNamespace(name=d["n"], tag=d.get("tag", ""), mech=d.get("mech", "")))
+    import parts_table
+    kind = parts_table._kind(SimpleNamespace(name=d["n"], tag=d.get("tag", ""), mech=d.get("mech", "")))
     cid = KIND_TO_COMP.get(kind)
     if not cid:
         return None
@@ -81,16 +81,16 @@ def fit(d):
             "overall": [round(v, 3) for v in hous], "oversize_mm": over}
 
 
-# ------------------------------------------------------------------ wiring
+# --- wiring
 def _tf(module):
     if module == "hbw":
-        return lambda x, y: FL.to_factory(x, y)[:2]
+        return lambda x, y: factory_layout.to_factory(x, y)[:2]
     if module == "vgr":
-        return lambda x, y: (x + FL.VGR_AT[0], y + FL.VGR_AT[1])
+        return lambda x, y: (x + factory_layout.VGR_AT[0], y + factory_layout.VGR_AT[1])
     if module == "oven":
-        return lambda x, y: FL.to_factory_oven(x, y)[:2]
+        return lambda x, y: factory_layout.to_factory_oven(x, y)[:2]
     if module == "sorting":
-        return lambda x, y: FL.to_factory_sort(x, y)[:2]
+        return lambda x, y: factory_layout.to_factory_sort(x, y)[:2]
     raise KeyError(module)
 
 
@@ -152,7 +152,7 @@ def _valve_tag(d):
     return m.group(1) if m else None
 
 
-# ------------------------------------------------------------------ router
+# --- router
 CELL = 5.0            # grid pitch, mm
 Z = 1.2               # cables lie on the table
 
@@ -163,7 +163,7 @@ class Grid:
     it. Cables go round these, never under them - under is where they vanished."""
 
     def __init__(self, boxes, inflate):
-        W, H = FL.PLATE[0], FL.PLATE[1]
+        W, H = factory_layout.PLATE[0], factory_layout.PLATE[1]
         self.nx, self.ny = int(W // CELL) + 1, int(H // CELL) + 1
         self.block = bytearray(self.nx * self.ny)
         self.used = {}
@@ -270,16 +270,16 @@ def _floor_boxes(doc, mods):
             b = _box_f(d, tf)
             if b[2] < 3.0:
                 boxes.append(b)
-    import plc_model as PM
-    for p in PM.build():
+    import plc_model
+    for p in plc_model.build():
         if p.group == "frame":
             continue
         a = p.local_aabb()
-        boxes.append((a[0] + FL.PLC_AT[0], a[1] + FL.PLC_AT[1], a[2], a[3] + FL.PLC_AT[0],
-                      a[4] + FL.PLC_AT[1], a[5]))
-    if FL.UP1:
-        import upgrade as U
-        boxes += [a for _, _, a in U.factory_parts() if a[2] < 3.0]
+        boxes.append((a[0] + factory_layout.PLC_AT[0], a[1] + factory_layout.PLC_AT[1], a[2], a[3] + factory_layout.PLC_AT[0],
+                      a[4] + factory_layout.PLC_AT[1], a[5]))
+    if factory_layout.UP1:
+        import upgrade
+        boxes += [a for _, _, a in upgrade.factory_parts() if a[2] < 3.0]
     return boxes
 
 
@@ -454,8 +454,8 @@ def _central_air(doc, mods, grid, hoses, cables, duct):
     """Upgrade 1: one air main per module, manifold outlet -> the module's valve
     group, routed on the table round everything standing on it, then a short
     branch up into each valve's P port. Plus the central compressor's cable."""
-    import upgrade as U
-    outs = U.outlets()
+    import upgrade
+    outs = upgrade.outlets()
     for k, m in enumerate(("oven", "sorting", "vgr")):
         tf = _tf(m)
         valves = [d for d in mods[m] if "valve" in d["n"] and d["f"] == "world"]
@@ -478,7 +478,7 @@ def _central_air(doc, mods, grid, hoses, cables, duct):
                                      _dedupe([end, (vt[0], end[1], Z + 3), (vt[0], vt[1], Z + 3),
                                               (vt[0], vt[1], vt[2])])]})
     # the central compressor: one DO + 0 V from the cabinet
-    comp = next(a for _, p, a in U.factory_parts() if p.name == "Q10_central_compressor")
+    comp = next(a for _, p, a in upgrade.factory_parts() if p.name == "Q10_central_compressor")
     c = ((comp[0] + comp[3]) / 2, (comp[1] + comp[4]) / 2)
     s_cell = grid.nearest_free(c[0], c[1])
     t_cell = grid.nearest_free(duct[0] + 45, duct[1])
@@ -496,7 +496,7 @@ def _safety(doc, grid, cables, plc_pt, Z):
     OUTSIDE of the guard's bottom rail, through one gland into the free corridor
     between the PLC plate and the sorting line, into the cabinet duct and down
     to the safety relay. The safe exhaust valve Y1 is routed on the table."""
-    import safety as SF
+    import safety
     sd = doc["safety"]
     x0, y0, x1, y1 = sd["outline"]
     P = sd["post"]
@@ -553,8 +553,8 @@ def _safety(doc, grid, cables, plc_pt, Z):
         pts += tail
         cables.append({"module": "safety", "part": q["n"], "tag": q["tag"], "conductors": cond[kind],
                        "points": [[round(v, 1) for v in p] for p in _dedupe(pts)]})
-    import upgrade as U
-    for mod, p, a in U.factory_parts():
+    import upgrade
+    for mod, p, a in upgrade.factory_parts():
         if p.name != "air_safe_exhaust":
             continue
         c = ((a[0] + a[3]) / 2, (a[1] + a[4]) / 2)
@@ -573,8 +573,8 @@ def _node_links(m, pb, pc, cond, grid, bundles, plc_pt, Z):
     """Upgrade 3: the module's ST3 ribbon now ends at its remote I/O node a
     few cm away; only an Ethernet line (signal duct -> switch) and the fused
     24 V feed (power duct -> electronic breaker) run to the cabinet."""
-    import io_nodes as N
-    parts = {p.name: p.local_aabb() for p in N.parts(m)}
+    import io_nodes
+    parts = {p.name: p.local_aabb() for p in io_nodes.parts(m)}
     cp = parts[f"io_{m}_coupler"]
     sl = [a for n, a in parts.items() if n.startswith(f"io_{m}_") and n[len(f"io_{m}_"):][:2] in ("DI", "DO", "AI", "CN")]
     tgt = sl[len(sl) // 2] if sl else cp
@@ -608,9 +608,9 @@ def _edge_link(grid, bundles, plc_pt, Z):
     """The edge computer: one Ethernet line from its port 1 to the cabinet's switch (the conduit
     to cell control) and a fused 24 V feed from the electronic breaker, routed on the table like
     the I/O nodes' links."""
-    import upgrade as U
-    ex, ey = U.EDGE_AT
-    pa = next(p for p in U.edge_parts() if p.name == "edge_pc_ports").local_aabb()
+    import upgrade
+    ex, ey = upgrade.EDGE_AT
+    pa = next(p for p in upgrade.edge_parts() if p.name == "edge_pc_ports").local_aabb()
     port = (ex + pa[3], ey + (pa[1] + pa[4]) / 2, pa[2] + 5)
 
     def floor_run(a, b, key):
@@ -635,12 +635,12 @@ def _chain_harness(grid, cables, boards, Z):
     """Upgrade 3: the moving devices' cables leave their chains at the fixed
     end (HBW travel chain) / the swivel axis (VGR tower duct) and run on the
     table to the module's PCB, like every static device's cable."""
-    import chains as CH
-    t = CH.HBW["travel"]
-    fx, fy, _ = FL.to_factory(t["F"][0], t["F"][1])
+    import chains
+    t = chains.HBW["travel"]
+    fx, fy, _ = factory_layout.to_factory(t["F"][0], t["F"][1])
     starts = {"hbw": ((fx, fy), 9.0, t["devices"]),
-              "vgr": (FL.vgr_tower(), 14.0,
-                      CH.VGR["plunge"]["devices"] + ["M1_plunge_motor", "I1_ref_plunge"])}
+              "vgr": (factory_layout.vgr_tower(), 14.0,
+                      chains.VGR["plunge"]["devices"] + ["M1_plunge_motor", "I1_ref_plunge"])}
     for m, ((sx, sy), z0, devs) in starts.items():
         pb = boards[m]["box"]
         tx, ty = (pb[0] + pb[3]) / 2, pb[4] - 3
@@ -651,7 +651,7 @@ def _chain_harness(grid, cables, boards, Z):
         pts += [(x, y, Z) for x, y in run[1:]] + [(tx, ty, Z), (tx, ty, pb[5] - 4)]
         cond = []
         for d in devs:
-            cond += ["DO", "DO", "ENC", "ENC", "+24V", "0V"] if CH.COND.get(d, 2) == 6 else \
+            cond += ["DO", "DO", "ENC", "ENC", "+24V", "0V"] if chains.COND.get(d, 2) == 6 else \
                     (["DO", "0V"] if d.startswith(("M", "suction")) else ["+24V", "DI"])
         cables.append({"module": m, "part": f"chain_harness_{m}", "tag": "moving axes",
                        "conductors": cond, "points": [[round(v, 1) for v in p] for p in _dedupe(pts)]})
@@ -660,17 +660,17 @@ def _chain_harness(grid, cables, boards, Z):
 def _rfid_cables(grid, cables, Z):
     """Upgrade 4: each RFID head's M12 cable drops between the belt legs to
     the table and runs to the IO-Link slice of the HBW node."""
-    import hbw_model as HM
-    import io_nodes as N
-    sl = next(p.local_aabb() for p in N.parts("hbw") if p.name == "io_hbw_IOL1")
+    import hbw_model
+    import io_nodes
+    sl = next(p.local_aabb() for p in io_nodes.parts("hbw") if p.name == "io_hbw_IOL1")
     tx, ty = (sl[0] + sl[3]) / 2, (sl[1] + sl[4]) / 2
     for k, (rp, tag) in enumerate((("rp1", "RF1"), ("rp2", "RF2"))):
-        yd = HM.RFID_Y[k] + 16                       # the head's cable end (past the belt motor at RP2)
-        hx, hy, _ = FL.to_factory(HM.P["CV_X"], yd)
+        yd = hbw_model.RFID_Y[k] + 16                # the head's cable end (past the belt motor at RP2)
+        hx, hy, _ = factory_layout.to_factory(hbw_model.P["CV_X"], yd)
         s_cell = grid.nearest_free(hx, hy, toward=grid.cell(tx, ty))
         t_cell = grid.nearest_free(tx, ty)
         run = [(i * CELL, j * CELL) for i, j in _simplify(grid.route(s_cell, t_cell, f"rfid_{rp}"))]
-        z0 = HM.P["CV_LEG_H"] + 6
+        z0 = hbw_model.P["CV_LEG_H"] + 6
         pts = [(hx, hy, z0), (hx, hy, Z + 4), (run[0][0], run[0][1], Z + 4)]
         pts += [(x, y, Z + 4) for x, y in run[1:]] + [(tx, ty, Z + 4), (tx, ty, sl[5])]
         cables.append({"module": "hbw", "part": f"rfid_{rp}_head", "tag": tag,
@@ -681,14 +681,14 @@ def _rfid_cables(grid, cables, Z):
 def _u5_sensor_cables(mods, grid, cables, Z, lanes=None):
     """Upgrade 5: the reed, vacuum and pressure switches virtual commissioning
     asked for. Each runs from the part it is clamped on to its node's DI slice."""
-    import control as C
-    import io_nodes as N
-    import upgrade as U
-    air = {p.name: a for _, p, a in U.factory_parts(include_io=False)}
-    for m, sensors in C.U5_SENSORS.items():
-        nparts = {p.name: p.local_aabb() for p in N.parts(m)}
+    import control
+    import io_nodes
+    import upgrade
+    air = {p.name: a for _, p, a in upgrade.factory_parts(include_io=False)}
+    for m, sensors in control.U5_SENSORS.items():
+        nparts = {p.name: p.local_aabb() for p in io_nodes.parts(m)}
         for sg, (part, what) in sensors.items():
-            sid = next(i for i, t, ch in N.slices(m) if sg in ch)
+            sid = next(i for i, t, ch in io_nodes.slices(m) if sg in ch)
             sl = nparts[f"io_{m}_{sid}"]
             tx, ty = (sl[0] + sl[3]) / 2, (sl[1] + sl[4]) / 2
             if part in air:
@@ -733,9 +733,9 @@ def wires(doc):
             "sorting": doc["sorting"]["parts"]}
     cables, hoses, bundles, power, boards = [], [], [], [], {}
     lanes_all = {}                                      # module -> the boxes no cable may pass through
-    import plc_model as PM
-    pa = {p.name: p for p in PM.build()}
-    P0 = FL.PLC_AT
+    import plc_model
+    pa = {p.name: p for p in plc_model.build()}
+    P0 = factory_layout.PLC_AT
 
     def plc_pt(name, dx=0.5, dy=0.5, top=True):
         p = pa[name]
@@ -746,8 +746,8 @@ def wires(doc):
     floor = _floor_boxes(doc, mods)
     grid = Grid(floor, 3.0)
     # the PCB->PLC bundles are ~50 mm wide: route them on a grid inflated to match
-    wide = Grid([b for b in floor if not (b[0] >= FL.PLC_AT[0] and b[1] >= FL.PLC_AT[1]
-                                          and b[3] <= FL.PLC_AT[0] + 300 and b[4] <= FL.PLC_AT[1] + 380)], 26.0)
+    wide = Grid([b for b in floor if not (b[0] >= factory_layout.PLC_AT[0] and b[1] >= factory_layout.PLC_AT[1]
+                                          and b[3] <= factory_layout.PLC_AT[0] + 300 and b[4] <= factory_layout.PLC_AT[1] + 380)], 26.0)
     dio_of = {"hbw": "revpi_dio_1", "oven": "revpi_dio_2", "vgr": "revpi_dio_3", "sorting": "revpi_dio_3"}
     for m, parts in mods.items():
         tf = _tf(m)
@@ -879,13 +879,13 @@ def wires(doc):
                       "points": [[round(v, 1) for v in p] for p in
                                  (duct, (duct[0], duct[1], duct[2] + 25), (dio[0] + 30, dio[1], dio[2] + 25),
                                   (dio[0] + 30, dio[1], dio[2]))]})
-    if FL.UP1:
+    if factory_layout.UP1:
         _central_air(doc, mods, grid, hoses, cables, duct)
     if doc.get("safety"):
         _safety(doc, grid, cables, plc_pt, Z)
     if UP3:
         _chain_harness(grid, cables, boards, Z)
-        if FL.UP1:
+        if factory_layout.UP1:
             _edge_link(grid, bundles, plc_pt, Z)
     if UP4:
         _rfid_cables(grid, cables, Z)

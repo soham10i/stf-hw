@@ -162,7 +162,7 @@
     "model": "openai/gpt-oss-120b",
     "reasoning_effort": "low",
     "temperature": 0.2,
-    "tools": "<15 tool groups>"
+    "tools": "<16 tool groups>"
    },
    {
     "include_reasoning": true,
@@ -198,7 +198,7 @@
     "model": "openai/gpt-oss-120b",
     "reasoning_effort": "low",
     "temperature": 0.2,
-    "tools": "<15 tool groups>"
+    "tools": "<16 tool groups>"
    },
    {
     "include_reasoning": true,
@@ -242,7 +242,7 @@
     "model": "openai/gpt-oss-120b",
     "reasoning_effort": "low",
     "temperature": 0.2,
-    "tools": "<15 tool groups>"
+    "tools": "<16 tool groups>"
    }
   ],
   "tools": [
@@ -270,7 +270,7 @@
      "temperature": 0.2
     },
     "stream": false,
-    "tools": "<15 tool groups>"
+    "tools": "<16 tool groups>"
    },
    {
     "messages": [
@@ -309,7 +309,7 @@
      "temperature": 0.2
     },
     "stream": false,
-    "tools": "<15 tool groups>"
+    "tools": "<16 tool groups>"
    },
    {
     "messages": [
@@ -356,7 +356,7 @@
      "temperature": 0.2
     },
     "stream": false,
-    "tools": "<15 tool groups>"
+    "tools": "<16 tool groups>"
    }
   ],
   "tools": [

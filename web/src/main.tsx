@@ -1,16 +1,15 @@
 import ReactDOM from "react-dom/client";
 import App from "./twin/App";
-import "@fontsource-variable/geist";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/space-grotesk";
 import "@fontsource-variable/geist-mono";
 import "./shared/theme.css";
 import "./index.css";
 import "./twin/twin.css";
 import "./shared/studio.css";
-import "./shared/glass.css";
-import "./shared/obsidian.css";
-import "./shared/ground.css";
 import "./dashboard/styles/chat.css";
 import "./shared/chat-widget.css";
+import "./shared/zero.css";
 import { applyTheme } from "./shared/theme";
 
 // the saved theme on the document before the first render: no flash of the other one

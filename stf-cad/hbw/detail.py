@@ -51,7 +51,7 @@ def _axis_placement(p):
     return App.Placement(V(*p.p), rot)
 
 
-# ------------------------------------------------------------------ blocks
+# --- blocks
 def rounded_box(dx, dy, dz, origin):
     """ft block with bevelled edges. A chamfer, not a fillet: it reads the same
     at this scale, and its faces are planar - ~50 triangles per block instead
@@ -77,7 +77,7 @@ def chamfered_cyl(r, L, c=0.6):
         return s
 
 
-# ----------------------------------------------------------------- threads
+# --- threads
 def _thread_segment(d, pitch, turns):
     """One `turns`-long ridge of a 60-degree V thread on a core of radius rc."""
     key = (d, pitch, turns)
@@ -117,7 +117,7 @@ def threaded_rod(d, L, pitch=4.0):
     return Part.makeCompound(parts)
 
 
-# ---------------------------------------------------------------- VGR tool
+# --- VGR tool
 def spring_stem(L, d_env):
     """Guide rod on the axis inside a closed-end compression spring."""
     rod = Part.makeCylinder(2.6, L)
@@ -138,7 +138,7 @@ def suction_cup(d, h):
     return lip.cut(cavity).fuse(neck).removeSplitter()
 
 
-# -------------------------------------------------------------- belt drive
+# --- belt drive
 def belt_loop(env, a, b, width, pitch_r, thick=1.6, tooth=1.2, tpitch=5.0):
     """A closed toothed belt in the y-z plane round two pulley centres a, b,
     extruded `width` along +x from env x0. Teeth on the INSIDE face."""
@@ -174,7 +174,7 @@ def belt_loop(env, a, b, width, pitch_r, thick=1.6, tooth=1.2, tpitch=5.0):
     return Part.makeCompound([band] + teeth)
 
 
-# --------------------------------------------------------------- dispatch
+# --- dispatch
 def slotted_profile(p):
     """Aluminium profile along its long axis: square section with a T-slot in
     each face and a centre bore (ft-style 15 mm profile; slot sizes scale with
@@ -202,7 +202,7 @@ def slotted_profile(p):
                                                e.Length > L - 1e-6
                                                and (abs(e.Vertexes[0].X) < 1e-6 or abs(e.Vertexes[0].X - w) < 1e-6)
                                                and (abs(e.Vertexes[0].Y) < 1e-6 or abs(e.Vertexes[0].Y - w) < 1e-6)])
-    except Exception:
+    except Exception:  # OCC cannot chamfer this size: keep the sharp edge
         pass
     # local z -> the long axis, then to the part's origin
     rot = {2: App.Rotation(), 0: App.Rotation(V(0, 1, 0), 90), 1: App.Rotation(V(1, 0, 0), -90)}[ax]
@@ -254,7 +254,7 @@ def _precise(p, sib):
         try:
             s = s.makeFillet(min(1.5, L / 4), [e for e in s.Edges
                                                 if abs(e.BoundBox.ZMin - L) < 1e-6])
-        except Exception:
+        except Exception:  # OCC cannot fillet this size: keep the sharp edge
             pass
     else:
         s = chamfered_cyl(d / 2.0, L)

@@ -41,7 +41,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from vision import render as R
+from vision import render
 
 OUT = os.path.expanduser("~/workspace/stf-hw/web/public/vision")
 TRAIN_N, VAL_N, TEST_N = 24000, 3000, 3000
@@ -66,8 +66,8 @@ class Net(nn.Module):
         self.c4 = nn.Conv2d(64, 64, 3, padding=1)
         self.bn = nn.ModuleList([nn.BatchNorm2d(c) for c in (16, 32, 64, 64)]) if bn else None
         self.fc = nn.Linear(64, 64)
-        self.flav = nn.Linear(64, len(R.FLAVOURS))
-        self.cond = nn.Linear(64, len(R.CONDITIONS))
+        self.flav = nn.Linear(64, len(render.FLAVOURS))
+        self.cond = nn.Linear(64, len(render.CONDITIONS))
 
     def _c(self, i, conv, x):
         x = conv(x)
@@ -75,7 +75,7 @@ class Net(nn.Module):
 
     def forward(self, x):                      # x: B x 3 x 64 x 64, 0..1
         if self.ref:                           # divide out the light: the grey target reads 0.5
-            g = x[:, :, :R.REF, :R.REF].mean(dim=(2, 3), keepdim=True)
+            g = x[:, :, :render.REF, :render.REF].mean(dim=(2, 3), keepdim=True)
             x = x * (0.5 / (g + 1e-3))
         x = x - 0.5
         x = F.max_pool2d(self._c(0, self.c1, x), 2)
@@ -131,7 +131,7 @@ def predict(net, X, bs=512):
 
 def verdicts(pc):
     """pass / reject / check, from the condition probabilities."""
-    ok = R.CONDITIONS.index("ok")
+    ok = render.CONDITIONS.index("ok")
     v = np.where(pc[:, ok] >= PASS_P, "pass", "reject").astype(object)
     v[pc.max(1) < SURE_P] = "check"
     return v
@@ -139,20 +139,20 @@ def verdicts(pc):
 
 def score(pf, pc, yf, yc):
     v = verdicts(pc)
-    ok = R.CONDITIONS.index("ok")
+    ok = render.CONDITIONS.index("ok")
     good, bad = yc == ok, yc != ok
-    cm = np.zeros((len(R.CONDITIONS), len(R.CONDITIONS)), int)
+    cm = np.zeros((len(render.CONDITIONS), len(render.CONDITIONS)), int)
     for t, p in zip(yc, pc.argmax(1), strict=True):
         cm[t, p] += 1
     return {
         "n": int(len(yc)),
         "flavour_acc": round(float((pf.argmax(1) == yf).mean()), 4),
-        "flavour_acc_baked": round(float((pf.argmax(1) == yf)[yc != R.CONDITIONS.index("underbaked")].mean()), 4),
+        "flavour_acc_baked": round(float((pf.argmax(1) == yf)[yc != render.CONDITIONS.index("underbaked")].mean()), 4),
         "condition_acc": round(float((pc.argmax(1) == yc).mean()), 4),
         "escape_rate": round(float(((v == "pass") & bad).sum() / bad.sum()), 4),
         "false_reject": round(float(((v == "reject") & good).sum() / good.sum()), 4),
         "to_person": round(float((v == "check").mean()), 4),
-        "recall": {c: round(float(cm[i, i] / cm[i].sum()), 4) for i, c in enumerate(R.CONDITIONS)},
+        "recall": {c: round(float(cm[i, i] / cm[i].sum()), 4) for i, c in enumerate(render.CONDITIONS)},
         "confusion": cm.tolist(),
     }
 
@@ -160,10 +160,10 @@ def score(pf, pc, yf, yc):
 def train(ranges, ref=True):
     """Learn from images drawn under `ranges`; test on unseen ones like them, and on SHIFT."""
     t0 = time.time()
-    Xtr, ftr, ctr = R.dataset(TRAIN_N, SEED, ranges)
-    Xva, fva, cva = R.dataset(VAL_N, SEED + 1, ranges)
-    Xte, fte, cte = R.dataset(TEST_N, SEED + 2, ranges)
-    Xsh, fsh, csh = R.dataset(TEST_N, SEED + 3, R.SHIFT)
+    Xtr, ftr, ctr = render.dataset(TRAIN_N, SEED, ranges)
+    Xva, fva, cva = render.dataset(VAL_N, SEED + 1, ranges)
+    Xte, fte, cte = render.dataset(TEST_N, SEED + 2, ranges)
+    Xsh, fsh, csh = render.dataset(TEST_N, SEED + 3, render.SHIFT)
     gen_s = round(time.time() - t0, 1)
     torch.manual_seed(SEED)
     net = Net(ref=ref).to(DEV)
@@ -204,7 +204,7 @@ TRAINED = {}
 BN_STATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".cache", "vision_cnn_bn.pt")
 
 
-# ------------------------------------------------------------- export
+# --- export
 def _b64(t):
     return base64.b64encode(t.detach().cpu().numpy().astype("<f4").tobytes()).decode()
 
@@ -212,8 +212,8 @@ def _b64(t):
 def export(net, res, log, gen_s, train_s, steps):
     os.makedirs(OUT, exist_ok=True)
     net = net.cpu().eval()
-    W = {"classes": {"flavour": R.FLAVOURS, "condition": R.CONDITIONS}, "size": R.N, "pass_p": PASS_P, "sure_p": SURE_P,
-         "ref": R.REF if net.ref else 0,
+    W = {"classes": {"flavour": render.FLAVOURS, "condition": render.CONDITIONS}, "size": render.N, "pass_p": PASS_P, "sure_p": SURE_P,
+         "ref": render.REF if net.ref else 0,
          "layers": {}}
     for name, m in net.named_children():
         if m is not None and hasattr(m, "weight"):
@@ -223,7 +223,7 @@ def export(net, res, log, gen_s, train_s, steps):
     # ONNX for the edge, checked with ONNX's own reference evaluator
     import onnx
     from onnx.reference import ReferenceEvaluator
-    probe = torch.from_numpy(R.dataset(8, 99)[0])
+    probe = torch.from_numpy(render.dataset(8, 99)[0])
     path = os.path.join(OUT, "stf_vision_cnn.onnx")
     torch.onnx.export(net, (probe,), path, input_names=["image"], output_names=["flavour", "condition"],
                       dynamic_axes={"image": {0: "n"}}, opset_version=17, dynamo=False)
@@ -237,7 +237,7 @@ def export(net, res, log, gen_s, train_s, steps):
     for shift in (False, True):
         for k in range(48):
             fl, co = k % 3, (k // 3) % 5
-            img = R.render(R.FLAVOURS[fl], R.CONDITIONS[co], rnd, R.SHIFT if shift else R.TRAIN)
+            img = render.render(render.FLAVOURS[fl], render.CONDITIONS[co], rnd, render.SHIFT if shift else render.TRAIN)
             tiles.append(np.round(img * 255) / 255)          # as the PNG stores it, for the parity check
             labels.append({"flavour": fl, "condition": co, "shifted": shift})
     X = np.stack([t_.transpose(2, 0, 1) for t_ in tiles]).astype(np.float32)
@@ -249,16 +249,16 @@ def export(net, res, log, gen_s, train_s, steps):
     cols = 12
     rows = [np.concatenate(tiles[r * cols:(r + 1) * cols], axis=1) for r in range(len(tiles) // cols)]
     with open(os.path.join(OUT, "test.png"), "wb") as fh:
-        fh.write(R.png(np.concatenate(rows, axis=0)))
+        fh.write(render.png(np.concatenate(rows, axis=0)))
     meta = {
         "method": "CNN trained only on rendered images (domain randomisation); tested once on unseen images, "
                   "and on images drawn outside the training ranges",
         "model": {"params": n_params(net), "layers": "conv3x3 16-32-64-64, maxpool x3, GAP, fc 64, two heads",
                   "onnx_bytes": os.path.getsize(path), "onnx_max_abs_err": onnx_err, "device": DEV},
-        "data": {"train": TRAIN_N, "val": VAL_N, "test": TEST_N, "generate_s": gen_s, "size_px": R.N, "fov_mm": R.MM},
+        "data": {"train": TRAIN_N, "val": VAL_N, "test": TEST_N, "generate_s": gen_s, "size_px": render.N, "fov_mm": render.MM},
         "train_s": train_s, "log": log, "results": res, "pass_p": PASS_P, "sure_p": SURE_P,
-        "steps": steps, "train_ranges": R.TRAIN, "narrow_ranges": R.NARROW, "shift_ranges": R.SHIFT,
-        "sheet": {"cols": cols, "tile": R.N, "labels": labels},
+        "steps": steps, "train_ranges": render.TRAIN, "narrow_ranges": render.NARROW, "shift_ranges": render.SHIFT,
+        "sheet": {"cols": cols, "tile": render.N, "labels": labels},
         "limits": "rendered images only: the renderer's faults and lighting are ASSUMED. It shows the method and the "
                   "deployment path, not the accuracy on a real camera.",
     }
@@ -279,9 +279,9 @@ def parity():
 
 if __name__ == "__main__":
     # the comparison is the point: what each step buys under conditions never seen in training
-    _, narrow, _, _, _ = train(R.NARROW, ref=False)
-    _, wide, _, _, _ = train(R.WIDE, ref=False)
-    net, res, log, gen_s, train_s = train(R.WIDE, ref=True)          # the deployed network
+    _, narrow, _, _, _ = train(render.NARROW, ref=False)
+    _, wide, _, _, _ = train(render.WIDE, ref=False)
+    net, res, log, gen_s, train_s = train(render.WIDE, ref=True)     # the deployed network
     os.makedirs(os.path.dirname(BN_STATE), exist_ok=True)
     torch.save(TRAINED["bn"], BN_STATE)                              # unfolded, for vision.adapt
     meta = export(net, res, log, gen_s, train_s, {"narrow": narrow, "wide": wide})

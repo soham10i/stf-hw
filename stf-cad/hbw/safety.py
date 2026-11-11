@@ -72,8 +72,8 @@ class Part:
 
 
 def table():
-    import factory_layout as FL
-    return FL.PLATE[0], FL.PLATE[1]
+    import factory_layout
+    return factory_layout.PLATE[0], factory_layout.PLATE[1]
 
 
 def outline():
@@ -82,17 +82,18 @@ def outline():
     return (-GAP, -GAP, TX + GAP, TY + GAP)
 
 
-# ------------------------------------------------------------ hazard zones
+# --- hazard zones
 def _hbw_zone():
-    import factory_layout as FL, hbw_model as HM
+    import factory_layout
+    import hbw_model
     lo, hi = [1e9] * 3, [-1e9] * 3
-    t0, t1 = HM.P["TRAVEL"]; l0, l1 = HM.P["LIFT"]; f0, f1 = HM.P["FORK"]
+    t0, t1 = hbw_model.P["TRAVEL"]; l0, l1 = hbw_model.P["LIFT"]; f0, f1 = hbw_model.P["FORK"]
     for tv, lz, fk in itertools.product((t0, t1), (l0, l1), (f0, f1)):
-        for p in HM.build(tv, lz, fk):
+        for p in hbw_model.build(tv, lz, fk):
             if not p.joint:
                 continue
             a = p.aabb()
-            c0, c1 = FL.to_factory(a[0], a[1]), FL.to_factory(a[3], a[4])
+            c0, c1 = factory_layout.to_factory(a[0], a[1]), factory_layout.to_factory(a[3], a[4])
             for i, v in enumerate((min(c0[0], c1[0]), min(c0[1], c1[1]), a[2])):
                 lo[i] = min(lo[i], v)
             for i, v in enumerate((max(c0[0], c1[0]), max(c0[1], c1[1]), a[5])):
@@ -103,15 +104,17 @@ def _hbw_zone():
 def _vgr_zone(step=5.0):
     """The VGR arm swept over swivel x reach x plunge: a cylinder about the
     tower (the rear of the retracted arm reaches ~550 mm behind it)."""
-    import factory_layout as FL, vgr_model as VG, vgr_path as VP
-    tx, ty = FL.vgr_tower()
-    s0, s1 = VG.V["SWIVEL"]; r0, r1 = VG.V["REACH"]; p0, p1 = VG.V["PLUNGE"]
+    import factory_layout
+    import vgr_model
+    import vgr_path
+    tx, ty = factory_layout.vgr_tower()
+    s0, s1 = vgr_model.V["SWIVEL"]; r0, r1 = vgr_model.V["REACH"]; p0, p1 = vgr_model.V["PLUNGE"]
     rmax, z0, z1, pts = 0.0, 1e9, -1e9, []
     sw = s0
     while sw <= s1 + 1e-6:
         for rr in (r0, r1):
             for pz in (p0, p1):
-                for name, c, h, ang, za, zb in VP.moving_parts(sw, pz, rr, carrying=True):
+                for name, c, h, ang, za, zb in vgr_path.moving_parts(sw, pz, rr, carrying=True):
                     t = math.radians(ang)
                     for sx, sy in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
                         x = c[0] + sx * h[0] * math.cos(t) - sy * h[1] * math.sin(t)
@@ -137,8 +140,9 @@ def _vgr_zone(step=5.0):
 
 
 def _oven_zones():
-    import factory_layout as FL, oven_model as OM
-    q = OM.O
+    import factory_layout
+    import oven_model
+    q = oven_model.O
     groups = {"slider": "Ofenschieber + tray", "door": "Ofentuer", "turn": "Drehtisch + Saege",
               "sauger": "Sauger", "lower": "Sauger", "push": "Auswerfer"}
     boxes = {}
@@ -148,11 +152,11 @@ def _oven_zones():
                 for sa in q["SAUGER"]:
                     for lw in q["LOWER"]:
                         for pu in q["PUSH"]:
-                            for p in OM.build(sl, dr, tn, sa, lw, pu):
+                            for p in oven_model.build(sl, dr, tn, sa, lw, pu):
                                 if p.frame == "world" and p.group not in ("saw",):
                                     continue
                                 key = groups.get(p.frame, "Drehtisch + Saege")
-                                b = FL.oven_box(p.local_aabb())
+                                b = factory_layout.oven_box(p.local_aabb())
                                 o = boxes.setdefault(key, list(b))
                                 for i in range(3):
                                     o[i] = min(o[i], b[i]); o[i + 3] = max(o[i + 3], b[i + 3])
@@ -160,15 +164,16 @@ def _oven_zones():
 
 
 def _sorting_zone():
-    import factory_layout as FL, sorting_model as SM
+    import factory_layout
+    import sorting_model
     lo, hi = [1e9] * 3, [-1e9] * 3
-    e1 = SM.S["EJECT"][1]
+    e1 = sorting_model.S["EJECT"][1]
     for push in ((0, 0, 0), (e1, 0, 0), (0, e1, 0), (0, 0, e1)):
-        for p in SM.build(push):
+        for p in sorting_model.build(push):
             if not p.frame.startswith("push"):
                 continue
             a = p.local_aabb()
-            c0, c1 = FL.to_factory_sort(a[0], a[1]), FL.to_factory_sort(a[3], a[4])
+            c0, c1 = factory_layout.to_factory_sort(a[0], a[1]), factory_layout.to_factory_sort(a[3], a[4])
             for i, v in enumerate((min(c0[0], c1[0]), min(c0[1], c1[1]), a[2])):
                 lo[i] = min(lo[i], v)
             for i, v in enumerate((max(c0[0], c1[0]), max(c0[1], c1[1]), a[5])):
@@ -214,7 +219,7 @@ def _merge(a, b):
     return [min(a[i], b[i]) for i in range(3)] + [max(a[i + 3], b[i + 3]) for i in range(3)]
 
 
-# ------------------------------------------------------------------- guard
+# --- guard
 DOORS = {
     # wall, span along the wall (y for the front/back walls), what it gives access to
     "A": ("front", (60.0, 700.0), "oven + PLC cabinet"),
@@ -327,7 +332,7 @@ def guard_parts():
     return out
 
 
-# ------------------------------------------------------------------ circuit
+# --- circuit
 def circuit():
     """The safety circuit as a netlist the blueprint draws and the logic proof
     reads. Devices are dual-channel; the chain is in series per channel."""
@@ -413,13 +418,14 @@ def check_logic():
 
 def pneumatic_graph():
     """Directed air network: source -> ... -> every cylinder."""
-    import oven_model as OM, sorting_model as SM
+    import oven_model
+    import sorting_model
     g = {"Q10_central_compressor": ["air_tank"], "air_tank": ["air_frl"], "air_frl": ["air_safe_exhaust"],
          "air_safe_exhaust": ["air_lockout_valve"], "air_lockout_valve": ["air_manifold"],
          "air_manifold": ["oven_valves", "sorting_valves", "vgr_valves"]}
-    g["oven_valves"] = [p.name for p in OM.build() if "cylinder" in p.name and "vacuum" not in p.name]
+    g["oven_valves"] = [p.name for p in oven_model.build() if "cylinder" in p.name and "vacuum" not in p.name]
     g["oven_valves"] += ["vacuum_cylinder_a", "vacuum_cylinder_b"]
-    g["sorting_valves"] = [p.name for p in SM.build() if "cylinder" in p.name]
+    g["sorting_valves"] = [p.name for p in sorting_model.build() if "cylinder" in p.name]
     g["vgr_valves"] = ["vgr_vacuum_valve"]
     return g
 
@@ -447,7 +453,7 @@ def check_air():
     return fails, leaves
 
 
-# ------------------------------------------------------------------ checks
+# --- checks
 def _inside(zone, clr):
     x0, y0, x1, y1 = outline()
     return (zone[0] >= x0 + clr and zone[1] >= y0 + clr and zone[3] <= x1 - clr and zone[4] <= y1 - clr
@@ -455,7 +461,9 @@ def _inside(zone, clr):
 
 
 def check(verbose=True):
-    import factory_layout as FL, upgrade as U, plc_model as PM
+    import factory_layout
+    import plc_model
+    import upgrade
     fails = []
     hz = hazards()
     for h in hz:
@@ -471,8 +479,8 @@ def check(verbose=True):
     # fit: nothing of the guard touches the machine
     guard = [(p, p.local_aabb()) for p in guard_parts()]
     machine = []
-    for rect in (FL.module_rect(), FL.vgr_rect(), FL.oven_rect(), FL.sort_rect(), FL.plc_rect(),
-                 *U.rects().values()):
+    for rect in (factory_layout.module_rect(), factory_layout.vgr_rect(), factory_layout.oven_rect(), factory_layout.sort_rect(), factory_layout.plc_rect(),
+                 *upgrade.rects().values()):
         x, y, w, d = rect
         machine.append((x, y, -10.0, x + w, y + d, 800.0))
     for p, a in guard:
@@ -481,7 +489,7 @@ def check(verbose=True):
             if min(d) > 0.05:
                 fails.append(f"FIT {p.name} intrudes into a module footprint")
     # every safety device is on the guard or in the cabinet
-    names = {p.name for p in PM.build()}
+    names = {p.name for p in plc_model.build()}
     for need in ("safety_relay_K0", "contactor_K1", "contactor_K2"):
         if need not in names:
             fails.append(f"CABINET: {need} missing")

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Deploy the private staging mirror of the API: same code, same configuration as
-# stf-live, no public traffic. Development and testing happen here (docs/STAGING.md);
+# stf-live, no public traffic. Development and testing happen here (docs/reference/operations/staging.md);
 # the public URL (stf-live) only ever receives code that passed on staging.
 #
 # Usage: ./deploy/staging.sh [PROJECT_ID]   (defaults to gcloud's current project)
@@ -52,7 +52,7 @@ with open(sys.argv[2], "w") as f:
     f.write("\n".join(f"{k}: {json.dumps(v)}" for k, v in sorted(out.items())) + "\n")
 PY
 
-# the migrated credentials, mounted as Secret Manager values (docs/STAGING.md)
+# the migrated credentials, mounted as Secret Manager values (docs/reference/operations/staging.md)
 SET_SECRETS="$(for s in $SECRET_NAMES; do printf '%s=%s:latest,' "$s" "$s"; done)"
 SET_SECRETS="${SET_SECRETS%,}"
 
@@ -84,4 +84,4 @@ echo "staging up (private): $URL"
 echo "smoke test:  curl -H \"Authorization: Bearer \$(gcloud auth print-identity-token)\" $URL/health"
 echo "swagger:     same header, open $URL/docs"
 echo
-echo "promote when stable: make promote   (rebuilds $LIVE from the same tree - docs/STAGING.md)"
+echo "promote when stable: make promote   (rebuilds $LIVE from the same tree - docs/reference/operations/staging.md)"

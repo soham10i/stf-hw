@@ -36,7 +36,7 @@ nor destroyed, and the checker says so at every step.
 """
 from dataclasses import dataclass, field
 
-# --------------------------------------------------------------- inventory
+# --- inventory
 # A cookie is raw LIGHT-BROWN dough until it is baked; only then does it take
 # its flavour colour (user, 2026-09-28): vanilla white, chocolate brown,
 # strawberry pink. The Farbsensor readings are unchanged - they rank by
@@ -74,7 +74,7 @@ def initial_inventory():
     return inv
 
 
-# --------------------------------------------------------------- resources
+# --- resources
 # One fixed total order. Every operation acquires in increasing index.
 RESOURCES = [
     "hbw_crane", "hbw_belt", "handover_belt", "vgr", "handover_oven",
@@ -178,7 +178,7 @@ def plan_for(cookie_id, flavour, start):
     ]
 
 
-# --------------------------------------------------------------- simulation
+# --- simulation
 class Deadlock(Exception):
     pass
 
@@ -264,7 +264,7 @@ def simulate(verbose=False, max_steps=4000):
             if blocked:
                 waiting[cid] = blocked
                 continue
-            # ---- resolve the destination, then RESERVE IT BEFORE COMMITTING
+            # --- resolve the destination, then RESERVE IT BEFORE COMMITTING
             fl, loc = inv[cid]
             if loc != op.src:
                 raise Unsafe(f"{cid} is at {loc}, op '{op.name}' expects {op.src}")
@@ -336,24 +336,27 @@ def check_poses():
     somewhere it physically cannot go fails the build, in the same run that
     checks the moulds do not sweep through the rack.
     """
-    import hbw_model as HM, vgr_model as VG, oven_model as OM, sorting_model as SM
-    import factory_layout as FL
+    import factory_layout
+    import hbw_model
+    import oven_model
+    import sorting_model
+    import vgr_model
     bad = []
-    rows = dict(zip("ABC", HM.P["ROW_Z"]))
-    stations = FL.stations()
+    rows = dict(zip("ABC", hbw_model.P["ROW_Z"]))
+    stations = factory_layout.stations()
     for cid, (fl, loc) in initial_inventory().items():
         for op in plan_for(cid, fl, loc):
             p = op.poses
             if op.agent == "hbw":
                 slot = p.get("slot") or (op.dst[1] if op.dst[0] == "rack" else None)
                 if slot and slot != "*":
-                    tv = HM.P["BAY_X"][int(slot[1]) - 1]
+                    tv = hbw_model.P["BAY_X"][int(slot[1]) - 1]
                     z = rows[slot[0]]
                     for cb, what in ((z - 20.0, "approach"), (z, "lift")):
-                        if not HM.pose_allowed(tv, cb, 115.0):
+                        if not hbw_model.pose_allowed(tv, cb, 115.0):
                             bad.append(f"{op.name} {slot}: fork at {what} (lift {cb}) "
                                        "is not an allowed HBW pose")
-                        if what == "lift" and not HM.carry_allowed(tv, cb, 115.0):
+                        if what == "lift" and not hbw_model.carry_allowed(tv, cb, 115.0):
                             bad.append(f"{op.name} {slot}: loaded fork at lift {cb} "
                                        "is outside the carry envelope")
             if op.agent == "vgr":
@@ -362,9 +365,9 @@ def check_poses():
                     s_ = stations[st]
                     if not s_["in_envelope"]:
                         bad.append(f"{op.name}: VGR station '{st}' is outside the arm envelope")
-                    lo, hi = FL.VGR_PLUNGE_BAND.get(st, (VG.V["PLUNGE"][0], VG.V["PLUNGE"][1]))
-                    pick = max(lo, VG.V["CARRY_FLOOR"])
-                    if not (FL.vgr_plunge_allowed(st, pick) and VG.carry_allowed(pick)):
+                    lo, hi = factory_layout.VGR_PLUNGE_BAND.get(st, (vgr_model.V["PLUNGE"][0], vgr_model.V["PLUNGE"][1]))
+                    pick = max(lo, vgr_model.V["CARRY_FLOOR"])
+                    if not (factory_layout.vgr_plunge_allowed(st, pick) and vgr_model.carry_allowed(pick)):
                         bad.append(f"{op.name}: no plunge serves '{st}' both loaded "
                                    f"and inside its band {lo}..{hi}")
                 elif st:
@@ -373,15 +376,15 @@ def check_poses():
                 # only ops that actually command the slider or the door are
                 # constrained by the door interlock; the Sauger, Drehtisch, Saege
                 # and belt steps leave both alone
-                slider = OM.O["SLIDER"][0] if p.get("slider") == "innen" else OM.O["SLIDER"][1]
-                door = OM.O["DOOR_Z"][1] if p.get("door") == "open" else OM.O["DOOR_Z"][0]
-                if not OM.pose_allowed(slider, door, 0.0, OM.O["SAUGER"][1], 0.0):
+                slider = oven_model.O["SLIDER"][0] if p.get("slider") == "innen" else oven_model.O["SLIDER"][1]
+                door = oven_model.O["DOOR_Z"][1] if p.get("door") == "open" else oven_model.O["DOOR_Z"][0]
+                if not oven_model.pose_allowed(slider, door, 0.0, oven_model.O["SAUGER"][1], 0.0):
                     bad.append(f"{op.name}: oven pose slider={slider} door={door} "
                                "violates the door interlock")
             if op.agent == "sorting":
-                one = tuple(SM.S["EJECT"][1] if SM.COLOURS[i] == p.get("eject") else 0.0
+                one = tuple(sorting_model.S["EJECT"][1] if sorting_model.COLOURS[i] == p.get("eject") else 0.0
                             for i in range(3))
-                if not SM.pose_allowed(one):
+                if not sorting_model.pose_allowed(one):
                     bad.append(f"{op.name}: sorting pose {one} fires more than one ejector")
     return sorted(set(bad))
 

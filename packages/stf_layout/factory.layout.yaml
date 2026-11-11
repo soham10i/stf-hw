@@ -319,7 +319,7 @@ stations:
 # The real factory chains several dark fischertechnik plates on a big white
 # table - it is NOT one slab. Rectangles are factory-frame millimetres
 # (origin = minimum corner, size = dx/dy), estimated from the factory photos
-# (docs/FACTORY_GROUND_TRUTH.md section 1). The HBW plate carries the rack,
+# (docs/reference/factory/ground-truth.md section 1). The HBW plate carries the rack,
 # crane and belt and ends where the VGR plate begins; the processing plate
 # holds the oven at its back edge, closest to the VGR tower, exactly like the
 # Bearbeitungsstation in Abbildung 9.

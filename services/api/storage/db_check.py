@@ -13,15 +13,16 @@ import secrets
 import sys
 import time
 
-from . import guests as G
-from services.api.storage.captures import store_from_env
 from services.api.agent.chat import dotenv
+from services.api.storage.captures import store_from_env
+
+from . import guests as guest_sessions
 
 
 def main() -> int:
     """The db-check CLI: probe every database feature and report one line each."""
     env = {**dotenv(), **os.environ}
-    db, note = G.db_from_env(env)
+    db, note = guest_sessions.db_from_env(env)
     print(f"database: {db.name} ({note})")
     if env.get("SUPABASE_URL"):
         print(f"project:  {env['SUPABASE_URL']}")

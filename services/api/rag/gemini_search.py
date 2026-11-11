@@ -34,11 +34,11 @@ import re
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from services.api.security import netguard as NG
-from . import source_policy as SP
-from services.api.providers import token_budget as TB
-from . import websearch as W
 from services.api.core.logging_config import get_logger
+from services.api.providers import token_budget
+from services.api.security import netguard
+
+from . import source_policy, websearch
 
 logger = get_logger(__name__)
 
@@ -60,8 +60,8 @@ FINISH_TIMEOUT_S = 14  # all page opens of one search, together
 _TITLE = re.compile(r"(?is)<title[^>]*>(.*?)</title>")
 
 
-# ------------------------------------------------------------------ the request
-def tune(body: dict, model: str, a: TB.Allowance) -> dict:
+# --- the request
+def tune(body: dict, model: str, a: token_budget.Allowance) -> dict:
     """The request for one model: a 2.5 flash model's thinking is set to the allowance's budget
     (the other models keep their own default, but their thinking still counts against
     maxOutputTokens); the thought summary only when the tier affords it."""
@@ -75,13 +75,13 @@ def tune(body: dict, model: str, a: TB.Allowance) -> dict:
     return out
 
 
-def _body(question: str, context: str, a: TB.Allowance, level: str = "vetted") -> dict:
+def _body(question: str, context: str, a: token_budget.Allowance, level: str = "vetted") -> dict:
     ctx = context[: a.context_chars]
     tools: list[dict] = [{"google_search": {}}]
     if a.url_context:
         tools.append({"url_context": {}})
     return {
-        "systemInstruction": {"parts": [{"text": RULES + "\n" + SP.rules(level)}]},
+        "systemInstruction": {"parts": [{"text": RULES + "\n" + source_policy.rules(level)}]},
         "contents": [
             {
                 "role": "user",
@@ -93,7 +93,7 @@ def _body(question: str, context: str, a: TB.Allowance, level: str = "vetted") -
     }
 
 
-# ------------------------------------------------------------------ reading the response
+# --- reading the response
 def _text(data: dict) -> str:
     parts = ((data.get("candidates") or [{}])[0].get("content") or {}).get("parts") or []
     return "".join(p.get("text", "") for p in parts if p.get("text") and not p.get("thought"))
@@ -108,22 +108,22 @@ def _thoughts(data: dict) -> list[str]:
 def _open(url: str, read: bool) -> tuple[str, str, str]:
     """(final address, page title, page text) of a grounded page: the redirect is followed
     through netguard; the text is read only when asked. Any failure gives back what it had."""
-    if not NG.public_url(url):
+    if not netguard.public_url(url):
         return url, "", ""
-    req = urllib.request.Request(url, headers={"User-Agent": W.UA})
+    req = urllib.request.Request(url, headers={"User-Agent": websearch.UA})
     try:
-        with NG.opener.open(req, timeout=OPEN_TIMEOUT_S) as r:
+        with netguard.opener.open(req, timeout=OPEN_TIMEOUT_S) as r:
             final = r.geturl()
             ctype = r.headers.get("Content-Type") or ""
             if not read or "html" not in ctype.lower():
                 return final, "", ""
-            raw = r.read(W.MAX_PAGE_BYTES).decode("utf-8", "replace")
+            raw = r.read(websearch.MAX_PAGE_BYTES).decode("utf-8", "replace")
     except Exception as e:  # noqa: BLE001 - a page that will not open is skipped, not fatal
         logger.debug("Grounded page did not open (%s): %s", url[:80], e)
         return url, "", ""
     m = _TITLE.search(raw)
     title = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", m.group(1))).strip()[:140] if m else ""
-    return final, title, W.html_to_text(raw, PAGE_CHARS)
+    return final, title, websearch.html_to_text(raw, PAGE_CHARS)
 
 
 def search_entry(data: dict) -> list[str]:
@@ -147,7 +147,7 @@ def sources_of(data: dict, read: int = READ_PAGES) -> tuple[list[dict], dict[int
         i for s in meta.get("groundingSupports") or [] for i in s.get("groundingChunkIndices") or []
     }
     order = sorted(range(len(chunks)), key=lambda i: (i not in cited, i))
-    wanted = [i for i in order if chunks[i].get("uri")][: W.MAX_SOURCES]
+    wanted = [i for i in order if chunks[i].get("uri")][: websearch.MAX_SOURCES]
     opened: dict[int, tuple[str, str, str]] = {}
     if wanted:
         with ThreadPoolExecutor(max_workers=4) as pool:
@@ -165,24 +165,31 @@ def sources_of(data: dict, read: int = READ_PAGES) -> tuple[list[dict], dict[int
         raw_title = chunks[i].get("title") or ""
         # Google titles a chunk with its bare domain: a page's own title says more
         label = title or (
-            raw_title if raw_title and not _domain_like(raw_title) else W.host(url) or raw_title
+            raw_title
+            if raw_title and not _domain_like(raw_title)
+            else websearch.host(url) or raw_title
         )
         # an address that stayed a Google redirect is graded by the domain Google named
         trust_url = (
             f"https://{raw_title}/"
-            if W.host(url).endswith("google.com") and _domain_like(raw_title)
+            if websearch.host(url).endswith("google.com") and _domain_like(raw_title)
             else url
         )
         row = rows.setdefault(
             url,
-            {"url": url, "title": label, "cited": i in cited, "trusted": W.trusted(trust_url),
-             "grade": SP.grade(trust_url)},
+            {
+                "url": url,
+                "title": label,
+                "cited": i in cited,
+                "trusted": websearch.trusted(trust_url),
+                "grade": source_policy.grade(trust_url),
+            },
         )
         by_chunk[i] = row
         if text:
             texts.append(text)
-    out = sorted(rows.values(), key=SP.rank_key)
-    return out[: W.MAX_SOURCES], by_chunk, " ".join(texts)
+    out = sorted(rows.values(), key=source_policy.rank_key)
+    return out[: websearch.MAX_SOURCES], by_chunk, " ".join(texts)
 
 
 def link(text: str, data: dict, by_chunk: dict[int, dict]) -> str:
@@ -209,24 +216,24 @@ def link(text: str, data: dict, by_chunk: dict[int, dict]) -> str:
     return raw.decode("utf-8", "replace")
 
 
-# ------------------------------------------------------------------ one search
+# --- one search
 def search(
     question: str,
     context: str,
     call,
-    a: TB.Allowance,
-    budget: TB.TokenBudget | None = None,
+    a: token_budget.Allowance,
+    budget: token_budget.TokenBudget | None = None,
     guest: str | None = None,
     read: int = READ_PAGES,
     level: str = "vetted",
-) -> W.Found:
+) -> websearch.Found:
     """One grounded search: the model searches Google and answers; the pages come back graded.
 
     Raises RuntimeError (safe to show) when the model cannot answer."""
     body = _body(question, context, a, level)
     data, model = call(body, lambda b, m: tune(b, m, a))
     if budget:
-        budget.record(TB.usage_tokens(data), guest, TB.searches_in(data))
+        budget.record(token_budget.usage_tokens(data), guest, token_budget.searches_in(data))
     text = _text(data).strip()
     if not text:
         block = (data.get("promptFeedback") or {}).get("blockReason")
@@ -251,10 +258,10 @@ def search(
         "Gemini search done: model=%s tier=%s tokens=%d sources=%d",
         model,
         a.tier,
-        TB.usage_tokens(data),
+        token_budget.usage_tokens(data),
         len(sources),
     )
-    return W.Found(
+    return websearch.Found(
         text=link(text, data, by_chunk),
         sources=sources,
         reasoning=_thoughts(data),
@@ -266,21 +273,21 @@ def search(
     )
 
 
-# ------------------------------------------------------------------ deep research
-def plan(question: str, call, a: TB.Allowance, budget=None, guest=None) -> list[str]:
+# --- deep research
+def plan(question: str, call, a: token_budget.Allowance, budget=None, guest=None) -> list[str]:
     """The research question split into up to `a.searches` independent search questions."""
     body = {
-        "systemInstruction": {
-            "parts": [{"text": W.plan_rules(a.searches)}]
-        },
+        "systemInstruction": {"parts": [{"text": websearch.plan_rules(a.searches)}]},
         "contents": [{"role": "user", "parts": [{"text": question}]}],
         "generationConfig": {"temperature": 0.2},
     }
-    small = TB.Allowance(a.tier, a.mode, TB.PLAN_TOKENS, 0, False, False, 0, 1, a.ceiling)
+    small = token_budget.Allowance(
+        a.tier, a.mode, token_budget.PLAN_TOKENS, 0, False, False, 0, 1, a.ceiling
+    )
     try:
         data, _ = call(body, lambda b, m: tune(b, m, small))
         if budget:
-            budget.record(TB.usage_tokens(data), guest)
+            budget.record(token_budget.usage_tokens(data), guest)
         subs = json.loads(re.search(r"\[.*\]", _text(data), re.S).group(0))  # type: ignore[union-attr]
         return [str(s).strip() for s in subs if str(s).strip()][: a.searches] or [question]
     except (RuntimeError, AttributeError, ValueError) as e:
@@ -292,12 +299,12 @@ def deep(
     question: str,
     context: str,
     call,
-    a: TB.Allowance,
-    budget: TB.TokenBudget | None = None,
+    a: token_budget.Allowance,
+    budget: token_budget.TokenBudget | None = None,
     guest: str | None = None,
     emit=None,
     level: str = "vetted",
-) -> W.Found:
+) -> websearch.Found:
     """Deep research on the allowance: plan, search each sub-question (two at a time), join.
 
     The sub-searches that would take the question past its ceiling are not run."""
@@ -307,13 +314,15 @@ def deep(
         f"planned {len(subs)} Google search{'es' if len(subs) > 1 else ''} ({a.tier} budget): "
         + "; ".join(subs)
     )
-    cost = TB.est_tokens(context[: a.context_chars]) + a.max_output
-    room = max(1, (a.ceiling - TB.PLAN_TOKENS - TB.WRITEUP_TOKENS) // max(1, cost))
+    cost = token_budget.est_tokens(context[: a.context_chars]) + a.max_output
+    room = max(
+        1, (a.ceiling - token_budget.PLAN_TOKENS - token_budget.WRITEUP_TOKENS) // max(1, cost)
+    )
     if room < len(subs):
         say(f"the token ceiling ({a.ceiling}) leaves room for {room} of them")
         subs = subs[:room]
     # the deep reading is limited too: each sub-search reads one page for the figures check
-    each = TB.Allowance(
+    each = token_budget.Allowance(
         a.tier,
         "web",
         a.max_output,
@@ -324,9 +333,9 @@ def deep(
         1,
         a.ceiling,
     )
-    found: list[tuple[str, W.Found]] = []
+    found: list[tuple[str, websearch.Found]] = []
 
-    def one(n: int, sub: str) -> W.Found:
+    def one(n: int, sub: str) -> websearch.Found:
         """Run sub-search n and report progress to the client while it runs."""
         say(f"search {n} of {len(subs)}: {sub}")
         return search(sub, context, call, each, budget, guest, read=1, level=level)
@@ -352,9 +361,9 @@ def deep(
         for s in f.sources:
             seen.setdefault(s["url"], s)
     text = "\n\n".join(f"## Finding {i}: {sub}\n\n{f.text}" for i, (sub, f) in enumerate(found, 1))
-    return W.Found(
+    return websearch.Found(
         text=text,
-        sources=sorted(seen.values(), key=SP.rank_key)[: W.MAX_SOURCES * 2],
+        sources=sorted(seen.values(), key=source_policy.rank_key)[: websearch.MAX_SOURCES * 2],
         reasoning=[r for _, f in found for r in f.reasoning],
         model=found[0][1].model,
         pages=" ".join(f.pages for _, f in found),

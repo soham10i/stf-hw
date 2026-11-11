@@ -8,6 +8,7 @@ import { api } from "../shared/api";
 import { connect } from "../socket";
 import { store } from "../store";
 import type { SceneDescriptor } from "../types";
+import { quiet } from "../shared/log";
 
 const RETRY_MS = 3000;
 
@@ -51,7 +52,7 @@ export function useBackend() {
   // with a different layout means refetching, not animating stale geometry
   useEffect(() => {
     if (scene && conn.layoutFingerprint && conn.layoutFingerprint !== scene.fingerprint) {
-      fetchLayout().then(setScene).catch(() => {});
+      fetchLayout().then(setScene).catch(quiet("layout"));
     }
   }, [conn.layoutFingerprint, scene]);
 

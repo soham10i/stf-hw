@@ -177,7 +177,7 @@ export function setRate(rate: number): void {
   if (live.client && view.status === "running") live.client.run(true, rate);
 }
 
-// ------------------------------------------------------------------ sorting line
+// --- sorting line
 /** A cookie of a colour onto the belt at the inlet. */
 export function addCookie(colour: Colour): void {
   const { client, world } = live;
@@ -206,7 +206,7 @@ export function setBeltSpeed(mmPerS: number): void {
   set({ beltSpeed: mmPerS });
 }
 
-// ------------------------------------------------------------------ warehouse
+// --- warehouse
 /** Tells an axis's positioning block what to do (the warehouse's or the arm's). */
 export function axis(id: string, command: AxisCommand): void {
   if (!live.client || !(live.warehouse || live.arm)) return;
@@ -247,7 +247,7 @@ export function armTo(station: string): void {
   axis("reach", { kind: "move", target: st.reach });
 }
 
-// ------------------------------------------------------------------ readings
+// --- readings
 const TASK_NAMES = ["idle", "jog", "move", "home", "until", "done"];
 
 /** What the panel shows, from the bridge, five times a second. */

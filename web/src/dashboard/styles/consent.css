@@ -45,9 +45,8 @@
   width: 26px;
   height: 26px;
   border-radius: 8px;
-  color: #fff;
-  background: linear-gradient(145deg, #6aa8ff, #2563eb 60%, #1c44b8);
-  box-shadow: 0 4px 12px -2px rgb(37 99 235 / 0.55);
+  color: var(--brand-ink, #000);
+  background: var(--brand, #2563eb);
 }
 
 .consent-card p {
@@ -91,13 +90,12 @@
 }
 
 .consent-yes {
-  color: #fff;
-  background: linear-gradient(145deg, #6aa8ff, #2563eb 60%, #1c44b8);
-  box-shadow: 0 6px 16px -4px rgb(37 99 235 / 0.5);
+  color: var(--on-accent);
+  background: var(--primary, #2563eb);
+  box-shadow: none;
 }
 
 .consent-yes:hover {
-  box-shadow: 0 8px 22px -4px rgb(37 99 235 / 0.65);
   transform: translateY(-1px);
 }
 

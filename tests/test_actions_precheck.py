@@ -97,10 +97,12 @@ def test_a_valid_payload_passes_every_rule_that_applies(action):
     assert {v.rule for v in verdicts} == {r.name for r in ACT.RULES if r.applies(action)}
 
 
-def test_the_reset_is_the_one_action_a_latched_estop_allows():
+def test_a_latched_estop_allows_the_reset_and_moving_the_view_only():
     guard = ACT.ActionGuard(secret_key="t" * 32)
     _latch(guard)
     assert guard.validate_preconditions("reset_emergency_stop", {}, OP) == (True, None)
+    # during a stop the operator most needs to look: navigation changes nothing in the factory
+    assert guard.validate_preconditions("twin_navigate", {"page": "alarms"}, OP) == (True, None)
     assert not guard.validate_preconditions("order_submit", {"op": "home"}, OP)[0]
 
 

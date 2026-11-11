@@ -23,12 +23,12 @@ import { SchedulerPage } from "./Scheduler";
 import { CopilotPage } from "./Copilot";
 import { Chat } from "./Chat";
 import { CopilotMark, Icon, ThemeMenu } from "../shared/icons";
+import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { StfLogo, StfMark } from "../shared/Logo";
 import { useScrollMemory } from "../shared/scrollMemory";
 import { useTheme } from "../shared/theme";
 import { track } from "../shared/track";
 import { ConsentBanner } from "./Consent";
-import { NotifyMenu } from "./NotifyMenu";
 import { cardHelp } from "./guide";
 import { DocsPage, type DocTarget } from "./docs/DocsPage";
 import { useCopilotResize, useFloatChatResize } from "../shared/chatResize";
@@ -61,7 +61,7 @@ function useDoc() {
   return { doc: doc && doc.control && doc.vc && doc.health ? doc : null, src: "up12", err };
 }
 
-// --------------------------------------------------------------- shared
+// --- shared
 import { PageCtx, GuideBox, HelpTips, helpDot } from "./ui";
 import { Overview, Production, Quality, Alarms } from "./Operate";
 import { Engineering, Data } from "./Engineer";
@@ -69,7 +69,7 @@ import { Engineering, Data } from "./Engineer";
 // the sliding "you are here" highlight of the nav and the copilot's tabs: one shared spring
 const PILL = { type: "spring", stiffness: 500, damping: 40 } as const;
 
-// ----------------------------------------------------------------- shell
+// --- shell
 export function Dashboard() {
   const { doc, src, err } = useDoc();
   const first = new URLSearchParams(location.search).get("p");
@@ -85,10 +85,10 @@ export function Dashboard() {
   const view: View = page === "maintenance" && mtab !== "plan" ? mtab : page;
   // usage traction, consent-gated (shared/track.ts): each page the visitor looks at is one beacon
   useEffect(() => { track(view); }, [view]);
-  // the Docs page's document, heading or cited line (?p=docs&f=docs/plc/README.md&a=...&l=...);
+  // the Docs page's document, heading or cited line (?p=docs&f=docs/reference/plc/README.md&a=...&l=...);
   // an answer's source opens it from anywhere (the copilot's citations send stf:open-doc)
   const q0 = new URLSearchParams(location.search);
-  const [docAt, setDocAt] = useState<DocTarget>(() => ({ file: q0.get("f") || "docs/guide/README.md", anchor: q0.get("a") || undefined,
+  const [docAt, setDocAt] = useState<DocTarget>(() => ({ file: q0.get("f") || "docs/reference/guide/README.md", anchor: q0.get("a") || undefined,
     line: q0.get("l") ? Number(q0.get("l")) : undefined }));
   const openDoc = (t: DocTarget) => { setDocAt(t); setPageOnly("docs"); };
   useEffect(() => {
@@ -224,7 +224,6 @@ export function Dashboard() {
               title="How to read this page, and the terms it uses"><Icon name="info" size={15} /><span className="hide-sm">Guide</span></button>
             {guide && <GuideBox page={view} onClose={() => setGuide(false)} />}
           </div>
-          <NotifyMenu />
           <ThemeMenu theme={theme} setTheme={setTheme} />
         </header>
 
@@ -261,6 +260,8 @@ export function Dashboard() {
             )}
             <PageCtx.Provider value={view}>
             <div className="db-page" key={view} data-view={view}>
+              {/* one failing page reports itself here; the nav and the other pages keep working */}
+              <ErrorBoundary what="This page" scope="page" className="db-error">
               {page === "month" && <MonthPage />}
               {page === "vision" && <VisionPage />}
               {view === "ai" && <AiPage />}
@@ -269,7 +270,7 @@ export function Dashboard() {
               {page === "carbon" && <CarbonPage />}
               {page === "process" && <ProcessPage />}
               {page === "scheduler" && <SchedulerPage />}
-              {page === "copilot" && <CopilotPage go={(p) => setPage(p as View)} />}
+              {page === "copilot" && <CopilotPage go={(p) => setPage(p as View)} navigate={(p) => { showAsk(true); setPage(p as View); }} />}
               {page === "throughput" && <ThroughputPage />}
               {page === "security" && <SecurityPage />}
               {page === "hardening" && <HardeningPage />}
@@ -284,6 +285,7 @@ export function Dashboard() {
               {page === "alarms" && <Alarms doc={doc} />}
               {page === "engineering" && <Engineering doc={doc} />}
               {page === "data" && <Data doc={doc} src={src} />}
+              </ErrorBoundary>
             </div>
             </PageCtx.Provider>
           </main>
@@ -318,7 +320,7 @@ export function Dashboard() {
                   <button className="ui-btn icon ghost" onClick={() => showAsk(false)} aria-label="Close" title="Close"><Icon name="close" size={15} /></button>
                 </div>
               </div>
-              <Chat key={view} page={view} go={(p) => { setPage(p as View); }} age={age} pm={pm} compact />
+              <Chat page={view} go={(p) => { setPage(p as View); }} age={age} pm={pm} compact />
             </aside>
           )}
         </div>
@@ -409,7 +411,7 @@ export function Dashboard() {
             </div>
           </div>
           <div className="db-float-chat-b">
-            <Chat key={view} page={view} go={(p) => { setPage(p as View); }} age={age} pm={pm} compact />
+            <Chat page={view} go={(p) => { setPage(p as View); }} age={age} pm={pm} compact />
           </div>
         </aside>
       )}

@@ -1,4 +1,4 @@
-// The precision engine's data schemas (docs/architecture/simulation-engine.md): a part's
+// The precision engine's data schemas (docs/reference/architecture/simulation-engine.md): a part's
 // definition (its size, mass, mating connectors and electrical pins), and a project (the parts
 // placed and the nets that wire them). Every value that enters the engine passes a parser here,
 // which rejects anything the schema does not allow - unknown keys, non-finite numbers,
@@ -69,7 +69,7 @@ export class SchemaError extends Error {
   }
 }
 
-// ------------------------------------------------------------------ primitives
+// --- primitives
 type Obj = Record<string, unknown>;
 
 function record(x: unknown, path: string, keys: readonly string[]): Obj {
@@ -127,7 +127,7 @@ function unique(values: string[], path: string, what: string): void {
   }
 }
 
-// ------------------------------------------------------------------ parsers
+// --- parsers
 export function parseSystemContext(x: unknown, path = "system_context"): SystemContext {
   const o = record(x, path, ["target", "precision_grid_mm", "electrical_netlist_type"]);
   return {
@@ -239,7 +239,7 @@ export function parseProjectState(x: unknown, catalogue: Map<string, PartDefinit
   return { placed_parts: placed, wire_nets: nets };
 }
 
-// ------------------------------------------------------------------ the pin table
+// --- the pin table
 /** One row per electrical pin of every placed part, in a fixed order (parts as placed, pins as
     defined): a pin's row is its index in the simulation bridge's pin arrays. */
 export interface PinRow {

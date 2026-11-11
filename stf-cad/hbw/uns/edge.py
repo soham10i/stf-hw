@@ -32,21 +32,20 @@ from pathlib import Path
 from sil.stream import STREAM, command
 from sil.stream import bundle as bundle_stream
 
-from uns import namespace as N
-from uns import sparkplug as SP
+from uns import namespace, sparkplug
 from uns.broker import CACHE, PORT
 from uns.client import connect, make
 
 
 class Edge:
     def __init__(self, port, ca, password, speed=1.0, emit_ms=100, bdseq_file=CACHE / "bdseq", user="stf-edge",
-                 host_id=N.HOST_ID, edge_id=N.EDGE, wait_for_host=True):
+                 host_id=namespace.HOST_ID, edge_id=namespace.EDGE, wait_for_host=True):
         self.port, self.ca, self.user, self.password = port, ca, user, password
         self.host_id, self.edge_id, self.wait_for_host = host_id, edge_id, wait_for_host
         self.speed, self.emit_ms, self.bdseq_file = speed, emit_ms, Path(bdseq_file)
-        self.ms = N.catalogue()
-        self.devices = N.by_device(self.ms)
-        self.restart_alias = next(m.alias for m in self.ms if m.name == N.RESTART)
+        self.ms = namespace.catalogue()
+        self.devices = namespace.by_device(self.ms)
+        self.restart_alias = next(m.alias for m in self.ms if m.name == namespace.RESTART)
         self.lock = threading.RLock()
         self.client = None
         self.seq, self.bd, self.born, self.last = 0, None, False, {}
@@ -57,7 +56,7 @@ class Edge:
         self.proc = None
         self.log = []                                   # what the edge did, for the proofs
 
-    # ---------------------------------------------------------------- values
+    # --- values
     def values(self, d):
         """(device, name) -> value of every metric, from one stream line."""
         if d["run"] != self.run_id:
@@ -67,7 +66,7 @@ class Edge:
         fault = any(u[0] == 910 for u in d["units"]) or bool(d["flags"])
         out = {}
         for m in self.ms:
-            if m.name == N.BDSEQ:
+            if m.name == namespace.BDSEQ:
                 v = self.bd
             elif m.name == "Production/OrderTime":
                 v = round(d["t"] - self.homed, 3) if self.homed is not None else 0.0
@@ -78,15 +77,15 @@ class Edge:
             out[(m.device, m.name)] = v
         return out
 
-    # ---------------------------------------------------------------- publishing
+    # --- publishing
     def _seq(self):
         s = self.seq
         self.seq = (self.seq + 1) % 256
         return s
 
     def publish(self, kind, device, metrics, seq=True):
-        raw = SP.payload(metrics, seq=self._seq() if seq else None)
-        self.client.publish(N.topic(kind, device, edge=self.edge_id), raw, qos=0, retain=False)
+        raw = sparkplug.payload(metrics, seq=self._seq() if seq else None)
+        self.client.publish(namespace.topic(kind, device, edge=self.edge_id), raw, qos=0, retain=False)
 
     def birth_metrics(self, device, vals):
         return [(m.name, m.alias, m.dtype, vals[(device, m.name)], m.props or None) for m in self.devices[device]]
@@ -99,7 +98,7 @@ class Edge:
             vals = self.values(self.d)
             self.seq = 0
             self.publish("NBIRTH", None, self.birth_metrics(None, vals))
-            for dev in N.DEVICES.values():
+            for dev in namespace.DEVICES.values():
                 self.publish("DBIRTH", dev, self.birth_metrics(dev, vals))
             self.last, self.born = vals, True
             self.log.append(("birth", self.bd, time.time()))
@@ -113,14 +112,14 @@ class Edge:
                     self.birth()                        # the host came online before the first stream line
                 return
             vals = self.values(d)
-            for dev in (None, *N.DEVICES.values()):
+            for dev in (None, *namespace.DEVICES.values()):
                 changed = [(None, m.alias, m.dtype, vals[(dev, m.name)], None) for m in self.devices[dev]
                            if vals[(dev, m.name)] != self.last.get((dev, m.name))]
                 if changed:
                     self.publish("NDATA" if dev is None else "DDATA", dev, changed)
             self.last = vals
 
-    # ---------------------------------------------------------------- the session
+    # --- the session
     def next_bdseq(self):
         try:
             v = (int(self.bdseq_file.read_text()) + 1) % 256
@@ -131,10 +130,10 @@ class Edge:
         return v
 
     def death_payload(self):
-        return SP.payload([(N.BDSEQ, None, N.UINT64, self.bd, None)])
+        return sparkplug.payload([(namespace.BDSEQ, None, namespace.UINT64, self.bd, None)])
 
     def on_message(self, client, userdata, msg):
-        if msg.topic == N.state_topic(self.host_id):
+        if msg.topic == namespace.state_topic(self.host_id):
             try:
                 st = json.loads(msg.payload)
                 online, ts = st["online"], st["timestamp"]
@@ -150,15 +149,15 @@ class Edge:
                 self.end_session()
             return
         try:
-            p = SP.decode(msg.payload)
+            p = sparkplug.decode(msg.payload)
         except Exception:                               # noqa: BLE001 - not a Sparkplug payload
             return
         for m in p.metrics:
-            if m.name == N.REBIRTH and SP.get_value(m) is True:
+            if m.name == namespace.REBIRTH and sparkplug.get_value(m) is True:
                 with self.lock:
                     self.log.append(("rebirth requested", self.bd, time.time()))
                     self.birth()
-            elif m.alias == self.restart_alias and SP.get_value(m) is True and self.proc:
+            elif m.alias == self.restart_alias and sparkplug.get_value(m) is True and self.proc:
                 self.proc.stdin.write("restart\n")
                 self.proc.stdin.flush()
                 self.log.append(("restart order", self.bd, time.time()))
@@ -170,7 +169,7 @@ class Edge:
                 return
             on_loop = threading.current_thread() is getattr(self.client, "_thread", None)
             if self.born:
-                info = self.client.publish(N.topic("NDEATH", edge=self.edge_id), self.death_payload(), qos=1, retain=False)
+                info = self.client.publish(namespace.topic("NDEATH", edge=self.edge_id), self.death_payload(), qos=1, retain=False)
                 # on paho's own network thread (a STATE message) the NDEATH cannot be waited for -
                 # that thread sends it; it is queued ahead of the DISCONNECT either way
                 if not on_loop:
@@ -185,7 +184,7 @@ class Edge:
     def session(self):
         self.bd = self.next_bdseq()
         c = make(f"stf-edge-{self.edge_id}", self.user, self.password, self.ca)
-        c.will_set(N.topic("NDEATH", edge=self.edge_id), self.death_payload(), qos=1, retain=False)
+        c.will_set(namespace.topic("NDEATH", edge=self.edge_id), self.death_payload(), qos=1, retain=False)
         c.on_message = self.on_message
 
         def on_disconnect(client, userdata, flags, rc, props):
@@ -200,8 +199,8 @@ class Edge:
         self.host_online = False
 
         def subscribe(cl):
-            cl.subscribe([(N.topic("NCMD", edge=self.edge_id), 1), (N.topic("DCMD", "+", edge=self.edge_id), 1),
-                          (N.state_topic(self.host_id), 1)])
+            cl.subscribe([(namespace.topic("NCMD", edge=self.edge_id), 1), (namespace.topic("DCMD", "+", edge=self.edge_id), 1),
+                          (namespace.state_topic(self.host_id), 1)])
         self.client = c
         rc = connect(c, self.port, on_connect=subscribe)
         if rc != "Success":

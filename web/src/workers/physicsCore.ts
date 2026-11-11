@@ -27,13 +27,13 @@ import {
   parseProjectState, pinIndex, pinTable, type PartDefinition, type PinRow, type PlacedPart, type Quat, type Vec3, type WireNet,
 } from "../core/schema";
 import {
-  FLAG_RUNNING, FLAG_TELEMETRY_STALE, H, MODE_LIVE_TELEMETRY, MODE_SIMULATION, PIN_FORCED, PIN_HIGH,
-  PIN_TELEMETRY, S, TRANSFORM_STRIDE, type BridgeWriter,
+  FLAG_RUNNING, FLAG_TELEMETRY_STALE, HEADER, MODE_LIVE_TELEMETRY, MODE_SIMULATION, PIN_FORCED, PIN_HIGH,
+  PIN_TELEMETRY, SCALAR, TRANSFORM_STRIDE, type BridgeWriter,
 } from "../core/SimulationBridge";
 import { planMove, sampleMove, type SMove } from "./scurve";
 import type { AxisCommand, AxisMotor, AxisSwitch, BodyRole, JointBinding, JointDrive, JointTrack, Mode, TelemetrySample, WorldInit } from "./protocol";
 import { FT_ENCODER_MOTOR, newMotor, scan, stepMotor, switchState, TAU, type MotorSpec, type MotorState, type Task } from "./motors";
-import { AX, AXIS_STRIDE, TASKS } from "../core/SimulationBridge";
+import { AXIS, AXIS_STRIDE, TASKS } from "../core/SimulationBridge";
 
 type Rapier = typeof RAPIER_NS;
 type World = InstanceType<Rapier["World"]>;
@@ -334,7 +334,7 @@ export class PhysicsCore {
     return new PhysicsCore(R, init);
   }
 
-  // ---------------------------------------------------------------- building
+  // --- building
   private add(inst: PlacedPart, role: BodyRole): Entry {
     if (this.byId.has(inst.instance_id)) throw new WorldError(`"${inst.instance_id}" is placed twice`);
     if (this.entries.length >= this.partCapacity) throw new WorldError(`no room for "${inst.instance_id}": ${this.partCapacity} parts`);
@@ -409,7 +409,7 @@ export class PhysicsCore {
     return out;
   }
 
-  // ---------------------------------------------------------------- commands
+  // --- commands
   enqueue(cmd: Command): void {
     this.queue.push(cmd);
   }
@@ -481,7 +481,7 @@ export class PhysicsCore {
     }
   }
 
-  // ---------------------------------------------------------------- one step
+  // --- one step
   get simTime(): number {
     return this.step * FIXED_DT; // from the integer step: no accumulated rounding
   }
@@ -576,7 +576,7 @@ export class PhysicsCore {
     if (i > 1) this.telemetry.splice(0, i - 1);
   }
 
-  // ---------------------------------------------------------------- motor axes
+  // --- motor axes
   private axisValue(a: AxisRun): number {
     return a.cfg.start + (a.motor.angle / TAU) * a.cfg.perRev;
   }
@@ -817,7 +817,7 @@ export class PhysicsCore {
     this.pinFlags[k] = flags | (logicHigh(volts, this.pins[k].voltage_limits) ? PIN_HIGH : 0);
   }
 
-  // ---------------------------------------------------------------- reading out
+  // --- reading out
   /** The instance ids in bridge order (the renderer's index into the transforms). */
   partOrder(): string[] {
     return this.entries.map((e) => e.inst.instance_id);
@@ -847,15 +847,15 @@ export class PhysicsCore {
       w.setCounts(n, this.pins.length, this.axes.length);
       this.axes.forEach((a, i) => {
         const k = i * AXIS_STRIDE;
-        v.axes[k + AX.POSITION] = this.axisValue(a);
-        v.axes[k + AX.RPM] = (a.motor.speed * 60) / TAU;
-        v.axes[k + AX.CURRENT] = a.motor.current;
-        v.axes[k + AX.VOLTS] = a.motor.volts;
-        v.axes[k + AX.COUNT] = this.count(a);
-        v.axes[k + AX.TASK] = TASKS.indexOf(a.task.kind);
-        v.axes[k + AX.ERROR] = a.lastError;
-        v.axes[k + AX.CRASHES] = a.crashes;
-        v.axes[k + AX.HOMED] = a.homed ? 1 : 0;
+        v.axes[k + AXIS.POSITION] = this.axisValue(a);
+        v.axes[k + AXIS.RPM] = (a.motor.speed * 60) / TAU;
+        v.axes[k + AXIS.CURRENT] = a.motor.current;
+        v.axes[k + AXIS.VOLTS] = a.motor.volts;
+        v.axes[k + AXIS.COUNT] = this.count(a);
+        v.axes[k + AXIS.TASK] = TASKS.indexOf(a.task.kind);
+        v.axes[k + AXIS.ERROR] = a.lastError;
+        v.axes[k + AXIS.CRASHES] = a.crashes;
+        v.axes[k + AXIS.HOMED] = a.homed ? 1 : 0;
       });
       for (let i = 0; i < n; i++) {
         const { p, q } = this.entries[i].pose;
@@ -870,12 +870,12 @@ export class PhysicsCore {
       }
       v.pinVolts.set(this.pinVolts);
       v.pinFlags.set(this.pinFlags);
-      v.header[H.MODE] = this.mode === "SIMULATION_MODE" ? MODE_SIMULATION : MODE_LIVE_TELEMETRY;
-      v.header[H.FLAGS] = (this.running ? FLAG_RUNNING : 0) | (this.mode === "LIVE_TELEMETRY_MODE" && this.telemetryStale ? FLAG_TELEMETRY_STALE : 0);
+      v.header[HEADER.MODE] = this.mode === "SIMULATION_MODE" ? MODE_SIMULATION : MODE_LIVE_TELEMETRY;
+      v.header[HEADER.FLAGS] = (this.running ? FLAG_RUNNING : 0) | (this.mode === "LIVE_TELEMETRY_MODE" && this.telemetryStale ? FLAG_TELEMETRY_STALE : 0);
       w.setStep(this.step);
-      v.scalars[S.SIM_TIME] = this.simTime;
-      v.scalars[S.DT] = FIXED_DT;
-      v.scalars[S.RATE] = this.rate;
+      v.scalars[SCALAR.SIM_TIME] = this.simTime;
+      v.scalars[SCALAR.DT] = FIXED_DT;
+      v.scalars[SCALAR.RATE] = this.rate;
     });
   }
 

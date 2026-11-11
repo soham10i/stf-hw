@@ -2,7 +2,7 @@ import { Worker } from "node:worker_threads";
 import { describe, expect, it } from "vitest";
 
 import {
-  attachBridge, BridgeReader, BridgeWriter, bridgeLayout, createBridge, downcastForRender, H, INPUT_SET,
+  attachBridge, BridgeReader, BridgeWriter, bridgeLayout, createBridge, downcastForRender, HEADER, INPUT_SET,
   makeSnapshot, SpinMutex, TRANSFORM_STRIDE,
 } from "./SimulationBridge";
 
@@ -18,7 +18,7 @@ describe("layout", () => {
   it("refuses a buffer that is not a bridge of this version", () => {
     const v = createBridge(2, 2);
     expect(attachBridge(v.buffer).layout).toEqual(v.layout);
-    v.header[H.MAGIC] = 1;
+    v.header[HEADER.MAGIC] = 1;
     expect(() => attachBridge(v.buffer)).toThrow(/not a simulation bridge/);
   });
 });
@@ -98,7 +98,7 @@ describe("seqlock", () => {
 describe("inputs", () => {
   it("takes the mutex once, and refuses to give back one it does not hold", () => {
     const v = createBridge(0, 1);
-    const m = new SpinMutex(v.header, H.INPUT_LOCK);
+    const m = new SpinMutex(v.header, HEADER.INPUT_LOCK);
     expect(m.tryLock()).toBe(true);
     expect(m.tryLock()).toBe(false);
     expect(m.lock(1)).toBe(false); // held: it gives up after the timeout
@@ -111,7 +111,7 @@ describe("inputs", () => {
     const w = new BridgeWriter(v);
     w.publish(() => w.setCounts(0, 3));
     const r = new BridgeReader(v);
-    const worker = new SpinMutex(v.header, H.INPUT_LOCK);
+    const worker = new SpinMutex(v.header, HEADER.INPUT_LOCK);
     expect(worker.tryLock()).toBe(true);
     r.setInput(2, 24);
     expect(v.inputFlags[2]).toBe(0); // not written while the lock is held

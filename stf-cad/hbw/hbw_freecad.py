@@ -13,14 +13,15 @@ Produces, next to this file:
 The CAD is a VIEW of hbw_model.P, never the other way round. Re-run after any
 parameter change; do not hand-edit solids in the tree and expect them to survive.
 """
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import FreeCAD as App
 import Part
-
+from hbw_frames import FRAMES, HOME, PARENT, by_frame, frame_offset
 from hbw_model import P, check
-from hbw_frames import by_frame, frame_offset, PARENT, FRAMES, HOME
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 V = App.Vector
@@ -92,7 +93,7 @@ def main():
     doc.recompute()
     doc.save()
 
-    # ---- proof: the CAD assembly must reproduce hbw_model.build(HOME) exactly
+    # --- proof: the CAD assembly must reproduce hbw_model.build(HOME) exactly
     from hbw_model import build
     want = {p.name: p.aabb() for p in build(HOME["travel"], HOME["lift"], HOME["fork"])}
     drift = []

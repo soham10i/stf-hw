@@ -7,7 +7,7 @@ type Unit = { module: string; outputs: string[]; label: string; states: State[];
 export type Control = { units: Record<string, Unit>; policy: string };
 
 const MOD: Record<string, string> = { hbw: "warehouse", vgr: "robot", oven: "oven", sorting: "sorting" };
-const W = 188, H = 52, GAP = 22, COL = 214;
+const BOX_W = 188, BOX_H = 52, GAP = 22, COL = 214;
 
 /** One unit's sequence: homing, then one column per job, each leaving READY and returning to it. */
 export function Sfc({ c, unit }: { c: Control; unit: string }) {
@@ -19,7 +19,7 @@ export function Sfc({ c, unit }: { c: Control; unit: string }) {
     ...u.jobs.map((j) => ({ title: `job: ${j}`, steps: by((s) => s.id.startsWith(`${j}.`)) })),
   ].filter((x) => x.steps.length);
   const rows = Math.max(...cols.map((x) => x.steps.length));
-  const width = cols.length * COL + 20, height = 46 + rows * (H + GAP) + 40;
+  const width = cols.length * COL + 20, height = 46 + rows * (BOX_H + GAP) + 40;
   const done = (s: State) => (s.done ? String(s.done).replace(/\|pos_(\w+) - (\d+)\| <= 1.*/, "$1 at $2") : "");
   return (
     <div className="sfc-wrap">
@@ -29,26 +29,26 @@ export function Sfc({ c, unit }: { c: Control; unit: string }) {
           const x = 10 + ci * COL;
           return (
             <g key={col.title}>
-              <text x={x + W / 2} y={18} className="sfc-col">{col.title}</text>
-              {ci > 0 && <text x={x + W / 2} y={34} className="sfc-from">from READY, back to READY</text>}
+              <text x={x + BOX_W / 2} y={18} className="sfc-col">{col.title}</text>
+              {ci > 0 && <text x={x + BOX_W / 2} y={34} className="sfc-from">from READY, back to READY</text>}
               {col.steps.map((s, si) => {
-                const y = 46 + si * (H + GAP);
+                const y = 46 + si * (BOX_H + GAP);
                 const init = s.id === "INIT" || s.id === "READY";
                 return (
                   <g key={s.id}>
                     {si > 0 && (
                       <g className="sfc-trans">
-                        <line x1={x + W / 2} y1={y - GAP} x2={x + W / 2} y2={y} />
-                        <line x1={x + W / 2 - 10} y1={y - GAP / 2} x2={x + W / 2 + 10} y2={y - GAP / 2} />
-                        <text x={x + W / 2 + 14} y={y - GAP / 2 + 4}>{done(col.steps[si - 1]) || "Enable"}</text>
+                        <line x1={x + BOX_W / 2} y1={y - GAP} x2={x + BOX_W / 2} y2={y} />
+                        <line x1={x + BOX_W / 2 - 10} y1={y - GAP / 2} x2={x + BOX_W / 2 + 10} y2={y - GAP / 2} />
+                        <text x={x + BOX_W / 2 + 14} y={y - GAP / 2 + 4}>{done(col.steps[si - 1]) || "Enable"}</text>
                       </g>
                     )}
-                    <rect x={x} y={y} width={W} height={H} rx={init ? 2 : 7} className={`sfc-step ${init ? "init" : ""} ${s.supervised ? "watched" : ""}`}>
+                    <rect x={x} y={y} width={BOX_W} height={BOX_H} rx={init ? 2 : 7} className={`sfc-step ${init ? "init" : ""} ${s.supervised ? "watched" : ""}`}>
                       <title>{`${s.id}: ${s.say ?? ""}${s.out?.length ? `\noutputs: ${s.out.join(" ")}` : ""}${s.done ? `\ndone: ${s.done}` : ""}${s.limit ? `\nwatchdog: ${s.limit} s` : ""}`}</title>
                     </rect>
-                    {init && <rect x={x + 3} y={y + 3} width={W - 6} height={H - 6} rx={1} className="sfc-step-inner" />}
+                    {init && <rect x={x + 3} y={y + 3} width={BOX_W - 6} height={BOX_H - 6} rx={1} className="sfc-step-inner" />}
                     <text x={x + 10} y={y + 19} className="sfc-id">{s.id}</text>
-                    {s.out?.length ? <text x={x + W - 10} y={y + 19} className="sfc-out" textAnchor="end">{s.out.join(" ")}</text> : null}
+                    {s.out?.length ? <text x={x + BOX_W - 10} y={y + 19} className="sfc-out" textAnchor="end">{s.out.join(" ")}</text> : null}
                     <text x={x + 10} y={y + 38} className="sfc-say">{(s.say ?? "").length > 30 ? `${s.say!.slice(0, 29)}…` : s.say}</text>
                   </g>
                 );

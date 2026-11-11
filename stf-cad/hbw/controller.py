@@ -10,12 +10,14 @@ model must not carry I/O the plan does not have (those are reported, not hidden)
 
     python3 controller.py   ->  ~/workspace/stf-hw/web/public/controller.json
 """
-import json, os, re
+import json
+import os
+import re
 
 OUT = os.path.expanduser("~/workspace/stf-hw/web/public/controller.json")
 DOC = "536634-Factory-simulation-24V-extended-description.pdf"
 
-# ------------------------------------------------------------ board (p.4)
+# --- board (p.4)
 BOARD = {
     "name": "Adapterplatine 24V / adaptor PCB 24V",
     "blocks": {
@@ -29,7 +31,7 @@ BOARD = {
     "page": 4,
 }
 
-# ----------------------------------------------- PLC electricals (p.3, 35-38)
+# --- PLC electricals (p.3, 35-38)
 PLC = {
     "inputs": "P-lesend / sinking input: the sensor switches +24 V onto the input",
     "outputs": "P-schaltend / sourcing output: the PLC switches +24 V to the load, load to GND",
@@ -233,12 +235,12 @@ DISCREPANCIES = [
 ]
 
 
-# ---------------------------------------------------------- reconciliation
+# --- reconciliation
 def _model_signals():
     """Every I/O signal the factory MODEL carries, per module, from part tags."""
-    import parts_table as PT
+    import parts_table
     out = {}
-    for r in PT.build_all():
+    for r in parts_table.build_all():
         for tok in re.split(r"[\s/+,]+", r["io_tag"] or ""):
             if re.fullmatch(r"(I|Q|A|B)\d+|AUX\d+", tok):
                 out.setdefault(r["module"], {}).setdefault(tok, set()).add(r["part_name"])

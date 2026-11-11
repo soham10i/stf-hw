@@ -1,21 +1,25 @@
-// The operator copilot's knowledge base - the project's documents split into passages under
-// their headings, so an answer can quote one and say exactly where it is from: the document, the
-// section, the file, the line and the heading's anchor. Three sources: the project documents
-// (docs/*.md, and the user guide in docs/guide/), the PLC reference (docs/plc/, written from the
-// program by `make plc-docs`) and the
-// assistant's per-section documents (docs/assistant/), cited by their titles. DASHBOARD_GUIDE.md
-// is left out: docs/assistant holds the same text, one document per page.
+// The operator copilot's knowledge base - the project's reference documents split into passages
+// under their headings, so an answer can quote one and say exactly where it is from: the document,
+// the section, the file, the line and the heading's anchor. It indexes exactly docs/reference/
+// (docs/README.md): plans, history and internal notes beside it are never retrieved. Every file
+// there starts with front matter - title, scope, module, last_verified - which names the document,
+// travels with each of its passages, and is checked here: a file without it fails the build.
+// `index: false` keeps a file out (the generated full dashboard guide repeats the per-page ones).
 //
 // A table is split by rows, and every passage of it repeats the table's header, so a row read
 // alone still says what its columns are. Each indexed document is also copied next to the index
-// (public/copilot/<its path>, e.g. public/copilot/docs/plc/03-units.md), so the dashboard's Docs page can open the passage an answer cites.
+// (public/copilot/<its path>, e.g. public/copilot/docs/reference/plc/03-units.md), so the
+// dashboard's Docs page can open the passage an answer cites.
 //   node .cache/copilot-kb.mjs ../docs public/copilot/kb.json
-import { copyFileSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 
 const [docs, out] = process.argv.slice(2);
 const MAX_WORDS = 140;
-type Passage = { id: number; doc: string; path: string[]; text: string; file: string; line: number; anchor: string };
+type Passage = { id: number; doc: string; path: string[]; text: string; file: string; line: number; anchor: string; module: string };
+type Front = { title: string; scope: string; module: string; last_verified: string; generated_by?: string; index?: boolean };
+const MODULES = new Set(["factory", "warehouse", "gripper-robot", "oven", "sorting-line", "machine", "plc", "twin", "dashboard",
+  "guide", "maintenance", "vision", "process", "copilot", "operations", "architecture"]);
 const passages: Passage[] = [];
 
 /** Markdown to plain text: no tables' pipes, links keep their text, no emphasis marks. LaTeX
@@ -33,23 +37,48 @@ export function slug(h: string) {
 }
 const cells = (row: string) => row.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/).map((c) => plain(c.replace(/\\\|/g, "|")));
 
-const SKIP = new Set(["DASHBOARD_GUIDE.md", "README.md"]);
-const md = (dir: string, keepReadme = false) =>
-  readdirSync(join(docs, dir)).filter((x) => x.endsWith(".md") && (keepReadme || !SKIP.has(x))).sort().map((f) => join(docs, dir, f));
-const files = [...md(""), ...md("guide", true), ...md("plc", true), ...md("vision", true), ...md("maintenance", true), ...md("copilot", true), ...md("process", true), ...md("assistant")];
+/** Every Markdown file under a folder, in path order. */
+function walk(dir: string): string[] {
+  return readdirSync(dir).sort().flatMap((x) => {
+    const p = join(dir, x);
+    return statSync(p).isDirectory() ? walk(p) : x.endsWith(".md") ? [p] : [];
+  });
+}
+/** A document's front matter (key: value lines between --- fences; values may be quoted) and the
+    number of lines it takes, so the passages' line numbers still point into the file. */
+function frontMatter(src: string, file: string): { front: Front; lines: number } {
+  const m = /^---\n([\s\S]*?)\n---\n/.exec(src);
+  if (!m) throw new Error(`${file}: no front matter (docs/README.md)`);
+  const kv: Record<string, string> = {};
+  for (const line of m[1].split("\n")) {
+    const at = /^([a-z_]+):\s*(.*)$/.exec(line);
+    if (at) kv[at[1]] = /^".*"$/.test(at[2]) ? JSON.parse(at[2]) : at[2];
+  }
+  for (const k of ["title", "scope", "module", "last_verified"]) if (!kv[k]) throw new Error(`${file}: front matter has no ${k}`);
+  if (!MODULES.has(kv.module)) throw new Error(`${file}: unknown module '${kv.module}'`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(kv.last_verified)) throw new Error(`${file}: last_verified is not a date`);
+  const front: Front = { title: kv.title, scope: kv.scope, module: kv.module, last_verified: kv.last_verified,
+    ...(kv.generated_by ? { generated_by: kv.generated_by } : {}), ...(kv.index === "false" ? { index: false } : {}) };
+  return { front, lines: m[0].split("\n").length - 1 };
+}
+const all = walk(join(docs, "reference"));
+const fronts = new Map(all.map((f) => [f, frontMatter(readFileSync(f, "utf8"), f)]));
+const files = all.filter((f) => fronts.get(f)!.front.index !== false);
 const repo = join(docs, "..");
 const copyTo = dirname(out);
 
 for (const file of files) {
-  const src = readFileSync(file, "utf8");
+  const raw = readFileSync(file, "utf8");
   const rel = relative(repo, file);
-  const title = /^#\s+(.+)$/m.exec(src)?.[1];
-  const doc = (file.includes("/assistant/") || file.includes("/guide/") || file.includes("/plc/") || file.includes("/vision/") || file.includes("/maintenance/") || file.includes("/copilot/") || file.includes("/process/")) && title ? plain(title) : file.split("/").pop()!.replace(/\.md$/, "");
+  const { front, lines } = fronts.get(file)!;
+  // the front matter's lines blanked, not dropped: every passage's line stays the file's own
+  const src = "\n".repeat(lines) + raw.split("\n").slice(lines).join("\n");
+  const doc = plain(front.title);
   const path: string[] = [];
   let anchor = "", startLine = 1;
   let buf: { line: number; text: string }[] = [];
   const push = (text: string, line: number) => {
-    if (text.length > 40) passages.push({ id: passages.length, doc, path: [...path], text, file: rel, line, anchor });
+    if (text.length > 40) passages.push({ id: passages.length, doc, path: [...path], text, file: rel, line, anchor, module: front.module });
   };
   const flush = () => {
     // prose in passages of MAX_WORDS; a table in groups of rows, each with the header
@@ -105,5 +134,7 @@ for (const file of files) {
   }
 }
 mkdirSync(dirname(out), { recursive: true });
-writeFileSync(out, JSON.stringify({ passages, files: files.map((f) => relative(repo, f)) }));
+// each document once, with what its front matter says (the passages carry only their module)
+const documents = Object.fromEntries(files.map((f) => [relative(repo, f), fronts.get(f)!.front]));
+writeFileSync(out, JSON.stringify({ passages, files: files.map((f) => relative(repo, f)), documents }));
 console.log(`copilot knowledge base: ${passages.length} passages from ${new Set(passages.map((p) => p.doc)).size} documents -> ${out}`);

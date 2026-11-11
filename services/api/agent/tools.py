@@ -23,17 +23,19 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 
-from services.api.providers import gemini_pool as GP
-from services.api.core import live
-from services.api.security import netguard as NG
-from services.api.security import security as sec
-from services.api.rag import vectors as V
-from services.api.rag.grounding import get_bm25, load_json
+from services.api.core import live, navigation
 from services.api.core.logging_config import get_logger
+from services.api.providers import gemini_pool
+from services.api.rag import vectors
+from services.api.rag.grounding import get_bm25, load_json
+from services.api.security import netguard, security
 
 logger = get_logger(__name__)
 
-DOCS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "assistant"))
+# one document per dashboard page (web/scripts/guide-md.ts), what page_guide returns
+DOCS_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "reference", "dashboard")
+)
 MACHINE = "hbw_parts_up12.json"
 
 
@@ -92,7 +94,7 @@ def pct(x: float, d: int = 0) -> str:
     return f"{x * 100:.{d}f} %"
 
 
-# ------------------------------------------------------------------------ health
+# --- health
 PART_WORDS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"suction|\bcup\b|vacuum seal", re.I), "cup"),
     (re.compile(r"oven door|door cyl", re.I), "door"),
@@ -188,7 +190,7 @@ def machine_health(args: dict, ctx: Ctx) -> Result:
     )
 
 
-# ------------------------------------------------------------------------ alarms
+# --- alarms
 ALARM_RE = re.compile(r"\b([A-Z]{3})-([A-Z]?\d{2})\b", re.I)
 
 
@@ -227,7 +229,7 @@ def alarm_lookup(args: dict, ctx: Ctx) -> Result:
     )
 
 
-# ------------------------------------------------------------------------ the month
+# --- the month
 def month_downtime(args: dict, ctx: Ctx) -> Result:
     """The simulated production history (two months): why and how often the line stopped,
     downtime, OEE, and the failures preventive maintenance caught."""
@@ -284,7 +286,7 @@ def month_downtime(args: dict, ctx: Ctx) -> Result:
     )
 
 
-# ------------------------------------------------------------------------ OEE
+# --- OEE
 def oee_bottleneck(args: dict, ctx: Ctx) -> Result:
     """Commissioning: order time, OEE in a shift with every fault once, the bottleneck unit."""
     vc = (load_json(MACHINE) or {}).get("vc", {})
@@ -322,7 +324,7 @@ def oee_bottleneck(args: dict, ctx: Ctx) -> Result:
     )
 
 
-# ------------------------------------------------------------------------ energy, carbon
+# --- energy, carbon
 def energy_month(args: dict, ctx: Ctx) -> Result:
     """The microgrid month: consumption, PV and battery share, grid import and cost."""
     g = load_json("grid/grid.json")
@@ -405,7 +407,7 @@ def carbon_per_cookie(args: dict, ctx: Ctx) -> Result:
     )
 
 
-# ---------------------------------------------------------------------- scheduler, vision, security
+# --- scheduler, vision, security
 def scheduler_benchmark(args: dict, ctx: Ctx) -> Result:
     """The learned scheduler against the PLC's dispatch policy: order times, wins, deadlocks."""
     s = load_json("sched/rl.json")
@@ -511,7 +513,7 @@ def security_attacks(args: dict, ctx: Ctx) -> Result:
     )
 
 
-# ------------------------------------------------------------------------ the bake as a process
+# --- the bake as a process
 def oven_process(args: dict, ctx: Ctx) -> Result:
     """The bake as a process (Upgrade 19): how the oven heats and holds, how long a real bake
     takes, how many cookies come out right with each way of ending a bake, what a real bake does
@@ -563,7 +565,7 @@ def oven_process(args: dict, ctx: Ctx) -> Result:
     )
 
 
-# ------------------------------------------------------------------------ documents
+# --- documents
 def search_docs(args: dict, ctx: Ctx) -> Result:
     """The documents (machine, panels, dashboard pages, alarms, FAQ, design notes), best
     passages first. Hybrid retrieval: BM25 fused with the vector store (vectors.py) - a hit
@@ -571,8 +573,8 @@ def search_docs(args: dict, ctx: Ctx) -> Result:
     q = str(args.get("query", "")).strip()
     hits = [
         h
-        for h in V.hybrid_search(q, top_k=int(args.get("k") or 4) * 2, page=ctx.page)
-        if h["score"] >= 2.0 or h.get("vscore", 0.0) >= V.VECTOR_ACCEPT
+        for h in vectors.hybrid_search(q, top_k=int(args.get("k") or 4) * 2, page=ctx.page)
+        if h["score"] >= 2.0 or h.get("vscore", 0.0) >= vectors.VECTOR_ACCEPT
     ][: int(args.get("k") or 4)]
     return docs_result(q, hits)
 
@@ -596,6 +598,9 @@ def docs_result(q: str, hits: list[dict], how: str = "") -> Result:
                 "anchor": p.anchor,
                 "score": round(float(h["score"]), 2),
                 "quote": p.text[:400],
+                # the document's front matter: what it is about, when it was last checked
+                **({"module": p.module} if p.module else {}),
+                **({"verified": p.verified} if p.verified else {}),
             }
         )
     n_sem = sum(1 for h in hits if h.get("via") == "vector")
@@ -644,7 +649,7 @@ def equations(top: Result, budget: int = 7000) -> Result:
 def page_guide(args: dict, ctx: Ctx) -> Result:
     """What a dashboard page shows and how to read it (default: the page the operator is on)."""
     page = re.sub(r"[^a-z0-9-]", "", str(args.get("page") or ctx.page or ""))
-    path = os.path.join(DOCS_DIR, f"dashboard-{page}.md")
+    path = os.path.join(DOCS_DIR, f"{page}.md")
     if not page or not os.path.exists(path):
         return Result("page_guide", f"There is no guide for the page '{page}'.")
     text = open(path, encoding="utf-8").read()
@@ -658,7 +663,7 @@ def page_guide(args: dict, ctx: Ctx) -> Result:
     )
 
 
-# ------------------------------------------------------------------------ live state
+# --- live state
 def live_state(args: dict, ctx: Ctx) -> Result:
     """What the 3D twin is doing right now: the current order and step, oven temperature,
     sensors, rack."""
@@ -717,14 +722,14 @@ def _env() -> dict[str, str]:
 def _retrieval_desc() -> str:
     """How the documents are retrieved, for the setup answer: BM25 plus the vector store's
     backend and embedder, or pure BM25 when vectors are off."""
-    store = V.get_store()
+    store = vectors.get_store()
     if store is None:
         return "BM25 over the knowledge base (vectors off)"
     got = store.matrix()
     n = len(got[0]) if got else 0
     backend = getattr(store, "name", "sqlite")
     tail = ""
-    rk = V.get_reranker()
+    rk = vectors.get_reranker()
     if rk is not None:
         tail = " + reranker"
     return (
@@ -736,15 +741,17 @@ def _retrieval_desc() -> str:
 def copilot_setup(args: dict, ctx: Ctx) -> Result:
     """How this copilot itself is set up: local text model, Groq LPU engine, Gemini chat
     and speech models in fallback order, speech pipeline, and data directory."""
-    from services.api.voice import tts as tts_mod  # local import: tts imports chat, chat imports this module
+    from services.api.voice import (
+        tts as tts_mod,  # local import: tts imports chat, chat imports this module
+    )
 
     env = _env()
     repo = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-    chat = GP.models_from_env("GEMINI_MODELS", GP.CHAT, env)
-    first = env.get("GEMINI_MODEL", GP.CHAT[0])
+    chat = gemini_pool.models_from_env("GEMINI_MODELS", gemini_pool.CHAT, env)
+    first = env.get("GEMINI_MODEL", gemini_pool.CHAT[0])
     chat_order = [first, *[m for m in chat if m != first]]
-    tts = GP.models_from_env("GEMINI_TTS_MODELS", GP.TTS, env)
-    stt = GP.models_from_env("GEMINI_STT_MODELS", tts_mod.STT_MODELS, env)
+    tts = gemini_pool.models_from_env("GEMINI_TTS_MODELS", gemini_pool.TTS, env)
+    stt = gemini_pool.models_from_env("GEMINI_STT_MODELS", tts_mod.STT_MODELS, env)
     providers = [
         p.strip() for p in env.get("TTS_PROVIDERS", "elevenlabs,groq,gemini,local").split(",")
     ]
@@ -785,15 +792,15 @@ def copilot_setup(args: dict, ctx: Ctx) -> Result:
     return Result("copilot_setup", text, facts, ["the copilot's own configuration (.env)"])
 
 
-# ------------------------------------------------------------------------ verified web access
-PAGE_LIMITER = sec.RateLimiter(rate=0.2, burst=3)
+# --- verified web access
+PAGE_LIMITER = security.RateLimiter(rate=0.2, burst=3)
 PAGE_TIMEOUT_S = 8
 PAGE_MAX_BYTES = 512_000
 
 
 def _public_host(host: str) -> bool:
     """True when every address the host resolves to is public (netguard.py)."""
-    return NG.public_host(host)
+    return netguard.public_host(host)
 
 
 def _http_get(url: str) -> tuple[bytes, str]:
@@ -801,7 +808,7 @@ def _http_get(url: str) -> tuple[bytes, str]:
         url, method="GET", headers={"User-Agent": "stf-copilot/1.0 (research; contact local)"}
     )
     # public peers only, checked on the connected socket: DNS rebinding and redirects too
-    with NG.opener.open(req, timeout=PAGE_TIMEOUT_S) as r:
+    with netguard.opener.open(req, timeout=PAGE_TIMEOUT_S) as r:
         return r.read(PAGE_MAX_BYTES + 1), r.headers.get("Content-Type", "")
 
 
@@ -846,7 +853,7 @@ def open_page(args: dict, ctx: Ctx) -> Result:
     )
 
 
-# ------------------------------------------------------------------------ industrial actuation
+# --- industrial actuation
 def order_submit(args: dict, ctx: Ctx) -> Result:
     """Queue an operational order (cycle, retrieve, store, home) through the safety guard."""
     from services.api.industrial.actuation import get_guard, get_runtime
@@ -976,10 +983,12 @@ def recipe_adjust(args: dict, ctx: Ctx) -> Result:
 
 
 def twin_navigate(args: dict, ctx: Ctx) -> Result:
-    """Direct digital twin dashboard camera and view to target subsystem."""
+    """Move the operator's dashboard to a page: by its id or a name for it ("oven" is the oven
+    process page, "warehouse" the production page). It changes the view, never the factory."""
     from services.api.industrial.actuation import get_guard
 
-    page = str(args.get("page", "overview")).strip().lower()
+    asked = str(args.get("page", "overview")).strip().lower()
+    page = navigation.resolve(asked) or asked
     target = args.get("target")
     actor = ctx.client or "operator"
     res = get_guard().execute_twin_navigate(page=page, target=target, actor=actor)
@@ -989,16 +998,16 @@ def twin_navigate(args: dict, ctx: Ctx) -> Result:
             f"Navigation target rejected: {res.get('error')}",
             facts=[["Status", "REJECTED"], ["Reason", str(res.get("error"))]],
         )
+    label = navigation.LABELS.get(page, page)
     return Result(
         "twin_navigate",
-        f"Digital twin viewport dispatched to '{page}' view"
-        + (f" focused on {target}." if target else "."),
-        facts=[["Page", page], ["Target", str(target or "Global")], ["Status", "DISPATCHED"]],
-        link={"page": page, "label": f"{page.title()} Dashboard"},
+        f"Opened the {label} page" + (f", at the {target}." if target else "."),
+        facts=[["Page", label], ["Target", str(target or "the whole page")], ["Status", "OPENED"]],
+        link={"page": page, "label": label},
     )
 
 
-# ------------------------------------------------------------------------ the table
+# --- the table
 @dataclass
 class Tool:
     """One twin capability exposed to the model: name, implementation, JSON-schema params."""
@@ -1199,16 +1208,9 @@ TOOLS: dict[str, Tool] = {
                 {
                     "page": {
                         "type": "string",
-                        "enum": [
-                            "overview",
-                            "warehouse",
-                            "oven",
-                            "quality",
-                            "analytics",
-                            "security",
-                            "settings",
-                        ],
-                        "description": "dashboard view or camera angle to navigate to",
+                        "enum": sorted(navigation.PAGES),
+                        "description": "the dashboard page to open (process is the oven, "
+                        "production the warehouse and robot, vision the inspection camera)",
                     },
                     "target": {
                         "type": "string",
@@ -1225,9 +1227,8 @@ TOOLS: dict[str, Tool] = {
 # Phase 0 freezes model-initiated writes until durable, exact-payload approval exists (Phase 2).
 # Routing may still recognise an action request, but neither a rules route nor a model tool call
 # can cross this boundary by default. This switch does not enable the separate /command API.
-WRITE_TOOLS = frozenset(
-    {"order_submit", "order_cancel", "alarm_ack", "recipe_adjust", "twin_navigate"}
-)
+# twin_navigate is not among them: it moves the operator's view, never the factory (navigation.py)
+WRITE_TOOLS = frozenset({"order_submit", "order_cancel", "alarm_ack", "recipe_adjust"})
 
 
 def actuation_enabled(env: dict | None = None) -> bool:
@@ -1275,7 +1276,7 @@ def call(name: str, args: dict | None, ctx: Ctx) -> Result:
         return Result(name, f"The tool failed: {type(e).__name__}.")
 
 
-# ------------------------------------------------------------------ rules: a question -> tool calls
+# --- rules: a question -> tool calls
 GREETING = re.compile(
     r"^(hi|hello|hey|howdy|greetings|good\s+(morning|afternoon|evening))\b[\s!.,?]*$", re.I
 )
@@ -1285,6 +1286,11 @@ def route(q: str, ctx: Ctx, lean: bool = False) -> list[tuple[str, dict]]:
     """The tool calls a question needs, by keyword - the rules mode, and the facts every model
     starts from. Several calls when a question asks several things. `lean` shrinks the document
     search for small local models."""
+    # moving the view: only a request that is nothing else ("take me to the oven"), so that
+    # "show me the oven temperature" stays a question (navigation.py)
+    target_page = navigation.request(q)
+    if target_page:
+        return [("twin_navigate", {"page": target_page})]
     s = q.lower()
     calls: list[tuple[str, dict]] = []
     codes = [f"{a}-{b}".upper() for a, b in ALARM_RE.findall(q)]
@@ -1412,14 +1418,6 @@ def route(q: str, ctx: Ctx, lean: bool = False) -> list[tuple[str, dict]]:
             else:
                 recipe_args["bake_temp_c"] = val
         calls.append(("recipe_adjust", recipe_args))
-    # Industrial actuation: twin navigation
-    navigation = r"navigate to|take me to|show me the|switch to (page|view)|go to (page|view)"
-    if re.search(rf"\b({navigation})\b", s):
-        page_match = re.search(
-            r"\b(overview|warehouse|oven|quality|analytics|security|settings)\b", s
-        )
-        target_page = page_match.group(1) if page_match else "overview"
-        calls.append(("twin_navigate", {"page": target_page}))
     if not calls or re.search(r"\bhow does\b|\bwhy\b|\bwhat is\b|\bexplain\b|circuit|works?\b", s):
         calls.append(("search_docs", {"query": q, "k": 2 if lean else 4}))
     return calls

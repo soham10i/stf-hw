@@ -135,7 +135,19 @@ copilot: ## Upgrade 17: the copilot's knowledge base from docs/, and its test qu
 eval-retrieval: ## the copilot's retrieval quality on the golden set (STF_EMBEDDER=minilm for real vectors)
 	$(PY) -m services.api.eval_retrieval
 
-reranker-deploy: ## the cross-encoder reranker to Cloud Run on trial credits (docs/GCP_RERANKER.md)
+# the RAG gate's fixed ground: hash vectors in a local store, no reranker, no claim judge
+RAG_ENV := STF_EMBEDDER=hash STF_VECTOR_BACKEND=sqlite STF_RERANKER_URL= STF_CLAIM_JUDGE=off
+eval-grounding: ## the hallucination detector and the answer confidence on labelled answers
+	$(RAG_ENV) $(PY) -m services.api.eval_grounding
+
+rag-gate: ## retrieval + grounding against tests/golden/rag_baseline.json (fails on a regression)
+	$(RAG_ENV) $(PY) -m services.api.eval_grounding --rag --out .cache/rag_report.json > /dev/null
+	$(PY) -m services.api.eval_gate --rag tests/golden/rag_baseline.json .cache/rag_report.json
+
+rag-baseline: ## accept the current retrieval + grounding numbers as the RAG gate's baseline
+	$(RAG_ENV) $(PY) -m services.api.eval_grounding --rag --out tests/golden/rag_baseline.json > /dev/null
+
+reranker-deploy: ## the cross-encoder reranker to Cloud Run on trial credits (docs/reference/operations/gcp-reranker.md)
 	./deploy/reranker.sh
 
 staging-deploy: ## the private staging mirror (IAM-only access, Swagger on) - test here before promoting
@@ -144,7 +156,7 @@ staging-deploy: ## the private staging mirror (IAM-only access, Swagger on) - te
 staging-proxy: ## stf-staging onto localhost:8080 (browser access to the private mirror; Ctrl-C to stop)
 	gcloud run services proxy stf-staging --region europe-west1 --project smart-tabletop-factory-512013
 
-promote: ## the tested tree from staging to the public stf-live service (docs/STAGING.md)
+promote: ## the tested tree from staging to the public stf-live service (docs/reference/operations/staging.md)
 	./deploy/promote.sh
 
 carbon: ## Upgrade 18: grams of CO2e per cookie from the microgrid month, and the levers that cut it
@@ -153,7 +165,7 @@ carbon: ## Upgrade 18: grams of CO2e per cookie from the microgrid month, and th
 mechanisms: ## The mechanisms' 3D views (drag chain, lift spindle drive, RFID head) - needs FreeCAD
 	cd stf-cad/hbw && /Applications/FreeCAD.app/Contents/Resources/bin/freecadcmd -c "import sys; p='$(CURDIR)/stf-cad/hbw/mechanisms_cad.py'; sys.argv=[p]; exec(compile(open(p).read(), p, 'exec'), {'__file__': p, '__name__': '__main__'})"
 
-bake: ## Upgrade 19: the bake as a process - oven, cookie, three ways to end a bake, capacity and energy (web/public/bake, docs/process)
+bake: ## Upgrade 19: the bake as a process - oven, cookie, three ways to end a bake, capacity and energy (web/public/bake, docs/reference/process)
 	cd stf-cad/hbw && STF_VARIANT=up12 PYTHONPATH=. ../../$(PY) bake.py
 
 health-theory: ## Docs page "Hardware degradation": the health model in closed form, checked against its simulation
@@ -168,16 +180,19 @@ voice-check: ## the voice pipeline with the real providers: ElevenLabs speaks a 
 db-seed: ## load the factory's data (month, energy, bakes, ten sample photos) into the API's database; RESET=1 first forgets every guest, chat and photo
 	PYTHONPATH=packages $(PY) -m services.api.db_seed $(if $(RESET),--reset,)
 
+db-seed-kb: ## build the copilot's vector index over docs/reference (after `make copilot`) in the configured store
+	PYTHONPATH=packages $(PY) -m services.api.db_seed --kb
+
 db-check: ## the API's database (SQLite, or Supabase when configured): a round trip, no keys printed
 	PYTHONPATH=packages $(PY) -m services.api.db_check
 
-maintenance-docs: ## docs/maintenance/: the preventive-maintenance mathematics, from the health model (then `make copilot`)
+maintenance-docs: ## docs/reference/maintenance/: the preventive-maintenance mathematics, from the health model (then `make copilot`)
 	$(PY) docs/gen/maintenance_docs.py
 
-plc-docs: ## docs/plc/: the PLC reference, written from the program the twin runs (then `make copilot`)
+plc-docs: ## docs/reference/plc/: the PLC reference, written from the program the twin runs (then `make copilot`)
 	$(PY) docs/gen/plc_docs.py
 
-guide: ## docs/DASHBOARD_GUIDE.md from the dashboard's guide (web/src/dashboard/guide.ts)
+guide: ## docs/reference/guide/dashboard-guide.md from the dashboard's guide (web/src/dashboard/guide.ts)
 	cd web && npx esbuild scripts/guide-md.ts --bundle --platform=node --format=esm --outfile=../.cache/guide-md/guide-md.mjs --log-level=warning && node ../.cache/guide-md/guide-md.mjs
 
 uns-check: ## Upgrade 14: prove Sparkplug B (50 spec requirements on the wire), the UNS, death/rebirth, security, mutants

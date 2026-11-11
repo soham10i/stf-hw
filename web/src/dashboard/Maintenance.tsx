@@ -8,7 +8,7 @@ import { compAt } from "../shared/health";
 import { PART_COL } from "./Health";
 import { Bars } from "./Plot";
 
-const H = 90;                      // shifts ahead on the schedule (30 days of three shifts)
+const HORIZON = 90;                      // shifts ahead on the schedule (30 days of three shifts)
 const KIND = {
   failed: { col: "var(--bad)", say: "failed: replace" },
   predictive: { col: "var(--warn)", say: "predictive: warned" },
@@ -30,9 +30,9 @@ function schedule(h: HealthDoc, lc: LifecycleDoc | undefined, age: number, pm: b
     const kind: Kind = s.status === "fail" ? "failed" : s.status === "warn" ? "predictive" : "preventive";
     const due = kind === "preventive" ? Math.max(0, Math.min(prev, s.rulShifts ?? Infinity)) : 0;
     const events: number[] = [];
-    if (pm) for (let t = due; t <= H; t += every) events.push(t);
+    if (pm) for (let t = due; t <= HORIZON; t += every) events.push(t);
     // PM off: nothing is serviced - the schedule shows where each part fails instead
-    const fail = pm ? null : s.status === "fail" ? 0 : s.rulShifts !== null && s.rulShifts <= H ? s.rulShifts : null;
+    const fail = pm ? null : s.status === "fail" ? 0 : s.rulShifts !== null && s.rulShifts <= HORIZON ? s.rulShifts : null;
     return { id: c.id, name: short(c.name), col: PART_COL[i], door: door[c.part] ?? "–", kind, due, every, events, fail };
   });
   if (pm) rows.sort((a, b) => a.due - b.due);
@@ -41,7 +41,7 @@ function schedule(h: HealthDoc, lc: LifecycleDoc | undefined, age: number, pm: b
   const visit = lc?.plan.find((p) => p.trigger.startsWith("detect-only"))?.every_shifts ?? 40;
   const next = visit - (age % visit);
   const ev: number[] = [];
-  for (let t = next; t <= H; t += visit) ev.push(t);
+  for (let t = next; t <= HORIZON; t += visit) ev.push(t);
   rows.push({ id: "visit", name: "PM visit", col: "var(--faint)", door: "all", kind: "visit", due: next, every: visit, events: ev, fail: null });
   return rows;
 }
@@ -49,12 +49,12 @@ function schedule(h: HealthDoc, lc: LifecycleDoc | undefined, age: number, pm: b
 /** One row per part along the next H shifts: a diamond for each service. */
 function Timeline({ rows, pm, sel, pick }: { rows: Row[]; pm: boolean; sel: string | null; pick: (id: string) => void }) {
   const W = 900, L = 190, R = 14, RH = 22, T = 18;
-  const X = (t: number) => L + (t / H) * (W - L - R);
+  const X = (t: number) => L + (t / HORIZON) * (W - L - R);
   const Hh = T + rows.length * RH + 6;
   return (
     <div className="mo-chart">
       <div className="mt-scroll"><svg viewBox={`0 0 ${W} ${Hh}`}>
-        {Array.from({ length: H / 15 + 1 }, (_, i) => i * 15).map((t) => (
+        {Array.from({ length: HORIZON / 15 + 1 }, (_, i) => i * 15).map((t) => (
           <g key={t}><line x1={X(t)} x2={X(t)} y1={T - 4} y2={Hh - 6} className="mo-grid" />
             <text x={X(t)} y={10} textAnchor="middle" className="pl-tick">{t === 0 ? "now" : `day ${t / 3}`}</text></g>))}
         {rows.map((r, i) => {
@@ -65,7 +65,7 @@ function Timeline({ rows, pm, sel, pick }: { rows: Row[]; pm: boolean; sel: stri
               <circle cx={8} cy={y} r={4} fill={r.col} />
               <text x={18} y={y + 4} className="mt-name">{r.name}</text>
               <text x={L - 8} y={y + 4} textAnchor="end" className="mo-ax">{r.door === "–" ? "" : `door ${r.door}`}</text>
-              <line x1={X(0)} x2={X(H)} y1={y} y2={y} className="mt-lane" />
+              <line x1={X(0)} x2={X(HORIZON)} y1={y} y2={y} className="mt-lane" />
               {r.fail !== null && <g><line x1={X(r.fail) - 4} x2={X(r.fail) + 4} y1={y - 4} y2={y + 4} className="mt-x" />
                 <line x1={X(r.fail) - 4} x2={X(r.fail) + 4} y1={y + 4} y2={y - 4} className="mt-x" /></g>}
               {r.events.map((t, k) => (
@@ -86,7 +86,7 @@ function Timeline({ rows, pm, sel, pick }: { rows: Row[]; pm: boolean; sel: stri
 
 /** Services (or, with PM off, breakdowns) per day over the schedule, by part. */
 function Workload({ rows, pm }: { rows: Row[]; pm: boolean }) {
-  const days = H / 3;
+  const days = HORIZON / 3;
   const per = Array.from({ length: days }, () => [] as string[]);
   rows.filter((r) => r.kind !== "visit").forEach((r) => [...r.events, ...(r.fail !== null ? [r.fail] : [])]
     .forEach((t) => per[Math.min(days - 1, Math.floor(t / 3))].push(r.name)));

@@ -26,14 +26,13 @@ import os
 import threading
 import time
 
-from uns import namespace as N
-from uns import sparkplug as SP
+from uns import namespace, sparkplug
 from uns.broker import CACHE, PORT
 from uns.client import connect, make
 
 
 class Host:
-    def __init__(self, port, ca, password, user="stf-scada", host_id=N.HOST_ID, group=N.GROUP, uns=True):
+    def __init__(self, port, ca, password, user="stf-scada", host_id=namespace.HOST_ID, group=namespace.GROUP, uns=True):
         self.port, self.ca, self.user, self.password = port, ca, user, password
         self.host_id, self.group, self.uns = host_id, group, uns
         self.nodes = {}                                 # edge node id -> its state as the births and data tell it
@@ -44,19 +43,19 @@ class Host:
         self.rebirths = 0
         self.stopping = False
 
-    # ---------------------------------------------------------------- the session
+    # --- the session
     def state(self, online):
         return json.dumps({"online": online, "timestamp": self.ts}).encode()
 
     def start(self):
-        self.ts = SP.now_ms()
+        self.ts = sparkplug.now_ms()
         c = make(f"stf-host-{self.host_id}", self.user, self.password, self.ca)
-        c.will_set(N.state_topic(self.host_id), self.state(False), qos=1, retain=True)
+        c.will_set(namespace.state_topic(self.host_id), self.state(False), qos=1, retain=True)
         c.on_message = self.on_message
 
         def subscribed(cl):
-            cl.subscribe([(f"{N.NAMESPACE}/{self.group}/#", 1), (N.state_topic(self.host_id), 1)])
-            cl.publish(N.state_topic(self.host_id), self.state(True), qos=1, retain=True)
+            cl.subscribe([(f"{namespace.NAMESPACE}/{self.group}/#", 1), (namespace.state_topic(self.host_id), 1)])
+            cl.publish(namespace.state_topic(self.host_id), self.state(True), qos=1, retain=True)
         self.client = c
         rc = connect(c, self.port, on_connect=subscribed)
         if rc != "Success":
@@ -67,14 +66,14 @@ class Host:
         """Clean shutdown: the STATE death first, then DISCONNECT (host-topic-phid-death-payload-disconnect-clean)."""
         if self.client:
             self.stopping = True                        # our own death STATE must not be answered with a birth
-            self.client.publish(N.state_topic(self.host_id), self.state(False), qos=1, retain=True).wait_for_publish(3)
+            self.client.publish(namespace.state_topic(self.host_id), self.state(False), qos=1, retain=True).wait_for_publish(3)
             self.client.disconnect()
             self.client.loop_stop()
             self.client = None
 
-    # ---------------------------------------------------------------- commands
+    # --- commands
     def ncmd(self, edge, metrics):
-        self.client.publish(N.topic("NCMD", edge=edge, group=self.group), SP.payload(metrics), qos=0, retain=False)
+        self.client.publish(namespace.topic("NCMD", edge=edge, group=self.group), sparkplug.payload(metrics), qos=0, retain=False)
 
     def rebirth(self, edge, why):
         n = self.nodes.setdefault(edge, self._node())
@@ -83,14 +82,14 @@ class Host:
         n["rebirth_pending"] = True
         self.rebirths += 1
         self.log.append(("rebirth request", edge, why, time.time()))
-        self.ncmd(edge, [(N.REBIRTH, None, N.BOOLEAN, True, None)])      # by name: the metric has no alias
+        self.ncmd(edge, [(namespace.REBIRTH, None, namespace.BOOLEAN, True, None)])  # by name: the metric has no alias
 
-    def start_order(self, edge=N.EDGE):
+    def start_order(self, edge=namespace.EDGE):
         n = self.nodes[edge]
-        alias = n["alias_of"][(None, N.RESTART)]
-        self.ncmd(edge, [(None, alias, N.BOOLEAN, True, None)])
+        alias = n["alias_of"][(None, namespace.RESTART)]
+        self.ncmd(edge, [(None, alias, namespace.BOOLEAN, True, None)])
 
-    # ---------------------------------------------------------------- the data
+    # --- the data
     @staticmethod
     def _node():
         return {"online": False, "bdseq": None, "seq": None, "aliases": {}, "alias_of": {}, "metrics": {},
@@ -100,18 +99,18 @@ class Host:
         return self.nodes[edge]["metrics"][(device, name)]["value"]
 
     def _uns_put(self, edge, device, name, rec):
-        if not self.uns or name in (N.BDSEQ, N.REBIRTH, N.RESTART):
+        if not self.uns or name in (namespace.BDSEQ, namespace.REBIRTH, namespace.RESTART):
             return
         body = {"value": rec["value"], "quality": "STALE" if rec["stale"] else "GOOD", "timestamp": rec["ts"],
-                "sparkplug": f"{N.topic('DDATA' if device else 'NDATA', device, group=self.group, edge=edge)}#{name}"}
+                "sparkplug": f"{namespace.topic('DDATA' if device else 'NDATA', device, group=self.group, edge=edge)}#{name}"}
         if rec.get("unit"):
             body["unit"] = rec["unit"]
-        self.client.publish(N._uns(device, name), json.dumps(body), qos=1, retain=True)
+        self.client.publish(namespace._uns(device, name), json.dumps(body), qos=1, retain=True)
 
     def _uns_status(self, edge, n):
         if self.uns:
-            self.client.publish(f"{N.UNS_ROOT}/_status", json.dumps(
-                {"online": n["online"], "bdSeq": n["bdseq"], "timestamp": SP.now_ms(),
+            self.client.publish(f"{namespace.UNS_ROOT}/_status", json.dumps(
+                {"online": n["online"], "bdSeq": n["bdseq"], "timestamp": sparkplug.now_ms(),
                  "devices": {d: v for d, v in n["devices"].items()}}), qos=1, retain=True)
 
     def _apply(self, edge, n, device, p, birth):
@@ -121,14 +120,14 @@ class Host:
                 if m.HasField("alias"):
                     n["aliases"][m.alias] = key
                     n["alias_of"][key] = m.alias
-                props = SP.props(m)
-                n["metrics"][key] = {"value": SP.get_value(m), "dtype": m.datatype, "ts": m.timestamp or p.timestamp,
+                props = sparkplug.props(m)
+                n["metrics"][key] = {"value": sparkplug.get_value(m), "dtype": m.datatype, "ts": m.timestamp or p.timestamp,
                                      "stale": False, "unit": props.get("engUnit")}
             else:
                 key = n["aliases"].get(m.alias) if m.HasField("alias") else (device, m.name)
                 if key not in n["metrics"]:
                     return False                        # an alias no birth declared
-                n["metrics"][key].update(value=SP.get_value(m), ts=m.timestamp or p.timestamp, stale=False)
+                n["metrics"][key].update(value=sparkplug.get_value(m), ts=m.timestamp or p.timestamp, stale=False)
             self._uns_put(edge, key[0], key[1], n["metrics"][key])
         return True
 
@@ -144,20 +143,20 @@ class Host:
             st = json.loads(msg.payload)
             if parts[2] == self.host_id and st.get("online") is False and self.client and not self.stopping:
                 # someone (or our own will) says we are offline while we are not: say otherwise
-                self.client.publish(N.state_topic(self.host_id), self.state(True), qos=1, retain=True)
+                self.client.publish(namespace.state_topic(self.host_id), self.state(True), qos=1, retain=True)
             return
         if len(parts) < 4:
             return
         kind, edge, device = parts[2], parts[3], parts[4] if len(parts) > 4 else None
         try:
-            p = SP.decode(msg.payload)
+            p = sparkplug.decode(msg.payload)
         except Exception:                               # noqa: BLE001
             self.log.append(("undecodable", msg.topic, "", time.time()))
             return
         with self.lock:
             n = self.nodes.setdefault(edge, self._node())
             if kind == "NDEATH":
-                bd = next((SP.get_value(m) for m in p.metrics if m.name == N.BDSEQ), None)
+                bd = next((sparkplug.get_value(m) for m in p.metrics if m.name == namespace.BDSEQ), None)
                 if n["bdseq"] is not None and bd == n["bdseq"] and n["online"]:
                     n["online"], n["deaths"] = False, n["deaths"] + 1
                     for d in n["devices"]:
@@ -172,7 +171,7 @@ class Host:
             if kind in ("NCMD", "DCMD"):
                 return
             if kind == "NBIRTH":
-                bd = next((SP.get_value(m) for m in p.metrics if m.name == N.BDSEQ), None)
+                bd = next((sparkplug.get_value(m) for m in p.metrics if m.name == namespace.BDSEQ), None)
                 n.update(self._node(), bdseq=bd, seq=p.seq, online=True, births=n["births"] + 1,
                          deaths=n["deaths"], stale_deaths=n["stale_deaths"], gaps=n["gaps"])
                 self._apply(edge, n, None, p, birth=True)
@@ -209,7 +208,7 @@ def main():
     if not password:
         raise SystemExit("set STF_UNS_SCADA_PASSWORD (make uns does)")
     h = Host(a.port, CACHE / "pki" / "ca.pem", password).start()
-    print(f"primary host '{h.host_id}' online; the Unified Namespace is under {N.UNS_ROOT}/#", flush=True)
+    print(f"primary host '{h.host_id}' online; the Unified Namespace is under {namespace.UNS_ROOT}/#", flush=True)
     try:
         while True:
             time.sleep(1)

@@ -27,6 +27,7 @@ import threading
 import time
 import urllib.request
 
+from services.api.core.errors import Reason, ServiceError
 from services.api.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -38,8 +39,10 @@ EARLY_S = 60.0  # a token is renewed this long before it expires
 GCLOUD_TTL_S = 50 * 60.0  # gcloud does not say when its token expires; they last an hour
 
 
-class NoToken(RuntimeError):
+class NoToken(ServiceError, RuntimeError):
     """No source could give a Google Cloud access token."""
+
+    code, reason = Reason.CLOUD_TOKEN_MISSING.code, Reason.CLOUD_TOKEN_MISSING
 
 
 def endpoint(project: str, location: str, model: str) -> str:

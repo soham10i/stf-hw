@@ -62,7 +62,7 @@ span.brand-mark {
   border: var(--btn-glass-border);
   background: var(--btn-glass-bg);
   box-shadow: var(--btn-glass-shadow);
-  color: #ffffff; cursor: pointer; display: grid; place-items: center;
+  color: var(--text); cursor: pointer; display: grid; place-items: center;
   -webkit-backdrop-filter: blur(24px) saturate(190%) brightness(1.06);
   backdrop-filter: blur(24px) saturate(190%) brightness(1.06);
   transition: background .2s ease, color .2s ease, border-color .2s ease, transform .18s cubic-bezier(.16, 1, .3, 1), box-shadow .2s ease;
@@ -74,7 +74,7 @@ span.brand-mark {
   background: var(--btn-glass-bg-hover);
   border: var(--btn-glass-border-hover);
   box-shadow: var(--btn-glass-shadow-hover);
-  color: #ffffff;
+  color: var(--text);
   transform: scale(1.08) translateY(-1px);
 }
 .rail button:hover svg {
@@ -84,7 +84,7 @@ span.brand-mark {
   background: var(--btn-glass-primary-bg);
   border: var(--btn-glass-primary-border);
   box-shadow: var(--btn-glass-primary-shadow);
-  color: #ffffff;
+  color: var(--on-accent);
   transform: scale(1.04);
 }
 .rail button::after {
@@ -139,7 +139,7 @@ span.brand-mark {
   background: var(--btn-glass-active-bg);
   border: var(--btn-glass-active-border);
   box-shadow: var(--btn-glass-active-shadow);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 .side-pin svg { transform: rotate(45deg); transition: transform .15s; } .side-pin.on svg { transform: none; }
 .side-close svg { transform: scaleX(-1); }
@@ -205,39 +205,18 @@ span.brand-mark {
 }
 .slot:focus-visible, .op:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-:root:not([data-theme="light"]) .slot,
-:root:not([data-theme="light"]) .op {
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.40);
-}
-:root:not([data-theme="light"]) .slot:hover,
-:root:not([data-theme="light"]) .op:hover:not(:disabled) {
-  color: #ffffff;
-}
-
-:root[data-theme="light"] .slot,
-:root[data-theme="light"] .op {
-  color: var(--text, #0f172a);
-  text-shadow: none;
-}
-:root[data-theme="light"] .slot:hover,
-:root[data-theme="light"] .op:hover:not(:disabled) {
-  color: var(--text, #0f172a);
-  text-shadow: none;
-}
-
 .slot.active, .op.retrieve, .slot[aria-checked="true"] {
   background: var(--btn-glass-active-bg);
   border: var(--btn-glass-active-border);
   box-shadow: var(--btn-glass-active-shadow);
-  color: #ffffff !important;
+  color: var(--on-accent);
   font-weight: 600;
   text-shadow: none;
 }
 .slot.active:hover, .op.retrieve:hover:not(:disabled) {
   background: var(--btn-glass-active-bg);
   transform: translateY(-1px);
-  color: #ffffff !important;
+  color: var(--on-accent);
 }
 .op.store {
   background: var(--btn-glass-bg);
@@ -249,16 +228,16 @@ span.brand-mark {
   background: var(--btn-glass-primary-bg);
   border: var(--btn-glass-primary-border);
   box-shadow: var(--btn-glass-primary-shadow);
-  color: #ffffff !important;
+  color: var(--on-accent);
   font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  text-shadow: none;
 }
 .op.cycle:hover:not(:disabled), .op.ord-place:hover:not(:disabled) {
   background: var(--btn-glass-primary-bg-hover);
   border: var(--btn-glass-primary-border-hover);
   box-shadow: var(--btn-glass-primary-shadow-hover);
   transform: translateY(-1px);
-  color: #ffffff !important;
+  color: var(--on-accent);
 }
 /* the order actions: one column, even gaps (the cycle button no longer touches the row below) */
 .op-actions { display: grid; gap: 10px; margin-top: 14px; }
@@ -272,7 +251,6 @@ span.brand-mark {
 .tag { border-radius: 999px; padding: 2px 8px; font-weight: 500; }
 .tag.run { background: var(--ok-weak); color: var(--ok); }
 .tag.idle { background: var(--raised); color: var(--muted); }
-
 
 @media (max-width: 900px) {
   .topbar { grid-template-columns: auto 1fr; height: auto; padding: 8px 12px; row-gap: 8px; }
@@ -329,7 +307,7 @@ span.brand-mark {
 .plc-speed button:hover { color: var(--text); background: var(--btn-glass-bg-hover); }
 .plc-speed button.on {
   background: var(--btn-glass-primary-bg); border: var(--btn-glass-primary-border);
-  box-shadow: var(--btn-glass-primary-shadow); color: #ffffff; font-weight: 600;
+  box-shadow: var(--btn-glass-primary-shadow); color: var(--on-accent); font-weight: 600;
 }
 .plc-units { display: grid; gap: 4px; }
 .plc-unit { display: grid; grid-template-columns: 74px 42px 1fr; gap: 8px; align-items: center; font-size: var(--fs-callout); padding: 6px 10px;
@@ -393,7 +371,7 @@ span.brand-mark {
 .aas-tabs button.on {
   background: var(--btn-glass-primary-bg);
   border: var(--btn-glass-primary-border);
-  color: #ffffff;
+  color: var(--on-accent);
   font-weight: 600;
   box-shadow: var(--btn-glass-primary-shadow);
 }
@@ -405,16 +383,10 @@ span.brand-mark {
   font-size: var(--fs-callout);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
-:root[data-theme="light"] .aas-tree {
-  background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.08);
-  box-shadow: inset 0 1px 0 #ffffff, 0 2px 8px rgba(15, 30, 65, 0.04);
-}
 .aas-sem { font: var(--fs-caption) var(--mono); color: var(--faint); margin-bottom: 8px; overflow-wrap: anywhere; }
 .aas-row { display: flex; align-items: baseline; gap: 8px; padding: 3px 0; min-width: 0; }
 .aas-row b { font-weight: 500; white-space: nowrap; cursor: help; }
 .aas-row em { font: 500 var(--fs-caption) var(--mono); font-style: normal; color: var(--muted); background: color-mix(in srgb, var(--surface-2) 80%, black); padding: 1px 6px; border-radius: 6px; border: 1px solid var(--border-soft); }
-:root[data-theme="light"] .aas-row em { background: #eef2f7; border-color: rgba(0, 0, 0, 0.06); }
 .aas-row i { font-style: normal; font-size: var(--fs-caption); color: var(--faint); margin-left: auto; }
 .aas-v { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .aas-v.muted { color: var(--faint); }
@@ -428,7 +400,6 @@ a.aas-v { color: var(--accent); }
 /* ------------------------------------------------------------- the order form (panels/OrdersPanel.tsx) */
 .slot.static { cursor: default; padding: 6px 0; font-size: var(--fs-callout); }
 .slot.static:hover { transform: none; filter: none; }
-
 
 /* ------------------------------------------------------------- U14 OPC UA panel (panels/OpcuaPanel.tsx) */
 .ua-sec { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
@@ -716,7 +687,6 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
   --float-shadow: 0 12px 40px rgba(0, 0, 0, .28), 0 2px 6px rgba(0, 0, 0, .18);
   --ease: cubic-bezier(.2, .8, .2, 1);
 }
-:root[data-theme="light"] { --float-shadow: 0 12px 36px rgba(16, 24, 40, .12), 0 2px 6px rgba(16, 24, 40, .06); }
 .glass, .app.immersive .topbar, .app.immersive .rail, .vp-bar, .vm-pop {
   background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-line); box-shadow: var(--float-shadow), inset 0 1px 0 color-mix(in srgb, #fff 10%, transparent);
@@ -736,9 +706,6 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
   -webkit-backdrop-filter: blur(28px) saturate(180%); backdrop-filter: blur(28px) saturate(180%);
   border: 1px solid var(--border);
   box-shadow: 0 8px 30px -8px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-:root[data-theme="light"] .app.immersive .topbar {
-  box-shadow: 0 6px 20px -6px rgba(15, 30, 65, 0.08), inset 0 1px 0 #ffffff;
 }
 
 /* the view switcher */
@@ -779,9 +746,6 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
   border: 1px solid var(--border);
   box-shadow: 0 16px 45px -10px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
-:root[data-theme="light"] .app.immersive .rail {
-  box-shadow: 0 12px 36px -10px rgba(15, 30, 65, 0.12), inset 0 1px 0 #ffffff;
-}
 .rail button {
   width: 42px; height: 42px; border-radius: 50%;
   border: var(--btn-glass-border);
@@ -802,7 +766,7 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
   background: var(--btn-glass-primary-bg);
   border: var(--btn-glass-primary-border);
   box-shadow: var(--btn-glass-primary-shadow);
-  color: #ffffff;
+  color: var(--on-accent);
   transform: scale(1.04);
 }
 .rail button.on::before { display: none; }
@@ -819,10 +783,6 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .app.immersive .side.pinned {
   position: absolute; left: 80px; top: 78px; bottom: 12px; z-index: 6; border-radius: 24px; border: 1px solid var(--border);
   background: var(--surface-2); box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-:root[data-theme="light"] .app.immersive .side.float,
-:root[data-theme="light"] .app.immersive .side.pinned {
-  box-shadow: 0 20px 48px -10px rgba(15, 30, 65, 0.14), inset 0 1px 0 #ffffff;
 }
 .app.immersive .side-grip.closed { left: 68px; top: calc(50% + 33px); }
 .side { overflow: visible; }
@@ -897,17 +857,17 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
   background: var(--btn-glass-active-bg);
   border: var(--btn-glass-active-border);
   box-shadow: var(--btn-glass-active-shadow);
-  color: #ffffff;
+  color: var(--on-accent);
   font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  text-shadow: none;
 }
 .vp-cta {
   background: var(--btn-glass-primary-bg);
   border: var(--btn-glass-primary-border);
   box-shadow: var(--btn-glass-primary-shadow);
-  color: #ffffff;
+  color: var(--on-accent);
   font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  text-shadow: none;
 }
 .vp-cta:hover {
   background: var(--btn-glass-primary-bg-hover);
@@ -937,7 +897,6 @@ i.oven { background: repeating-linear-gradient(135deg, var(--warn) 0 4px, transp
 .vp-status { flex: 1 1 auto; }
 .vp-btn.off { color: var(--faint); } .vp-btn.off svg { opacity: .5; }
 .vp-btn[aria-pressed="true"]:not(.on) { color: var(--text); }
-
 
 /* ---------------------------------------------------- second pass: the view's own chrome
    One floating layer over the machine: the control bar (status · focus · layers), its menus and

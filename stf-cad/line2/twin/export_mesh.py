@@ -28,7 +28,7 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 LINE2 = os.path.dirname(HERE)
 sys.path.insert(0, LINE2)
-import line_model as M                                      # noqa: E402
+import line_model  # noqa: E402
 
 CAD = os.path.expanduser("~/workspace/stf-factory/cad/line2_precise")
 OUT = os.path.join(HERE, "out", "cache")
@@ -74,12 +74,12 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     open(os.path.join(OUT, "export_mesh.log"), "w").close()
     t0 = time.time()
-    parts = {p.name: p for p in M.build()}                 # with product, as line_cad_precise builds it
+    parts = {p.name: p for p in line_model.build()}        # with product, as line_cad_precise builds it
     tl = json.load(open(os.path.join(LINE2, "motion", "timeline.json")))
     moving = set(tl["track"]) | {s["name"] for s in tl["spawn"]}
     follow = tuple(tl.get("follow", {}))                    # name prefixes (screws F####_) riding on a moving body
     modof, fast = {}, set()
-    for mod in M.MODULES:
+    for mod in line_model.MODULES:
         d = App.openDocument(os.path.join(CAD, f"{mod}.FCStd"))
         for o in d.Objects:
             if o.TypeId == "Part::Feature":

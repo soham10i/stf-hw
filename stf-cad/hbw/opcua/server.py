@@ -7,7 +7,7 @@ Upgrade 14, step 2 - the cell as an OPC UA server, live from the software-in-the
 The address space is opcua/model.py's. The values come from Upgrade 13: the compiled PLC
 program (plc.wasm) scanning the plant, streamed by web/scripts/sil-stream.ts.
 
-SECURITY (IEC 62443 zone Z3, see docs/SECURITY.md S14)
+SECURITY (IEC 62443 zone Z3, see docs/reference/operations/security.md S14)
   - one endpoint, opc.tcp on 127.0.0.1:4840, Basic256Sha256 Sign & Encrypt only: no None endpoint;
   - username and password only (STF_OPCUA_USER / STF_OPCUA_PASSWORD, required), compared in
     constant time; no anonymous access; asyncua's default user manager, which accepts any
@@ -34,7 +34,7 @@ from cryptography.x509.oid import ExtendedKeyUsageOID
 from sil.stream import PHASES, STREAM, state_names
 from sil.stream import bundle as bundle_stream
 
-from opcua import model as M
+from opcua import model as opcua_model
 
 HERE = Path(__file__).resolve().parent
 PKI = HERE.parent / ".cache" / "opcua" / "pki"
@@ -84,8 +84,8 @@ async def make_server(user, password, endpoint=ENDPOINT):
     server.set_certificate_validator(CertificateValidator(
         CertificateValidatorOptions.BASIC_VALIDATION | CertificateValidatorOptions.PEER_CLIENT
         | CertificateValidatorOptions.TRUSTED, store))
-    await M.load_companions(server)
-    model = await M.build(server)
+    await opcua_model.load_companions(server)
+    model = await opcua_model.build(server)
     return server, model
 
 
@@ -95,7 +95,7 @@ class Feed:
     def __init__(self, server, model, io, units):
         self.server, self.m, self.io, self.units = server, model, io, units
         self.names = state_names()
-        self.jobs = json.load(open(os.path.join(M.PUBLIC, "sil", "plc.json")))["jobs"]
+        self.jobs = json.load(open(os.path.join(opcua_model.PUBLIC, "sil", "plc.json")))["jobs"]
         self.last = {}
         self.proc = None
         self.homed = None
@@ -145,7 +145,7 @@ class Feed:
 
     async def run(self, speed, emit_ms):
         self.proc = await asyncio.create_subprocess_exec(
-            "node", str(STREAM), os.path.join(M.PUBLIC, "sil"), str(speed), str(emit_ms),
+            "node", str(STREAM), os.path.join(opcua_model.PUBLIC, "sil"), str(speed), str(emit_ms),
             stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, limit=1 << 20)
         while True:
             line = await self.proc.stdout.readline()
@@ -179,7 +179,7 @@ async def main(speed, emit_ms):
         raise SystemExit("set STF_OPCUA_USER and STF_OPCUA_PASSWORD (12 characters or more)")
     bundle_stream()
     server, model = await make_server(user, password)
-    io = json.load(open(os.path.join(M.PUBLIC, "sil", "plc.json")))
+    io = json.load(open(os.path.join(opcua_model.PUBLIC, "sil", "plc.json")))
     feed = Feed(server, model, io["io"], io["units"])
     await add_method(server, model, feed)
     async with server:

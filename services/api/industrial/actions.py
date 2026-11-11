@@ -1,5 +1,5 @@
 """
-Guarded actions (docs/architecture/guarded-action-plan.md, loop 5): the copilot proposes a typed
+Guarded actions (docs/plans/guarded-action-plan.md, loop 5): the copilot proposes a typed
 action, the named rules check it, the graph pauses until an operator approves the exact payload,
 the rules run again on fresh state, the action runs at most once, and its result is observed.
 
@@ -56,9 +56,10 @@ from pydantic import (
     model_validator,
 )
 
-from . import actuation as ACT
-from . import ledger as L
 from services.api.core.logging_config import get_logger
+
+from . import actuation
+from . import ledger as action_ledger
 
 logger = get_logger(__name__)
 
@@ -204,10 +205,10 @@ class Actions:
 
     def __init__(
         self,
-        guard: ACT.ActionGuard,
-        ledger: L.Ledger,
+        guard: actuation.ActionGuard,
+        ledger: action_ledger.Ledger,
         saver: Any,
-        runtime: Callable[[], Any] = ACT.get_runtime,
+        runtime: Callable[[], Any] = actuation.get_runtime,
         now: Callable[[], float] = time.time,
         ttl_s: float | None = None,
         observe_s: float | None = None,
@@ -226,7 +227,7 @@ class Actions:
         self._locks = [threading.Lock() for _ in range(64)]  # one stripe per proposal hash
         self.graph = self._build()
 
-    # ------------------------------------------------------------------------------ the graph
+    # --- the graph
     def _build(self):
         from langgraph.graph import END, START, StateGraph
 
@@ -270,7 +271,7 @@ class Actions:
     def _check(self, p: dict, actor: str) -> tuple[list[dict], str]:
         rt = self.runtime()
         verdicts = self.guard.precheck(p["kind"], p["params"], actor, rt)
-        fp = ACT.precondition_fingerprint(self.guard, rt, p["kind"], p["params"])
+        fp = actuation.precondition_fingerprint(self.guard, rt, p["kind"], p["params"])
         return [asdict(v) for v in verdicts], fp
 
     def _status(self, pid: str) -> str:
@@ -356,8 +357,8 @@ class Actions:
         if rt is None or order_id is None:
             return None
         if p["kind"] == "order_cancel":
-            return ACT.observe_cancel(rt, order_id)
-        return ACT.observe_order(rt, order_id, p["params"]["op"], p["params"].get("slot"))
+            return actuation.observe_cancel(rt, order_id)
+        return actuation.observe_order(rt, order_id, p["params"]["op"], p["params"].get("slot"))
 
     def _finish(self, pid: str, state_: str, ex: dict, seen: str | None) -> str:
         self.ledger.finish_execution(pid, state_, self.now(), order_id=ex.get("order_id"),
@@ -414,7 +415,7 @@ class Actions:
         self._record(state, d.get("actor") or PROPOSER, state["status"], state.get("note") or None)
         return {}
 
-    # ------------------------------------------------------------------------- the operations
+    # --- the operations
     def guest_ref(self, guest: str) -> str:
         return guest_ref(self.guard, guest)
 
@@ -539,7 +540,7 @@ class Actions:
             "status": row["status"], "precheck": row["precheck"], "note": row.get("note"),
             "created_at": row["created_at"], "expires_at": row["expires_at"],
             "decided_by": row.get("decided_by"), "decided_at": row.get("decided_at"),
-            "final": row["status"] in L.FINAL,
+            "final": row["status"] in action_ledger.FINAL,
             "execution": None if ex is None else {
                 "state": ex["state"], "order_id": ex.get("order_id"),
                 "seen": (ex.get("result") or {}).get("seen"),
@@ -573,7 +574,7 @@ class Actions:
         return [s.next for s in reversed(snaps)]
 
 
-# --------------------------------------------------------------------------------- the switch
+# --- the switch
 def mode(env: dict | None = None) -> str:
     """STF_AGENT_ACTUATION: propose turns guarded actions on; anything else is off."""
     env = os.environ if env is None else env
@@ -584,7 +585,7 @@ _ACTIONS: Actions | None = None
 _LOCK = threading.Lock()
 
 
-def guest_ref(guard: ACT.ActionGuard, guest: str) -> str:
+def guest_ref(guard: actuation.ActionGuard, guest: str) -> str:
     """A guest as the ledger knows it: a keyed hash, stable across restarts, never the id."""
     return hmac.new(guard.derive("guest"), guest.encode(), hashlib.sha256).hexdigest()[:32]
 
@@ -594,7 +595,7 @@ def forget_guest(guest: str) -> int:
     actions are on now or were on before. The audit keeps the guest only as its hash."""
     if _ACTIONS is not None:
         return _ACTIONS.forget(guest)
-    guard = ACT.get_guard()
+    guard = actuation.get_guard()
     if guard.ledger is None:
         return 0
     threads = guard.ledger.forget(guest_ref(guard, guest))
@@ -605,11 +606,11 @@ def forget_guest(guest: str) -> int:
     return len(threads)
 
 
-def _saver(ledger: L.Ledger):
+def _saver(ledger: action_ledger.Ledger):
     try:
         return ledger.saver(), ""
     except ImportError:
-        if isinstance(ledger, L.PgLedger):
+        if isinstance(ledger, action_ledger.PgLedger):
             raise
         from langgraph.checkpoint.memory import InMemorySaver
 
@@ -624,7 +625,7 @@ def status() -> tuple[Actions | None, str]:
         return None, "STF_AGENT_ACTUATION is not propose"
     if _ACTIONS is not None:
         return _ACTIONS, ""
-    guard = ACT.get_guard()
+    guard = actuation.get_guard()
     if guard.secret_problem:
         return None, guard.secret_problem
     if guard.ledger is None:

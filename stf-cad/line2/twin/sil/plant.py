@@ -26,12 +26,12 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 LINE2 = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, LINE2)
-import hardware as H                                       # noqa: E402
-import line_model as M                                     # noqa: E402
-import oven_ctrl as OC                                     # noqa: E402
-from twin.sil.runtime import PLC                           # noqa: E402
+import hardware  # noqa: E402
+import line_model  # noqa: E402
+import oven_ctrl  # noqa: E402
+from twin.sil.runtime import PLC  # noqa: E402
 
-L = M.L
+L = line_model.L
 DT = 0.01                                                  # s, the PLC task
 
 
@@ -44,26 +44,26 @@ class SilPlant:
     def __init__(self, T0=None, true=None, ct_sign=-1.0, dough=True, lib=None, running=None):
         """dough: True = the hopper is kept full (an endless supply), False = empty, a number = kg in the hopper."""
         self.plc = PLC(lib)
-        self.pl = OC.Plant()
+        self.pl = oven_ctrl.Plant()
         self.tp = true or self.pl
         self.n = self.pl.n
         self.T = list(T0 if T0 is not None else self.pl.Ts)
         self.y = list(self.T)
-        self.tc_tau = getattr(self.tp, "tc_tau", OC.CTRL["TC_TAU"])
-        self.G = OC.CTRL["ZONE_G"]
+        self.tc_tau = getattr(self.tp, "tc_tau", oven_ctrl.CTRL["TC_TAU"])
+        self.G = oven_ctrl.CTRL["ZONE_G"]
         # elements in FB_Oven's order (= oven_ctrl's): their output, zone, phase, W
         self.els = [(f"qE{e['tag'][1:]}", k, self.pl.phase[e["tag"]], e["P"], e["tag"])
                     for k, z in enumerate(self.pl.zel) for e in z]
         self.fans = [(f"q{t}", self.pl.phase[t], w) for t, w in self.pl.fans.items()]
         self.phases = sorted({ph for _, _, ph, _, _ in self.els})
-        self.ct = H.CT_AC
+        self.ct = hardware.CT_AC
         self.ct_err = ct_sign * self.ct["acc"] * self.ct["range"]
         self.I_lag = {ph: 0.0 for ph in self.phases}
         self.broken = set()
         self.permit = True
         self.endless = dough is True
         self.stock = L["DOUGH_KG"] if dough is True else float(dough or 0.0)
-        self.tof = M.hopper_tof()
+        self.tof = line_model.hopper_tof()
         self.row_kg = L["BAND"]["rows"] * L["DOUGH_M"]
         self.ax = {a: Axis(a) for a in ("axQ1", "axQ40", "axQ41", "axMasterEnc", "axQ20", "axQ21", "axQ22")}
         self.hold = running is not None                      # the NC keeps the master running until commanded
@@ -72,10 +72,10 @@ class SilPlant:
             for a in ("axQ1", "axMasterEnc"):
                 self.ax[a].pos, self.ax[a].vel = m0, L["V"]
             self.ax["axQ40"].pos = b0
-        st = M.stations()
+        st = line_model.stations()
         self.z_off = [z - st["dep"] for z in st["zones"]]
-        self.zlen = M.zone_len()
-        self.pitch = M.band_v() * L["BAND"]["rows"] * M.takt()
+        self.zlen = line_model.zone_len()
+        self.pitch = line_model.band_v() * L["BAND"]["rows"] * line_model.takt()
         self.rows_full = self.zlen / self.pitch
         self.cuts = []                                       # band positions of the rows really cut
         self.last_cut = self.ax["axQ40"].pos
@@ -84,7 +84,7 @@ class SilPlant:
         self.scans = 0
         self._inputs()
 
-    # ------------------------------------------------------------ the I/O image
+    # --- the I/O image
     def _inputs(self):
         p = self.plc
         p["xSafeRunPermit"] = 1 if self.permit else 0
@@ -182,9 +182,9 @@ class SilPlant:
         if not hasattr(self, "_zone_terms"):                 # the per-scan terms, in the same order (same floats)
             self._zone_terms = [[(q, tag, w * self.tp.P[k] / self.pl.P[k]) for q, kk, ph, w, tag in self.els
                                  if kk == k] for k in range(self.n)]
-            self._ph_terms = {ph: ([(q, tag, w / H.SUPPLY["U"] * math.sqrt(self.tp.P[k] / self.pl.P[k]))
+            self._ph_terms = {ph: ([(q, tag, w / hardware.SUPPLY["U"] * math.sqrt(self.tp.P[k] / self.pl.P[k]))
                                     for q, k, ph_, w, tag in self.els if ph_ == ph],
-                                   [(q, w / H.SUPPLY["U"]) for q, ph_, w in self.fans if ph_ == ph])
+                                   [(q, w / hardware.SUPPLY["U"]) for q, ph_, w in self.fans if ph_ == ph])
                               for ph in self.phases}
         on = {tag: bool(p[q]) and tag not in self.broken for q, k, ph, w, tag in self.els}
         f = self.content()

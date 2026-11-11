@@ -13,8 +13,8 @@ one is clear. A separate file, so the proven Upgrade 12 export stays byte-identi
 import json
 import os
 
-import sorting_model as SM
-import vgr_path as VP
+import sorting_model
+import vgr_path
 
 OUT = os.path.expanduser("~/workspace/stf-hw/web/public/vgr_tours.json")
 TO_OVEN = [("belt", "pick", "raw", "warehouse belt"), ("oven", "place", None, "oven's Ofenschieber")]
@@ -22,7 +22,7 @@ TO_OVEN = [("belt", "pick", "raw", "warehouse belt"), ("oven", "place", None, "o
 
 def tours():
     out = {"none": TO_OVEN}
-    for c in SM.COLOURS:
+    for c in sorting_model.COLOURS:
         out[c] = TO_OVEN + [(f"bay_{c}", "pick", "baked", f"{c} Lagerstelle"), ("belt", "place", None, "warehouse belt")]
     return out
 
@@ -30,13 +30,13 @@ def tours():
 def main():
     res, fails = {}, []
     for name, tour in tours().items():
-        f = VP.check(verbose=False, tour=tour)
+        f = vgr_path.check(verbose=False, tour=tour)
         fails += [f"{name}: {x}" for x in f]
-        res[name] = VP.plan(tour)
+        res[name] = vgr_path.plan(tour)
     if fails:
         raise SystemExit("a tour is not clear:\n" + "\n".join(fails[:20]))
     with open(OUT, "w") as fh:
-        json.dump({"tours": res, "blend": VP.BLEND["on"],
+        json.dump({"tours": res, "blend": vgr_path.BLEND["on"],
                    "proof": "each tour swept by vgr_path.check(): no VGR part or carried cookie touches a module"}, fh,
                   separators=(",", ":"))
     print(f"{len(res)} tours clear: " + ", ".join(f"{k} {len(v)} waypoints" for k, v in res.items()))

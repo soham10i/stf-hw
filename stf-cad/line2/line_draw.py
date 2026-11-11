@@ -19,9 +19,9 @@ from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import line_model as M
+import line_model
 
-L = M.L
+L = line_model.L
 OUT = os.path.join(HERE, "blueprints")
 SCALES = [1.0, 0.5, 0.4, 0.25, 0.2, 0.1, 0.05]
 INK, THIN, ACCENT = "#1b2330", 0.18, "#1f4e8c"
@@ -38,7 +38,7 @@ def esc(t):
     return html.escape(str(t), quote=True)
 
 
-# ------------------------------------------------------------ projection
+# --- projection
 VIEWS = {  # (horizontal model axis, vertical model axis, depth axis, depth sign: +1 = larger is nearer)
     "TOP": (0, 1, 2, +1),
     "FRONT": (0, 2, 1, -1),
@@ -334,47 +334,47 @@ def _wrap(t, n):
     return out or [""]
 
 
-# ------------------------------------------------------------ module content
+# --- module content
 def key_dims(mod, views):
     """Module-specific dimensions, from the parameters (never typed)."""
     T, F_, R = views["TOP"], views["FRONT"], views["RIGHT"]
     o = []
-    yf, yb = M.y_front(), M.y_back()
+    yf, yb = line_model.y_front(), line_model.y_back()
     if mod == "M1_loop":
-        (clx, cly), (crx, _) = M.centres()
-        o.append(T.dim_h(clx, crx, yf, 6 + 8, f"S = {M.straight():.1f} (N*P = 2S + 2piR)"))
+        (clx, cly), (crx, _) = line_model.centres()
+        o.append(T.dim_h(clx, crx, yf, 6 + 8, f"S = {line_model.straight():.1f} (N*P = 2S + 2piR)"))
         o.append(T.dim_v(yf, yb, clx - L["R"] - 40, -6, f"2R = {2 * L['R']:.0f}"))
         o.append(F_.dim_v(0, L["BELT_Z"], clx, -10, f"chain top {L['BELT_Z']:.0f}"))
     elif mod == "M2_depositor":
-        st, dz = M.stations(), M.dep_z()
-        o.append(T.dim_h(st["dep"], st["top"], M.band_y()[0], 10, f"die -> topping {st['top'] - st['dep']:.0f}"))
+        st, dz = line_model.stations(), line_model.dep_z()
+        o.append(T.dim_h(st["dep"], st["top"], line_model.band_y()[0], 10, f"die -> topping {st['top'] - st['dep']:.0f}"))
         o.append(F_.dim_v(L["BAND"]["z"], dz["die"], st["dep"], -12, f"die {dz['die'] - L['BAND']['z']:.0f} over the band"))
-        o.append(R.dim_v(M.row_y(0), M.row_y(1), L["BAND"]["z"], 10, f"row pitch {L['BAND']['spacing']:g}"))
+        o.append(R.dim_v(line_model.row_y(0), line_model.row_y(1), L["BAND"]["z"], 10, f"row pitch {L['BAND']['spacing']:g}"))
     elif mod == "M3_oven":
-        st, cz = M.stations(), M.chamber_z()
-        o.append(T.dim_h(st["zones"][0], st["zones"][0] + 3 * M.zone_len(), M.chamber_y()["o0"], 8,
-                         f"3 zones x {M.zone_len():.0f} = v x {M.bake_t():.0f} s"))
-        o.append(T.dim_h(st["c0"], st["c1"], M.chamber_y()["o0"], 8, f"cooling {M.cool_len():.0f} = {M.cool_t():.0f} s"))
+        st, cz = line_model.stations(), line_model.chamber_z()
+        o.append(T.dim_h(st["zones"][0], st["zones"][0] + 3 * line_model.zone_len(), line_model.chamber_y()["o0"], 8,
+                         f"3 zones x {line_model.zone_len():.0f} = v x {line_model.bake_t():.0f} s"))
+        o.append(T.dim_h(st["c0"], st["c1"], line_model.chamber_y()["o0"], 8, f"cooling {line_model.cool_len():.0f} = {line_model.cool_t():.0f} s"))
         o.append(F_.dim_v(cz["floor"][0], cz["roof"][1], st["o0"], -12, f"chamber {cz['roof'][1] - cz['floor'][0]:.0f}"))
         o.append(F_.dim_v(0, L["BAND"]["z"], st["x0"], -12, f"band top {L['BAND']['z']:.0f} (over the loop)"))
     elif mod == "M4_transfer":
         c = L["DELTA_C"]
-        o.append(R.dim_v(M.band_pick_z(), c["z"], c["y"], 14, f"base -> band pick {c['z'] - M.band_pick_z():.0f}"))
+        o.append(R.dim_v(line_model.band_pick_z(), c["z"], c["y"], 14, f"base -> band pick {c['z'] - line_model.band_pick_z():.0f}"))
     elif mod == "M5_qc":
         x0, x1 = L["QC_X"]
         o.append(T.dim_h(L["KICK_X"], L["CAM_X"], yb, 12, f"cam -> kicker {L['CAM_X'] - L['KICK_X']:.0f}"))
-        o.append(F_.dim_v(M.z_cookie_top(), M.z_cookie_top() + L["SENSOR_GAP"], L["CS_X"], 10, f"gap {L['SENSOR_GAP']:.0f}"))
+        o.append(F_.dim_v(line_model.z_cookie_top(), line_model.z_cookie_top() + L["SENSOR_GAP"], L["CS_X"], 10, f"gap {L['SENSOR_GAP']:.0f}"))
     elif mod == "M6_pick":
         a, b = L["DELTA_X"]
         o.append(T.dim_h(b, a, L["DELTA_Y"], 14, f"delta pitch {a - b:.0f}"))
-        o.append(R.dim_v(M.pick_z(), L["DELTA_Z"], L["DELTA_Y"], 14, f"base -> pick {L['DELTA_Z'] - M.pick_z():.0f}"))
+        o.append(R.dim_v(line_model.pick_z(), L["DELTA_Z"], L["DELTA_Y"], 14, f"base -> pick {L['DELTA_Z'] - line_model.pick_z():.0f}"))
     elif mod == "M7_pack":
         ys = L["LANE_Y"]
         o.append(T.dim_v(ys[0], ys[1], L["LANE_X"][0], -6, f"{ys[1] - ys[0]:.0f}"))
         xa, xs_ = L["CASS_X"]
         o.append(T.dim_h(xa, xs_, ys[-1] + 40, -8, f"shuttle {xs_ - xa:.0f}"))
         o.append(F_.dim_v(L["CASS_Z"], L["CASS_Z"] + L["CASS"][2], xs_ + L["CASS"][0], 8,
-                          f"cassette {L['CASS'][2]:.0f} = {M.cass_cap()} packs"))
+                          f"cassette {L['CASS'][2]:.0f} = {line_model.cass_cap()} packs"))
     return o
 
 
@@ -387,7 +387,7 @@ def module_notes(mod, parts, trows):
            "M7_pack": ["cookie into", "pockets", "below the film", "sealer", "guided", "pawls", "film", "STOCK finished",
                        "STOCK empty", "AMR deadline: cassette"],
            "M8_control": [], "M9_ports": ["AMR"], "M10_safety": ["height"]}[mod]
-    lines = [M.MODULES[mod]]
+    lines = [line_model.MODULES[mod]]
     for name, v, lim, ok, note in trows:
         if any(k.lower() in name.lower() for k in rel):
             lines.append(f"{'OK' if ok else 'FAIL'} - {name}: {v} {lim} {note}".strip())
@@ -442,7 +442,7 @@ def module_sheet(mod, parts, no, n, trows):
     nb, _ = notes_block(14, 297 - 10 - 38 + 3, 420 - 10 - 180 - 14 - 6, nlines[:7], "NOTES")
     body.append(nb)
     scl = f"1:{round(1 / sc, 2):g}"
-    return sheet(W, H, "\n".join(body), f"{mod} - {M.MODULES[mod].split(' - ')[0]}", M.MODULES[mod], no, n, scl)
+    return sheet(W, H, "\n".join(body), f"{mod} - {line_model.MODULES[mod].split(' - ')[0]}", line_model.MODULES[mod], no, n, scl)
 
 
 def packaging_sheet(parts, trows, no, n):
@@ -455,7 +455,7 @@ def packaging_sheet(parts, trows, no, n):
     cass = [p for p in parts if p.name.startswith("cassette_weiss_standby") and "_wall_front" not in p.name]
     if not cass:                     # airlock layout: no standby cassette in the machine - draw a full one
         tmp = []
-        M._cassette(tmp.append, "cassette_weiss_standby", L["CASS_X"][1], L["LANE_Y"][0], M.cass_cap(), "",
+        line_model._cassette(tmp.append, "cassette_weiss_standby", L["CASS_X"][1], L["LANE_Y"][0], line_model.cass_cap(), "",
                     L["BAKED"][0])
         cass = [p for p in tmp if "_wall_front" not in p.name]
     cass = sorted(cass, key=lambda p: (0 if "_wall_back" in p.name else 1 if "_stack" in p.name else 2))
@@ -508,7 +508,7 @@ def packaging_sheet(parts, trows, no, n):
 
 
 def cass_cap_txt():
-    return f"{M.cass_cap()} packs = {M.cass_cap() * L['PACK']} cookies"
+    return f"{line_model.cass_cap()} packs = {line_model.cass_cap() * L['PACK']} cookies"
 
 
 def layout_sheet(parts, trows, sim, n):
@@ -526,18 +526,18 @@ def layout_sheet(parts, trows, sim, n):
             f'fill="#f7f6f2" stroke="{INK}" stroke-width=".3"/>', top.svg().replace("TOP VIEW", "PLAN - WHOLE TABLE")]
     # flow arrows along the loop
     s = 60.0
-    while s < M.loop_len():
-        (x0, y0), _ = M.pos(s)
-        (x1, y1), _ = M.pos(s + 25)
+    while s < line_model.loop_len():
+        (x0, y0), _ = line_model.pos(s)
+        (x1, y1), _ = line_model.pos(s + 25)
         body.append(f'<line x1="{top.X(x0):.1f}" y1="{top.Y(y0):.1f}" x2="{top.X(x1):.1f}" y2="{top.Y(y1):.1f}" '
                     f'stroke="{ACCENT}" stroke-width=".6" marker-end="url(#f)"/>')
         s += 160.0
-    st = [("TRANSFER (delta C)", M.bend_s(L["TRANSFER_TH"][1])), ("QC", M.s_back(L["CAM_X"])), ("KICK", M.s_back(L["KICK_X"])),
-          ("DELTA A", M.s_back(L["DELTA_X"][0])), ("DELTA B", M.s_back(L["DELTA_X"][1]))]
+    st = [("TRANSFER (delta C)", line_model.bend_s(L["TRANSFER_TH"][1])), ("QC", line_model.s_back(L["CAM_X"])), ("KICK", line_model.s_back(L["KICK_X"])),
+          ("DELTA A", line_model.s_back(L["DELTA_X"][0])), ("DELTA B", line_model.s_back(L["DELTA_X"][1]))]
     s0 = st[0][1]
     for i, (nm, s_) in enumerate(st):
-        (x, y), _ = M.pos(s_)
-        front_run = y < M.L["CL"][1]
+        (x, y), _ = line_model.pos(s_)
+        front_run = y < line_model.L["CL"][1]
         ly = top.Y(y) + (14 + (i % 2) * 5 if front_run else -14 - (i % 2) * 5)
         body.append(f'<line x1="{top.X(x):.1f}" y1="{top.Y(y):.1f}" x2="{top.X(x):.1f}" y2="{ly:.1f}" class="col"/>'
                     f'<text x="{top.X(x) + 1:.1f}" y="{ly + (2 if front_run else -0.5):.1f}" class="co" '
@@ -546,7 +546,7 @@ def layout_sheet(parts, trows, sim, n):
     body.append(top.dim_v(0, L["TABLE"][1], 0, -8))
     # module legend + timing + simulation
     x0 = ox + L["TABLE"][0] * sc + 14
-    lines = [f"{m}: {d}" for m, d in M.MODULES.items()]
+    lines = [f"{m}: {d}" for m, d in line_model.MODULES.items()]
     nb, yy = notes_block(x0, 36, W - 10 - x0 - 4, lines, "MODULES")
     body.append(nb)
     tl = [f"{'OK' if ok else 'FAIL'}  {name}: {v} {lim}" for name, v, lim, ok, _ in trows]
@@ -559,7 +559,7 @@ def layout_sheet(parts, trows, sim, n):
     # AMR docking faces (the robots stay on the floor)
     for nm, (x, y) in (("AMR: cassettes out/in", (L["TABLE"][0] + 6, L["LANE_Y"][0])),
                        ("AMR: box stacks", (-150, L["LANE_Y"][-1] + 90)),
-                       ("AMR: dough tub + toppings + reject drawer", (M.raw_strip()[0], -40))):
+                       ("AMR: dough tub + toppings + reject drawer", (line_model.raw_strip()[0], -40))):
         body.append(f'<text x="{top.X(x):.1f}" y="{top.Y(y):.1f}" class="co" style="fill:#1f4e8c;font-weight:700">{esc(nm)}</text>')
     return sheet(W, H, "\n".join(body), "00 - General arrangement", "whole table, flow, stations, timing, simulation",
                  1, n, "1:5")
@@ -586,12 +586,12 @@ for continuous, per-flavour production: one chain loop that never stops, every p
 no single robot in the critical path.</p>
 <h2>Why redesign</h2>
 <table><tr><th></th><th>536634 factory (today)</th><th>STF-2 continuous line</th></tr>
-<tr><td>Flow</td><td>stop-and-go; every machine starts/stops per workpiece</td><td>one chain loop that never stops; takt {M.takt():.1f} s</td></tr>
+<tr><td>Flow</td><td>stop-and-go; every machine starts/stops per workpiece</td><td>one chain loop that never stops; takt {line_model.takt():.1f} s</td></tr>
 <tr><td>Transfers</td><td>one VGR serves belt, oven and 3 bays (single point of failure)</td><td>fixed stations on the loop; two delta pickers, either alone carries the line (N+1)</td></tr>
-<tr><td>Oven</td><td>batch: door, slider, one part at a time</td><td>real band oven: plain dough on a {L['BAND']['rows']}-row stainless mesh band, 3 zones {' / '.join(f"{z['T']:g}" for z in L['OVEN_ZONES'])} C, bake {M.bake_t():.0f} s (oven.py: core, water, colour), impingement cooling {M.cool_t():.0f} s; the plastic puck chain never enters the heat</td></tr>
+<tr><td>Oven</td><td>batch: door, slider, one part at a time</td><td>real band oven: plain dough on a {L['BAND']['rows']}-row stainless mesh band, 3 zones {' / '.join(f"{z['T']:g}" for z in L['OVEN_ZONES'])} C, bake {line_model.bake_t():.0f} s (oven.py: core, water, colour), impingement cooling {line_model.cool_t():.0f} s; the plastic puck chain never enters the heat</td></tr>
 <tr><td>Processing</td><td>turntable indexes under the saw</td><td>thumbprint topping before the oven: rows k, k+3 get flavour k; delta C moves each cookie from the band to a puck</td></tr>
 <tr><td>Sorting / storage</td><td>colour sensor + ejectors into bays; 12-slot AS/RS</td><td>product carries its recipe (NFC); vision QC; per-flavour box lanes into tall pack cassettes, exchanged by AMR through an airlock</td></tr>
-<tr><td>Stock</td><td>12 workpieces in the rack</td><td>dough hopper {L['DOUGH_KG']:g} kg ({M.dough_autonomy() / 60:.0f} min), 3 topping hoppers, finished cassettes of {M.cass_cap() * L['PACK']}; the AMR loop makes it unlimited (proven below)</td></tr>
+<tr><td>Stock</td><td>12 workpieces in the rack</td><td>dough hopper {L['DOUGH_KG']:g} kg ({line_model.dough_autonomy() / 60:.0f} min), 3 topping hoppers, finished cassettes of {line_model.cass_cap() * L['PACK']}; the AMR loop makes it unlimited (proven below)</td></tr>
 <tr><td>Failure behaviour</td><td>any machine down = factory down</td><td>losses, never stops: a missed cookie recirculates, a cookie the transfer cannot place falls into the crumb pan, no dough leaves empty band rows</td></tr></table>
 <h2>Physical AI architecture</h2>
 <ul>
@@ -610,11 +610,11 @@ drops from a nested magazine (corner guides, escapement forks) onto the lane.</l
 <li>A delta sets each round cookie straight down into a round pocket: {(L['POCKET_D'] - L['COOKIE'][0]) / 2:.2f} mm radial
 clearance against a {L['INDEX_ERR'] + L['DELTA_REP'] + L['CUP_ECC']:.2f} mm placement error budget.</li>
 <li>The top sealer seals a peelable film on the {L['FLANGE']:g} mm flange during the lane index; the cookie stays 1 mm under it.
-Twin film reels with auto-splice last {L['REELS'] * L['FILM_M'] * 1000 / (L['BOX'][0] + 10) * L['PACK'] / (M.rate_flavour() * 3600):.1f} h per lane.</li>
+Twin film reels with auto-splice last {L['REELS'] * L['FILM_M'] * 1000 / (L['BOX'][0] + 10) * L['PACK'] / (line_model.rate_flavour() * 3600):.1f} h per lane.</li>
 <li>The stacker pushes each sealed pack up through spring pawls into the <b>open bottom</b> of a hollow cassette; the pawls hold
 the stack by its flange. The cassette's <b>top is open</b>: the first pack in has risen to the top, so packs leave first in,
 first out. The lugs sit on the end walls so the outlet stays clear (checked).</li>
-<li>A full cassette ({M.cass_cap()} packs) is carried into the out airlock; with the inner door locked the AMR swaps it for an empty one ({M.cass_swap_t():.0f} s, covered by the pack waiting on the stacker).</li>
+<li>A full cassette ({line_model.cass_cap()} packs) is carried into the out airlock; with the inner door locked the AMR swaps it for an empty one ({line_model.cass_swap_t():.0f} s, covered by the pack waiting on the stacker).</li>
 </ol>
 <p>Proven on the exact CAD (<code>line_cad.containment</code>): every cookie sits in its pocket or tube, every stack on its
 pawls, zero overlap, and nothing blocks a cassette outlet. Negative tests (pocket too small, stack off its pawls, a handle
@@ -641,15 +641,15 @@ across the outlet) are all caught.</p>
 
 
 def main():
-    fails = M.check(verbose=False)
+    fails = line_model.check(verbose=False)
     if fails:
         sys.exit("REFUSING to draw: " + "; ".join(fails[:5]))
     os.makedirs(OUT, exist_ok=True)
-    trows, _ = M.timing()
+    trows, _ = line_model.timing()
     sim = json.load(open(os.path.join(HERE, "sim_results.json")))
     # the PC roof would hide the whole plan: views show the guard's walls, doors and devices only
-    parts = [p for p in M.build() if not p.name.startswith("guard_panel_roof")]
-    mods = M.by_module(parts)
+    parts = [p for p in line_model.build() if not p.name.startswith("guard_panel_roof")]
+    mods = line_model.by_module(parts)
     n = 2 + len(mods)
     files = ["00_layout.svg", "P1_packaging.svg"]
     open(os.path.join(OUT, files[0]), "w").write(layout_sheet(parts, trows, sim, n))

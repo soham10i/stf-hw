@@ -442,7 +442,7 @@ class Module(_Frozen):
     The real machine chains several dark fischertechnik plates on a white
     table - it is not one slab. Rectangles are factory-frame millimetres:
     ``origin`` is the plate's minimum corner, ``size`` its (dx, dy) extent.
-    Sizes are estimated from photos; see docs/FACTORY_GROUND_TRUTH.md.
+    Sizes are estimated from photos; see docs/reference/factory/ground-truth.md.
     """
 
     origin: Pose

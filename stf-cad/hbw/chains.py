@@ -37,7 +37,7 @@ FILL_MAX = 0.60
 WALL = 1.5                        # link wall, mm (assumed)
 SELF_SUPPORT = 500.0              # mm unsupported length for this chain size (assumed)
 
-# ---------------------------------------------------------------- the chains
+# --- the chains
 # All coordinates in the owning model's frame at its authoring pose.
 HBW = {
     "travel": dict(axis="x", fixed="world", moving="travel", R=20.0, h=12.0, w=25.0,
@@ -99,7 +99,7 @@ def _mpos(c, joint):
     return joint + c["M"][2]                           # carriage z + attach offset
 
 
-# ------------------------------------------------------------- model parts
+# --- model parts
 def hbw_parts(Part, X, cb):
     """HBW chain parts at travel X, lift cb (module coordinates)."""
     if not UP3:
@@ -173,7 +173,7 @@ def vgr_parts(Part, pz, rr):
     return out
 
 
-# ------------------------------------------------------------------ checks
+# --- checks
 def _all():
     return [("hbw", k, v) for k, v in HBW.items()] + [("vgr", k, v) for k, v in VGR.items()]
 

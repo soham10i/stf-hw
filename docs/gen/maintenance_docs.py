@@ -1,5 +1,5 @@
 """
-The preventive-maintenance chapter (docs/maintenance/README.md): the mathematics of the health
+The preventive-maintenance chapter (docs/reference/maintenance/README.md): the mathematics of the health
 model, the preventive policy and the service schedule, written from the code and the exports the
 dashboard runs on - every equation with the line it is computed on, every number from the model:
 
@@ -23,8 +23,10 @@ import math
 import os
 import re
 
+from front_matter import front
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-OUT = os.path.join(ROOT, "docs", "maintenance", "README.md")
+OUT = os.path.join(ROOT, "docs", "reference", "maintenance", "README.md")
 EXPORT = "web/public/hbw_parts_up12.json"
 THEORY = "web/public/health/theory.json"
 HEALTH = "stf-cad/hbw/health.py"
@@ -33,6 +35,10 @@ LIFE = "stf-cad/hbw/lifecycle.py"
 AGE_TS = "web/src/shared/health.ts"
 SCHED = "web/src/dashboard/Maintenance.tsx"
 GEN = "docs/gen/maintenance_docs.py"
+SCOPE = (
+    "How the twin decides when a part needs service: what is measured, how wear is modelled a"
+    "nd smoothed, how the health index and remaining life are computed, and when the warnings fire."
+)  # the chapter's front matter (docs/README.md)
 AGE = 140.0  # the dashboard's default machine age, shifts (the worked example)
 
 
@@ -369,7 +375,7 @@ The same model runs live in the dashboard: **Docs > Hardware degradation**.
     assert math.isfinite(ex["warn_in"])
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
-        f.write(tex_commas(md))
+        f.write(front(tex_commas(md), SCOPE, "maintenance", GEN))
     print(
         f"wrote {os.path.relpath(OUT, ROOT)}: belt at {AGE:g} shifts warns in {ex['warn_in']:.1f}"
     )

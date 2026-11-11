@@ -22,14 +22,20 @@ NOTE ON PRECISION: glTF is a MESH format - cylinders become SEG-gons. For exact
 B-rep geometry in FreeCAD, import STF_HBW.step instead; this file is for
 rendering and for checking the arrangement.
 """
-import argparse, base64, json, math, struct, sys
+import argparse
+import base64
+import json
+import math
+import struct
+import sys
 
-from hbw_model import P, build as hbw_build
+import factory_layout
+import oven_model
+import sorting_model
+import vgr_model
 from hbw_frames import by_frame as hbw_by_frame
-import vgr_model as VG
-import oven_model as OM
-import sorting_model as SM
-import factory_layout as FL
+from hbw_model import P
+from hbw_model import build as hbw_build
 
 # 64-segment cylinders: the spindles, drums, suction cups and the Drehkranz all
 # read as round rather than faceted. Roughly doubles the file, still under 2 MB.
@@ -225,15 +231,15 @@ def main():
     ap.add_argument("--lift", type=float, default=120.0)
     ap.add_argument("--fork", type=float, default=0.0)
     ap.add_argument("--swivel", type=float, default=0.0)
-    ap.add_argument("--plunge", type=float, default=VG.V["PLUNGE"][1])
+    ap.add_argument("--plunge", type=float, default=vgr_model.V["PLUNGE"][1])
     ap.add_argument("--reach", type=float, default=0.0)
     a = ap.parse_args()
 
     from hbw_model import check as hbw_check
-    for name, fails in (("HBW", hbw_check(verbose=False)), ("VGR", VG.check(verbose=False)),
-                        ("OVEN", OM.check(verbose=False)),
-                        ("SORTING", SM.check(verbose=False)),
-                        ("CROSS", FL.check_cross() + FL.check_stations())):
+    for name, fails in (("HBW", hbw_check(verbose=False)), ("VGR", vgr_model.check(verbose=False)),
+                        ("OVEN", oven_model.check(verbose=False)),
+                        ("SORTING", sorting_model.check(verbose=False)),
+                        ("CROSS", factory_layout.check_cross() + factory_layout.check_stations())):
         if fails:
             print(f"REFUSING to export - {name} fails its clearance proof:")
             print("\n".join(fails)); sys.exit(1)
@@ -246,10 +252,10 @@ def main():
 def build_roots(g, a):
     """The articulated factory node tree. Shared by the FreeCAD .gltf (here) and
     the web .glb (stf_web_glb.py), so both carry the same joints and parts."""
-    fl = FL.doc()
+    fl = factory_layout.doc()
 
     g.module = "table"
-    # ---- table + reserved footprints
+    # --- table + reserved footprints
     fx, fy, ft = fl["plate"]
     # ONE continuous grey base under all four modules (their own plates are
     # not drawn - they would sit coplanar inside it)
@@ -259,7 +265,7 @@ def build_roots(g, a):
         roots.append(g.slab(f"Reserved_{n['n']}_{n['id']}", x, y, w, h, -10, 3, "#333a42"))
 
     g.module = "hbw"
-    # ---- HBW, articulated
+    # --- HBW, articulated
     hf = hbw_by_frame()
     fork_n = [g.part_node(_c(p)) for p in _solid(hf["fork"])]
     lift_n = [g.part_node(_c(p)) for p in _solid(hf["lift"])]
@@ -268,34 +274,34 @@ def build_roots(g, a):
     trav_n.append(g.node("J2_Lift_Z", children=lift_n, translation=(0, 0, a.lift)))
     world_n = [g.part_node(_c(p)) for p in _solid(hf["world"])]
     world_n.append(g.node("J1_Travel_X", children=trav_n, translation=(a.travel, 0, 0)))
-    roots.append(g.node("HBW", children=world_n, translation=(FL.TX, FL.TY, 0),
-                        rot_z_deg=FL.ROTATE_DEG,
+    roots.append(g.node("HBW", children=world_n, translation=(factory_layout.TX, factory_layout.TY, 0),
+                        rot_z_deg=factory_layout.ROTATE_DEG,
                         extras={"module": "Automatisiertes Hochregallager 24V (536631)"}))
 
     g.module = "vgr"
-    # ---- VGR, articulated (swivel pivots on the tower axis)
-    vp = {f: [] for f in VG.FRAMES}
-    for p in VG.build(0.0, VG.V["PLUNGE"][1], 0.0):
+    # --- VGR, articulated (swivel pivots on the tower axis)
+    vp = {f: [] for f in vgr_model.FRAMES}
+    for p in vgr_model.build(0.0, vgr_model.V["PLUNGE"][1], 0.0):
         vp[p.frame].append(p)
     reach_n = [g.part_node(_c(p)) for p in _solid(vp["reach"])]
     plunge_n = [g.part_node(_c(p)) for p in _solid(vp["plunge"])]
     plunge_n.append(g.node("J_Reach", children=reach_n, translation=(0, -a.reach, 0)))
     sw_n = [g.part_node(_c(p)) for p in _solid(vp["swivel"])]
     sw_n.append(g.node("J_Plunge", children=plunge_n,
-                       translation=(0, 0, a.plunge - VG.V["PLUNGE"][1])))
-    cx, cy = VG.V["CX"], VG.V["CY"]
+                       translation=(0, 0, a.plunge - vgr_model.V["PLUNGE"][1])))
+    cx, cy = vgr_model.V["CX"], vgr_model.V["CY"]
     pivot_in = g.node("_swivel_pivot", children=sw_n, translation=(-cx, -cy, 0))
     swivel = g.node("J_Swivel", children=[pivot_in], translation=(cx, cy, 0),
                     rot_z_deg=a.swivel)
     vworld = [g.part_node(_c(p)) for p in _solid(vp["world"])] + [swivel]
-    vx, vy = FL.VGR_AT
+    vx, vy = factory_layout.VGR_AT
     roots.append(g.node("VGR", children=vworld, translation=(vx, vy, 0),
                         extras={"module": "Vakuum-Sauggreifer 24V (536632)"}))
 
     g.module = "oven"
-    # ---- Oven, articulated
-    op = {f: [] for f in OM.FRAMES}
-    for p in OM.build(OM.O["SLIDER"][1], OM.O["DOOR_Z"][1], 0.0, OM.O["SAUGER"][1], 0.0):
+    # --- Oven, articulated
+    op = {f: [] for f in oven_model.FRAMES}
+    for p in oven_model.build(oven_model.O["SLIDER"][1], oven_model.O["DOOR_Z"][1], 0.0, oven_model.O["SAUGER"][1], 0.0):
         op[p.frame].append(p)
     low_n = [g.part_node(_c(q)) for q in op["lower"]]
     sau_n = [g.part_node(_c(q)) for q in op["sauger"]]
@@ -305,35 +311,35 @@ def build_roots(g, a):
                      translation=(0, 0, 0)))
     ow.append(g.node("J_Ofentuer", children=[g.part_node(_c(q)) for q in op["door"]],
                      translation=(0, 0, 0)))
-    tcx, tcy = OM.O["TT"]
+    tcx, tcy = oven_model.O["TT"]
     tin = g.node("_turn_pivot", children=[g.part_node(_c(q)) for q in op["turn"]],
                  translation=(-tcx, -tcy, 0))
     ow.append(g.node("J_Drehkranz", children=[tin], translation=(tcx, tcy, 0), rot_z_deg=0.0))
     ow.append(g.node("J_Sauger", children=sau_n, translation=(0, 0, 0)))
     ow.append(g.node("J_Auswerfer", children=[g.part_node(_c(q)) for q in op["push"]],
                      translation=(0, 0, 0)))
-    roots.append(g.node("OVEN", children=ow, translation=(FL.OVEN_TX, FL.OVEN_TY, 0),
-                        rot_z_deg=FL.OVEN_ROT,
+    roots.append(g.node("OVEN", children=ow, translation=(factory_layout.OVEN_TX, factory_layout.OVEN_TY, 0),
+                        rot_z_deg=factory_layout.OVEN_ROT,
                         extras={"module": "Multi-Bearbeitungsstation mit Brennofen 24V (536632)"}))
 
     g.module = "sorting"
-    # ---- Sorting line, articulated (three ejectors)
-    sp = {f: [] for f in SM.FRAMES}
-    for p in SM.build():
+    # --- Sorting line, articulated (three ejectors)
+    sp = {f: [] for f in sorting_model.FRAMES}
+    for p in sorting_model.build():
         sp[p.frame].append(p)
     sw = [g.part_node(_c(q)) for q in _solid(sp["world"])]
-    for i, col in enumerate(SM.COLOURS):
+    for i, col in enumerate(sorting_model.COLOURS):
         sw.append(g.node(f"J_Auswurf_{col}",
                          children=[g.part_node(_c(q)) for q in sp[f"push{i}"]],
                          translation=(0, 0, 0)))
     roots.append(g.node("SORTING", children=sw,
-                        translation=(FL.SORT_TX, FL.SORT_TY, 0), rot_z_deg=FL.SORT_ROT,
+                        translation=(factory_layout.SORT_TX, factory_layout.SORT_TY, 0), rot_z_deg=factory_layout.SORT_ROT,
                         extras={"module": "Sortierstrecke mit Farberkennung 24V (536633)"}))
 
     g.module = "plc"
-    import plc_model as PM
-    roots.append(g.node("PLC", children=[g.part_node(_c(q)) for q in _solid(PM.build())],
-                        translation=(FL.PLC_AT[0], FL.PLC_AT[1], 0),
+    import plc_model
+    roots.append(g.node("PLC", children=[g.part_node(_c(q)) for q in _solid(plc_model.build())],
+                        translation=(factory_layout.PLC_AT[0], factory_layout.PLC_AT[1], 0),
                         extras={"module": "PLC cabinet: WDR-120-24 + RevPi Core 3 + 3x DIO + AIO"}))
     return roots
 

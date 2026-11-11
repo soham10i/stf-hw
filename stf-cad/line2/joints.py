@@ -39,14 +39,14 @@ from dataclasses import dataclass
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import geom as G
-import hardware as H
-import line_model as M
+import geom
+import hardware
+import line_model
 
-L = M.L
+L = line_model.L
 GAP = 0.5            # contact tolerance (mm): faces within GAP touch
 AREA = 1.0           # a contact patch must be wider than this in both directions
-DECK = M.Part("TABLE", "deck", "deck", "box", (0.0, 0.0, -L["TABLE"][2]), L["TABLE"], hw="TABLE_PLATE")
+DECK = line_model.Part("TABLE", "deck", "deck", "box", (0.0, 0.0, -L["TABLE"][2]), L["TABLE"], hw="TABLE_PLATE")
 PRODUCT = ("stock", "tray", "puck", "cookie")
 
 
@@ -63,7 +63,7 @@ def on_grid(v):
     return abs(v * 10 - round(v * 10)) < 1e-6
 
 
-# ------------------------------------------------------------------ helpers
+# --- helpers
 def is_profile(p):
     return p.kind == "box" and p.mech.startswith("profile:")
 
@@ -71,7 +71,7 @@ def is_profile(p):
 def section(p):
     """(series, long axis index) of a profile part."""
     sec = p.mech.split(":")[1]
-    return H.SECTION[sec][0], max(range(3), key=lambda i: p.s[i])
+    return hardware.SECTION[sec][0], max(range(3), key=lambda i: p.s[i])
 
 
 def body_of(p):
@@ -120,7 +120,7 @@ def material(p):
 
 
 def bought_thread(p):
-    for k, v in H.BOUGHT_THREAD.items():
+    for k, v in hardware.BOUGHT_THREAD.items():
         if k in p.hw:
             return v
     return None
@@ -131,7 +131,7 @@ def thick(p, n):
     return b[n + 3] - b[n]
 
 
-# ------------------------------------------------------------------ contact
+# --- contact
 @dataclass
 class Contact:
     a: object
@@ -158,11 +158,11 @@ def _touch(a, b):
             return Contact(a, b, -2, lo, hi)
         n = next(i for i in range(3) if i not in wide)
         return Contact(a, b, n, lo, hi)
-    s, o = (a, b) if len(G.surface(a, 2.0)) < len(G.surface(b, 2.0)) else (b, a)
+    s, o = (a, b) if len(geom.surface(a, 2.0)) < len(geom.surface(b, 2.0)) else (b, a)
     ob = o.aabb()
-    for pt in G.surface(s, 1.0):
+    for pt in geom.surface(s, 1.0):
         if ob[0] - GAP < pt[0] < ob[3] + GAP and ob[1] - GAP < pt[1] < ob[4] + GAP and ob[2] - GAP < pt[2] < ob[5] + GAP:
-            if G.inside(o, pt) > -GAP:
+            if geom.inside(o, pt) > -GAP:
                 n = min(range(3), key=lambda i: d[i])
                 # an axis-aligned cylinder's END face on a box face is a planar contact
                 flat = d[n] < AREA and all(d[i] > AREA for i in range(3) if i != n)
@@ -189,7 +189,7 @@ def contacts(parts):
     return out
 
 
-# ------------------------------------------------------------ classification
+# --- classification
 SLIDING = {("chain", "frame"), ("chain", "drive"), ("chain", "guide"),
            ("band", "chamber"), ("band", "frame"), ("band", "pan")}     # the mesh band on its skids / bed / pan
 
@@ -289,7 +289,7 @@ def CARRY(u, v, why):
 def classify(c):
     """(kind, reason) for a contact. Every rule here is a design statement."""
     a, b = c.a, c.b
-    why = M.allowed(a, b)
+    why = line_model.allowed(a, b)
     if a.group in PRODUCT or b.group in PRODUCT:
         return "incidental", "product"
     if c.n == -2:
@@ -345,7 +345,7 @@ def classify(c):
     return "fastened", "rule"
 
 
-# ------------------------------------------------------------------ fasteners
+# --- fasteners
 @dataclass
 class Fastener:
     joint: str
@@ -369,37 +369,37 @@ class Fastener:
     series: int = 0            # T-nut: profile series (lip depth)
 
     def solids(self, tag=""):
-        dk, k, _ = H.head(self.thread, self.head_type)
+        dk, k, _ = hardware.head(self.thread, self.head_type)
         i = [abs(v) for v in self.axis].index(1.0)
         ax = "xyz"[i]
         sgn = self.axis[i]
         out = []
         h = list(self.head)
         h[i] += sgn * self.cbore                          # the part's bearing surface (counterbore floor)
-        wh = H.THREAD[self.thread]["washer"][2] if self.washer else 0.0
+        wh = hardware.THREAD[self.thread]["washer"][2] if self.washer else 0.0
         hb = h[i] - sgn * wh                              # under the head (on the washer)
         if self.head_type != "csk":
             p = list(h)
             p[i] = hb - k if sgn > 0 else hb
-            out.append(M.Part(f"{tag}head", "", "fastener", "cyl", tuple(p), (ax, k, dk)))
+            out.append(line_model.Part(f"{tag}head", "", "fastener", "cyl", tuple(p), (ax, k, dk)))
         if self.washer:
-            w = H.THREAD[self.thread]["washer"]
+            w = hardware.THREAD[self.thread]["washer"]
             p = list(h)
             p[i] = hb if sgn > 0 else h[i]
-            out.append(M.Part(f"{tag}washer", "", "fastener", "cyl", tuple(p), (ax, w[2], w[1])))
+            out.append(line_model.Part(f"{tag}washer", "", "fastener", "cyl", tuple(p), (ax, w[2], w[1])))
         p = list(h)
         p[i] = hb if sgn > 0 else hb - self.length
-        out.append(M.Part(f"{tag}shank", "", "fastener", "cyl", tuple(p), (ax, self.length, H.THREAD[self.thread]["d"])))
+        out.append(line_model.Part(f"{tag}shank", "", "fastener", "cyl", tuple(p), (ax, self.length, hardware.THREAD[self.thread]["d"])))
         if self.nut == "ISO4032":
-            s_, m_ = H.THREAD[self.thread]["nut"]
+            s_, m_ = hardware.THREAD[self.thread]["nut"]
             p = list(h)
             far = hb + sgn * self.clamp
             p[i] = far if sgn > 0 else far - m_
-            out.append(M.Part(f"{tag}nut", "", "fastener", "cyl", tuple(p), (ax, m_, s_ * 1.155)))
+            out.append(line_model.Part(f"{tag}nut", "", "fastener", "cyl", tuple(p), (ax, m_, s_ * 1.155)))
         if self.nut.startswith("TN") and self.slot_ax >= 0:
-            tn = H.TNUT[self.nut]
+            tn = hardware.TNUT[self.nut]
             face = hb + sgn * self.clamp                        # the profile's outer face
-            a0 = face + sgn * H.PROFILE[self.series]["lip"]
+            a0 = face + sgn * hardware.PROFILE[self.series]["lip"]
             # drop-in T-nut, stepped like its chamfered flanks: full width under the lip, half width below
             for k_, (d0, hh, wf) in enumerate(((0.0, tn["h"] / 2, 1.0), (tn["h"] / 2, tn["h"] / 2, 0.5))):
                 lo, sz = [0.0] * 3, [0.0] * 3
@@ -410,7 +410,7 @@ class Fastener:
                         continue
                     ln = tn["l"] if j_ == self.slot_ax else tn["w"] * wf
                     lo[j_], sz[j_] = h[j_] - ln / 2, ln
-                out.append(M.Part(f"{tag}tnut{k_}", "", "fastener", "box", tuple(lo), tuple(sz)))
+                out.append(line_model.Part(f"{tag}tnut{k_}", "", "fastener", "box", tuple(lo), tuple(sz)))
         return out
 
 
@@ -425,30 +425,30 @@ def _design(thread, head_type, clamp_t, into, cb_ok=False):
     clamp_t into `into` = ('TNUT', series, tnut) | ('TAP', part, depth, through_ok) | ('NUT',).
     cb_ok: the clamped part is machined, so the head may sit in a counterbore (>= 3 mm left)."""
     # a counterbore at most recesses the head 2 mm below the surface; plain holes first, then the shortest screw
-    kmax = H.head(thread, head_type)[1] + 2.0
+    kmax = hardware.head(thread, head_type)[1] + 2.0
     return sorted([r for r in _design1(thread, head_type, clamp_t, into, cb_ok) if r[7] <= kmax],
                   key=lambda r: (r[7] > 0, r[0], r[7]))
 
 
 def _design1(thread, head_type, clamp_t, into, cb_ok):
     return [r + (0.0,) for r in _design0(thread, head_type, clamp_t, into)] + \
-        ([r + (round(clamp_t - r[2] + (H.THREAD[thread]["washer"][2] if r[1] else 0.0), 1),)
+        ([r + (round(clamp_t - r[2] + (hardware.THREAD[thread]["washer"][2] if r[1] else 0.0), 1),)
           for cb in [x * 0.5 for x in range(1, int((clamp_t - 3.0) / 0.5) + 1)] if cb <= 40
           for r in _design0(thread, head_type, clamp_t - cb, into) if not r[1]]
          if cb_ok and head_type == "socket" and clamp_t >= 6.0 else [])
 
 
 def _design0(thread, head_type, clamp_t, into):
-    t = H.THREAD[thread]
-    dk, k, lengths = H.head(thread, head_type)
+    t = hardware.THREAD[thread]
+    dk, k, lengths = hardware.head(thread, head_type)
     out = []
     for washer in ((False,) if head_type == "csk" else (False, True)):
         c = clamp_t + (t["washer"][2] if washer else 0.0)
         if head_type == "csk" and clamp_t < k + 0.5:
             continue                                     # countersink needs the material
         if into[0] == "TNUT":
-            prof = H.PROFILE[into[1]]
-            tn = H.TNUT[into[2]]
+            prof = hardware.PROFILE[into[1]]
+            tn = hardware.TNUT[into[2]]
             need = 0.8 * t["d"]                          # ISO 898-2 engaged nut length
             for Ln in lengths:
                 eng = min(tn["h"], Ln - c - prof["lip"])
@@ -462,12 +462,12 @@ def _design0(thread, head_type, clamp_t, into):
             if bt:
                 depth, mat = min(depth, bt[1]), bt[2]
             if mat == "insert":
-                need = min(H.MIN_ENGAGE["steel"] * t["d"], INSERT_LEN)
+                need = min(hardware.MIN_ENGAGE["steel"] * t["d"], INSERT_LEN)
                 depth = min(depth, INSERT_LEN)
             elif mat == "sheet":
                 continue
             else:
-                need = H.MIN_ENGAGE[mat] * t["d"]
+                need = hardware.MIN_ENGAGE[mat] * t["d"]
             for Ln in lengths:
                 eng = min(Ln - c, depth)
                 # a bought part's thread depth is usable to its end (the drill goes deeper);
@@ -522,7 +522,7 @@ class World:
         for p in self.near(b):
             if p.name in exempt or getattr(p, "_joint", None) in exempt or body_of(p) in exempt:
                 continue
-            if G.aabb_overlap(b, p.aabb()) and G.interfere(s, p):
+            if geom.aabb_overlap(b, p.aabb()) and geom.interfere(s, p):
                 return p.name
         return None
 
@@ -558,7 +558,7 @@ class Build:
             for (Ln, washer, c, eng, need, room, nut, cb) in _design(thread, ht, clamp_t, into, cb_ok):
                 intoname = ("TNUT:" + into[2]) if into[0] == "TNUT" else (into[1].name if into[0] == "TAP" else "NUT")
                 f = Fastener(jid, thread, ht, Ln, tuple(g1(v) for v in head_pt), axis, c, washer, intoname, eng, need,
-                             room, H.clearance(thread), edge, tuple(through), nut, cb,
+                             room, hardware.clearance(thread), edge, tuple(through), nut, cb,
                              into[3] if into[0] == "TNUT" and len(into) > 3 else -1,
                              into[1] if into[0] == "TNUT" else 0)
                 if all(self.world.hits(s, exempt) is None and _on_deck(s) for s in f.solids()):
@@ -583,21 +583,21 @@ class Build:
 
     # --- corner brackets
     def bracket_parts(self, name, module, series, heel, n, m, lat, lat_c):
-        br = H.BRACKET[H.PROFILE[series]["bracket"]]
+        br = hardware.BRACKET[hardware.PROFILE[series]["bracket"]]
         a, b, t = br["a"], br["b"], br["t"]
         (ni, ns), (mi, ms) = n, m
         lo, sz = [0.0] * 3, [0.0] * 3
         lo[ni], sz[ni] = (heel[ni], t) if ns > 0 else (heel[ni] - t, t)
         lo[mi], sz[mi] = (heel[mi], a) if ms > 0 else (heel[mi] - a, a)
         lo[lat], sz[lat] = lat_c - b / 2, b
-        p1 = M.Part(f"{name}_leg1", module, "bracket", "box", tuple(g1(v) for v in lo), tuple(sz), "#9aa3ab",
-                    hw=H.PROFILE[series]["bracket"])
+        p1 = line_model.Part(f"{name}_leg1", module, "bracket", "box", tuple(g1(v) for v in lo), tuple(sz), "#9aa3ab",
+                    hw=hardware.PROFILE[series]["bracket"])
         lo, sz = [0.0] * 3, [0.0] * 3
         lo[mi], sz[mi] = (heel[mi], t) if ms > 0 else (heel[mi] - t, t)
         lo[ni], sz[ni] = (heel[ni] + t, a - t) if ns > 0 else (heel[ni] - a, a - t)
         lo[lat], sz[lat] = lat_c - b / 2, b
-        p2 = M.Part(f"{name}_leg2", module, "bracket", "box", tuple(g1(v) for v in lo), tuple(sz), "#9aa3ab",
-                    hw=H.PROFILE[series]["bracket"])
+        p2 = line_model.Part(f"{name}_leg2", module, "bracket", "box", tuple(g1(v) for v in lo), tuple(sz), "#9aa3ab",
+                    hw=hardware.PROFILE[series]["bracket"])
         return p1, p2, br
 
     def bracket_joint(self, jid, E, S, n, face_c, ser, m, lat, lat_c, s_into, e_into):
@@ -657,14 +657,14 @@ class Build:
         for mi in (0, 1):
             lat = 1 - mi
             for ms in (-1, 1):
-                for off in H.slot_offsets(E.s[lat], ser):
+                for off in hardware.slot_offsets(E.s[lat], ser):
                     cand.append(((mi, ms), lat, (Eb[lat] + Eb[lat + 3]) / 2 + off))
         placed = 0
-        want = 2 * len(H.slot_offsets(min(E.s[0], E.s[1]), ser))
+        want = 2 * len(hardware.slot_offsets(min(E.s[0], E.s[1]), ser))
         for m, lat, lc in cand:
             jid = f"{E.name}~TABLE~{'xy'[m[0]]}{'+' if m[1] > 0 else '-'}{placed}"
             if self.bracket_joint(jid, E, DECK, (2, 1), 0.0, ser, m, lat, lc,
-                                  ("TAP", DECK, H.TABLE_PLATE["t"], True), ("TNUT", ser)):
+                                  ("TAP", DECK, hardware.TABLE_PLATE["t"], True), ("TNUT", ser)):
                 placed += 1
             if placed >= want:
                 break
@@ -686,7 +686,7 @@ class Build:
         return placed
 
     def _corner(self, c, E, S, e_into, n, ns, face, ser, ser_e, ax_e, ser_s, ax_s, Eb, Sb):
-        br = H.BRACKET[H.PROFILE[ser]["bracket"]]
+        br = hardware.BRACKET[hardware.PROFILE[ser]["bracket"]]
         placed = 0
         for mi in [i for i in range(3) if i != n]:
             lat = 3 - n - mi
@@ -697,16 +697,16 @@ class Build:
                     continue
                 if is_profile(E) and ax_e != n:          # crossing: E's slot must be at the E-leg hole
                     ez = face + ns * br["hole_at"]
-                    if not any(abs(ez - ((Eb[n] + Eb[n + 3]) / 2 + o)) < 0.6 for o in H.slot_offsets(E.s[n], ser_e)):
+                    if not any(abs(ez - ((Eb[n] + Eb[n + 3]) / 2 + o)) < 0.6 for o in hardware.slot_offsets(E.s[n], ser_e)):
                         continue
                 if ax_s != mi:                           # S's slot must be at the S-leg hole
                     sm = edge_e + ms * br["hole_at"]
-                    if not any(abs(sm - ((Sb[mi] + Sb[mi + 3]) / 2 + o)) < 0.6 for o in H.slot_offsets(S.s[mi], ser_s)):
+                    if not any(abs(sm - ((Sb[mi] + Sb[mi + 3]) / 2 + o)) < 0.6 for o in hardware.slot_offsets(S.s[mi], ser_s)):
                         continue
-                s_lines = [(Sb[lat] + Sb[lat + 3]) / 2 + o for o in H.slot_offsets(S.s[lat], ser_s)] \
+                s_lines = [(Sb[lat] + Sb[lat + 3]) / 2 + o for o in hardware.slot_offsets(S.s[lat], ser_s)] \
                     if ax_s != lat else None
                 if is_profile(E) and ax_e != lat:
-                    lines = [(Eb[lat] + Eb[lat + 3]) / 2 + o for o in H.slot_offsets(E.s[lat], ser_e)]
+                    lines = [(Eb[lat] + Eb[lat + 3]) / 2 + o for o in hardware.slot_offsets(E.s[lat], ser_e)]
                     if s_lines is not None:
                         lines = [x for x in lines if any(abs(x - y) < 0.6 for y in s_lines)]
                 elif s_lines is not None:
@@ -737,17 +737,17 @@ class Build:
         if "MGN" in D.hw and "rail" in D.hw:
             exempt |= self.partners.get(D.name, set())      # the blocks ride over the rail's recessed heads
         cands, want, pat, into, thr = [], 1, False, None, None
-        # ---- hole patterns of bought parts
+        # --- hole patterns of bought parts
         for q in (D, T):
             qb = q.aabb()
             cen = [(qb[i] + qb[i + 3]) / 2 for i in range(3)]
             if q.hw.startswith("17HS") and q.mech.startswith("motor:") and "xyz".index(q.mech[6]) == n:
-                h_ = H.NEMA17["bolt_sq"] / 2
+                h_ = hardware.NEMA17["bolt_sq"] / 2
                 thr = "M4" if "+" in q.hw else "M3"          # gearbox output face / bare motor face
                 cands = [(g1(cen[others[0]] + a_ * h_), g1(cen[others[1]] + b_ * h_)) for a_ in (-1, 1) for b_ in (-1, 1)]
                 pat = True
             elif "MGN" in q.hw and "block" in q.hw:
-                mg = H.MGN[q.hw.split()[0]]
+                mg = hardware.MGN[q.hw.split()[0]]
                 along = max(others, key=lambda i: qb[i + 3] - qb[i])
                 acr = [i for i in others if i != along][0]
                 thr, pat = "M3", True
@@ -756,7 +756,7 @@ class Build:
                         p = {along: cen[along] + a_ * mg["C"] / 2, acr: cen[acr] + b_ * mg["B"] / 2}
                         cands.append((g1(p[others[0]]), g1(p[others[1]])))
             elif q is D and "MGN" in q.hw and "rail" in q.hw:
-                mg = H.MGN[q.hw.split()[0]]
+                mg = hardware.MGN[q.hw.split()[0]]
                 along = max(others, key=lambda i: qb[i + 3] - qb[i])
                 acr = [i for i in others if i != along][0]
                 thr, pat, t = "M3", True, mg["rail_clamp"]
@@ -771,36 +771,36 @@ class Build:
                 if not cands:
                     return 0, "no rail hole over this host"
             elif q is D and q.hw == "fan_80":
-                h_ = H.LOADS["fan_80"]["holes"] / 2
-                thr, pat, t = "M4", True, H.LOADS["fan_80"]["flange"]
+                h_ = hardware.LOADS["fan_80"]["holes"] / 2
+                thr, pat, t = "M4", True, hardware.LOADS["fan_80"]["flange"]
                 cands = [(g1(cen[others[0]] + a_ * h_), g1(cen[others[1]] + b_ * h_)) for a_ in (-1, 1) for b_ in (-1, 1)]
         if pat:
             want = len(cands)
             if bought_thread(D) and not bought_thread(T) and not ("MGN" in D.hw and "rail" in D.hw):
                 return 0, "the bought part's threads face away (screw from its side)"
-        # ---- into what
+        # --- into what
         if is_profile(T):
             ser, ax_t = section(T)
             if ax_t == n:                                  # the profile's END face: its core bore(s), tapped
-                thr = H.PROFILE[ser]["core_tap"]
-                into = ("TAP", T, H.END_TAP_DEPTH, False)
+                thr = hardware.PROFILE[ser]["core_tap"]
+                into = ("TAP", T, hardware.END_TAP_DEPTH, False)
                 u, v = others
                 cands = [(g1((Tb[u] + Tb[u + 3]) / 2 + ou), g1((Tb[v] + Tb[v + 3]) / 2 + ov))
-                         for ou in H.slot_offsets(T.s[u], ser) for ov in H.slot_offsets(T.s[v], ser)]
+                         for ou in hardware.slot_offsets(T.s[u], ser) for ov in hardware.slot_offsets(T.s[v], ser)]
                 want, pat = len(cands), True
             else:
-                tn = H.PROFILE[ser]["tnut"]
+                tn = hardware.PROFILE[ser]["tnut"]
                 if thr:                                    # pattern thread in this slot
-                    tn = next(k for k, v in H.TNUT.items() if v["slot"] == H.TNUT[tn]["slot"] and v["thread"] == thr)
-                thr = H.TNUT[tn]["thread"]
+                    tn = next(k for k, v in hardware.TNUT.items() if v["slot"] == hardware.TNUT[tn]["slot"] and v["thread"] == thr)
+                thr = hardware.TNUT[tn]["thread"]
                 into = ("TNUT", ser, tn, ax_t)
                 if not pat:
-                    emin = H.EDGE_MIN * H.clearance(thr)
+                    emin = hardware.EDGE_MIN * hardware.clearance(thr)
                     for lat in others:
                         run = 3 - n - lat
                         if run != ax_t:
                             continue
-                        for off in H.slot_offsets(T.s[lat], ser):
+                        for off in hardware.slot_offsets(T.s[lat], ser):
                             lc = (Tb[lat] + Tb[lat + 3]) / 2 + off
                             if not (c.lo[lat] + emin - 1e-6 <= lc <= c.hi[lat] - emin + 1e-6):
                                 continue
@@ -817,8 +817,8 @@ class Build:
                 small = min(span[i] for i in others)
                 thr = "M6" if small >= 40 else ("M5" if small >= 25 else ("M4" if small >= 18 else "M3"))
                 if T is DECK:
-                    thr = H.TABLE_PLATE["anchor"] if small >= 30 else ("M5" if small >= 25 else "M4")
-                emin = H.EDGE_MIN * H.clearance(thr)
+                    thr = hardware.TABLE_PLATE["anchor"] if small >= 30 else ("M5" if small >= 25 else "M4")
+                emin = hardware.EDGE_MIN * hardware.clearance(thr)
                 u, v = others
                 su = max(2.0, g1((c.hi[u] - c.lo[u]) / 30))
                 sv = max(2.0, g1((c.hi[v] - c.lo[v]) / 30))
@@ -838,11 +838,11 @@ class Build:
             elif T is DECK:
                 into = ("TAP", T, depth, True)
             elif mat == "sheet" or (mat == "insert" and depth < INSERT_LEN + 0.5) or \
-                    (mat != "insert" and depth < H.MIN_ENGAGE.get(mat, 1.5) * H.THREAD[thr]["d"] + 0.5):
+                    (mat != "insert" and depth < hardware.MIN_ENGAGE.get(mat, 1.5) * hardware.THREAD[thr]["d"] + 0.5):
                 into = ("NUT",)
             else:
                 into = ("TAP", T, depth, False)
-        emin = H.EDGE_MIN * H.clearance(thr)
+        emin = hardware.EDGE_MIN * hardware.clearance(thr)
         order = cands if pat else _spread_pts(cands, max(want * 12, 24))
         chosen = []
         for (cu, cv) in order:
@@ -859,7 +859,7 @@ class Build:
                 ref = (c.lo[others[0]], c.lo[others[1]], c.hi[others[0]], c.hi[others[1]])
             edge = min(cu - ref[0], ref[2] - cu, cv - ref[1], ref[3] - cv)
             if "MGN" in D.hw and "rail" in D.hw:
-                edge = min(edge, H.MGN[D.hw.split()[0]]["rail"][0] / 2)
+                edge = min(edge, hardware.MGN[D.hw.split()[0]]["rail"][0] / 2)
             if edge < emin - 1e-6:
                 if pat:
                     return 0, f"pattern hole at {tuple(round(q, 1) for q in h)} is {edge:.1f} mm from an edge"
@@ -887,7 +887,7 @@ class Build:
             for ms in (-1, 1):
                 jid = f"{P.name}~TABLE~{placed}"
                 if self.bracket_joint(jid, P, DECK, (2, 1), 0.0, 20, (thin, ms), long_, lc,
-                                      ("TAP", DECK, H.TABLE_PLATE["t"], True), ("TAP", P, P.s[thin], False)):
+                                      ("TAP", DECK, hardware.TABLE_PLATE["t"], True), ("TAP", P, P.s[thin], False)):
                     placed += 1
                     break
         return placed
@@ -895,10 +895,10 @@ class Build:
     # --- rule: a piston rod's thread in the part it drives (tapped, or through + lock nut)
     def rod_end(self, c, rod, part):
         bore = rod_bore(rod)
-        th = H.CYL[bore]["rod_thread"]
+        th = hardware.CYL[bore]["rod_thread"]
         d = float(th[1:].split("x")[0])
         mat = material(part)
-        need = (H.MIN_ENGAGE.get(mat, 1.5) if mat not in ("insert", "sheet") else 2.5) * d
+        need = (hardware.MIN_ENGAGE.get(mat, 1.5) if mat not in ("insert", "sheet") else 2.5) * d
         depth = thick(part, c.n) - 0.5
         how = "tapped" if depth >= need else ("through + ISO 4035 lock nut" if thick(part, c.n) >= 2 else "")
         self.rodends.append((rod.name, part.name, th, round(min(depth, 1.5 * d), 1), round(need, 1), how))
@@ -930,21 +930,21 @@ def _on_deck(p):
 
 def tnut_for(series, thread):
     """The T-nut of this profile series' slot for this thread."""
-    slot = H.TNUT[H.PROFILE[series]["tnut"]]["slot"]
-    return next(k for k, v in H.TNUT.items() if v["slot"] == slot and v["thread"] == thread)
+    slot = hardware.TNUT[hardware.PROFILE[series]["tnut"]]["slot"]
+    return next(k for k, v in hardware.TNUT.items() if v["slot"] == slot and v["thread"] == thread)
 
 
 def _fix(scr, into):
     """Bracket screw thread matched to the T-nut in that slot."""
     if into[0] == "TNUT":
-        return H.TNUT[into[2]]["thread"]
+        return hardware.TNUT[into[2]]["thread"]
     return scr
 
 
 def _pair_hit(f, g):
     for s in f.solids():
         for t in g.solids():
-            if G.aabb_overlap(s.aabb(), t.aabb()) and G.interfere(s, t):
+            if geom.aabb_overlap(s.aabb(), t.aabb()) and geom.interfere(s, t):
                 return True
     return False
 
@@ -981,7 +981,7 @@ def _spread(fs, k):
     return sel
 
 
-# ------------------------------------------------------------------ mounts
+# --- mounts
 STRUCT = ("frame", "portal", "gantry", "hood", "oven", "cool", "sealer", "traymag", "lane", "axis", "reject", "drive")
 
 
@@ -1020,7 +1020,7 @@ def derive_mounts(B, parts, supported):
                             continue
                         lo[n] = start if s > 0 else face
                         sz[n] = dist
-                        arm = M.Part(f"mount_{d.name}", d.module, "mount", "box", tuple(g1(v) for v in lo),
+                        arm = line_model.Part(f"mount_{d.name}", d.module, "mount", "box", tuple(g1(v) for v in lo),
                                      tuple(g1(v) for v in sz), "#9aa3ab",
                                      mech="profile:2020" if stand else "",
                                      hw="HFS5-2020 stand" if stand else "sensor bracket 3 mm S235")
@@ -1035,9 +1035,9 @@ def derive_mounts(B, parts, supported):
     return out
 
 
-# ------------------------------------------------------------------ solve
+# --- solve
 def solve():
-    parts = [p for p in M.build(with_product=False)]
+    parts = [p for p in line_model.build(with_product=False)]
     B = Build([DECK] + parts)
     cs = contacts([DECK] + parts)
     kinds = defaultdict(list)
@@ -1134,7 +1134,7 @@ def solve():
                 rule = "end tap / T-nuts in a profile"
         else:
             D, T = (b, a) if (a.name == "TABLE" or thick(a, c.n) > thick(b, c.n)) else (a, b)
-            if T.name == "TABLE" and c.n == 2 and min(D.s[0], D.s[1]) < 2 * H.EDGE_MIN * H.clearance("M4") and \
+            if T.name == "TABLE" and c.n == 2 and min(D.s[0], D.s[1]) < 2 * hardware.EDGE_MIN * hardware.clearance("M4") and \
                     D.aabb()[2] >= -1e-6:
                 k = B.panel_on_deck(c, D)
                 rule = "panel on the deck: corner brackets"
@@ -1189,7 +1189,7 @@ def _reach(support):
     return seen
 
 
-# ------------------------------------------------------------------ proofs
+# --- proofs
 def proofs(B, parts, support):
     """Independent re-check of everything the search produced."""
     fails = list(B.fails)
@@ -1200,20 +1200,20 @@ def proofs(B, parts, support):
         if p.name not in reach:
             fails.append(f"FLOATS {p.name} ({p.module}) - no fastened / guided path to the deck")
     for f in B.fasteners:
-        _, _, lengths = H.head(f.thread, f.head_type)
+        _, _, lengths = hardware.head(f.thread, f.head_type)
         if f.length not in [float(x) for x in lengths]:
             fails.append(f"LENGTH {f.joint}: {f.thread}x{f.length:g} is not a stock length")
         if f.engage < f.need - 1e-6:
             fails.append(f"ENGAGE {f.joint}: {f.thread}x{f.length:g} engages {f.engage:.1f} < {f.need:.1f} mm")
         if f.tip_room < -1e-6:
             fails.append(f"BOTTOMS {f.joint}: {f.thread}x{f.length:g} by {-f.tip_room:.1f} mm")
-        if abs(f.hole - H.clearance(f.thread)) > 1e-9:
-            fails.append(f"ISO 273 {f.joint}: hole {f.hole} != medium {H.clearance(f.thread)}")
-        if f.edge < H.EDGE_MIN * f.hole - 1e-6:
-            fails.append(f"EDGE {f.joint}: hole {f.edge:.1f} mm from an edge < {H.EDGE_MIN} x {f.hole}")
+        if abs(f.hole - hardware.clearance(f.thread)) > 1e-9:
+            fails.append(f"ISO 273 {f.joint}: hole {f.hole} != medium {hardware.clearance(f.thread)}")
+        if f.edge < hardware.EDGE_MIN * f.hole - 1e-6:
+            fails.append(f"EDGE {f.joint}: hole {f.edge:.1f} mm from an edge < {hardware.EDGE_MIN} x {f.hole}")
         if not all(on_grid(v) for v in f.head):
             fails.append(f"GRID {f.joint}: fastener at {f.head} off the 0.1 mm grid")
-        if f.head_type == "csk" and f.clamp < H.head(f.thread, "csk")[1]:
+        if f.head_type == "csk" and f.clamp < hardware.head(f.thread, "csk")[1]:
             fails.append(f"CSK {f.joint}: countersink deeper than the part")
     for b in B.brackets:
         if not all(on_grid(v) for v in list(b.p) + list(b.s)):
@@ -1247,14 +1247,14 @@ def proofs(B, parts, support):
         for p in world.near(s.aabb()):
             if p.name in ex or body_of(p) in ex:
                 continue
-            if G.aabb_overlap(s.aabb(), p.aabb()) and G.interfere(s, p):
+            if geom.aabb_overlap(s.aabb(), p.aabb()) and geom.interfere(s, p):
                 fails.append(f"FASTENER {s.name.split(':', 1)[1]} hits {p.name}")
     fw = World(solids)
     for s in solids:
         for t in fw.near(s.aabb()):
             if t._f is s._f or id(t) <= id(s):
                 continue
-            if G.aabb_overlap(s.aabb(), t.aabb()) and G.interfere(s, t):
+            if geom.aabb_overlap(s.aabb(), t.aabb()) and geom.interfere(s, t):
                 fails.append(f"FASTENER {s.name.split(':', 1)[1]} hits {t.name.split(':', 1)[1]}")
     for b in B.brackets:
         j = getattr(b, "_joint", "")
@@ -1265,7 +1265,7 @@ def proofs(B, parts, support):
         for p in world.near(b.aabb()):
             if p is b or p.name in ex or body_of(p) in ex:
                 continue
-            if G.aabb_overlap(b.aabb(), p.aabb()) and G.interfere(b, p):
+            if geom.aabb_overlap(b.aabb(), p.aabb()) and geom.interfere(b, p):
                 fails.append(f"BRACKET {b.name} hits {p.name}")
     return sorted(set(fails))
 

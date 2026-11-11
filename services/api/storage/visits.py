@@ -46,7 +46,7 @@ COOKIE = "stf_consent"
 BATCH = 25  # app-log records per insert
 
 
-# ----------------------------------------------------------------------------- the address
+# --- the address
 def coarse_ip(ip: str | None) -> str | None:
     """An address shortened to its network, as stored: 93.184.216.34 -> 93.184.216.0,
     2a00:1450:4001:82a::200e -> 2a00:1450:4001::. A private or loopback address (a developer's
@@ -63,7 +63,7 @@ def coarse_ip(ip: str | None) -> str | None:
     return str(ipaddress.ip_network(f"{addr}/{bits}", strict=False).network_address)
 
 
-# ----------------------------------------------------------------------------- the stores
+# --- the stores
 class SqliteVisits:
     """visits + app_logs tables in the same SQLite file the guests use."""
 
@@ -210,7 +210,7 @@ def store_from_env(env: dict) -> tuple[Any, str]:
     return SqliteVisits(path), "SQLite"
 
 
-# ----------------------------------------------------------------------------- the tracker
+# --- the tracker
 class Visits:
     """Records what was looked at, only after the visitor said yes. Dedupes a guest re-sending
     the same page inside ten seconds, so an SPA's eager beacon cannot fill the table."""
@@ -276,7 +276,7 @@ class Visits:
         return True
 
 
-# ----------------------------------------------------------------------------- log shipping
+# --- log shipping
 class SupabaseLogHandler(logging.Handler):
     """A logging handler that batches WARNING-and-above records into the app_logs table,
     flushing on a timer (each record must cost nothing to the request being served)."""

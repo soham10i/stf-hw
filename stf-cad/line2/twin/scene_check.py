@@ -61,8 +61,8 @@ def check(verbose=True):
         if not ok:
             fails.append(f"SCENE {name}: {value} vs {limit} {note}".strip())
 
-    import line_model as M
-    assert list(M.MODULES) == MODULES
+    import line_model
+    assert list(line_model.MODULES) == MODULES
     idx = json.load(open(os.path.join(OUT, "cache", "index.json")))
     meta, solids = idx["meta"], idx["solids"]
     by = {s["name"]: s for s in solids}

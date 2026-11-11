@@ -17,7 +17,7 @@
 // flags and every other axis field come from the newest state - only motion is interpolated, a
 // switch is never shown half on. A part added or removed between the two states is drawn at its
 // newest pose.
-import { AX, AXIS_STRIDE, TRANSFORM_STRIDE, makeSnapshot, type BridgeLayout, type Snapshot } from "./SimulationBridge";
+import { AXIS, AXIS_STRIDE, TRANSFORM_STRIDE, makeSnapshot, type BridgeLayout, type Snapshot } from "./SimulationBridge";
 
 const RING = 8;
 const SNAP_IF_OFF_S = 0.25; // render clock this far from its target (a pause, a seek): jump
@@ -137,7 +137,7 @@ export function blendTransforms(a: Snapshot, b: Snapshot, t: number, out: Snapsh
 export function blendAxes(a: Snapshot, b: Snapshot, t: number, out: Snapshot): void {
   const n = Math.min(a.axisCount, b.axisCount, out.axisCount);
   for (let i = 0; i < n; i++) {
-    const k = i * AXIS_STRIDE + AX.POSITION;
+    const k = i * AXIS_STRIDE + AXIS.POSITION;
     out.axes[k] = a.axes[k] + (b.axes[k] - a.axes[k]) * t;
   }
 }

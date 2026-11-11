@@ -18,7 +18,7 @@ import time
 
 from sil.stream import bundle
 
-from uns import namespace as N
+from uns import namespace
 from uns.broker import CACHE, PORT, ROLES, Broker
 from uns.edge import Edge
 from uns.host import Host
@@ -59,11 +59,11 @@ def main():
         threading.Thread(target=edge.run, daemon=True).start()
         print(f"""
 MQTT broker   mqtts://127.0.0.1:{b.port}   (TLS 1.3; trust {b.ca})
-Sparkplug B   {N.topic('#')}            primary host '{N.HOST_ID}', edge node '{N.EDGE}'
-Unified NS    {N.UNS_ROOT}/#
+Sparkplug B   {namespace.topic('#')}            primary host '{namespace.HOST_ID}', edge node '{namespace.EDGE}'
+Unified NS    {namespace.UNS_ROOT}/  #
 read the UNS  user stf-viewer, password in {SECRETS}
 
-  mosquitto_sub -h 127.0.0.1 -p {b.port} --cafile {b.ca} -u stf-viewer -P "$(python3 -c "import json;print(json.load(open('{SECRETS}'))['stf-viewer'])")" -t '{N.UNS_ROOT}/#' -v
+  mosquitto_sub -h 127.0.0.1 -p {b.port} --cafile {b.ca} -u stf-viewer -P "$(python3 -c "import json;print(json.load(open('{SECRETS}'))['stf-viewer'])")" -t '{namespace.UNS_ROOT}/#' -v
 
 Ctrl-C stops the edge (NDEATH), the host (STATE offline) and the broker.""", flush=True)
         try:

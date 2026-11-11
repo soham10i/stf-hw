@@ -27,7 +27,7 @@ import json
 import math
 import os
 
-from vision import render as R
+from vision import render
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PUB = os.path.abspath(os.path.join(HERE, "..", "..", "..", "web", "public"))
@@ -117,16 +117,16 @@ def check(doc, parts, g):
     da = min(gap(cb, g["a4"]) for _, cb in cam)
     add("SENSOR", da >= CLEAR_A4, f"{da:.1f} mm from A4's envelope (at least {CLEAR_A4:.0f})")
     lens = [g["cx"], g["yc"], g["lens_z"]]
-    half = wp_d / 2 + R.WIDE["jitter"]
+    half = wp_d / 2 + render.WIDE["jitter"]
     targets = [[g["cx"] + dx, g["yc"] + dy, z] for z in (g["belt_top"], g["belt_top"] + wp_h)
                for dx in (-half, -half / 2, 0, half / 2, half) for dy in (-half, -half / 2, 0, half / 2, half)]
     blocked = [(o, t) for t in targets for o, ob in others if ray_hits(lens, t, ob)]
     add("SIGHT", not blocked, f"{len(targets)} rays to the inspected area ({2 * half:.0f} mm square), none blocked"
         if not blocked else f"blocked by {sorted({o for o, _ in blocked})}")
     wd = g["lens_z"] - g["belt_top"]
-    angle = 2 * math.degrees(math.atan(R.MM / 2 / wd))
-    blur_px = V_BELT * EXPOSURE_S * R.PX
-    add("OPTICS", angle < 100 and blur_px < 1, f"{R.MM:.0f} mm field at {wd:.0f} mm needs a {angle:.0f}° lens; "
+    angle = 2 * math.degrees(math.atan(render.MM / 2 / wd))
+    blur_px = V_BELT * EXPOSURE_S * render.PX
+    add("OPTICS", angle < 100 and blur_px < 1, f"{render.MM:.0f} mm field at {wd:.0f} mm needs a {angle:.0f}° lens; "
         f"1 ms exposure at {V_BELT:.0f} mm/s blurs {blur_px:.2f} px")
     i2 = next(box_of(p) for p in s if p["n"] == "I2_inlet_rx")
     trig = (g["cx"] - (i2[0] + i2[3]) / 2) / V_BELT
@@ -157,8 +157,8 @@ def main():
     res, fails, optics = check(doc, parts, g)
     muts = mutants(doc)
     fails += [f"mutant {m['id']} survived: {m['what']}" for m in muts if not m["caught"]]
-    out = {"parts": parts, "frame": "sorting", "lens": [g["cx"], g["yc"], g["lens_z"]], "fov_mm": R.MM,
-           "image_px": R.N, "optics": optics, "checks": res, "mutants": muts, "fails": fails, "export": doc["fingerprint"],
+    out = {"parts": parts, "frame": "sorting", "lens": [g["cx"], g["yc"], g["lens_z"]], "fov_mm": render.MM,
+           "image_px": render.N, "optics": optics, "checks": res, "mutants": muts, "fails": fails, "export": doc["fingerprint"],
            "why_here": "inside the colour hood: its light is controlled, the CNN's weak point"}
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(out, open(OUT, "w"), indent=1)

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Explicit, owner-run Phase 1 activation on PRIVATE staging only. This changes IAM and Cloud Run.
-# Review deploy/phase1_preflight.py and docs/PHASE_0_1_IMPLEMENTATION.md first.
+# Review deploy/phase1_preflight.py and docs/history/2026-10-phase-0-1-implementation.md first.
 set -euo pipefail
 
 if [[ "${CONFIRM_PHASE1:-}" != "1" ]]; then

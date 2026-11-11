@@ -53,24 +53,23 @@ import time
 
 import numpy as np
 
-from pdm import cp
-from pdm import data
-from pdm import model as Mo
-from pdm import run as R
+from pdm import cp, data
+from pdm import model as pdm_model
+from pdm import run as pdm_run
 
 CAL = list(range(16, 32))
 ALPHA = 0.1                      # 90 % intervals and lower bounds
 ALPHA_LATE = 0.05                # at most 5 % of failures warned less than a shift ahead
 MIN_SEG = 5                      # calibration failures a group needs for its own quantile
 LIFE_BINS = [45, 150]            # predicted (P50) remaining life: under a shift, under three, more
-BUCKETS = [(0, 45), (45, 150), (150, R.RUL_CAP)]    # true remaining life: a shift, three, the rest
+BUCKETS = [(0, 45), (45, 150), (150, pdm_run.RUL_CAP)]  # true remaining life: a shift, three, the rest
 P_FINE = [round(x, 3) for x in np.concatenate([np.arange(0.01, 0.1, 0.01), np.arange(0.1, 0.81, 0.05)])]
 N_BOOT = 1000
 CACHE = os.path.join(os.path.dirname(data.CACHE), "pdm_tracks.pkl")
-OUT = R.OUT
+OUT = pdm_run.OUT
 
 
-# ---------------------------------------------------------------- the filter's tracks, cached
+# --- the filter's tracks, cached
 
 def tracks(fleet, pop, ids, tag=None):
     """The filter's tracks for `ids`, cached per (machine, uncertainty scales): the 19-minute
@@ -83,15 +82,15 @@ def tracks(fleet, pop, ids, tag=None):
             have = pickle.load(fh)
     todo = [i for i in ids if (key, i) not in have]
     if todo:
-        new = R.tracks(fleet, todo, pop)
+        new = pdm_run.tracks(fleet, todo, pop)
         for (i, k), tr in new.items():
             have.setdefault((key, i), {})[k] = tr
         with open(CACHE, "wb") as fh:
             pickle.dump(have, fh)
-    return {(i, k): have[(key, i)][k] for i in ids for k in Mo.COMPS}
+    return {(i, k): have[(key, i)][k] for i in ids for k in pdm_model.COMPS}
 
 
-# ---------------------------------------------------------------- the scored points
+# --- the scored points
 
 def points(fleet, ids, trk):
     """Every order whose remaining life is known and under the cap (the orders pdm/run.py grades):
@@ -100,13 +99,13 @@ def points(fleet, ids, trk):
     seg = 0
     for i in ids:
         F = fleet[i][1]
-        for c, k in enumerate(Mo.COMPS):
+        for c, k in enumerate(pdm_model.COMPS):
             tr = trk[(i, k)]
             start = 0
             for f in sorted(f for f, kk in F if kk == k):
                 t = np.arange(start, f + 1)
                 rul = f - t
-                m = rul < R.RUL_CAP
+                m = rul < pdm_run.RUL_CAP
                 t, rul = t[m], rul[m]
                 rows.append(np.stack([np.full(len(t), i), np.full(len(t), c), np.full(len(t), seg), rul,
                                       tr.p10[t], tr.p50[t], tr.p90[t], np.full(len(t), f)], 1))
@@ -143,7 +142,7 @@ def fit(cal, alpha=ALPHA):
     c2, _ = cp.mondrian_q(s2, cell, cal["seg"], alpha, MIN_SEG)
     c1, _ = cp.mondrian_q(s1, cell, cal["seg"], alpha, MIN_SEG)
     out = {"pooled": {"q2": p2, "q1": p1}, "comp": {}}
-    for c, k in enumerate(Mo.COMPS):
+    for c, k in enumerate(pdm_model.COMPS):
         m = cal["comp"] == c
         own = q2.get(c, (p2, False))[1]
         e = {"segments": int(len(np.unique(cal["seg"][m]))), "own": bool(own),
@@ -160,10 +159,10 @@ def apply(p, q):
     """Intervals and lower bounds for the scored points: the filter's own, then conformal pooled,
     per component, and per component and predicted life."""
     lo, hi = cp.log_life(p["p10"]), cp.log_life(p["p90"])
-    q2c = np.array([q["comp"][k]["q2"] for k in Mo.COMPS])[p["comp"]]
-    q1c = np.array([q["comp"][k]["q1"] for k in Mo.COMPS])[p["comp"]]
-    B2 = np.array([[b["q2"] for b in q["comp"][k]["bins"]] for k in Mo.COMPS])
-    B1 = np.array([[b["q1"] for b in q["comp"][k]["bins"]] for k in Mo.COMPS])
+    q2c = np.array([q["comp"][k]["q2"] for k in pdm_model.COMPS])[p["comp"]]
+    q1c = np.array([q["comp"][k]["q1"] for k in pdm_model.COMPS])[p["comp"]]
+    B2 = np.array([[b["q2"] for b in q["comp"][k]["bins"]] for k in pdm_model.COMPS])
+    B1 = np.array([[b["q1"] for b in q["comp"][k]["bins"]] for k in pdm_model.COMPS])
     b = life_bin(p)
     q2b, q1b = B2[p["comp"], b], B1[p["comp"], b]
     qp2, qp1 = q["pooled"]["q2"], q["pooled"]["q1"]
@@ -175,7 +174,7 @@ def apply(p, q):
     }
 
 
-# ---------------------------------------------------------------- grading
+# --- grading
 
 def _cover(p, iv, m=None):
     y = cp.log_life(p["rul"])
@@ -214,14 +213,14 @@ def grade(p, ivs):
     for name, iv in ivs.items():
         r = {"all": _cover(p, iv), **_boot(p, iv, rng)}
         r["by_life"] = {f"{a}-{b}": _cover(p, iv, (y >= a) & (y < b)) for a, b in BUCKETS}
-        r["by_comp"] = {k: _cover(p, iv, p["comp"] == c) for c, k in enumerate(Mo.COMPS)}
+        r["by_comp"] = {k: _cover(p, iv, p["comp"] == c) for c, k in enumerate(pdm_model.COMPS)}
         cs = [v["coverage"] for v in r["by_comp"].values() if v]
         r["worst_comp_coverage"] = min(cs) if cs else None
         out[name] = r
     return out
 
 
-# ---------------------------------------------------------------- the decision: risk control
+# --- the decision: risk control
 
 def late_losses(fleet, ids, trk, p_star):
     """Per failure: 1 if the window opened less than a shift ahead (or never), else 0; and the
@@ -230,9 +229,9 @@ def late_losses(fleet, ids, trk, p_star):
     for i in ids:
         X, F, _ = fleet[i]
         orders += len(X)
-        for k in Mo.COMPS:
-            leads, fa, missed = R.decisions(Mo.alarms(trk[(i, k)], p_star), len(X), F, k)
-            loss += [0 if l >= R.CRIT else 1 for l in leads] + [1] * missed
+        for k in pdm_model.COMPS:
+            leads, fa, missed = pdm_run.decisions(pdm_model.alarms(trk[(i, k)], p_star), len(X), F, k)
+            loss += [0 if l >= pdm_run.CRIT else 1 for l in leads] + [1] * missed
             false += fa
     return np.array(loss, float), false, orders
 
@@ -257,15 +256,15 @@ def decision_on(fleet, ids, trk, p_star, name):
             "false_per_1000": round(1000 * false / max(1, orders), 2)}
 
 
-# ---------------------------------------------------------------- run
+# --- run
 
 def population():
     """The fitted population, with the uncertainty scales and p* pdm/run.py chose (pdm.json)."""
     with open(os.path.join(OUT, "pdm.json")) as fh:
         doc = json.load(fh)
     fleet = data.load(data.FIT + CAL + data.TEST)
-    pop = Mo.fit_population(fleet, data.FIT)
-    Mo.calibrate_noise(fleet, data.FIT, pop)
+    pop = pdm_model.fit_population(fleet, data.FIT)
+    pdm_model.calibrate_noise(fleet, data.FIT, pop)
     pop.q_scale, pop.d_scale = doc["q_scale"], doc["d_scale"]
     return fleet, pop, doc["p_star"]
 

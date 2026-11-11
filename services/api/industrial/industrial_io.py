@@ -17,8 +17,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Any
 
-from services.api.industrial.actuation import get_guard, get_runtime
 from services.api.core.logging_config import get_logger
+from services.api.industrial.actuation import get_guard, get_runtime
 
 if TYPE_CHECKING:
     from services.api.core.runtime import SimRuntime
@@ -32,7 +32,6 @@ class OpcUaBridge:
     NAMESPACE_URI = "urn:stf:digitaltwin:opcua:v1"
     NS_INDEX = 2
 
-    # Standard address space node definitions
     NODES: dict[str, dict[str, Any]] = {
         "ns=2;s=HBW.Crane.Pos_X": {
             "type": "Double",
@@ -284,6 +283,6 @@ def _get_joint(runtime: SimRuntime | None, index: int) -> float:
             snap = backend.snapshot()
             if hasattr(snap, "joints") and len(snap.joints) > index:
                 return float(snap.joints[index])
-    except Exception:
-        pass
+    except Exception as e:  # a kernel without joints reads as 0
+        logger.debug("joint %d unreadable: %s", index, e)
     return 0.0

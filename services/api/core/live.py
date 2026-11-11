@@ -13,8 +13,8 @@ import json
 import time
 from typing import Any
 
-from services.api.storage import guests
 from services.api.core.logging_config import get_logger
+from services.api.storage import guests
 
 logger = get_logger(__name__)
 

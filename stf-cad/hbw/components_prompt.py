@@ -8,7 +8,7 @@ in the prompt is one the reference model already passed its checks with.
 """
 import os
 
-import components as C
+import components
 
 OUT = os.path.expanduser("~/workspace/stf-factory/cad/components/FREECAD_AI_PROMPTS.md")
 SRC = {"datasheet": "DATASHEET", "photo": "photo-estimate", "ft-std": "ft-standard",
@@ -45,18 +45,18 @@ def rgb(hexcol):
 
 def params_table(cid):
     rows = ["| alias | meaning | value (mm) | source |", "|---|---|---:|---|"]
-    for d in C.COMPONENTS[cid]["dims"]:
+    for d in components.COMPONENTS[cid]["dims"]:
         note = f" — {d['note']}" if d["note"] else ""
         rows.append(f"| `{d['key']}` | {d['label']}{note} | {d['value']:.2f} | {SRC[d['source']]} |")
     return "\n".join(rows)
 
 
 def facts(cid):
-    return "\n".join(f"- {a}: {b}" for a, b, _ in C.COMPONENTS[cid]["facts"])
+    return "\n".join(f"- {a}: {b}" for a, b, _ in components.COMPONENTS[cid]["facts"])
 
 
 def encoder_motor():
-    g = lambda k: C.get("encoder_motor", k)
+    g = lambda k: components.get("encoder_motor", k)
     L, W, H = g("L"), g("W"), g("H")
     af = g("shaft_d") - 2 * g("flat")
     return f"""
@@ -96,7 +96,7 @@ shaft diameter {g('shaft_d'):.2f}; shaft protrusion {g('shaft_l'):.2f} (shaft bb
 
 
 def mini_switch():
-    g = lambda k: C.get("mini_switch", k)
+    g = lambda k: components.get("mini_switch", k)
     L, W, H = g("L"), g("W"), g("H")
     z0 = g("contact_z")
     return f"""
@@ -121,7 +121,7 @@ this envelope by design and are NOT part of the housing check).
 
 
 def phototransistor():
-    g = lambda k: C.get("phototransistor", k)
+    g = lambda k: components.get("phototransistor", k)
     L, W, H = g("L"), g("W"), g("H")
     mk = g("mark")
     return f"""
@@ -145,7 +145,7 @@ recess from step 4 (its top is flush with the housing top, z = {H:.2f}).
 
 
 def colour_sensor():
-    g = lambda k: C.get("colour_sensor", k)
+    g = lambda k: components.get("colour_sensor", k)
     L, W, H = g("L"), g("W"), g("H")
     x0, x1 = g("hole_x"), g("hole_x") + 4.5
     return f"""
@@ -173,7 +173,7 @@ black = analogue signal 0–2 V.)
 
 
 def s_motor():
-    g = lambda k: C.get("s_motor", k)
+    g = lambda k: components.get("s_motor", k)
     L, W, H = g("L"), g("W"), g("H")
     gl, gw, gh = g("gb_l"), g("gb_w"), g("gb_h")
     wz = H / 2 + g("worm_d") / 2 + g("wheel_d") / 2 - 0.5
@@ -199,7 +199,7 @@ the front wall to y = −{g('axle_l'):.2f} (the side output, "seitlicher Abtrieb
 
 
 def compressor():
-    g = lambda k: C.get("compressor", k)
+    g = lambda k: components.get("compressor", k)
     L, W, H = g("L"), g("W"), g("H")
     r = g("crank_r")
     return f"""
@@ -225,7 +225,7 @@ Inside, on the pump axis y = {W / 2:.2f}, z = {H / 2:.2f} (booklet Abb. 4, from 
 
 
 def pneumatic_cylinder():
-    g = lambda k: C.get("pneumatic_cylinder", k)
+    g = lambda k: components.get("pneumatic_cylinder", k)
     L, W, H = g("L"), g("W"), g("H")
     fc, rc, bd = g("cap_front"), g("cap_rear"), g("barrel_d")
     return f"""
@@ -248,7 +248,7 @@ Edges chamfered 0.40.
 
 
 def ir_track_sensor():
-    g = lambda k: C.get("ir_track_sensor", k)
+    g = lambda k: components.get("ir_track_sensor", k)
     L, W, H = g("L"), g("W"), g("H")
     x0, x1 = g("win_x"), L - g("win_x")
     return f"""
@@ -267,7 +267,7 @@ hanging down from the bottom at y = {W / 2:.2f}, x = 10.00 / 12.50 / 15.00 / 17.
 
 
 def solenoid_valve():
-    g = lambda k: C.get("solenoid_valve", k)
+    g = lambda k: components.get("solenoid_valve", k)
     L, W, H, t = g("L"), g("W"), g("H"), g("plate_t")
     cw = g("coil_w")
     return f"""
@@ -301,7 +301,7 @@ def main():
              "compare Gemini's result against them.\n",
              "## Shared rules (paste with every component)\n", "```text", COMMON.strip(), "```\n"]
     for cid, fn in BODY.items():
-        c = C.COMPONENTS[cid]
+        c = components.COMPONENTS[cid]
         parts += [f"## {c['name']} — fischertechnik {c['ft']} ({c['name_de']})\n",
                   "```text",
                   f"Build the fischertechnik {c['name']} (part no. {c['ft']}) as a precise FreeCAD model.",

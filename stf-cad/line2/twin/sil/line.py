@@ -29,11 +29,11 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 LINE2 = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, LINE2)
-import line_model as M                                     # noqa: E402
-import line_sim as LS                                      # noqa: E402
-from twin.sil.plant import SilPlant                        # noqa: E402
+import line_model  # noqa: E402
+import line_sim  # noqa: E402
+from twin.sil.plant import SilPlant  # noqa: E402
 
-L = M.L
+L = line_model.L
 VAC_HELD, VAC_OPEN = -620, -40                              # mbar: a sealed cup / an open cup on nothing [assumed]
 DELTAS = ("C", "A", "B")
 
@@ -42,7 +42,7 @@ class Arrivals:
     """The pucks passing one loop position (the PLC's FB_Arrivals, here for the plant's sensors)."""
 
     def __init__(self, st, m):
-        self.st, self.Lp, self.P, self.N = st, M.loop_len(), L["PITCH"], L["N"]
+        self.st, self.Lp, self.P, self.N = st, line_model.loop_len(), L["PITCH"], L["N"]
         self.next_k, self.next_m = min(((k, m + (st - k * self.P - m) % self.Lp) for k in range(self.N)),
                                        key=lambda x: x[1])
         self.last = None                                     # (puck, master mm) of the last arrival
@@ -60,11 +60,11 @@ class Arrivals:
 
 class SilLine(SilPlant):
     def __init__(self, seed=7, lib=None):
-        rows, takt = L["BAND"]["rows"], M.takt()
-        self.V, self.Lp, self.P = L["V"], M.loop_len(), L["PITCH"]
+        rows, takt = L["BAND"]["rows"], line_model.takt()
+        self.V, self.Lp, self.P = L["V"], line_model.loop_len(), L["PITCH"]
         self.t_row = rows * takt
-        self.vb = M.band_v()
-        sb = M.stations()
+        self.vb = line_model.band_v()
+        sb = line_model.stations()
         self.travel = sb["pick"][0] - sb["dep"]
         self.W = L["PICK_W"]
         r0 = -int(self.travel / self.vb // self.t_row) - 2   # line_sim's first row (on the band at its t = 0)
@@ -74,13 +74,13 @@ class SilLine(SilPlant):
         self.KB = 100                                        # band = (row + KB) x pitch at the row's cut (> 0)
         pitch = self.vb * self.t_row
         super().__init__(lib=lib, running=(self.V * t_s + self.m_off, (self.r_s + self.KB) * pitch))
-        self.st = LS.stations()
+        self.st = line_sim.stations()
         m0 = self.ax["axMasterEnc"].pos
         self.trk = {k: Arrivals(self.st[k], m0) for k in ("transfer", "qc", "kick")}
         self.m_prev = m0
         self.band = []                                       # cookies in row order: dict(row, col, flav, cut)
         self.puck = [None] * L["N"]
-        self.kd = LS.keyed(seed)
+        self.kd = line_sim.keyed(seed)
         self.tries = {}
         self.jobs = {d: [] for d in DELTAS}                  # accepted, not finished
         self.seen = {d: self.plc[f"sil_stDelta{d}_nJob"] for d in DELTAS}
@@ -91,7 +91,7 @@ class SilLine(SilPlant):
         self.log, self.errors = [], []
         self._inputs()
 
-    # ------------------------------------------------------------ helpers
+    # --- helpers
     def tl(self, m):
         """line_sim time of master position m."""
         return (m - self.m_off) / self.V
@@ -113,13 +113,13 @@ class SilLine(SilPlant):
     def err(self, m, what):
         self.errors.append((round(self.tl(m), 3), what))
 
-    # ------------------------------------------------------------ SilPlant hooks
+    # --- SilPlant hooks
     def _cut(self, pos):
         row = round(pos / self.pitch) - self.KB
         m = self.ax["axMasterEnc"].pos - (self.ax["axQ40"].pos - pos) / self.plc["sil_axQ40_Ratio"]
         self.log.append((self.tl(m), "deposit", dict(row=row)))       # when the band passed the cut
         for j in range(L["BAND"]["rows"]):
-            self.band.append(dict(row=row, col=j, flav=M.row_flavour(j), cut=pos))
+            self.band.append(dict(row=row, col=j, flav=line_model.row_flavour(j), cut=pos))
 
     def _inputs(self):
         super()._inputs()
@@ -178,7 +178,7 @@ class SilLine(SilPlant):
             self.log.append((self.tl(m_a), "band_lost", dict(row=c["row"], col=c["col"])))
         self.m_prev = m_b
 
-    # ------------------------------------------------------------ events
+    # --- events
     def _grip(self, m, job):
         d, pk = job["d"], job["puck"]
         t0 = self.tl(job["start"])
@@ -199,7 +199,7 @@ class SilLine(SilPlant):
                 job["state"] = "empty"
                 return self.log.append((t0, "grip_fail", dict(pk=pk, row=ck["row"], col=ck["col"])))
             self.band.remove(ck)
-            ck["defect"] = self.chance("defect", ck["row"], ck["col"]) < LS.RATES["p_defect"]
+            ck["defect"] = self.chance("defect", ck["row"], ck["col"]) < line_sim.RATES["p_defect"]
             self.puck[pk] = ck
             self.hold_ck[d] = ck
             job["state"] = "held"
@@ -247,7 +247,7 @@ class SilLine(SilPlant):
             return
         bad = ck["defect"]
         u = self.chance("qc", ck["row"], ck["col"])
-        rej = u < (LS.RATES["recall"] if bad else LS.RATES["false_reject"])
+        rej = u < (line_sim.RATES["recall"] if bad else line_sim.RATES["false_reject"])
         self.log.append((self.tl(m), "qc", dict(pk=pk, verdict="reject" if rej else "pass")))
         self.qc_pending.append((m + L["AI_LATENCY"] * self.V, pk, 2 if rej else 1))
 
@@ -264,7 +264,7 @@ class SilLine(SilPlant):
         ck = self.puck[pk]
         if ck is None:
             return self.err(m, f"kicker fired at the empty puck {pk}")
-        if self.chance("kick", ck["row"], ck["col"]) < LS.RATES["kick_ok"]:
+        if self.chance("kick", ck["row"], ck["col"]) < line_sim.RATES["kick_ok"]:
             self.puck[pk] = None
             self.log.append((self.tl(m), "kick", dict(pk=pk)))
         else:

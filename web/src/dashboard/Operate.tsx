@@ -129,7 +129,7 @@ export function Production({ doc, t }: { doc: CadDoc; t: number }) {
               <b>{u.unit}</b>
               <span className="pr-track">{b && <i style={{ width: `${frac * 100}%`, background: col }} />}</span>
               <em>{b ? `${fmtT(Math.max(0, b.t1 - t))}` : ""}</em>
-              <small>{u.job ? <><span style={{ color: col }}>{u.job.replace(/_/g, " ")}</span>{u.step ? ` · ${u.step}` : ""}</> : "ready"}</small>
+              <small>{u.job ? <><span className="job-tag"><i style={{ background: col }} />{u.job.replace(/_/g, " ")}</span>{u.step ? ` · ${u.step}` : ""}</> : "ready"}</small>
             </div>
           );
         })}</div>
@@ -171,8 +171,8 @@ export function Production({ doc, t }: { doc: CadDoc; t: number }) {
   );
 }
 
-const FLAV_DOT: Record<string, string> = { vanilla: "#f2efe6", strawberry: "#f4a6bf", chocolate: "#b0773f" };
-const CLASS_DOT: Record<string, string> = { weiss: "#f2efe6", rot: "#c8233c", blau: "#3b2112" };
+const FLAV_DOT: Record<string, string> = { vanilla: "var(--flavour-vanilla)", strawberry: "#f4a6bf", chocolate: "#b0773f" };
+const CLASS_DOT: Record<string, string> = { weiss: "var(--flavour-vanilla)", rot: "#c8233c", blau: "#3b2112" };
 
 // one journey step: done (green), now (lit), or still ahead (faint)
 type Step = { label: string; done: boolean; now: boolean };

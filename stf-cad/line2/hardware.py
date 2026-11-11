@@ -44,7 +44,7 @@ SOURCES = {
     "smc": "SMC SY3000 5-port solenoid valve manifold catalogue",
 }
 
-# ------------------------------------------------------------ metric threads
+# --- metric threads
 # d, pitch, tap drill [ISO 261]; ISO 273 clearance (fine, medium, coarse);
 # ISO 4762 head (dk, k, s hex key, t key depth); ISO 7089 washer (d1, d2, h);
 # ISO 4032 nut (s, m); ISO 4762 preferred stock lengths; tightening torque of an
@@ -126,7 +126,7 @@ def screw_len(m, need, max_len=None):
     return None
 
 
-# ------------------------------------------------------ B-type slot profiles
+# --- B-type slot profiles
 # slot opening, lip thickness (face -> underside of the lip), channel depth
 # (face -> channel floor), channel inner width, core bore (end tap), mass kg/m,
 # second moment of area mm^4 [cat: misumi HFS5/HFS8; typ for other B-type vendors].
@@ -189,7 +189,7 @@ BRACKET = {
 TABLE_PLATE = dict(material="EN AW-5083 cast tooling plate", t=12.0, engage="AlMgSi_T6",
                    anchor="M6", src="[typ] (ACP 5080 class)")
 
-# -------------------------------------------------------- linear guides
+# --- linear guides
 # HIWIN MGN-H: rail W_R x H_R, block W x L, total height H (rail bottom -> block
 # top), block holes B x C, rail bolts at pitch P, end distance E, C_dyn kN [cat: hiwin].
 MGN = {
@@ -201,7 +201,7 @@ MGN = {
                    rail_bolt="M3", P=40.0, E=15.0, C_dyn=6.37, rail_clamp=5.3, src="[cat: hiwin MGN15H]"),
 }
 
-# ------------------------------------------------------------- lead screws
+# --- lead screws
 LEADSCREW = {
     "Tr8x4": dict(d=8.0, lead=4.0, pitch=2.0, root=5.5, eff=0.35,
                   nut=dict(flange_d=22.0, flange_t=3.5, body_d=10.2, length=15.0, holes=4, hole_d=3.5, pcd=16.0),
@@ -211,13 +211,13 @@ LEADSCREW = {
 WHIP_F = {"fixed-free": 3.4, "supported-supported": 9.7, "fixed-supported": 15.1, "fixed-fixed": 21.9}
 WHIP_MARGIN = 0.8
 
-# ---------------------------------------------------------------- bearings
+# --- bearings
 BEARING = {
     "608-2RS": dict(d=8.0, D=22.0, B=7.0, C_dyn=3.45, src="[ISO 15][typ C]"),
     "625-2RS": dict(d=5.0, D=16.0, B=5.0, C_dyn=1.73, src="[ISO 15][typ C]"),
 }
 
-# --------------------------------------------------------------- motors
+# --- motors
 # NEMA 17: flange 42.3 square, bolt square 31.0 (M3), pilot 22 x 2, shaft 5 x 24 [nema].
 NEMA17 = dict(flange=42.3, bolt_sq=31.0, bolt="M3", pilot=(22.0, 2.0), shaft=(5.0, 24.0), src="[cat: nema]")
 STEPPER = {    # holding torque Nm, rated current A, body length (w/o shaft), encoder cap length
@@ -250,7 +250,7 @@ BACKLASH_ARCMIN = {"PG5": 60.0, "PG14": 60.0, "PG27": 60.0, "AB042-5": 3.0, "SWG
 STEP_ACC_DEG = 0.09        # stepper static position accuracy, +-5 % of a 1.8 deg step [typ]
 ROTOR_J = {"17HS13-0404S": 3.4e-6, "17HS19-2004S1": 8.2e-6, "17HS19-2004D-E1000": 8.2e-6}   # kg m2 [cat: nema][typ]
 
-# -------------------------------------------------------- pneumatics
+# --- pneumatics
 # ISO 6432: rod d, rod thread, nose thread, port, barrel OD, body length at
 # zero stroke (nose shoulder -> rear eye) [ISO 6432][typ lengths: Festo DSNU].
 CYL = {
@@ -287,7 +287,7 @@ CYL_V_MAX = 1000.0         # mm/s max piston speed with cushioning [typ, ISO 643
 VALVE_ISLAND = dict(model="SMC SY3000 manifold, 24 V DC coils", station_w=10.5, end_w=40.0, depth=60.0,
                     height=33.0, coil_A=0.015, zone_w=18.0, src="[cat: smc][typ]")   # zone_w: pressure-zone plate
 
-# --------------------------------------------------------- electrics / PLC
+# --- electrics / PLC
 # Beckhoff: width on the rail (mm), E-bus current (mA; negative = supplies),
 # channels. Height 100 x depth 68 unless given [cat: beckhoff] - VERIFY widths
 # and currents against the current documentation before ordering.
@@ -338,7 +338,7 @@ SSR_AC = dict(model="Crydom D2410-10 AC SSR on DIN adapter", w=45.0, h=100.0, d=
 MCB_W = 17.5               # 1 module
 SAFETY_RELAY = dict(model="Pilz PNOZ s4 (E-stop, 2 channels) [typ]", w=22.5, h=100.0, d=120.0)   # pre-S-1 only
 
-# ------------------------------------------------ safety (Upgrade S-1, SAFETY_CONCEPT.md)
+# --- safety (Upgrade S-1, SAFETY_CONCEPT.md)
 # Every value here that enters a proof is a class value - VERIFY on the part bought.
 SAFE = {
     "estop": dict(desc="E-stop pushbutton, panel mount 22.5 mm, 2 NC positive opening (IEC 60947-5-5, ISO 13850)",
@@ -513,7 +513,7 @@ LOADS = {      # powered loads that are not motors
     "exhaust_fan": dict(desc="24 V EC duct fan D60, oven vapour exhaust", I=0.4, src="[typ]"),
 }
 
-# ------------------------------------------------------------- band oven (2026-10-02, oven.py)
+# --- band oven (2026-10-02, oven.py)
 STEEL_RHO = 7900.0         # kg/m3 stainless
 # straight tubular heating elements, Incoloy 800 sheath, 230 V, cold ends through the side walls with an
 # M14 gland; heated length spans the chamber, the cold ends cross the insulation      [typ] (Backer/Watlow)
@@ -549,7 +549,7 @@ CABLE_AC = {1.5: dict(I=16.0, T=180.0, model="SiF 1.5 mm2 (silicone, 180 C)"),  
             2.5: dict(I=21.0, T=90.0, model="H07V-K 2.5 mm2 in the cabinet")}         # [typ] IEC 60364-5-52
 
 
-# ------------------------------------------------------------- self-check
+# --- self-check
 def verify():
     """Consistency of the catalogue itself (not of the machine). Returns
     (fails, typ): typ lists every entry still to verify on the bought part."""

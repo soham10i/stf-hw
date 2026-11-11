@@ -14,7 +14,7 @@ Flow      by default the plant carries line_sim's product flow (DT-3b) for --hou
 REST      GET /state; POST /command {"name": kick | seal | exchange | master | speed, ...args};
           POST /sim {"speed": x} (wall pacing, 0 = pause); POST /step {"ticks": n} (manual mode).
 Security  binds 127.0.0.1 only and has no authentication: commands change the twin, never hardware (there is
-          none). Exposing it beyond this machine needs the token scheme of services/api on main (docs/SECURITY.md).
+          none). Exposing it beyond this machine needs the token scheme of services/api on main (docs/reference/operations/security.md).
 """
 import argparse
 import asyncio

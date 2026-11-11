@@ -31,8 +31,9 @@ import os
 import re
 from dataclasses import dataclass, field
 
-from . import vectors as V
 from services.api.core.logging_config import get_logger
+
+from . import vectors
 
 logger = get_logger(__name__)
 
@@ -71,11 +72,11 @@ class Judged:
 
 def _floor(hits: list[dict]) -> list[dict]:
     """search_docs' own floor: a lexical match, or a vector match on its own."""
-    return [h for h in hits if h["score"] >= 2.0 or h.get("vscore", 0.0) >= V.VECTOR_ACCEPT]
+    return [h for h in hits if h["score"] >= 2.0 or h.get("vscore", 0.0) >= vectors.VECTOR_ACCEPT]
 
 
 def candidates(query: str, page: str | None = None, n: int = CANDIDATES) -> list[dict]:
-    return _floor(V.hybrid_search(query, top_k=n, page=page))
+    return _floor(vectors.hybrid_search(query, top_k=n, page=page))
 
 
 def _where(h: dict) -> str:

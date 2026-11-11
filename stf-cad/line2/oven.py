@@ -30,7 +30,7 @@ Models (all [typ] textbook physics, the food data [assumed] - MEASURE on the fir
 import math
 from functools import lru_cache
 
-import hardware as H
+import hardware
 
 SIGMA = 5.670e-8
 G = 9.81
@@ -38,7 +38,7 @@ CP_W, LV = 4180.0, 2.257e6          # water: J/kg K, latent heat J/kg
 CP_AIR, RHO_AIR = 1010.0, 1.0       # hot air (~ 80 C mean between ambient and the zones)
 
 
-# ------------------------------------------------------------- product model
+# --- product model
 def _props(L):
     d, h = L["COOKIE"]
     D = L["DOUGH"]
@@ -117,7 +117,7 @@ def band_temps(L, t_zone):
     """Mesh band temperature entering / leaving each zone (lumped, both faces in the zone air). It enters
     the first zone at ambient (the return run is outside the chamber)."""
     m_a = L["BAND"]["m_area"]
-    c = H.BAND_MESH["cp"]
+    c = hardware.BAND_MESH["cp"]
     Tb, out = L["T_AMB"], []
     for k, Z in enumerate(L["OVEN_ZONES"]):
         tau = m_a * c / (2 * L["OVEN_H"]["bot"])
@@ -240,7 +240,7 @@ def colour_hex(L, colour, moisture):
     return "#" + "".join(f"{int(round(v)):02x}" for v in rgb)
 
 
-# ------------------------------------------------------------- chamber + power
+# --- chamber + power
 def chamber(L, band_w, zone_len):
     """Inner / outer box of one zone (m) and its areas."""
     C = L["CHAMBER"]
@@ -255,7 +255,7 @@ def chamber(L, band_w, zone_len):
 def wall_loss(L, T_in, A_in, A_out):
     """W through an insulated wall; returns (W, outer skin temperature)."""
     C = L["CHAMBER"]
-    k = H.INSULATION[C["insul_mat"]]["k"](0.5 * (T_in + L["T_AMB"]))
+    k = hardware.INSULATION[C["insul_mat"]]["k"](0.5 * (T_in + L["T_AMB"]))
     t = C["insul"] / 1000
     ho = C["h_out"]
     # area-weighted: conduction on the inner area, skin film on the outer area
@@ -300,7 +300,7 @@ def zone_loads(L, t_bake, band_w, band_v, rate):
         T = Z["T"]
         walls, skin = wall_loss(L, T, ch["A_wall"], ch["A_out"])
         mouth, V = mouth_loss(L, T, mouth_w, mouth_h) if k in (0, n - 1) else (0.0, 0.0)
-        band = m_band * H.BAND_MESH["cp"] * (bt[k][1] - bt[k][0])
+        band = m_band * hardware.BAND_MESH["cp"] * (bt[k][1] - bt[k][0])
         # exhaust: evaporated water leaves in air at X_EXHAUST kg/kg; this zone's share by its product heat
         share = e_zone[k] / sum(e_zone)
         m_air = evap * share / L["X_EXHAUST"]
@@ -323,7 +323,7 @@ def elements(L, loads, inner_w):
     heated length within the chamber width, sheath load <= TUBULAR_WCM2, fewest elements, then least power.
     Returns [dict(zone, face, tag, P, n, L_heated, load_Wcm2, cat)] - one row per element."""
     out = []
-    fit = [c for c in H.TUBULAR if c["L_heated"] <= inner_w - 20]
+    fit = [c for c in hardware.TUBULAR if c["L_heated"] <= inner_w - 20]
     lh = max(c["L_heated"] for c in fit)
     fit = [c for c in fit if c["L_heated"] == lh]
     for k, z in enumerate(loads):
@@ -334,7 +334,7 @@ def elements(L, loads, inner_w):
             for n in (1, 2, 3, 4):
                 for c in fit:
                     load = c["P"] / (math.pi * c["d"] / 10 * c["L_heated"] / 10)
-                    if n * c["P"] >= want and load <= H.TUBULAR_WCM2:
+                    if n * c["P"] >= want and load <= hardware.TUBULAR_WCM2:
                         if best is None or (n, n * c["P"]) < (best[0], best[0] * best[1]["P"]):
                             best = (n, c, load)
                 if best:
@@ -364,10 +364,10 @@ def capacity(L, zone_len, band_w):
     """J/K of one zone's chamber: inner skins, the band inside, the elements + rails, the inner half of the wool."""
     C = L["CHAMBER"]
     ch = chamber(L, band_w, zone_len)
-    m_skin = ch["A_wall"] * C["skin_t"] / 1000 * H.STEEL_RHO
-    m_ins = ch["A_wall"] * C["insul"] / 1000 * H.INSULATION[C["insul_mat"]]["rho"] * 0.5
+    m_skin = ch["A_wall"] * C["skin_t"] / 1000 * hardware.STEEL_RHO
+    m_ins = ch["A_wall"] * C["insul"] / 1000 * hardware.INSULATION[C["insul_mat"]]["rho"] * 0.5
     m_band = L["BAND"]["m_area"] * band_w / 1000 * zone_len / 1000 * 2       # carry + return
-    return (m_skin + m_band) * 500.0 + m_ins * H.INSULATION[C["insul_mat"]]["cp"] + C["m_fixed"] * 500.0
+    return (m_skin + m_band) * 500.0 + m_ins * hardware.INSULATION[C["insul_mat"]]["cp"] + C["m_fixed"] * 500.0
 
 
 def warmup(L, loads, elems, band_w, curves=False):

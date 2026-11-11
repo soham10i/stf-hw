@@ -371,8 +371,8 @@ def test_google_search_quota_is_metered_apart_and_never_takes_the_chats_models_o
 
 def test_a_slow_search_model_is_skipped_for_the_next_one(pages):
     chat, asked = both(), []
-    chat.pool = C.GP.Pool(["slow-model", "gemini-test"])
-    chat.search_pool = C.GP.Pool(list(chat.pool.models))
+    chat.pool = C.gemini_pool.Pool(["slow-model", "gemini-test"])
+    chat.search_pool = C.gemini_pool.Pool(list(chat.pool.models))
 
     def gemini(url, key, body):
         asked.append(url.split("/models/")[1].split(":")[0])

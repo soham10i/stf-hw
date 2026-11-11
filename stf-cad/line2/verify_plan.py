@@ -79,7 +79,7 @@ METHOD = {
 
 def _l_items():
     """[assumed] entries of line_model.L, parsed from its source (so a new one cannot be forgotten)."""
-    import line_model as M
+    import line_model
     src = open(os.path.join(HERE, "line_model.py")).read().splitlines()
     out = []
     for no, line in enumerate(src, 1):
@@ -87,8 +87,8 @@ def _l_items():
             continue
         code, com = line.split("#", 1)
         for key in re.findall(r"(\b[A-Z][A-Z0-9_]+)=", code):
-            if key in M.L:
-                out.append(dict(key=key, where=f"line_model.L (line {no})", value=M.L[key], note=com.strip(),
+            if key in line_model.L:
+                out.append(dict(key=key, where=f"line_model.L (line {no})", value=line_model.L[key], note=com.strip(),
                                 target=("L", key)))
     return out
 
@@ -106,39 +106,39 @@ L_DICT = [(("DOUGH", "w0"), "dough water, wet basis"), (("DOUGH", "cp_dry"), "dr
 
 
 def _extra_items():
-    import hardware as H
-    import line_model as M
-    import oven_ctrl as OC
-    import safety as S
+    import hardware
+    import line_model
+    import oven_ctrl
+    import safety
     out = []
     for path, note in L_DICT:
-        d = M.L
+        d = line_model.L
         for k in path[:-1]:
             d = d[k]
         out.append(dict(key=".".join(path), where=f"line_model.L{''.join(f'[{k!r}]' for k in path)}", value=d[path[-1]],
                         note=note, target=("LD",) + path))
-    out.append(dict(key="X_EXHAUST", where="line_model.L", value=M.L["X_EXHAUST"], note="kg water / kg exhaust air",
+    out.append(dict(key="X_EXHAUST", where="line_model.L", value=line_model.L["X_EXHAUST"], note="kg water / kg exhaust air",
                     target=("L", "X_EXHAUST")))
     for k, note in (("ZONE_G", "zone-to-zone exchange (W/K)"), ("TC_TAU", "TC lag (s)")):
-        out.append(dict(key=k, where="oven_ctrl.CTRL", value=OC.CTRL[k], note=note, target=("C", k)))
+        out.append(dict(key=k, where="oven_ctrl.CTRL", value=oven_ctrl.CTRL[k], note=note, target=("C", k)))
     for k, note in (("acc", "current transducer accuracy (of range)"), ("t_resp", "transducer response (s)")):
-        out.append(dict(key=k, where="hardware.CT_AC", value=H.CT_AC[k], note=note, target=("HD", "CT_AC", k)))
-    out += [dict(key="F_LOW", where="hardware.F_LOW", value=H.F_LOW, note="low-energy threshold (N)",
+        out.append(dict(key=k, where="hardware.CT_AC", value=hardware.CT_AC[k], note=note, target=("HD", "CT_AC", k)))
+    out += [dict(key="F_LOW", where="hardware.F_LOW", value=hardware.F_LOW, note="low-energy threshold (N)",
                 target=("H", "F_LOW")),
-           dict(key="T_LOGIC", where="hardware.T_LOGIC", value=H.T_LOGIC, note="TwinSAFE reaction (s)",
+           dict(key="T_LOGIC", where="hardware.T_LOGIC", value=hardware.T_LOGIC, note="TwinSAFE reaction (s)",
                 target=("H", "T_LOGIC")),
-           dict(key="OP_YEAR", where="hardware.OP_YEAR", value=H.OP_YEAR["days"], note="production days / year",
+           dict(key="OP_YEAR", where="hardware.OP_YEAR", value=hardware.OP_YEAR["days"], note="production days / year",
                 target=("HD", "OP_YEAR", "days")),
-           dict(key="F_close", where="hardware.SAFE['airlock_door']", value=H.SAFE["airlock_door"]["F_close"],
+           dict(key="F_close", where="hardware.SAFE['airlock_door']", value=hardware.SAFE["airlock_door"]["F_close"],
                 note="airlock door closing force (N)", target=("HD", "SAFE", "airlock_door", "F_close")),
-           dict(key="residual", where="hardware.SAFE['brush']", value=H.SAFE["brush"]["residual"],
+           dict(key="residual", where="hardware.SAFE['brush']", value=hardware.SAFE["brush"]["residual"],
                 note="opening left by the brush strip (mm)", target=("HD", "SAFE", "brush", "residual"))]
-    for k, d in H.RELIAB.items():
+    for k, d in hardware.RELIAB.items():
         for f in ("B10d", "PL", "PFHd"):
             if f in d:
                 out.append(dict(key=f, where=f"hardware.RELIAB['{k}']", value=d[f], note=d["src"],
                                 target=("HD", "RELIAB", k, f)))
-    for i, h in enumerate(S.HAZARDS):
+    for i, h in enumerate(safety.HAZARDS):
         if h[3] is not None:
             out.append(dict(key="t_mech", where=f"safety.HAZARDS: {h[0]}", value=h[3],
                             note="run-down after the contactors drop (s)", target=("HZ", i)))
@@ -156,41 +156,41 @@ def _scale(v, f):
 def _run(args):
     """Apply one perturbation in a fresh process and run every proof; return the first failure."""
     target, factor = args          # every job runs in a FRESH process (maxtasksperchild=1): no leftovers
-    import hardware as H
-    import line_model as M
-    import safety as S
-    import plc_io as P
-    import oven_ctrl as OC
+    import hardware
+    import line_model
+    import oven_ctrl
+    import plc_io
+    import safety
     if target is None:
         pass                                     # the control run: nothing perturbed
     elif target[0] == "L":
-        M.L[target[1]] = _scale(M.L[target[1]], factor)
+        line_model.L[target[1]] = _scale(line_model.L[target[1]], factor)
     elif target[0] == "LD":
-        d = M.L
+        d = line_model.L
         for k in target[1:-1]:
             d = d[k]
         d[target[-1]] = d[target[-1]] * factor
     elif target[0] == "C":
-        OC.CTRL[target[1]] = OC.CTRL[target[1]] * factor
+        oven_ctrl.CTRL[target[1]] = oven_ctrl.CTRL[target[1]] * factor
     elif target[0] == "H":
-        setattr(H, target[1], getattr(H, target[1]) * factor)
+        setattr(hardware, target[1], getattr(hardware, target[1]) * factor)
     elif target[0] == "HD":
-        d = getattr(H, target[1])
+        d = getattr(hardware, target[1])
         for k in target[2:-1]:
             d = d[k]
         d[target[-1]] = d[target[-1]] * factor
     elif target[0] == "HZ":
-        h = list(S.HAZARDS[target[1]])
+        h = list(safety.HAZARDS[target[1]])
         h[3] = h[3] * factor
-        S.HAZARDS = S.HAZARDS[:target[1]] + (tuple(h),) + S.HAZARDS[target[1] + 1:]
+        safety.HAZARDS = safety.HAZARDS[:target[1]] + (tuple(h),) + safety.HAZARDS[target[1] + 1:]
     try:
-        f = M.check(verbose=False)
+        f = line_model.check(verbose=False)
         if not f:
-            f = OC.check(verbose=False, write=False, quick=True)[1]
+            f = oven_ctrl.check(verbose=False, write=False, quick=True)[1]
         if not f:
-            f = P.check(verbose=False)
+            f = plc_io.check(verbose=False)
         if not f:
-            sf, finds = S.check(verbose=False)
+            sf, finds = safety.check(verbose=False)
             f = sf + finds
     except Exception as e:                       # a value so far off that a proof cannot even be evaluated
         f = [f"ERROR {type(e).__name__}: {e}"]
@@ -214,8 +214,8 @@ def main():
         lo, hi = res.get((it["target"], 1 - BAND)), res.get((it["target"], 1 + BAND))
         breaks = " / ".join(f"{s}: {r[:110]}" for s, r in (("-20 %", lo), ("+20 %", hi)) if r)
         tested = lo is not None
-        safety = it["where"].startswith(("hardware", "safety")) or it["key"] in ("FAN_RUNDOWN", "DOOR_T", "AMR_EXCH")
-        prio = 1 if breaks else (2 if safety else 3)
+        safety_relevant = it["where"].startswith(("hardware", "safety")) or it["key"] in ("FAN_RUNDOWN", "DOOR_T", "AMR_EXCH")
+        prio = 1 if breaks else (2 if safety_relevant else 3)
         rows.append(dict(priority=prio, key=it["key"], where=it["where"], value=it["value"],
                          sensitivity=breaks or ("holds at +/-20 %" if tested else "not numeric - verify"),
                          method=METHOD.get(it["key"], "measure on the prototype; re-run the proofs with it"),

@@ -7,7 +7,7 @@ import { useTwinCamera } from "../vision/twinCamera";
 import { breakNext, currentOrder, simulate, useLive } from "./live";
 
 const STATES: UnitState[] = ["IDLE", "READY", "RUN", "HELD"];
-const FLAVOUR: Record<string, string> = { chocolate: "#7a4a24", vanilla: "#efe6cf", strawberry: "#f4a6bf" };
+const FLAVOUR: Record<string, string> = { chocolate: "#7a4a24", vanilla: "var(--flavour-vanilla)", strawberry: "#f4a6bf" };
 const STAGE_SAY: Record<string, string> = {
   rack: "Rack", belt: "Belt", arm: "Robot arm", oven: "Oven", turntable: "Turntable", sorting: "Sorting", camera: "Camera", bin: "Bin",
 };

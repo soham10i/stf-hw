@@ -1,5 +1,5 @@
 """
-The PLC reference (docs/plc/), written from the exports the twin itself runs on - so it is the
+The PLC reference (docs/reference/plc/), written from the exports the twin itself runs on - so it is the
 program the browser compiles and runs, not a description of it:
 
   web/public/hbw_parts_up12.json   control: units, steps, transitions, jobs, alarms, policies,
@@ -22,8 +22,10 @@ import json
 import os
 import re
 
+from front_matter import front
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-OUT = os.path.join(ROOT, "docs", "plc")
+OUT = os.path.join(ROOT, "docs", "reference", "plc")
 EXPORT = "web/public/hbw_parts_up12.json"
 PLC = "web/public/sil/plc.json"
 SIL = "web/public/sil/sil.json"
@@ -81,11 +83,32 @@ def table(head: list[str], rows: list[list]) -> str:
     return "\n".join(out) + "\n"
 
 
+# each chapter's one-sentence scope, for its front matter (docs/README.md)
+SCOPE = {
+    "README.md": "The Smart Tabletop Factory is run by one IEC 61131-3 program: eight unit "
+    "sequencers and an orchestrator, generated from the same models that prove the machine's motion.",
+    "01-hardware.md": "The PLC's hardware: the control cabinet with its controller and safety "
+    "circuit, each module's remote I/O node, and the wiring between them.",
+    "02-io-map.md": "Every signal the program reads or writes, with its address in the process image.",
+    "03-units.md": "The unit sequencers: each unit's steps, the outputs a step sets, the signal it "
+    "waits for and the time limit that watches it.",
+    "04-orchestrator.md": "The orchestrator (PROGRAM MAIN): how it reads the units' state every "
+    "scan and offers jobs in one fixed priority order.",
+    "05-alarms.md": "Every alarm the program can raise, what a unit does on one, and how the "
+    "other units hold.",
+    "06-safety.md": "How the PLC program reacts to the emergency stop, the safety door and manual "
+    "mode: the ESTOP state every unit falls into and how it is left.",
+    "07-verification.md": "How the program is checked: proofs on the model it is generated from, "
+    "a compiler, and software in the loop against the simulated plant.",
+    "08-traceability.md": "How each cookie is traced through the cell: the tagged mould it "
+    "travels in, where its RFID tag is read and what the program records.",
+}
+
+
 def write(name: str, text: str) -> None:
+    body = text.rstrip() + f"\n\n<!-- Generated from the twin's exports by `{GEN}`; do not edit. -->\n"
     with open(os.path.join(OUT, name), "w", encoding="utf-8") as f:
-        f.write(
-            text.rstrip() + f"\n\n<!-- Generated from the twin's exports by `{GEN}`; do not edit. -->\n"
-        )
+        f.write(front(body, SCOPE[name], "plc", GEN))
 
 
 # ----------------------------------------------------------------------------- the chapters
@@ -105,7 +128,7 @@ def overview(d, plc, sil, src_lines) -> str:
         f"every {plc['scan_ms']} ms (software in the loop). Nothing in the 3D view moves unless this",
         "program drives an output.",
         "",
-        "![The PLC panel in the 3D twin: the program running, its units' states and its I/O image, live](../images/docs/twin-plc.jpg)",
+        "![The PLC panel in the 3D twin: the program running, its units' states and its I/O image, live](../../images/docs/twin-plc.jpg)",
         "",
         "```plc-architecture",
         "```",
@@ -209,7 +232,7 @@ def hardware(d, board) -> str:
             "fischertechnik 24 V sensors and actuators, wired to the node through the adaptor PCB.",
             "",
             "![The control cabinet in the 3D twin: the controller, the 24 V supply, the safety relay and"
-            " contactors on the DIN rail](../images/docs/cabinet.jpg)",
+            " contactors on the DIN rail](../../images/docs/cabinet.jpg)",
             "",
             "```plc-hardware",
             "```",

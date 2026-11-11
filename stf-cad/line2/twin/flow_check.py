@@ -31,14 +31,14 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 LINE2 = os.path.dirname(HERE)
 sys.path.insert(0, LINE2)
-from twin.plant.core import POOL, TICK, Plant            # noqa: E402
-from twin.plant.flow import Flow                         # noqa: E402
-import line_model as M                                   # noqa: E402
-import line_sim as LS                                    # noqa: E402
-import motion as Mo                                      # noqa: E402
-import oven_ctrl as OC                                   # noqa: E402
+import line_model  # noqa: E402
+import line_sim  # noqa: E402
+import motion  # noqa: E402
+import oven_ctrl  # noqa: E402
+from twin.plant.core import POOL, TICK, Plant  # noqa: E402
+from twin.plant.flow import Flow  # noqa: E402
 
-L = M.L
+L = line_model.L
 
 
 def check(verbose=True):
@@ -51,16 +51,16 @@ def check(verbose=True):
 
     # F1 -------------------------------------------------------------------------------------------------------
     ref = json.load(open(os.path.join(LINE2, "sim_results.json")))
-    diff = [n for n in LS.SCENARIOS if json.loads(json.dumps(LS.run(n))) != ref[n]]
-    row("F1 engine = sim_results", f"{len(LS.SCENARIOS) - len(diff)} of {len(LS.SCENARIOS)} scenarios identical",
+    diff = [n for n in line_sim.SCENARIOS if json.loads(json.dumps(line_sim.run(n))) != ref[n]]
+    row("F1 engine = sim_results", f"{len(line_sim.SCENARIOS) - len(diff)} of {len(line_sim.SCENARIOS)} scenarios identical",
         "all", not diff, ", ".join(diff))
 
     # F2 -------------------------------------------------------------------------------------------------------
-    pl = OC.Plant()
-    gains = OC.tune(pl)
+    pl = oven_ctrl.Plant()
+    gains = oven_ctrl.tune(pl)
     stored = json.load(open(os.path.join(LINE2, "oven", "control.json")))["scenarios"]["S3 depositor stop 10 min"]
-    content = OC.content_fn((0.0, 600.0))
-    zl = OC.ZoneLoop(pl, gains)
+    content = oven_ctrl.content_fn((0.0, 600.0))
+    zl = oven_ctrl.ZoneLoop(pl, gains)
     got, nxt = [], 0.0
     while zl.t <= 2400.0 + 1e-9:
         t = zl.t
@@ -83,7 +83,7 @@ def check(verbose=True):
     dt_run = time.perf_counter() - t0
     kpi = json.loads(json.dumps(p.flow.kpi))
     c = p.flow.counts
-    picks = {f: sum(1 for e in p.flow.log.values() if e.get("lane") == f) for f in LS.F}
+    picks = {f: sum(1 for e in p.flow.log.values() if e.get("lane") == f) for f in line_sim.F}
     agree = c.get("load", 0) == kpi["loaded"] and c.get("kick", 0) == kpi["rejected"] and \
         c.get("band_lost", 0) == kpi["band_lost"] and picks == kpi["packed"]
     row("F3 one hour = nominal_1h", f"KPIs {'identical' if kpi == ref['nominal_1h'] else 'DIFFERENT'}; events: "
@@ -119,7 +119,7 @@ def check(verbose=True):
     have = sorted(round(t, 2) for t, k_, kw in p.log if k_ == "kick")
     w_seal = sorted((d["lane"], round(t, 2)) for t, k_, d in rel if k_ == "pack")
     h_seal = sorted((kw["lane"], round(t, 2)) for t, k_, kw in p.log if k_ == "seal")
-    w_ex = sorted(round(t, 2) for t, k_, d in rel if k_ == "exchange" and d["lane"] == Mo.EXCH_LANE)
+    w_ex = sorted(round(t, 2) for t, k_, d in rel if k_ == "exchange" and d["lane"] == motion.EXCH_LANE)
     h_ex = sorted(round(t, 2) for t, k_, kw in p.log if k_ == "exchange")
 
     def near(a, b):
@@ -131,8 +131,8 @@ def check(verbose=True):
         near(want, have) and near(w_seal, h_seal) and near(w_ex, h_ex))
 
     # F6 -------------------------------------------------------------------------------------------------------
-    st = M.stations()
-    vb, period = M.band_v(), L["BAND"]["rows"] * M.takt()
+    st = line_model.stations()
+    vb, period = line_model.band_v(), L["BAND"]["rows"] * line_model.takt()
     r_min = 75 - 100
     wrong, n_puck, n_band = [], 0, 0
     for tau, f, pucks, band, rws in frames:
@@ -144,7 +144,7 @@ def check(verbose=True):
                 wrong.append((round(tau), f"puck {k}", on))
             if on:
                 flav = p.flow.log[pucks[k]]["flav"]
-                if f["paint"].get(f"cookie_{k:02d}_top") != L["BAKED"][Mo.FLAV.index(flav)]:
+                if f["paint"].get(f"cookie_{k:02d}_top") != L["BAKED"][motion.FLAV.index(flav)]:
                     wrong.append((round(tau), f"puck {k} colour"))
         drawn = {n for n, r in tr.items() if n.startswith("band_r") and not n.endswith("_top")
                  and isinstance(r, dict) and r["vis"]}
@@ -157,7 +157,7 @@ def check(verbose=True):
             expect.add(name)
             n_band += 1
             x = st["dep"] + vb * (tau - r * period)
-            if name not in tr or abs(tr[name]["c"][0] - M.g1(x)) > 0.51:
+            if name not in tr or abs(tr[name]["c"][0] - line_model.g1(x)) > 0.51:
                 wrong.append((round(tau), name, "x", tr.get(name, {}).get("c"), round(x, 2)))
             top = tr.get(f"{name}_top")
             if top is not None and bool(top[7]) != bool(topped):
@@ -219,8 +219,8 @@ def check(verbose=True):
 
     # F10 ------------------------------------------------------------------------------------------------------
     same, worst10, flagged10, n10 = [], 0.0, 0, 0
-    for name in LS.SCENARIOS:
-        hz = LS.SCENARIOS[name].get("horizon", LS.H1)
+    for name in line_sim.SCENARIOS:
+        hz = line_sim.SCENARIOS[name].get("horizon", line_sim.H1)
         q = Plant(flow=Flow(name))
         for _ in range(round(hz / 10.0)):                  # the whole run, the oven sampled every 10 s
             q.step(1000)
@@ -230,10 +230,10 @@ def check(verbose=True):
         flagged10 += sum(1 for e in q.flow.log.values() if e.get("flagged"))
         if json.loads(json.dumps(q.flow.kpi)) == ref[name]:
             same.append(name)
-    row("F10 every scenario in the plant", f"{len(same)} of {len(LS.SCENARIOS)} = sim_results (incl. 8 h shifts, "
+    row("F10 every scenario in the plant", f"{len(same)} of {len(line_sim.SCENARIOS)} = sim_results (incl. 8 h shifts, "
         f"{n10:,} cookies); oven worst {worst10:.2f} K over every run; {flagged10} flagged",
-        f"all; <= {L['BAKE_MARGIN']:g} K; 0", len(same) == len(LS.SCENARIOS) and worst10 <= L["BAKE_MARGIN"] and
-        flagged10 == 0, ", ".join(sorted(set(LS.SCENARIOS) - set(same))))
+        f"all; <= {L['BAKE_MARGIN']:g} K; 0", len(same) == len(line_sim.SCENARIOS) and worst10 <= L["BAKE_MARGIN"] and
+        flagged10 == 0, ", ".join(sorted(set(line_sim.SCENARIOS) - set(same))))
 
     if verbose:
         for name, val, lim, ok, note in rows:

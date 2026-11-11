@@ -38,8 +38,7 @@ import time
 import paho.mqtt.client as mqtt
 from sil.stream import PUBLIC, bundle
 
-from uns import namespace as N
-from uns import sparkplug as SP
+from uns import namespace, sparkplug
 from uns.audit import Recorder, audit
 from uns.broker import CACHE, ROLES, Broker, _pki
 from uns.client import connect, make
@@ -63,13 +62,13 @@ def wait(cond, timeout, step=0.1):
 
 
 def online(h):
-    return h.nodes.get(N.EDGE, {}).get("online", False)
+    return h.nodes.get(namespace.EDGE, {}).get("online", False)
 
 
-# ------------------------------------------------------------------ (1) mapping
+# --- (1) mapping
 def check_mapping():
     fails = []
-    ms = N.catalogue()
+    ms = namespace.catalogue()
     io = json.load(open(PUBLIC / "sil" / "plc.json"))
     names = {(m.device, m.name) for m in ms}
     if len(names) != len(ms):
@@ -82,7 +81,7 @@ def check_mapping():
     if len(units) != 6 * len(io["units"]):
         fails.append(f"MAPPING {len(units)} unit metrics for {len(io['units'])} units")
     aliases = [m.alias for m in ms if m.alias is not None]
-    if len(aliases) != len(set(aliases)) or [m.name for m in ms if m.alias is None] != [N.REBIRTH]:
+    if len(aliases) != len(set(aliases)) or [m.name for m in ms if m.alias is None] != [namespace.REBIRTH]:
         fails.append("MAPPING aliases not unique, or a metric other than Rebirth without one")
     uns = [m.uns for m in ms if m.uns]
     if len(uns) != len(set(uns)):
@@ -90,7 +89,7 @@ def check_mapping():
     return fails, ms
 
 
-# ------------------------------------------------------------------ (8) security
+# --- (8) security
 def other_ca():
     d = CACHE / "other-ca"
     if d.exists():
@@ -124,12 +123,12 @@ def security(b, rec):
         if rc == "Success":
             fails.append(f"SECURITY a connection with {name} was accepted")
     # writes the access list must stop: each carries a marker the auditor must never see
-    probes = [("stf-viewer", N.topic("NCMD"), "the viewer commands the cell"),
-              ("stf-edge", N.topic("NCMD"), "the edge forges a command to itself"),
-              ("stf-edge", N.topic("NBIRTH", edge="Cell-X"), "the edge impersonates another edge node"),
-              ("stf-edge", f"{N.UNS_ROOT}/hbw/inputs/i1", "the edge writes the Unified Namespace"),
-              ("stf-scada", N.topic("NBIRTH"), "the host impersonates the edge node"),
-              ("stf-viewer", f"{N.UNS_ROOT}/hbw/inputs/i1", "the viewer writes the Unified Namespace")]
+    probes = [("stf-viewer", namespace.topic("NCMD"), "the viewer commands the cell"),
+              ("stf-edge", namespace.topic("NCMD"), "the edge forges a command to itself"),
+              ("stf-edge", namespace.topic("NBIRTH", edge="Cell-X"), "the edge impersonates another edge node"),
+              ("stf-edge", f"{namespace.UNS_ROOT}/hbw/inputs/i1", "the edge writes the Unified Namespace"),
+              ("stf-scada", namespace.topic("NBIRTH"), "the host impersonates the edge node"),
+              ("stf-viewer", f"{namespace.UNS_ROOT}/hbw/inputs/i1", "the viewer writes the Unified Namespace")]
     marks = {}
     for user, topic, what in probes:
         c = make(f"probe-{user}", user, pw[user], b.ca)
@@ -145,7 +144,7 @@ def security(b, rec):
     got = []
     c = make("probe-viewer-read", "stf-viewer", pw["stf-viewer"], b.ca)
     c.on_message = lambda cl, ud, msg: got.append(msg.topic)
-    connect(c, b.port, on_connect=lambda cl: cl.subscribe([(f"{N.NAMESPACE}/#", 0)]))
+    connect(c, b.port, on_connect=lambda cl: cl.subscribe([(f"{namespace.NAMESPACE}/#", 0)]))
     time.sleep(1.5)
     c.disconnect()
     c.loop_stop()
@@ -160,12 +159,12 @@ def security(b, rec):
     return fails, notes
 
 
-# ------------------------------------------------------------------ (6) the Unified Namespace
+# --- (6) the Unified Namespace
 def uns_snapshot(b, user="stf-viewer"):
     got = {}
     c = make("uns-late-subscriber", user, b.passwords[user], b.ca)
     c.on_message = lambda cl, ud, msg: got.__setitem__(msg.topic, json.loads(msg.payload))
-    connect(c, b.port, on_connect=lambda cl: cl.subscribe([(f"{N.UNS_ROOT}/#", 1)]))
+    connect(c, b.port, on_connect=lambda cl: cl.subscribe([(f"{namespace.UNS_ROOT}/#", 1)]))
     time.sleep(1.5)
     c.disconnect()
     c.loop_stop()
@@ -174,7 +173,7 @@ def uns_snapshot(b, user="stf-viewer"):
 
 def check_uns(host, snap, ms):
     fails = []
-    n = host.nodes[N.EDGE]
+    n = host.nodes[namespace.EDGE]
     want = [m for m in ms if m.uns]
     for m in want:
         rec = n["metrics"].get((m.device, m.name))
@@ -184,12 +183,12 @@ def check_uns(host, snap, ms):
         elif rec is not None and got["value"] != rec["value"]:
             fails.append(f"UNS {m.uns}: {got['value']!r}, the host has {rec['value']!r}")
     return fails, {"topics": len([t for t in snap if not t.endswith("_status")]), "metrics": len(want),
-                   "status": snap.get(f"{N.UNS_ROOT}/_status"),
-                   "example": {k: snap[k] for k in (f"{N.UNS_ROOT}/hbw/encoders/crane/travel",
-                                                    f"{N.UNS_ROOT}/node/production/phase") if k in snap}}
+                   "status": snap.get(f"{namespace.UNS_ROOT}/_status"),
+                   "example": {k: snap[k] for k in (f"{namespace.UNS_ROOT}/hbw/encoders/crane/travel",
+                                                    f"{namespace.UNS_ROOT}/node/production/phase") if k in snap}}
 
 
-# ------------------------------------------------------------------ the run
+# --- the run
 def edge_process(b, bdseq):
     env = dict(os.environ, STF_UNS_EDGE_PASSWORD=b.passwords["stf-edge"], PYTHONPATH=os.path.dirname(HERE))
     return subprocess.Popen([sys.executable, "-m", "uns.edge", "--port", str(b.port), "--speed", str(SPEED),
@@ -217,7 +216,7 @@ def main_run():
             fails.append("HOST WAIT the edge was born before the primary host was online")
         host = Host(b.port, b.ca, b.passwords["stf-scada"]).start()
         mark("primary host online (STATE)")
-        if not wait(lambda: online(host) and len(host.nodes[N.EDGE]["devices"]) == 4, 10):
+        if not wait(lambda: online(host) and len(host.nodes[namespace.EDGE]["devices"]) == 4, 10):
             fails.append("LIVE the edge node was not born after the host came online")
             raise SystemExit(fails)
         mark("edge born: NBIRTH + 4 DBIRTH")
@@ -226,36 +225,36 @@ def main_run():
         sec_fails, out["security"] = security(b, rec)
         fails += sec_fails
         mark("security probes")
-        done = wait(lambda: host.value(N.EDGE, None, "Production/Phase") == "complete"
-                    and host.value(N.EDGE, None, "Production/OrderTime") > 0, 60, 0.25)
-        order, jobs = host.value(N.EDGE, None, "Production/OrderTime"), host.value(N.EDGE, None, "Production/JobsCompleted")
+        done = wait(lambda: host.value(namespace.EDGE, None, "Production/Phase") == "complete"
+                    and host.value(namespace.EDGE, None, "Production/OrderTime") > 0, 60, 0.25)
+        order, jobs = host.value(namespace.EDGE, None, "Production/OrderTime"), host.value(namespace.EDGE, None, "Production/JobsCompleted")
         mark(f"order complete: {order:.2f} s, {jobs} jobs")
         want_t = round(sil["done_at"] - sil["homed_at"], 2)
         out["live"] = {"order_s": order, "jobs": jobs, "u13_order_s": want_t, "u13_jobs": sil["jobs"],
-                       "state": host.value(N.EDGE, None, "Production/State")}
+                       "state": host.value(namespace.EDGE, None, "Production/State")}
         if not done or abs(order - want_t) > 0.15 or jobs != sil["jobs"]:
             fails.append(f"LIVE order {order} s / {jobs} jobs, Upgrade 13 says {want_t} s / {sil['jobs']}")
-        births = host.nodes[N.EDGE]["births"]
-        host.rebirth(N.EDGE, "requested by the check")
+        births = host.nodes[namespace.EDGE]["births"]
+        host.rebirth(namespace.EDGE, "requested by the check")
         mark("host: NCMD 'Node Control/Rebirth'")
-        ok = wait(lambda: host.nodes[N.EDGE]["births"] == births + 1 and online(host), 5)
-        out["rebirth"] = {"born_again": ok, "bdSeq": host.nodes[N.EDGE]["bdseq"]}
+        ok = wait(lambda: host.nodes[namespace.EDGE]["births"] == births + 1 and online(host), 5)
+        out["rebirth"] = {"born_again": ok, "bdSeq": host.nodes[namespace.EDGE]["bdseq"]}
         if not ok:
             fails.append("REBIRTH no new birth after the request")
         time.sleep(0.5)
         snap = uns_snapshot(b)
-        uf, out["uns"] = check_uns(host, snap, N.catalogue())
+        uf, out["uns"] = check_uns(host, snap, namespace.catalogue())
         fails += uf
         mark(f"late subscriber: {out['uns']['topics']} retained UNS topics")
         # (7) the host goes offline, comes back
-        bd0 = host.nodes[N.EDGE]["bdseq"]
+        bd0 = host.nodes[namespace.EDGE]["bdseq"]
         host.stop()
         mark("primary host offline (clean STATE death)")
         time.sleep(2.0)
         host = Host(b.port, b.ca, b.passwords["stf-scada"]).start()
         mark("primary host online again")
         ok = wait(lambda: online(host), 8)
-        bd1 = host.nodes.get(N.EDGE, {}).get("bdseq")
+        bd1 = host.nodes.get(namespace.EDGE, {}).get("bdseq")
         mark(f"edge born again, bdSeq {bd0} -> {bd1}")
         if not ok or bd1 != (bd0 + 1) % 256:
             fails.append(f"DEATH after the host returned: born {ok}, bdSeq {bd0} -> {bd1}")
@@ -264,16 +263,16 @@ def main_run():
         edge.wait()
         mark("edge node killed (SIGKILL)")
         ok = wait(lambda: not online(host), 30)
-        n = host.nodes[N.EDGE]
+        n = host.nodes[namespace.EDGE]
         stale = all(r["stale"] for r in n["metrics"].values())
-        status = uns_snapshot(b).get(f"{N.UNS_ROOT}/_status", {})
+        status = uns_snapshot(b).get(f"{namespace.UNS_ROOT}/_status", {})
         mark(f"broker published the will: host marks the node offline, {len(n['metrics'])} metrics stale")
         out["death"] = {"offline": ok, "stale": stale, "uns_status": status, "host_log": [x[:3] for x in host.log[-3:]]}
         if not ok or not stale or status.get("online") is not False:
             fails.append(f"DEATH after SIGKILL: offline {ok}, stale {stale}, UNS status {status}")
         edge = edge_process(b, bdseq)
         ok = wait(lambda: online(host), 10)
-        bd2 = host.nodes[N.EDGE]["bdseq"]
+        bd2 = host.nodes[namespace.EDGE]["bdseq"]
         mark(f"edge restarted, born with bdSeq {bd2}")
         if not ok or bd2 != (bd1 + 1) % 256:
             fails.append(f"DEATH after restart: born {ok}, bdSeq {bd1} -> {bd2}")
@@ -297,7 +296,7 @@ def samples(records):
     out = {}
     for r in records:
         parts = r["topic"].split("/")
-        kind = parts[2] if parts[0] == N.NAMESPACE and len(parts) > 2 else ("STATE" if "/STATE/" in r["topic"] else None)
+        kind = parts[2] if parts[0] == namespace.NAMESPACE and len(parts) > 2 else ("STATE" if "/STATE/" in r["topic"] else None)
         if parts[1:2] == ["STATE"]:
             kind = "STATE online" if json.loads(r["raw"]).get("online") else "STATE offline"
         if kind is None or kind in out or "PROBE" in str(r["raw"][:20]):
@@ -305,17 +304,17 @@ def samples(records):
         if kind.startswith("STATE"):
             out[kind] = {"topic": r["topic"], "qos": r["qos"], "retain": r["retain"], "json": json.loads(r["raw"])}
             continue
-        p = SP.decode(r["raw"])
+        p = sparkplug.decode(r["raw"])
         ms = [{k: v for k, v in (("name", m.name if m.HasField("name") else None), ("alias", m.alias if m.HasField("alias") else None),
-                                 ("datatype", DT.get(m.datatype, m.datatype)), ("value", SP.get_value(m)),
-                                 ("properties", SP.props(m) or None)) if v is not None} for m in p.metrics]
+                                 ("datatype", DT.get(m.datatype, m.datatype)), ("value", sparkplug.get_value(m)),
+                                 ("properties", sparkplug.props(m) or None)) if v is not None} for m in p.metrics]
         out[kind] = {"topic": r["topic"], "qos": r["qos"], "retain": r["retain"], "bytes": len(r["raw"]),
                      "timestamp": p.timestamp, "seq": p.seq if p.HasField("seq") else None,
                      "metrics": ms[:8], "metric_count": len(ms)}
     return out
 
 
-# ------------------------------------------------------------------ (9) mutants
+# --- (9) mutants
 def mutant_edge(mid):
     fails = []
     bdseq = CACHE / f"mutant-{mid}-bdseq"
@@ -342,7 +341,7 @@ def mutant_edge(mid):
 
 def mutant_broker(mid):
     kw = {"SM1": dict(allow_anonymous=True),
-          "SM2": dict(extra_acl=f"\nuser stf-edge\ntopic write {N.NAMESPACE}/{N.GROUP}/NCMD/#\n")}[mid]
+          "SM2": dict(extra_acl=f"\nuser stf-edge\ntopic write {namespace.NAMESPACE}/{namespace.GROUP}/NCMD/#\n")}[mid]
     with Broker(port=PORT + 2, workdir=CACHE / f"mutant-{mid}", **kw) as b:
         rec = Recorder(b.port, b.ca, b.passwords["stf-auditor"])
         f, _ = security(b, rec)
@@ -365,9 +364,9 @@ def namespace_json(ms):
         devices.setdefault(m.device or "(node)", []).append(
             {"name": m.name, "alias": m.alias, "datatype": DT[m.dtype], "uns": m.uns,
              **({"properties": m.props} if m.props else {})})
-    return {"group": N.GROUP, "edge": N.EDGE, "host": N.HOST_ID, "uns_root": N.UNS_ROOT,
-            "topics": {"node": N.topic("{NBIRTH|NDATA|NDEATH|NCMD}"), "device": N.topic("{DBIRTH|DDATA|DDEATH|DCMD}", "{device}"),
-                       "state": N.state_topic()}, "devices": devices}
+    return {"group": namespace.GROUP, "edge": namespace.EDGE, "host": namespace.HOST_ID, "uns_root": namespace.UNS_ROOT,
+            "topics": {"node": namespace.topic("{NBIRTH|NDATA|NDEATH|NCMD}"), "device": namespace.topic("{DBIRTH|DDATA|DDEATH|DCMD}", "{device}"),
+                       "state": namespace.state_topic()}, "devices": devices}
 
 
 def main():

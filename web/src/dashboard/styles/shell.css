@@ -42,27 +42,6 @@
   border-radius: 18px;
   transition: box-shadow .24s ease, transform .24s cubic-bezier(0.16, 1, 0.3, 1), border-color .24s ease;
 }
-:root[data-theme="light"] .db-card,
-:root[data-theme="light"] .db-kpi,
-:root[data-theme="light"] .db-ctl,
-:root[data-theme="light"] .db-search {
-  --card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(246, 250, 255, 0.62) 100%);
-  --card-line: rgba(255, 255, 255, 0.75);
-  --card-hi: #ffffff;
-  --card-blur: blur(32px) saturate(180%) brightness(102%);
-  --lift:
-    0 18px 44px -6px rgba(18, 38, 63, 0.10),
-    0 4px 14px -2px rgba(18, 38, 63, 0.05),
-    inset 0 1px 0 0 #ffffff;
-  background: var(--card-bg);
-  -webkit-backdrop-filter: var(--card-blur);
-  backdrop-filter: var(--card-blur);
-  border: 1px solid var(--card-line);
-  box-shadow:
-    0 10px 28px -4px rgba(18, 38, 63, 0.06),
-    0 2px 6px -1px rgba(18, 38, 63, 0.03),
-    inset 0 1px 0 0 #ffffff;
-}
 .db-card { position: relative; }
 /* the card light: a gentle, subtle ambient sheen */
 .db-card::after, .db-kpi::after {
@@ -97,18 +76,6 @@
     0 4px 12px -2px rgba(0, 0, 0, 0.25),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
 }
-:root[data-theme="light"] .db-nav {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.90) 0%, rgba(244, 249, 254, 0.65) 100%),
-    rgba(255, 255, 255, 0.70);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  box-shadow:
-    0 12px 32px -6px rgba(18, 38, 63, 0.08),
-    0 2px 8px -1px rgba(18, 38, 63, 0.03),
-    inset 0 1px 0 0 #ffffff;
-  -webkit-backdrop-filter: blur(32px) saturate(180%) brightness(102%);
-  backdrop-filter: blur(32px) saturate(180%) brightness(102%);
-}
 .db-brand {
   display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 4px 12px;
   border-bottom: 1px solid var(--border-soft); margin-bottom: 8px; box-sizing: border-box;
@@ -119,7 +86,7 @@
   display: block; height: 32px; width: auto; object-fit: contain; border-radius: 8px; flex: none;
 }
 .db-brand .brand-mark { display: none; }
-/* the wordmark beside the cube, where a theme draws the brand as mark + name (glass.css) */
+/* the wordmark beside the cube */
 .db-brand-name { display: none; }
 .db.nav-min .db-brand .db-brand-logo { display: none; }
 .db.nav-min .db-brand .brand-mark { display: grid; }
@@ -190,13 +157,6 @@ span.brand-mark {
   box-shadow: var(--btn-glass-active-shadow);
   -webkit-backdrop-filter: blur(16px) saturate(160%); backdrop-filter: blur(16px) saturate(160%);
 }
-:root[data-theme="light"] .db-nav button.on, :root[data-theme="light"] .db-nav button.on:hover {
-  color: #ffffff !important;
-}
-:root[data-theme="light"] .db-nav button.on svg {
-  color: #ffffff !important;
-  opacity: 1;
-}
 .db-nav button svg, .db-nav button span:not(.db-nav-pill), .db-twin svg, .db-twin span {
   position: relative;
   z-index: 1;
@@ -241,17 +201,6 @@ span.brand-mark {
   width: 100%;
   flex: none;
 }
-:root[data-theme="light"] .db-top {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(246, 250, 255, 0.75) 100%),
-    rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  box-shadow:
-    0 12px 32px -6px rgba(18, 38, 63, 0.08),
-    inset 0 1px 0 0 #ffffff;
-  -webkit-backdrop-filter: blur(28px) saturate(180%) brightness(102%);
-  backdrop-filter: blur(28px) saturate(180%) brightness(102%);
-}
 .db-panes {
   display: flex;
   gap: var(--db-gap, 8px);
@@ -280,16 +229,6 @@ span.brand-mark {
     inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
   -webkit-backdrop-filter: blur(36px) saturate(190%) brightness(102%);
   backdrop-filter: blur(36px) saturate(190%) brightness(102%);
-}
-:root[data-theme="light"] .db-main {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.50) 0%, rgba(246, 250, 255, 0.25) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.75);
-  box-shadow:
-    0 16px 40px -8px rgba(18, 38, 63, 0.06),
-    inset 0 1px 0 0 #ffffff;
-  -webkit-backdrop-filter: blur(32px) saturate(180%) brightness(102%);
-  backdrop-filter: blur(32px) saturate(180%) brightness(102%);
 }
 .db-tools {
   display: flex;
@@ -336,9 +275,6 @@ span.brand-mark {
   background: var(--card-bg); border: 1px solid var(--card-line);
   box-shadow: 0 4px 18px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 var(--card-hi);
 }
-:root[data-theme="light"] .db-kpi {
-  box-shadow: 0 4px 16px -2px rgba(15, 30, 65, 0.06), inset 0 1px 0 #ffffff;
-}
 .db-kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent); opacity: .0; }
 .db-kpi.ok::before { background: var(--ok); opacity: 1; }
 .db-kpi.warn::before { background: var(--warn); opacity: 1; }
@@ -380,11 +316,8 @@ span.brand-mark {
   border: 1px solid var(--card-line);
   box-shadow: 0 6px 24px -6px rgba(0, 0, 0, 0.35), inset 0 1px 0 var(--card-hi);
 }
-:root[data-theme="light"] .db-card {
-  box-shadow: 0 4px 16px -2px rgba(15, 30, 65, 0.05), inset 0 1px 0 #ffffff;
-}
 .db-card.wide { grid-column: 1 / -1; }
-/* the card's content; a box of its own only where a theme draws one (glass.css) */
+/* the card's content */
 .db-card-body { display: contents; }
 .db-card h3 {
   display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-size: var(--fs-head); font-weight: 600; color: var(--text);
@@ -580,16 +513,10 @@ details > summary { cursor: pointer; }
 .db-inspector-h span { display: block; font-size: var(--fs-callout); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .db-inspector-ico { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 18%, var(--surface)); color: var(--accent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); flex: none; }
 .db-inspector-ico svg { display: block; margin: auto; }
-:root[data-theme="light"] .db-inspector-ico { background: color-mix(in srgb, var(--accent) 12%, #ffffff); border-radius: 50%; box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(15, 30, 65, 0.06); }
 .db-inspector-h .ui-btn.pin,
 .db-inspector-h .ui-btn.on {
-  background: #202d46; color: #79a6fb; border: 1px solid rgba(121, 166, 251, 0.28); border-radius: 11px; width: 32px; height: 32px; display: grid; place-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-:root[data-theme="light"] .db-inspector-h .ui-btn.pin,
-:root[data-theme="light"] .db-inspector-h .ui-btn.on {
-  background: #e5efff; color: #1d4ed8; border: 1px solid rgba(29, 78, 216, 0.22); border-radius: 11px;
-  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.12), inset 0 1px 0 #ffffff;
+  background: var(--primary, var(--accent-fill)); color: var(--on-accent); border: 1px solid transparent; border-radius: 11px; width: 32px; height: 32px; display: grid; place-items: center;
+  box-shadow: none;
 }
 .db-inspector .ch { flex: 1; min-height: 0; }
 @media (max-width: 1200px) {
@@ -736,10 +663,6 @@ details > summary { cursor: pointer; }
 .db-nav button svg { color: var(--muted); opacity: .9; }
 .db-nav button:hover { color: var(--text); }
 .db-nav button:hover svg { color: var(--text); opacity: 1; }
-.db-nav button.on { color: #ffffff !important; }
-.db-nav button.on svg { color: #ffffff !important; opacity: 1; }
-:root[data-theme="light"] .db-nav button.on { color: #ffffff !important; }
-:root[data-theme="light"] .db-nav button.on svg { color: #ffffff !important; opacity: 1; }
 
 /* --------------------------------------------------------------- motion
    The nav's sliding highlight. Content sits above the page's ground layer, without touching the
@@ -755,16 +678,6 @@ details > summary { cursor: pointer; }
   z-index: 0;
   -webkit-backdrop-filter: blur(16px) saturate(160%); backdrop-filter: blur(16px) saturate(160%);
   pointer-events: none;
-}
-:root[data-theme="light"] .db-nav-pill {
-  background: #090e21;
-  border: 1px solid rgba(9, 14, 33, 0.95);
-  box-shadow: 0 4px 14px -1px rgba(9, 14, 33, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.20);
-}
-:root:not([data-theme="light"]) .db-nav-pill {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.06) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  box-shadow: 0 6px 18px -2px rgba(0, 0, 0, 0.40), inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
 }
 @media (prefers-reduced-motion: reduce) { .db-nav-pill { transition: none; } }
 
@@ -804,7 +717,6 @@ details > summary { cursor: pointer; }
 .pr-dots { display: flex; flex-wrap: wrap; gap: 6px; }
 .pr-dots i { width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--c); transition: background .25s; }
 .pr-dots i.on { background: var(--c); }
-
 
 /* the owner-notifications bell menu (dashboard/NotifyMenu.tsx) */
 .notify-menu .ui-btn { position: relative; }

@@ -37,8 +37,7 @@ import json
 import math
 import os
 
-import aas_core3.jsonization as jsz
-import aas_core3.verification as ver
+from aas_core3 import jsonization, verification
 
 from aas import smt
 
@@ -125,7 +124,7 @@ def ext_ref(url):
     return {"type": "ExternalReference", "keys": [{"type": "GlobalReference", "value": url}]}
 
 
-# ------------------------------------------------------------- shared submodels
+# --- shared submodels
 def nameplate(slug, uri, maker, designation, order_code, article=None, root=None, family=None, ptype=None,
               serial=None, year=None, software=None, extra=()):
     spec = {
@@ -208,7 +207,7 @@ def models3d(slug, models):
     return smt.submodel(T["Provision_of_3D_Models"], {"Model3D": items}, sm_id(slug, "Models3D"))
 
 
-# ------------------------------------------------------------- the parts
+# --- the parts
 def part_note(c):
     """Who stands behind a part type's data: the ft parts and the devices are compiled from their
     makers' public documents (and not issued by them); a remote-I/O placeholder is the design's."""
@@ -253,7 +252,7 @@ def part_shells():
                  {"en": f"{maker}'s own publication, where {maker} publishes it."},
                  "de" if not is_sheet else "en", vendor(doc))] if doc else [
                 (f"{slug}-design", "02-01", {"en": "Technical specification"}, {"en": "Upgrade plan, as built"},
-                 {"en": "The upgrade design this placeholder belongs to."}, "en", repo("docs/UPGRADE_PLAN.md"))]
+                 {"en": "The upgrade design this placeholder belongs to."}, "en", repo("docs/reference/factory/upgrades.md"))]
         sms = [
             nameplate(slug, uri, maker, designation, c["ft"],
                       article=c["ft"] if c["ft"].isdigit() else None, family=family, extra=extra),
@@ -271,7 +270,7 @@ def part_shells():
     return shells, comps
 
 
-# ------------------------------------------------------------- the AI models
+# --- the AI models
 def ai_shells():
     ml = jload("ml/results.json")
     w, rd, smp = jload("vision/weights.json"), jload("vision/render.json"), jload("vision/samples/samples.json")["samples"]
@@ -329,7 +328,7 @@ def prop_new(k, v, label=None):
     return p
 
 
-# ------------------------------------------------------------- the cell
+# --- the cell
 def cell_shell(parts, comps):
     slug = "stf-cell-u12"
     sil = jload("sil/sil.json")
@@ -377,11 +376,11 @@ def cell_shell(parts, comps):
     sms.append(smt.submodel(T["Hierarchical_Structures_enabling_Bills_of_Material"], bom, sm_id(slug, "HierarchicalStructures")))
     sms.append(handover(slug, [
         ("stf-upgrade-plan", "02-01", {"en": "Technical specification"}, {"en": "Upgrade plan, as built (Upgrades 1-15)"},
-         {"en": "What each upgrade changed and how it is proven."}, "en", repo("docs/UPGRADE_PLAN.md")),
+         {"en": "What each upgrade changed and how it is proven."}, "en", repo("docs/reference/factory/upgrades.md")),
         ("stf-validation", "02-01", {"en": "Technical specification"}, {"en": "Validation report"},
-         {"en": "Every variant re-proved, mutation tests, robustness."}, "en", repo("docs/VALIDATION.md")),
+         {"en": "Every variant re-proved, mutation tests, robustness."}, "en", repo("docs/reference/factory/validation.md")),
         ("stf-security", "02-01", {"en": "Technical specification"}, {"en": "Security review"},
-         {"en": "Findings S1-S13 and their fixes."}, "en", repo("docs/SECURITY.md")),
+         {"en": "Findings S1-S13 and their fixes."}, "en", repo("docs/reference/operations/security.md")),
         ("stf-plc-program", "02-01", {"en": "Technical specification"}, {"en": "PLC program (IEC 61131-3)"},
          {"en": "The generated Structured Text, as compiled by MatIEC."}, "en", site("sil/stf_plc.st")),
         ("ft-536634-booklet", "02-01", {"en": "Technical specification"}, {"en": "Fabrik Simulation 24V, fischertechnik booklet"},
@@ -432,7 +431,7 @@ def shell(slug, name, kind, submodels, desc):
             "submodels": submodels}
 
 
-# ------------------------------------------------------------- proofs
+# --- proofs
 def concept_descriptions(env):
     """One concept description per project-defined semanticId (cd/...), so each is explained."""
     seen = {}
@@ -456,8 +455,8 @@ def concept_descriptions(env):
 def check(env):
     fails = []
     # (1) the metamodel
-    obj = jsz.environment_from_jsonable(env)
-    for err in ver.verify(obj):
+    obj = jsonization.environment_from_jsonable(env)
+    for err in verification.verify(obj):
         fails.append(f"AAS v3: {err.path}: {err.cause}")
     # (2) the templates
     by_sem = {smt._sem(t["submodels"][0]): (k, t["submodels"][0]) for k, t in T.items()}
@@ -533,7 +532,7 @@ def write_aasx(env_path, aasx_path):
     return count(store), count(back)
 
 
-# ---------------------------------------------------------- mutation tests
+# --- mutation tests
 def _mut(env, fn):
     env = json.loads(json.dumps(env))
     fn(env)

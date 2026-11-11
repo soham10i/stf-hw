@@ -22,14 +22,6 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Any
 
-from stf_kernel import (
-    Kernel,
-    PlanError,
-    Trajectory,
-)
-from stf_layout import Layout, get_layout
-
-from . import wire
 from services.api.core.cycle import (
     FLAVORS,
     HBW_DEPOSIT_MM,
@@ -41,6 +33,14 @@ from services.api.core.cycle import (
     simple_plan,
 )
 from services.api.core.logging_config import get_logger
+from stf_kernel import (
+    Kernel,
+    PlanError,
+    Trajectory,
+)
+from stf_layout import Layout, get_layout
+
+from . import wire
 
 logger = get_logger(__name__)
 
@@ -85,7 +85,7 @@ class SimRuntime:
         self._running = False
         self._task: asyncio.Task | None = None
 
-    # -- lifecycle ---------------------------------------------------------
+    # --- lifecycle
 
     async def start(self) -> None:
         """Start the background simulation loop task."""
@@ -106,7 +106,7 @@ class SimRuntime:
             await asyncio.gather(self._task, return_exceptions=True)
             logger.info("Simulation runtime stopped")
 
-    # -- orders ------------------------------------------------------------
+    # --- orders
 
     def submit(self, op: str, slot: str | None) -> Order:
         """Queue a factory machine order for execution.
@@ -186,7 +186,7 @@ class SimRuntime:
         """The most recent factory orders (the /orders payload)."""
         return [o.as_dict() for o in self._history[-20:]]
 
-    # -- cycle construction ------------------------------------------------
+    # --- cycle construction
 
     def _build_cycle(self, slot: str) -> list[Phase]:
         return build_cycle(self.layout, slot)
@@ -194,7 +194,7 @@ class SimRuntime:
     def _simple_plan(self, order: Order) -> Trajectory:
         return simple_plan(self.layout, order, self.kernel.backend.snapshot().joints)
 
-    # -- client fan-out ----------------------------------------------------
+    # --- client fan-out
 
     def add_client(self, ws: Any) -> None:
         """Register a connected WebSocket client to receive world state frames.
@@ -255,7 +255,7 @@ disconnect.
         frame["oven"] = dict(self._oven)
         return frame
 
-    # -- the loop ----------------------------------------------------------
+    # --- the loop
 
     async def _run(self) -> None:
         # ticks on fixed deadlines, two per frame: the kernel steps at 60 Hz and every second tick
@@ -288,7 +288,7 @@ disconnect.
                 deadline = time.perf_counter()
             await asyncio.sleep(max(0.0, deadline - time.perf_counter()))
 
-    # -- order + phase servicing ------------------------------------------
+    # --- order + phase servicing
 
     def _service(self) -> None:
         """Service pending or active orders, advancing multi-phase cycles or completing jobs."""

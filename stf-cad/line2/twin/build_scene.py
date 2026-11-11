@@ -47,7 +47,7 @@ def load():
     return idx["meta"], idx["solids"], npz
 
 
-# ------------------------------------------------------------------ USD
+# --- USD
 def write_usd(meta, solids, npz):
     import shutil
     shutil.rmtree(os.path.join(OUT, "layers"), ignore_errors=True)       # every run writes the stage from scratch
@@ -162,7 +162,7 @@ def write_usd(meta, solids, npz):
     return paths, ok
 
 
-# ------------------------------------------------------------------ glTF 2.0 binary
+# --- glTF 2.0 binary
 def write_glb(meta, solids, npz):
     bin_, views, accs, meshes, mats, nodes = bytearray(), [], [], [], [], []
 

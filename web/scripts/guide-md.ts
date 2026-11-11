@@ -1,8 +1,17 @@
-// Writes docs/DASHBOARD_GUIDE.md from src/dashboard/guide.ts - the same text the dashboard's
+// Writes docs/reference/guide/dashboard-guide.md from src/dashboard/guide.ts - the same text the dashboard's
 // Guide button shows, so the two cannot drift apart.
 //   npx esbuild scripts/guide-md.ts --bundle --platform=node --outfile=../.cache/guide-md.mjs && node ../.cache/guide-md.mjs
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { GUIDE, TERMS } from "../src/dashboard/guide";
+
+/** The front matter every docs/reference document starts with (docs/README.md); a generated one
+    carries the date it was generated. */
+const q = (s: string) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+function front(title: string, scope: string, module: string, index = true) {
+  const today = new Date().toISOString().slice(0, 10);
+  return ["---", `title: ${q(title)}`, `scope: ${q(scope)}`, `module: ${module}`, `last_verified: ${today}`,
+    "generated_by: web/scripts/guide-md.ts", ...(index ? [] : ["index: false"]), "---", ""];
+}
 
 const GROUPS: [string, string[]][] = [
   ["Operate", ["overview", "production", "quality", "vision", "alarms", "copilot"]],
@@ -12,6 +21,8 @@ const GROUPS: [string, string[]][] = [
   ["Docs", ["docs-degradation"]],
 ];
 const out: string[] = [
+  // left out of the index: the per-page documents below hold the same text, one page each
+  ...front("Operations dashboard: user guide", "Every dashboard page in one document: what each shows, how to read it and where its numbers come from.", "guide", false),
   "# Operations dashboard: user guide",
   "",
   "The dashboard (`dashboard.html`, the **Dashboard** button in the 3D twin) shows the cell's production, health, energy and",
@@ -41,20 +52,20 @@ for (const [g, ids] of GROUPS) {
 out.push("---", "", "## Terms", "", "| Term | Meaning |", "|---|---|");
 for (const [k, v] of Object.entries(TERMS)) out.push(`| ${k} | ${v} |`);
 out.push("", "*Generated from `web/src/dashboard/guide.ts` by `web/scripts/guide-md.ts`.*", "");
-writeFileSync(new URL("../../docs/DASHBOARD_GUIDE.md", import.meta.url), out.join("\n"));
-console.log(`wrote docs/DASHBOARD_GUIDE.md: ${Object.keys(GUIDE).length} pages, ${Object.keys(TERMS).length} terms`);
+writeFileSync(new URL("../../docs/reference/guide/dashboard-guide.md", import.meta.url), out.join("\n"));
+console.log(`wrote docs/reference/guide/dashboard-guide.md: ${Object.keys(GUIDE).length} pages, ${Object.keys(TERMS).length} terms`);
 
-// One document per page for the chat's knowledge base (docs/assistant), each with the terms it
+// One document per page for the chat's knowledge base (docs/reference/dashboard), each with the terms it
 // uses: the chat sends the page's own document with every question asked on that page.
-const dir = new URL("../../docs/assistant/", import.meta.url);
+const dir = new URL("../../docs/reference/dashboard/", import.meta.url);
 mkdirSync(dir, { recursive: true });
-for (const f of readdirSync(dir).filter((x) => x.startsWith("dashboard-"))) rmSync(new URL(f, dir));
+for (const f of readdirSync(dir).filter((x) => x.endsWith(".md"))) rmSync(new URL(f, dir));  // the folder is this script's alone
 for (const [g, ids] of GROUPS) {
   for (const id of ids) {
     const p = GUIDE[id];
     // the retriever's compact entry point: the first two sentences of the page's "what"
     const brief = p.what.match(/[^.!?]+[.!?]+/g)?.slice(0, 2).join(" ").trim() ?? p.what;
-    const md = [`# Dashboard: ${p.title}`, "", `Dashboard group: ${g}. Page id: \`${id}\`.`, "", p.what, "", "## In brief", "", brief, "", "## How to read it", ""];
+    const md = [...front(`Dashboard: ${p.title}`, brief, "dashboard"), `# Dashboard: ${p.title}`, "", `Dashboard group: ${g}. Page id: \`${id}\`.`, "", p.what, "", "## In brief", "", brief, "", "## How to read it", ""];
     p.read.forEach((r, i) => md.push(`${i + 1}. ${r}`));
     md.push("", "## Sections", "");
     for (const [k, v] of p.sections) md.push(`### ${k}`, "", v, "");
@@ -65,7 +76,7 @@ for (const [g, ids] of GROUPS) {
       md.push("");
     }
     md.push(`*Generated from \`web/src/dashboard/guide.ts\`; edit the guide, not this file.*`, "");
-    writeFileSync(new URL(`dashboard-${id}.md`, dir), md.join("\n"));
+    writeFileSync(new URL(`${id}.md`, dir), md.join("\n"));
   }
 }
-console.log(`wrote docs/assistant/dashboard-*.md: ${GROUPS.flatMap(([, ids]) => ids).length} pages`);
+console.log(`wrote docs/reference/dashboard/*.md: ${GROUPS.flatMap(([, ids]) => ids).length} pages`);

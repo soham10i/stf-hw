@@ -11,5 +11,5 @@ Read `README.md` first; it maps the repository. The essentials:
   view/panel registries - add a view or panel there), `panels/`, `views/`, `scene/` (three.js),
   `dashboard/`. A standalone build (`npm run build:pages`) runs without the API.
 - **API** (`services/api`): FastAPI + WebSocket. Commands are guarded (`security.py`); keep the
-  Vite proxy's `changeOrigin: false`. See `docs/SECURITY.md`.
+  Vite proxy's `changeOrigin: false`. See `docs/reference/operations/security.md`.
 - **Tests:** `make test`, `make lint`, `cd web && npx tsc --noEmit -p .`.

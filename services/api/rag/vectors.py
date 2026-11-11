@@ -40,8 +40,8 @@ The store is chosen by STF_VECTOR_BACKEND (auto by default):
 
 The fused ranking can then pass through an optional cross-encoder reranker
 (STF_RERANKER_URL: a text-embeddings-inference /rerank endpoint, bge-reranker-v2-m3 on
-Cloud Run - see docs/GCP_RERANKER.md). It re-orders the head of the list only; when it is
-off or unreachable the fused order stands, so retrieval never depends on it.
+Cloud Run - see docs/reference/operations/gcp-reranker.md). It re-orders the head of the list
+only; when it is off or unreachable the fused order stands, so retrieval never depends on it.
 """
 
 from __future__ import annotations
@@ -57,10 +57,11 @@ import urllib.request
 import numpy as np
 
 from services.api.core import keepalive
-from . import rewrite
 from services.api.core.envcfg import dotenv
-from services.api.rag.grounding import get_bm25, tokenize
 from services.api.core.logging_config import get_logger
+from services.api.rag.grounding import get_bm25, tokenize
+
+from . import rewrite
 
 logger = get_logger(__name__)
 
@@ -713,6 +714,8 @@ class PgVectorStore:
                             "line": p.line if p else 0,
                             "doc": p.doc if p else "",
                             "path": p.path if p else [],
+                            # the document's front matter, for filtered retrieval
+                            "meta": {"module": p.module, "verified": p.verified} if p else {},
                             "emb": _pgvec(matrix[r]),
                         }
                     )

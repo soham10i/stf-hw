@@ -1,7 +1,7 @@
 // The vacuum gripper robot's axes as a physics world (the Test bench): cylindrical R-P-P, built
 // from the CAD export's vgr block - the swivel turns everything above the Drehkranz about the
 // tower, the plunge carriage runs up and down the tower, the arm reaches out under it - each on a
-// DC encoder motor with its reference switch (docs/HARDWARE_MODEL.md, the VGR's Belegungsplan).
+// DC encoder motor with its reference switch (docs/reference/factory/hardware-model.md, the VGR's Belegungsplan).
 //
 //   swivel  M3, Q5/Q6, encoder B5/B6, reference I3 - a cam on the ring closes it at 0 deg and
 //           holds it closed above (so the PLC knows which side it is on; homing leaves it first).

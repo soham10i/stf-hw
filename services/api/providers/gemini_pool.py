@@ -19,6 +19,7 @@ import time
 import urllib.error
 from dataclasses import dataclass, field
 
+from services.api.core.errors import Reason, ServiceError
 from services.api.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -66,8 +67,10 @@ def cooldown_of(e: urllib.error.HTTPError) -> float:
     return COOLDOWN.get(e.code, 30.0)
 
 
-class AllBusy(Exception):
-    """Exception raised when every Gemini model in the pool is in cooldown."""
+class AllBusy(ServiceError):
+    """Every Gemini model in the pool is cooling down after a rate limit."""
+
+    code, reason = Reason.MODELS_BUSY.code, Reason.MODELS_BUSY
 
 
 @dataclass

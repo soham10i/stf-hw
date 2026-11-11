@@ -207,7 +207,7 @@ def submodel(template_env, spec, sm_id, id_short=None):
     return sm
 
 
-# ------------------------------------------------------------- conformance
+# --- conformance
 def _sem(e):
     k = (e.get("semanticId") or {}).get("keys") or []
     return k[0]["value"] if k else None

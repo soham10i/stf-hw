@@ -2,8 +2,10 @@
 
 import sys
 import types
+
 from . import graph
 from . import graph as agent
+
 
 class _AgentDomainModule(types.ModuleType):
     def __getattr__(self, name):

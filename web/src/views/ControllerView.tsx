@@ -72,7 +72,7 @@ export function ControllerView({ doc }: { doc: ControllerDoc }) {
     return !!on[s];
   };
 
-  // ------------------------------------------------ highlight set for hover
+  // --- highlight set for hover
   const hi = useMemo(() => {
     const h = new Set<string>();
     if (!hover) return h;

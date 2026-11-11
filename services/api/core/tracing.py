@@ -244,9 +244,9 @@ def usage(data: dict) -> tuple[int | None, int | None]:
 
 def model_call(s, provider: str, model: str | None, data: dict) -> None:
     """A model request's tokens and list-price estimate, in metadata-only telemetry."""
-    from services.api.providers import token_budget as TB
+    from services.api.providers import token_budget
 
-    row = TB.meter_model(provider, model, data)
+    row = token_budget.meter_model(provider, model, data)
     i, o = row["input_tokens"], row["output_tokens"]
     put(
         s, stf__provider=provider, gen_ai__system=provider, gen_ai__request__model=model,

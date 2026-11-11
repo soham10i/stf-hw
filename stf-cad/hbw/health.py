@@ -31,8 +31,9 @@ trip, and the air figures.
 import math
 import random
 
-import control as C
-import vc as V
+import control
+import pipeline
+import vc
 
 EWMA = 0.02            # smoothing per observation
 SOFT = 0.50            # warn when half the margin to failure is used
@@ -47,18 +48,18 @@ ECB_TRIP = 1.5         # electronic breaker trips at 1.5 x the nominal current (
 def _uses():
     """How many times each (unit, done) step runs in one order, with the
     steps themselves: from the PLC's nominal run."""
-    _, ev, T, _ = C.simulate(C.PLC_POLICY)
+    _, ev, T, _ = control.simulate(control.PLC_POLICY)
     out = {}
     for t, what, job in ev:
         if what != "start":
             continue
-        for st in C.job_steps(job):
+        for st in control.job_steps(job):
             out.setdefault((st.unit, st.done), []).append(st)
     return out, T
 
 
 USES, ORDER_T = _uses()
-ORDERS_PER_SHIFT = SHIFT_H * 3600 / V.results()[0].makespan
+ORDERS_PER_SHIFT = SHIFT_H * 3600 / vc.results()[0].makespan
 
 
 def _steps(pred):
@@ -68,15 +69,15 @@ def _steps(pred):
 def _baseline(sts):
     """Per step: the healthy observed time (plant + both bus hops) and its
     watchdog. The tightest ratio limit/baseline is where the part fails."""
-    base = [(V.phys(st) + 2 * V.BUS, st.limit) for st in sts if st.limit]
+    base = [(vc.phys(st) + 2 * vc.BUS, st.limit) for st in sts if st.limit]
     r_fail = min(lim / b for b, lim in base)
     b_mean = sum(b for b, _ in base) / len(base)
     # the scan quantises every reading: that is noise too
-    sig = math.sqrt(NOISE ** 2 + (V.SCAN["default"] / b_mean) ** 2 / 12)
+    sig = math.sqrt(NOISE ** 2 + (vc.SCAN["default"] / b_mean) ** 2 / 12)
     return r_fail, b_mean, sig
 
 
-# ------------------------------------------------------------- components
+# --- components
 def components():
     """(id, name, part, unit, signal kind, source signals, the steps it watches)."""
     return [
@@ -121,13 +122,13 @@ def _per_cycle(c):
     return len(_steps(c["steps"]))
 
 
-# --------------------------------------------------------------- air model
+# --- air model
 def air_duty0():
     """Healthy compressor duty over one order: every cylinder stroke and every
     second of vacuum, against the compressor's free-air delivery (ASSUMED
     figures: 10 mm bore x 30 mm stroke at 0.7 bar = 4 cm3 free air per stroke;
     the vacuum ejector 0.3 l/min while on; the pump 1.0 l/min)."""
-    strokes = len(_steps(lambda st: st.unit in ("door", "sauger", "turntable", "line") and V.pneumatic(st)))
+    strokes = len(_steps(lambda st: st.unit in ("door", "sauger", "turntable", "line") and vc.pneumatic(st)))
     vac_s = sum(st.t for st in _steps(lambda st: st.unit == "arm" and "Q8" in st.out))
     use_l = strokes * 0.004 + vac_s / 60 * 0.3
     return use_l / (ORDER_T / 60 * 1.0)
@@ -137,14 +138,14 @@ def colour_margin():
     """mV between each flavour's nominal reading and the band edge its reading
     drifts towards (an ageing LED reads darker: down)."""
     out = []
-    for fl, v in C.PL.FLAVOURS.items():
-        lo, _ = C.BAND[v["bin"]]
+    for fl, v in pipeline.FLAVOURS.items():
+        lo, _ = control.BAND[v["bin"]]
         if lo > 0:
             out.append(v["mV"] - lo)
     return min(out)
 
 
-# ------------------------------------------------------------ simulation
+# --- simulation
 def simulate(c, degrade=True, n_max=None, seed=1):
     """Run one component cycle by cycle (one cycle = one use of its step).
     Returns the curve sampled for the dashboard, the warning cycle and the
@@ -223,7 +224,7 @@ DETECT_ONLY = [
 ]
 
 
-# ------------------------------------------------------------ data path
+# --- data path
 def topics(rows):
     """What the PLC publishes (MQTT, JSON) for the dashboard and the historian."""
     out = []
@@ -245,7 +246,7 @@ def topics(rows):
 def check_topics(rows):
     """Every health signal comes from a signal on the U5 register map, or from
     the one new reading this upgrade adds (the breaker's current)."""
-    mapped = {r["twin"] for r in V.signal_map()}
+    mapped = {r["twin"] for r in vc.signal_map()}
     fails = []
     for r in rows:
         for s in r["source"]:

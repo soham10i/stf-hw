@@ -31,9 +31,19 @@ import tempfile
 import urllib.error
 from pathlib import Path
 
-from . import mathspeak
-from services.api.agent.chat import API, ChatSettings, _post, _post_groq, dotenv, groq_model, parse, parse_groq
+from services.api.agent.chat import (
+    API,
+    ChatSettings,
+    _post,
+    _post_groq,
+    dotenv,
+    groq_model,
+    parse,
+    parse_groq,
+)
 from services.api.core.logging_config import get_logger
+
+from . import mathspeak
 
 logger = get_logger(__name__)
 

@@ -2,8 +2,10 @@
 
 import sys
 import types
+
 from . import rules
 from . import rules as security
+
 
 class _SecurityDomainModule(types.ModuleType):
     def __getattr__(self, name):

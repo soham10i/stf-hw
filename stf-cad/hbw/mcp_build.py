@@ -36,13 +36,15 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
-import FreeCAD as App
-import Part
-
-import hbw_model as HM, vgr_model as VG, oven_model as OM, sorting_model as SM
-import plc_model as PM
-import factory_layout as FL
 import detail
+import factory_layout
+import FreeCAD as App
+import hbw_model
+import oven_model
+import Part
+import plc_model
+import sorting_model
+import vgr_model
 from hbw_frames import by_frame as hbw_by_frame
 
 V = App.Vector
@@ -75,7 +77,7 @@ MODULE_KEYS = {"hbw": "HBW_Hochregallager", "vgr": "VGR_Sauggreifer", "oven": "O
 _state = {}
 
 
-# ============================================================== utilities
+# --- utilities
 def hexof(c):
     return c if isinstance(c, str) and c.startswith("#") else COLOURS.get(c, "#8b9196")
 
@@ -141,7 +143,7 @@ def _hide_origin(c):
         org.ViewObject.Visibility = False
         for f in org.OriginFeatures:
             f.ViewObject.Visibility = False
-    except Exception:
+    except Exception:  # a container without an Origin: nothing to hide
         pass
 
 
@@ -178,22 +180,23 @@ def step(step_name, **kw):
     return data
 
 
-# ============================================================== proofs
+# --- proofs
 def s_proofs():
     import vgr_path
-    checks = (("HBW", HM.check(verbose=False)), ("VGR", VG.check(verbose=False)),
-              ("OVEN", OM.check(verbose=False)), ("SORTING", SM.check(verbose=False)),
-              ("PLC", PM.check(verbose=False) if hasattr(PM, "check") else []),
-              ("CROSS", FL.check_cross() + FL.check_stations()),
+    checks = (("HBW", hbw_model.check(verbose=False)), ("VGR", vgr_model.check(verbose=False)),
+              ("OVEN", oven_model.check(verbose=False)), ("SORTING", sorting_model.check(verbose=False)),
+              ("PLC", plc_model.check(verbose=False) if hasattr(plc_model, "check") else []),
+              ("CROSS", factory_layout.check_cross() + factory_layout.check_stations()),
               ("VGR PATH", vgr_path.check(verbose=False)))
-    import mechanics, motion
+    import mechanics
+    import motion
     checks = checks + (("GUIDES", mechanics.check_guides("vgr")[0] + mechanics.check_guides("hbw")[0]),
                        ("OVEN MOTION", motion.check_oven()))
     fails = {n: f[:6] for n, f in checks if f}
     return {"ok": not fails, "fails": fails, "checked": [n for n, _ in checks]}
 
 
-# ============================================================== parts table
+# --- parts table
 def _json():
     if "json" not in _state:
         _state["json"] = json.load(open(PARTS_JSON))
@@ -207,16 +210,16 @@ def _fits(module):
     return {q["n"]: q for q in parts if "fit" in q}, {q["n"]: q for q in parts}
 
 
-# ============================================================== components
+# --- components
 def _component(cid):
     """Sub-parts of one ft component, verified against its datasheet table and
     cross-checked against the exported STEP file."""
     cache = _state.setdefault("comp", {})
     if cid in cache:
         return cache[cid]
-    import components_cad as CC
-    parts = CC.BUILDERS[cid]()
-    res, fails = CC.verify(cid, parts)
+    import components_cad
+    parts = components_cad.BUILDERS[cid]()
+    res, fails = components_cad.verify(cid, parts)
     if fails:
         raise AssertionError(f"component {cid} fails its datasheet check: {fails}")
     comp = Part.makeCompound([s for _, s, *_ in parts])
@@ -233,7 +236,7 @@ def _component(cid):
               "volume_rel_err": round(abs(v0 - v1) / max(v1, 1e-9), 6), "bbox_max_dev_mm": round(dbb, 4)}
         if xs["volume_rel_err"] > 1e-3 or dbb > 0.01:
             raise AssertionError(f"component {cid} differs from {step_path}: {xs}")
-    cache[cid] = (parts, CC.COLOURS, res, xs)
+    cache[cid] = (parts, components_cad.COLOURS, res, xs)
     return cache[cid]
 
 
@@ -419,14 +422,15 @@ def seat(root):
     return out
 
 
-# ============================================================== geometry
+# --- geometry
 def _solid(p, parent, fits, jparts, log, made):
     if p.group == "frame":
         return None
     if p.name in fits:
         made["components"] += 1
         return place_component(p, fits[p.name], parent, log)
-    import detail_rich, mechanics
+    import detail_rich
+    import mechanics
     module = jparts or ""
     subs = detail_rich.rich(p, module)
     if subs:
@@ -493,14 +497,14 @@ def _remove_tree(o):
             try:
                 names.append(x.Origin.Name)
                 names.extend(f.Name for f in x.Origin.OriginFeatures)
-            except Exception:
+            except Exception:  # a part without an Origin: nothing more to remove
                 pass
     walk(o)
     for n in names:
         if d.getObject(n) is not None:
             try:
                 d.removeObject(n)
-            except Exception:
+            except Exception:  # already removed with its parent
                 pass
 
 
@@ -531,7 +535,7 @@ def _global_bbox(root):
     return (bb.XMin, bb.YMin, bb.ZMin, bb.XMax, bb.YMax, bb.ZMax)
 
 
-# ============================================================== steps
+# --- steps
 def s_table():
     for name in list(App.listDocuments()):
         if name == DOC:
@@ -541,12 +545,12 @@ def s_table():
         import FreeCADGui as Gui
         Gui.ActiveDocument = Gui.getDocument(DOC)
     table = container("STF_Table")
-    fx, fy, ft = FL.PLATE
+    fx, fy, ft = factory_layout.PLATE
     # the table top sits 10 mm BELOW the module plates' underside (z = -10):
     # coplanar faces flicker
     top = feature("Table_Top", detail.rounded_box(fx, fy, ft, (0, 0, -10 - ft)), table, TABLE_WHITE)
     props(top, Note=f"table {fx:.0f} x {fy:.0f} (factory_layout.PLATE)")
-    _state["siblings"] = {p.name: p for p in HM.build()}
+    _state["siblings"] = {p.name: p for p in hbw_model.build()}
     d.recompute()
     return {"doc": DOC, "table": [fx, fy, ft]}
 
@@ -554,89 +558,89 @@ def s_table():
 def s_hbw():
     made, log = {"solids": 0, "components": 0}, []
     fits, _ = _fits("hbw")
-    _state["siblings"] = {p.name: p for p in HM.build()}
-    hbw = _module("hbw", (FL.TX, FL.TY, 0), FL.ROTATE_DEG)
-    base_plate(next(p for p in HM.build() if p.group == "frame"), hbw, "HBW_base_plate")
+    _state["siblings"] = {p.name: p for p in hbw_model.build()}
+    hbw = _module("hbw", (factory_layout.TX, factory_layout.TY, 0), factory_layout.ROTATE_DEG)
+    base_plate(next(p for p in hbw_model.build() if p.group == "frame"), hbw, "HBW_base_plate")
     hf = hbw_by_frame()
-    j1 = container("J1_Travel_X", hbw, (HM.P["CV_X"], 0, 0))
+    j1 = container("J1_Travel_X", hbw, (hbw_model.P["CV_X"], 0, 0))
     j2 = container("J2_Lift_Z", j1, (0, 0, 120.0))
     j3 = container("J3_Ausleger_Y", j2, (0, 0, 0))
     for fr, c in (("world", hbw), ("travel", j1), ("lift", j2), ("fork", j3)):
         for p in hf[fr]:
             _solid(p, c, fits, "hbw", log, made)
     doc().recompute()
-    return _summary("hbw", made, log, HM.build(), seat(hbw))
+    return _summary("hbw", made, log, hbw_model.build(), seat(hbw))
 
 
 def s_vgr():
     made, log = {"solids": 0, "components": 0}, []
     fits, _ = _fits("vgr")
-    vx, vy = FL.VGR_AT
+    vx, vy = factory_layout.VGR_AT
     vgr = _module("vgr", (vx, vy, 0))
-    base_plate(next(p for p in VG.build() if p.group == "frame"), vgr, "VGR_base_plate")
-    sw = container("J_Swivel", vgr, (VG.V["CX"], VG.V["CY"], 0))
-    piv = container("_pivot", sw, (-VG.V["CX"], -VG.V["CY"], 0))
+    base_plate(next(p for p in vgr_model.build() if p.group == "frame"), vgr, "VGR_base_plate")
+    sw = container("J_Swivel", vgr, (vgr_model.V["CX"], vgr_model.V["CY"], 0))
+    piv = container("_pivot", sw, (-vgr_model.V["CX"], -vgr_model.V["CY"], 0))
     pl = container("J_Plunge", piv)
     rc = container("J_Reach", pl)
-    for p in VG.build():
+    for p in vgr_model.build():
         _solid(p, {"world": vgr, "swivel": piv, "plunge": pl, "reach": rc}.get(p.frame, vgr),
                fits, "vgr", log, made)
     # the cookie on the cup (vgr_model.held_cookie), shown while the plan carries
-    hc = VG.held_cookie(0.0, 250.0, 0.0)
+    hc = vgr_model.held_cookie(0.0, 250.0, 0.0)
     ck = Part.makeCompound([detail.precise(q) for q in hc])
     o = feature("VGR_held_cookie", ck, rc, "#efe0b0")
     props(o, Note="held cookie - visible only while vgr_path.plan() carries")
     if App.GuiUp:
         o.ViewObject.Visibility = False
     doc().recompute()
-    return _summary("vgr", made, log, VG.build(), seat(vgr))
+    return _summary("vgr", made, log, vgr_model.build(), seat(vgr))
 
 
 def s_oven():
     made, log = {"solids": 0, "components": 0}, []
     fits, _ = _fits("oven")
-    oven = _module("oven", (FL.OVEN_TX, FL.OVEN_TY, 0), FL.OVEN_ROT)
-    base_plate(next(p for p in OM.build() if p.group == "frame"), oven, "OVEN_base_plate")
+    oven = _module("oven", (factory_layout.OVEN_TX, factory_layout.OVEN_TY, 0), factory_layout.OVEN_ROT)
+    base_plate(next(p for p in oven_model.build() if p.group == "frame"), oven, "OVEN_base_plate")
     jsl = container("J_Ofenschieber", oven)
     jdr = container("J_Ofentuer", oven)
-    tcx, tcy = OM.O["TT"]
+    tcx, tcy = oven_model.O["TT"]
     jtu = container("J_Drehkranz", oven, (tcx, tcy, 0))
     jtp = container("_tt_pivot", jtu, (-tcx, -tcy, 0))
     jsa = container("J_Sauger", oven)
     jlo = container("J_Senken", jsa)
     jpu = container("J_Auswerfer", oven)
     cmap = {"world": oven, "slider": jsl, "door": jdr, "turn": jtp, "sauger": jsa, "lower": jlo, "push": jpu}
-    for p in OM.build():
+    for p in oven_model.build():
         _solid(p, cmap[p.frame], fits, "oven", log, made)
     doc().recompute()
-    return _summary("oven", made, log, OM.build(), seat(oven))
+    return _summary("oven", made, log, oven_model.build(), seat(oven))
 
 
 def s_sorting():
     made, log = {"solids": 0, "components": 0}, []
     fits, _ = _fits("sorting")
-    sort = _module("sorting", (FL.SORT_TX, FL.SORT_TY, 0), FL.SORT_ROT)
-    base_plate(next(p for p in SM.build() if p.group == "frame"), sort, "SORT_base_plate")
+    sort = _module("sorting", (factory_layout.SORT_TX, factory_layout.SORT_TY, 0), factory_layout.SORT_ROT)
+    base_plate(next(p for p in sorting_model.build() if p.group == "frame"), sort, "SORT_base_plate")
     cmap = {"world": sort}
-    for i, col in enumerate(SM.COLOURS):
+    for i, col in enumerate(sorting_model.COLOURS):
         cmap[f"push{i}"] = container(f"J_Auswurf_{col}", sort)
-    for p in SM.build():
+    for p in sorting_model.build():
         _solid(p, cmap[p.frame], fits, "sorting", log, made)
     doc().recompute()
-    return _summary("sorting", made, log, SM.build(), seat(sort))
+    return _summary("sorting", made, log, sorting_model.build(), seat(sort))
 
 
 def s_plc():
     made, log = {"solids": 0, "components": 0}, []
-    plc = _module("plc", (FL.PLC_AT[0], FL.PLC_AT[1], 0))
-    base_plate(next(p for p in PM.build() if p.group == "frame"), plc, "PLC_base_plate")
-    for p in PM.build():
+    plc = _module("plc", (factory_layout.PLC_AT[0], factory_layout.PLC_AT[1], 0))
+    base_plate(next(p for p in plc_model.build() if p.group == "frame"), plc, "PLC_base_plate")
+    for p in plc_model.build():
         _solid(p, plc, {}, "plc", log, made)
     doc().recompute()
-    return _summary("plc", made, log, PM.build())
+    return _summary("plc", made, log, plc_model.build())
 
 
-# -------------------------------------------------------------- wiring
+# --- wiring
 def _fillet_wire(pts, r):
     """Polyline -> Part.Wire with a radius-r arc at each corner (r shrinks
     where the legs are short)."""
@@ -695,7 +699,7 @@ def _tube(wire, d, d_in=0.0):
             s = s.cut(wire.makePipeShell([ci], True, True))
         if s.isValid() and s.Volume > 0:
             return s
-    except Exception:
+    except Exception:  # OCC cannot sweep this pipe: cylinders below instead
         pass
     # fallback: cylinders along the discretised path + spheres at the joints
     pts = wire.discretize(Distance=2.0)
@@ -775,7 +779,7 @@ def s_wiring():
             "note": "conductor/hose diameters are assumed (WIRE_D, HOSE_D) - measure"}
 
 
-# -------------------------------------------------------------- checks
+# --- checks
 def s_interference(module="all", tol=0.05):
     """Brute force, whitelist OFF: every placed component and wire against every
     other solid, in factory coordinates. Reports, does not fix."""
@@ -851,7 +855,7 @@ def s_interference(module="all", tol=0.05):
             "wire_endpoint_contacts": len(ends)}
 
 
-# -------------------------------------------------------------- view + save
+# --- view + save
 def shot(name, only=None, view="iso", w=1600, h=1000):
     """Screenshot from the GUI. only: module keys to show (others hidden)."""
     if not App.GuiUp:
@@ -937,7 +941,7 @@ def s_save():
             "step_mb": round(os.path.getsize(STEP) / 1e6, 1), "features": n, "containers": j}
 
 
-# ------------------------------------------------------------------- motion
+# --- motion
 def s_pose(t=0.0):
     import motion
     tl = _state.setdefault("timeline", motion.timeline())
@@ -951,8 +955,8 @@ def s_play(fps=20, speed=1.0, seconds=0):
     """Animate in the GUI on a QTimer (non-blocking). seconds=0 plays forever."""
     if not App.GuiUp:
         return {"ok": False, "error": "needs the GUI"}
-    from PySide import QtCore
     import motion
+    from PySide import QtCore
     tl = _state.setdefault("timeline", motion.timeline())
     old = _state.get("timer")
     if old is not None:
@@ -985,7 +989,11 @@ def s_film(name="factory", seconds=45.0, fps=10, w=960, h=600, only=None, view="
     """Render frames through the GUI and assemble a GIF + MP4 (ffmpeg)."""
     if not App.GuiUp:
         return {"ok": False, "error": "needs the GUI"}
-    import FreeCADGui as Gui, motion, subprocess, shutil
+    import shutil
+    import subprocess
+
+    import FreeCADGui as Gui
+    import motion
     s_stop()
     tl = _state.setdefault("timeline", motion.timeline())
     d = doc()
@@ -999,7 +1007,7 @@ def s_film(name="factory", seconds=45.0, fps=10, w=960, h=600, only=None, view="
             o.ViewObject.Visibility = o.Name in keep
     try:
         v.setAnimationEnabled(False)       # view changes animate: frames would catch it turning
-    except Exception:
+    except Exception:  # a headless view has no animation to switch off
         pass
     # fit at the pose where the machines are tallest / widest (VGR at transit,
     # arm out), then leave a margin, so nothing leaves the frame mid-cycle
